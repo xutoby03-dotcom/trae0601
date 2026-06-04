@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useParams, useNavigate, useBeforeUnload } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
@@ -14,9 +14,10 @@ import { useHistoryStore } from '@/store/useHistoryStore';
 export function EditorPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const isMountedRef = useRef(true);
   
-  const { currentProject, openProject, loadProjects } = useProjectStore();
-  const { loadProjectData, createDefaultTracks, tracks, clips } = useTimelineStore();
+  const { currentProject, openProject, loadProjects, refreshThumbnail, saveCurrentProject } = useProjectStore();
+  const { loadProjectData, createDefaultTracks, tracks, clips, saveProjectData } = useTimelineStore();
   const { setFps, setDuration } = usePlaybackStore();
   const { clearHistory } = useHistoryStore();
 
@@ -47,6 +48,47 @@ export function EditorPage() {
       setDuration(Math.max(maxEnd + 5, 60));
     }
   }, [clips, setDuration]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const saveWithThumbnail = async () => {
+    if (!projectId || !currentProject) return;
+    
+    await refreshThumbnail();
+    await saveCurrentProject();
+    await saveProjectData(projectId);
+  };
+
+  useBeforeUnload(() => {
+    if (projectId && currentProject) {
+      saveWithThumbnail();
+    }
+  });
+
+  useEffect(() => {
+    let shouldSave = false;
+    
+    const handleBeforeNavigate = async () => {
+      if (projectId && currentProject && isMountedRef.current) {
+        await saveWithThumbnail();
+      }
+    };
+
+    const cleanup = () => {
+      if (shouldSave) {
+        handleBeforeNavigate();
+      }
+    };
+
+    shouldSave = true;
+    return cleanup;
+  }, [projectId, currentProject]);
 
   if (!currentProject && projectId) {
     return (

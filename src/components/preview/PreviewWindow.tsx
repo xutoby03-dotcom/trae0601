@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
 import { useTimelineStore } from '@/store/useTimelineStore';
@@ -6,17 +6,55 @@ import { PreviewEngine } from '@/engine/PreviewEngine';
 import { PlaybackControls } from './PlaybackControls';
 import { TimecodeDisplay } from './TimecodeDisplay';
 
+const THUMBNAIL_WIDTH = 320;
+const THUMBNAIL_HEIGHT = 180;
+const THUMBNAIL_INTERVAL = 5000;
+
 export function PreviewWindow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<PreviewEngine | null>(null);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const thumbnailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const currentProject = useProjectStore((state) => state.currentProject);
+  const updateProject = useProjectStore((state) => state.updateProject);
   const { isPlaying, currentTime, fps, setCurrentTime, duration } = usePlaybackStore();
   const { tracks, clips, mediaItems } = useTimelineStore();
   
   const [isComposing, setIsComposing] = useState(false);
+  
+  const generateThumbnail = useCallback(async (): Promise<string | null> => {
+    if (!canvasRef.current) return null;
+    
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = THUMBNAIL_WIDTH;
+      canvas.height = THUMBNAIL_HEIGHT;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      
+      ctx.drawImage(
+        canvasRef.current,
+        0, 0, canvasRef.current.width, canvasRef.current.height,
+        0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT
+      );
+      
+      return canvas.toDataURL('image/jpeg', 0.8);
+    } catch (error) {
+      console.error('Failed to generate thumbnail:', error);
+      return null;
+    }
+  }, []);
+  
+  const updateThumbnail = useCallback(async () => {
+    if (!currentProject) return;
+    
+    const thumbnail = await generateThumbnail();
+    if (thumbnail) {
+      updateProject({ thumbnail });
+    }
+  }, [currentProject, generateThumbnail, updateProject]);
 
   useEffect(() => {
     if (!canvasRef.current || !currentProject) return;
@@ -28,14 +66,32 @@ export function PreviewWindow() {
     });
     
     engineRef.current = engine;
+    
+    window.__thumbnailGenerator = generateThumbnail;
+    
+    const scheduleThumbnailUpdate = () => {
+      thumbnailTimerRef.current = setTimeout(async () => {
+        await updateThumbnail();
+        scheduleThumbnailUpdate();
+      }, THUMBNAIL_INTERVAL);
+    };
+    scheduleThumbnailUpdate();
+    
+    updateThumbnail();
 
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      if (thumbnailTimerRef.current) {
+        clearTimeout(thumbnailTimerRef.current);
+      }
+      if (window.__thumbnailGenerator === generateThumbnail) {
+        window.__thumbnailGenerator = undefined;
+      }
       engine.dispose();
     };
-  }, [currentProject]);
+  }, [currentProject, generateThumbnail, updateThumbnail]);
 
   useEffect(() => {
     if (!engineRef.current || !currentProject) return;

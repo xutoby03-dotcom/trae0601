@@ -14,6 +14,8 @@ interface ProjectState {
   deleteProject: (projectId: string) => Promise<void>;
   saveCurrentProject: () => Promise<void>;
   updateProjectName: (name: string) => void;
+  updateProject: (updates: Partial<Project>) => void;
+  refreshThumbnail: () => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -80,5 +82,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set((state) => ({
       currentProject: state.currentProject ? { ...state.currentProject, name } : null,
     }));
+  },
+  
+  updateProject: (updates) => {
+    set((state) => ({
+      currentProject: state.currentProject ? { ...state.currentProject, ...updates } : null,
+    }));
+  },
+  
+  refreshThumbnail: async () => {
+    const { currentProject } = get();
+    if (!currentProject) return;
+    
+    if (window.__thumbnailGenerator) {
+      const thumbnail = await window.__thumbnailGenerator();
+      if (thumbnail) {
+        set((state) => ({
+          currentProject: state.currentProject ? { ...state.currentProject, thumbnail } : null,
+        }));
+      }
+    }
   },
 }));

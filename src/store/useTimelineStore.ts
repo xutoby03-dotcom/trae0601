@@ -4,6 +4,7 @@ import type { MediaItem } from '@/types/media';
 import { generateId, snapToFrame } from '@/utils/timecode';
 import * as db from '@/utils/indexedDB';
 import { parseSRT } from '@/utils/srtParser';
+import { useProjectStore } from './useProjectStore';
 
 interface TimelineState {
   tracks: Track[];
@@ -189,13 +190,24 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
   saveProjectData: async (projectId) => {
     const state = get();
     const project = await db.getProject(projectId);
+    const currentProject = useProjectStore.getState().currentProject;
+    
     if (project) {
+      const projectToSave = {
+        ...project,
+        thumbnail: currentProject?.thumbnail ?? project.thumbnail,
+      };
+      
       await db.saveAllProjectData({
-        project,
+        project: projectToSave,
         mediaItems: state.mediaItems,
         tracks: state.tracks,
         clips: state.clips,
       });
+      
+      if (currentProject) {
+        useProjectStore.getState().updateProject({ thumbnail: projectToSave.thumbnail });
+      }
     }
   },
   

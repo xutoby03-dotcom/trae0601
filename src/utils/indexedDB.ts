@@ -44,10 +44,19 @@ export async function initDB(): Promise<IDBPDatabase> {
 
 export async function saveProject(project: Project): Promise<void> {
   const database = await initDB();
-  await database.put('projects', {
+  
+  const existingProject = await database.get('projects', project.id);
+  const projectToSave = {
+    ...existingProject,
     ...project,
     updatedAt: new Date(),
-  });
+  };
+  
+  if (project.thumbnail !== undefined) {
+    projectToSave.thumbnail = project.thumbnail;
+  }
+  
+  await database.put('projects', projectToSave);
 }
 
 export async function getProject(projectId: string): Promise<Project | undefined> {
@@ -124,10 +133,18 @@ export async function saveAllProjectData(data: ProjectData): Promise<void> {
   const database = await initDB();
   const tx = database.transaction(['projects', 'mediaItems', 'tracks', 'clips'], 'readwrite');
   
-  await tx.objectStore('projects').put({
+  const existingProject = await tx.objectStore('projects').get(data.project.id);
+  const projectToSave = {
+    ...existingProject,
     ...data.project,
     updatedAt: new Date(),
-  });
+  };
+  
+  if (data.project.thumbnail !== undefined) {
+    projectToSave.thumbnail = data.project.thumbnail;
+  }
+  
+  await tx.objectStore('projects').put(projectToSave);
   
   for (const mediaItem of data.mediaItems) {
     await tx.objectStore('mediaItems').put(mediaItem);
