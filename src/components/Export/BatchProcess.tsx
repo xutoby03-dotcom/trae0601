@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
-import { X, Upload, Download, Loader2 } from 'lucide-react';
+import { useState, useRef, useMemo } from 'react';
+import { X, Upload, Download, Loader2, Sliders } from 'lucide-react';
 import JSZip from 'jszip';
 import { useEditorStore } from '../../store/editorStore';
 import { loadImage, getImageDataFromImage, imageDataToCanvas, canvasToBlob, downloadBlob } from '../../utils/canvasUtils';
 import { applyAllFilters } from '../../utils/filterAlgorithms';
 import type { FilterSettings } from '../../types';
+import { DEFAULT_FILTERS } from '../../types';
 
 interface BatchProcessProps {
   onClose: () => void;
@@ -30,7 +31,36 @@ export const BatchProcess = ({ onClose }: BatchProcessProps) => {
   const [format, setFormat] = useState<'image/png' | 'image/jpeg' | 'image/webp'>('image/png');
   const [quality, setQuality] = useState(0.9);
 
-  const { activeLayerFilters, canvasWidth, canvasHeight } = useEditorStore();
+  const { layers, selectedLayerId, getSelectedLayer } = useEditorStore();
+
+  const batchFilters = useMemo((): FilterSettings => {
+    const selected = getSelectedLayer();
+    if (selected && selected.type === 'image' && selected.filters) {
+      return selected.filters;
+    }
+    const imageLayer = layers.find((l) => l.type === 'image');
+    if (imageLayer && 'filters' in imageLayer) {
+      return imageLayer.filters;
+    }
+    return DEFAULT_FILTERS;
+  }, [layers, selectedLayerId, getSelectedLayer]);
+
+  const activeFilterCount = useMemo(() => {
+    return Object.entries(batchFilters).filter(([_, value]) => Math.abs(value as number) > 0.1).length;
+  }, [batchFilters]);
+
+  const filterNames: Record<keyof FilterSettings, string> = {
+    brightness: '亮度',
+    contrast: '对比度',
+    saturation: '饱和度',
+    hue: '色调',
+    blur: '模糊',
+    sharpen: '锐化',
+    grayscale: '灰度',
+    invert: '反色',
+    nostalgia: '怀旧',
+    lomo: 'Lomo',
+  };
 
   const handleFileSelect = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -80,7 +110,7 @@ export const BatchProcess = ({ onClose }: BatchProcessProps) => {
         );
 
         try {
-          const blob = await processImage(batchFile.file, activeLayerFilters);
+          const blob = await processImage(batchFile.file, batchFilters);
           
           const baseName = batchFile.name.replace(/\.[^/.]+$/, '');
           zip.file(`${baseName}_processed.${ext}`, blob);
@@ -208,9 +238,43 @@ export const BatchProcess = ({ onClose }: BatchProcessProps) => {
           </div>
 
           <div className="mt-4 p-3 bg-[#1a1a1a] rounded-lg">
-            <p className="text-xs text-gray-500">
-              将应用当前的滤镜设置到所有图片
-            </p>
+            <div className="flex items-center gap-2 mb-2">
+              <Sliders className="w-4 h-4 text-blue-400" />
+              <span className="text-sm text-gray-300 font-medium">
+                批量滤镜参数
+                {activeFilterCount > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded">
+                    {activeFilterCount} 项生效
+                  </span>
+                )}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              {(Object.keys(batchFilters) as Array<keyof FilterSettings>).map((key) => {
+                const value = batchFilters[key] as number;
+                const isActive = Math.abs(value) > 0.1;
+                return (
+                  <div
+                    key={key}
+                    className={`flex justify-between ${
+                      isActive ? 'text-gray-300' : 'text-gray-600'
+                    }`}
+                  >
+                    <span>{filterNames[key]}</span>
+                    <span className={isActive ? 'text-blue-400 font-mono' : ''}>
+                      {value > 0 ? '+' : ''}{value.toFixed(0)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {activeFilterCount === 0 && (
+              <p className="text-xs text-gray-500 mt-2 italic">
+                当前无滤镜效果，将输出原图
+              </p>
+            )}
           </div>
         </div>
 

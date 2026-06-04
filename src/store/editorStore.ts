@@ -43,7 +43,7 @@ interface EditorState {
   
   addLayer: (layer: Layer) => void;
   removeLayer: (layerId: string) => void;
-  updateLayer: (layerId: string, updates: Partial<Layer>) => void;
+  updateLayer: (layerId: string, updates: Partial<Layer>, saveHistory?: boolean) => void;
   selectLayer: (layerId: string | null) => void;
   moveLayer: (layerId: string, targetIndex: number) => void;
   duplicateLayer: (layerId: string) => void;
@@ -156,11 +156,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     return { layers, selectedLayerId };
   }),
 
-  updateLayer: (layerId, updates) => set((state) => ({
-    layers: state.layers.map((l) =>
-      l.id === layerId ? { ...l, ...updates } as Layer : l
-    ),
-  })),
+  updateLayer: (layerId, updates, saveHistoryFlag = false) => {
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === layerId ? { ...l, ...updates } as Layer : l
+      ),
+    }));
+    if (saveHistoryFlag) {
+      get().saveHistory(layerId);
+    }
+  },
 
   selectLayer: (layerId) => set({ selectedLayerId: layerId }),
 
@@ -201,9 +206,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     cropSettings: { ...state.cropSettings, ...settings },
   })),
 
-  applyCrop: () => set((state) => {
+  applyCrop: () => {
+    const state = get();
     const { cropSettings, layers, canvasWidth, canvasHeight } = state;
-    if (!cropSettings.active || layers.length === 0) return state;
+    if (!cropSettings.active || layers.length === 0) return;
 
     const { x, y, width, height } = cropSettings;
     const newLayers = layers.map((layer) => {
@@ -238,7 +244,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return true;
     });
 
-    return {
+    set({
       layers: newLayers,
       canvasWidth: width,
       canvasHeight: height,
@@ -251,11 +257,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         y: 0,
       },
       activeTool: 'select',
-    };
-  }),
+    });
+    
+    newLayers.forEach((layer) => {
+      get().saveHistory(layer.id);
+    });
+  },
 
-  rotateCanvas: (degrees) => set((state) => {
-    if (state.layers.length === 0) return state;
+  rotateCanvas: (degrees) => {
+    const state = get();
+    if (state.layers.length === 0) return;
     
     const newLayers = state.layers.map((layer) => {
       if (layer.type === 'image' && layer.imageData) {
@@ -282,15 +293,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
 
     const firstLayer = newLayers[0];
-    return {
+    set({
       layers: newLayers,
       canvasWidth: firstLayer.width,
       canvasHeight: firstLayer.height,
-    };
-  }),
+    });
+    
+    newLayers.forEach((layer) => {
+      get().saveHistory(layer.id);
+    });
+  },
 
-  flipCanvas: (horizontal) => set((state) => {
-    if (state.layers.length === 0) return state;
+  flipCanvas: (horizontal) => {
+    const state = get();
+    if (state.layers.length === 0) return;
     
     const newLayers = state.layers.map((layer) => {
       if (layer.type === 'image' && layer.imageData) {
@@ -307,8 +323,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return { ...layer, y: state.canvasHeight - layer.y - layer.height } as Layer;
     });
 
-    return { layers: newLayers };
-  }),
+    set({ layers: newLayers });
+    
+    newLayers.forEach((layer) => {
+      get().saveHistory(layer.id);
+    });
+  },
 
   addTextLayer: (content, x, y) => set((state) => {
     const base = createBaseLayer('text', '文字', 200, 50);
@@ -330,6 +350,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       width: 200,
       height: 50,
     };
+    
+    const initialSnapshot = { ...textLayer };
+    textLayer.history = [{ timestamp: Date.now(), snapshot: initialSnapshot }];
+    textLayer.historyIndex = 0;
+    
     return {
       layers: [...state.layers, textLayer],
       selectedLayerId: textLayer.id,
@@ -337,13 +362,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     };
   }),
 
-  updateTextLayer: (layerId, updates) => set((state) => ({
-    layers: state.layers.map((l) =>
-      l.id === layerId && l.type === 'text'
-        ? { ...l, ...updates } as TextLayer
-        : l
-    ),
-  })),
+  updateTextLayer: (layerId, updates) => {
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === layerId && l.type === 'text'
+          ? { ...l, ...updates } as TextLayer
+          : l
+      ),
+    }));
+    get().saveHistory(layerId);
+  },
 
   addMosaicLayer: () => set((state) => {
     const baseLayer = state.layers.find((l) => l.type === 'image') as ImageLayer | undefined;
@@ -355,6 +383,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       brushSize: 15,
       paths: [],
     };
+    
+    const initialSnapshot = { ...mosaicLayer };
+    mosaicLayer.history = [{ timestamp: Date.now(), snapshot: initialSnapshot }];
+    mosaicLayer.historyIndex = 0;
+    
     return {
       layers: [...state.layers, mosaicLayer],
       selectedLayerId: mosaicLayer.id,
@@ -385,23 +418,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     };
   }),
 
-  finishMosaicPath: () => set((state) => {
-    if (!state.currentMosaicPath) return state;
+  finishMosaicPath: () => {
+    const state = get();
+    if (!state.currentMosaicPath) return;
     
     const selectedLayer = state.getSelectedLayer() as MosaicLayer | null;
     if (!selectedLayer || selectedLayer.type !== 'mosaic') {
-      return { currentMosaicPath: null };
+      set({ currentMosaicPath: null });
+      return;
     }
 
-    return {
+    set((state) => ({
       layers: state.layers.map((l) =>
         l.id === selectedLayer.id && l.type === 'mosaic'
           ? { ...l, paths: [...l.paths, state.currentMosaicPath!] } as MosaicLayer
           : l
       ),
       currentMosaicPath: null,
-    };
-  }),
+    }));
+    
+    get().saveHistory(selectedLayer.id);
+  },
 
   addDrawingLayer: () => set((state) => {
     const base = createBaseLayer('drawing', '涂鸦', state.canvasWidth, state.canvasHeight);
@@ -412,6 +449,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       brushSize: 5,
       paths: [],
     };
+    
+    const initialSnapshot = { ...drawingLayer };
+    drawingLayer.history = [{ timestamp: Date.now(), snapshot: initialSnapshot }];
+    drawingLayer.historyIndex = 0;
+    
     return {
       layers: [...state.layers, drawingLayer],
       selectedLayerId: drawingLayer.id,
@@ -437,23 +479,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     };
   }),
 
-  finishDrawingPath: () => set((state) => {
-    if (!state.currentDrawingPath) return state;
+  finishDrawingPath: () => {
+    const state = get();
+    if (!state.currentDrawingPath) return;
     
     const selectedLayer = state.getSelectedLayer() as DrawingLayer | null;
     if (!selectedLayer || selectedLayer.type !== 'drawing') {
-      return { currentDrawingPath: null };
+      set({ currentDrawingPath: null });
+      return;
     }
 
-    return {
+    set((state) => ({
       layers: state.layers.map((l) =>
         l.id === selectedLayer.id && l.type === 'drawing'
           ? { ...l, paths: [...l.paths, state.currentDrawingPath!] } as DrawingLayer
           : l
       ),
       currentDrawingPath: null,
-    };
-  }),
+    }));
+    
+    get().saveHistory(selectedLayer.id);
+  },
 
   startLasso: (point) => set({
     lassoPoints: [point],
@@ -487,6 +533,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       imageData: cutoutData,
       maskData,
     };
+    
+    const initialSnapshot = { ...cutoutLayer };
+    cutoutLayer.history = [{ timestamp: Date.now(), snapshot: initialSnapshot }];
+    cutoutLayer.historyIndex = 0;
 
     return {
       layers: [...state.layers, cutoutLayer],
@@ -497,26 +547,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     };
   }),
 
-  updateLayerFilters: (layerId, filters) => set((state) => ({
-    layers: state.layers.map((l) =>
-      l.id === layerId && l.type === 'image'
-        ? { ...l, filters: { ...l.filters, ...filters } } as ImageLayer
-        : l
-    ),
-    activeLayerFilters: {
-      ...state.activeLayerFilters,
-      ...filters,
-    },
-  })),
+  updateLayerFilters: (layerId, filters) => {
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === layerId && l.type === 'image'
+          ? { ...l, filters: { ...l.filters, ...filters } } as ImageLayer
+          : l
+      ),
+      activeLayerFilters: {
+        ...state.activeLayerFilters,
+        ...filters,
+      },
+    }));
+    get().saveHistory(layerId);
+  },
 
-  resetLayerFilters: (layerId) => set((state) => ({
-    layers: state.layers.map((l) =>
-      l.id === layerId && l.type === 'image'
-        ? { ...l, filters: { ...DEFAULT_FILTERS } } as ImageLayer
-        : l
-    ),
-    activeLayerFilters: { ...DEFAULT_FILTERS },
-  })),
+  resetLayerFilters: (layerId) => {
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === layerId && l.type === 'image'
+          ? { ...l, filters: { ...DEFAULT_FILTERS } } as ImageLayer
+          : l
+      ),
+      activeLayerFilters: { ...DEFAULT_FILTERS },
+    }));
+    get().saveHistory(layerId);
+  },
 
   undo: (layerId) => set((state) => {
     const layer = state.layers.find((l) => l.id === layerId);
@@ -576,6 +632,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       imageData,
       filters: { ...DEFAULT_FILTERS },
     };
+
+    const initialSnapshot = { ...imageLayer };
+    imageLayer.history = [{ timestamp: Date.now(), snapshot: initialSnapshot }];
+    imageLayer.historyIndex = 0;
 
     set({
       layers: [imageLayer],

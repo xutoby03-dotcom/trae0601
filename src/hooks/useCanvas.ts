@@ -42,6 +42,7 @@ export const useCanvas = () => {
     finishLasso,
     getSelectedLayer,
     getBaseImageData,
+    saveHistory,
   } = useEditorStore();
 
   const getCanvasCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement>): Point => {
@@ -270,15 +271,20 @@ export const useCanvas = () => {
   ]);
 
   const handleMouseUp = useCallback(() => {
+    const draggedLayerId = dragLayerRef.current;
     isDraggingRef.current = false;
     dragLayerRef.current = null;
+
+    if (draggedLayerId && activeTool === 'select') {
+      saveHistory(draggedLayerId);
+    }
 
     if (activeTool === 'drawing' && currentDrawingPath) {
       finishDrawingPath();
     } else if (activeTool === 'mosaic' && currentMosaicPath) {
       finishMosaicPath();
     }
-  }, [activeTool, currentDrawingPath, currentMosaicPath, finishDrawingPath, finishMosaicPath]);
+  }, [activeTool, currentDrawingPath, currentMosaicPath, finishDrawingPath, finishMosaicPath, saveHistory]);
 
   const handleDoubleClick = useCallback(() => {
     if (activeTool === 'lasso' && isDrawingLasso && lassoPoints.length > 2) {
