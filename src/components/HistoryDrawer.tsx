@@ -6,6 +6,7 @@ import { useEditorStore } from '@/stores/useEditorStore';
 import { useSqlStore } from '@/stores/useSqlStore';
 import type { QueryHistoryItem } from '@/types';
 import { databases } from '@/data/databases';
+import { cn } from '@/lib/utils';
 
 interface HistoryDrawerProps {
   open: boolean;
@@ -13,10 +14,18 @@ interface HistoryDrawerProps {
 }
 
 export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
-  const { setSql, setShowHistory, setResult, setIsExecuting, setProblemResultMatch, currentProblemId } = useEditorStore();
-  const { switchDatabase, executeQuery, currentDatabaseId } = useSqlStore();
+  const {
+    setSql,
+    setShowHistory,
+    setResult,
+    setIsExecuting,
+    setProblemResultMatch,
+    currentProblemId,
+  } = useEditorStore();
+  const { switchDatabase, executeQuery } = useSqlStore();
   const [history, setHistory] = useState<QueryHistoryItem[]>([]);
   const [everHadRecords, setEverHadRecords] = useState(false);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   const refreshHistory = useCallback(async () => {
     const p = await getProgress();
@@ -29,6 +38,7 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
   }, [open, refreshHistory]);
 
   const handleSelect = (item: QueryHistoryItem) => {
+    if (runningId) return;
     setSql(item.sql, true);
     switchDatabase(item.databaseId);
     setShowHistory(false);
@@ -37,35 +47,39 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
 
   const handleRun = async (e: React.MouseEvent, item: QueryHistoryItem) => {
     e.stopPropagation();
-    setSql(item.sql, true);
-    switchDatabase(item.databaseId);
-    setIsExecuting(true);
-    const result = await executeQuery(item.sql);
-    setResult(result);
-    setIsExecuting(false);
+    if (runningId) return;
+    setRunningId(item.id);
+    try {
+      setSql(item.sql, true);
+      switchDatabase(item.databaseId);
+      setIsExecuting(true);
+      const result = await executeQuery(item.sql);
+      setResult(result);
+      setIsExecuting(false);
 
-    await addToHistory({
-      id: Date.now().toString(),
-      sql: item.sql,
-      databaseId: item.databaseId,
-      result,
-      executedAt: Date.now(),
-    });
-    await refreshHistory();
+      await addToHistory({
+        id: Date.now().toString(),
+        sql: item.sql,
+        databaseId: item.databaseId,
+        result,
+        executedAt: Date.now(),
+      });
+      await refreshHistory();
 
-    await checkProblemMatch({
-      currentProblemId,
-      result,
-      executeQuery,
-      onMatchChange: setProblemResultMatch,
-    });
-
-    setShowHistory(false);
-    onClose();
+      await checkProblemMatch({
+        currentProblemId,
+        result,
+        executeQuery,
+        onMatchChange: setProblemResultMatch,
+      });
+    } finally {
+      setRunningId(null);
+    }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    if (runningId) return;
     const progress = await getProgress();
     progress.queryHistory = progress.queryHistory.filter((h) => h.id !== id);
     await saveProgress(progress);
@@ -73,6 +87,7 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
   };
 
   const handleClearAll = async () => {
+    if (runningId) return;
     if (!confirm('确定要清空所有历史记录吗？此操作不可撤销！')) return;
     const progress = await getProgress();
     progress.queryHistory = [];
@@ -132,56 +147,80 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
             </div>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-700">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group"
-                  onClick={() => handleSelect(item)}
-                >
-                  <div className="flex items-start gap-2">
-                    <button
-                      onClick={(e) => handleRun(e, item)}
-                      className="mt-0.5 p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-400 hover:text-green-600 transition-colors flex-shrink-0"
-                      title="立即运行"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <pre className="text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-all line-clamp-3">
-                        {item.sql}
-                      </pre>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <DbIcon className="w-3 h-3" />
-                          {getDbName(item.databaseId)}
-                        </span>
-                        <span>
-                          {item.result?.error ? (
-                            <span className="text-red-500">错误</span>
-                          ) : (
-                            <span>{item.result?.rows?.length ?? 0} 行</span>
-                          )}
-                        </span>
-                        <span>
-                          {new Date(item.executedAt).toLocaleString('zh-CN', {
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
+              {history.map((item) => {
+                const isRunning = runningId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    className={cn(
+                      'px-4 py-3 transition-colors group',
+                      isRunning
+                        ? 'bg-cyan-50 dark:bg-cyan-900/20 cursor-not-allowed'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer'
+                    )}
+                    onClick={() => !isRunning && handleSelect(item)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <button
+                        onClick={(e) => handleRun(e, item)}
+                        disabled={isRunning}
+                        className={cn(
+                          'mt-0.5 p-1 rounded flex-shrink-0 transition-colors',
+                          isRunning
+                            ? 'text-cyan-500 cursor-not-allowed'
+                            : 'hover:bg-green-100 dark:hover:bg-green-900/30 text-gray-400 hover:text-green-600'
+                        )}
+                        title={isRunning ? '执行中...' : '立即运行'}
+                      >
+                        {isRunning ? (
+                          <div className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <pre className="text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-all line-clamp-3">
+                          {item.sql}
+                        </pre>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <DbIcon className="w-3 h-3" />
+                            {getDbName(item.databaseId)}
+                          </span>
+                          <span>
+                            {item.result?.error ? (
+                              <span className="text-red-500">错误</span>
+                            ) : (
+                              <span>{item.result?.rows?.length ?? 0} 行</span>
+                            )}
+                          </span>
+                          <span>
+                            {new Date(item.executedAt).toLocaleString('zh-CN', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
                       </div>
+                      <button
+                        onClick={(e) => handleDelete(e, item.id)}
+                        disabled={isRunning}
+                        className={cn(
+                          'mt-0.5 p-1 rounded transition-all flex-shrink-0',
+                          isRunning
+                            ? 'text-gray-300 cursor-not-allowed'
+                            : 'hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100'
+                        )}
+                        title="删除此记录"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => handleDelete(e, item.id)}
-                      className="mt-0.5 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                      title="删除此记录"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
