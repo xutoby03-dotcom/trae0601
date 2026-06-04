@@ -1,4 +1,4 @@
-import { Task, Dependency, CalendarConfig, ResourceConflict, ProjectData } from '../types';
+import { Task, Dependency, CalendarConfig, ResourceConflict, ProjectData, ConflictInfo, TaskConflictDetail } from '../types';
 import { isDateInRange } from './dateUtils';
 
 export const detectResourceConflicts = (tasks: Task[]): ResourceConflict[] => {
@@ -38,6 +38,41 @@ export const detectResourceConflicts = (tasks: Task[]): ResourceConflict[] => {
   });
 
   return conflicts;
+};
+
+export const buildConflictInfo = (tasks: Task[]): ConflictInfo => {
+  const conflicts = detectResourceConflicts(tasks);
+  const conflictedTaskIds = new Set<string>();
+  const conflictedResources = new Set<string>();
+  const taskConflictMap = new Map<string, TaskConflictDetail>();
+
+  const taskNameMap = new Map(tasks.map((t) => [t.id, t.name]));
+
+  conflicts.forEach((c) => {
+    conflictedTaskIds.add(c.task1Id);
+    conflictedTaskIds.add(c.task2Id);
+    conflictedResources.add(c.resource);
+
+    for (const tid of [c.task1Id, c.task2Id]) {
+      const otherId = tid === c.task1Id ? c.task2Id : c.task1Id;
+      if (!taskConflictMap.has(tid)) {
+        taskConflictMap.set(tid, { conflictedResources: [], overlaps: [] });
+      }
+      const detail = taskConflictMap.get(tid)!;
+      if (!detail.conflictedResources.includes(c.resource)) {
+        detail.conflictedResources.push(c.resource);
+      }
+      detail.overlaps.push({
+        resource: c.resource,
+        otherTaskId: otherId,
+        otherTaskName: taskNameMap.get(otherId),
+        overlapStart: c.startDate,
+        overlapEnd: c.endDate,
+      });
+    }
+  });
+
+  return { conflicts, conflictedTaskIds, conflictedResources, taskConflictMap };
 };
 
 export const exportToJSON = (

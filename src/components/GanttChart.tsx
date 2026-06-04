@@ -8,6 +8,7 @@ import {
   LinkDragState,
   Dependency,
   DependencyType,
+  ConflictInfo,
 } from '../types';
 import {
   parseDate,
@@ -38,6 +39,7 @@ interface GanttChartProps {
   onUpdateDependency: (depId: string, newType: DependencyType) => void;
   calendar: CalendarConfig;
   resourceFilter: string | null;
+  conflictInfo: ConflictInfo;
 }
 
 const GanttChart: React.FC<GanttChartProps> = ({
@@ -58,6 +60,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
   onUpdateDependency,
   calendar,
   resourceFilter,
+  conflictInfo,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -366,24 +369,29 @@ const GanttChart: React.FC<GanttChartProps> = ({
             const top = getTaskTop(task.id);
             const width = getTaskWidth(task);
             const barClass = getTaskBarClass(task);
+            const hasConflict = conflictInfo.conflictedTaskIds.has(task.id);
 
             if (task.isMilestone) {
               return (
                 <div
                   key={task.id}
-                  className={`task-milestone ${barClass}`}
+                  className={`task-milestone ${barClass} ${hasConflict ? 'conflict' : ''}`}
                   style={{ left: left + width / 2 - 10, top }}
                   onMouseEnter={(e) => handleTaskHover(e, task.id)}
                   onMouseLeave={handleTaskLeave}
                   title={task.name}
-                />
+                >
+                  {hasConflict && (
+                    <span className="conflict-badge" title="资源冲突">!</span>
+                  )}
+                </div>
               );
             }
 
             return (
               <div
                 key={task.id}
-                className={`task-bar ${barClass}`}
+                className={`task-bar ${barClass} ${hasConflict ? 'conflict' : ''}`}
                 style={{ left, top, width }}
                 onMouseDown={(e) => handleMouseDown(e, task, 'move')}
                 onMouseEnter={(e) => handleTaskHover(e, task.id)}
@@ -394,6 +402,10 @@ const GanttChart: React.FC<GanttChartProps> = ({
                   style={{ width: `${task.progress}%` }}
                 />
                 <span className="task-bar-label">{task.name}</span>
+
+                {hasConflict && (
+                  <span className="conflict-badge" title="资源冲突">!</span>
+                )}
 
                 <div
                   className="task-bar-resize-handle left"
@@ -464,6 +476,20 @@ const GanttChart: React.FC<GanttChartProps> = ({
               <span className="tooltip-value">{tooltipTask.assignees.join(', ')}</span>
             </div>
           )}
+          {(() => {
+            const detail = conflictInfo.taskConflictMap.get(tooltipTask.id);
+            if (!detail) return null;
+            return (
+              <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 8 }}>
+                <div style={{ color: '#ff7875', fontWeight: 600, marginBottom: 4 }}>⚠ 资源冲突</div>
+                {detail.overlaps.map((o, idx) => (
+                  <div key={idx} style={{ fontSize: 11, color: '#ffa39e', lineHeight: 1.6 }}>
+                    {o.resource} 与「{o.otherTaskName || o.otherTaskId}」{o.overlapStart} ~ {o.overlapEnd} 重叠
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

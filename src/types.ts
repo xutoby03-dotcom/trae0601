@@ -87,3 +87,15 @@ export interface ResourceConflict {
   startDate: string;
   endDate: string;
 }
+
+export interface TaskConflictDetail {
+  conflictedResources: string[];
+  overlaps: { resource: string; otherTaskId: string; otherTaskName?: string; overlapStart: string; overlapEnd: string }[];
+}
+
+export interface ConflictInfo {
+  conflicts: ResourceConflict[];
+  conflictedTaskIds: Set<string>;
+  conflictedResources: Set<string>;
+  taskConflictMap: Map<string, TaskConflictDetail>;
+}

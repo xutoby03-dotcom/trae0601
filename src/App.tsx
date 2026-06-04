@@ -8,7 +8,6 @@ import {
   CalendarConfig,
   TimeUnit,
   ProjectData,
-  ResourceConflict,
 } from './types';
 import {
   getAllProjectData,
@@ -44,7 +43,7 @@ import {
   downloadFile,
   exportAsPNG,
   importFromJSON,
-  detectResourceConflicts,
+  buildConflictInfo,
 } from './utils/exportUtils';
 import TaskTree from './components/TaskTree';
 import Timeline from './components/Timeline';
@@ -119,8 +118,8 @@ const App: React.FC = () => {
 
   const dateRange = useMemo(() => getProjectDateRange(tasks), [tasks]);
 
-  const resourceConflicts = useMemo(
-    () => detectResourceConflicts(tasks),
+  const conflictInfo = useMemo(
+    () => buildConflictInfo(tasks),
     [tasks]
   );
 
@@ -762,7 +761,9 @@ const App: React.FC = () => {
           >
             <option value="">全部</option>
             {resources.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>
+                {conflictInfo.conflictedResources.has(r) ? '❗ ' : ''}{r}
+              </option>
             ))}
           </select>
         </div>
@@ -819,19 +820,22 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {resourceConflicts.length > 0 && (
-        <div className="alert alert-warning" style={{ margin: '8px 16px 0' }}>
-          <span>
-            ⚠️ 检测到 {resourceConflicts.length} 个资源冲突:
-            {resourceConflicts.slice(0, 3).map((c, i) => (
-              <span key={i} style={{ marginLeft: '8px' }}>
-                {c.resource} 在 {c.startDate} ~ {c.endDate} 有冲突
-              </span>
-            ))}
-            {resourceConflicts.length > 3 && ` 等${resourceConflicts.length - 3}个`}
-          </span>
-        </div>
-      )}
+      {conflictInfo.conflicts.length > 0 && (() => {
+        const taskNameMap = new Map(tasks.map((t) => [t.id, t.name]));
+        return (
+          <div className="alert alert-warning" style={{ margin: '8px 16px 0' }}>
+            <span>
+              ⚠️ 检测到 {conflictInfo.conflicts.length} 个资源冲突：
+              {conflictInfo.conflicts.slice(0, 4).map((c, i) => (
+                <span key={i} style={{ marginLeft: '8px' }}>
+                  {c.resource}（{taskNameMap.get(c.task1Id) || c.task1Id} 与 {taskNameMap.get(c.task2Id) || c.task2Id} {c.startDate}~{c.endDate}）
+                </span>
+              ))}
+              {conflictInfo.conflicts.length > 4 && ` 等${conflictInfo.conflicts.length - 4}个`}
+            </span>
+          </div>
+        );
+      })()}
 
       <div
         className="gantt-main"
@@ -878,6 +882,7 @@ const App: React.FC = () => {
             onUpdateDependency={handleUpdateDependency}
             calendar={calendar}
             resourceFilter={resourceFilter}
+            conflictInfo={conflictInfo}
           />
         </div>
       </div>
