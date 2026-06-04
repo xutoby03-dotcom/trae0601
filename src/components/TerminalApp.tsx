@@ -699,11 +699,7 @@ export const TerminalApp: React.FC = () => {
         exitCode: 0,
       };
 
-      const lastHistory = pane.history[pane.history.length - 1];
-      const shouldAddToHistory = !lastHistory || lastHistory.command !== commandToExecute;
-      if (shouldAddToHistory) {
-        addHistoryEntry(activeTabId, paneId, entry);
-      }
+      addHistoryEntry(activeTabId, paneId, entry);
 
       updatePane(activeTabId, paneId, {
         currentCommand: '',
@@ -746,9 +742,7 @@ export const TerminalApp: React.FC = () => {
             };
 
             const exitCode = await scriptInterpreter.executeScript(scriptContent, scriptCtx);
-            if (shouldAddToHistory) {
-              entry.exitCode = exitCode;
-            }
+            entry.exitCode = exitCode;
 
             if (scriptCtx.env['PWD'] !== pane.env['PWD']) {
               updatePane(activeTabId, paneId, {
@@ -788,9 +782,7 @@ export const TerminalApp: React.FC = () => {
           };
 
           const exitCode = await scriptInterpreter.executeScript(commandToExecute, scriptCtx);
-          if (shouldAddToHistory) {
-            entry.exitCode = exitCode;
-          }
+          entry.exitCode = exitCode;
 
           if (scriptCtx.env['PWD'] !== pane.env['PWD']) {
             updatePane(activeTabId, paneId, {
@@ -844,9 +836,7 @@ export const TerminalApp: React.FC = () => {
           };
 
           const exitCode = await executePipeline(parsed.commands, pipelineCtx);
-          if (shouldAddToHistory) {
-            entry.exitCode = exitCode;
-          }
+          entry.exitCode = exitCode;
         }
       } catch (error) {
         const errorLine: TerminalLine = {
@@ -855,9 +845,7 @@ export const TerminalApp: React.FC = () => {
           timestamp: Date.now(),
         };
         appendScrollback(activeTabId, paneId, errorLine);
-        if (shouldAddToHistory) {
-          entry.exitCode = 1;
-        }
+        entry.exitCode = 1;
       } finally {
         updatePane(activeTabId, paneId, { isRunning: false });
         runningCommands.current.delete(paneId);
