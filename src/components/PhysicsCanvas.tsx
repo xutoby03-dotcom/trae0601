@@ -49,6 +49,8 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
     setActiveTool,
     selectedBody,
     setSelectedBody,
+    selectedEmitter,
+    setSelectedEmitter,
     gravity,
     timeScale,
     isPaused,
@@ -62,6 +64,7 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
     removeEmitter,
     setFps,
     setCollisionCount,
+    setBodyCount,
     setScenes,
     currentSceneId,
     setCurrentSceneId,
@@ -125,6 +128,16 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
         setFps(frameCountRef.current);
         frameCountRef.current = 0;
         lastTimeRef.current = now;
+
+        const allBodies = Composite.allBodies(engine.world);
+        const count = allBodies.filter(
+          (b) =>
+            b.label !== 'ground' &&
+            b.label !== 'wall' &&
+            b.label !== 'ceiling' &&
+            b.label !== 'particle'
+        ).length;
+        setBodyCount(count);
       }
     });
 
@@ -144,8 +157,14 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
       createNewScene();
     };
 
+    const handleSaveSceneEvent = () => {
+      saveCurrentScene();
+    };
+    window.addEventListener('saveScene', handleSaveSceneEvent);
+
     return () => {
       cleanupPhysics();
+      window.removeEventListener('saveScene', handleSaveSceneEvent);
     };
   }, [dimensions]);
 
@@ -440,6 +459,30 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
           },
         });
       }
+    } else if (activeTool === 'emitter') {
+      const clickedEmitter = emitters.find((e) => {
+        const dx = e.x - x;
+        const dy = e.y - y;
+        return Math.sqrt(dx * dx + dy * dy) < 20;
+      });
+
+      if (clickedEmitter) {
+        setSelectedEmitter(clickedEmitter.id);
+      } else {
+        const newEmitter: EmitterData = {
+          id: generateId(),
+          x,
+          y,
+          frequency: 100,
+          velocityX: 0,
+          velocityY: 2,
+          particleSize: 8,
+          active: true,
+          color: '#4ecdc4',
+        };
+        addEmitter(newEmitter);
+        setSelectedEmitter(newEmitter.id);
+      }
     }
   };
 
@@ -529,6 +572,49 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
         ctx.stroke();
         ctx.restore();
       }
+
+      emitters.forEach((emitter) => {
+        ctx.save();
+        ctx.translate(pan.x, pan.y);
+        ctx.scale(zoom, zoom);
+
+        const isSelected = selectedEmitter === emitter.id;
+        const radius = 15;
+
+        ctx.beginPath();
+        ctx.arc(emitter.x, emitter.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = emitter.color + '40';
+        ctx.fill();
+        ctx.strokeStyle = isSelected ? '#ff6b6b' : emitter.color;
+        ctx.lineWidth = isSelected ? 3 : 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(emitter.x, emitter.y);
+        const arrowLength = 25;
+        const angle = Math.atan2(emitter.velocityY, emitter.velocityX);
+        const speed = Math.sqrt(
+          emitter.velocityX * emitter.velocityX +
+          emitter.velocityY * emitter.velocityY
+        );
+        const scaledLength = Math.min(arrowLength, arrowLength * speed / 5);
+        ctx.lineTo(
+          emitter.x + Math.cos(angle) * scaledLength,
+          emitter.y + Math.sin(angle) * scaledLength
+        );
+        ctx.strokeStyle = emitter.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (emitter.active) {
+          ctx.beginPath();
+          ctx.arc(emitter.x, emitter.y, 5, 0, Math.PI * 2);
+          ctx.fillStyle = '#00f5d4';
+          ctx.fill();
+        }
+
+        ctx.restore();
+      });
     }
   };
 

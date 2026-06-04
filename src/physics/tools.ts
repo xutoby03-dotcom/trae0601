@@ -186,6 +186,7 @@ export const getToolIcon = (tool: ToolType) => {
     spring: 'waves',
     rope: 'link',
     joint: 'anchor',
+    emitter: 'sprinkle',
   };
   return icons[tool];
 };
@@ -201,6 +202,7 @@ export const getToolName = (tool: ToolType) => {
     spring: '弹簧',
     rope: '绳索',
     joint: '固定关节',
+    emitter: '粒子发射器',
   };
   return names[tool];
 };

@@ -10,6 +10,7 @@ import {
   ArrowDown,
   RefreshCw,
 } from 'lucide-react';
+import Matter from 'matter-js';
 import { useRef } from 'react';
 import { usePhysicsStore } from '../store/physicsStore';
 import {
@@ -17,10 +18,13 @@ import {
   stepEngine,
   setGravity,
   setTimeScale,
+  getEngine,
 } from '../physics/engine';
 import { downloadScene, uploadScene } from '../utils/indexedDB';
 import { generateId } from '../physics/tools';
-import type { SceneData } from '../types';
+import type { SceneData, BodyData, ConstraintData } from '../types';
+
+const { Composite } = Matter;
 
 const ControlBar = () => {
   const {
@@ -35,6 +39,61 @@ const ControlBar = () => {
   } = usePhysicsStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getCurrentWorldData = () => {
+    const engine = getEngine();
+    const bodies: BodyData[] = [];
+    const constraints: ConstraintData[] = [];
+
+    if (engine) {
+      const allBodies = Composite.allBodies(engine.world);
+      allBodies.forEach((body) => {
+        if (
+          body.label !== 'ground' &&
+          body.label !== 'wall' &&
+          body.label !== 'ceiling' &&
+          body.label !== 'particle'
+        ) {
+          bodies.push({
+            id: String(body.id),
+            type: body.label || 'rectangle',
+            x: body.position.x,
+            y: body.position.y,
+            angle: body.angle,
+            density: body.density,
+            friction: body.friction,
+            restitution: body.restitution,
+            isStatic: body.isStatic,
+            color: (body.render as any)?.fillStyle || '#00f5d4',
+            label: body.label || '',
+            radius: body.circleRadius,
+            vertices: body.vertices.map((v) => ({ x: v.x, y: v.y })),
+          });
+        }
+      });
+
+      const allConstraints = Composite.allConstraints(engine.world);
+      allConstraints.forEach((constraint) => {
+        constraints.push({
+          id: String(constraint.id),
+          type: (constraint.label as 'spring' | 'rope' | 'joint') || 'spring',
+          bodyA: constraint.bodyA ? String(constraint.bodyA.id) : null,
+          bodyB: constraint.bodyB ? String(constraint.bodyB.id) : null,
+          stiffness: constraint.stiffness,
+          damping: constraint.damping,
+          length: constraint.length,
+          pointA: constraint.pointA
+            ? { x: constraint.pointA.x, y: constraint.pointA.y }
+            : undefined,
+          pointB: constraint.pointB
+            ? { x: constraint.pointB.x, y: constraint.pointB.y }
+            : undefined,
+        });
+      });
+    }
+
+    return { bodies, constraints };
+  };
 
   const handlePlayPause = () => {
     const newPaused = !isPaused;
@@ -58,6 +117,7 @@ const ControlBar = () => {
   };
 
   const handleExport = () => {
+    const { bodies, constraints } = getCurrentWorldData();
     const currentScene: SceneData = {
       id: generateId(),
       name: '导出场景',
@@ -65,8 +125,8 @@ const ControlBar = () => {
       gravityY: gravity.y,
       timeScale,
       isPaused,
-      bodies: [],
-      constraints: [],
+      bodies,
+      constraints,
       emitters: emitters,
       createdAt: Date.now(),
       updatedAt: Date.now(),

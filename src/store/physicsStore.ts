@@ -4,6 +4,7 @@ import type { ToolType, EmitterData, SceneData, DrawState } from '../types';
 interface PhysicsStore {
   activeTool: ToolType;
   selectedBody: string | null;
+  selectedEmitter: string | null;
   gravity: { x: number; y: number };
   timeScale: number;
   isPaused: boolean;
@@ -14,6 +15,7 @@ interface PhysicsStore {
   currentSceneId: string | null;
   fps: number;
   collisionCount: number;
+  bodyCount: number;
   showSceneList: boolean;
   showGravityControl: boolean;
   drawState: DrawState;
@@ -21,6 +23,7 @@ interface PhysicsStore {
 
   setActiveTool: (tool: ToolType) => void;
   setSelectedBody: (id: string | null) => void;
+  setSelectedEmitter: (id: string | null) => void;
   setGravity: (x: number, y: number) => void;
   setTimeScale: (scale: number) => void;
   setIsPaused: (paused: boolean) => void;
@@ -33,6 +36,7 @@ interface PhysicsStore {
   setCurrentSceneId: (id: string | null) => void;
   setFps: (fps: number) => void;
   setCollisionCount: (count: number) => void;
+  setBodyCount: (count: number) => void;
   setShowSceneList: (show: boolean) => void;
   setShowGravityControl: (show: boolean) => void;
   setDrawState: (state: Partial<DrawState>) => void;
@@ -43,6 +47,7 @@ interface PhysicsStore {
 export const usePhysicsStore = create<PhysicsStore>((set) => ({
   activeTool: 'select',
   selectedBody: null,
+  selectedEmitter: null,
   gravity: { x: 0, y: 1 },
   timeScale: 1,
   isPaused: false,
@@ -53,6 +58,7 @@ export const usePhysicsStore = create<PhysicsStore>((set) => ({
   currentSceneId: null,
   fps: 60,
   collisionCount: 0,
+  bodyCount: 0,
   showSceneList: false,
   showGravityControl: false,
   mouseConstraint: null,
@@ -67,7 +73,8 @@ export const usePhysicsStore = create<PhysicsStore>((set) => ({
   },
 
   setActiveTool: (tool) => set({ activeTool: tool }),
-  setSelectedBody: (id) => set({ selectedBody: id }),
+  setSelectedBody: (id) => set({ selectedBody: id, selectedEmitter: null }),
+  setSelectedEmitter: (id) => set({ selectedEmitter: id, selectedBody: null }),
   setGravity: (x, y) => set({ gravity: { x, y } }),
   setTimeScale: (scale) => set({ timeScale: scale }),
   setIsPaused: (paused) => set({ isPaused: paused }),
@@ -89,6 +96,7 @@ export const usePhysicsStore = create<PhysicsStore>((set) => ({
   setCurrentSceneId: (id) => set({ currentSceneId: id }),
   setFps: (fps) => set({ fps }),
   setCollisionCount: (count) => set({ collisionCount: count }),
+  setBodyCount: (count) => set({ bodyCount: count }),
   setShowSceneList: (show) => set({ showSceneList: show }),
   setShowGravityControl: (show) => set({ showGravityControl: show }),
   setDrawState: (state) =>

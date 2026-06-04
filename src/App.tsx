@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Matter from 'matter-js';
 import Toolbar from './components/Toolbar';
 import PropertyPanel from './components/PropertyPanel';
+import EmitterPanel from './components/EmitterPanel';
 import ControlBar from './components/ControlBar';
 import StatsPanel from './components/StatsPanel';
 import SceneSelector from './components/SceneSelector';
@@ -17,8 +18,16 @@ const { Composite } = Matter;
 function App() {
   const [presets, setPresets] = useState<SceneData[]>([]);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
-  const { emitters, gravity, timeScale, isPaused, setScenes, setCurrentSceneId } =
-    usePhysicsStore();
+  const {
+    emitters,
+    gravity,
+    timeScale,
+    isPaused,
+    setScenes,
+    setCurrentSceneId,
+    selectedBody,
+    selectedEmitter,
+  } = usePhysicsStore();
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -131,7 +140,8 @@ function App() {
     <div className="w-screen h-screen overflow-hidden bg-[#1a1a2e]">
       <PhysicsCanvas onGetPresetData={getPresetData} />
       <Toolbar />
-      <PropertyPanel />
+      {selectedBody && <PropertyPanel />}
+      {selectedEmitter && <EmitterPanel />}
       <ControlBar />
       <StatsPanel />
       <SceneSelector

@@ -9,7 +9,8 @@ export type ToolType =
   | 'freehand'
   | 'spring'
   | 'rope'
-  | 'joint';
+  | 'joint'
+  | 'emitter';
 
 export interface BodyData {
   id: string;

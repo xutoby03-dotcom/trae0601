@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { usePhysicsStore } from '../store/physicsStore';
 
 const StatsPanel = () => {
-  const { fps, collisionCount } = usePhysicsStore();
+  const { fps, collisionCount, bodyCount } = usePhysicsStore();
 
   return (
     <motion.div
@@ -19,6 +19,10 @@ const StatsPanel = () => {
             }`}>
               {fps.toFixed(0)}
             </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">物体:</span>
+            <span className="text-[#4ecdc4] font-bold">{bodyCount}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-gray-400">碰撞:</span>

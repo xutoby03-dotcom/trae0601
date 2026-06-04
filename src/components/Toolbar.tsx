@@ -9,6 +9,7 @@ import {
   Waves,
   Link,
   Anchor,
+  Sparkles,
 } from 'lucide-react';
 import type { ToolType } from '../types';
 import { usePhysicsStore } from '../store/physicsStore';
@@ -24,6 +25,7 @@ const tools: { type: ToolType; icon: React.ComponentType<any>; name: string }[] 
     { type: 'spring', icon: Waves, name: '弹簧' },
     { type: 'rope', icon: Link, name: '绳索' },
     { type: 'joint', icon: Anchor, name: '固定关节' },
+    { type: 'emitter', icon: Sparkles, name: '粒子发射器' },
   ];
 
 const Toolbar = () => {
