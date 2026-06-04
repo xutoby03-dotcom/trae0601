@@ -418,8 +418,10 @@ body {
 }
 
 .task-milestone .conflict-badge {
-  top: -8px;
+  top: 2px;
   right: -8px;
+  transform: rotate(-45deg);
+  transform-origin: center center;
 }
 
 .task-bar.progress {
