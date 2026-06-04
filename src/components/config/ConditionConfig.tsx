@@ -10,9 +10,12 @@ interface ConditionConfigProps {
 export function ConditionConfig({ field, allFields }: ConditionConfigProps) {
   const updateField = useFormStore((state) => state.updateField);
 
-  const availableFields = allFields.filter(
-    (f) => f.id !== field.id && ['radio', 'checkbox', 'select'].includes(f.type)
-  );
+  const availableFields = allFields
+    .filter((f) => f.id !== field.id && ['radio', 'checkbox', 'select'].includes(f.type))
+    .map((f) => ({
+      ...f,
+      index: allFields.findIndex((af) => af.id === f.id) + 1,
+    }));
 
   const handleConditionChange = (updates: Partial<Condition>) => {
     const currentCondition = field.condition || {
@@ -94,7 +97,7 @@ export function ConditionConfig({ field, allFields }: ConditionConfigProps) {
               >
                 {availableFields.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.title}
+                    Q{f.index} {f.title}
                   </option>
                 ))}
               </select>

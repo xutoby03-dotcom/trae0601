@@ -144,9 +144,12 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
       </div>
 
       <div className="p-5 pl-12 pt-8">
-        <div className="flex items-start gap-2 mb-3">
-          <span className="font-medium text-gray-800">{field.title}</span>
-          {field.required && <span className="text-red-500 font-bold">*</span>}
+        <div className="flex items-start gap-3 mb-3">
+          <span className="flex-shrink-0 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+            Q{index + 1}
+          </span>
+          <span className="font-medium text-gray-800 flex-1">{field.title}</span>
+          {field.required && <span className="text-red-500 font-bold flex-shrink-0">*</span>}
         </div>
         <div className="pointer-events-none opacity-90">
           {renderPreviewField(field, undefined, () => {}, true)}
