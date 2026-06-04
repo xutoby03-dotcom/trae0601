@@ -19,6 +19,7 @@ import { useEditorStore } from '@/stores/useEditorStore';
 import { useSqlStore } from '@/stores/useSqlStore';
 import { format } from 'sql-formatter';
 import { exportData, importData, clearAllData, getProgress, addToHistory } from '@/utils/indexedDB';
+import { checkProblemMatch } from '@/utils/sqlHelper';
 import { cn } from '@/lib/utils';
 
 interface ToolbarProps {
@@ -66,28 +67,12 @@ export function Toolbar({ onToggleHistory, onToggleSettings }: ToolbarProps) {
       executedAt: Date.now(),
     });
 
-    if (currentProblemId && result.columns.length > 0 && !result.error) {
-      const { problems, getProblemById } = await import('@/data/problems');
-      const problem = getProblemById(currentProblemId);
-      
-      if (problem) {
-        const expectedResult = await executeQuery(problem.expectedQuery);
-        const isMatch =
-          result.columns.length === expectedResult.columns.length &&
-          result.rows.length === expectedResult.rows.length &&
-          result.columns.every((col, i) => col === expectedResult.columns[i]) &&
-          result.rows.every((row, i) =>
-            row.every((cell, j) => JSON.stringify(cell) === JSON.stringify(expectedResult.rows[i]?.[j]))
-          );
-
-        setProblemResultMatch(isMatch);
-
-        if (isMatch) {
-          const { addCompletedProblem } = await import('@/utils/indexedDB');
-          await addCompletedProblem(currentProblemId);
-        }
-      }
-    }
+    await checkProblemMatch({
+      currentProblemId,
+      result,
+      executeQuery,
+      onMatchChange: setProblemResultMatch,
+    });
   }, [sql, executeQuery, setResult, setIsExecuting, currentDatabaseId, currentProblemId, setProblemResultMatch, isInitializing]);
 
   const handleFormat = useCallback(() => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Clock, Play, Trash2, Database as DbIcon } from 'lucide-react';
-import { getProgress, saveProgress } from '@/utils/indexedDB';
+import { getProgress, saveProgress, addToHistory } from '@/utils/indexedDB';
+import { checkProblemMatch } from '@/utils/sqlHelper';
 import { useEditorStore } from '@/stores/useEditorStore';
 import { useSqlStore } from '@/stores/useSqlStore';
 import type { QueryHistoryItem } from '@/types';
@@ -12,8 +13,8 @@ interface HistoryDrawerProps {
 }
 
 export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
-  const { setSql, setShowHistory, setResult, setIsExecuting } = useEditorStore();
-  const { switchDatabase, executeQuery } = useSqlStore();
+  const { setSql, setShowHistory, setResult, setIsExecuting, setProblemResultMatch, currentProblemId } = useEditorStore();
+  const { switchDatabase, executeQuery, currentDatabaseId } = useSqlStore();
   const [history, setHistory] = useState<QueryHistoryItem[]>([]);
   const [everHadRecords, setEverHadRecords] = useState(false);
 
@@ -42,6 +43,23 @@ export function HistoryDrawer({ open, onClose }: HistoryDrawerProps) {
     const result = await executeQuery(item.sql);
     setResult(result);
     setIsExecuting(false);
+
+    await addToHistory({
+      id: Date.now().toString(),
+      sql: item.sql,
+      databaseId: item.databaseId,
+      result,
+      executedAt: Date.now(),
+    });
+    await refreshHistory();
+
+    await checkProblemMatch({
+      currentProblemId,
+      result,
+      executeQuery,
+      onMatchChange: setProblemResultMatch,
+    });
+
     setShowHistory(false);
     onClose();
   };
