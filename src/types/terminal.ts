@@ -34,6 +34,14 @@ export interface VimState {
   };
 }
 
+export interface AutoCompleteState {
+  candidates: string[];
+  currentIndex: number;
+  prefix: string;
+  originalInput: string;
+  originalCursorPos: number;
+}
+
 export interface Pane {
   id: string;
   cwd: string;
@@ -47,6 +55,7 @@ export interface Pane {
   currentCommand: string;
   inputBuffer: string;
   vimState?: VimState;
+  autoComplete?: AutoCompleteState | null;
 }
 
 export interface Split {

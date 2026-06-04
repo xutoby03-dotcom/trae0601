@@ -651,6 +651,7 @@ export const TerminalApp: React.FC = () => {
         currentCommand: '',
         inputBuffer: '',
         isRunning: true,
+        autoComplete: null,
       });
 
       try {
@@ -892,6 +893,7 @@ export const TerminalApp: React.FC = () => {
         inputBuffer: '',
         isRunning: false,
         historyIndex: -1,
+        autoComplete: null,
       });
       runningCommands.current.delete(paneId);
     },
@@ -909,6 +911,37 @@ export const TerminalApp: React.FC = () => {
         const tabData = data as { input: string; cursorPos: number };
         const pane = activeTab?.panes[paneId];
         if (!pane) return;
+
+        if (pane.autoComplete && pane.autoComplete.candidates.length > 0) {
+          if (pane.autoComplete.originalInput === tabData.input) {
+            const nextIndex = (pane.autoComplete.currentIndex + 1) % pane.autoComplete.candidates.length;
+            const candidate = pane.autoComplete.candidates[nextIndex];
+            const { prefix, originalCursorPos } = pane.autoComplete;
+
+            const newInput = tabData.input.slice(0, originalCursorPos - prefix.length) + candidate + tabData.input.slice(originalCursorPos);
+            const newCursorPos = originalCursorPos - prefix.length + candidate.length;
+
+            updatePane(activeTabId, paneId, {
+              currentCommand: newInput,
+              inputBuffer: newInput,
+              autoComplete: {
+                ...pane.autoComplete,
+                currentIndex: nextIndex,
+              },
+            });
+
+            if (autoComplete) {
+              setAutoComplete({
+                ...autoComplete,
+                selectedIndex: nextIndex,
+              });
+            }
+
+            return;
+          } else {
+            updatePane(activeTabId, paneId, { autoComplete: null });
+          }
+        }
 
         const commandNames = listCommands().map((c) => c.name);
         const allAliases = aliasManager.getAllAliases();
@@ -939,6 +972,16 @@ export const TerminalApp: React.FC = () => {
             description: '',
           }));
 
+          updatePane(activeTabId, paneId, {
+            autoComplete: {
+              candidates: result.candidates,
+              currentIndex: 0,
+              prefix: result.prefix,
+              originalInput: tabData.input,
+              originalCursorPos: tabData.cursorPos,
+            },
+          });
+
           setAutoComplete({
             visible: true,
             items,
@@ -949,7 +992,7 @@ export const TerminalApp: React.FC = () => {
         }
       }
     },
-    [activeTab, activeTabId, fs, updatePane]
+    [activeTab, activeTabId, fs, updatePane, autoComplete]
   );
 
   const handleInputChange = useCallback(
@@ -957,6 +1000,7 @@ export const TerminalApp: React.FC = () => {
       updatePane(activeTabId, paneId, {
         currentCommand: value,
         inputBuffer: value,
+        autoComplete: null,
       });
       if (autoComplete) {
         setAutoComplete(null);
@@ -969,6 +1013,7 @@ export const TerminalApp: React.FC = () => {
     (paneId: string, index: number) => {
       updatePane(activeTabId, paneId, {
         historyIndex: index,
+        autoComplete: null,
       });
     },
     [activeTabId, updatePane]
