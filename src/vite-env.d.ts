@@ -2,4 +2,5 @@
 
 interface Window {
   __thumbnailGenerator?: () => Promise<string | null>;
+  __scheduleFirstThumbnail?: () => void;
 }

@@ -23,9 +23,36 @@ export function PreviewWindow() {
   const { tracks, clips, mediaItems } = useTimelineStore();
   
   const [isComposing, setIsComposing] = useState(false);
+  const hasComposedFirstFrameRef = useRef(false);
+  const thumbnailScheduledRef = useRef(false);
+  
+  const isCanvasBlank = useCallback((canvas: HTMLCanvasElement): boolean => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return true;
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      
+      if (a !== 0 || r !== 0 || g !== 0 || b !== 0) {
+        return false;
+      }
+    }
+    
+    return true;
+  }, []);
   
   const generateThumbnail = useCallback(async (): Promise<string | null> => {
     if (!canvasRef.current) return null;
+    
+    if (isCanvasBlank(canvasRef.current)) {
+      return null;
+    }
     
     try {
       const canvas = document.createElement('canvas');
@@ -40,12 +67,16 @@ export function PreviewWindow() {
         0, 0, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT
       );
       
+      if (isCanvasBlank(canvas)) {
+        return null;
+      }
+      
       return canvas.toDataURL('image/jpeg', 0.8);
     } catch (error) {
       console.error('Failed to generate thumbnail:', error);
       return null;
     }
-  }, []);
+  }, [isCanvasBlank]);
   
   const updateThumbnail = useCallback(async () => {
     if (!currentProject) return;
@@ -75,9 +106,19 @@ export function PreviewWindow() {
         scheduleThumbnailUpdate();
       }, THUMBNAIL_INTERVAL);
     };
-    scheduleThumbnailUpdate();
     
-    updateThumbnail();
+    hasComposedFirstFrameRef.current = false;
+    thumbnailScheduledRef.current = false;
+    
+    window.__scheduleFirstThumbnail = () => {
+      if (!thumbnailScheduledRef.current) {
+        thumbnailScheduledRef.current = true;
+        setTimeout(async () => {
+          await updateThumbnail();
+          scheduleThumbnailUpdate();
+        }, 100);
+      }
+    };
 
     return () => {
       if (animationRef.current) {
@@ -88,6 +129,9 @@ export function PreviewWindow() {
       }
       if (window.__thumbnailGenerator === generateThumbnail) {
         window.__thumbnailGenerator = undefined;
+      }
+      if (window.__scheduleFirstThumbnail) {
+        window.__scheduleFirstThumbnail = undefined;
       }
       engine.dispose();
     };
@@ -101,6 +145,13 @@ export function PreviewWindow() {
         setIsComposing(true);
         try {
           await engineRef.current!.composeFrame(currentTime, tracks, clips, mediaItems);
+          
+          if (!hasComposedFirstFrameRef.current) {
+            hasComposedFirstFrameRef.current = true;
+            if (window.__scheduleFirstThumbnail) {
+              window.__scheduleFirstThumbnail();
+            }
+          }
         } catch (error) {
           console.error('Error composing frame:', error);
         }

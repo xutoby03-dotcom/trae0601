@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useParams, useNavigate, useBeforeUnload } from 'react-router-dom';
+import { useParams, useNavigate, useBeforeUnload, useBlocker } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
@@ -15,6 +15,8 @@ export function EditorPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const isMountedRef = useRef(true);
+  const isSavingRef = useRef(false);
+  const savePromiseRef = useRef<Promise<void> | null>(null);
   
   const { currentProject, openProject, loadProjects, refreshThumbnail, saveCurrentProject } = useProjectStore();
   const { loadProjectData, createDefaultTracks, tracks, clips, saveProjectData } = useTimelineStore();
@@ -49,46 +51,66 @@ export function EditorPage() {
     }
   }, [clips, setDuration]);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  const saveWithThumbnail = async () => {
+  const saveWithThumbnail = async (): Promise<void> => {
     if (!projectId || !currentProject) return;
+    if (isSavingRef.current && savePromiseRef.current) {
+      return savePromiseRef.current;
+    }
     
-    await refreshThumbnail();
-    await saveCurrentProject();
-    await saveProjectData(projectId);
+    isSavingRef.current = true;
+    savePromiseRef.current = (async () => {
+      try {
+        await refreshThumbnail();
+        await saveCurrentProject();
+        await saveProjectData(projectId);
+      } finally {
+        isSavingRef.current = false;
+      }
+    })();
+    
+    return savePromiseRef.current;
   };
 
-  useBeforeUnload(() => {
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => {
+      if (projectId && currentProject && isMountedRef.current) {
+        saveWithThumbnail();
+        return false;
+      }
+      return false;
+    }
+  );
+
+  useBeforeUnload(async (event) => {
     if (projectId && currentProject) {
-      saveWithThumbnail();
+      event.preventDefault();
+      event.returnValue = '';
+      
+      if (!isSavingRef.current) {
+        saveWithThumbnail();
+      }
     }
   });
 
   useEffect(() => {
-    let shouldSave = false;
+    isMountedRef.current = true;
+    blocker.reset();
     
-    const handleBeforeNavigate = async () => {
-      if (projectId && currentProject && isMountedRef.current) {
-        await saveWithThumbnail();
+    return () => {
+      isMountedRef.current = false;
+      
+      if (projectId && currentProject) {
+        if (savePromiseRef.current) {
+          try {
+            savePromiseRef.current.then(() => {});
+          } catch (e) {}
+        }
+        if (!isSavingRef.current) {
+          saveWithThumbnail().catch(() => {});
+        }
       }
     };
-
-    const cleanup = () => {
-      if (shouldSave) {
-        handleBeforeNavigate();
-      }
-    };
-
-    shouldSave = true;
-    return cleanup;
-  }, [projectId, currentProject]);
+  }, [projectId, currentProject, blocker]);
 
   if (!currentProject && projectId) {
     return (
