@@ -212,14 +212,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const layer = state.layers.find((l) => l.id === layerId);
     if (!layer) return state;
     
+    const newId = generateId();
+    const { history: _h, historyIndex: _hi, ...snapshot } = layer;
     const newLayer = {
       ...layer,
-      id: generateId(),
+      id: newId,
       name: `${layer.name} 副本`,
       x: layer.x + 20,
       y: layer.y + 20,
-      history: [],
-      historyIndex: -1,
+      history: [{ timestamp: Date.now(), snapshot: { ...snapshot, id: newId } }],
+      historyIndex: 0,
     } as Layer;
     
     const index = state.layers.findIndex((l) => l.id === layerId);
