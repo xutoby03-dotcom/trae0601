@@ -68,7 +68,11 @@ export function ThreeCanvas({
       const x = (vec.x + 1) / 2 * rect.width + rect.left;
       const y = (-vec.y + 1) / 2 * rect.height + rect.top;
 
-      onScreenPointUpdate({ x, y });
+      if (vec.z >= 1 || x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+        onScreenPointUpdate(null);
+      } else {
+        onScreenPointUpdate({ x, y });
+      }
       projIdRef.current = requestAnimationFrame(updateProjection);
     };
 
