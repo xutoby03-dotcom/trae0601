@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, Fragment } from 'react';
 import { ZoomIn, ZoomOut, Plus } from 'lucide-react';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import { usePlaybackStore } from '@/store/usePlaybackStore';
@@ -6,6 +6,7 @@ import { useHistoryStore } from '@/store/useHistoryStore';
 import { Ruler } from './Ruler';
 import { TrackHeader } from './TrackHeader';
 import { Clip } from './Clip';
+import { ClipContextMenu } from './ClipContextMenu';
 import { generateId } from '@/utils/timecode';
 import type { MediaType } from '@/types/media';
 
@@ -23,6 +24,8 @@ export function Timeline() {
   const [dragStartTime, setDragStartTime] = useState(0);
   const [dragStartTrack, setDragStartTrack] = useState<string | null>(null);
   const [originalClipId, setOriginalClipId] = useState<string | null>(null);
+  const [contextMenuClipId, setContextMenuClipId] = useState<string | null>(null);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   
   const {
     tracks,
@@ -40,6 +43,7 @@ export function Timeline() {
     createDefaultTracks,
     setTracks,
     setClips,
+    removeClip,
   } = useTimelineStore();
   
   const { currentTime, duration, setCurrentTime } = usePlaybackStore();
@@ -52,6 +56,27 @@ export function Timeline() {
       createDefaultTracks('temp');
     }
   }, [tracks.length, createDefaultTracks]);
+
+  const handleClipContextMenu = (clipId: string, e: React.MouseEvent) => {
+    setContextMenuClipId(clipId);
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenuClipId(null);
+  };
+
+  const isEditableElement = (target: EventTarget | null): boolean => {
+    if (!target || !(target instanceof HTMLElement)) return false;
+    const tagName = target.tagName.toLowerCase();
+    return (
+      tagName === 'input' ||
+      tagName === 'textarea' ||
+      tagName === 'select' ||
+      target.isContentEditable ||
+      target.closest('[contenteditable="true"]') !== null
+    );
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,6 +97,15 @@ export function Timeline() {
           }
         }
       }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClipId) {
+        if (isEditableElement(e.target)) return;
+        
+        e.preventDefault();
+        pushHistory({ tracks: [...tracks], clips: [...clips] });
+        removeClip(selectedClipId);
+        selectClip(null);
+      }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Alt') {
@@ -84,7 +118,7 @@ export function Timeline() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [draggingClip, altDuplicateCreated, clips, tracks, pushHistory, setClips]);
+  }, [draggingClip, altDuplicateCreated, clips, tracks, pushHistory, setClips, selectedClipId, removeClip, selectClip]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -236,7 +270,8 @@ export function Timeline() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-900 border-t border-zinc-700">
+    <Fragment>
+      <div className="flex flex-col h-full bg-zinc-900 border-t border-zinc-700">
       <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 bg-zinc-800">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-zinc-300">时间轴</span>
@@ -333,6 +368,7 @@ export function Timeline() {
                       onDragStart={(e) => handleClipDragStart(clip.id, e)}
                       onTrimStart={(e) => handleTrimStart(clip.id, e)}
                       onTrimEnd={(e) => handleTrimEnd(clip.id, e)}
+                      onContextMenu={(e) => handleClipContextMenu(clip.id, e)}
                     />
                   ))}
               </div>
@@ -346,5 +382,14 @@ export function Timeline() {
         </div>
       </div>
     </div>
+
+      {contextMenuClipId && (
+        <ClipContextMenu
+          clipId={contextMenuClipId}
+          position={contextMenuPosition}
+          onClose={handleCloseContextMenu}
+        />
+      )}
+    </Fragment>
   );
 }

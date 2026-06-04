@@ -14,6 +14,7 @@ interface ClipProps {
   onDragStart: (e: React.MouseEvent) => void;
   onTrimStart: (e: React.MouseEvent) => void;
   onTrimEnd: (e: React.MouseEvent) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }
 
 export function Clip({
@@ -27,6 +28,7 @@ export function Clip({
   onDragStart,
   onTrimStart,
   onTrimEnd,
+  onContextMenu,
 }: ClipProps) {
   const [isHovered, setIsHovered] = useState(false);
   const clipRef = useRef<HTMLDivElement>(null);
@@ -63,6 +65,12 @@ export function Clip({
         e.stopPropagation();
         onSelect();
         onDragStart(e);
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect();
+        onContextMenu(e);
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
