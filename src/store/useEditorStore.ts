@@ -667,6 +667,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       },
     });
 
+    get().updateEdgePaths();
     get().saveToLocalStorage();
   },
 }));
