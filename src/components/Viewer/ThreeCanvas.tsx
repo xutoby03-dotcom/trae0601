@@ -1,8 +1,15 @@
-import React, { useRef } from 'react';
-import { useScene } from './useScene';
+import React, { useRef, useImperativeHandle } from 'react';
+import { useScene, ViewPresetDirection } from './useScene';
 import { useModelLoader } from './useModelLoader';
 import { useRaycaster } from '../../hooks/useRaycaster';
 import { SceneSettings, ModelInfo, HitPoint } from '../../types';
+
+export interface ThreeCanvasHandle {
+  animateToView: (preset: ViewPresetDirection) => void;
+  resetToInitial: () => void;
+  clearHighlight: () => void;
+  saveInitialCamera: () => void;
+}
 
 interface ThreeCanvasProps {
   settings: SceneSettings;
@@ -11,6 +18,7 @@ interface ThreeCanvasProps {
   fileToLoad: File | null;
   onLoadComplete: () => void;
   onScreenshotRequest: (() => void) | null;
+  ref?: React.Ref<ThreeCanvasHandle>;
 }
 
 export function ThreeCanvas({
@@ -19,13 +27,20 @@ export function ThreeCanvas({
   onHitPoint,
   fileToLoad,
   onLoadComplete,
-  onScreenshotRequest
+  onScreenshotRequest,
+  ref
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scene, camera, renderer, addModel, updateSettings, resetCamera } = useScene(containerRef);
+  const { scene, camera, renderer, addModel, updateSettings, resetCamera, animateToView, resetToInitial, saveInitialCamera } = useScene(containerRef);
   const { loadModel } = useModelLoader();
-  
-  useRaycaster({ scene, camera, containerRef, onHit: onHitPoint });
+  const { clearHighlight } = useRaycaster({ scene, camera, containerRef, onHit: onHitPoint });
+
+  useImperativeHandle(ref, () => ({
+    animateToView,
+    resetToInitial,
+    clearHighlight,
+    saveInitialCamera
+  }), [animateToView, resetToInitial, clearHighlight, saveInitialCamera]);
 
   React.useEffect(() => {
     updateSettings(settings);
@@ -38,6 +53,7 @@ export function ThreeCanvas({
           addModel(model);
           onModelLoaded(info);
           resetCamera();
+          saveInitialCamera();
           onLoadComplete();
         })
         .catch((error) => {
@@ -46,7 +62,7 @@ export function ThreeCanvas({
           onLoadComplete();
         });
     }
-  }, [fileToLoad, loadModel, addModel, onModelLoaded, resetCamera, onLoadComplete, settings.materialColor, settings.renderMode]);
+  }, [fileToLoad, loadModel, addModel, onModelLoaded, resetCamera, saveInitialCamera, onLoadComplete, settings.materialColor, settings.renderMode]);
 
   React.useEffect(() => {
     if (onScreenshotRequest && renderer.current && scene.current && camera.current) {

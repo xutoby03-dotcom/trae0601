@@ -1,15 +1,17 @@
-import { useState, useCallback } from 'react';
-import { ThreeCanvas } from './components/Viewer/ThreeCanvas';
+import { useState, useCallback, useRef } from 'react';
+import { ThreeCanvas, ThreeCanvasHandle } from './components/Viewer/ThreeCanvas';
 import { BackgroundControl } from './components/ControlPanel/BackgroundControl';
 import { LightControl } from './components/ControlPanel/LightControl';
 import { RenderModeControl } from './components/ControlPanel/RenderModeControl';
 import { MaterialControl } from './components/ControlPanel/MaterialControl';
 import { HelperSwitch } from './components/ControlPanel/HelperSwitch';
+import { ViewPresetControl } from './components/ControlPanel/ViewPresetControl';
 import { ModelInfo } from './components/InfoPanel/ModelInfo';
 import { UploadButton } from './components/Toolbar/UploadButton';
 import { ScreenshotButton } from './components/Toolbar/ScreenshotButton';
 import { CoordinateTooltip } from './components/Tooltip/CoordinateTooltip';
 import { SceneSettings, ModelInfo as ModelInfoType, HitPoint } from './types';
+import { ViewPresetDirection } from './components/Viewer/useScene';
 
 const initialSettings: SceneSettings = {
   backgroundColor: '#1a1a2e',
@@ -29,6 +31,7 @@ function App() {
   const [modelInfo, setModelInfo] = useState<ModelInfoType | null>(null);
   const [hitPoint, setHitPoint] = useState<HitPoint | null>(null);
   const [screenshotTrigger, setScreenshotTrigger] = useState<number>(0);
+  const canvasRef = useRef<ThreeCanvasHandle>(null);
 
   const handleFileUpload = useCallback((file: File) => {
     setIsLoading(true);
@@ -46,6 +49,17 @@ function App() {
 
   const handleScreenshot = useCallback(() => {
     setScreenshotTrigger(prev => prev + 1);
+  }, []);
+
+  const handleViewPreset = useCallback((preset: ViewPresetDirection) => {
+    canvasRef.current?.animateToView(preset);
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    canvasRef.current?.clearHighlight();
+    setHitPoint(null);
+    setSettings(prev => ({ ...prev, autoRotate: false }));
+    canvasRef.current?.resetToInitial();
   }, []);
 
   const updateSetting = useCallback(<K extends keyof SceneSettings>(
@@ -78,6 +92,13 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-64 bg-panel/60 glass-panel border-r border-white/5 p-4 overflow-y-auto flex-shrink-0 hidden lg:block">
           <div className="space-y-1">
+            <ViewPresetControl
+              onViewPreset={handleViewPreset}
+              onReset={handleResetView}
+            />
+            
+            <div className="h-px bg-white/10 my-4" />
+            
             <BackgroundControl
               backgroundColor={settings.backgroundColor}
               onChange={(color) => updateSetting('backgroundColor', color)}
@@ -121,6 +142,7 @@ function App() {
 
         <main className="flex-1 relative">
           <ThreeCanvas
+            ref={canvasRef}
             settings={settings}
             onModelLoaded={handleModelLoaded}
             onHitPoint={setHitPoint}

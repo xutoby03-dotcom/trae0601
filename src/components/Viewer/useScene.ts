@@ -3,6 +3,25 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { SceneSettings } from '../../types';
 
+export type ViewPresetDirection = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'isometric';
+
+const VIEW_DIRECTIONS: Record<ViewPresetDirection, THREE.Vector3> = {
+  front: new THREE.Vector3(0, 0, 1),
+  back: new THREE.Vector3(0, 0, -1),
+  left: new THREE.Vector3(-1, 0, 0),
+  right: new THREE.Vector3(1, 0, 0),
+  top: new THREE.Vector3(0, 1, 0),
+  bottom: new THREE.Vector3(0, -1, 0),
+  isometric: new THREE.Vector3(1, 1, 1).normalize(),
+};
+
+const DEFAULT_CAMERA_POS = new THREE.Vector3(8, 6, 8);
+const DEFAULT_TARGET = new THREE.Vector3(0, 0, 0);
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -14,6 +33,9 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
   const modelGroupRef = useRef<THREE.Group | null>(null);
   const animationIdRef = useRef<number>(0);
+  const tweenIdRef = useRef<number>(0);
+  const initialCameraPosRef = useRef<THREE.Vector3>(DEFAULT_CAMERA_POS.clone());
+  const initialTargetRef = useRef<THREE.Vector3>(DEFAULT_TARGET.clone());
 
   const initScene = useCallback(() => {
     if (!containerRef.current) return;
@@ -152,9 +174,90 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
 
   const resetCamera = useCallback(() => {
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.set(8, 6, 8);
-      controlsRef.current.target.set(0, 0, 0);
+      cameraRef.current.position.copy(DEFAULT_CAMERA_POS);
+      controlsRef.current.target.copy(DEFAULT_TARGET);
       controlsRef.current.update();
+      initialCameraPosRef.current.copy(DEFAULT_CAMERA_POS);
+      initialTargetRef.current.copy(DEFAULT_TARGET);
+    }
+  }, []);
+
+  const animateToView = useCallback((preset: ViewPresetDirection) => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    const modelGroup = modelGroupRef.current;
+    if (!camera || !controls || !modelGroup) return;
+
+    cancelAnimationFrame(tweenIdRef.current);
+
+    const box = new THREE.Box3().setFromObject(modelGroup);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+
+    const fov = camera.fov * (Math.PI / 180);
+    const dist = maxDim / (2 * Math.tan(fov / 2)) * 1.8;
+
+    const dir = VIEW_DIRECTIONS[preset];
+    const targetPos = center.clone().add(dir.clone().multiplyScalar(dist));
+
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const duration = 600;
+    const startTime = performance.now();
+
+    const tween = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = easeInOutCubic(t);
+
+      camera.position.lerpVectors(startPos, targetPos, eased);
+      controls.target.lerpVectors(startTarget, center, eased);
+      controls.update();
+
+      if (t < 1) {
+        tweenIdRef.current = requestAnimationFrame(tween);
+      }
+    };
+
+    tweenIdRef.current = requestAnimationFrame(tween);
+  }, []);
+
+  const resetToInitial = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+
+    cancelAnimationFrame(tweenIdRef.current);
+
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const targetPos = initialCameraPosRef.current;
+    const targetLookAt = initialTargetRef.current;
+    const duration = 600;
+    const startTime = performance.now();
+
+    const tween = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = easeInOutCubic(t);
+
+      camera.position.lerpVectors(startPos, targetPos, eased);
+      controls.target.lerpVectors(startTarget, targetLookAt, eased);
+      controls.update();
+
+      if (t < 1) {
+        tweenIdRef.current = requestAnimationFrame(tween);
+      }
+    };
+
+    tweenIdRef.current = requestAnimationFrame(tween);
+  }, []);
+
+  const saveInitialCamera = useCallback(() => {
+    if (cameraRef.current && controlsRef.current) {
+      initialCameraPosRef.current.copy(cameraRef.current.position);
+      initialTargetRef.current.copy(controlsRef.current.target);
     }
   }, []);
 
@@ -171,6 +274,9 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
     modelGroup: modelGroupRef,
     addModel,
     updateSettings,
-    resetCamera
+    resetCamera,
+    animateToView,
+    resetToInitial,
+    saveInitialCamera
   };
 }
