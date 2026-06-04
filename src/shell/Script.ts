@@ -358,9 +358,6 @@ export class ScriptInterpreter {
     for (const value of values) {
       context.env[varName] = value;
       exitCode = await this.executeScript(blockContent.join('\n'), context);
-      if (exitCode !== 0) {
-        break;
-      }
     }
 
     if (originalValue === undefined) {
@@ -447,10 +444,6 @@ export class ScriptInterpreter {
             if (cmd.name) {
               exitCode = await context.executeCommand(cmd, context);
             }
-          }
-
-          if (exitCode !== 0) {
-            break;
           }
         }
         i++;
