@@ -6,6 +6,7 @@ import { echoCommands } from './echo';
 import { themeCommands } from './theme';
 import { aliasCommands } from './alias';
 import { splitCommands } from './split';
+import { historyCommands } from './history';
 
 export const allCommands: CommandDefinition[] = [
   ...filesystemCommands,
@@ -15,6 +16,7 @@ export const allCommands: CommandDefinition[] = [
   ...themeCommands,
   ...aliasCommands,
   ...splitCommands,
+  ...historyCommands,
 ];
 
 const commandMap: Map<string, CommandDefinition> = new Map();

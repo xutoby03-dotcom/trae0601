@@ -27,8 +27,10 @@ import {
   executePipeline,
   aliasManager,
   scriptInterpreter,
+  expandHistory,
   type Command,
   type PipelineContext,
+  type HistoryEntry as ShellHistoryEntry,
 } from '@/shell';
 import {
   executeCommand,
@@ -525,6 +527,10 @@ export const TerminalApp: React.FC = () => {
       const expandedLine = aliasManager.expandAliases(cmd.name + ' ' + cmd.args.join(' '));
       const parsed = await parseSingleCommand(expandedLine, parseContext);
 
+      const state = useTerminalStore.getState();
+      const tab = state.tabs.find((t) => t.id === activeTabId);
+      const currentPane = tab?.panes[context.paneId || ''];
+
       const commandCtx: CommandContext = {
         vfs: vfs as unknown as VirtualFS,
         cwd,
@@ -553,6 +559,16 @@ export const TerminalApp: React.FC = () => {
         },
         split: (direction: 'h' | 'v') => {
           handleSplit(direction === 'h' ? 'horizontal' : 'vertical');
+        },
+        getHistory: () => {
+          const state = useTerminalStore.getState();
+          const tab = state.tabs.find((t) => t.id === activeTabId);
+          const pane = tab?.panes[context.paneId || ''];
+          return pane?.history.map((h) => ({
+            command: h.command,
+            timestamp: h.timestamp,
+            exitCode: h.exitCode,
+          })) || [];
         },
       };
 
@@ -632,13 +648,13 @@ export const TerminalApp: React.FC = () => {
 
       runningCommands.current.add(paneId);
 
-      const entry: HistoryEntry = {
-        id: generateId(),
-        command: trimmed,
-        timestamp: Date.now(),
-        exitCode: 0,
-      };
-      addHistoryEntry(activeTabId, paneId, entry);
+      const historyForExpand: ShellHistoryEntry[] = pane.history.map((h) => ({
+        command: h.command,
+        timestamp: h.timestamp,
+        exitCode: h.exitCode,
+      }));
+
+      const expandResult = expandHistory(trimmed, historyForExpand);
 
       const promptLine: TerminalLine = {
         content: renderPS1(pane.env['PS1'] || '%# ', pane.env) + trimmed + '\n',
@@ -646,6 +662,48 @@ export const TerminalApp: React.FC = () => {
         timestamp: Date.now(),
       };
       appendScrollback(activeTabId, paneId, promptLine);
+
+      if (expandResult.error) {
+        const errorLine: TerminalLine = {
+          content: expandResult.error + '\n',
+          type: 'error',
+          timestamp: Date.now(),
+        };
+        appendScrollback(activeTabId, paneId, errorLine);
+
+        updatePane(activeTabId, paneId, {
+          currentCommand: '',
+          inputBuffer: '',
+          isRunning: false,
+          autoComplete: null,
+        });
+        runningCommands.current.delete(paneId);
+        return;
+      }
+
+      const commandToExecute = expandResult.expanded;
+
+      if (expandResult.expandedCommand !== null && expandResult.expanded !== trimmed) {
+        const echoLine: TerminalLine = {
+          content: commandToExecute + '\n',
+          type: 'input',
+          timestamp: Date.now(),
+        };
+        appendScrollback(activeTabId, paneId, echoLine);
+      }
+
+      const entry: HistoryEntry = {
+        id: generateId(),
+        command: commandToExecute,
+        timestamp: Date.now(),
+        exitCode: 0,
+      };
+
+      const lastHistory = pane.history[pane.history.length - 1];
+      const shouldAddToHistory = !lastHistory || lastHistory.command !== commandToExecute;
+      if (shouldAddToHistory) {
+        addHistoryEntry(activeTabId, paneId, entry);
+      }
 
       updatePane(activeTabId, paneId, {
         currentCommand: '',
@@ -655,8 +713,8 @@ export const TerminalApp: React.FC = () => {
       });
 
       try {
-        if (trimmed.startsWith('source ') || trimmed.startsWith('. ')) {
-          const parts = trimmed.split(/\s+/);
+        if (commandToExecute.startsWith('source ') || commandToExecute.startsWith('. ')) {
+          const parts = commandToExecute.split(/\s+/);
           const scriptPath = parts[1];
           if (scriptPath) {
             const normalizedPath = Path.normalize(scriptPath, pane.cwd);
@@ -688,7 +746,9 @@ export const TerminalApp: React.FC = () => {
             };
 
             const exitCode = await scriptInterpreter.executeScript(scriptContent, scriptCtx);
-            entry.exitCode = exitCode;
+            if (shouldAddToHistory) {
+              entry.exitCode = exitCode;
+            }
 
             if (scriptCtx.env['PWD'] !== pane.env['PWD']) {
               updatePane(activeTabId, paneId, {
@@ -698,9 +758,9 @@ export const TerminalApp: React.FC = () => {
             }
           }
         } else if (
-          trimmed.startsWith('if ') ||
-          trimmed.startsWith('for ') ||
-          trimmed.includes('\n')
+          commandToExecute.startsWith('if ') ||
+          commandToExecute.startsWith('for ') ||
+          commandToExecute.includes('\n')
         ) {
           const scriptCtx = {
             vfs: fs as unknown as import('@/shell/types').VFS,
@@ -727,8 +787,10 @@ export const TerminalApp: React.FC = () => {
             paneId,
           };
 
-          const exitCode = await scriptInterpreter.executeScript(trimmed, scriptCtx);
-          entry.exitCode = exitCode;
+          const exitCode = await scriptInterpreter.executeScript(commandToExecute, scriptCtx);
+          if (shouldAddToHistory) {
+            entry.exitCode = exitCode;
+          }
 
           if (scriptCtx.env['PWD'] !== pane.env['PWD']) {
             updatePane(activeTabId, paneId, {
@@ -743,7 +805,7 @@ export const TerminalApp: React.FC = () => {
             env: pane.env,
           };
 
-          const parsed = await parse(trimmed, parseContext);
+          const parsed = await parse(commandToExecute, parseContext);
 
           if (parsed.commands.length === 0) {
             updatePane(activeTabId, paneId, { isRunning: false });
@@ -782,7 +844,9 @@ export const TerminalApp: React.FC = () => {
           };
 
           const exitCode = await executePipeline(parsed.commands, pipelineCtx);
-          entry.exitCode = exitCode;
+          if (shouldAddToHistory) {
+            entry.exitCode = exitCode;
+          }
         }
       } catch (error) {
         const errorLine: TerminalLine = {
@@ -791,13 +855,15 @@ export const TerminalApp: React.FC = () => {
           timestamp: Date.now(),
         };
         appendScrollback(activeTabId, paneId, errorLine);
-        entry.exitCode = 1;
+        if (shouldAddToHistory) {
+          entry.exitCode = 1;
+        }
       } finally {
         updatePane(activeTabId, paneId, { isRunning: false });
         runningCommands.current.delete(paneId);
       }
     },
-    [activeTab, activeTabId, fs, executeCommandWithContext]
+    [activeTab, activeTabId, fs, executeCommandWithContext, renderPS1, addHistoryEntry, appendScrollback, updatePane, scriptInterpreter, expandHistory]
   );
 
   const handleTabClick = useCallback(

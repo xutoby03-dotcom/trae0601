@@ -15,6 +15,7 @@ export interface CommandContext {
   setAlias?: (name: string, value: string) => void;
   removeAlias?: (name: string) => void;
   split?: (direction: 'h' | 'v') => void;
+  getHistory?: () => Array<{ command: string; timestamp: number; exitCode?: number }>;
 }
 
 export type CommandExecutor = (context: CommandContext) => Promise<number> | number;
