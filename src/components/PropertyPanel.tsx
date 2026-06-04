@@ -37,20 +37,38 @@ const PropertyPanel = () => {
     const offsetX = body.position.x + 30;
     const offsetY = body.position.y + 30;
     const color = (body.render as any)?.fillStyle || '#00f5d4';
+    const label = body.label || 'rectangle';
     const opts = {
       isStatic: body.isStatic,
       density: body.density,
       friction: body.friction,
       restitution: body.restitution,
       render: { fillStyle: color, strokeStyle: '#ffffff22', lineWidth: 2 },
-      label: body.label || 'rectangle',
+      label,
     };
 
     let clone: Matter.Body;
 
-    if (body.circleRadius) {
+    if (label === 'circle' && body.circleRadius) {
       clone = Bodies.circle(offsetX, offsetY, body.circleRadius, opts);
-    } else if (body.vertices && body.vertices.length >= 3 && body.label === 'freehand') {
+    } else if (label === 'triangle') {
+      const radius = body.vertices.reduce((max, v) => {
+        const d = Math.sqrt(
+          (v.x - body.position.x) ** 2 + (v.y - body.position.y) ** 2
+        );
+        return Math.max(max, d);
+      }, 0);
+      clone = Bodies.polygon(offsetX, offsetY, 3, radius, opts);
+    } else if (label === 'polygon') {
+      const sides = body.vertices.length;
+      const radius = body.vertices.reduce((max, v) => {
+        const d = Math.sqrt(
+          (v.x - body.position.x) ** 2 + (v.y - body.position.y) ** 2
+        );
+        return Math.max(max, d);
+      }, 0);
+      clone = Bodies.polygon(offsetX, offsetY, sides, radius, opts);
+    } else if (label === 'freehand' && body.vertices && body.vertices.length >= 3) {
       const localVerts = body.vertices.map((v) => ({
         x: v.x - body.position.x,
         y: v.y - body.position.y,
