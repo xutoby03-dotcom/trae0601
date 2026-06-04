@@ -629,6 +629,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       };
     });
 
+    const updatedClipboardNodes = clipboard.nodes.map((node) => ({
+      ...node,
+      x: snapToGrid(node.x + 20),
+      y: snapToGrid(node.y + 20),
+    }));
+
     const allNodes = [...existingNodes, ...newNodes];
     const newEdges = clipboard.edges.map((clipboardEdge) => {
       const fromNode = newNodes[clipboardEdge.from.nodeIndex];
@@ -655,6 +661,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       nodes: allNodes,
       edges: [...existingEdges, ...newEdges],
       selection: { nodeIds: newNodeIds, edgeIds: [] },
+      clipboard: {
+        nodes: updatedClipboardNodes,
+        edges: clipboard.edges,
+      },
     });
 
     get().saveToLocalStorage();
