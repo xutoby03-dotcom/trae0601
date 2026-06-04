@@ -10,7 +10,7 @@ import { ModelInfo } from './components/InfoPanel/ModelInfo';
 import { UploadButton } from './components/Toolbar/UploadButton';
 import { ScreenshotButton } from './components/Toolbar/ScreenshotButton';
 import { CoordinateTooltip } from './components/Tooltip/CoordinateTooltip';
-import { SceneSettings, ModelInfo as ModelInfoType, HitPoint } from './types';
+import { SceneSettings, ModelInfo as ModelInfoType, HitPoint, ScreenPoint } from './types';
 import { ViewPresetDirection } from './components/Viewer/useScene';
 
 const initialSettings: SceneSettings = {
@@ -30,13 +30,17 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [modelInfo, setModelInfo] = useState<ModelInfoType | null>(null);
   const [hitPoint, setHitPoint] = useState<HitPoint | null>(null);
+  const [screenPoint, setScreenPoint] = useState<ScreenPoint | null>(null);
   const [screenshotTrigger, setScreenshotTrigger] = useState<number>(0);
   const canvasRef = useRef<ThreeCanvasHandle>(null);
 
   const handleFileUpload = useCallback((file: File) => {
+    canvasRef.current?.clearHighlight();
+    setHitPoint(null);
+    setScreenPoint(null);
+    setSettings(prev => ({ ...prev, autoRotate: false }));
     setIsLoading(true);
     setFileToLoad(file);
-    setHitPoint(null);
   }, []);
 
   const handleLoadComplete = useCallback(() => {
@@ -58,6 +62,7 @@ function App() {
   const handleResetView = useCallback(() => {
     canvasRef.current?.clearHighlight();
     setHitPoint(null);
+    setScreenPoint(null);
     setSettings(prev => ({ ...prev, autoRotate: false }));
     canvasRef.current?.resetToInitial();
   }, []);
@@ -147,6 +152,8 @@ function App() {
             settings={settings}
             onModelLoaded={handleModelLoaded}
             onHitPoint={setHitPoint}
+            onScreenPointUpdate={setScreenPoint}
+            hitPoint={hitPoint}
             fileToLoad={fileToLoad}
             onLoadComplete={handleLoadComplete}
             onScreenshotRequest={screenshotTrigger > 0 ? () => {} : null}
@@ -186,7 +193,7 @@ function App() {
         </aside>
       </div>
 
-      <CoordinateTooltip hitPoint={hitPoint} />
+      <CoordinateTooltip hitPoint={hitPoint} screenPoint={screenPoint} />
     </div>
   );
 }

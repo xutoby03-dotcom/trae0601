@@ -1,19 +1,20 @@
 
-import { HitPoint } from '../../types';
+import { HitPoint, ScreenPoint } from '../../types';
 
 interface CoordinateTooltipProps {
   hitPoint: HitPoint | null;
+  screenPoint: ScreenPoint | null;
 }
 
-export function CoordinateTooltip({ hitPoint }: CoordinateTooltipProps) {
-  if (!hitPoint) return null;
+export function CoordinateTooltip({ hitPoint, screenPoint }: CoordinateTooltipProps) {
+  if (!hitPoint || !screenPoint) return null;
 
   return (
     <div
       className="fixed z-50 pointer-events-none tooltip-bubble"
       style={{
-        left: hitPoint.screenX,
-        top: hitPoint.screenY - 10,
+        left: screenPoint.x,
+        top: screenPoint.y - 10,
         transform: 'translate(-50%, -100%)'
       }}
     >

@@ -2,7 +2,7 @@ import React, { useRef, useImperativeHandle } from 'react';
 import { useScene, ViewPresetDirection } from './useScene';
 import { useModelLoader } from './useModelLoader';
 import { useRaycaster } from '../../hooks/useRaycaster';
-import { SceneSettings, ModelInfo, HitPoint } from '../../types';
+import { SceneSettings, ModelInfo, HitPoint, ScreenPoint } from '../../types';
 
 export interface ThreeCanvasHandle {
   animateToView: (preset: ViewPresetDirection) => void;
@@ -16,9 +16,11 @@ interface ThreeCanvasProps {
   settings: SceneSettings;
   onModelLoaded: (info: ModelInfo) => void;
   onHitPoint: (hit: HitPoint | null) => void;
+  onScreenPointUpdate?: (screenPoint: ScreenPoint | null) => void;
   fileToLoad: File | null;
   onLoadComplete: () => void;
   onScreenshotRequest: (() => void) | null;
+  hitPoint: HitPoint | null;
   ref?: React.Ref<ThreeCanvasHandle>;
 }
 
@@ -26,15 +28,18 @@ export function ThreeCanvas({
   settings,
   onModelLoaded,
   onHitPoint,
+  onScreenPointUpdate,
   fileToLoad,
   onLoadComplete,
   onScreenshotRequest,
+  hitPoint,
   ref
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scene, camera, renderer, addModel, updateSettings, animateToView, resetToInitial, saveInitialCamera, computeAndSetInitialCamera } = useScene(containerRef);
   const { loadModel } = useModelLoader();
   const { clearHighlight } = useRaycaster({ scene, camera, containerRef, onHit: onHitPoint });
+  const projIdRef = useRef<number>(0);
 
   useImperativeHandle(ref, () => ({
     animateToView,
@@ -47,6 +52,32 @@ export function ThreeCanvas({
   React.useEffect(() => {
     updateSettings(settings);
   }, [settings, updateSettings]);
+
+  React.useEffect(() => {
+    if (!hitPoint || !camera.current || !containerRef.current || !onScreenPointUpdate) {
+      cancelAnimationFrame(projIdRef.current);
+      onScreenPointUpdate?.(null);
+      return;
+    }
+
+    const updateProjection = () => {
+      if (!camera.current || !containerRef.current || !onScreenPointUpdate) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const vec = hitPoint.point.clone().project(camera.current);
+      const x = (vec.x + 1) / 2 * rect.width + rect.left;
+      const y = (-vec.y + 1) / 2 * rect.height + rect.top;
+
+      onScreenPointUpdate({ x, y });
+      projIdRef.current = requestAnimationFrame(updateProjection);
+    };
+
+    updateProjection();
+
+    return () => {
+      cancelAnimationFrame(projIdRef.current);
+    };
+  }, [hitPoint, camera, containerRef, onScreenPointUpdate]);
 
   React.useEffect(() => {
     if (fileToLoad) {

@@ -77,15 +77,8 @@ export function useRaycaster({ scene, camera, containerRef, onHit }: UseRaycaste
       highlightMeshRef.current = new THREE.Mesh(highlightGeometry, highlightMaterial);
       scene.current.add(highlightMeshRef.current);
 
-      const screenPos = new THREE.Vector3();
-      hit.point.clone().project(camera.current);
-      screenPos.x = (screenPos.x + 1) / 2 * rect.width + rect.left;
-      screenPos.y = (-screenPos.y + 1) / 2 * rect.height + rect.top;
-
       onHit?.({
-        point: hit.point.clone(),
-        screenX: event.clientX,
-        screenY: event.clientY
+        point: hit.point.clone()
       });
     } else {
       if (highlightMeshRef.current) {

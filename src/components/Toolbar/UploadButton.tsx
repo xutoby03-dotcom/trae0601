@@ -13,6 +13,7 @@ export function UploadButton({ onUpload, isLoading }: UploadButtonProps) {
     const file = e.target.files?.[0];
     if (file) {
       onUpload(file);
+      e.target.value = '';
     }
   }, [onUpload]);
 

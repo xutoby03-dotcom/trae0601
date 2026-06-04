@@ -27,6 +27,9 @@ export interface SceneSettings {
 
 export interface HitPoint {
   point: THREE.Vector3;
-  screenX: number;
-  screenY: number;
+}
+
+export interface ScreenPoint {
+  x: number;
+  y: number;
 }
