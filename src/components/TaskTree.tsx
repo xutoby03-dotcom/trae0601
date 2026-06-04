@@ -14,6 +14,8 @@ interface TaskTreeProps {
   ) => void;
   selectedTaskId: string | null;
   onSelectTask: (taskId: string | null) => void;
+  resourceFilter: string | null;
+  visibleTaskIds: Set<string>;
 }
 
 const TaskTree: React.FC<TaskTreeProps> = ({
@@ -25,6 +27,8 @@ const TaskTree: React.FC<TaskTreeProps> = ({
   onReorderTask,
   selectedTaskId,
   onSelectTask,
+  resourceFilter,
+  visibleTaskIds,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -98,6 +102,10 @@ const TaskTree: React.FC<TaskTreeProps> = ({
   };
 
   const renderTask = (task: TaskNode) => {
+    if (!visibleTaskIds.has(task.id)) {
+      return null;
+    }
+
     const hasChildren = task.children && task.children.length > 0;
     const isDragging = draggedId === task.id;
     const isDragOver = dragOverId === task.id;

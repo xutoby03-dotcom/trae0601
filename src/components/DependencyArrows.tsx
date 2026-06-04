@@ -28,6 +28,7 @@ interface DependencyArrowsProps {
   onDeleteDependency: (depId: string) => void;
   onUpdateDependency: (depId: string, newType: DependencyType) => void;
   resourceFilter: string | null;
+  visibleTaskIds: Set<string>;
 }
 
 const DependencyArrows: React.FC<DependencyArrowsProps> = ({
@@ -43,6 +44,7 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
   onDeleteDependency,
   onUpdateDependency,
   resourceFilter,
+  visibleTaskIds,
 }) => {
   const [menuDepId, setMenuDepId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -169,16 +171,18 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
 
   const closeMenu = () => setMenuDepId(null);
 
-  const filteredDependencies = resourceFilter
-    ? dependencies.filter((dep) => {
-        const source = getTaskById(dep.sourceId);
-        const target = getTaskById(dep.targetId);
-        return (
-          source?.assignees.includes(resourceFilter) ||
-          target?.assignees.includes(resourceFilter)
-        );
-      })
-    : dependencies;
+  const filteredDependencies = dependencies.filter((dep) => {
+    const sourceVisible = visibleTaskIds.has(dep.sourceId);
+    const targetVisible = visibleTaskIds.has(dep.targetId);
+    if (!sourceVisible || !targetVisible) return false;
+    if (!resourceFilter) return true;
+    const source = getTaskById(dep.sourceId);
+    const target = getTaskById(dep.targetId);
+    return (
+      source?.assignees.includes(resourceFilter) ||
+      target?.assignees.includes(resourceFilter)
+    );
+  });
 
   return (
     <>

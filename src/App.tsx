@@ -28,6 +28,7 @@ import {
   propagateDateChanges,
   calculateAggregatedDates,
   getProjectDateRange,
+  getVisibleTaskIds,
 } from './utils/ganttUtils';
 import {
   formatDate,
@@ -121,6 +122,11 @@ const App: React.FC = () => {
   const conflictInfo = useMemo(
     () => buildConflictInfo(tasks),
     [tasks]
+  );
+
+  const visibleTaskIds = useMemo(
+    () => getVisibleTaskIds(taskTree, resourceFilter),
+    [taskTree, resourceFilter]
   );
 
   const handleToggleExpand = useCallback((taskId: string) => {
@@ -851,6 +857,8 @@ const App: React.FC = () => {
           onReorderTask={handleReorderTask}
           selectedTaskId={selectedTaskId}
           onSelectTask={handleSelectTask}
+          resourceFilter={resourceFilter}
+          visibleTaskIds={visibleTaskIds}
         />
 
         <div className="gantt-right">
@@ -883,6 +891,7 @@ const App: React.FC = () => {
             calendar={calendar}
             resourceFilter={resourceFilter}
             conflictInfo={conflictInfo}
+            visibleTaskIds={visibleTaskIds}
           />
         </div>
       </div>

@@ -49,6 +49,34 @@ export const flattenTree = (roots: TaskNode[], respectExpansion: boolean = false
   return result;
 };
 
+export const nodeOrDescendantsHaveResource = (node: TaskNode, resource: string): boolean => {
+  if (node.assignees.includes(resource)) {
+    return true;
+  }
+  return node.children.some((child) => nodeOrDescendantsHaveResource(child, resource));
+};
+
+export const getVisibleTaskIds = (roots: TaskNode[], resourceFilter: string | null): Set<string> => {
+  const visibleIds = new Set<string>();
+  if (!resourceFilter) {
+    flattenTree(roots, true).forEach((n) => visibleIds.add(n.id));
+    return visibleIds;
+  }
+  const traverse = (nodes: TaskNode[]) => {
+    nodes.forEach((node) => {
+      const shouldShow = nodeOrDescendantsHaveResource(node, resourceFilter);
+      if (shouldShow) {
+        visibleIds.add(node.id);
+        if (node.expanded) {
+          traverse(node.children);
+        }
+      }
+    });
+  };
+  traverse(roots);
+  return visibleIds;
+};
+
 export const getTaskAndDescendants = (taskId: string, tasks: Task[]): string[] => {
   const ids: string[] = [taskId];
   const findChildren = (parentId: string) => {

@@ -40,6 +40,7 @@ interface GanttChartProps {
   calendar: CalendarConfig;
   resourceFilter: string | null;
   conflictInfo: ConflictInfo;
+  visibleTaskIds: Set<string>;
 }
 
 const GanttChart: React.FC<GanttChartProps> = ({
@@ -61,6 +62,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
   calendar,
   resourceFilter,
   conflictInfo,
+  visibleTaskIds,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -113,7 +115,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
   };
 
   const getTaskTop = (taskId: string): number => {
-    const index = flatTasks.findIndex((t) => t.id === taskId);
+    const index = visibleTasks.findIndex((t) => t.id === taskId);
     return index * 36;
   };
 
@@ -316,7 +318,10 @@ const GanttChart: React.FC<GanttChartProps> = ({
 
   const dayUnits = generateDayUnits();
   const totalWidth = dayUnits.reduce((sum, d) => sum + d.width, 0);
-  const totalHeight = flatTasks.length * 36;
+
+  const visibleTasks = flatTasks.filter((t) => visibleTaskIds.has(t.id));
+  const totalHeight = visibleTasks.length * 36;
+
   const today = getToday();
   const todayLeft = getDaysBetween(startDate, today) * dayWidth;
 
@@ -334,15 +339,13 @@ const GanttChart: React.FC<GanttChartProps> = ({
     return labels[type] || type;
   };
 
-  const filteredTasks = resourceFilter
-    ? flatTasks.filter((t) => t.assignees.includes(resourceFilter))
-    : flatTasks;
+  const filteredTasks = visibleTasks;
 
   return (
     <div className="gantt-chart-container" ref={scrollRef} onScroll={handleScroll}>
       <div className="gantt-chart-content" ref={chartRef} style={{ width: totalWidth, minHeight: '100%' }}>
         <div className="gantt-grid" style={{ width: totalWidth }}>
-          {flatTasks.map((task, rowIndex) => (
+          {visibleTasks.map((task, rowIndex) => (
             <div
               key={task.id}
               className={`grid-row ${dayUnits[0]?.isWeekend ? 'weekend' : ''}`}
@@ -439,6 +442,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
           onDeleteDependency={onDeleteDependency}
           onUpdateDependency={onUpdateDependency}
           resourceFilter={resourceFilter}
+          visibleTaskIds={visibleTaskIds}
         />
       </div>
 
