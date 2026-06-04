@@ -3,7 +3,7 @@ import { useEditorStore } from '../store/useEditorStore';
 import { NodeComponent } from './Node';
 import { EdgeComponent } from './Edge';
 import { ShapeType, ConnectionPoint, Point } from '../types';
-import { getConnectionPoint, pointInRect } from '../utils/geometry';
+import { getConnectionPoint, pointInRect, snapToGrid } from '../utils/geometry';
 
 interface CanvasProps {
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
@@ -106,7 +106,7 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
       return;
     }
 
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    if (e.button === 1 || e.button === 2) {
       setIsPanning(true);
       setPanStart({
         offsetX: canvas.offsetX,
@@ -118,11 +118,22 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
     }
 
     if (e.button === 0 && (e.target === svgRef.current || (e.target as HTMLElement).tagName === 'svg' || (e.target as HTMLElement).classList.contains('canvas-grid'))) {
-      setIsDragSelecting(true);
-      const worldPos = screenToWorld(e.clientX, e.clientY);
-      setDragStart({ x: worldPos.x, y: worldPos.y });
-      setSelectionBox({ x: worldPos.x, y: worldPos.y, width: 0, height: 0 });
-      if (!e.ctrlKey && !e.metaKey) {
+      if (e.shiftKey || e.ctrlKey || e.metaKey) {
+        setIsDragSelecting(true);
+        const worldPos = screenToWorld(e.clientX, e.clientY);
+        setDragStart({ x: worldPos.x, y: worldPos.y });
+        setSelectionBox({ x: worldPos.x, y: worldPos.y, width: 0, height: 0 });
+        if (!e.ctrlKey && !e.metaKey) {
+          clearSelection();
+        }
+      } else {
+        setIsPanning(true);
+        setPanStart({
+          offsetX: canvas.offsetX,
+          offsetY: canvas.offsetY,
+          x: e.clientX,
+          y: e.clientY,
+        });
         clearSelection();
       }
     }
@@ -153,15 +164,14 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
       const dy = worldPos.y - nodeDragStart.y;
 
       const { nodes } = useEditorStore.getState();
-      nodes.forEach((node) => {
-        if (selection.nodeIds.includes(node.id)) {
-          const startPos = nodeDragStart.startPositions.get(node.id);
-          if (startPos) {
-            useEditorStore.getState().updateNode(node.id, {
-              x: startPos.x + dx,
-              y: startPos.y + dy,
-            });
-          }
+      const selectedIds = selection.nodeIds;
+      nodeDragStart.startPositions.forEach((startPos, id) => {
+        const node = nodes.find(n => n.id === id);
+        if (node && selectedIds.includes(id)) {
+          useEditorStore.getState().updateNode(id, {
+            x: snapToGrid(startPos.x + dx),
+            y: snapToGrid(startPos.y + dy),
+          });
         }
       });
       return;
@@ -257,26 +267,39 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
     if (connectingFrom) return;
 
     const isMultiSelect = e.ctrlKey || e.metaKey;
-    selectNode(nodeId, isMultiSelect);
 
-    if (!isMultiSelect || selection.nodeIds.includes(nodeId)) {
-      setIsDraggingNodes(true);
-      const worldPos = screenToWorld(e.clientX, e.clientY);
-      const startPositions = new Map<string, { x: number; y: number }>();
-      selection.nodeIds.forEach((id) => {
-        const node = nodes.find((n) => n.id === id);
-        if (node) {
-          startPositions.set(id, { x: node.x, y: node.y });
-        }
-      });
-      if (!startPositions.has(nodeId)) {
-        const node = nodes.find((n) => n.id === nodeId);
-        if (node) {
-          startPositions.set(nodeId, { x: node.x, y: node.y });
-        }
-      }
-      setNodeDragStart({ x: worldPos.x, y: worldPos.y, startPositions });
+    if (isMultiSelect) {
+      selectNode(nodeId, true);
+      return;
     }
+
+    if (!selection.nodeIds.includes(nodeId)) {
+      selectNode(nodeId, false);
+    }
+
+    setIsDraggingNodes(true);
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    const startPositions = new Map<string, { x: number; y: number }>();
+
+    const currentSelection = selection.nodeIds.includes(nodeId)
+      ? selection.nodeIds
+      : [nodeId];
+
+    currentSelection.forEach((id) => {
+      const node = nodes.find((n) => n.id === id);
+      if (node) {
+        startPositions.set(id, { x: node.x, y: node.y });
+      }
+    });
+
+    if (!startPositions.has(nodeId)) {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node) {
+        startPositions.set(nodeId, { x: node.x, y: node.y });
+      }
+    }
+
+    setNodeDragStart({ x: worldPos.x, y: worldPos.y, startPositions });
   };
 
   const handleStartConnection = (point: ConnectionPoint) => {
@@ -293,6 +316,11 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
     saveToLocalStorage();
   };
 
+  const handleResizeComplete = () => {
+    useEditorStore.getState().saveToHistory();
+    saveToLocalStorage();
+  };
+
   const setRefs = useCallback((el: HTMLDivElement | null) => {
     (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
     canvasRef.current = el;
@@ -306,7 +334,7 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
         position: 'relative',
         overflow: 'hidden',
         background: '#fafafa',
-        cursor: isPanning ? 'grabbing' : isDragSelecting ? 'crosshair' : dragShapeType ? 'copy' : 'default',
+        cursor: isPanning ? 'grabbing' : isDragSelecting ? 'crosshair' : dragShapeType ? 'copy' : 'grab',
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -361,6 +389,7 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
               onMouseDownNode={handleMouseDownNode}
               onStartConnection={handleStartConnection}
               onEndConnection={handleEndConnection}
+              onResizeComplete={handleResizeComplete}
             />
           ))}
 
@@ -393,7 +422,7 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         }}
       >
-        缩放: {Math.round(canvas.scale * 100)}% | Alt+拖动平移 | 滚轮缩放
+        缩放: {Math.round(canvas.scale * 100)}% | 左键拖动平移 | Shift/Ctrl+左键框选 | 滚轮缩放
       </div>
     </div>
   );

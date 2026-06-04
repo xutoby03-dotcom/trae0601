@@ -10,6 +10,7 @@ interface NodeProps {
   onMouseDownNode: (e: React.MouseEvent, nodeId: string) => void;
   onStartConnection: (point: ConnectionPoint) => void;
   onEndConnection: (point: ConnectionPoint) => void;
+  onResizeComplete: () => void;
 }
 
 const connectionPoints: ConnectionPointPosition[] = ['top', 'right', 'bottom', 'left'];
@@ -20,12 +21,12 @@ export const NodeComponent: React.FC<NodeProps> = ({
   onMouseDownNode,
   onStartConnection,
   onEndConnection,
+  onResizeComplete,
 }) => {
   const { updateNode, setEditingNode, editingNodeId, connectingFrom } = useEditorStore();
-  const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [showConnectionPoints, setShowConnectionPoints] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0 });
   const [nodeStart, setNodeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isEditing = editingNodeId === node.id;
@@ -41,22 +42,12 @@ export const NodeComponent: React.FC<NodeProps> = ({
     if (isEditing || isResizing) return;
     e.stopPropagation();
     onMouseDownNode(e, node.id);
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setNodeStart({ x: node.x, y: node.y, width: node.width, height: node.height });
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging && !isResizing) {
-      const dx = (e.clientX - dragStart.x) / useEditorStore.getState().canvas.scale;
-      const dy = (e.clientY - dragStart.y) / useEditorStore.getState().canvas.scale;
-      updateNode(node.id, {
-        x: snapToGrid(nodeStart.x + dx),
-        y: snapToGrid(nodeStart.y + dy),
-      });
-    } else if (isResizing) {
-      const dx = (e.clientX - dragStart.x) / useEditorStore.getState().canvas.scale;
-      const dy = (e.clientY - dragStart.y) / useEditorStore.getState().canvas.scale;
+  const handleResizeMouseMove = (e: MouseEvent) => {
+    if (isResizing) {
+      const dx = (e.clientX - resizeStart.x) / useEditorStore.getState().canvas.scale;
+      const dy = (e.clientY - resizeStart.y) / useEditorStore.getState().canvas.scale;
       const newWidth = Math.max(60, snapToGrid(nodeStart.width + dx));
       const newHeight = Math.max(40, snapToGrid(nodeStart.height + dy));
       updateNode(node.id, {
@@ -66,36 +57,35 @@ export const NodeComponent: React.FC<NodeProps> = ({
     }
   };
 
-  const handleMouseUp = () => {
-    if (isDragging || isResizing) {
-      useEditorStore.getState().saveToHistory();
+  const handleResizeMouseUp = () => {
+    if (isResizing) {
+      onResizeComplete();
     }
-    setIsDragging(false);
     setIsResizing(false);
   };
 
   useEffect(() => {
-    if (isDragging || isResizing) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMouseMove);
+      window.addEventListener('mouseup', handleResizeMouseUp);
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mousemove', handleResizeMouseMove);
+        window.removeEventListener('mouseup', handleResizeMouseUp);
       };
     }
-  }, [isDragging, isResizing, dragStart, nodeStart, node.id]);
+  }, [isResizing, resizeStart, nodeStart, node.id]);
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setIsResizing(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    setResizeStart({ x: e.clientX, y: e.clientY });
     setNodeStart({ x: node.x, y: node.y, width: node.width, height: node.height });
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isDragging && !isResizing) {
+    if (!isResizing) {
       setEditingNode(node.id);
     }
   };
