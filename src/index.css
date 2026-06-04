@@ -1,0 +1,794 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --color-bg: #282a36;
+  --color-fg: #f8f8f2;
+  --color-cursor: #f8f8f2;
+  --color-cursor-text: #282a36;
+  --color-selection-bg: #44475a;
+  --color-selection-fg: #f8f8f2;
+  --color-black: #000000;
+  --color-red: #ff5555;
+  --color-green: #50fa7b;
+  --color-yellow: #f1fa8c;
+  --color-blue: #bd93f9;
+  --color-magenta: #ff79c6;
+  --color-cyan: #8be9fd;
+  --color-white: #bbbbbb;
+  --color-bright-black: #555555;
+  --color-bright-red: #ff5555;
+  --color-bright-green: #50fa7b;
+  --color-bright-yellow: #f1fa8c;
+  --color-bright-blue: #bd93f9;
+  --color-bright-magenta: #ff79c6;
+  --color-bright-cyan: #8be9fd;
+  --color-bright-white: #ffffff;
+  --color-tab-bg: #21222c;
+  --color-tab-active-bg: #282a36;
+  --color-tab-border: #44475a;
+  --color-split-border: #44475a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.terminal-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+}
+
+.terminal-scrollback {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  scroll-behavior: smooth;
+}
+
+.terminal-scrollback::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-scrollback::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+.terminal-scrollback::-webkit-scrollbar-thumb {
+  background: var(--color-bright-black);
+  border-radius: 4px;
+}
+
+.terminal-scrollback::-webkit-scrollbar-thumb:hover {
+  background: var(--color-white);
+}
+
+.terminal-line {
+  display: block;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 1.6em;
+}
+
+.terminal-line-input {
+  color: var(--color-fg);
+}
+
+.terminal-line-output {
+  color: var(--color-fg);
+}
+
+.terminal-line-error {
+  color: var(--color-red);
+}
+
+.terminal-line-prompt {
+  color: var(--color-green);
+}
+
+.terminal-input-row {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 8px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.terminal-prompt {
+  color: var(--color-green);
+  margin-right: 8px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.terminal-input {
+  flex: 1;
+  outline: none;
+  background: transparent;
+  border: none;
+  color: var(--color-fg);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: transparent;
+  position: relative;
+}
+
+.terminal-input-content {
+  position: relative;
+  display: inline;
+}
+
+.cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.2em;
+  background-color: var(--color-cursor);
+  color: var(--color-cursor-text);
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: -1px;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+::selection {
+  background-color: var(--color-selection-bg);
+  color: var(--color-selection-fg);
+}
+
+::-moz-selection {
+  background-color: var(--color-selection-bg);
+  color: var(--color-selection-fg);
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-tab-bg);
+  border-bottom: 1px solid var(--color-tab-border);
+  height: 36px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tab-list {
+  display: flex;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tab-list::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 100%;
+  min-width: 120px;
+  max-width: 200px;
+  border-right: 1px solid var(--color-tab-border);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.tab-item:hover {
+  background-color: var(--color-tab-active-bg);
+}
+
+.tab-item.active {
+  background-color: var(--color-tab-active-bg);
+  border-top: 2px solid var(--color-cyan);
+}
+
+.tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--color-fg);
+  opacity: 0.8;
+}
+
+.tab-item.active .tab-title {
+  opacity: 1;
+}
+
+.tab-close {
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  color: var(--color-bright-black);
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.tab-item:hover .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background-color: var(--color-red);
+  color: var(--color-white);
+}
+
+.tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  cursor: pointer;
+  color: var(--color-bright-black);
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tab-add:hover {
+  color: var(--color-fg);
+  background-color: var(--color-tab-active-bg);
+}
+
+.tab-rename-input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--color-cyan);
+  color: var(--color-fg);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 2px 4px;
+  outline: none;
+  min-width: 0;
+}
+
+.theme-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.theme-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-bright-black);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.theme-button:hover {
+  color: var(--color-fg);
+  background-color: var(--color-tab-active-bg);
+}
+
+.theme-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 8px;
+  background-color: var(--color-tab-bg);
+  border: 1px solid var(--color-tab-border);
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 120px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dropdown-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-fg);
+  transition: background-color 0.15s ease;
+}
+
+.theme-dropdown-item:hover {
+  background-color: var(--color-tab-active-bg);
+}
+
+.theme-dropdown-item.active {
+  color: var(--color-cyan);
+}
+
+.split-pane {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.split-pane.horizontal {
+  flex-direction: row;
+}
+
+.split-pane.vertical {
+  flex-direction: column;
+}
+
+.split-pane-child {
+  overflow: hidden;
+  position: relative;
+}
+
+.split-divider {
+  background-color: var(--color-split-border);
+  transition: background-color 0.15s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.split-pane.horizontal .split-divider {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.split-pane.vertical .split-divider {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.split-divider:hover,
+.split-divider.active {
+  background-color: var(--color-cyan);
+}
+
+.split-divider::before {
+  content: '';
+  position: absolute;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.split-pane.horizontal .split-divider::before {
+  left: -3px;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+}
+
+.split-pane.vertical .split-divider::before {
+  top: -3px;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+}
+
+.vim-editor {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-bg);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+.vim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background-color: var(--color-tab-bg);
+  border-bottom: 1px solid var(--color-tab-border);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.vim-filename {
+  color: var(--color-cyan);
+  font-weight: 500;
+}
+
+.vim-modified {
+  color: var(--color-yellow);
+  margin-left: 8px;
+}
+
+.vim-close {
+  cursor: pointer;
+  color: var(--color-bright-black);
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.vim-close:hover {
+  background-color: var(--color-red);
+  color: var(--color-white);
+}
+
+.vim-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.vim-line-numbers {
+  flex-shrink: 0;
+  padding: 8px 8px 8px 12px;
+  text-align: right;
+  color: var(--color-bright-black);
+  user-select: none;
+  overflow: hidden;
+  min-width: 48px;
+  border-right: 1px solid var(--color-tab-border);
+}
+
+.vim-line-number {
+  display: block;
+  height: 1.6em;
+  line-height: 1.6em;
+}
+
+.vim-line-number.current {
+  color: var(--color-yellow);
+}
+
+.vim-editor-area {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.vim-editor-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.vim-editor-area::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+.vim-editor-area::-webkit-scrollbar-thumb {
+  background: var(--color-bright-black);
+  border-radius: 4px;
+}
+
+.vim-editor-area::-webkit-scrollbar-thumb:hover {
+  background: var(--color-white);
+}
+
+.vim-line {
+  display: block;
+  white-space: pre;
+  min-height: 1.6em;
+  line-height: 1.6em;
+  position: relative;
+}
+
+.vim-line.current-line {
+  background-color: rgba(68, 71, 90, 0.3);
+}
+
+.vim-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 1.2em;
+  background-color: var(--color-cursor);
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: -1px;
+}
+
+.vim-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  background-color: var(--color-tab-bg);
+  border-top: 1px solid var(--color-tab-border);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.vim-mode-indicator {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.vim-mode-indicator.normal {
+  background-color: var(--color-blue);
+  color: var(--color-bg);
+}
+
+.vim-mode-indicator.insert {
+  background-color: var(--color-green);
+  color: var(--color-bg);
+}
+
+.vim-mode-indicator.command {
+  background-color: var(--color-yellow);
+  color: var(--color-bg);
+}
+
+.vim-command-input {
+  flex: 1;
+  margin-left: 12px;
+  padding: 2px 8px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-tab-border);
+  border-radius: 3px;
+  color: var(--color-fg);
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.vim-position {
+  color: var(--color-bright-black);
+}
+
+.autocomplete-popup {
+  position: absolute;
+  background-color: var(--color-tab-bg);
+  border: 1px solid var(--color-tab-border);
+  border-radius: 4px;
+  padding: 4px 0;
+  min-width: 200px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 13px;
+}
+
+.autocomplete-popup::-webkit-scrollbar {
+  width: 6px;
+}
+
+.autocomplete-popup::-webkit-scrollbar-track {
+  background: var(--color-tab-bg);
+}
+
+.autocomplete-popup::-webkit-scrollbar-thumb {
+  background: var(--color-bright-black);
+  border-radius: 3px;
+}
+
+.autocomplete-item {
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--color-fg);
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background-color: var(--color-tab-active-bg);
+}
+
+.autocomplete-item.active {
+  color: var(--color-cyan);
+}
+
+.autocomplete-icon {
+  color: var(--color-bright-black);
+  flex-shrink: 0;
+}
+
+.search-history-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15%;
+  z-index: 2000;
+}
+
+.search-history-container {
+  width: 90%;
+  max-width: 600px;
+  background-color: var(--color-tab-bg);
+  border: 1px solid var(--color-tab-border);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.search-history-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-tab-border);
+  gap: 12px;
+}
+
+.search-history-icon {
+  color: var(--color-cyan);
+}
+
+.search-history-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-fg);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 14px;
+}
+
+.search-history-close {
+  color: var(--color-bright-black);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.search-history-close:hover {
+  background-color: var(--color-red);
+  color: var(--color-white);
+}
+
+.search-history-results {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.search-history-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-history-results::-webkit-scrollbar-track {
+  background: var(--color-tab-bg);
+}
+
+.search-history-results::-webkit-scrollbar-thumb {
+  background: var(--color-bright-black);
+  border-radius: 3px;
+}
+
+.search-history-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--color-fg);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.search-history-item:hover,
+.search-history-item.active {
+  background-color: var(--color-tab-active-bg);
+}
+
+.search-history-item.active {
+  background-color: rgba(139, 233, 253, 0.1);
+}
+
+.search-history-item.active .search-history-command {
+  color: var(--color-cyan);
+}
+
+.search-history-command {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-history-time {
+  color: var(--color-bright-black);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.search-history-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--color-bright-black);
+  font-size: 13px;
+}
+
+.search-history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-tab-border);
+  font-size: 11px;
+  color: var(--color-bright-black);
+}
+
+.search-history-hint {
+  display: flex;
+  gap: 16px;
+}
+
+.hint-key {
+  padding: 1px 6px;
+  background-color: var(--color-tab-active-bg);
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+}
+
+.ansi-bold {
+  font-weight: 700;
+}
+
+.ansi-italic {
+  font-style: italic;
+}
+
+.ansi-underline {
+  text-decoration: underline;
+}
