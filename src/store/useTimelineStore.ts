@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import type { Track, Clip, SubtitleClip, TransitionType, FilterType } from '@/types/timeline';
+import type { Track, Clip, SubtitleClip, TransitionType, FilterType, VolumeKeyframe } from '@/types/timeline';
 import type { MediaItem } from '@/types/media';
 import { generateId, snapToFrame } from '@/utils/timecode';
 import * as db from '@/utils/indexedDB';
+import { parseSRT } from '@/utils/srtParser';
 
 interface TimelineState {
   tracks: Track[];
@@ -39,10 +40,14 @@ interface TimelineState {
   setClipFilter: (clipId: string, filter: FilterType) => void;
   setClipTransition: (clipId: string, transition: { type: TransitionType; duration: number } | undefined) => void;
   setClipVolume: (clipId: string, volume: number) => void;
+  setVolumeKeyframes: (clipId: string, keyframes: VolumeKeyframe[]) => void;
+  addVolumeKeyframe: (clipId: string, time: number, value: number) => void;
+  removeVolumeKeyframe: (clipId: string, index: number) => void;
   
   addSubtitleClip: (trackId: string, startTime: number, endTime: number, text: string) => void;
   updateSubtitleStyle: (clipId: string, style: Partial<SubtitleClip['style']>) => void;
   updateSubtitleText: (clipId: string, text: string) => void;
+  importSRT: (trackId: string, content: string) => void;
 }
 
 export const useTimelineStore = create<TimelineState>((set, get) => ({
@@ -236,6 +241,31 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
     get().updateClip(clipId, { volume: Math.max(0, Math.min(2, volume)) });
   },
   
+  setVolumeKeyframes: (clipId, keyframes) => {
+    get().updateClip(clipId, { volumeKeyframes: keyframes });
+  },
+  
+  addVolumeKeyframe: (clipId, time, value) => {
+    set((state) => ({
+      clips: state.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        const existing = (c.volumeKeyframes || []).filter((kf) => Math.abs(kf.time - time) > 0.01);
+        const keyframes = [...existing, { time, value }].sort((a, b) => a.time - b.time);
+        return { ...c, volumeKeyframes: keyframes };
+      }),
+    }));
+  },
+  
+  removeVolumeKeyframe: (clipId, index) => {
+    set((state) => ({
+      clips: state.clips.map((c) => {
+        if (c.id !== clipId) return c;
+        const keyframes = (c.volumeKeyframes || []).filter((_, i) => i !== index);
+        return { ...c, volumeKeyframes: keyframes };
+      }),
+    }));
+  },
+  
   addSubtitleClip: (trackId, startTime, endTime, text) => {
     const clip: SubtitleClip = {
       id: generateId(),
@@ -279,5 +309,33 @@ export const useTimelineStore = create<TimelineState>((set, get) => ({
         return { ...c, text } as SubtitleClip;
       }),
     }));
+  },
+  
+  importSRT: (trackId, content) => {
+    const subtitles = parseSRT(content);
+    const newClips: SubtitleClip[] = subtitles.map((sub) => ({
+      id: generateId(),
+      trackId,
+      start: snapToFrame(sub.startTime),
+      end: snapToFrame(sub.endTime),
+      offset: 0,
+      transform: { scale: 1, rotation: 0, positionX: 0, positionY: 0 },
+      opacity: 1,
+      speed: 1,
+      reverse: false,
+      color: { brightness: 0, contrast: 0, saturation: 0 },
+      filter: 'none',
+      text: sub.text,
+      style: {
+        fontFamily: 'Arial',
+        fontSize: 48,
+        color: '#ffffff',
+        strokeColor: '#000000',
+        strokeWidth: 2,
+        shadow: true,
+      },
+    }));
+    
+    set((state) => ({ clips: [...state.clips, ...newClips] }));
   },
 }));

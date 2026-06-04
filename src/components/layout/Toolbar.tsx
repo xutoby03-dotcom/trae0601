@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Undo2, Redo2, Save, Download, Film, ArrowLeft } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Undo2, Redo2, Save, Download, Film, ArrowLeft, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProjectStore } from '@/store/useProjectStore';
 import { useTimelineStore } from '@/store/useTimelineStore';
@@ -9,13 +9,14 @@ import { ExportModal } from '@/components/export/ExportModal';
 export function Toolbar() {
   const navigate = useNavigate();
   const [showExport, setShowExport] = useState(false);
+  const srtInputRef = useRef<HTMLInputElement>(null);
   
   const currentProject = useProjectStore((state) => state.currentProject);
   const saveCurrentProject = useProjectStore((state) => state.saveCurrentProject);
   const saveProjectData = useTimelineStore((state) => state.saveProjectData);
   
-  const { tracks, clips } = useTimelineStore();
-  const { canUndo, canRedo, undo, redo } = useHistoryStore();
+  const { tracks, clips, importSRT } = useTimelineStore();
+  const { canUndo, canRedo, undo, redo, pushHistory } = useHistoryStore();
 
   const handleSave = async () => {
     if (!currentProject) return;
@@ -36,6 +37,26 @@ export function Toolbar() {
     if (snapshot) {
       useTimelineStore.getState().setTracks(snapshot.tracks);
       useTimelineStore.getState().setClips(snapshot.clips);
+    }
+  };
+
+  const handleSRTImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const subtitleTrack = tracks.find((t) => t.type === 'subtitle');
+      if (subtitleTrack) {
+        pushHistory({ tracks: [...tracks], clips: [...clips] });
+        importSRT(subtitleTrack.id, content);
+      }
+    } catch (error) {
+      console.error('SRT import error:', error);
+    }
+
+    if (srtInputRef.current) {
+      srtInputRef.current.value = '';
     }
   };
 
@@ -86,6 +107,22 @@ export function Toolbar() {
         </button>
         
         <div className="h-6 w-px bg-zinc-700 mx-2" />
+        
+        <input
+          ref={srtInputRef}
+          type="file"
+          accept=".srt"
+          onChange={handleSRTImport}
+          className="hidden"
+        />
+        <button
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded transition-colors"
+          onClick={() => srtInputRef.current?.click()}
+          title="导入 SRT 字幕"
+        >
+          <FileText className="w-4 h-4" />
+          导入字幕
+        </button>
         
         <button
           className="flex items-center gap-2 px-3 py-1.5 text-sm bg-zinc-800 hover:bg-zinc-700 rounded transition-colors"

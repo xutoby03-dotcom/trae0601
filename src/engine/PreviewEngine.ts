@@ -21,7 +21,9 @@ export class PreviewEngine {
   private videoCache: Map<string, VideoElementCache> = new Map();
   private imageCache: Map<string, HTMLImageElement> = new Map();
   private audioContext: AudioContext | null = null;
-  private gainNodes: Map<string, GainNode> = new Map();
+  private audioBufferCache: Map<string, AudioBuffer> = new Map();
+  private activeAudioSources: Map<string, { source: AudioBufferSourceNode; gain: GainNode }> = new Map();
+  private lastMixTime: number = 0;
   
   constructor(canvas: HTMLCanvasElement, options: PreviewEngineOptions) {
     this.canvas = canvas;
@@ -46,12 +48,73 @@ export class PreviewEngine {
     
     for (const track of sortedVideoTracks) {
       const trackClips = clips
-        .filter((c) => c.trackId === track.id)
-        .sort((a, b) => a.start - b.start);
+        .filter((c) => c.trackId === track.id && !('text' in c))
+        .sort((a, b) => a.start - b.start) as Clip[];
       
-      for (const clip of trackClips) {
+      for (let i = 0; i < trackClips.length; i++) {
+        const clip = trackClips[i];
+        
         if (time >= clip.start && time < clip.end) {
-          await this.renderClip(clip, time, mediaItems);
+          const transition = clip.transition;
+          const prevClip = i > 0 ? trackClips[i - 1] : null;
+          
+          let transitionProgress = -1;
+          let isOutTransition = false;
+          
+          if (transition && prevClip) {
+            const inEnd = clip.start + transition.duration;
+            if (time < inEnd && time >= clip.start) {
+              transitionProgress = (time - clip.start) / transition.duration;
+              isOutTransition = false;
+            }
+          }
+          
+          if (transition && i < trackClips.length - 1) {
+            const nextClip = trackClips[i + 1];
+            if (nextClip.transition) {
+              const outStart = clip.end - transition.duration;
+              if (time >= outStart && time < clip.end) {
+                transitionProgress = (time - outStart) / transition.duration;
+                isOutTransition = true;
+              }
+            }
+          }
+          
+          if (transitionProgress >= 0 && transitionProgress <= 1) {
+            const fromClip = isOutTransition ? clip : prevClip!;
+            const toClip = isOutTransition ? trackClips[i + 1] : clip;
+            
+            const fromCanvas = document.createElement('canvas');
+            fromCanvas.width = this.options.width;
+            fromCanvas.height = this.options.height;
+            const fromCtx = fromCanvas.getContext('2d')!;
+            
+            const toCanvas = document.createElement('canvas');
+            toCanvas.width = this.options.width;
+            toCanvas.height = this.options.height;
+            const toCtx = toCanvas.getContext('2d')!;
+            
+            const originalCtx = this.ctx;
+            this.ctx = fromCtx;
+            await this.renderClip(fromClip, isOutTransition ? time : fromClip.end - 0.01, mediaItems);
+            
+            this.ctx = toCtx;
+            await this.renderClip(toClip, isOutTransition ? toClip.start + 0.01 : time, mediaItems);
+            
+            this.ctx = originalCtx;
+            
+            applyTransition(
+              this.ctx,
+              transition.type,
+              fromCanvas,
+              toCanvas,
+              transitionProgress,
+              this.options.width,
+              this.options.height
+            );
+          } else {
+            await this.renderClip(clip, time, mediaItems);
+          }
         }
       }
     }
@@ -230,7 +293,12 @@ export class PreviewEngine {
       this.audioContext = new AudioContext();
     }
     
+    if (this.audioContext.state === 'suspended') {
+      this.audioContext.resume();
+    }
+    
     const audioTracks = tracks.filter((t) => t.type === 'audio' && !t.muted);
+    const activeClipIds = new Set<string>();
     
     for (const track of audioTracks) {
       const trackClips = clips.filter((c) => c.trackId === track.id);
@@ -239,20 +307,110 @@ export class PreviewEngine {
         if (time >= clip.start && time < clip.end && 'mediaItemId' in clip) {
           const mediaItem = mediaItems.find((m) => m.id === clip.mediaItemId);
           if (mediaItem?.type === 'audio') {
-            this.playAudioClip(mediaItem.url, clip);
+            activeClipIds.add(clip.id);
+            this.playAudioClip(mediaItem.url, clip, time);
           }
         }
       }
     }
+    
+    for (const [clipId, { source }] of this.activeAudioSources) {
+      if (!activeClipIds.has(clipId)) {
+        try {
+          source.stop();
+        } catch (e) {}
+        this.activeAudioSources.delete(clipId);
+      }
+    }
+    
+    this.lastMixTime = time;
   }
   
-  private async playAudioClip(url: string, clip: Clip): Promise<void> {
+  private async getAudioBuffer(url: string): Promise<AudioBuffer> {
+    if (!this.audioContext) throw new Error('AudioContext not initialized');
+    
+    const cached = this.audioBufferCache.get(url);
+    if (cached) return cached;
+    
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+    
+    this.audioBufferCache.set(url, audioBuffer);
+    return audioBuffer;
+  }
+  
+  private async playAudioClip(url: string, clip: Clip, currentTime: number): Promise<void> {
     if (!this.audioContext) return;
     
-    const gainNode = this.gainNodes.get(url) || this.audioContext.createGain();
-    gainNode.gain.value = (clip.volume || 1);
-    gainNode.connect(this.audioContext.destination);
-    this.gainNodes.set(url, gainNode);
+    const existing = this.activeAudioSources.get(clip.id);
+    if (existing) {
+      const currentGain = clip.volume ?? 1;
+      existing.gain.gain.setValueAtTime(currentGain, this.audioContext.currentTime);
+      
+      if (clip.volumeKeyframes && clip.volumeKeyframes.length > 0) {
+        const keyframes = [...clip.volumeKeyframes].sort((a, b) => a.time - b.time);
+        const clipDuration = clip.end - clip.start;
+        
+        for (const kf of keyframes) {
+          if (kf.time > 0 && kf.time < clipDuration) {
+            const scheduleTime = this.audioContext.currentTime + (kf.time - (currentTime - clip.start));
+            if (scheduleTime > this.audioContext.currentTime) {
+              existing.gain.gain.linearRampToValueAtTime(kf.value, scheduleTime);
+            }
+          }
+        }
+      }
+      return;
+    }
+    
+    try {
+      const audioBuffer = await this.getAudioBuffer(url);
+      
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = clip.speed;
+      
+      const gainNode = this.audioContext.createGain();
+      
+      const clipDuration = clip.end - clip.start;
+      const timeInClip = currentTime - clip.start;
+      const mediaStartTime = clip.reverse 
+        ? clip.offset + clipDuration - timeInClip * clip.speed
+        : clip.offset + timeInClip * clip.speed;
+      
+      const initialGain = clip.volume ?? 1;
+      gainNode.gain.setValueAtTime(initialGain, this.audioContext.currentTime);
+      
+      if (clip.volumeKeyframes && clip.volumeKeyframes.length > 0) {
+        const keyframes = [...clip.volumeKeyframes].sort((a, b) => a.time - b.time);
+        
+        for (const kf of keyframes) {
+          if (kf.time > timeInClip && kf.time < clipDuration) {
+            const scheduleTime = this.audioContext.currentTime + (kf.time - timeInClip);
+            gainNode.gain.linearRampToValueAtTime(kf.value, scheduleTime);
+          }
+        }
+      }
+      
+      source.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      if (clip.reverse) {
+        const reverseStartTime = clip.offset + clipDuration - mediaStartTime;
+        source.start(0, reverseStartTime, clipDuration - timeInClip);
+      } else {
+        source.start(0, mediaStartTime, clipDuration - timeInClip);
+      }
+      
+      source.onended = () => {
+        this.activeAudioSources.delete(clip.id);
+      };
+      
+      this.activeAudioSources.set(clip.id, { source, gain: gainNode });
+    } catch (error) {
+      console.error('Audio playback error:', error);
+    }
   }
   
   getCanvasStream(fps: number = 30): MediaStream {
@@ -267,10 +425,13 @@ export class PreviewEngine {
     this.videoCache.clear();
     this.imageCache.clear();
     
-    for (const gainNode of this.gainNodes.values()) {
-      gainNode.disconnect();
+    for (const { source } of this.activeAudioSources.values()) {
+      try {
+        source.stop();
+      } catch (e) {}
     }
-    this.gainNodes.clear();
+    this.activeAudioSources.clear();
+    this.audioBufferCache.clear();
     
     if (this.audioContext) {
       this.audioContext.close();

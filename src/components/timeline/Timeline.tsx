@@ -15,11 +15,14 @@ const TRACK_HEADER_WIDTH = 180;
 export function Timeline() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [draggingClip, setDraggingClip] = useState<string | null>(null);
+  const [isAltDragging, setIsAltDragging] = useState(false);
+  const [altDuplicateCreated, setAltDuplicateCreated] = useState(false);
   const [trimmingClip, setTrimmingClip] = useState<string | null>(null);
   const [trimMode, setTrimMode] = useState<'start' | 'end' | null>(null);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartTime, setDragStartTime] = useState(0);
   const [dragStartTrack, setDragStartTrack] = useState<string | null>(null);
+  const [originalClipId, setOriginalClipId] = useState<string | null>(null);
   
   const {
     tracks,
@@ -52,11 +55,27 @@ export function Timeline() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Alt' && draggingClip) {
+      if (e.key === 'Alt') {
+        setIsAltDragging(true);
+        if (draggingClip && !altDuplicateCreated) {
+          const originalClip = clips.find((c) => c.id === draggingClip);
+          if (originalClip) {
+            pushHistory({ tracks: [...tracks], clips: [...clips] });
+            const newClip = {
+              ...originalClip,
+              id: generateId(),
+            };
+            setClips([...clips, newClip]);
+            setOriginalClipId(draggingClip);
+            setDraggingClip(newClip.id);
+            setAltDuplicateCreated(true);
+          }
+        }
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Alt') {
+        setIsAltDragging(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -65,7 +84,7 @@ export function Timeline() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [draggingClip]);
+  }, [draggingClip, altDuplicateCreated, clips, tracks, pushHistory, setClips]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -108,6 +127,29 @@ export function Timeline() {
   };
 
   const handleClipDragStart = (clipId: string, e: React.MouseEvent) => {
+    if (e.altKey) {
+      setIsAltDragging(true);
+      const originalClip = clips.find((c) => c.id === clipId);
+      if (originalClip) {
+        pushHistory({ tracks: [...tracks], clips: [...clips] });
+        const newClip = {
+          ...originalClip,
+          id: generateId(),
+        };
+        setClips([...clips, newClip]);
+        setOriginalClipId(clipId);
+        setDraggingClip(newClip.id);
+        setAltDuplicateCreated(true);
+        setDragStartX(e.clientX);
+        setDragStartTime(newClip.start);
+        setDragStartTrack(newClip.trackId);
+        return;
+      }
+    }
+    
+    setIsAltDragging(false);
+    setAltDuplicateCreated(false);
+    setOriginalClipId(null);
     setDraggingClip(clipId);
     setDragStartX(e.clientX);
     const clip = clips.find((c) => c.id === clipId);
@@ -166,6 +208,9 @@ export function Timeline() {
       setDraggingClip(null);
       setTrimmingClip(null);
       setTrimMode(null);
+      setIsAltDragging(false);
+      setAltDuplicateCreated(false);
+      setOriginalClipId(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);

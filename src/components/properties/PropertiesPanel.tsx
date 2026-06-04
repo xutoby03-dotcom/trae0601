@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useTimelineStore } from '@/store/useTimelineStore';
 import type { FilterType, TransitionType } from '@/types/timeline';
 
@@ -73,6 +73,9 @@ export function PropertiesPanel() {
     setClipFilter,
     setClipTransition,
     setClipVolume,
+    setVolumeKeyframes,
+    addVolumeKeyframe,
+    removeVolumeKeyframe,
     updateSubtitleText,
     updateSubtitleStyle,
     mediaItems,
@@ -118,6 +121,26 @@ export function PropertiesPanel() {
             />
           </div>
           <div className="mb-3">
+            <label className="block text-xs text-zinc-400 mb-1">字体</label>
+            <select
+              value={(selectedClip as any).style.fontFamily}
+              onChange={(e) =>
+                updateSubtitleStyle(selectedClip.id, { fontFamily: e.target.value })
+              }
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            >
+              <option value="Arial">Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Microsoft YaHei">微软雅黑</option>
+              <option value="SimHei">黑体</option>
+              <option value="SimSun">宋体</option>
+            </select>
+          </div>
+          <div className="mb-3">
             <label className="block text-xs text-zinc-400 mb-1">字体大小</label>
             <input
               type="number"
@@ -138,6 +161,48 @@ export function PropertiesPanel() {
               }
               className="w-full h-8 bg-zinc-800 border border-zinc-700 rounded cursor-pointer"
             />
+          </div>
+          <div className="mb-3">
+            <label className="block text-xs text-zinc-400 mb-1">描边颜色</label>
+            <input
+              type="color"
+              value={(selectedClip as any).style.strokeColor || '#000000'}
+              onChange={(e) =>
+                updateSubtitleStyle(selectedClip.id, { strokeColor: e.target.value })
+              }
+              className="w-full h-8 bg-zinc-800 border border-zinc-700 rounded cursor-pointer"
+            />
+          </div>
+          <div className="mb-3">
+            <label className="block text-xs text-zinc-400 mb-1">描边宽度</label>
+            <input
+              type="number"
+              min="0"
+              max="10"
+              step="1"
+              value={(selectedClip as any).style.strokeWidth || 0}
+              onChange={(e) =>
+                updateSubtitleStyle(selectedClip.id, { strokeWidth: parseInt(e.target.value) })
+              }
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400">阴影</span>
+            <button
+              className={`w-10 h-5 rounded-full transition-colors ${
+                (selectedClip as any).style.shadow ? 'bg-cyan-500' : 'bg-zinc-700'
+              }`}
+              onClick={() =>
+                updateSubtitleStyle(selectedClip.id, { shadow: !(selectedClip as any).style.shadow })
+              }
+            >
+              <div
+                className={`w-4 h-4 bg-white rounded-full transition-transform ${
+                  (selectedClip as any).style.shadow ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
           </div>
         </Section>
       ) : (
@@ -311,6 +376,96 @@ export function PropertiesPanel() {
               step={0.1}
               onChange={(v) => setClipVolume(selectedClip.id, v)}
             />
+            
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-zinc-400">音量关键帧</label>
+                <button
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+                  onClick={() => {
+                    const clipDuration = selectedClip.end - selectedClip.start;
+                    addVolumeKeyframe(selectedClip.id, clipDuration / 2, selectedClip.volume ?? 1);
+                  }}
+                >
+                  <Plus className="w-3 h-3" />
+                  添加
+                </button>
+              </div>
+              
+              <div className="relative h-20 bg-zinc-800 rounded border border-zinc-700 overflow-hidden">
+                <svg className="absolute inset-0 w-full h-full">
+                  <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#3f3f46" strokeWidth="1" strokeDasharray="4 4" />
+                  
+                  {(selectedClip.volumeKeyframes || []).length > 0 && (
+                    <polyline
+                      fill="none"
+                      stroke="#06b6d4"
+                      strokeWidth="2"
+                      points={[
+                        `0,${100 - ((selectedClip.volume ?? 1) / 2) * 100}`,
+                        ...(selectedClip.volumeKeyframes || [])
+                          .sort((a, b) => a.time - b.time)
+                          .map((kf) => {
+                            const clipDuration = selectedClip.end - selectedClip.start;
+                            const x = (kf.time / clipDuration) * 100;
+                            const y = 100 - (kf.value / 2) * 100;
+                            return `${x}%,${y}`;
+                          }),
+                        `100%,${100 - ((selectedClip.volume ?? 1) / 2) * 100}`,
+                      ].join(' ')}
+                    />
+                  )}
+                </svg>
+                
+                {(selectedClip.volumeKeyframes || []).sort((a, b) => a.time - b.time).map((kf, index) => {
+                  const clipDuration = selectedClip.end - selectedClip.start;
+                  const x = (kf.time / clipDuration) * 100;
+                  const y = 100 - (kf.value / 2) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="absolute w-3 h-3 bg-cyan-500 rounded-full border-2 border-white transform -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:scale-125 transition-transform"
+                      style={{ left: `${x}%`, top: `${y}%` }}
+                      title={`时间: ${kf.time.toFixed(2)}s, 音量: ${kf.value.toFixed(2)}`}
+                    />
+                  );
+                })}
+              </div>
+              
+              {(selectedClip.volumeKeyframes || []).length > 0 && (
+                <div className="mt-3 space-y-2 max-h-32 overflow-y-auto">
+                  {(selectedClip.volumeKeyframes || []).sort((a, b) => a.time - b.time).map((kf, index) => (
+                    <div key={index} className="flex items-center gap-2 text-xs">
+                      <span className="text-zinc-400 w-12">
+                        {kf.time.toFixed(1)}s
+                      </span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={kf.value}
+                        onChange={(e) => {
+                          const newKeyframes = [...(selectedClip.volumeKeyframes || [])];
+                          newKeyframes[index] = { ...kf, value: parseFloat(e.target.value) };
+                          setVolumeKeyframes(selectedClip.id, newKeyframes);
+                        }}
+                        className="flex-1 h-1.5 bg-zinc-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                      />
+                      <span className="text-zinc-300 w-10 text-right font-mono">
+                        {kf.value.toFixed(1)}
+                      </span>
+                      <button
+                        className="p-1 text-red-400 hover:text-red-300 hover:bg-zinc-700 rounded"
+                        onClick={() => removeVolumeKeyframe(selectedClip.id, index)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </Section>
         </>
       )}
