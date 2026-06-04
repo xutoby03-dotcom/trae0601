@@ -13,6 +13,8 @@ interface FormStore {
   deleteField: (id: string) => void;
   clearAllFields: () => void;
   reorderFields: (oldIndex: number, newIndex: number) => void;
+  moveFieldToTop: (id: string) => void;
+  moveFieldToBottom: (id: string) => void;
   updateFormMeta: (updates: Partial<Pick<FormData, 'title' | 'description'>>) => void;
   addOption: (fieldId: string) => void;
   updateOption: (fieldId: string, optionId: string, updates: Partial<Option>) => void;
@@ -182,6 +184,46 @@ export const useFormStore = create<FormStore>((set, get) => ({
       const newFields = [...state.formData.fields];
       const [removed] = newFields.splice(oldIndex, 1);
       newFields.splice(newIndex, 0, removed);
+      return {
+        formData: {
+          ...state.formData,
+          fields: newFields,
+          updatedAt: Date.now(),
+        },
+      };
+    });
+    get().saveToStorage();
+  },
+
+  moveFieldToTop: (id) => {
+    set((state) => {
+      const fieldIndex = state.formData.fields.findIndex((f) => f.id === id);
+      if (fieldIndex <= 0) return state;
+
+      const newFields = [...state.formData.fields];
+      const [removed] = newFields.splice(fieldIndex, 1);
+      newFields.unshift(removed);
+
+      return {
+        formData: {
+          ...state.formData,
+          fields: newFields,
+          updatedAt: Date.now(),
+        },
+      };
+    });
+    get().saveToStorage();
+  },
+
+  moveFieldToBottom: (id) => {
+    set((state) => {
+      const fieldIndex = state.formData.fields.findIndex((f) => f.id === id);
+      if (fieldIndex === -1 || fieldIndex === state.formData.fields.length - 1) return state;
+
+      const newFields = [...state.formData.fields];
+      const [removed] = newFields.splice(fieldIndex, 1);
+      newFields.push(removed);
+
       return {
         formData: {
           ...state.formData,

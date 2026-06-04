@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X, EyeOff, Copy } from 'lucide-react';
+import { GripVertical, X, EyeOff, Copy, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
 import { useRef } from 'react';
 import type { FormField } from '../../types/form';
 import { renderPreviewField } from '../fields';
@@ -16,8 +16,11 @@ interface FieldItemProps {
 
 export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
   const { selectedFieldId, selectField } = useUIStore();
-  const { deleteField, duplicateField, formData } = useFormStore();
+  const { deleteField, duplicateField, moveFieldToTop, moveFieldToBottom, formData } = useFormStore();
   const itemRef = useRef<HTMLDivElement>(null);
+
+  const isFirst = index === 0;
+  const isLast = index === formData.fields.length - 1;
 
   const isSelected = selectedFieldId === field.id;
 
@@ -69,6 +72,32 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
     }
   };
 
+  const handleMoveToTop = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isFirst) return;
+    moveFieldToTop(field.id);
+    setTimeout(() => {
+      const fieldElements = document.querySelectorAll('[data-field-item]');
+      const targetElement = fieldElements[0] as HTMLElement;
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  };
+
+  const handleMoveToBottom = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLast) return;
+    moveFieldToBottom(field.id);
+    setTimeout(() => {
+      const fieldElements = document.querySelectorAll('[data-field-item]');
+      const targetElement = fieldElements[fieldElements.length - 1] as HTMLElement;
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  };
+
   const fieldTypeLabels: Record<string, string> = {
     text: '单行文本',
     textarea: '多行文本',
@@ -108,9 +137,37 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
       </div>
 
       <button
+        onClick={handleMoveToTop}
+        title="置顶"
+        disabled={isFirst}
+        className={cn(
+          'absolute top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10',
+          isFirst
+            ? 'right-36 text-gray-300 cursor-not-allowed'
+            : 'right-36 hover:bg-purple-50 text-gray-400 hover:text-purple-500'
+        )}
+      >
+        <ArrowUpToLine size={16} />
+      </button>
+
+      <button
+        onClick={handleMoveToBottom}
+        title="置底"
+        disabled={isLast}
+        className={cn(
+          'absolute top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10',
+          isLast
+            ? 'right-28 text-gray-300 cursor-not-allowed'
+            : 'right-28 hover:bg-orange-50 text-gray-400 hover:text-orange-500'
+        )}
+      >
+        <ArrowDownToLine size={16} />
+      </button>
+
+      <button
         onClick={handleDuplicate}
         title="复制字段"
-        className="absolute right-12 top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-50 text-gray-400 hover:text-blue-500 z-10"
+        className="absolute right-16 top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-50 text-gray-400 hover:text-blue-500 z-10"
       >
         <Copy size={16} />
       </button>
