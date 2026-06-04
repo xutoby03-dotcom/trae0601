@@ -3,6 +3,7 @@ import { ViewPresetDirection } from '../Viewer/useScene';
 interface ViewPresetControlProps {
   onViewPreset: (preset: ViewPresetDirection) => void;
   onReset: () => void;
+  hasModel: boolean;
 }
 
 const presets: { value: ViewPresetDirection; label: string; icon: string }[] = [
@@ -15,7 +16,15 @@ const presets: { value: ViewPresetDirection; label: string; icon: string }[] = [
   { value: 'isometric', label: '轴测', icon: '⬡' },
 ];
 
-export function ViewPresetControl({ onViewPreset, onReset }: ViewPresetControlProps) {
+export function ViewPresetControl({ onViewPreset, onReset, hasModel }: ViewPresetControlProps) {
+  const disabledClass = !hasModel
+    ? 'opacity-40 cursor-not-allowed'
+    : 'hover:bg-cyan-500/30 hover:text-white';
+
+  const resetDisabledClass = !hasModel
+    ? 'opacity-40 cursor-not-allowed'
+    : 'hover:bg-amber-500/30 hover:text-white';
+
   return (
     <div>
       <h3 className="text-white text-sm font-semibold mb-2">视角预设</h3>
@@ -23,10 +32,11 @@ export function ViewPresetControl({ onViewPreset, onReset }: ViewPresetControlPr
         {presets.map((p) => (
           <button
             key={p.value}
-            onClick={() => onViewPreset(p.value)}
-            className="py-1.5 px-1 rounded text-xs font-medium bg-white/10 text-gray-300 
-                       hover:bg-cyan-500/30 hover:text-white transition-all flex flex-col items-center gap-0.5"
-            title={p.label}
+            onClick={() => hasModel && onViewPreset(p.value)}
+            disabled={!hasModel}
+            className={`py-1.5 px-1 rounded text-xs font-medium bg-white/10 text-gray-300 
+                       transition-all flex flex-col items-center gap-0.5 ${disabledClass}`}
+            title={hasModel ? p.label : '请先上传模型'}
           >
             <span className="text-sm leading-none">{p.icon}</span>
             <span className="text-[10px]">{p.label}</span>
@@ -34,10 +44,11 @@ export function ViewPresetControl({ onViewPreset, onReset }: ViewPresetControlPr
         ))}
       </div>
       <button
-        onClick={onReset}
-        className="w-full py-2 rounded text-xs font-medium bg-white/10 text-gray-300 
-                   hover:bg-amber-500/30 hover:text-white transition-all flex items-center justify-center gap-1.5"
-        title="复位视角"
+        onClick={() => hasModel && onReset()}
+        disabled={!hasModel}
+        className={`w-full py-2 rounded text-xs font-medium bg-white/10 text-gray-300 
+                   transition-all flex items-center justify-center gap-1.5 ${resetDisabledClass}`}
+        title={hasModel ? '复位视角' : '请先上传模型'}
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

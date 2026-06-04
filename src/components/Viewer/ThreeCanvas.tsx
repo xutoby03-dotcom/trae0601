@@ -9,6 +9,7 @@ export interface ThreeCanvasHandle {
   resetToInitial: () => void;
   clearHighlight: () => void;
   saveInitialCamera: () => void;
+  computeAndSetInitialCamera: () => void;
 }
 
 interface ThreeCanvasProps {
@@ -31,7 +32,7 @@ export function ThreeCanvas({
   ref
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scene, camera, renderer, addModel, updateSettings, resetCamera, animateToView, resetToInitial, saveInitialCamera } = useScene(containerRef);
+  const { scene, camera, renderer, addModel, updateSettings, animateToView, resetToInitial, saveInitialCamera, computeAndSetInitialCamera } = useScene(containerRef);
   const { loadModel } = useModelLoader();
   const { clearHighlight } = useRaycaster({ scene, camera, containerRef, onHit: onHitPoint });
 
@@ -39,8 +40,9 @@ export function ThreeCanvas({
     animateToView,
     resetToInitial,
     clearHighlight,
-    saveInitialCamera
-  }), [animateToView, resetToInitial, clearHighlight, saveInitialCamera]);
+    saveInitialCamera,
+    computeAndSetInitialCamera
+  }), [animateToView, resetToInitial, clearHighlight, saveInitialCamera, computeAndSetInitialCamera]);
 
   React.useEffect(() => {
     updateSettings(settings);
@@ -52,8 +54,7 @@ export function ThreeCanvas({
         .then(({ model, info }) => {
           addModel(model);
           onModelLoaded(info);
-          resetCamera();
-          saveInitialCamera();
+          computeAndSetInitialCamera();
           onLoadComplete();
         })
         .catch((error) => {
@@ -62,7 +63,7 @@ export function ThreeCanvas({
           onLoadComplete();
         });
     }
-  }, [fileToLoad, loadModel, addModel, onModelLoaded, resetCamera, saveInitialCamera, onLoadComplete, settings.materialColor, settings.renderMode]);
+  }, [fileToLoad, loadModel, addModel, onModelLoaded, computeAndSetInitialCamera, onLoadComplete, settings.materialColor, settings.renderMode]);
 
   React.useEffect(() => {
     if (onScreenshotRequest && renderer.current && scene.current && camera.current) {

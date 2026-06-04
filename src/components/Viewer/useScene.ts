@@ -186,11 +186,13 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     const modelGroup = modelGroupRef.current;
-    if (!camera || !controls || !modelGroup) return;
+    if (!camera || !controls || !modelGroup || modelGroup.children.length === 0) return;
 
     cancelAnimationFrame(tweenIdRef.current);
 
     const box = new THREE.Box3().setFromObject(modelGroup);
+    if (!box.isBox3 || box.isEmpty()) return;
+
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z, 0.001);
@@ -226,7 +228,11 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
   const resetToInitial = useCallback(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
-    if (!camera || !controls) return;
+    const modelGroup = modelGroupRef.current;
+    if (!camera || !controls || !modelGroup || modelGroup.children.length === 0) return;
+
+    const box = new THREE.Box3().setFromObject(modelGroup);
+    if (!box.isBox3 || box.isEmpty()) return;
 
     cancelAnimationFrame(tweenIdRef.current);
 
@@ -254,6 +260,33 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
     tweenIdRef.current = requestAnimationFrame(tween);
   }, []);
 
+  const computeAndSetInitialCamera = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    const modelGroup = modelGroupRef.current;
+    if (!camera || !controls || !modelGroup || modelGroup.children.length === 0) return;
+
+    const box = new THREE.Box3().setFromObject(modelGroup);
+    if (!box.isBox3 || box.isEmpty()) return;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+
+    const fov = camera.fov * (Math.PI / 180);
+    const dist = maxDim / (2 * Math.tan(fov / 2)) * 1.8;
+
+    const dir = new THREE.Vector3(1, 1, 1).normalize();
+    const targetPos = center.clone().add(dir.multiplyScalar(dist));
+
+    camera.position.copy(targetPos);
+    controls.target.copy(center);
+    controls.update();
+
+    initialCameraPosRef.current.copy(targetPos);
+    initialTargetRef.current.copy(center);
+  }, []);
+
   const saveInitialCamera = useCallback(() => {
     if (cameraRef.current && controlsRef.current) {
       initialCameraPosRef.current.copy(cameraRef.current.position);
@@ -277,6 +310,7 @@ export function useScene(containerRef: React.RefObject<HTMLDivElement>) {
     resetCamera,
     animateToView,
     resetToInitial,
-    saveInitialCamera
+    saveInitialCamera,
+    computeAndSetInitialCamera
   };
 }

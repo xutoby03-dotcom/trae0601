@@ -95,6 +95,7 @@ function App() {
             <ViewPresetControl
               onViewPreset={handleViewPreset}
               onReset={handleResetView}
+              hasModel={modelInfo !== null}
             />
             
             <div className="h-px bg-white/10 my-4" />
