@@ -50,7 +50,7 @@ export function ProblemPanel({ onClose }: ProblemPanelProps) {
       switchDatabase(problem.databaseId);
     }
 
-    setSql(`-- ${problem.title}\n-- ${problem.description}\n\n`);
+    setSql(`-- ${problem.title}\n-- ${problem.description}\n\n`, true);
   };
 
   const getDifficultyColor = (difficulty: string) => {

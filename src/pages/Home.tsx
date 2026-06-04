@@ -6,15 +6,17 @@ import { ResultTable } from '@/components/ResultTable';
 import { ProblemPanel } from '@/components/ProblemPanel';
 import { Toolbar } from '@/components/Toolbar';
 import { ExecutionPlan } from '@/components/ExecutionPlan';
+import { HistoryDrawer } from '@/components/HistoryDrawer';
 import { useSqlStore } from '@/stores/useSqlStore';
 import { useEditorStore } from '@/stores/useEditorStore';
 import { Database, Play } from 'lucide-react';
 
 export default function Home() {
   const { initializeSqlEngine, isInitializing, initError } = useSqlStore();
-  const { theme, sql } = useEditorStore();
+  const { theme, sql, undo, redo, canUndo, canRedo } = useEditorStore();
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
 
   useEffect(() => {
     initializeSqlEngine();
@@ -31,8 +33,16 @@ export default function Home() {
         const runButton = document.querySelector('[title="运行 (F5)"]') as HTMLButtonElement;
         if (runButton) runButton.click();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        if (canRedo) redo();
+      }
     },
-    []
+    [canUndo, canRedo, undo, redo]
   );
 
   useEffect(() => {
@@ -91,7 +101,10 @@ export default function Home() {
         </div>
       </header>
 
-      <Toolbar />
+      <Toolbar
+        onToggleHistory={() => setShowHistoryDrawer((v) => !v)}
+        onToggleSettings={() => {}}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         <PanelGroup direction="horizontal">
@@ -139,6 +152,8 @@ export default function Home() {
           )}
         </PanelGroup>
       </div>
+
+      <HistoryDrawer open={showHistoryDrawer} onClose={() => setShowHistoryDrawer(false)} />
 
       <footer className="px-4 py-1.5 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
         <div className="flex items-center gap-4">

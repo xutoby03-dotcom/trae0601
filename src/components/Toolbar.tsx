@@ -38,6 +38,10 @@ export function Toolbar({ onToggleHistory, onToggleSettings }: ToolbarProps) {
     setProblemResultMatch,
     showExecutionPlan,
     setShowExecutionPlan,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
   } = useEditorStore();
   const { executeQuery, currentDatabaseId, isInitializing } = useSqlStore();
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -180,7 +184,14 @@ export function Toolbar({ onToggleHistory, onToggleSettings }: ToolbarProps) {
         </button>
 
         <button
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          onClick={undo}
+          disabled={!canUndo}
+          className={cn(
+            'flex items-center gap-1 px-2.5 py-1.5 rounded text-sm transition-colors',
+            canUndo
+              ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+          )}
           title="撤销 (Ctrl+Z)"
         >
           <Undo2 className="w-4 h-4" />
@@ -188,7 +199,14 @@ export function Toolbar({ onToggleHistory, onToggleSettings }: ToolbarProps) {
         </button>
 
         <button
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          onClick={redo}
+          disabled={!canRedo}
+          className={cn(
+            'flex items-center gap-1 px-2.5 py-1.5 rounded text-sm transition-colors',
+            canRedo
+              ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+              : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+          )}
           title="重做 (Ctrl+Y)"
         >
           <Redo2 className="w-4 h-4" />

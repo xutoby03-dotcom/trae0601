@@ -9,17 +9,22 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Search, ChevronUp, ChevronDown, ArrowUpDown, Copy, Check, AlertCircle, Info } from 'lucide-react';
+import { Search, ChevronUp, ChevronDown, ArrowUpDown, Copy, Check, AlertCircle, Info, Filter } from 'lucide-react';
 import { useEditorStore } from '@/stores/useEditorStore';
 import { cn } from '@/lib/utils';
 
 export function ResultTable() {
-  const { result, isExecuting } = useEditorStore();
+  const { result } = useEditorStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [copiedCell, setCopiedCell] = useState<string | null>(null);
+  const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const resizingCol = useRef<string | null>(null);
+  const resizeStartX = useRef(0);
+  const resizeStartW = useRef(0);
 
   const columns = useMemo<ColumnDef<any>[]>(() => {
     if (!result?.columns?.length) return [];
@@ -27,10 +32,7 @@ export function ResultTable() {
       id: col,
       accessorKey: col,
       header: () => col,
-      cell: ({ getValue }) => {
-        const value = getValue();
-        return value;
-      },
+      cell: ({ getValue }) => getValue(),
     }));
   }, [result?.columns]);
 
@@ -48,10 +50,7 @@ export function ResultTable() {
   const table = useReactTable({
     data,
     columns,
-    state: {
-      sorting,
-      globalFilter,
-    },
+    state: { sorting, globalFilter },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -76,6 +75,33 @@ export function ResultTable() {
     setCopiedCell(text);
     setTimeout(() => setCopiedCell(null), 1500);
   }, []);
+
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent, colId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      resizingCol.current = colId;
+      resizeStartX.current = e.clientX;
+      resizeStartW.current = columnWidths[colId] ?? 150;
+
+      const handleMouseMove = (ev: MouseEvent) => {
+        if (!resizingCol.current) return;
+        const delta = ev.clientX - resizeStartX.current;
+        const newW = Math.max(60, resizeStartW.current + delta);
+        setColumnWidths((prev) => ({ ...prev, [resizingCol.current!]: newW }));
+      };
+
+      const handleMouseUp = () => {
+        resizingCol.current = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [columnWidths]
+  );
 
   const formatValue = (value: any) => {
     if (value === null) {
@@ -150,57 +176,80 @@ export function ResultTable() {
           if (e.ctrlKey) e.preventDefault();
         }}
       >
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
           <thead className="sticky top-0 bg-gray-100 dark:bg-gray-800 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700 select-none"
-                    style={{ minWidth: '120px' }}
-                  >
-                    <div
-                      className={cn(
-                        'flex items-center gap-1 cursor-pointer hover:text-gray-900 dark:hover:text-white',
-                        header.column.getCanSort() && 'cursor-pointer'
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
+                {headerGroup.headers.map((header) => {
+                  const colW = columnWidths[header.id] ?? 150;
+                  const isFilterOpen = openFilterCol === header.id;
+                  return (
+                    <th
+                      key={header.id}
+                      className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200 border-b border-r border-gray-200 dark:border-gray-700 select-none relative group/th"
+                      style={{ width: colW, minWidth: 60 }}
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      <span className="ml-auto">
-                        {header.column.getIsSorted() === 'asc' ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : header.column.getIsSorted() === 'desc' ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ArrowUpDown className="w-3 h-3 opacity-50" />
-                        )}
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="过滤..."
-                      value={columnFilters[header.id] ?? ''}
-                      onChange={(e) => {
-                        setColumnFilters((prev) => ({
-                          ...prev,
-                          [header.id]: e.target.value,
-                        }));
-                        header.column.setFilterValue(e.target.value || undefined);
-                      }}
-                      className="mt-1 w-full px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded outline-none focus:border-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </th>
-                ))}
+                      <div
+                        className="flex items-center gap-1 cursor-pointer hover:text-gray-900 dark:hover:text-white"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <span className="ml-auto flex items-center gap-0.5">
+                          {header.column.getIsSorted() === 'asc' ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : header.column.getIsSorted() === 'desc' ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 opacity-40" />
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenFilterCol(isFilterOpen ? null : header.id);
+                            }}
+                            className={cn(
+                              'p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600',
+                              columnFilters[header.id] ? 'text-blue-500' : 'text-gray-400 opacity-0 group-hover/th:opacity-100'
+                            )}
+                            title="过滤此列"
+                          >
+                            <Filter className="w-3 h-3" />
+                          </button>
+                        </span>
+                      </div>
+                      {isFilterOpen && (
+                        <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="text"
+                            placeholder="过滤..."
+                            autoFocus
+                            value={columnFilters[header.id] ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setColumnFilters((prev) => ({ ...prev, [header.id]: val }));
+                              header.column.setFilterValue(val || undefined);
+                            }}
+                            className="w-full px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      )}
+                      <div
+                        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-cyan-400 dark:hover:bg-cyan-400 z-20"
+                        onMouseDown={(e) => handleResizeMouseDown(e, header.id)}
+                      />
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
           <tbody>
             {virtualRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-3 py-8 text-center text-gray-500">
+                <td
+                  colSpan={columns.length}
+                  className="px-3 py-8 text-center text-gray-500"
+                >
                   没有匹配的结果
                 </td>
               </tr>
@@ -218,22 +267,19 @@ export function ResultTable() {
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-3 py-1.5 text-gray-700 dark:text-gray-300 cursor-pointer group whitespace-nowrap overflow-hidden text-ellipsis"
-                        style={{ maxWidth: '200px' }}
-                        onClick={() => handleCopyCell(cell.getValue())}
-                        title={cell.getValue() === null ? 'NULL' : String(cell.getValue())}
+                        className="px-3 py-1.5 text-gray-700 dark:text-gray-300 group relative border-r border-gray-100 dark:border-gray-800"
+                        onDoubleClick={() => handleCopyCell(cell.getValue())}
+                        title="双击复制"
                       >
-                        <div className="flex items-center gap-1">
-                          <span className="flex-1 truncate">
-                            {formatValue(cell.getValue())}
-                          </span>
-                          <Copy
-                            className={cn(
-                              'w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0',
-                              copiedCell === String(cell.getValue()) && 'opacity-100 text-green-500'
-                            )}
-                          />
+                        <div className="whitespace-pre-wrap break-words text-sm">
+                          {formatValue(cell.getValue())}
                         </div>
+                        <Copy
+                          className={cn(
+                            'w-3 h-3 absolute top-1 right-1 opacity-0 group-hover:opacity-60 transition-opacity',
+                            copiedCell === String(cell.getValue()) && 'opacity-100 text-green-500'
+                          )}
+                        />
                       </td>
                     ))}
                   </tr>
