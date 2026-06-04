@@ -18,10 +18,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
     distributeVertical,
     undo,
     redo,
+    copySelection,
+    pasteFromClipboard,
     exportJSON,
     importJSON,
     selection,
     history,
+    clipboard,
   } = useEditorStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -133,6 +136,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
         </ToolButton>
         <ToolButton onClick={redo} title="重做 (Ctrl+Shift+Z)" disabled={history.future.length === 0}>
           ↷ 重做
+        </ToolButton>
+      </div>
+
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <ToolButton onClick={copySelection} title="复制 (Ctrl+C)" disabled={selection.nodeIds.length === 0}>
+          📋 复制
+        </ToolButton>
+        <ToolButton onClick={pasteFromClipboard} title="粘贴 (Ctrl+V)" disabled={!clipboard || clipboard.nodes.length === 0}>
+          📌 粘贴
         </ToolButton>
       </div>
 

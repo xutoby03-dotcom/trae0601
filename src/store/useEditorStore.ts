@@ -30,14 +30,33 @@ const defaultState: EditorState = {
   tempLine: null,
 };
 
+interface ClipboardData {
+  nodes: Array<{
+    type: ShapeType;
+    width: number;
+    height: number;
+    text: string;
+    color: string;
+    x: number;
+    y: number;
+  }>;
+  edges: Array<{
+    from: { position: ConnectionPointPosition; nodeIndex: number };
+    to: { position: ConnectionPointPosition; nodeIndex: number };
+  }>;
+}
+
 interface EditorStore extends EditorState {
   history: {
     past: EditorState[];
     future: EditorState[];
   };
+  clipboard: ClipboardData | null;
   saveToHistory: () => void;
   undo: () => void;
   redo: () => void;
+  copySelection: () => void;
+  pasteFromClipboard: () => void;
 
   setCanvasOffset: (x: number, y: number) => void;
   setCanvasScale: (scale: number, centerX?: number, centerY?: number) => void;
@@ -99,6 +118,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     past: [],
     future: [],
   },
+  clipboard: null,
 
   saveToHistory: () => {
     const state = get();
@@ -544,5 +564,99 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         console.error('Failed to load from localStorage', e);
       }
     }
+  },
+
+  copySelection: () => {
+    const { nodes, edges, selection } = get();
+    if (selection.nodeIds.length === 0) return;
+
+    const selectedNodes = nodes.filter((n) => selection.nodeIds.includes(n.id));
+    const selectedNodeIdSet = new Set(selection.nodeIds);
+
+    const selectedEdges = edges.filter(
+      (e) => selectedNodeIdSet.has(e.from.nodeId) && selectedNodeIdSet.has(e.to.nodeId)
+    );
+
+    const nodeIdToIndex = new Map<string, number>();
+    selectedNodes.forEach((node, index) => {
+      nodeIdToIndex.set(node.id, index);
+    });
+
+    const clipboardNodes = selectedNodes.map((node) => ({
+      type: node.type,
+      width: node.width,
+      height: node.height,
+      text: node.text,
+      color: node.color,
+      x: node.x,
+      y: node.y,
+    }));
+
+    const clipboardEdges = selectedEdges.map((edge) => ({
+      from: {
+        position: edge.from.position,
+        nodeIndex: nodeIdToIndex.get(edge.from.nodeId)!,
+      },
+      to: {
+        position: edge.to.position,
+        nodeIndex: nodeIdToIndex.get(edge.to.nodeId)!,
+      },
+    }));
+
+    set({ clipboard: { nodes: clipboardNodes, edges: clipboardEdges } });
+  },
+
+  pasteFromClipboard: () => {
+    const { clipboard, nodes: existingNodes, edges: existingEdges } = get();
+    if (!clipboard || clipboard.nodes.length === 0) return;
+
+    get().saveToHistory();
+
+    const newNodeIds: string[] = [];
+
+    const newNodes = clipboard.nodes.map((clipboardNode) => {
+      const newId = generateId();
+      newNodeIds.push(newId);
+      return {
+        id: newId,
+        type: clipboardNode.type,
+        x: snapToGrid(clipboardNode.x + 20),
+        y: snapToGrid(clipboardNode.y + 20),
+        width: clipboardNode.width,
+        height: clipboardNode.height,
+        text: clipboardNode.text,
+        color: clipboardNode.color,
+      };
+    });
+
+    const allNodes = [...existingNodes, ...newNodes];
+    const newEdges = clipboard.edges.map((clipboardEdge) => {
+      const fromNode = newNodes[clipboardEdge.from.nodeIndex];
+      const toNode = newNodes[clipboardEdge.to.nodeIndex];
+      if (!fromNode || !toNode) return null;
+
+      const points = generateOrthogonalPath(
+        fromNode,
+        clipboardEdge.from.position,
+        toNode,
+        clipboardEdge.to.position,
+        allNodes
+      );
+
+      return {
+        id: generateId(),
+        from: { nodeId: fromNode.id, position: clipboardEdge.from.position },
+        to: { nodeId: toNode.id, position: clipboardEdge.to.position },
+        points,
+      };
+    }).filter(Boolean) as EdgeData[];
+
+    set({
+      nodes: allNodes,
+      edges: [...existingEdges, ...newEdges],
+      selection: { nodeIds: newNodeIds, edgeIds: [] },
+    });
+
+    get().saveToLocalStorage();
   },
 }));

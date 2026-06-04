@@ -33,6 +33,8 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
     moveSelectedNodes,
     undo,
     redo,
+    copySelection,
+    pasteFromClipboard,
   } = useEditorStore();
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -77,6 +79,16 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
         redo();
       }
 
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copySelection();
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        pasteFromClipboard();
+      }
+
       if (e.key === 'Escape') {
         clearSelection();
         setEditingNode(null);
@@ -86,7 +98,7 @@ export const Canvas: React.FC<CanvasProps> = ({ canvasRef }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [deleteSelection, undo, redo, clearSelection, setEditingNode, cancelConnection, saveToLocalStorage]);
+  }, [deleteSelection, undo, redo, copySelection, pasteFromClipboard, clearSelection, setEditingNode, cancelConnection, saveToLocalStorage]);
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
