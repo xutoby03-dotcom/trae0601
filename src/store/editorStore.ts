@@ -612,7 +612,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     return {
       layers: state.layers.map((l) =>
         l.id === layerId
-          ? { ...l, ...snapshot, historyIndex: newIndex } as Layer
+          ? { ...l, ...snapshot, history: l.history, historyIndex: newIndex } as Layer
           : l
       ),
     };
@@ -627,7 +627,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     return {
       layers: state.layers.map((l) =>
         l.id === layerId
-          ? { ...l, ...snapshot, historyIndex: newIndex } as Layer
+          ? { ...l, ...snapshot, history: l.history, historyIndex: newIndex } as Layer
           : l
       ),
     };
@@ -637,7 +637,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const layer = state.layers.find((l) => l.id === layerId);
     if (!layer) return state;
 
-    const snapshot = { ...layer };
+    const { history, historyIndex, ...snapshot } = layer;
     const newHistory = layer.history.slice(0, layer.historyIndex + 1);
     newHistory.push({ timestamp: Date.now(), snapshot });
 
