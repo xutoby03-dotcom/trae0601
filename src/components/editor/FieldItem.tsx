@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X, EyeOff } from 'lucide-react';
+import { GripVertical, X, EyeOff, Copy } from 'lucide-react';
+import { useRef } from 'react';
 import type { FormField } from '../../types/form';
 import { renderPreviewField } from '../fields';
 import { useUIStore } from '../../store/useUIStore';
@@ -15,7 +16,8 @@ interface FieldItemProps {
 
 export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
   const { selectedFieldId, selectField } = useUIStore();
-  const deleteField = useFormStore((state) => state.deleteField);
+  const { deleteField, duplicateField, formData } = useFormStore();
+  const itemRef = useRef<HTMLDivElement>(null);
 
   const isSelected = selectedFieldId === field.id;
 
@@ -49,6 +51,24 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
     }
   };
 
+  const handleDuplicate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newFieldId = duplicateField(field.id);
+    if (newFieldId) {
+      setTimeout(() => {
+        selectField(newFieldId);
+        const newIndex = formData.fields.findIndex((f) => f.id === newFieldId);
+        if (newIndex !== -1) {
+          const fieldElements = document.querySelectorAll('[data-field-item]');
+          const targetElement = fieldElements[newIndex] as HTMLElement;
+          if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 50);
+    }
+  };
+
   const fieldTypeLabels: Record<string, string> = {
     text: '单行文本',
     textarea: '多行文本',
@@ -63,7 +83,11 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        (itemRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }}
+      data-field-item
       style={style}
       onClick={handleClick}
       className={cn(
@@ -84,7 +108,16 @@ export function FieldItem({ field, index, hasCondition }: FieldItemProps) {
       </div>
 
       <button
+        onClick={handleDuplicate}
+        title="复制字段"
+        className="absolute right-12 top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-50 text-gray-400 hover:text-blue-500 z-10"
+      >
+        <Copy size={16} />
+      </button>
+
+      <button
         onClick={handleDelete}
+        title="删除字段"
         className="absolute right-2 top-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 text-gray-400 hover:text-red-500 z-10"
       >
         <X size={16} />

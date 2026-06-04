@@ -1,15 +1,16 @@
-import { Eye, Edit3, Copy, Save, Share2, QrCode } from 'lucide-react';
+import { Eye, Edit3, Copy, Save, Share2, QrCode, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFormStore } from '../../store/useFormStore';
 import { useUIStore } from '../../store/useUIStore';
 import { copyToClipboard } from '../../utils/copyToClipboard';
 import { Modal } from '../common/Modal';
+import { ImportJSONModal } from './ImportJSONModal';
 import { cn } from '@/lib/utils';
 
 export function Toolbar() {
   const { toJSON, publish, formData } = useFormStore();
-  const { isPreviewMode, setPreviewMode, showToast, setShowPublishModal, showPublishModal } = useUIStore();
+  const { isPreviewMode, setPreviewMode, showToast, setShowPublishModal, showPublishModal, showImportModal, setShowImportModal } = useUIStore();
   const [publishId, setPublishId] = useState<string>('');
 
   const handleCopy = async () => {
@@ -90,6 +91,13 @@ export function Toolbar() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Upload size={16} />
+            导入JSON
+          </button>
+          <button
             onClick={handleCopy}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -112,6 +120,11 @@ export function Toolbar() {
           </button>
         </div>
       </div>
+
+      <ImportJSONModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
 
       <Modal
         open={showPublishModal}

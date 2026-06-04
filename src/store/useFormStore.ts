@@ -8,6 +8,7 @@ interface FormStore {
   formData: FormData;
   init: () => void;
   addField: (type: FieldType, index?: number) => void;
+  duplicateField: (id: string) => string | null;
   updateField: (id: string, updates: Partial<FormField>) => void;
   deleteField: (id: string) => void;
   reorderFields: (oldIndex: number, newIndex: number) => void;
@@ -16,7 +17,7 @@ interface FormStore {
   updateOption: (fieldId: string, optionId: string, updates: Partial<Option>) => void;
   deleteOption: (fieldId: string, optionId: string) => void;
   toJSON: () => string;
-  loadFromJSON: (json: string) => void;
+  loadFromJSON: (json: string) => { success: boolean; error?: string };
   saveToStorage: () => void;
   publish: () => string;
 }
@@ -91,6 +92,43 @@ export const useFormStore = create<FormStore>((set, get) => ({
       };
     });
     get().saveToStorage();
+  },
+
+  duplicateField: (id) => {
+    let newFieldId: string | null = null;
+    set((state) => {
+      const fieldIndex = state.formData.fields.findIndex((f) => f.id === id);
+      if (fieldIndex === -1) return state;
+
+      const originalField = state.formData.fields[fieldIndex];
+      const newId = generateId();
+      newFieldId = newId;
+
+      const clonedOptions = originalField.options?.map((opt) => ({
+        ...opt,
+        id: generateId(),
+      }));
+
+      const newField: FormField = {
+        ...originalField,
+        id: newId,
+        options: clonedOptions,
+        condition: undefined,
+      };
+
+      const newFields = [...state.formData.fields];
+      newFields.splice(fieldIndex + 1, 0, newField);
+
+      return {
+        formData: {
+          ...state.formData,
+          fields: newFields,
+          updatedAt: Date.now(),
+        },
+      };
+    });
+    get().saveToStorage();
+    return newFieldId;
   },
 
   updateField: (id, updates) => {
@@ -222,10 +260,114 @@ export const useFormStore = create<FormStore>((set, get) => ({
   loadFromJSON: (json) => {
     try {
       const parsed = JSON.parse(json);
+
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return { success: false, error: 'JSON 必须是一个对象' };
+      }
+
+      if (!parsed.id || typeof parsed.id !== 'string') {
+        return { success: false, error: '缺少或无效的表单ID (id)' };
+      }
+
+      if (parsed.title === undefined || typeof parsed.title !== 'string') {
+        return { success: false, error: '缺少或无效的表单标题 (title)' };
+      }
+
+      if (parsed.description === undefined || typeof parsed.description !== 'string') {
+        return { success: false, error: '缺少或无效的表单描述 (description)' };
+      }
+
+      if (!Array.isArray(parsed.fields)) {
+        return { success: false, error: '字段列表 (fields) 必须是数组' };
+      }
+
+      const validFieldTypes = ['text', 'textarea', 'radio', 'checkbox', 'select', 'date', 'number', 'rating', 'file'];
+
+      for (let i = 0; i < parsed.fields.length; i++) {
+        const field = parsed.fields[i];
+        const fieldNum = i + 1;
+
+        if (typeof field !== 'object' || field === null) {
+          return { success: false, error: `第 ${fieldNum} 个字段格式无效` };
+        }
+
+        if (!field.id || typeof field.id !== 'string') {
+          return { success: false, error: `第 ${fieldNum} 个字段缺少或无效的ID (id)` };
+        }
+
+        if (!field.type || typeof field.type !== 'string' || !validFieldTypes.includes(field.type)) {
+          return { success: false, error: `第 ${fieldNum} 个字段类型无效，必须是: ${validFieldTypes.join(', ')}` };
+        }
+
+        if (field.title === undefined || typeof field.title !== 'string') {
+          return { success: false, error: `第 ${fieldNum} 个字段缺少或无效的标题 (title)` };
+        }
+
+        if (field.placeholder === undefined || typeof field.placeholder !== 'string') {
+          return { success: false, error: `第 ${fieldNum} 个字段缺少或无效的提示文字 (placeholder)` };
+        }
+
+        if (field.required === undefined || typeof field.required !== 'boolean') {
+          return { success: false, error: `第 ${fieldNum} 个字段缺少或无效的必填标识 (required)` };
+        }
+
+        if (['radio', 'checkbox', 'select'].includes(field.type)) {
+          if (!Array.isArray(field.options)) {
+            return { success: false, error: `第 ${fieldNum} 个字段 (${field.type}) 缺少选项列表 (options)` };
+          }
+          if (field.options.length === 0) {
+            return { success: false, error: `第 ${fieldNum} 个字段 (${field.type}) 选项列表不能为空` };
+          }
+          for (let j = 0; j < field.options.length; j++) {
+            const opt = field.options[j];
+            if (typeof opt !== 'object' || opt === null) {
+              return { success: false, error: `第 ${fieldNum} 个字段的第 ${j + 1} 个选项格式无效` };
+            }
+            if (!opt.id || typeof opt.id !== 'string') {
+              return { success: false, error: `第 ${fieldNum} 个字段的第 ${j + 1} 个选项缺少ID (id)` };
+            }
+            if (opt.label === undefined || typeof opt.label !== 'string') {
+              return { success: false, error: `第 ${fieldNum} 个字段的第 ${j + 1} 个选项缺少标签 (label)` };
+            }
+            if (opt.value === undefined || typeof opt.value !== 'string') {
+              return { success: false, error: `第 ${fieldNum} 个字段的第 ${j + 1} 个选项缺少值 (value)` };
+            }
+          }
+        }
+
+        if (field.type === 'number' || field.type === 'rating') {
+          if (field.min !== undefined && typeof field.min !== 'number') {
+            return { success: false, error: `第 ${fieldNum} 个字段的最小值 (min) 必须是数字` };
+          }
+          if (field.max !== undefined && typeof field.max !== 'number') {
+            return { success: false, error: `第 ${fieldNum} 个字段的最大值 (max) 必须是数字` };
+          }
+        }
+
+        if (field.condition !== undefined) {
+          if (typeof field.condition !== 'object' || field.condition === null) {
+            return { success: false, error: `第 ${fieldNum} 个字段的条件逻辑格式无效` };
+          }
+          if (!field.condition.fieldId || typeof field.condition.fieldId !== 'string') {
+            return { success: false, error: `第 ${fieldNum} 个字段的条件逻辑缺少关联字段ID (fieldId)` };
+          }
+          if (!field.condition.operator || !['equals', 'not_equals', 'contains'].includes(field.condition.operator)) {
+            return { success: false, error: `第 ${fieldNum} 个字段的条件逻辑操作符 (operator) 无效` };
+          }
+          if (field.condition.value === undefined || typeof field.condition.value !== 'string') {
+            return { success: false, error: `第 ${fieldNum} 个字段的条件逻辑缺少目标值 (value)` };
+          }
+        }
+      }
+
       set({ formData: parsed });
       get().saveToStorage();
-    } catch {
-      console.error('Invalid JSON');
+      return { success: true };
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        return { success: false, error: `JSON 解析错误: ${e.message}` };
+      }
+      return { success: false, error: `导入失败: ${e instanceof Error ? e.message : String(e)}` };
     }
   },
 
