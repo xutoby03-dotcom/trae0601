@@ -40,8 +40,11 @@ interface EditorState {
   showExportDialog: boolean;
   showBatchDialog: boolean;
   activeLayerFilters: FilterSettings;
+  filterClipboard: FilterSettings | null;
   
   addLayer: (layer: Layer) => void;
+  copyLayerFilters: () => void;
+  pasteLayerFilters: () => void;
   removeLayer: (layerId: string) => void;
   updateLayer: (layerId: string, updates: Partial<Layer>, saveHistory?: boolean) => void;
   selectLayer: (layerId: string | null) => void;
@@ -142,11 +145,37 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   showExportDialog: false,
   showBatchDialog: false,
   activeLayerFilters: { ...DEFAULT_FILTERS },
+  filterClipboard: null,
 
   addLayer: (layer) => set((state) => ({
     layers: [...state.layers, layer],
     selectedLayerId: layer.id,
   })),
+
+  copyLayerFilters: () => set((state) => {
+    const selected = state.layers.find((l) => l.id === state.selectedLayerId);
+    if (!selected || selected.type !== 'image' || !selected.filters) return state;
+    return { filterClipboard: { ...selected.filters } };
+  }),
+
+  pasteLayerFilters: () => {
+    const state = get();
+    if (!state.filterClipboard) return;
+    
+    const selected = state.layers.find((l) => l.id === state.selectedLayerId);
+    if (!selected || selected.type !== 'image') return;
+
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === state.selectedLayerId && l.type === 'image'
+          ? { ...l, filters: { ...state.filterClipboard! } } as ImageLayer
+          : l
+      ),
+      activeLayerFilters: { ...state.filterClipboard! },
+    }));
+    
+    get().saveHistory(state.selectedLayerId!);
+  },
 
   removeLayer: (layerId) => set((state) => {
     const layers = state.layers.filter((l) => l.id !== layerId);
