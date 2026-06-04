@@ -11,6 +11,7 @@ interface FormStore {
   duplicateField: (id: string) => string | null;
   updateField: (id: string, updates: Partial<FormField>) => void;
   deleteField: (id: string) => void;
+  clearAllFields: () => void;
   reorderFields: (oldIndex: number, newIndex: number) => void;
   updateFormMeta: (updates: Partial<Pick<FormData, 'title' | 'description'>>) => void;
   addOption: (fieldId: string) => void;
@@ -162,6 +163,17 @@ export const useFormStore = create<FormStore>((set, get) => ({
         },
       };
     });
+    get().saveToStorage();
+  },
+
+  clearAllFields: () => {
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        fields: [],
+        updatedAt: Date.now(),
+      },
+    }));
     get().saveToStorage();
   },
 

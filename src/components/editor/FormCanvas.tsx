@@ -6,6 +6,7 @@ import {
 import { Plus } from 'lucide-react';
 import type { FormField } from '../../types/form';
 import { FieldItem } from './FieldItem';
+import { FormStats } from './FormStats';
 import { useFormStore } from '../../store/useFormStore';
 import { useUIStore } from '../../store/useUIStore';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,8 @@ export function FormCanvas({ isOver }: FormCanvasProps) {
             className="w-full text-gray-500 placeholder-gray-300 border-none outline-none bg-transparent resize-none"
           />
         </div>
+
+        <FormStats fields={fields} />
 
         <div
           ref={setNodeRef}
