@@ -70,6 +70,7 @@ export const usePhysicsStore = create<PhysicsStore>((set) => ({
     currentY: 0,
     points: [],
     constraintStart: null,
+    explosionStart: null,
   },
 
   setActiveTool: (tool) => set({ activeTool: tool }),

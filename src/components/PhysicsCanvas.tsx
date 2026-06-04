@@ -7,7 +7,7 @@ import {
   createTriangle,
   createPolygon,
   createFreehand,
-  applyExplosion,
+  applyDirectionalExplosion,
   generateId,
 } from '../physics/tools';
 import { createSpring, createRope, createJoint } from '../physics/constraints';
@@ -385,9 +385,7 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
 
     if (e.button === 2) {
       e.preventDefault();
-      if (engine) {
-        applyExplosion(engine, x, y, 0.5, 200);
-      }
+      setDrawState({ explosionStart: { x, y } });
       return;
     }
 
@@ -573,6 +571,57 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
         ctx.restore();
       }
 
+      if (drawState.explosionStart) {
+        ctx.save();
+        ctx.translate(pan.x, pan.y);
+        ctx.scale(zoom, zoom);
+
+        const ex = drawState.explosionStart.x;
+        const ey = drawState.explosionStart.y;
+        const dx = x - ex;
+        const dy = y - ey;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        ctx.beginPath();
+        ctx.arc(ex, ey, Math.min(dist * 2, 600), 0, Math.PI * 2);
+        ctx.strokeStyle = '#ff6b6b40';
+        ctx.lineWidth = 2 / zoom;
+        ctx.stroke();
+        ctx.fillStyle = '#ff6b6b10';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 3 / zoom;
+        ctx.stroke();
+
+        const angle = Math.atan2(dy, dx);
+        const arrowSize = 12 / zoom;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(
+          x - arrowSize * Math.cos(angle - Math.PI / 6),
+          y - arrowSize * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(x, y);
+        ctx.lineTo(
+          x - arrowSize * Math.cos(angle + Math.PI / 6),
+          y - arrowSize * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 3 / zoom;
+        ctx.stroke();
+
+        const force = Math.min(Math.max(dist / 100, 0.1), 3);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = `${14 / zoom}px sans-serif`;
+        ctx.fillText(`力度: ${force.toFixed(1)}`, ex + 20 / zoom, ey - 10 / zoom);
+
+        ctx.restore();
+      }
+
       emitters.forEach((emitter) => {
         ctx.save();
         ctx.translate(pan.x, pan.y);
@@ -621,6 +670,23 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
   const handleMouseUp = (e: React.MouseEvent) => {
     if (isPanningRef.current) {
       isPanningRef.current = false;
+      return;
+    }
+
+    if (drawState.explosionStart) {
+      const { x, y } = getCanvasCoords(e);
+      const engine = getEngine();
+      const es = drawState.explosionStart;
+      const dx = x - es.x;
+      const dy = y - es.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (engine && distance > 5) {
+        const force = Math.min(Math.max(distance / 100, 0.1), 3);
+        const radius = Math.min(Math.max(distance * 2, 100), 600);
+        applyDirectionalExplosion(engine, es.x, es.y, dx, dy, force, radius);
+      }
+      setDrawState({ explosionStart: null });
       return;
     }
 
@@ -722,7 +788,7 @@ const PhysicsCanvas = ({ onGetPresetData }: PhysicsCanvasProps) => {
         onMouseUp={handleMouseUp}
         onMouseLeave={() => {
           isPanningRef.current = false;
-          setDrawState({ isDrawing: false, points: [] });
+          setDrawState({ isDrawing: false, points: [], explosionStart: null });
         }}
         onWheel={handleWheel}
         onContextMenu={handleContextMenu}

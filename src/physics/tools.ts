@@ -233,6 +233,38 @@ export const applyExplosion = (
   });
 };
 
+export const applyDirectionalExplosion = (
+  engine: Matter.Engine,
+  startX: number,
+  startY: number,
+  dirX: number,
+  dirY: number,
+  force: number,
+  radius: number
+) => {
+  const bodies = Composite.allBodies(engine.world);
+  const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+  if (dirLen === 0) return;
+  const nx = dirX / dirLen;
+  const ny = dirY / dirLen;
+
+  bodies.forEach((body) => {
+    if (body.isStatic) return;
+
+    const dx = body.position.x - startX;
+    const dy = body.position.y - startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < radius && distance > 0) {
+      const normalizedForce = (1 - distance / radius) * force;
+      Matter.Body.applyForce(body, body.position, {
+        x: nx * normalizedForce,
+        y: ny * normalizedForce,
+      });
+    }
+  });
+};
+
 export const updateBodyProperties = (
   body: Matter.Body,
   properties: {

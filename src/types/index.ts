@@ -97,4 +97,5 @@ export interface DrawState {
   currentY: number;
   points: { x: number; y: number }[];
   constraintStart: { bodyId: string | null; x: number; y: number } | null;
+  explosionStart: { x: number; y: number } | null;
 }
