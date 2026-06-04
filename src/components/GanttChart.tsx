@@ -7,6 +7,7 @@ import {
   TooltipState,
   LinkDragState,
   Dependency,
+  DependencyType,
 } from '../types';
 import {
   parseDate,
@@ -34,6 +35,7 @@ interface GanttChartProps {
   onTaskDateChange: (taskId: string, startDate: string, endDate: string) => void;
   onAddDependency: (sourceId: string, targetId: string) => void;
   onDeleteDependency: (depId: string) => void;
+  onUpdateDependency: (depId: string, newType: DependencyType) => void;
   calendar: CalendarConfig;
   resourceFilter: string | null;
 }
@@ -53,6 +55,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
   onTaskDateChange,
   onAddDependency,
   onDeleteDependency,
+  onUpdateDependency,
   calendar,
   resourceFilter,
 }) => {
@@ -422,6 +425,7 @@ const GanttChart: React.FC<GanttChartProps> = ({
           chartHeight={totalHeight}
           linkDragState={linkDragState}
           onDeleteDependency={onDeleteDependency}
+          onUpdateDependency={onUpdateDependency}
           resourceFilter={resourceFilter}
         />
       </div>

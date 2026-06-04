@@ -10,6 +10,7 @@ interface TaskEditModalProps {
   onSave: (task: TaskNode) => void;
   onCancel: () => void;
   onDelete?: () => void;
+  onAddResource: (name: string) => void;
 }
 
 const TaskEditModal: React.FC<TaskEditModalProps> = ({
@@ -20,6 +21,7 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
   onSave,
   onCancel,
   onDelete,
+  onAddResource,
 }) => {
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -217,7 +219,11 @@ const TaskEditModal: React.FC<TaskEditModalProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newResource.trim()) {
                     e.preventDefault();
-                    // 这里需要通知父组件添加资源，简化处理
+                    const trimmed = newResource.trim();
+                    onAddResource(trimmed);
+                    if (!assignees.includes(trimmed) && assignees.length < 2) {
+                      setAssignees([...assignees, trimmed]);
+                    }
                     setNewResource('');
                   }
                 }}

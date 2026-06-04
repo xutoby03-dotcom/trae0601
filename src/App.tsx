@@ -4,6 +4,7 @@ import {
   Task,
   TaskNode,
   Dependency,
+  DependencyType,
   CalendarConfig,
   TimeUnit,
   ProjectData,
@@ -373,6 +374,36 @@ const App: React.FC = () => {
     []
   );
 
+  const handleUpdateDependency = useCallback(
+    async (depId: string, newType: DependencyType) => {
+      const dep = dependencies.find((d) => d.id === depId);
+      if (!dep || dep.type === newType) return;
+
+      const updatedDep = { ...dep, type: newType };
+      const updatedDeps = dependencies.map((d) => (d.id === depId ? updatedDep : d));
+      setDependencies(updatedDeps);
+      await saveDependency(updatedDep);
+
+      const { updatedTasks, circularDeps } = propagateDateChanges(
+        dep.sourceId,
+        tasks,
+        updatedDeps,
+        calendar
+      );
+      if (circularDeps) {
+        addAlert('warning', '切换依赖类型后检测到循环依赖');
+      }
+      const aggregatedTasks = calculateAggregatedDates(updatedTasks, calendar);
+      setTasks(aggregatedTasks);
+      for (const t of aggregatedTasks) {
+        await saveTask(t);
+      }
+
+      addAlert('info', `依赖类型已切换为 ${newType}`);
+    },
+    [dependencies, tasks, calendar, addAlert]
+  );
+
   const handleSelectTask = useCallback((taskId: string | null) => {
     setSelectedTaskId(taskId);
     if (taskId) {
@@ -461,6 +492,16 @@ const App: React.FC = () => {
       addAlert('info', '日历配置已保存');
     },
     [tasks, addAlert]
+  );
+
+  const handleAddResource = useCallback(
+    async (resourceName: string) => {
+      if (!resources.includes(resourceName)) {
+        setResources((prev) => [...prev, resourceName]);
+        await saveResource(resourceName);
+      }
+    },
+    [resources]
   );
 
   const handleExportJSON = useCallback(() => {
@@ -834,6 +875,7 @@ const App: React.FC = () => {
             onTaskDateChange={handleTaskDateChange}
             onAddDependency={handleAddDependency}
             onDeleteDependency={handleDeleteDependency}
+            onUpdateDependency={handleUpdateDependency}
             calendar={calendar}
             resourceFilter={resourceFilter}
           />
@@ -866,6 +908,7 @@ const App: React.FC = () => {
               }
             : undefined
         }
+        onAddResource={handleAddResource}
       />
 
       {selectedTaskId && (

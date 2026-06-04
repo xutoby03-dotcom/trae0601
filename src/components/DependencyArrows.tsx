@@ -1,5 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TaskNode, Dependency, LinkDragState, DependencyType } from '../types';
+
+const DEP_TYPES: DependencyType[] = ['FS', 'SS', 'FF', 'SF'];
+const DEP_LABELS: Record<DependencyType, string> = {
+  FS: '完成→开始',
+  SS: '开始→开始',
+  FF: '完成→完成',
+  SF: '开始→完成',
+};
+const DEP_COLORS: Record<DependencyType, string> = {
+  FS: '#52c41a',
+  SS: '#1890ff',
+  FF: '#722ed1',
+  SF: '#fa8c16',
+};
 
 interface DependencyArrowsProps {
   tasks: TaskNode[];
@@ -12,6 +26,7 @@ interface DependencyArrowsProps {
   chartHeight: number;
   linkDragState: LinkDragState;
   onDeleteDependency: (depId: string) => void;
+  onUpdateDependency: (depId: string, newType: DependencyType) => void;
   resourceFilter: string | null;
 }
 
@@ -26,8 +41,12 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
   chartHeight,
   linkDragState,
   onDeleteDependency,
+  onUpdateDependency,
   resourceFilter,
 }) => {
+  const [menuDepId, setMenuDepId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const getTaskById = (id: string): TaskNode | undefined => {
     return tasks.find((t) => t.id === id);
   };
@@ -100,7 +119,6 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
       }
     }
 
-    const direction = targetPt.y > sourcePt.y ? 1 : -1;
     const midY = (sourcePt.y + targetPt.y) / 2;
 
     if (sourcePt.x <= targetPt.x) {
@@ -124,22 +142,32 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
     }
   };
 
-  const getArrowMarker = (type: DependencyType) => {
-    const colors: Record<DependencyType, string> = {
-      FS: '#52c41a',
-      SS: '#1890ff',
-      FF: '#722ed1',
-      SF: '#fa8c16',
-    };
-    return colors[type] || '#999';
+  const handleLineClick = (e: React.MouseEvent, dep: Dependency) => {
+    e.stopPropagation();
+    const svgRect = (e.currentTarget.closest('svg') as SVGSVGElement)?.getBoundingClientRect();
+    if (!svgRect) return;
+    setMenuDepId(dep.id);
+    setMenuPos({
+      x: e.clientX,
+      y: e.clientY,
+    });
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, depId: string) => {
-    e.stopPropagation();
-    if (confirm('确定要删除这条依赖关系吗？')) {
-      onDeleteDependency(depId);
+  const handleTypeSelect = (type: DependencyType) => {
+    if (menuDepId) {
+      onUpdateDependency(menuDepId, type);
     }
+    setMenuDepId(null);
   };
+
+  const handleDeleteFromMenu = () => {
+    if (menuDepId) {
+      onDeleteDependency(menuDepId);
+    }
+    setMenuDepId(null);
+  };
+
+  const closeMenu = () => setMenuDepId(null);
 
   const filteredDependencies = resourceFilter
     ? dependencies.filter((dep) => {
@@ -153,114 +181,228 @@ const DependencyArrows: React.FC<DependencyArrowsProps> = ({
     : dependencies;
 
   return (
-    <svg
-      className="dependency-svg"
-      width={chartWidth}
-      height={chartHeight}
-      style={{ zIndex: 1 }}
-    >
-      <defs>
-        <marker
-          id="arrowhead-fs"
-          markerWidth="10"
-          markerHeight="10"
-          refX="9"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#52c41a" />
-        </marker>
-        <marker
-          id="arrowhead-ss"
-          markerWidth="10"
-          markerHeight="10"
-          refX="9"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#1890ff" />
-        </marker>
-        <marker
-          id="arrowhead-ff"
-          markerWidth="10"
-          markerHeight="10"
-          refX="9"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#722ed1" />
-        </marker>
-        <marker
-          id="arrowhead-sf"
-          markerWidth="10"
-          markerHeight="10"
-          refX="9"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#fa8c16" />
-        </marker>
-        <marker
-          id="arrowhead-drag"
-          markerWidth="10"
-          markerHeight="10"
-          refX="9"
-          refY="3"
-          orient="auto"
-          markerUnits="strokeWidth"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#ff4d4f" />
-        </marker>
-      </defs>
+    <>
+      <svg
+        className="dependency-svg"
+        width={chartWidth}
+        height={chartHeight}
+        style={{ zIndex: 1 }}
+      >
+        <defs>
+          {DEP_TYPES.map((type) => (
+            <marker
+              key={type}
+              id={`arrowhead-${type.toLowerCase()}`}
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0,0 L0,6 L9,3 z" fill={DEP_COLORS[type]} />
+            </marker>
+          ))}
+          <marker
+            id="arrowhead-drag"
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#ff4d4f" />
+          </marker>
+        </defs>
 
-      {filteredDependencies.map((dep) => {
-        const source = getTaskById(dep.sourceId);
-        const target = getTaskById(dep.targetId);
-        if (!source || !target) return null;
+        {filteredDependencies.map((dep) => {
+          const source = getTaskById(dep.sourceId);
+          const target = getTaskById(dep.targetId);
+          if (!source || !target) return null;
 
-        const path = generatePath(source, target, dep.type);
-        const markerId = `arrowhead-${dep.type.toLowerCase()}`;
-        const strokeColor = getArrowMarker(dep.type);
+          const path = generatePath(source, target, dep.type);
+          const markerId = `arrowhead-${dep.type.toLowerCase()}`;
+          const strokeColor = DEP_COLORS[dep.type];
 
-        return (
-          <g key={dep.id}>
+          const sourcePt = getSourcePoint(source, target, dep.type);
+          const targetPt = getTargetPoint(source, target, dep.type);
+          const midX = (sourcePt.x + targetPt.x) / 2;
+          const midY = (sourcePt.y + targetPt.y) / 2;
+
+          return (
+            <g key={dep.id}>
+              <path
+                d={path}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={12}
+                style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+                onClick={(e) => handleLineClick(e, dep)}
+              />
+              <path
+                className="dependency-line"
+                d={path}
+                stroke={strokeColor}
+                strokeWidth={2}
+                markerEnd={`url(#${markerId})`}
+                style={{ pointerEvents: 'none' }}
+              />
+              <g
+                transform={`translate(${midX}, ${midY})`}
+                style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                onClick={(e) => handleLineClick(e, dep)}
+              >
+                <rect
+                  x={-16}
+                  y={-9}
+                  width={32}
+                  height={18}
+                  rx={3}
+                  fill="#fff"
+                  stroke={strokeColor}
+                  strokeWidth={1}
+                />
+                <text
+                  x={0}
+                  y={1}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill={strokeColor}
+                  style={{ userSelect: 'none' }}
+                >
+                  {dep.type}
+                </text>
+              </g>
+            </g>
+          );
+        })}
+
+        {linkDragState.isDragging && linkDragState.sourceId && (
+          <g>
             <path
-              className="dependency-line"
-              d={path}
-              stroke={strokeColor}
+              d={`M ${linkDragState.startX} ${linkDragState.startY} 
+                  C ${(linkDragState.startX + linkDragState.currentX) / 2} ${linkDragState.startY},
+                    ${(linkDragState.startX + linkDragState.currentX) / 2} ${linkDragState.currentY},
+                    ${linkDragState.currentX - 10} ${linkDragState.currentY}`}
+              fill="none"
+              stroke="#ff4d4f"
               strokeWidth={2}
-              markerEnd={`url(#${markerId})`}
-              style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-              onClick={(e) => handleDeleteClick(e, dep.id)}
+              strokeDasharray="5,5"
+              markerEnd="url(#arrowhead-drag)"
             />
-            <title>
-              {dep.type} - 点击删除
-              {dep.lag > 0 && ` (延滞${dep.lag}天)`}
-            </title>
           </g>
-        );
-      })}
+        )}
+      </svg>
 
-      {linkDragState.isDragging && linkDragState.sourceId && (
-        <g>
-          <path
-            d={`M ${linkDragState.startX} ${linkDragState.startY} 
-                C ${(linkDragState.startX + linkDragState.currentX) / 2} ${linkDragState.startY},
-                  ${(linkDragState.startX + linkDragState.currentX) / 2} ${linkDragState.currentY},
-                  ${linkDragState.currentX - 10} ${linkDragState.currentY}`}
-            fill="none"
-            stroke="#ff4d4f"
-            strokeWidth={2}
-            strokeDasharray="5,5"
-            markerEnd="url(#arrowhead-drag)"
+      {menuDepId && (
+        <>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 999,
+            }}
+            onClick={closeMenu}
           />
-        </g>
+          <div
+            style={{
+              position: 'fixed',
+              left: menuPos.x,
+              top: menuPos.y,
+              background: '#fff',
+              borderRadius: 6,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+              zIndex: 1000,
+              minWidth: 140,
+              padding: '4px 0',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '6px 12px',
+                fontSize: 11,
+                color: '#999',
+                borderBottom: '1px solid #f0f0f0',
+                fontWeight: 600,
+              }}
+            >
+              切换依赖类型
+            </div>
+            {DEP_TYPES.map((type) => {
+              const dep = dependencies.find((d) => d.id === menuDepId);
+              const isCurrent = dep?.type === type;
+              return (
+                <div
+                  key={type}
+                  onClick={() => handleTypeSelect(type)}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: isCurrent ? '#f0f5ff' : '#fff',
+                    fontWeight: isCurrent ? 600 : 400,
+                    color: isCurrent ? DEP_COLORS[type] : '#333',
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCurrent) (e.currentTarget.style.background = '#fafafa');
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCurrent) (e.currentTarget.style.background = '#fff');
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: DEP_COLORS[type],
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{type}</span>
+                  <span style={{ fontSize: 11, color: '#999', marginLeft: 'auto' }}>
+                    {DEP_LABELS[type]}
+                  </span>
+                </div>
+              );
+            })}
+            <div
+              style={{ borderTop: '1px solid #f0f0f0', marginTop: 4, paddingTop: 4 }}
+            >
+              <div
+                onClick={handleDeleteFromMenu}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  color: '#ff4d4f',
+                  fontSize: 13,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#fff2f0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#fff';
+                }}
+              >
+                删除依赖
+              </div>
+            </div>
+          </div>
+        </>
       )}
-    </svg>
+    </>
   );
 };
 
