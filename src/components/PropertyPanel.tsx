@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, Copy } from 'lucide-react';
 import { usePhysicsStore } from '../store/physicsStore';
-import { updateBodyProperties } from '../physics/tools';
+import { updateBodyProperties, generateId } from '../physics/tools';
 import { getEngine } from '../physics/engine';
 import Matter from 'matter-js';
+
+const { Bodies, Composite, Body } = Matter;
 
 const PropertyPanel = () => {
   const { selectedBody, setSelectedBody } = usePhysicsStore();
@@ -27,6 +29,52 @@ const PropertyPanel = () => {
     if (!body || !engine) return;
     Matter.Composite.remove(engine.world, body);
     setSelectedBody(null);
+  };
+
+  const handleDuplicate = () => {
+    if (!body || !engine) return;
+
+    const offsetX = body.position.x + 30;
+    const offsetY = body.position.y + 30;
+    const color = (body.render as any)?.fillStyle || '#00f5d4';
+    const opts = {
+      isStatic: body.isStatic,
+      density: body.density,
+      friction: body.friction,
+      restitution: body.restitution,
+      render: { fillStyle: color, strokeStyle: '#ffffff22', lineWidth: 2 },
+      label: body.label || 'rectangle',
+    };
+
+    let clone: Matter.Body;
+
+    if (body.circleRadius) {
+      clone = Bodies.circle(offsetX, offsetY, body.circleRadius, opts);
+    } else if (body.vertices && body.vertices.length >= 3 && body.label === 'freehand') {
+      const localVerts = body.vertices.map((v) => ({
+        x: v.x - body.position.x,
+        y: v.y - body.position.y,
+      }));
+      clone = Bodies.fromVertices(offsetX, offsetY, [localVerts], opts);
+      if (!clone) {
+        const bounds = body.bounds;
+        const w = bounds.max.x - bounds.min.x;
+        const h = bounds.max.y - bounds.min.y;
+        clone = Bodies.rectangle(offsetX, offsetY, w, h, opts);
+      }
+    } else {
+      const bounds = body.bounds;
+      const w = bounds.max.x - bounds.min.x;
+      const h = bounds.max.y - bounds.min.y;
+      clone = Bodies.rectangle(offsetX, offsetY, w, h, opts);
+    }
+
+    Body.setAngle(clone, body.angle);
+    Body.setVelocity(clone, { x: 0, y: 0 });
+    Body.setAngularVelocity(clone, 0);
+
+    Composite.add(engine.world, clone);
+    setSelectedBody(String(clone.id));
   };
 
   if (!body) {
@@ -57,6 +105,13 @@ const PropertyPanel = () => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-white font-semibold">物体属性</h3>
           <div className="flex gap-2">
+            <button
+              onClick={handleDuplicate}
+              className="p-1.5 rounded-lg bg-[#00f5d4]/20 text-[#00f5d4] hover:bg-[#00f5d4]/30 transition-colors"
+              title="复制物体"
+            >
+              <Copy size={16} />
+            </button>
             <button
               onClick={handleDelete}
               className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
