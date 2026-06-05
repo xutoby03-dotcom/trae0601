@@ -39,7 +39,7 @@ export default function VariableInsert() {
         <div className="px-4 py-2.5 border-t border-[#2a2d35]">
           <div className="text-[10px] text-gray-500 mb-1.5">自定义变量值（预览用）</div>
           <div className="grid grid-cols-2 gap-1.5">
-            {VARIABLE_LIST.slice(0, 4).map((v) => (
+            {VARIABLE_LIST.map((v) => (
               <div key={v.key}>
                 <label className="text-[10px] text-gray-500">{v.key}</label>
                 <input
