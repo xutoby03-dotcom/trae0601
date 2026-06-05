@@ -759,14 +759,10 @@ function weilerAthertonUnion(
       const nextOnCurrent = (currentIdx + 1) % currentList.length;
       const nextV = currentList[nextOnCurrent];
       const otherListIdx = currentListIdx === 0 ? 1 : 0;
-      const otherList = allLists[otherListIdx];
-      const neighborNext = (v.neighbor + 1) % otherList.length;
-      const otherNextV = otherList[neighborNext];
 
       const isCurrentGoingInside = pointInPolygon(nextV.point, currentListIdx === 0 ? clip : subject);
-      const isOtherGoingOutside = !pointInPolygon(otherNextV.point, currentListIdx === 0 ? subject : clip);
 
-      if (isCurrentGoingInside && isOtherGoingOutside) {
+      if (isCurrentGoingInside) {
         currentListIdx = otherListIdx;
         currentIdx = v.neighbor;
         continue;
@@ -818,16 +814,28 @@ function weilerAthertonSubtract(
     if (v.isIntersection && v.neighbor !== null) {
       const nextOnCurrent = (currentIdx + 1) % currentList.length;
       const nextV = currentList[nextOnCurrent];
-      const isCurrentGoingInside = pointInPolygon(nextV.point, clip);
 
-      if (isCurrentGoingInside) {
-        currentListIdx = 1;
-        const revNeighbor = clipListReversed.findIndex(
-          (rv) => rv.neighbor !== null && Math.abs(rv.point.x - v.point.x) < 1e-6 && Math.abs(rv.point.y - v.point.y) < 1e-6
-        );
-        if (revNeighbor >= 0) {
-          currentIdx = revNeighbor;
-          continue;
+      if (currentListIdx === 0) {
+        const isCurrentGoingInside = pointInPolygon(nextV.point, clip);
+        if (isCurrentGoingInside) {
+          const revNeighbor = clipListReversed.findIndex(
+            (rv) => rv.neighbor !== null && Math.abs(rv.point.x - v.point.x) < 1e-6 && Math.abs(rv.point.y - v.point.y) < 1e-6
+          );
+          if (revNeighbor >= 0) {
+            currentListIdx = 1;
+            currentIdx = revNeighbor;
+            continue;
+          }
+        }
+      } else {
+        const isNextOutsideSubject = !pointInPolygon(nextV.point, subject);
+        if (isNextOutsideSubject) {
+          const origNeighbor = v.neighbor;
+          if (origNeighbor !== null) {
+            currentListIdx = 0;
+            currentIdx = origNeighbor;
+            continue;
+          }
         }
       }
     }
