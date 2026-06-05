@@ -1,6 +1,36 @@
 import { useEffect } from 'react';
 import { useEmailStore } from '@/store/useEmailStore';
 import { X, Trash2, FileText, Clock } from 'lucide-react';
+import { EmailTemplate } from '@/types/email';
+
+function getFirstTextSummary(t: EmailTemplate): string {
+  for (const c of t.components) {
+    if (c.properties.text) return c.properties.text.split('\n')[0].substring(0, 12);
+  }
+  return '空白模板';
+}
+
+function ThumbnailSlot({ t }: { t: EmailTemplate }) {
+  if (t.thumbnail) {
+    return (
+      <img
+        src={t.thumbnail}
+        alt={t.name}
+        className="w-20 h-14 rounded-lg shrink-0 border border-[#2a2d35] object-cover"
+      />
+    );
+  }
+  return (
+    <div
+      className="w-20 h-14 rounded-lg shrink-0 border border-[#2a2d35] flex items-center justify-center relative overflow-hidden"
+      style={{ backgroundColor: t.backgroundColor }}
+    >
+      <span className="text-[8px] text-gray-400 text-center px-1 leading-tight relative z-10 drop-shadow-sm">
+        {getFirstTextSummary(t)}
+      </span>
+    </div>
+  );
+}
 
 export default function SavedTemplates() {
   const { showSavedList, setShowSavedList, savedTemplates, loadSavedTemplate, deleteSavedTemplate, loadSavedTemplates } = useEmailStore();
@@ -56,10 +86,7 @@ export default function SavedTemplates() {
                   onClick={() => handleLoad(t.id)}
                   className="flex items-center gap-3 p-3 rounded-lg bg-[#22252d] hover:bg-[#2a2d35] border border-[#2a2d35] hover:border-emerald-500/30 cursor-pointer transition-all group"
                 >
-                  <div
-                    className="w-10 h-10 rounded-lg shrink-0 border border-[#2a2d35]"
-                    style={{ backgroundColor: t.backgroundColor }}
-                  />
+                  <ThumbnailSlot t={t} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white truncate">{t.name}</div>
                     <div className="flex items-center gap-1 text-[10px] text-gray-500 mt-0.5">

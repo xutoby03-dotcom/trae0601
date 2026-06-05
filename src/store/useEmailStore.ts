@@ -4,6 +4,7 @@ import { generateId } from '@/utils/id';
 import { getComponentDefaultProps } from '@/utils/exportHtml';
 import { createTemplateFromPreset } from '@/utils/templates';
 import { saveTemplate, loadAllTemplates, deleteTemplate as deleteTemplateFromDb } from '@/utils/db';
+import { generateThumbnail } from '@/utils/thumbnail';
 
 interface HistoryEntry {
   components: EmailComponent[];
@@ -364,7 +365,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
   saveCurrentTemplate: async () => {
     const state = get();
-    const template = { ...state.currentTemplate, updatedAt: Date.now() };
+    const thumbnail = generateThumbnail(state.currentTemplate.components, state.currentTemplate.backgroundColor);
+    const template = { ...state.currentTemplate, updatedAt: Date.now(), thumbnail };
     await saveTemplate(template);
     await state.loadSavedTemplates();
   },
