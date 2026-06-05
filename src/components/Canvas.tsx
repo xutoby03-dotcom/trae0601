@@ -1,9 +1,13 @@
-import React, { useRef, useEffect, useCallback } from 'react'
+import React, { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Stage, Layer, Rect, Line, Text } from 'react-konva'
 import { useStore } from '@/store'
 import WireframeElement from './WireframeElement'
 import { ElementType } from '@/types'
 import type { CanvasElement } from '@/types'
+
+export interface CanvasHandle {
+  getStage: () => any
+}
 
 interface CanvasProps {
   onDropComponent: (type: ElementType, x: number, y: number) => void
@@ -11,8 +15,12 @@ interface CanvasProps {
 
 const GRID_SIZE = 20
 
-const Canvas: React.FC<CanvasProps> = ({ onDropComponent }) => {
+const Canvas = forwardRef<CanvasHandle, CanvasProps>(({ onDropComponent }, ref) => {
   const stageRef = useRef<any>(null)
+
+  useImperativeHandle(ref, () => ({
+    getStage: () => stageRef.current,
+  }))
   const containerRef = useRef<HTMLDivElement>(null)
 
   const elements = useStore((s) => s.elements)
@@ -281,6 +289,8 @@ const Canvas: React.FC<CanvasProps> = ({ onDropComponent }) => {
       </Stage>
     </div>
   )
-}
+})
+
+Canvas.displayName = 'Canvas'
 
 export default Canvas

@@ -1,9 +1,10 @@
-import React, { useEffect, useCallback, useState } from 'react'
+import React, { useEffect, useCallback, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
 import { useUndoStore } from '@/store/undo'
 import ComponentLibrary from '@/components/ComponentLibrary'
 import Canvas from '@/components/Canvas'
+import type { CanvasHandle } from '@/components/Canvas'
 import PropertiesPanel from '@/components/PropertiesPanel'
 import { Toolbar } from '@/components/Toolbar'
 import { TemplateSelector } from '@/components/TemplateSelector'
@@ -45,6 +46,7 @@ const Editor: React.FC = () => {
   const undo = useUndoStore((s) => s.undo)
   const redo = useUndoStore((s) => s.redo)
   const [showTemplates, setShowTemplates] = useState(false)
+  const canvasRef = useRef<CanvasHandle>(null)
 
   useEffect(() => {
     if (!projectId) return
@@ -298,7 +300,7 @@ const Editor: React.FC = () => {
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar onOpenTemplates={() => setShowTemplates(true)} />
+      <Toolbar onOpenTemplates={() => setShowTemplates(true)} canvasRef={canvasRef} />
       {selectedElementIds.length > 0 && (
         <div
           style={{
@@ -390,7 +392,7 @@ const Editor: React.FC = () => {
       )}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <ComponentLibrary />
-        <Canvas onDropComponent={handleDropComponent} />
+        <Canvas ref={canvasRef} onDropComponent={handleDropComponent} />
         <PropertiesPanel />
       </div>
       <TemplateSelector open={showTemplates} onClose={() => setShowTemplates(false)} />

@@ -4,6 +4,7 @@ import { useUndoStore } from '@/store/undo'
 import { Undo2, Redo2, ZoomIn, ZoomOut, Maximize, Play, Sun, Moon, Download, Upload, Save, LayoutTemplate } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageTabs } from '@/components/PageTabs'
+import type { CanvasHandle } from '@/components/Canvas'
 
 const btnClass = 'px-2 py-1 rounded hover:bg-[var(--wire-hover)] text-sm disabled:opacity-40 cursor-not-allowed'
 
@@ -22,7 +23,7 @@ const handleSave = async () => {
   await saveCustomComponents(customComponents.filter(c => c.projectId === currentProjectId))
 }
 
-export const Toolbar: React.FC<{ onOpenTemplates?: () => void }> = ({ onOpenTemplates }) => {
+export const Toolbar: React.FC<{ onOpenTemplates?: () => void; canvasRef?: React.RefObject<CanvasHandle | null> }> = ({ onOpenTemplates, canvasRef }) => {
   const { currentProjectId, projects, updateProject, zoom, setZoom, resetView, theme, setTheme, pages, elements, interactions, customComponents, loadProject } = useStore()
   const { canUndo, canRedo, undo, redo } = useUndoStore()
   const navigate = useNavigate()
@@ -81,15 +82,45 @@ export const Toolbar: React.FC<{ onOpenTemplates?: () => void }> = ({ onOpenTemp
     URL.revokeObjectURL(url)
   }
 
-  const handleExportPNG = () => {
+  const handleExportPNG = async () => {
     setExportOpen(false)
-    const canvas = document.querySelector<HTMLCanvasElement>('#wireframe-canvas')
-    if (!canvas) return
-    const url = canvas.toDataURL('image/png')
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'page.png'
-    a.click()
+    const stage = canvasRef?.current?.getStage()
+    if (!stage) return
+
+    const state = useStore.getState()
+    const originalPageId = state.currentPageId
+    const projectPages = state.pages.filter((p: any) => p.projectId === state.currentProjectId)
+    if (projectPages.length === 0) return
+
+    const savedZoom = state.zoom
+    const savedPanX = state.panX
+    const savedPanY = state.panY
+
+    state.setZoom(1)
+    state.setPan(0, 0)
+
+    for (const page of projectPages) {
+      state.setCurrentPage(page.id)
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const currentStage = canvasRef?.current?.getStage()
+            if (currentStage) {
+              const dataUrl = currentStage.toDataURL({ pixelRatio: 2 })
+              const a = document.createElement('a')
+              a.href = dataUrl
+              a.download = `${page.name.replace(/\s+/g, '_')}.png`
+              a.click()
+            }
+            resolve()
+          })
+        })
+      })
+    }
+
+    state.setCurrentPage(originalPageId)
+    state.setZoom(savedZoom)
+    state.setPan(savedPanX, savedPanY)
   }
 
   const handleImportClick = () => {
