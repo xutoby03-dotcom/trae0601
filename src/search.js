@@ -45,14 +45,14 @@ export class SearchEngine {
 
   async _highlightResults() {
     const pagesContainer = this.viewer.pagesContainer;
-    const wrappers = pagesContainer.querySelectorAll('.page-wrapper');
     const grouped = {};
-    for (const r of this.results) {
+    for (let gi = 0; gi < this.results.length; gi++) {
+      const r = this.results[gi];
       if (!grouped[r.pageNum]) grouped[r.pageNum] = [];
-      grouped[r.pageNum].push(r);
+      grouped[r.pageNum].push({ hit: r, globalIdx: gi });
     }
 
-    for (const [pageNum, hits] of Object.entries(grouped)) {
+    for (const [pageNum, entries] of Object.entries(grouped)) {
       const wrapper = pagesContainer.querySelector(`[data-page-num="${pageNum}"]`);
       if (!wrapper) continue;
       let layer = wrapper.querySelector('.search-highlight-layer');
@@ -70,7 +70,8 @@ export class SearchEngine {
         const viewport = page.getViewport({ scale: this.viewer.scale * 1.5 });
         const textItems = textContent.items;
 
-        for (const hit of hits) {
+        for (const entry of entries) {
+          const hit = entry.hit;
           let charPos = 0;
           for (const item of textItems) {
             const itemText = item.str.toLowerCase();
@@ -79,6 +80,7 @@ export class SearchEngine {
               const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
               const el = document.createElement('div');
               el.className = 'search-highlight';
+              el.dataset.resultIdx = entry.globalIdx;
               el.style.left = (tx[4] / 1.5) + 'px';
               el.style.top = ((tx[5] - Math.abs(tx[3])) / 1.5) + 'px';
               el.style.width = (Math.abs(item.width) * viewport.scale / 1.5) + 'px';
@@ -100,11 +102,11 @@ export class SearchEngine {
     if (pageIndex >= 0) this.viewer.goToPage(pageIndex + 1);
     this.searchCount.textContent = `${this.currentIdx + 1}/${this.results.length}`;
 
-    document.querySelectorAll('.search-highlight').forEach((el) => el.classList.remove('current'));
-    const wrapper = this.viewer.pagesContainer.querySelector(`[data-page-num="${hit.pageNum}"]`);
-    if (wrapper) {
-      const highlights = wrapper.querySelectorAll('.search-highlight');
-      if (highlights[this.currentIdx]) highlights[this.currentIdx].classList.add('current');
+    document.querySelectorAll('.search-highlight.current').forEach((el) => el.classList.remove('current'));
+    const el = document.querySelector(`.search-highlight[data-result-idx="${this.currentIdx}"]`);
+    if (el) {
+      el.classList.add('current');
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
   }
 
