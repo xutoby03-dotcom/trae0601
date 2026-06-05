@@ -9,6 +9,7 @@ import { Toolbar } from '@/components/Toolbar'
 import { TemplateSelector } from '@/components/TemplateSelector'
 import { ElementType, CanvasElement } from '@/types'
 import { COMPONENT_DEFS } from '@/types/components'
+import { ArrowUpToLine, ArrowUp, ArrowDown, ArrowDownToLine } from 'lucide-react'
 import {
   loadPages,
   loadElementsByProject,
@@ -38,6 +39,7 @@ const Editor: React.FC = () => {
   const duplicateElement = useStore((s: any) => s.duplicateElement)
   const groupElements = useStore((s: any) => s.groupElements)
   const ungroupElements = useStore((s: any) => s.ungroupElements)
+  const updateElement = useStore((s: any) => s.updateElement)
   const getElementsByPageId = useStore((s: any) => s.getElementsByPageId)
   const undo = useUndoStore((s) => s.undo)
   const redo = useUndoStore((s) => s.redo)
@@ -204,9 +206,160 @@ const Editor: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [undo, redo, deleteSelectedElements, duplicateElement, groupElements, ungroupElements])
 
+  const getPageSortedElements = useCallback((): CanvasElement[] => {
+    const state = useStore.getState()
+    if (!state.currentPageId) return []
+    return (state.elements[state.currentPageId] ?? []).slice().sort((a: CanvasElement, b: CanvasElement) => a.zIndex - b.zIndex)
+  }, [])
+
+  const handleBringToFront = useCallback(() => {
+    const sorted = getPageSortedElements()
+    if (sorted.length === 0 || selectedElementIds.length === 0) return
+    const maxZ = sorted[sorted.length - 1].zIndex
+    const selectedSet = new Set(selectedElementIds)
+    const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
+    const delta = maxZ + 1 - selectedInOrder[0].zIndex
+    for (const el of selectedInOrder) {
+      updateElement(el.id, { zIndex: el.zIndex + delta })
+    }
+  }, [selectedElementIds, getPageSortedElements, updateElement])
+
+  const handleSendToBack = useCallback(() => {
+    const sorted = getPageSortedElements()
+    if (sorted.length === 0 || selectedElementIds.length === 0) return
+    const minZ = sorted[0].zIndex
+    const selectedSet = new Set(selectedElementIds)
+    const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
+    const delta = minZ - 1 - selectedInOrder[selectedInOrder.length - 1].zIndex
+    for (const el of selectedInOrder) {
+      updateElement(el.id, { zIndex: el.zIndex + delta })
+    }
+  }, [selectedElementIds, getPageSortedElements, updateElement])
+
+  const handleMoveUp = useCallback(() => {
+    const sorted = getPageSortedElements()
+    if (sorted.length === 0 || selectedElementIds.length === 0) return
+    const selectedSet = new Set(selectedElementIds)
+    const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
+    const topSelected = selectedInOrder[selectedInOrder.length - 1]
+    const aboveIdx = sorted.findIndex((e: CanvasElement) => e.id === topSelected.id) + 1
+    if (aboveIdx >= sorted.length) return
+    const aboveEl = sorted[aboveIdx]
+    if (selectedSet.has(aboveEl.id)) return
+    const shift = aboveEl.zIndex - topSelected.zIndex + 1
+    for (const el of selectedInOrder) {
+      updateElement(el.id, { zIndex: el.zIndex + shift })
+    }
+  }, [selectedElementIds, getPageSortedElements, updateElement])
+
+  const handleMoveDown = useCallback(() => {
+    const sorted = getPageSortedElements()
+    if (sorted.length === 0 || selectedElementIds.length === 0) return
+    const selectedSet = new Set(selectedElementIds)
+    const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
+    const bottomSelected = selectedInOrder[0]
+    const belowIdx = sorted.findIndex((e: CanvasElement) => e.id === bottomSelected.id) - 1
+    if (belowIdx < 0) return
+    const belowEl = sorted[belowIdx]
+    if (selectedSet.has(belowEl.id)) return
+    const shift = belowEl.zIndex - bottomSelected.zIndex - 1
+    for (const el of selectedInOrder) {
+      updateElement(el.id, { zIndex: el.zIndex + shift })
+    }
+  }, [selectedElementIds, getPageSortedElements, updateElement])
+
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Toolbar onOpenTemplates={() => setShowTemplates(true)} />
+      {selectedElementIds.length > 0 && (
+        <div
+          style={{
+            height: 32,
+            background: 'var(--wire-panel)',
+            borderBottom: '1px solid var(--wire-border)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 16px',
+            gap: 2,
+          }}
+        >
+          <span style={{ fontSize: 10, color: 'var(--wire-muted)', marginRight: 6, textTransform: 'uppercase', fontWeight: 600 }}>
+            Layer
+          </span>
+          <button
+            onClick={handleBringToFront}
+            title="Bring to Front"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '3px 6px',
+              border: '1px solid var(--wire-border)',
+              borderRadius: 3,
+              background: 'var(--wire-panel)',
+              color: 'var(--wire-text)',
+              cursor: 'pointer',
+              fontSize: 10,
+            }}
+          >
+            <ArrowUpToLine size={12} />
+          </button>
+          <button
+            onClick={handleMoveUp}
+            title="Move Up"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '3px 6px',
+              border: '1px solid var(--wire-border)',
+              borderRadius: 3,
+              background: 'var(--wire-panel)',
+              color: 'var(--wire-text)',
+              cursor: 'pointer',
+              fontSize: 10,
+            }}
+          >
+            <ArrowUp size={12} />
+          </button>
+          <button
+            onClick={handleMoveDown}
+            title="Move Down"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '3px 6px',
+              border: '1px solid var(--wire-border)',
+              borderRadius: 3,
+              background: 'var(--wire-panel)',
+              color: 'var(--wire-text)',
+              cursor: 'pointer',
+              fontSize: 10,
+            }}
+          >
+            <ArrowDown size={12} />
+          </button>
+          <button
+            onClick={handleSendToBack}
+            title="Send to Back"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '3px 6px',
+              border: '1px solid var(--wire-border)',
+              borderRadius: 3,
+              background: 'var(--wire-panel)',
+              color: 'var(--wire-text)',
+              cursor: 'pointer',
+              fontSize: 10,
+            }}
+          >
+            <ArrowDownToLine size={12} />
+          </button>
+        </div>
+      )}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <ComponentLibrary />
         <Canvas onDropComponent={handleDropComponent} />

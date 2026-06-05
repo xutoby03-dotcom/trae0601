@@ -303,6 +303,12 @@ export default function PropertiesPanel() {
             onBlur={() => handleBlur('rotation')}
           />
         </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8 }}>
+          <span style={{ fontSize: 9, color: 'var(--wire-muted)' }}>Z-INDEX</span>
+          <span style={{ ...smallInput, width: 50, lineHeight: '24px', textAlign: 'center', display: 'inline-block' }}>
+            {element.zIndex}
+          </span>
+        </div>
       </div>
 
       <div>
