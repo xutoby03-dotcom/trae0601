@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useEmailStore } from '@/store/useEmailStore';
 import { generateFullHtml } from '@/utils/exportHtml';
-import { X, Copy, Check } from 'lucide-react';
+import { X, Copy, Check, Download } from 'lucide-react';
 
 export default function ExportModal() {
   const { showExportModal, setShowExportModal, currentTemplate, variables, showVariables } = useEmailStore();
@@ -15,6 +15,19 @@ export default function ExportModal() {
     await navigator.clipboard.writeText(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = (currentTemplate.name || 'untitled').replace(/[\\/:*?"<>|]/g, '_');
+    a.href = url;
+    a.download = safeName.endsWith('.html') ? safeName : safeName + '.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -32,6 +45,12 @@ export default function ExportModal() {
           </pre>
         </div>
         <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[#2a2d35]">
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-all"
+          >
+            <Download size={14} /> 下载 HTML 文件
+          </button>
           <button
             onClick={handleCopy}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
