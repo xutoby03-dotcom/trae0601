@@ -49,6 +49,21 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Sego
 }
 #sidebar-right { border-right: none; border-left: 1px solid var(--border); }
 .sidebar-header { padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border); flex-shrink: 0; text-transform: uppercase; letter-spacing: .5px; }
+#file-list { max-height: 160px; overflow-y: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.file-list-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; cursor: pointer;
+  font-size: 12px; color: var(--text); transition: background .15s; border-bottom: 1px solid var(--border);
+}
+.file-list-item:last-child { border-bottom: none; }
+.file-list-item:hover { background: var(--border); }
+.file-list-item.active { background: rgba(25,118,210,.1); color: var(--accent); font-weight: 600; }
+.file-list-item .file-list-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.file-list-item .file-list-delete {
+  width: 16px; height: 16px; border: none; border-radius: 50%; background: transparent;
+  color: var(--text2); font-size: 12px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; margin-left: 6px; line-height: 1;
+}
+.file-list-item .file-list-delete:hover { background: #F44336; color: #fff; }
 #thumbnail-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 #outline-tree { flex: 1; overflow-y: auto; padding: 8px; }
 #outline-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text2); }

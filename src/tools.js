@@ -102,10 +102,13 @@ export class ToolHandler {
           tbOpts.querySelectorAll('.color-dot').forEach((d) => d.classList.remove('active'));
           dot.classList.add('active');
           this.am.textboxColor = dot.dataset.color;
+          this.am.applyTextboxStyle(dot.dataset.color, null);
         });
       });
       document.getElementById('textbox-fontsize').addEventListener('change', (e) => {
-        this.am.textboxFontSize = parseInt(e.target.value);
+        const fs = parseInt(e.target.value);
+        this.am.textboxFontSize = fs;
+        this.am.applyTextboxStyle(null, fs);
       });
     }
   }

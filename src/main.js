@@ -5,7 +5,7 @@ import { AnnotationManager } from './annotation-layer.js';
 import { ToolHandler } from './tools.js';
 import { SearchEngine } from './search.js';
 import { exportPDFWithAnnotations, exportXFDF } from './export.js';
-import { saveAnnotations, getAnnotations, listFiles } from './storage.js';
+import { saveAnnotations, getAnnotations, listFiles, deleteFile } from './storage.js';
 import { toast, generateId } from './utils.js';
 
 class App {
@@ -222,6 +222,7 @@ class App {
     const buf = await file.arrayBuffer();
     await this.viewer.loadFromData(buf, file.name);
     await this._onPDFLoaded();
+    await this._refreshFileList();
   }
 
   async _onPDFLoaded() {
@@ -279,6 +280,7 @@ class App {
         this.tools.show();
         toast('已插入图片页面');
         this._scheduleSave();
+        await this._refreshFileList();
       };
       img.src = e.target.result;
     };
@@ -327,17 +329,74 @@ class App {
       console.warn('Save error:', e);
     }
   }
+
+  async _refreshFileList() {
+    const container = document.getElementById('file-list');
+    container.innerHTML = '';
+    let files;
+    try {
+      files = await listFiles();
+    } catch (e) { return; }
+    files.sort((a, b) => b.lastOpened - a.lastOpened);
+
+    for (const f of files) {
+      const item = document.createElement('div');
+      item.className = 'file-list-item' + (f.id === this.viewer.fileId ? ' active' : '');
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'file-list-name';
+      nameEl.textContent = f.name || '未命名';
+      nameEl.title = f.name || '未命名';
+      item.appendChild(nameEl);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'file-list-delete';
+      delBtn.textContent = '×';
+      delBtn.title = '删除';
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await deleteFile(f.id);
+        if (f.id === this.viewer.fileId) {
+          this.viewer.pdfDoc = null;
+          this.viewer.pagesContainer.innerHTML = '';
+          this.viewer.fileId = null;
+          this.viewer.fileNameEl.textContent = '未打开文件';
+          this.viewer.totalPagesEl.textContent = '0';
+          this.annoManager.fromJSON([]);
+        }
+        toast('已删除: ' + (f.name || '未命名'));
+        await this._refreshFileList();
+      });
+      item.appendChild(delBtn);
+
+      item.addEventListener('click', async () => {
+        if (f.id === this.viewer.fileId) return;
+        try {
+          await this.viewer.loadFromStorage(f.id);
+          await this._onPDFLoaded();
+          await this._refreshFileList();
+        } catch (e) {
+          console.warn('Switch file error:', e);
+          toast('切换文件失败');
+        }
+      });
+
+      container.appendChild(item);
+    }
+  }
 }
 
 const app = new App();
 
 (async () => {
+  await app._refreshFileList();
   const files = await listFiles();
   if (files.length > 0) {
     const latest = files.sort((a, b) => b.lastOpened - a.lastOpened)[0];
     try {
       await app.viewer.loadFromStorage(latest.id);
       await app._onPDFLoaded();
+      await app._refreshFileList();
     } catch (e) {
       console.warn('Failed to load last file:', e);
     }

@@ -76,19 +76,37 @@ export async function exportPDFWithAnnotations(viewer, annotations) {
             font,
             color: hexToRGB(ann.color, 1),
           });
-        } else if (ann.type === 'stamp' && ann.label && ann.label !== 'custom') {
-          const font = await newDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-          const fontSize = 18;
-          const tw = font.widthOfTextAtSize(ann.label, fontSize);
-          page.drawRectangle({
-            x: ann.x * width, y: height - ann.y * height - fontSize - 8,
-            width: tw + 20, height: fontSize + 12,
-            color: hexToRGB('#888888', 0.8),
-          });
-          page.drawText(ann.label, {
-            x: ann.x * width + 10, y: height - ann.y * height - fontSize - 2,
-            size: fontSize, font, color: hexToRGB('#FFFFFF', 1),
-          });
+        } else if (ann.type === 'stamp') {
+          if (ann.imageData) {
+            const imageBytes = dataUrlToBytes(ann.imageData);
+            const isJpg = !ann.imageData.includes('image/png');
+            const embeddedImg = isJpg
+              ? await newDoc.embedJpg(imageBytes)
+              : await newDoc.embedPng(imageBytes);
+            const imgW = embeddedImg.width;
+            const imgH = embeddedImg.height;
+            const drawW = ann.w ? ann.w * width : Math.min(imgW, width * 0.2);
+            const drawH = ann.h ? ann.h * height : drawW * (imgH / imgW);
+            page.drawImage(embeddedImg, {
+              x: ann.x * width,
+              y: height - ann.y * height - drawH,
+              width: drawW,
+              height: drawH,
+            });
+          } else if (ann.label) {
+            const font = await newDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            const fontSize = 18;
+            const tw = font.widthOfTextAtSize(ann.label, fontSize);
+            page.drawRectangle({
+              x: ann.x * width, y: height - ann.y * height - fontSize - 8,
+              width: tw + 20, height: fontSize + 12,
+              color: hexToRGB('#888888', 0.8),
+            });
+            page.drawText(ann.label, {
+              x: ann.x * width + 10, y: height - ann.y * height - fontSize - 2,
+              size: fontSize, font, color: hexToRGB('#FFFFFF', 1),
+            });
+          }
         }
       } catch (e) { console.warn('Export annotation error:', e); }
     }
@@ -119,6 +137,16 @@ export function exportXFDF(annotations, fileName) {
 
   const blob = new Blob([xml], { type: 'application/vnd.adobe.xfdf' });
   downloadBlob(blob, (fileName || 'document').replace(/\.pdf$/i, '') + '.xfdf', 'application/vnd.adobe.xfdf');
+}
+
+function dataUrlToBytes(dataUrl) {
+  const base64 = dataUrl.split(',')[1];
+  const binaryStr = atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
 }
 
 function hexToRGB(hex, alpha) {

@@ -272,10 +272,23 @@ export class AnnotationManager {
     el.style.fontSize = (ann.fontSize * cw / 612) + 'px';
     el.contentEditable = true;
     el.textContent = ann.text;
+    el.dataset.annoId = ann.id;
     const before = { ...ann };
+    el.addEventListener('focus', () => {
+      this._focusedTextbox = ann;
+      this._focusedTextboxEl = el;
+    });
     el.addEventListener('blur', () => {
+      const textBefore = before.text;
+      const colorBefore = before.color;
+      const fontSizeBefore = before.fontSize;
       ann.text = el.textContent;
-      if (ann.text !== before.text) this.pushModifyUndo(ann, before);
+      const changed = ann.text !== textBefore || ann.color !== colorBefore || ann.fontSize !== fontSizeBefore;
+      if (changed) this.pushModifyUndo(ann, before);
+      if (this._focusedTextbox === ann) {
+        this._focusedTextbox = null;
+        this._focusedTextboxEl = null;
+      }
     });
     el.addEventListener('click', (e) => {
       if (this.activeTool !== null && this.activeTool !== 'textbox') {
@@ -285,6 +298,23 @@ export class AnnotationManager {
       }
     });
     layer.appendChild(el);
+  }
+
+  applyTextboxStyle(color, fontSize) {
+    if (!this._focusedTextbox || !this._focusedTextboxEl) return;
+    const ann = this._focusedTextbox;
+    const el = this._focusedTextboxEl;
+    if (color) {
+      ann.color = color;
+      el.style.color = color;
+    }
+    if (fontSize) {
+      ann.fontSize = fontSize;
+      const wrapper = el.closest('.page-wrapper');
+      const canvas = wrapper ? wrapper.querySelector('canvas') : null;
+      const cw = canvas ? canvas.width / 1.5 : 612;
+      el.style.fontSize = (fontSize * cw / 612) + 'px';
+    }
   }
 
   rerenderPage(pageIndex) {
