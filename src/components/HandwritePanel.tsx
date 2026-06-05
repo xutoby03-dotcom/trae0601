@@ -12,12 +12,20 @@ const MOCK_RESULTS = [
   '\\frac{d}{dx} \\int_a^x f(t) \\, dt = f(x)',
 ]
 
+function getStrokeColor(theme: 'light' | 'dark'): string {
+  return theme === 'dark' ? '#f0f0f0' : '#1a1b2e'
+}
+
 export default function HandwritePanel() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasContent, setHasContent] = useState(false)
   const [recognizing, setRecognizing] = useState(false)
-  const { insertAtCursor } = useStore()
+  const { insertAtCursor, theme } = useStore()
+
+  const applyStrokeColor = useCallback((ctx: CanvasRenderingContext2D) => {
+    ctx.strokeStyle = getStrokeColor(theme)
+  }, [theme])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -32,8 +40,16 @@ export default function HandwritePanel() {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.lineWidth = 3
-    ctx.strokeStyle = 'var(--text-primary)'
-  }, [])
+    applyStrokeColor(ctx)
+  }, [applyStrokeColor])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    applyStrokeColor(ctx)
+  }, [theme, applyStrokeColor])
 
   const getPos = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -78,8 +94,12 @@ export default function HandwritePanel() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 3
+    applyStrokeColor(ctx)
     setHasContent(false)
-  }, [])
+  }, [applyStrokeColor])
 
   const recognize = useCallback(() => {
     setRecognizing(true)
