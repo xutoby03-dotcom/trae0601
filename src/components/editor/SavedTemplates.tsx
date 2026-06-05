@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useEmailStore } from '@/store/useEmailStore';
-import { X, Trash2, FileText, Clock } from 'lucide-react';
+import { X, Trash2, FileText, Clock, Search, Copy } from 'lucide-react';
 import { EmailTemplate } from '@/types/email';
 
 function getFirstTextSummary(t: EmailTemplate): string {
@@ -33,13 +33,22 @@ function ThumbnailSlot({ t }: { t: EmailTemplate }) {
 }
 
 export default function SavedTemplates() {
-  const { showSavedList, setShowSavedList, savedTemplates, loadSavedTemplate, deleteSavedTemplate, loadSavedTemplates } = useEmailStore();
+  const { showSavedList, setShowSavedList, savedTemplates, loadSavedTemplate, deleteSavedTemplate, duplicateSavedTemplate, loadSavedTemplates } = useEmailStore();
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (showSavedList) loadSavedTemplates();
+    if (showSavedList) {
+      loadSavedTemplates();
+      setSearch('');
+    }
   }, [showSavedList]);
 
   if (!showSavedList) return null;
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? savedTemplates.filter(t => t.name.toLowerCase().includes(q))
+    : savedTemplates;
 
   const handleLoad = (id: string) => {
     loadSavedTemplate(id);
@@ -51,10 +60,19 @@ export default function SavedTemplates() {
     await deleteSavedTemplate(id);
   };
 
+  const handleDuplicate = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await duplicateSavedTemplate(id);
+  };
+
   const formatDate = (ts: number) => {
     const d = new Date(ts);
     return d.toLocaleDateString('zh-CN') + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
+
+  const countLabel = q
+    ? `匹配 ${filtered.length} / 全部 ${savedTemplates.length} 条`
+    : `${savedTemplates.length} 条`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSavedList(false)}>
@@ -63,12 +81,28 @@ export default function SavedTemplates() {
           <div className="flex items-center gap-2">
             <FileText size={16} className="text-emerald-400" />
             <h3 className="text-sm font-semibold text-white">已保存的模板</h3>
-            <span className="text-[10px] bg-white/5 text-gray-500 px-2 py-0.5 rounded-full">{savedTemplates.length}</span>
+            <span className="text-[10px] bg-white/5 text-gray-500 px-2 py-0.5 rounded-full">{countLabel}</span>
           </div>
           <button onClick={() => setShowSavedList(false)} className="text-gray-400 hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>
+
+        {savedTemplates.length > 0 && (
+          <div className="px-4 py-2 border-b border-[#2a2d35]">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="搜索模板名称..."
+                className="w-full bg-[#0d0f12] border border-[#2a2d35] rounded-lg pl-8 pr-3 py-1.5 text-xs text-gray-200 placeholder-gray-600 focus:border-blue-500 focus:outline-none transition-colors"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto p-3">
           {savedTemplates.length === 0 ? (
             <div className="text-center py-12">
@@ -78,9 +112,15 @@ export default function SavedTemplates() {
               <p className="text-sm text-gray-500">还没有保存的模板</p>
               <p className="text-xs text-gray-600 mt-1">点击工具栏"保存"按钮保存当前模板</p>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10">
+              <Search size={24} className="text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">没有匹配的模板</p>
+              <p className="text-xs text-gray-600 mt-1">尝试其他关键词</p>
+            </div>
           ) : (
             <div className="space-y-2">
-              {savedTemplates.map((t) => (
+              {filtered.map((t) => (
                 <div
                   key={t.id}
                   onClick={() => handleLoad(t.id)}
@@ -96,12 +136,22 @@ export default function SavedTemplates() {
                       {t.components.length} 个组件
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(e, t.id)}
-                    className="p-1.5 rounded-md text-gray-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => handleDuplicate(e, t.id)}
+                      className="p-1.5 rounded-md text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                      title="复制模板"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, t.id)}
+                      className="p-1.5 rounded-md text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="删除模板"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

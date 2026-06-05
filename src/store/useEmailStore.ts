@@ -6,6 +6,16 @@ import { createTemplateFromPreset } from '@/utils/templates';
 import { saveTemplate, loadAllTemplates, deleteTemplate as deleteTemplateFromDb } from '@/utils/db';
 import { generateThumbnail } from '@/utils/thumbnail';
 
+function reassignIds(components: EmailComponent[]): EmailComponent[] {
+  return components.map(c => {
+    const cloned: EmailComponent = { ...c, id: generateId() };
+    if (cloned.children) {
+      cloned.children = cloned.children.map(col => reassignIds(col));
+    }
+    return cloned;
+  });
+}
+
 interface HistoryEntry {
   components: EmailComponent[];
   backgroundColor: string;
@@ -47,6 +57,7 @@ interface EmailStore {
   loadSavedTemplates: () => Promise<void>;
   loadSavedTemplate: (id: string) => Promise<void>;
   deleteSavedTemplate: (id: string) => Promise<void>;
+  duplicateSavedTemplate: (id: string) => Promise<void>;
   newTemplate: () => void;
   duplicateComponent: (id: string) => void;
   setShowExportModal: (show: boolean) => void;
@@ -393,6 +404,24 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
   deleteSavedTemplate: async (id) => {
     await deleteTemplateFromDb(id);
+    await get().loadSavedTemplates();
+  },
+
+  duplicateSavedTemplate: async (id) => {
+    const all = await loadAllTemplates();
+    const source = all.find(t => t.id === id);
+    if (!source) return;
+    const now = Date.now();
+    const dup: EmailTemplate = {
+      id: generateId(),
+      name: source.name + ' 副本',
+      backgroundColor: source.backgroundColor,
+      components: reassignIds(deepClone(source.components)),
+      createdAt: now,
+      updatedAt: now,
+      thumbnail: source.thumbnail,
+    };
+    await saveTemplate(dup);
     await get().loadSavedTemplates();
   },
 
