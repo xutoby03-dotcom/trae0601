@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #f8f7f4;
+  --bg-secondary: #e8e6e1;
+  --bg-tertiary: #d1cec6;
+  --text-primary: #1a1b2e;
+  --text-secondary: #4a443c;
+  --text-muted: #847b6c;
+  --border-color: #d1cec6;
+  --accent: #e8a838;
+  --accent-hover: #d4952e;
+  --mint: #4ecdc4;
+  --card-bg: #ffffff;
+  --editor-bg: #1e1e2e;
+  --editor-gutter: #2a2a3e;
+  --editor-text: #cdd6f4;
+  --editor-cursor: #f5e0dc;
+  --editor-selection: #45475a;
+  --editor-active-line: #313244;
+}
+
+.dark {
+  --bg-primary: #1a1b2e;
+  --bg-secondary: #22233a;
+  --bg-tertiary: #2a2b44;
+  --text-primary: #f8f7f4;
+  --text-secondary: #b3ae9f;
+  --text-muted: #6e6658;
+  --border-color: #3a3b54;
+  --accent: #e8a838;
+  --accent-hover: #f0b848;
+  --mint: #4ecdc4;
+  --card-bg: #22233a;
+  --editor-bg: #11111b;
+  --editor-gutter: #1a1a2e;
+  --editor-text: #cdd6f4;
+  --editor-cursor: #f5e0dc;
+  --editor-selection: #45475a;
+  --editor-active-line: #1e1e2e;
+}
+
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+
+body {
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+.cm-editor {
+  height: 100%;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px;
+}
+
+.cm-editor .cm-scroller {
+  overflow: auto;
+}
+
+.cm-editor.cm-focused {
+  outline: none;
+}
+
+.katex-display {
+  margin: 0 !important;
+}
+
+.katex {
+  font-size: 1.4em !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
