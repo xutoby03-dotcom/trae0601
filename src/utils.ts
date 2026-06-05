@@ -591,66 +591,460 @@ export function booleanOperation(
     return result;
   }
 
-  let resultPoly: Point[] = [];
+  ensureCCW(poly1);
+  ensureCCW(poly2);
 
-  switch (op) {
-    case 'union': {
-      const inside2 = poly1.filter((p) => pointInPolygon(p, poly2));
-      const inside1 = poly2.filter((p) => pointInPolygon(p, poly1));
-      if (inside2.length === poly1.length) {
-        resultPoly = poly2;
-      } else if (inside1.length === poly2.length) {
-        resultPoly = poly1;
+  const p1in2 = poly1.every((p) => pointInPolygon(p, poly2));
+  const p2in1 = poly2.every((p) => pointInPolygon(p, poly1));
+
+  if (op === 'union') {
+    if (p1in2) {
+      writePolyResult(result, poly2);
+    } else if (p2in1) {
+      writePolyResult(result, poly1);
+    } else {
+      const contour = weilerAthertonUnion(poly1, poly2);
+      if (contour.length >= 3) {
+        writePolyResult(result, contour);
       } else {
-        const intersection = sutherlandHodgman(poly1, poly2);
-        if (intersection.length < 3) {
-          resultPoly = [...poly1, ...poly2];
-        } else {
-          const outer1 = polygonSubtract(poly1, intersection);
-          const outer2 = polygonSubtract(poly2, intersection);
-          resultPoly = [...outer1, ...intersection, ...outer2];
-        }
+        writeMultiPolyResult(result, [poly1, poly2]);
       }
-      break;
     }
-    case 'subtract': {
-      resultPoly = polygonSubtract(poly1, poly2);
-      if (resultPoly.length < 3) {
-        const clipped = sutherlandHodgman(poly1, poly2);
-        if (clipped.length >= 3) {
-          resultPoly = clipped;
-          result.booleanOp = 'subtract';
-        }
-      }
-      break;
-    }
-    case 'intersect': {
-      resultPoly = sutherlandHodgman(poly1, poly2);
-      break;
-    }
-    case 'exclude': {
-      const intersection = sutherlandHodgman(poly1, poly2);
-      const only1 = polygonSubtract(poly1, poly2);
-      const only2 = polygonSubtract(poly2, poly1);
-      if (intersection.length >= 3) {
-        resultPoly = [...only1, ...only2];
-      } else {
-        resultPoly = [...poly1, ...poly2];
-      }
-      break;
-    }
+    result.name = 'union result';
+    return result;
   }
 
-  if (resultPoly.length >= 3) {
-    result.anchors = polygonToAnchors(resultPoly);
-    result.pathData = anchorsToPathData(result.anchors, true);
-  } else {
-    result.pathData = '';
-    result.anchors = [];
+  if (op === 'subtract') {
+    if (p1in2) {
+      result.pathData = '';
+      result.anchors = [];
+      result.name = 'subtract result (empty)';
+      return result;
+    }
+    const contour = weilerAthertonSubtract(poly1, poly2);
+    if (contour.length >= 3) {
+      writePolyResult(result, contour);
+    } else {
+      writePolyResult(result, poly1);
+    }
+    result.name = 'subtract result';
+    return result;
   }
 
-  result.name = `${op} result`;
+  if (op === 'intersect') {
+    const contour = sutherlandHodgman(poly1, poly2);
+    if (contour.length >= 3) {
+      writePolyResult(result, contour);
+    } else {
+      result.pathData = '';
+      result.anchors = [];
+    }
+    result.name = 'intersect result';
+    return result;
+  }
+
+  if (op === 'exclude') {
+    if (p1in2) {
+      const clipReverse = [...poly2].reverse();
+      const sub2from1 = weilerAthertonSubtract(clipReverse, poly1);
+      if (sub2from1.length >= 3) {
+        writePolyResult(result, sub2from1);
+      } else {
+        result.pathData = '';
+        result.anchors = [];
+      }
+      result.name = 'exclude result';
+      return result;
+    }
+    if (p2in1) {
+      const sub1from2 = weilerAthertonSubtract(poly1, poly2);
+      if (sub1from2.length >= 3) {
+        writePolyResult(result, sub1from2);
+      } else {
+        result.pathData = '';
+        result.anchors = [];
+      }
+      result.name = 'exclude result';
+      return result;
+    }
+
+    const sub1 = weilerAthertonSubtract(poly1, poly2);
+    const sub2 = weilerAthertonSubtract(poly2, poly1);
+    const polys: Point[][] = [];
+    if (sub1.length >= 3) polys.push(sub1);
+    if (sub2.length >= 3) polys.push(sub2);
+
+    if (polys.length > 0) {
+      writeMultiPolyResult(result, polys);
+    } else {
+      writeMultiPolyResult(result, [poly1, poly2]);
+    }
+    result.name = 'exclude result';
+    return result;
+  }
+
+  result.pathData = '';
+  result.anchors = [];
+  result.name = `${op} result (unknown)`;
   return result;
+}
+
+function writePolyResult(result: Shape, poly: Point[]): void {
+  result.anchors = polygonToAnchors(poly);
+  result.pathData = anchorsToPathData(result.anchors, true);
+}
+
+function writeMultiPolyResult(result: Shape, polys: Point[][]): void {
+  const allAnchors: AnchorPoint[] = [];
+  const parts: string[] = [];
+  for (const poly of polys) {
+    const anchors = polygonToAnchors(poly);
+    const d = anchorsToPathData(anchors, true);
+    if (d) {
+      parts.push(d);
+      if (allAnchors.length > 0) {
+        allAnchors.push({ x: 0, y: 0, handleIn: null, handleOut: null, type: 'corner' });
+      }
+      allAnchors.push(...anchors);
+    }
+  }
+  result.anchors = allAnchors;
+  result.pathData = parts.join(' ');
+}
+
+interface WAVertex {
+  point: Point;
+  isIntersection: boolean;
+  entry: boolean;
+  neighbor: number | null;
+  polyIndex: number;
+  visited: boolean;
+}
+
+function weilerAthertonUnion(
+  subject: Point[],
+  clip: Point[]
+): Point[] {
+  const { subjectList, clipList, hasIntersections } = buildVertexLists(subject, clip);
+
+  if (!hasIntersections) {
+    return [];
+  }
+
+  const allLists = [subjectList, clipList];
+  const result: Point[] = [];
+
+  let startIdx = findFirstOutsidePoint(subjectList, clip);
+  if (startIdx < 0) startIdx = 0;
+
+  let currentListIdx = 0;
+  let currentIdx = startIdx;
+  let firstPoint = allLists[currentListIdx][currentIdx].point;
+  let started = false;
+
+  for (let safety = 0; safety < subject.length + clip.length + allLists[0].length + allLists[1].length + 10; safety++) {
+    const currentList = allLists[currentListIdx];
+    const v = currentList[currentIdx];
+
+    if (started) {
+      if (Math.abs(v.point.x - firstPoint.x) < 1e-6 && Math.abs(v.point.y - firstPoint.y) < 1e-6) {
+        break;
+      }
+    }
+    started = true;
+
+    result.push({ x: v.point.x, y: v.point.y });
+
+    if (v.isIntersection && v.neighbor !== null) {
+      const nextOnCurrent = (currentIdx + 1) % currentList.length;
+      const nextV = currentList[nextOnCurrent];
+      const otherListIdx = currentListIdx === 0 ? 1 : 0;
+      const otherList = allLists[otherListIdx];
+      const neighborNext = (v.neighbor + 1) % otherList.length;
+      const otherNextV = otherList[neighborNext];
+
+      const isCurrentGoingInside = pointInPolygon(nextV.point, currentListIdx === 0 ? clip : subject);
+      const isOtherGoingOutside = !pointInPolygon(otherNextV.point, currentListIdx === 0 ? subject : clip);
+
+      if (isCurrentGoingInside && isOtherGoingOutside) {
+        currentListIdx = otherListIdx;
+        currentIdx = v.neighbor;
+        continue;
+      }
+    }
+
+    currentIdx = (currentIdx + 1) % currentList.length;
+  }
+
+  return result;
+}
+
+function weilerAthertonSubtract(
+  subject: Point[],
+  clip: Point[]
+): Point[] {
+  const { subjectList, clipList, hasIntersections } = buildVertexLists(subject, clip);
+
+  if (!hasIntersections) {
+    if (pointInPolygon(subject[0], clip)) return [];
+    return [...subject];
+  }
+
+  const clipListReversed = [...clipList].reverse();
+  const allLists = [subjectList, clipListReversed];
+  const result: Point[] = [];
+
+  let startIdx = findFirstOutsidePoint(subjectList, clip);
+  if (startIdx < 0) return subject;
+
+  let currentListIdx = 0;
+  let currentIdx = startIdx;
+  let firstPoint = allLists[currentListIdx][currentIdx].point;
+  let started = false;
+
+  for (let safety = 0; safety < subject.length + clip.length + allLists[0].length + allLists[1].length + 10; safety++) {
+    const currentList = allLists[currentListIdx];
+    const v = currentList[currentIdx];
+
+    if (started) {
+      if (Math.abs(v.point.x - firstPoint.x) < 1e-6 && Math.abs(v.point.y - firstPoint.y) < 1e-6) {
+        break;
+      }
+    }
+    started = true;
+
+    result.push({ x: v.point.x, y: v.point.y });
+
+    if (v.isIntersection && v.neighbor !== null) {
+      const nextOnCurrent = (currentIdx + 1) % currentList.length;
+      const nextV = currentList[nextOnCurrent];
+      const isCurrentGoingInside = pointInPolygon(nextV.point, clip);
+
+      if (isCurrentGoingInside) {
+        currentListIdx = 1;
+        const revNeighbor = clipListReversed.findIndex(
+          (rv) => rv.neighbor !== null && Math.abs(rv.point.x - v.point.x) < 1e-6 && Math.abs(rv.point.y - v.point.y) < 1e-6
+        );
+        if (revNeighbor >= 0) {
+          currentIdx = revNeighbor;
+          continue;
+        }
+      }
+    }
+
+    currentIdx = (currentIdx + 1) % currentList.length;
+  }
+
+  return result;
+}
+
+function buildVertexLists(
+  subject: Point[],
+  clip: Point[]
+): { subjectList: WAVertex[]; clipList: WAVertex[]; hasIntersections: boolean } {
+  const subjectList: WAVertex[] = subject.map((p) => ({
+    point: { x: p.x, y: p.y },
+    isIntersection: false,
+    entry: false,
+    neighbor: null,
+    polyIndex: 0,
+    visited: false,
+  }));
+
+  const clipList: WAVertex[] = clip.map((p) => ({
+    point: { x: p.x, y: p.y },
+    isIntersection: false,
+    entry: false,
+    neighbor: null,
+    polyIndex: 1,
+    visited: false,
+  }));
+
+  const intersections: { point: Point; tSubject: number; subjectEdge: number; tClip: number; clipEdge: number }[] = [];
+
+  for (let i = 0; i < subject.length; i++) {
+    const si = subject[i];
+    const sj = subject[(i + 1) % subject.length];
+    for (let j = 0; j < clip.length; j++) {
+      const ci = clip[j];
+      const cj = clip[(j + 1) % clip.length];
+      const ix = segmentIntersection(si, sj, ci, cj);
+      if (ix) {
+        intersections.push({
+          point: ix.point,
+          tSubject: ix.t1,
+          subjectEdge: i,
+          tClip: ix.t2,
+          clipEdge: j,
+        });
+      }
+    }
+  }
+
+  if (intersections.length === 0) {
+    return { subjectList, clipList, hasIntersections: false };
+  }
+
+  for (const ix of intersections) {
+    const sMid = {
+      x: (subject[ix.subjectEdge].x + subject[(ix.subjectEdge + 1) % subject.length].x) / 2,
+      y: (subject[ix.subjectEdge].y + subject[(ix.subjectEdge + 1) % subject.length].y) / 2,
+    };
+    const sNext = subject[(ix.subjectEdge + 1) % subject.length];
+    const testP = {
+      x: ix.point.x + (sNext.x - ix.point.x) * 0.001,
+      y: ix.point.y + (sNext.y - ix.point.y) * 0.001,
+    };
+    const isEntry = pointInPolygon(testP, clip);
+
+    const sIdx = subjectList.length;
+    const cIdx = clipList.length;
+
+    subjectList.push({
+      point: { x: ix.point.x, y: ix.point.y },
+      isIntersection: true,
+      entry: isEntry,
+      neighbor: cIdx,
+      polyIndex: 0,
+      visited: false,
+    });
+
+    clipList.push({
+      point: { x: ix.point.x, y: ix.point.y },
+      isIntersection: true,
+      entry: isEntry,
+      neighbor: sIdx,
+      polyIndex: 1,
+      visited: false,
+    });
+  }
+
+  sortIntersectionsIntoList(subjectList, subject, intersections, 'subject');
+  sortIntersectionsIntoList(clipList, clip, intersections, 'clip');
+
+  relinkNeighbors(subjectList, clipList);
+
+  return { subjectList, clipList, hasIntersections: true };
+}
+
+function sortIntersectionsIntoList(
+  list: WAVertex[],
+  originalPoly: Point[],
+  intersections: { point: Point; tSubject: number; subjectEdge: number; tClip: number; clipEdge: number }[],
+  which: 'subject' | 'clip'
+): void {
+  const origLen = originalPoly.length;
+  const byEdge = new Map<number, WAVertex[]>();
+
+  const ixList = list.slice(origLen);
+  for (const v of ixList) {
+    const ix = intersections.find(
+      (i) => Math.abs(i.point.x - v.point.x) < 1e-6 && Math.abs(i.point.y - v.point.y) < 1e-6
+    );
+    if (!ix) continue;
+    const edge = which === 'subject' ? ix.subjectEdge : ix.clipEdge;
+    const t = which === 'subject' ? ix.tSubject : ix.tClip;
+    if (!byEdge.has(edge)) byEdge.set(edge, []);
+    byEdge.get(edge)!.push({ ...v, _t: t } as WAVertex & { _t: number });
+  }
+
+  for (const [, verts] of byEdge) {
+    verts.sort((a, b) => (a as any)._t - (b as any)._t);
+  }
+
+  const newList: WAVertex[] = [];
+  for (let i = 0; i < origLen; i++) {
+    newList.push(list[i]);
+    const edgeVerts = byEdge.get(i);
+    if (edgeVerts) {
+      for (const v of edgeVerts) {
+        const clean = { ...v };
+        delete (clean as any)._t;
+        newList.push(clean);
+      }
+    }
+  }
+
+  list.length = 0;
+  for (const v of newList) list.push(v);
+}
+
+function relinkNeighbors(subjectList: WAVertex[], clipList: WAVertex[]): void {
+  for (let si = 0; si < subjectList.length; si++) {
+    if (!subjectList[si].isIntersection) continue;
+    for (let ci = 0; ci < clipList.length; ci++) {
+      if (!clipList[ci].isIntersection) continue;
+      if (
+        Math.abs(subjectList[si].point.x - clipList[ci].point.x) < 1e-6 &&
+        Math.abs(subjectList[si].point.y - clipList[ci].point.y) < 1e-6
+      ) {
+        subjectList[si].neighbor = ci;
+        clipList[ci].neighbor = si;
+        break;
+      }
+    }
+  }
+}
+
+function findFirstOutsidePoint(list: WAVertex[], otherPoly: Point[]): number {
+  for (let i = 0; i < list.length; i++) {
+    if (!list[i].isIntersection && !pointInPolygon(list[i].point, otherPoly)) {
+      return i;
+    }
+  }
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].isIntersection && !list[i].entry) {
+      return i;
+    }
+  }
+  return 0;
+}
+
+function segmentIntersection(
+  p1: Point,
+  p2: Point,
+  p3: Point,
+  p4: Point
+): { point: Point; t1: number; t2: number } | null {
+  const dx1 = p2.x - p1.x;
+  const dy1 = p2.y - p1.y;
+  const dx2 = p4.x - p3.x;
+  const dy2 = p4.y - p3.y;
+
+  const denom = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(denom) < 1e-10) return null;
+
+  const t1 = ((p3.x - p1.x) * dy2 - (p3.y - p1.y) * dx2) / denom;
+  const t2 = ((p3.x - p1.x) * dy1 - (p3.y - p1.y) * dx1) / denom;
+
+  const eps = 1e-9;
+  if (t1 < eps || t1 > 1 - eps || t2 < eps || t2 > 1 - eps) return null;
+
+  return {
+    point: {
+      x: p1.x + t1 * dx1,
+      y: p1.y + t1 * dy1,
+    },
+    t1,
+    t2,
+  };
+}
+
+function signedArea(poly: Point[]): number {
+  let area = 0;
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += poly[i].x * poly[j].y;
+    area -= poly[j].x * poly[i].y;
+  }
+  return area / 2;
+}
+
+function ensureCCW(poly: Point[]): void {
+  if (signedArea(poly) < 0) {
+    poly.reverse();
+  }
 }
 
 function anchorsToPolygon(shape: Shape): Point[] {
@@ -810,19 +1204,6 @@ function pointInPolygon(point: Point, polygon: Point[]): boolean {
   return inside;
 }
 
-function polygonSubtract(subject: Point[], clip: Point[]): Point[] {
-  const result = sutherlandHodgman(subject, clip);
-  if (result.length < 3) {
-    const outside: Point[] = [];
-    for (const p of subject) {
-      if (!pointInPolygon(p, clip)) {
-        outside.push(p);
-      }
-    }
-    return outside;
-  }
-  return subject.filter((p) => !pointInPolygon(p, clip));
-}
 
 export function generateFillSVG(fill: Fill, shapeId: string): { attrs: Record<string, string>; defs: React.ReactElement | null } {
   const attrs: Record<string, string> = {};
