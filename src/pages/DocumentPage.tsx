@@ -47,6 +47,7 @@ export default function DocumentPage() {
   const [currentDocId, setCurrentDocId] = useState<string | null>(null)
   const [docTitle, setDocTitle] = useState('未命名文档')
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const navigate = useNavigate()
   const previewRef = useRef<HTMLDivElement>(null)
   const { currentProjectId } = useStore()
@@ -110,6 +111,7 @@ export default function DocumentPage() {
       const text = args[1] as string
       if (!text.trim()) return
       setSaving(true)
+      setSaved(false)
       const doc: Doc = {
         id: currentDocId || generateId(),
         projectId: currentProjectId || 'default',
@@ -128,6 +130,8 @@ export default function DocumentPage() {
         setDocs((prev) => prev.map((d) => (d.id === doc.id ? doc : d)))
       }
       setSaving(false)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
     }, 800),
     [currentDocId, currentProjectId, docs]
   )
@@ -222,10 +226,10 @@ export default function DocumentPage() {
             </div>
           ) : (
             docs.map((doc) => (
-              <button
+              <div
                 key={doc.id}
                 onClick={() => loadDoc(doc)}
-                className={`w-full flex items-center gap-2 px-4 py-2.5 text-left transition-all border-b border-[var(--border-color)] ${
+                className={`w-full flex items-center gap-2 px-4 py-2.5 text-left transition-all border-b border-[var(--border-color)] cursor-pointer ${
                   doc.id === currentDocId
                     ? 'bg-amber-400/10 text-amber-400'
                     : 'hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
@@ -240,11 +244,11 @@ export default function DocumentPage() {
                 </div>
                 <button
                   onClick={(e) => handleDeleteDoc(doc.id, e)}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-red-400 transition-opacity"
+                  className="p-1 rounded opacity-100 hover:bg-red-500/10 text-red-400 transition-opacity"
                 >
                   <Trash2 size={12} />
                 </button>
-              </button>
+              </div>
             ))
           )}
         </div>
@@ -269,9 +273,10 @@ export default function DocumentPage() {
               className="bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none border-b border-transparent hover:border-[var(--border-color)] focus:border-amber-400 w-40"
               placeholder="文档标题"
             />
-            {saving && (
+            {(saving || saved) && (
               <div className="flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
-                <Save size={10} /> 已保存
+                <Save size={10} />
+                {saving ? '保存中...' : '已保存'}
               </div>
             )}
           </div>
