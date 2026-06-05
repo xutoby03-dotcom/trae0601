@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react'
-import { Stage, Layer, Rect, Line } from 'react-konva'
+import { Stage, Layer, Rect, Line, Text } from 'react-konva'
 import { useStore } from '@/store'
 import WireframeElement from './WireframeElement'
 import { ElementType } from '@/types'
@@ -113,7 +113,7 @@ const Canvas: React.FC<CanvasProps> = ({ onDropComponent }) => {
 
     const handleDrop = (e: DragEvent) => {
       e.preventDefault()
-      const type = e.dataTransfer!.getData('element-type') as ElementType
+      const type = e.dataTransfer!.getData('componentType') as ElementType
       if (!type) return
 
       const stage = stageRef.current
@@ -262,8 +262,17 @@ const Canvas: React.FC<CanvasProps> = ({ onDropComponent }) => {
                 cornerRadius={3}
                 listening={false}
               />
-              <Line
-                points={[]} 
+              <Text
+                text={arrow.label}
+                x={arrow.endX - 30}
+                y={arrow.endY - 17}
+                width={60}
+                height={14}
+                align="center"
+                verticalAlign="middle"
+                fontSize={9}
+                fontFamily="-apple-system, sans-serif"
+                fill="#ffffff"
                 listening={false}
               />
             </React.Fragment>
