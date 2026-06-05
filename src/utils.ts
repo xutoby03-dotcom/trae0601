@@ -483,7 +483,7 @@ export function renderGrid(
       renderPixelGrid(ctx, width, height, zoom, panX, panY, gridSize);
       break;
     case 'isometric':
-      renderIsometricGrid(ctx, width, height, zoom, panY, panY, gridSize);
+      renderIsometricGrid(ctx, width, height, zoom, panX, panY, gridSize);
       break;
     case 'polar':
       renderPolarGrid(ctx, width, height, zoom, panX, panY, gridSize);
@@ -581,48 +581,247 @@ export function booleanOperation(
   result.fill = { ...shape1.fill };
   result.stroke = { ...shape1.stroke };
 
-  const d1 = shape1.pathData || anchorsToPathData(shape1.anchors, true);
-  const d2 = shape2.pathData || anchorsToPathData(shape2.anchors, true);
+  const poly1 = anchorsToPolygon(shape1);
+  const poly2 = anchorsToPolygon(shape2);
 
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const tmpSvg = document.createElementNS(svgNS, 'svg');
-  tmpSvg.setAttribute('width', '1');
-  tmpSvg.setAttribute('height', '1');
-  tmpSvg.style.position = 'absolute';
-  tmpSvg.style.left = '-9999px';
-  document.body.appendChild(tmpSvg);
-
-  const path1 = document.createElementNS(svgNS, 'path');
-  path1.setAttribute('d', d1);
-  const path2 = document.createElementNS(svgNS, 'path');
-  path2.setAttribute('d', d2);
-
-  tmpSvg.appendChild(path1);
-  tmpSvg.appendChild(path2);
-
-  const clipRule = op === 'subtract' ? 'evenodd' : 'nonzero';
-
-  switch (op) {
-    case 'union':
-      result.pathData = `${d1} ${d2}`;
-      break;
-    case 'subtract':
-      result.pathData = `${d1} ${d2}`;
-      result.booleanOp = 'subtract';
-      break;
-    case 'intersect':
-      result.pathData = `${d1} ${d2}`;
-      result.booleanOp = 'intersect';
-      break;
-    case 'exclude':
-      result.pathData = `${d1} ${d2}`;
-      result.booleanOp = 'exclude';
-      break;
+  if (poly1.length < 3 || poly2.length < 3) {
+    result.pathData = '';
+    result.anchors = [];
+    result.name = `${op} result (empty)`;
+    return result;
   }
 
-  document.body.removeChild(tmpSvg);
+  let resultPoly: Point[] = [];
+
+  switch (op) {
+    case 'union': {
+      const inside2 = poly1.filter((p) => pointInPolygon(p, poly2));
+      const inside1 = poly2.filter((p) => pointInPolygon(p, poly1));
+      if (inside2.length === poly1.length) {
+        resultPoly = poly2;
+      } else if (inside1.length === poly2.length) {
+        resultPoly = poly1;
+      } else {
+        const intersection = sutherlandHodgman(poly1, poly2);
+        if (intersection.length < 3) {
+          resultPoly = [...poly1, ...poly2];
+        } else {
+          const outer1 = polygonSubtract(poly1, intersection);
+          const outer2 = polygonSubtract(poly2, intersection);
+          resultPoly = [...outer1, ...intersection, ...outer2];
+        }
+      }
+      break;
+    }
+    case 'subtract': {
+      resultPoly = polygonSubtract(poly1, poly2);
+      if (resultPoly.length < 3) {
+        const clipped = sutherlandHodgman(poly1, poly2);
+        if (clipped.length >= 3) {
+          resultPoly = clipped;
+          result.booleanOp = 'subtract';
+        }
+      }
+      break;
+    }
+    case 'intersect': {
+      resultPoly = sutherlandHodgman(poly1, poly2);
+      break;
+    }
+    case 'exclude': {
+      const intersection = sutherlandHodgman(poly1, poly2);
+      const only1 = polygonSubtract(poly1, poly2);
+      const only2 = polygonSubtract(poly2, poly1);
+      if (intersection.length >= 3) {
+        resultPoly = [...only1, ...only2];
+      } else {
+        resultPoly = [...poly1, ...poly2];
+      }
+      break;
+    }
+  }
+
+  if (resultPoly.length >= 3) {
+    result.anchors = polygonToAnchors(resultPoly);
+    result.pathData = anchorsToPathData(result.anchors, true);
+  } else {
+    result.pathData = '';
+    result.anchors = [];
+  }
+
   result.name = `${op} result`;
   return result;
+}
+
+function anchorsToPolygon(shape: Shape): Point[] {
+  const poly: Point[] = [];
+  const anchors = shape.anchors;
+  if (anchors.length < 3) return poly;
+
+  for (const a of anchors) {
+    poly.push({ x: a.x, y: a.y });
+  }
+
+  if (hasBezierHandles(anchors)) {
+    const subdivided = subdivideBezierPath(anchors, 8);
+    return subdivided;
+  }
+
+  return poly;
+}
+
+function hasBezierHandles(anchors: AnchorPoint[]): boolean {
+  return anchors.some((a) => a.handleIn !== null || a.handleOut !== null);
+}
+
+function subdivideBezierPath(anchors: AnchorPoint[], steps: number): Point[] {
+  const points: Point[] = [];
+  const n = anchors.length;
+
+  for (let i = 0; i < n; i++) {
+    const curr = anchors[i];
+    const next = anchors[(i + 1) % n];
+
+    if (curr.handleOut && next.handleIn) {
+      const p0 = { x: curr.x, y: curr.y };
+      const p1 = { x: curr.x + curr.handleOut.x, y: curr.y + curr.handleOut.y };
+      const p2 = { x: next.x + next.handleIn.x, y: next.y + next.handleIn.y };
+      const p3 = { x: next.x, y: next.y };
+
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        points.push(pointOnPath(t, p0, p1, p2, p3));
+      }
+    } else if (curr.handleOut) {
+      const p0 = { x: curr.x, y: curr.y };
+      const p1 = { x: curr.x + curr.handleOut.x, y: curr.y + curr.handleOut.y };
+      const p3 = { x: next.x, y: next.y };
+
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        const mt = 1 - t;
+        points.push({
+          x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p3.x,
+          y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p3.y,
+        });
+      }
+    } else if (next.handleIn) {
+      const p0 = { x: curr.x, y: curr.y };
+      const p2 = { x: next.x + next.handleIn.x, y: next.y + next.handleIn.y };
+      const p3 = { x: next.x, y: next.y };
+
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        const mt = 1 - t;
+        points.push({
+          x: mt * mt * p0.x + 2 * mt * t * p2.x + t * t * p3.x,
+          y: mt * mt * p0.y + 2 * mt * t * p2.y + t * t * p3.y,
+        });
+      }
+    } else {
+      points.push({ x: curr.x, y: curr.y });
+    }
+  }
+
+  return points;
+}
+
+function polygonToAnchors(points: Point[]): AnchorPoint[] {
+  return points.map((p) => ({
+    x: p.x,
+    y: p.y,
+    handleIn: null,
+    handleOut: null,
+    type: 'corner' as const,
+  }));
+}
+
+function sutherlandHodgman(subject: Point[], clip: Point[]): Point[] {
+  let output = [...subject];
+
+  const clipLen = clip.length;
+  for (let i = 0; i < clipLen; i++) {
+    if (output.length === 0) return [];
+    const input = [...output];
+    output = [];
+
+    const edgeStart = clip[i];
+    const edgeEnd = clip[(i + 1) % clipLen];
+
+    for (let j = 0; j < input.length; j++) {
+      const current = input[j];
+      const previous = input[(j + input.length - 1) % input.length];
+
+      const currInside = isInside(current, edgeStart, edgeEnd);
+      const prevInside = isInside(previous, edgeStart, edgeEnd);
+
+      if (currInside) {
+        if (!prevInside) {
+          const inter = lineIntersection(previous, current, edgeStart, edgeEnd);
+          if (inter) output.push(inter);
+        }
+        output.push(current);
+      } else if (prevInside) {
+        const inter = lineIntersection(previous, current, edgeStart, edgeEnd);
+        if (inter) output.push(inter);
+      }
+    }
+  }
+
+  return output;
+}
+
+function isInside(point: Point, edgeStart: Point, edgeEnd: Point): boolean {
+  return (
+    (edgeEnd.x - edgeStart.x) * (point.y - edgeStart.y) -
+      (edgeEnd.y - edgeStart.y) * (point.x - edgeStart.x) >=
+    0
+  );
+}
+
+function lineIntersection(p1: Point, p2: Point, p3: Point, p4: Point): Point | null {
+  const x1 = p1.x, y1 = p1.y;
+  const x2 = p2.x, y2 = p2.y;
+  const x3 = p3.x, y3 = p3.y;
+  const x4 = p4.x, y4 = p4.y;
+
+  const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  if (Math.abs(denom) < 1e-10) return null;
+
+  const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+
+  return {
+    x: x1 + t * (x2 - x1),
+    y: y1 + t * (y2 - y1),
+  };
+}
+
+function pointInPolygon(point: Point, polygon: Point[]): boolean {
+  let inside = false;
+  const n = polygon.length;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    if ((yi > point.y) !== (yj > point.y) &&
+      point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function polygonSubtract(subject: Point[], clip: Point[]): Point[] {
+  const result = sutherlandHodgman(subject, clip);
+  if (result.length < 3) {
+    const outside: Point[] = [];
+    for (const p of subject) {
+      if (!pointInPolygon(p, clip)) {
+        outside.push(p);
+      }
+    }
+    return outside;
+  }
+  return subject.filter((p) => !pointInPolygon(p, clip));
 }
 
 export function generateFillSVG(fill: Fill, shapeId: string): { attrs: Record<string, string>; defs: React.ReactElement | null } {

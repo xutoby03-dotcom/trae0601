@@ -477,7 +477,8 @@ const Canvas: React.FC = () => {
       }
 
       if (tool === 'brush' && brushState.isDrawing) {
-        const smoothed = smoothBrushPoints(brushState.points, 0.3);
+        const latestBrush = useEditorStore.getState().brushState;
+        const smoothed = smoothBrushPoints(latestBrush.points, 0.3);
         const anchors = pointsToAnchors(smoothed);
         if (anchors.length >= 2) {
           const shape = createShape('path');
@@ -491,10 +492,11 @@ const Canvas: React.FC = () => {
       }
 
       if (dragState.isDragging && ['rect', 'circle', 'ellipse', 'polygon', 'star'].includes(tool)) {
-        const x1 = Math.min(dragState.startX, dragState.currentX);
-        const y1 = Math.min(dragState.startY, dragState.currentY);
-        const x2 = Math.max(dragState.startX, dragState.currentX);
-        const y2 = Math.max(dragState.startY, dragState.currentY);
+        const latestDrag = useEditorStore.getState().dragState;
+        const x1 = Math.min(latestDrag.startX, latestDrag.currentX);
+        const y1 = Math.min(latestDrag.startY, latestDrag.currentY);
+        const x2 = Math.max(latestDrag.startX, latestDrag.currentX);
+        const y2 = Math.max(latestDrag.startY, latestDrag.currentY);
         const w = x2 - x1;
         const h = y2 - y1;
 

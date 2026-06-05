@@ -75,11 +75,11 @@ interface EditorState {
   renameDocument: (id: string, name: string) => void;
 
   setTool: (tool: ToolType) => void;
-  setCanvas: (partial: Partial<CanvasState>) => void;
-  setSelection: (partial: Partial<SelectionState>) => void;
-  setPenState: (partial: Partial<PenState>) => void;
-  setBrushState: (partial: Partial<BrushState>) => void;
-  setDragState: (partial: Partial<DragState>) => void;
+  setCanvas: (partial: Partial<CanvasState> | ((prev: CanvasState) => Partial<CanvasState>)) => void;
+  setSelection: (partial: Partial<SelectionState> | ((prev: SelectionState) => Partial<SelectionState>)) => void;
+  setPenState: (partial: Partial<PenState> | ((prev: PenState) => Partial<PenState>)) => void;
+  setBrushState: (partial: Partial<BrushState> | ((prev: BrushState) => Partial<BrushState>)) => void;
+  setDragState: (partial: Partial<DragState> | ((prev: DragState) => Partial<DragState>)) => void;
   setShowDocumentList: (show: boolean) => void;
   setPolygonSides: (sides: number) => void;
   setStarPoints: (points: number) => void;
@@ -243,11 +243,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  setCanvas: (partial) => set((state) => ({ canvas: { ...state.canvas, ...partial } })),
-  setSelection: (partial) => set((state) => ({ selection: { ...state.selection, ...partial } })),
-  setPenState: (partial) => set((state) => ({ penState: { ...state.penState, ...partial } })),
-  setBrushState: (partial) => set((state) => ({ brushState: { ...state.brushState, ...partial } })),
-  setDragState: (partial) => set((state) => ({ dragState: { ...state.dragState, ...partial } })),
+  setCanvas: (partial) => set((state) => ({ canvas: { ...state.canvas, ...(typeof partial === 'function' ? partial(state.canvas) : partial) } })),
+  setSelection: (partial) => set((state) => ({ selection: { ...state.selection, ...(typeof partial === 'function' ? partial(state.selection) : partial) } })),
+  setPenState: (partial) => set((state) => ({ penState: { ...state.penState, ...(typeof partial === 'function' ? partial(state.penState) : partial) } })),
+  setBrushState: (partial) => set((state) => ({ brushState: { ...state.brushState, ...(typeof partial === 'function' ? partial(state.brushState) : partial) } })),
+  setDragState: (partial) => set((state) => ({ dragState: { ...state.dragState, ...(typeof partial === 'function' ? partial(state.dragState) : partial) } })),
   setShowDocumentList: (show) => set({ showDocumentList: show }),
   setPolygonSides: (sides) => set({ polygonSides: sides }),
   setStarPoints: (points) => set({ starPoints: points }),
