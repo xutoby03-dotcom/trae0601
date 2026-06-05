@@ -370,6 +370,7 @@ class App {
     const trunc = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
     switch (ann.type) {
       case 'highlight': case 'underline': case 'strikethrough':
+        if (ann.text) return trunc(ann.text.replace(/\n/g, ' '), 20);
         return ann.rect ? `选中区域 ${(ann.rect.x * 100).toFixed(0)}%,${(ann.rect.y * 100).toFixed(0)}%` : '';
       case 'sticky':
         return ann.text ? trunc(ann.text.replace(/\n/g, ' '), 20) : '便签';

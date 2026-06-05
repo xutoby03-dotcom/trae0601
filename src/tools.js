@@ -213,7 +213,7 @@ export class ToolHandler {
       }
     });
 
-    viewport.addEventListener('mouseup', (e) => {
+    viewport.addEventListener('mouseup', async (e) => {
       if (!this.isDrawing) return;
       this.isDrawing = false;
 
@@ -247,9 +247,10 @@ export class ToolHandler {
       } else if (['highlight', 'underline', 'strikethrough'].includes(tool)) {
         const r = normalizeRect(this.startPt.x, this.startPt.y, pt.x, pt.y);
         if (r.w > 0.005 && r.h > 0.005) {
+          const selectedText = await this._extractTextInRect(pageIndex, r);
           this.am.add({
             id: generateId(), type: tool, pageIndex, rect: r,
-            color: this.am.activeColor,
+            color: this.am.activeColor, text: selectedText,
           });
         }
       }
@@ -405,5 +406,44 @@ export class ToolHandler {
       fontSize: this.am.textboxFontSize,
     });
     this.am.rerenderPage(pageIndex);
+  }
+
+  async _extractTextInRect(pageIndex, normRect) {
+    if (!this.viewer.pdfDoc) return '';
+    try {
+      const pageNum = this.viewer.pageOrder[pageIndex];
+      if (!pageNum) return '';
+      const page = await this.viewer.pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+      const textContent = await page.getTextContent();
+      const items = textContent.items;
+      if (!items || items.length === 0) return '';
+
+      const rx = normRect.x;
+      const ry = normRect.y;
+      const rr = rx + normRect.w;
+      const rb = ry + normRect.h;
+
+      const hits = [];
+      for (const item of items) {
+        if (!item.str || !item.transform) continue;
+        const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+        const itemX = tx[4] / viewport.width;
+        const itemY = 1 - tx[5] / viewport.height;
+        const itemW = Math.abs(item.width) / viewport.width;
+        const itemH = Math.abs(tx[3]) / viewport.height;
+
+        const overlapX = Math.min(itemX + itemW, rr) - Math.max(itemX, rx);
+        const overlapY = Math.min(itemY + itemH, rb) - Math.max(itemY, ry);
+        if (overlapX > 0 && overlapY > 0) {
+          hits.push({ x: itemX, str: item.str });
+        }
+      }
+
+      hits.sort((a, b) => a.x - b.x);
+      return hits.map((h) => h.str).join('');
+    } catch (e) {
+      return '';
+    }
   }
 }
