@@ -67,6 +67,45 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Sego
 #thumbnail-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 #outline-tree { flex: 1; overflow-y: auto; padding: 8px; }
 #outline-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text2); }
+#annotation-list { flex: 1; overflow-y: auto; padding: 4px 0; min-height: 0; }
+#annotation-list-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text2); }
+#annotation-list-empty.hidden { display: none; }
+
+.anno-group-header {
+  padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--text2);
+  background: var(--bg); position: sticky; top: 0; z-index: 1;
+  border-bottom: 1px solid var(--border);
+}
+.anno-list-item {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px; cursor: pointer;
+  font-size: 12px; color: var(--text); transition: background .15s; border-bottom: 1px solid var(--border);
+}
+.anno-list-item:hover { background: var(--border); }
+.anno-list-item .anno-icon {
+  width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; font-size: 10px;
+}
+.anno-list-item .anno-icon.highlight { background: #FFE066; }
+.anno-list-item .anno-icon.underline { background: #4CAF50; }
+.anno-list-item .anno-icon.strikethrough { background: #F44336; }
+.anno-list-item .anno-icon.sticky { background: #FFC107; }
+.anno-list-item .anno-icon.pen { background: #888; }
+.anno-list-item .anno-icon.rect { background: #888; }
+.anno-list-item .anno-icon.ellipse { background: #888; }
+.anno-list-item .anno-icon.line { background: #888; }
+.anno-list-item .anno-icon.arrow { background: #888; }
+.anno-list-item .anno-icon.stamp { background: #E91E63; }
+.anno-list-item .anno-icon.textbox { background: #2196F3; }
+.anno-list-item .anno-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+@keyframes anno-flash {
+  0%, 100% { outline: none; }
+  20% { outline: 3px solid var(--accent); outline-offset: 2px; }
+  40% { outline: none; }
+  60% { outline: 3px solid var(--accent); outline-offset: 2px; }
+  80% { outline: none; }
+}
+.anno-flash { animation: anno-flash 1.5s ease-out; }
 
 .thumbnail-item {
   position: relative; border: 2px solid transparent; border-radius: 4px; cursor: pointer; padding: 4px;

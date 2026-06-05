@@ -127,8 +127,13 @@ class App {
       if (this.annoManager.undo()) {
         this._renderAllAnnotations();
         this._scheduleSave();
+        this._refreshAnnotationList();
         toast('已撤销');
       }
+    });
+
+    document.addEventListener('annotations:changed', () => {
+      this._refreshAnnotationList();
     });
   }
 
@@ -202,6 +207,7 @@ class App {
         if (this.annoManager.undo()) {
           this._renderAllAnnotations();
           this._scheduleSave();
+          this._refreshAnnotationList();
           toast('已撤销');
         }
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
@@ -237,6 +243,7 @@ class App {
     await this.outline.render(this.viewer.pdfDoc);
     this.tools.show();
     this._renderAllAnnotations();
+    this._refreshAnnotationList();
     toast('PDF 已加载: ' + this.viewer.fileName);
   }
 
@@ -301,6 +308,93 @@ class App {
 
   _renderAllAnnotations() {
     this._renderPageAnnotations();
+  }
+
+  _refreshAnnotationList() {
+    const container = document.getElementById('annotation-list');
+    const emptyMsg = document.getElementById('annotation-list-empty');
+    container.innerHTML = '';
+
+    const annotations = this.annoManager.getAll();
+    if (annotations.length === 0) {
+      emptyMsg.classList.remove('hidden');
+      return;
+    }
+    emptyMsg.classList.add('hidden');
+
+    const grouped = {};
+    for (const ann of annotations) {
+      const key = ann.pageIndex;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(ann);
+    }
+
+    const sortedPages = Object.keys(grouped).sort((a, b) => a - b);
+
+    for (const pageIdx of sortedPages) {
+      const header = document.createElement('div');
+      header.className = 'anno-group-header';
+      header.textContent = '第 ' + (parseInt(pageIdx) + 1) + ' 页';
+      container.appendChild(header);
+
+      for (const ann of grouped[pageIdx]) {
+        const item = document.createElement('div');
+        item.className = 'anno-list-item';
+
+        const icon = document.createElement('span');
+        icon.className = 'anno-icon ' + ann.type;
+        const iconChars = {
+          highlight: 'H', underline: 'U', strikethrough: 'S',
+          sticky: '📌', pen: '✏', rect: '▭', ellipse: '◯',
+          line: '╱', arrow: '→', stamp: '🔒', textbox: 'T',
+        };
+        icon.textContent = iconChars[ann.type] || '?';
+        item.appendChild(icon);
+
+        const summary = document.createElement('span');
+        summary.className = 'anno-summary';
+        summary.textContent = this._getAnnoSummary(ann);
+        item.appendChild(summary);
+
+        item.addEventListener('click', () => {
+          this.viewer.goToPage(parseInt(pageIdx) + 1);
+          setTimeout(() => this._flashAnnotation(ann.id, pageIdx), 300);
+        });
+
+        container.appendChild(item);
+      }
+    }
+  }
+
+  _getAnnoSummary(ann) {
+    const trunc = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+    switch (ann.type) {
+      case 'highlight': case 'underline': case 'strikethrough':
+        return ann.rect ? `选中区域 ${(ann.rect.x * 100).toFixed(0)}%,${(ann.rect.y * 100).toFixed(0)}%` : '';
+      case 'sticky':
+        return ann.text ? trunc(ann.text.replace(/\n/g, ' '), 20) : '便签';
+      case 'pen':
+        return `画笔 @${ann.points && ann.points[0] ? (ann.points[0].x * 100).toFixed(0) + '%,' + (ann.points[0].y * 100).toFixed(0) + '%' : ''}`;
+      case 'rect': case 'ellipse': case 'line': case 'arrow':
+        return `${ann.type} @${ann.rect ? (ann.rect.x * 100).toFixed(0) + '%,' + (ann.rect.y * 100).toFixed(0) + '%' : ''}`;
+      case 'stamp':
+        return ann.label === 'custom' ? '自定义图章' : (ann.label || '图章');
+      case 'textbox':
+        return ann.text ? trunc(ann.text.replace(/\n/g, ' '), 20) : '文字框';
+      default:
+        return ann.type;
+    }
+  }
+
+  _flashAnnotation(annoId, pageIdx) {
+    const wrapper = this.viewer.getPageWrapper(parseInt(pageIdx));
+    if (!wrapper) return;
+    const el = wrapper.querySelector(`[data-anno-id="${annoId}"]`);
+    if (!el) return;
+    el.classList.remove('anno-flash');
+    void el.offsetWidth;
+    el.classList.add('anno-flash');
+    setTimeout(() => el.classList.remove('anno-flash'), 1500);
   }
 
   _toggleDarkMode() {

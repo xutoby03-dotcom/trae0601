@@ -28,6 +28,7 @@ export class AnnotationManager {
   add(annotation) {
     this.annotations.push(annotation);
     this.undoStack.push({ action: 'add', annotation });
+    this._emitChanged();
   }
 
   remove(id) {
@@ -35,6 +36,7 @@ export class AnnotationManager {
     if (idx !== -1) {
       const removed = this.annotations.splice(idx, 1)[0];
       this.undoStack.push({ action: 'remove', annotation: removed });
+      this._emitChanged();
     }
   }
 
@@ -50,11 +52,13 @@ export class AnnotationManager {
       const idx = this.annotations.findIndex((a) => a.id === op.annotation.id);
       if (idx !== -1) this.annotations[idx] = op.before;
     }
+    this._emitChanged();
     return true;
   }
 
   pushModifyUndo(annotation, before) {
     this.undoStack.push({ action: 'modify', annotation, before: { ...before } });
+    this._emitChanged();
   }
 
   fromJSON(data) {
@@ -112,6 +116,7 @@ export class AnnotationManager {
   _renderHighlight(ann, layer, cw, ch) {
     const el = document.createElement('div');
     el.className = 'text-highlight';
+    el.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.rect.x, ann.rect.y, cw, ch);
     const sz = pageToCanvas(ann.rect.w, ann.rect.h, cw, ch);
     el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${sz.x}px;height:${sz.y}px;background:${ann.color};opacity:0.5;`;
@@ -122,6 +127,7 @@ export class AnnotationManager {
   _renderUnderline(ann, layer, cw, ch) {
     const el = document.createElement('div');
     el.className = 'text-underline';
+    el.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.rect.x, ann.rect.y, cw, ch);
     const sz = pageToCanvas(ann.rect.w, ann.rect.h, cw, ch);
     el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${sz.x}px;height:${sz.y}px;`;
@@ -136,6 +142,7 @@ export class AnnotationManager {
   _renderStrikethrough(ann, layer, cw, ch) {
     const el = document.createElement('div');
     el.className = 'text-strikethrough';
+    el.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.rect.x, ann.rect.y, cw, ch);
     const sz = pageToCanvas(ann.rect.w, ann.rect.h, cw, ch);
     el.style.cssText = `left:${pos.x}px;top:${pos.y}px;width:${sz.x}px;height:${sz.y}px;`;
@@ -149,6 +156,7 @@ export class AnnotationManager {
   _renderSticky(ann, layer, cw, ch) {
     const pin = document.createElement('div');
     pin.className = 'sticky-pin';
+    pin.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.x, ann.y, cw, ch);
     pin.style.cssText = `left:${pos.x - 12}px;top:${pos.y - 12}px;`;
     pin.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="${ann.color || '#FFC107'}"/></svg>`;
@@ -175,6 +183,7 @@ export class AnnotationManager {
     if (!ann.points || ann.points.length < 2) return;
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'pen-stroke');
+    svg.dataset.annoId = ann.id;
     svg.setAttribute('viewBox', `0 0 ${cw} ${ch}`);
     svg.style.cssText = `width:${cw}px;height:${ch}px;position:absolute;top:0;left:0;`;
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -195,6 +204,7 @@ export class AnnotationManager {
   _renderShape(ann, layer, cw, ch) {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', 'shape-annotation');
+    svg.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.rect.x, ann.rect.y, cw, ch);
     const sz = pageToCanvas(ann.rect.w, ann.rect.h, cw, ch);
     svg.style.cssText = `position:absolute;left:${pos.x}px;top:${pos.y}px;width:${Math.max(sz.x, 4)}px;height:${Math.max(sz.y, 4)}px;overflow:visible;`;
@@ -246,6 +256,7 @@ export class AnnotationManager {
   _renderStamp(ann, layer, cw, ch) {
     const el = document.createElement('div');
     el.className = 'stamp-annotation';
+    el.dataset.annoId = ann.id;
     const pos = pageToCanvas(ann.x, ann.y, cw, ch);
     el.style.left = pos.x + 'px';
     el.style.top = pos.y + 'px';
@@ -319,5 +330,9 @@ export class AnnotationManager {
 
   rerenderPage(pageIndex) {
     if (this.onRerenderPage) this.onRerenderPage(pageIndex);
+  }
+
+  _emitChanged() {
+    document.dispatchEvent(new CustomEvent('annotations:changed'));
   }
 }
