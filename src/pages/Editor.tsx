@@ -40,6 +40,7 @@ const Editor: React.FC = () => {
   const groupElements = useStore((s: any) => s.groupElements)
   const ungroupElements = useStore((s: any) => s.ungroupElements)
   const updateElement = useStore((s: any) => s.updateElement)
+  const updateElements = useStore((s: any) => s.updateElements)
   const getElementsByPageId = useStore((s: any) => s.getElementsByPageId)
   const undo = useUndoStore((s) => s.undo)
   const redo = useUndoStore((s) => s.redo)
@@ -215,26 +216,36 @@ const Editor: React.FC = () => {
   const handleBringToFront = useCallback(() => {
     const sorted = getPageSortedElements()
     if (sorted.length === 0 || selectedElementIds.length === 0) return
-    const maxZ = sorted[sorted.length - 1].zIndex
     const selectedSet = new Set(selectedElementIds)
     const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
-    const delta = maxZ + 1 - selectedInOrder[0].zIndex
-    for (const el of selectedInOrder) {
-      updateElement(el.id, { zIndex: el.zIndex + delta })
-    }
-  }, [selectedElementIds, getPageSortedElements, updateElement])
+    const nonSelected = sorted.filter((e: CanvasElement) => !selectedSet.has(e.id))
+    if (nonSelected.length === 0) return
+    const updates: Array<{ id: string; updates: Partial<CanvasElement> }> = []
+    nonSelected.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: i } })
+    })
+    selectedInOrder.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: nonSelected.length + i } })
+    })
+    updateElements(updates)
+  }, [selectedElementIds, getPageSortedElements, updateElements])
 
   const handleSendToBack = useCallback(() => {
     const sorted = getPageSortedElements()
     if (sorted.length === 0 || selectedElementIds.length === 0) return
-    const minZ = sorted[0].zIndex
     const selectedSet = new Set(selectedElementIds)
     const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
-    const delta = minZ - 1 - selectedInOrder[selectedInOrder.length - 1].zIndex
-    for (const el of selectedInOrder) {
-      updateElement(el.id, { zIndex: el.zIndex + delta })
-    }
-  }, [selectedElementIds, getPageSortedElements, updateElement])
+    const nonSelected = sorted.filter((e: CanvasElement) => !selectedSet.has(e.id))
+    if (nonSelected.length === 0) return
+    const updates: Array<{ id: string; updates: Partial<CanvasElement> }> = []
+    selectedInOrder.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: i } })
+    })
+    nonSelected.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: selectedInOrder.length + i } })
+    })
+    updateElements(updates)
+  }, [selectedElementIds, getPageSortedElements, updateElements])
 
   const handleMoveUp = useCallback(() => {
     const sorted = getPageSortedElements()
@@ -242,15 +253,23 @@ const Editor: React.FC = () => {
     const selectedSet = new Set(selectedElementIds)
     const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
     const topSelected = selectedInOrder[selectedInOrder.length - 1]
-    const aboveIdx = sorted.findIndex((e: CanvasElement) => e.id === topSelected.id) + 1
-    if (aboveIdx >= sorted.length) return
-    const aboveEl = sorted[aboveIdx]
-    if (selectedSet.has(aboveEl.id)) return
-    const shift = aboveEl.zIndex - topSelected.zIndex + 1
-    for (const el of selectedInOrder) {
-      updateElement(el.id, { zIndex: el.zIndex + shift })
+    const topIdx = sorted.findIndex((e: CanvasElement) => e.id === topSelected.id)
+    let swapEnd = topIdx + 1
+    while (swapEnd < sorted.length && !selectedSet.has(sorted[swapEnd].id)) {
+      swapEnd++
     }
-  }, [selectedElementIds, getPageSortedElements, updateElement])
+    const swapCount = swapEnd - topIdx - 1
+    if (swapCount === 0) return
+    const aboveGroup = sorted.slice(topIdx + 1, swapEnd)
+    const updates: Array<{ id: string; updates: Partial<CanvasElement> }> = []
+    aboveGroup.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: selectedInOrder[0].zIndex + i } })
+    })
+    selectedInOrder.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: selectedInOrder[0].zIndex + swapCount + i } })
+    })
+    updateElements(updates)
+  }, [selectedElementIds, getPageSortedElements, updateElements])
 
   const handleMoveDown = useCallback(() => {
     const sorted = getPageSortedElements()
@@ -258,15 +277,24 @@ const Editor: React.FC = () => {
     const selectedSet = new Set(selectedElementIds)
     const selectedInOrder = sorted.filter((e: CanvasElement) => selectedSet.has(e.id))
     const bottomSelected = selectedInOrder[0]
-    const belowIdx = sorted.findIndex((e: CanvasElement) => e.id === bottomSelected.id) - 1
-    if (belowIdx < 0) return
-    const belowEl = sorted[belowIdx]
-    if (selectedSet.has(belowEl.id)) return
-    const shift = belowEl.zIndex - bottomSelected.zIndex - 1
-    for (const el of selectedInOrder) {
-      updateElement(el.id, { zIndex: el.zIndex + shift })
+    const bottomIdx = sorted.findIndex((e: CanvasElement) => e.id === bottomSelected.id)
+    let swapStart = bottomIdx - 1
+    while (swapStart >= 0 && !selectedSet.has(sorted[swapStart].id)) {
+      swapStart--
     }
-  }, [selectedElementIds, getPageSortedElements, updateElement])
+    swapStart++
+    const belowGroup = sorted.slice(swapStart, bottomIdx)
+    const swapCount = belowGroup.length
+    if (swapCount === 0) return
+    const updates: Array<{ id: string; updates: Partial<CanvasElement> }> = []
+    selectedInOrder.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: belowGroup[0].zIndex + i } })
+    })
+    belowGroup.forEach((el, i) => {
+      updates.push({ id: el.id, updates: { zIndex: belowGroup[0].zIndex + selectedInOrder.length + i } })
+    })
+    updateElements(updates)
+  }, [selectedElementIds, getPageSortedElements, updateElements])
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>

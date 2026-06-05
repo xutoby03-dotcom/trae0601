@@ -29,6 +29,7 @@ interface StoreActions {
   reorderPages: (pages: Page[]) => void
   addElement: (element: CanvasElement) => void
   updateElement: (id: string, updates: Partial<CanvasElement>) => void
+  updateElements: (updates: Array<{ id: string; updates: Partial<CanvasElement> }>) => void
   deleteElement: (id: string) => void
   deleteSelectedElements: () => void
   selectElement: (id: string) => void
@@ -128,6 +129,20 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       const newElements: Record<string, CanvasElement[]> = {}
       for (const [pageId, els] of Object.entries(s.elements)) {
         newElements[pageId] = els.map((e) => (e.id === id ? { ...e, ...updates } : e))
+      }
+      return { elements: newElements }
+    }),
+
+  updateElements: (updates) =>
+    set((s) => {
+      const map = new Map<string, Partial<CanvasElement>>()
+      for (const u of updates) map.set(u.id, u.updates)
+      const newElements: Record<string, CanvasElement[]> = {}
+      for (const [pageId, els] of Object.entries(s.elements)) {
+        newElements[pageId] = els.map((e) => {
+          const patch = map.get(e.id)
+          return patch ? { ...e, ...patch } : e
+        })
       }
       return { elements: newElements }
     }),
