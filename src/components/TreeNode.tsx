@@ -94,7 +94,7 @@ function TreeNodeComponent({ node, depth }: TreeNodeProps) {
   };
 
   return (
-    <div className="select-none">
+    <div className="select-none" data-json-path={node.path}>
       <div
         className={`flex items-center py-0.5 px-2 rounded cursor-pointer transition-colors group hover:bg-gray-700/50 ${
           isHighlighted ? 'bg-yellow-500/20 ring-1 ring-yellow-500/50' : ''

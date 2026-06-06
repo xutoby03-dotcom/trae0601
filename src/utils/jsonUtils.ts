@@ -56,6 +56,67 @@ export function copyToClipboard(text: string): Promise<void> {
   return navigator.clipboard.writeText(text);
 }
 
+export function normalizeJsonPath(path: string): string {
+  if (!path || path === '$') return '$';
+
+  let result = path;
+
+  result = result.replace(/\['([^']+)'\]/g, '.$1');
+  result = result.replace(/\["([^"]+)"\]/g, '.$1');
+
+  result = result.replace(/\.\[/g, '[');
+
+  result = result.replace(/^\$\./, '$.');
+  if (result === '$') return '$';
+
+  return result;
+}
+
+export function getParentPaths(path: string): string[] {
+  const parents: string[] = [];
+  if (!path || path === '$') return parents;
+
+  const parts: string[] = [];
+  let current = '';
+  let i = 0;
+
+  while (i < path.length) {
+    if (path[i] === '.') {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      i++;
+    } else if (path[i] === '[') {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      const endBracket = path.indexOf(']', i);
+      if (endBracket === -1) break;
+      parts.push(path.slice(i, endBracket + 1));
+      i = endBracket + 1;
+    } else {
+      current += path[i];
+      i++;
+    }
+  }
+  if (current) parts.push(current);
+
+  let accumulator = '$';
+  for (let j = 1; j < parts.length; j++) {
+    const part = parts[j];
+    if (part.startsWith('[')) {
+      accumulator += part;
+    } else {
+      accumulator += '.' + part;
+    }
+    parents.push(accumulator);
+  }
+
+  return parents.slice(0, -1);
+}
+
 export function diffJson(oldData: JsonValue, newData: JsonValue, path: string = '$'): DiffResult[] {
   const results: DiffResult[] = [];
   const oldType = getJsonType(oldData);

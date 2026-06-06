@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, X, AlertCircle } from 'lucide-react';
 import { JSONPath } from 'jsonpath-plus';
 import { useJsonStore } from '@/store/jsonStore';
+import { normalizeJsonPath, getParentPaths } from '@/utils/jsonUtils';
 
 export function SearchBar() {
   const { searchPath, setSearchPath, parsedData, setHighlightedPaths, expandedPaths } = useJsonStore();
@@ -25,9 +26,34 @@ export function SearchBar() {
           resultType: 'path',
         });
 
-        const paths = new Set(results as string[]);
-        setHighlightedPaths(paths);
-        setMatchCount(paths.size);
+        const rawPaths = results as string[];
+        const normalizedPaths = rawPaths.map(normalizeJsonPath);
+        const highlightedSet = new Set(normalizedPaths);
+
+        setHighlightedPaths(highlightedSet);
+        setMatchCount(highlightedSet.size);
+
+        if (highlightedSet.size > 0) {
+          const { expandedPaths: currentExpanded, toggleExpand } = useJsonStore.getState();
+          const newExpanded = new Set(currentExpanded);
+
+          normalizedPaths.forEach((p) => {
+            const parents = getParentPaths(p);
+            parents.forEach((parent) => newExpanded.add(parent));
+            newExpanded.add(p);
+          });
+
+          useJsonStore.setState({ expandedPaths: newExpanded });
+
+          setTimeout(() => {
+            const firstPath = normalizedPaths[0];
+            const element = document.querySelector(`[data-json-path="${CSS.escape(firstPath)}"]`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        }
+
         setError(null);
       } catch (e) {
         setError((e as Error).message);
