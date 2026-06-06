@@ -443,6 +443,24 @@ function levelComplete() {
 function playerDie() {
     if (game.player.invincible) return;
     
+    if (game.player.big) {
+        game.player.big = false;
+        game.player.height = 32;
+        game.player.y += 16;
+        game.player.invincible = true;
+        
+        createParticles(game.player.x + game.player.width / 2, game.player.y + game.player.height / 2, 15, '#ff6347');
+        
+        setTimeout(() => {
+            if (game.player) {
+                game.player.invincible = false;
+            }
+        }, 120 * 1000 / 60);
+        
+        updateHUD();
+        return;
+    }
+    
     game.lives--;
     game.player.dead = true;
     game.player.vy = -10;
@@ -461,6 +479,9 @@ function playerDie() {
 }
 
 function respawnPlayer() {
+    game.levelCoins = 0;
+    game.levelGems = 0;
+    
     game.player.x = game.spawnX;
     game.player.y = game.spawnY;
     game.player.vx = 0;
@@ -477,6 +498,7 @@ function respawnPlayer() {
     }, 2000);
     
     game.camera.x = 0;
+    updateHUD();
 }
 
 function gameOver() {

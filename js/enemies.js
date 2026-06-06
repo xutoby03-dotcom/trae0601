@@ -278,10 +278,13 @@ function checkEnemyCollisions() {
             
             if (p.vy > 0 && playerBottom - enemyTop < 15) {
                 if (enemy.type === 'spike') {
-                    playerDie();
-                    return;
+                    enemy.alive = false;
+                    game.score += 200;
+                    updateHUD();
+                    createParticles(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, 15, '#808080');
+                } else {
+                    stompEnemy(enemy);
                 }
-                stompEnemy(enemy);
                 p.vy = -8;
                 p.onGround = false;
             } else {
