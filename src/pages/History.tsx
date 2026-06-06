@@ -53,12 +53,14 @@ export default function History() {
 
           {history.length === 0 ? (
             <div className="glass-card p-12 text-center animate-fade-in">
-              <div className="text-6xl mb-4">📝</div>
+              <div className="text-6xl mb-4">✨</div>
               <h3 className="text-xl font-bold text-white mb-2">
                 还没有测试记录
               </h3>
               <p className="text-white/60 mb-6">
-                完成一次测试，保存你的性格分析结果
+                完成测试后结果会自动保存到这里
+                <br />
+                可以多次测试，观察性格变化趋势
               </p>
               <Link to="/test" className="btn-primary inline-flex items-center">
                 开始第一次测试

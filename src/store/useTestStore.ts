@@ -70,6 +70,14 @@ export const useTestStore = create<TestState>((set, get) => ({
     const { answers } = get();
     const result = calculateResult(answers);
     set({ result });
+    // 自动保存到历史记录
+    const { history } = get();
+    const exists = history.some((h) => h.id === result.id);
+    if (!exists) {
+      const newHistory = [result, ...history];
+      set({ history: newHistory });
+      saveHistory(newHistory);
+    }
   },
 
   saveToHistory: () => {

@@ -139,40 +139,38 @@ export default function Test() {
               ))}
             </div>
 
-            {isAnswered && (
-              <div className="animate-slide-up">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-white/60 text-sm">认同程度</span>
-                  <span className="text-neon-cyan font-semibold">
-                    {intensityLabels[intensity - 1]}
-                  </span>
-                </div>
-                <div className="px-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={intensity}
-                    onChange={(e) => setIntensity(Number(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between mt-2 px-1">
-                    {intensityLabels.map((label, i) => (
-                      <span
-                        key={i}
-                        className={`text-xs transition-colors duration-300 ${
-                          i + 1 === intensity
-                            ? 'text-white font-medium'
-                            : 'text-white/40'
-                        }`}
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
+            <div className="animate-slide-up">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-white/60 text-sm">认同程度</span>
+                <span className="text-neon-cyan font-semibold">
+                  {intensityLabels[intensity - 1]}
+                </span>
+              </div>
+              <div className="px-2">
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={intensity}
+                  onChange={(e) => setIntensity(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2 px-1">
+                  {intensityLabels.map((label, i) => (
+                    <span
+                      key={i}
+                      className={`text-xs transition-colors duration-300 ${
+                        i + 1 === intensity
+                          ? 'text-white font-medium'
+                          : 'text-white/40'
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           <div className="flex justify-between items-center">
