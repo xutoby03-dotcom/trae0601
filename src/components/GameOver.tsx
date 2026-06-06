@@ -12,12 +12,16 @@ export const GameOver = () => {
     totalDamageDealt = 0,
     goldRemaining = 0,
     livesRemaining = 0,
+    levelIndex = 0,
+    mapName = '',
   } = (location.state as {
     won?: boolean;
     monstersKilled?: number;
     totalDamageDealt?: number;
     goldRemaining?: number;
     livesRemaining?: number;
+    levelIndex?: number;
+    mapName?: string;
   }) || {};
 
   useEffect(() => {
@@ -64,6 +68,14 @@ export const GameOver = () => {
 
           {showStats && (
             <div className="bg-black/30 rounded-2xl p-6 mb-8 space-y-4">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                {mapName && (
+                  <span className="text-gray-300">📍 {mapName}</span>
+                )}
+                <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-sm font-semibold">
+                  第 {levelIndex + 1} 关
+                </span>
+              </div>
               <h2 className="text-xl font-semibold text-gray-200 mb-4">📊 战斗统计</h2>
               
               <div className="grid grid-cols-2 gap-4">

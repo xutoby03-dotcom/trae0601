@@ -38,6 +38,7 @@ export const initialGameState: GameState = {
   effects: [],
   map: null,
   difficulty: 'normal',
+  levelIndex: 0,
   monstersKilled: 0,
   totalDamageDealt: 0,
 };
@@ -45,7 +46,7 @@ export const initialGameState: GameState = {
 export const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'START_GAME': {
-      const { map, difficulty } = action.payload;
+      const { map, difficulty, levelIndex } = action.payload;
       const diffConfig = DIFFICULTY_CONFIGS[difficulty];
       return {
         ...initialGameState,
@@ -54,6 +55,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         lives: diffConfig.startingLives,
         map,
         difficulty,
+        levelIndex,
         waveTimer: WAVE_CONFIGS[0].delay,
       };
     }

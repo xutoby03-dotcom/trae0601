@@ -26,7 +26,8 @@ export const GameScreen = () => {
       navigate('/');
       return;
     }
-    dispatch({ type: 'START_GAME', payload: { map, difficulty: difficulty as any } });
+    const levelIndex = MAP_CONFIGS.findIndex(m => m.id === mapId);
+    dispatch({ type: 'START_GAME', payload: { map, difficulty: difficulty as any, levelIndex } });
   }, [mapId, difficulty, navigate]);
 
   useEffect(() => {
@@ -179,10 +180,15 @@ export const GameScreen = () => {
           <div className="flex items-center gap-6">
             {state.map && (
               <div className="flex items-center gap-2">
-                <span className="text-lg">📍</span>
-                <span className="text-lg font-semibold text-gray-300">{state.map.name}</span>
-              </div>
+              <span className="text-lg">📍</span>
+              <span className="text-lg font-semibold text-gray-300">{state.map.name}</span>
+            </div>
             )}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40">
+              <span className="text-sm font-semibold text-purple-300">
+                第 {state.levelIndex + 1} 关
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-2xl">🌊</span>
               <span className="text-xl font-bold text-blue-400">

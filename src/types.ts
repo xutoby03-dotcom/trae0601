@@ -146,12 +146,13 @@ export interface GameState {
   effects: Effect[];
   map: MapConfig | null;
   difficulty: Difficulty;
+  levelIndex: number;
   monstersKilled: number;
   totalDamageDealt: number;
 }
 
 export type GameAction =
-  | { type: 'START_GAME'; payload: { map: MapConfig; difficulty: Difficulty } }
+  | { type: 'START_GAME'; payload: { map: MapConfig; difficulty: Difficulty; levelIndex: number } }
   | { type: 'PAUSE_GAME' }
   | { type: 'RESUME_GAME' }
   | { type: 'SET_SPEED'; payload: 1 | 2 | 3 }
