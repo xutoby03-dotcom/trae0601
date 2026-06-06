@@ -26,6 +26,8 @@ export const useAudioEngine = () => {
     setDuration,
     setIsRecording,
     setAudioBuffer,
+    setAudioInfo,
+    setSliceRange,
   } = useAudioStore();
 
   const initAudioContext = useCallback(() => {
@@ -196,6 +198,34 @@ export const useAudioEngine = () => {
         try {
           const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
           setAudioBuffer(audioBuffer);
+          
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const fileName = `录音-${timestamp}.webm`;
+          const duration = audioBuffer.duration;
+          const bitRate = duration > 0 ? Math.round((blob.size * 8) / duration / 1000) : 0;
+          
+          const audioInfo = {
+            fileName,
+            duration,
+            sampleRate: audioBuffer.sampleRate,
+            numberOfChannels: audioBuffer.numberOfChannels,
+            bitRate: bitRate || undefined,
+            fileSize: blob.size,
+          };
+          
+          setAudioInfo(audioInfo);
+          setDuration(duration);
+          setSliceRange(0, duration);
+          
+          const fakeFile = new File([blob], fileName, { type: 'audio/webm' });
+          const state = useAudioStore.getState();
+          const newIndex = state.playlist.length;
+          state.addToPlaylist({
+            file: fakeFile,
+            buffer: audioBuffer,
+            info: audioInfo,
+          });
+          state.setCurrentIndex(newIndex);
         } catch (e) {
           console.error('Failed to decode recorded audio:', e);
         }
@@ -208,7 +238,7 @@ export const useAudioEngine = () => {
       console.error('Failed to start recording:', error);
       throw error;
     }
-  }, [initAudioContext, setAudioBuffer, setIsRecording]);
+  }, [initAudioContext, setAudioBuffer, setAudioInfo, setDuration, setSliceRange, setIsRecording]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current) {
