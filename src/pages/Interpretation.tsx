@@ -6,6 +6,7 @@ import { useReadingStore } from '@/store/useReadingStore';
 import { getSpreadById } from '@/data/spreads';
 import { InterpretationCard } from '@/components/InterpretationCard';
 import { AudioPlayer } from '@/components/AudioPlayer';
+import { cancel as cancelSpeech } from '@/utils/speech';
 
 export default function Interpretation() {
   const { spreadId } = useParams<{ spreadId: string }>();
@@ -31,6 +32,12 @@ export default function Interpretation() {
       setInterpretation(generateInterpretation());
     }
   }, [isComplete, drawnCards, navigate, generateInterpretation]);
+
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   const handleSave = () => {
     saveToHistory();

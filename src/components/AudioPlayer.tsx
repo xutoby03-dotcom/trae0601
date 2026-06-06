@@ -1,43 +1,54 @@
-import { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Square, Play } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Volume2, VolumeX, Square, Play, Pause } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { speak, stop, isSupported } from '@/utils/speech';
+import { speak, pause, resume, cancel, isSupported, isPaused as checkIsPaused } from '@/utils/speech';
 
 interface AudioPlayerProps {
   text: string;
 }
 
+type PlayState = 'idle' | 'playing' | 'paused';
+
 export function AudioPlayer({ text }: AudioPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playState, setPlayState] = useState<PlayState>('idle');
   const [isSupportedBrowser, setIsSupportedBrowser] = useState(true);
 
   useEffect(() => {
     setIsSupportedBrowser(isSupported());
     return () => {
-      stop();
+      cancel();
     };
   }, []);
 
+  const handleEnd = useCallback(() => {
+    setPlayState('idle');
+  }, []);
+
   const handlePlay = async () => {
-    if (isPlaying) {
-      stop();
-      setIsPlaying(false);
+    if (playState === 'playing') {
+      pause();
+      setPlayState('paused');
+      return;
+    }
+
+    if (playState === 'paused') {
+      resume();
+      setPlayState('playing');
       return;
     }
 
     try {
-      setIsPlaying(true);
-      await speak(text);
+      setPlayState('playing');
+      await speak(text, handleEnd);
     } catch (e) {
       console.error('语音播放失败:', e);
-    } finally {
-      setIsPlaying(false);
+      setPlayState('idle');
     }
   };
 
   const handleStop = () => {
-    stop();
-    setIsPlaying(false);
+    cancel();
+    setPlayState('idle');
   };
 
   if (!isSupportedBrowser) {
@@ -57,19 +68,24 @@ export function AudioPlayer({ text }: AudioPlayerProps) {
         onClick={handlePlay}
         className="flex items-center gap-2 px-4 py-2 rounded-full bg-gold bg-opacity-20 text-gold hover:bg-opacity-30 transition-all"
       >
-        {isPlaying ? (
+        {playState === 'playing' ? (
           <>
-            <Square className="w-4 h-4" />
+            <Pause className="w-4 h-4" />
             <span className="text-sm">暂停</span>
+          </>
+        ) : playState === 'paused' ? (
+          <>
+            <Play className="w-4 h-4" />
+            <span className="text-sm">继续</span>
           </>
         ) : (
           <>
-            <Play className="w-4 h-4" />
+            <Volume2 className="w-4 h-4" />
             <span className="text-sm">语音播报</span>
           </>
         )}
       </motion.button>
-      {isPlaying && (
+      {playState !== 'idle' && (
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
