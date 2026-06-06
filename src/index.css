@@ -55,3 +55,49 @@ button:hover {
 button:active {
   transform: scale(0.98);
 }
+
+.metal-texture {
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(255,255,255,0.03) 1px,
+      rgba(255,255,255,0.03) 2px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0,0,0,0.02) 1px,
+      rgba(0,0,0,0.02) 2px
+    );
+}
+
+.wood-texture {
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.03) 3px,
+      rgba(0,0,0,0.03) 4px
+    );
+}
+
+.block-preview:active {
+  cursor: grabbing;
+}
+
+.grid-cell.ghost {
+  animation: ghost-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes ghost-pulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0.9;
+  }
+}

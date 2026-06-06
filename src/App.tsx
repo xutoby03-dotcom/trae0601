@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useGame } from './hooks/useGame';
 import { GameGrid } from './components/GameGrid';
 import { BlockTray } from './components/BlockTray';
@@ -8,7 +8,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { GameOverModal } from './components/GameOverModal';
 import { getThemeConfig } from './theme';
 import { addLeaderboardEntry } from './storage';
-import { ThemeMode, Skin, Difficulty, DIFFICULTY_CONFIG } from './types';
+import { ThemeMode, Skin, Difficulty, DIFFICULTY_CONFIG, Position } from './types';
 
 function App() {
   const [themeMode, setThemeMode] = useState<ThemeMode>('light');
@@ -20,12 +20,13 @@ function App() {
   const {
     gameState,
     clearingCells,
-    selectBlock,
     tryPlaceBlock,
-    handleCellHover,
+    handleCellDragOver,
     canPlaceAtHover,
     getGhostCells,
     resetGame,
+    startDrag,
+    endDrag,
   } = useGame(difficulty);
 
   const theme = getThemeConfig(themeMode, skin);
@@ -58,6 +59,14 @@ function App() {
     setShowSettings(false);
   };
 
+  const handleGridDragOver = useCallback((position: Position | null) => {
+    handleCellDragOver(position);
+  }, [handleCellDragOver]);
+
+  const handleGridDrop = useCallback((position: Position, blockIndex: number) => {
+    tryPlaceBlock(position, blockIndex);
+  }, [tryPlaceBlock]);
+
   return (
     <div
       className="app-container"
@@ -72,12 +81,11 @@ function App() {
       <div
         className="game-wrapper"
         style={{
-          maxWidth: 600,
+          maxWidth: 1100,
           margin: '0 auto',
-          padding: '24px 16px',
+          padding: '24px 24px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
           gap: 24,
         }}
       >
@@ -118,107 +126,123 @@ function App() {
           </div>
         </div>
 
-        <div
-          className="difficulty-badge"
-          style={{
-            padding: '6px 16px',
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: 20,
-            fontSize: 14,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          {DIFFICULTY_CONFIG[difficulty].label}
-        </div>
-
-        <ScorePanel score={gameState.score} combo={gameState.combo} />
-
-        <div
-          className="grid-container"
-          style={{
-            backgroundColor: 'var(--bg-grid)',
-            borderRadius: 16,
-            padding: 4,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          }}
-        >
-          <GameGrid
-            grid={gameState.grid}
-            ghostCells={getGhostCells()}
-            clearingCells={clearingCells}
-            canPlace={canPlaceAtHover()}
-            skin={skin}
-            onCellClick={tryPlaceBlock}
-            onCellHover={handleCellHover}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 16, marginBottom: 8 }}>
+          <div
+            className="difficulty-badge"
+            style={{
+              padding: '6px 16px',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: 20,
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {DIFFICULTY_CONFIG[difficulty].label}
+          </div>
+          <ScorePanel score={gameState.score} combo={gameState.combo} />
         </div>
 
         <div
-          className="tray-container"
+          className="main-content"
           style={{
-            padding: 16,
-            backgroundColor: 'var(--bg-secondary)',
-            borderRadius: 16,
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            gap: 32,
             width: '100%',
-            boxSizing: 'border-box',
           }}
         >
           <div
+            className="grid-container"
             style={{
-              fontSize: 12,
-              color: 'var(--text-secondary)',
-              textAlign: 'center',
-              marginBottom: 12,
-              textTransform: 'uppercase',
-              letterSpacing: 1,
+              backgroundColor: 'var(--bg-grid)',
+              borderRadius: 16,
+              padding: 4,
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+              flexShrink: 0,
             }}
           >
-            待放置方块
+            <GameGrid
+              grid={gameState.grid}
+              ghostCells={getGhostCells()}
+              clearingCells={clearingCells}
+              canPlace={canPlaceAtHover()}
+              skin={skin}
+              onCellDrop={handleGridDrop}
+              onCellDragOver={handleGridDragOver}
+            />
           </div>
-          <BlockTray
-            blocks={gameState.currentBlocks}
-            selectedIndex={gameState.selectedBlockIndex}
-            skin={skin}
-            onSelectBlock={selectBlock}
-          />
-        </div>
 
-        <button
-          onClick={() => resetGame()}
-          style={{
-            padding: '12px 32px',
-            borderRadius: 8,
-            border: '2px solid var(--border-color)',
-            backgroundColor: 'transparent',
-            color: 'var(--text-primary)',
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'var(--accent-color)';
-            e.currentTarget.style.color = 'var(--accent-color)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'var(--border-color)';
-            e.currentTarget.style.color = 'var(--text-primary)';
-          }}
-        >
-          🔄 重新开始
-        </button>
+          <div
+            className="right-column"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 24,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <div style={{ flex: 1 }} />
 
-        <div
-          className="instructions"
-          style={{
-            textAlign: 'center',
-            fontSize: 13,
-            color: 'var(--text-secondary)',
-            lineHeight: 1.6,
-          }}
-        >
-          点击下方方块选中，然后点击网格放置<br />
-          填满一行、一列或 3×3 宫格即可消除得分
+            <div
+              className="tray-container"
+              style={{
+                padding: 16,
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: 16,
+                alignSelf: 'flex-end',
+              }}
+            >
+              <BlockTray
+                blocks={gameState.currentBlocks}
+                skin={skin}
+                onDragStart={startDrag}
+                onDragEnd={endDrag}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end' }}>
+              <button
+                onClick={() => resetGame()}
+                style={{
+                  padding: '12px 32px',
+                  borderRadius: 8,
+                  border: '2px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-color)';
+                  e.currentTarget.style.color = 'var(--accent-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+              >
+                🔄 重新开始
+              </button>
+
+              <div
+                className="instructions"
+                style={{
+                  textAlign: 'right',
+                  fontSize: 13,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.6,
+                }}
+              >
+                拖拽方块到网格上放置<br />
+                填满一行、一列或 3×3 宫格消除得分
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

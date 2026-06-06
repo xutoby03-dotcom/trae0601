@@ -13,30 +13,41 @@ import { createRandomBlocks } from '../blocks';
 
 export function useGame(initialDifficulty: Difficulty = 'easy') {
   const [gameState, setGameState] = useState<GameState>(() => initializeGame(initialDifficulty));
-  const [hoverPosition, setHoverPosition] = useState<Position | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<Position | null>(null);
+  const [dragBlockIndex, setDragBlockIndex] = useState<number | null>(null);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
-
-  const selectBlock = useCallback((index: number | null) => {
-    setGameState((prev) => ({ ...prev, selectedBlockIndex: index }));
-  }, []);
 
   const resetGame = useCallback((difficulty?: Difficulty) => {
     setGameState(initializeGame(difficulty || gameState.difficulty));
-    setHoverPosition(null);
+    setDragOverPosition(null);
+    setDragBlockIndex(null);
     setClearingCells([]);
   }, [gameState.difficulty]);
 
-  const tryPlaceBlock = useCallback(
-    (position: Position) => {
-      setGameState((prev) => {
-        if (prev.selectedBlockIndex === null || prev.gameOver) return prev;
+  const startDrag = useCallback((blockIndex: number) => {
+    setDragBlockIndex(blockIndex);
+  }, []);
 
-        const block = prev.currentBlocks[prev.selectedBlockIndex];
+  const endDrag = useCallback(() => {
+    setDragBlockIndex(null);
+    setDragOverPosition(null);
+  }, []);
+
+  const handleCellDragOver = useCallback((position: Position | null) => {
+    setDragOverPosition(position);
+  }, []);
+
+  const tryPlaceBlock = useCallback(
+    (position: Position, blockIndex: number) => {
+      setGameState((prev) => {
+        if (prev.gameOver) return prev;
+
+        const block = prev.currentBlocks[blockIndex];
         if (!block || !canPlaceBlock(prev.grid, block, position)) {
           return prev;
         }
 
-        const colorIndex = prev.selectedBlockIndex;
+        const colorIndex = blockIndex;
         let newGrid = placeBlock(prev.grid, block, position, colorIndex);
         const toClear = findLinesToClear(newGrid);
 
@@ -49,9 +60,8 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
               const newCombo = p.combo + 1;
               const scoreGain = calculateScore(toClear.length, p.combo);
 
-              const remainingBlocks = p.currentBlocks.filter((_, i) => i !== p.selectedBlockIndex);
+              const remainingBlocks = p.currentBlocks.filter((_, i) => i !== blockIndex);
               let nextBlocks = remainingBlocks;
-              let nextSelected: number | null = null;
 
               if (remainingBlocks.length === 0) {
                 nextBlocks = createRandomBlocks(3);
@@ -63,7 +73,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
                 ...p,
                 grid: clearedGrid,
                 currentBlocks: nextBlocks,
-                selectedBlockIndex: nextSelected,
+                selectedBlockIndex: null,
                 score: p.score + scoreGain,
                 combo: newCombo,
                 gameOver: isOver,
@@ -76,9 +86,8 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
             grid: newGrid,
           };
         } else {
-          const remainingBlocks = prev.currentBlocks.filter((_, i) => i !== prev.selectedBlockIndex);
+          const remainingBlocks = prev.currentBlocks.filter((_, i) => i !== blockIndex);
           let nextBlocks = remainingBlocks;
-          let nextSelected: number | null = null;
 
           if (remainingBlocks.length === 0) {
             nextBlocks = createRandomBlocks(3);
@@ -90,61 +99,51 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
             ...prev,
             grid: newGrid,
             currentBlocks: nextBlocks,
-            selectedBlockIndex: nextSelected,
+            selectedBlockIndex: null,
             combo: 0,
             gameOver: isOver,
           };
         }
       });
 
-      setHoverPosition(null);
+      setDragOverPosition(null);
+      setDragBlockIndex(null);
     },
     []
   );
 
-  const handleCellHover = useCallback(
-    (position: Position | null) => {
-      if (gameState.selectedBlockIndex === null) {
-        setHoverPosition(null);
-        return;
-      }
-      setHoverPosition(position);
-    },
-    [gameState.selectedBlockIndex]
-  );
-
   const canPlaceAtHover = useCallback((): boolean => {
-    if (gameState.selectedBlockIndex === null || !hoverPosition) return false;
-    const block = gameState.currentBlocks[gameState.selectedBlockIndex];
+    if (dragBlockIndex === null || !dragOverPosition) return false;
+    const block = gameState.currentBlocks[dragBlockIndex];
     if (!block) return false;
-    return canPlaceBlock(gameState.grid, block, hoverPosition);
-  }, [gameState.selectedBlockIndex, gameState.grid, gameState.currentBlocks, hoverPosition]);
+    return canPlaceBlock(gameState.grid, block, dragOverPosition);
+  }, [dragBlockIndex, dragOverPosition, gameState.grid, gameState.currentBlocks]);
 
   const getGhostCells = useCallback((): Position[] => {
-    if (gameState.selectedBlockIndex === null || !hoverPosition) return [];
-    const block = gameState.currentBlocks[gameState.selectedBlockIndex];
+    if (dragBlockIndex === null || !dragOverPosition) return [];
+    const block = gameState.currentBlocks[dragBlockIndex];
     if (!block) return [];
 
     const cells: Position[] = [];
     for (let r = 0; r < block.matrix.length; r++) {
       for (let c = 0; c < block.matrix[r].length; c++) {
         if (block.matrix[r][c]) {
-          cells.push({ row: hoverPosition.row + r, col: hoverPosition.col + c });
+          cells.push({ row: dragOverPosition.row + r, col: dragOverPosition.col + c });
         }
       }
     }
     return cells;
-  }, [gameState.selectedBlockIndex, gameState.currentBlocks, hoverPosition]);
+  }, [dragBlockIndex, dragOverPosition, gameState.currentBlocks]);
 
   return {
     gameState,
-    hoverPosition,
     clearingCells,
-    selectBlock,
     tryPlaceBlock,
-    handleCellHover,
+    handleCellDragOver,
     canPlaceAtHover,
     getGhostCells,
     resetGame,
+    startDrag,
+    endDrag,
   };
 }
