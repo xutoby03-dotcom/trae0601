@@ -161,7 +161,7 @@ const handleDragStart = (event, course) => {
 const handleDrop = (event, day) => {
   const rect = event.currentTarget.getBoundingClientRect()
   const y = event.clientY - rect.top
-  const cellHeight = rect.height / 12
+  const cellHeight = 80
   const period = Math.floor(y / cellHeight) + 1
   const startPeriod = Math.min(Math.max(period, 1), 12)
 
