@@ -270,7 +270,7 @@ class AudioEngineSingleton {
 
     const pitchRatio = targetBPM / sourceBPM;
     const pitch = (pitchRatio - 1) * 100;
-    const clampedPitch = Math.max(-50, Math.min(50, pitch));
+    const clampedPitch = Math.max(-100, Math.min(100, pitch));
 
     state.setDeckPitch(deckId, clampedPitch);
 
@@ -278,7 +278,7 @@ class AudioEngineSingleton {
     const targetBeatPhase = targetDeck.beatPhase;
     const targetBeatTime = targetBeatPhase * targetBeatDuration;
 
-    const sourceBeatDuration = 60 / (targetBPM);
+    const sourceBeatDuration = 60 / sourceBPM;
     const currentSourceBeatTime = sourceDeck.beatPhase * sourceBeatDuration;
 
     const phaseDiff = targetBeatTime - currentSourceBeatTime;
@@ -294,6 +294,9 @@ class AudioEngineSingleton {
     if (newCurrentTime > sourceDeck.duration) newCurrentTime = sourceDeck.duration;
 
     state.setDeckCurrentTime(deckId, newCurrentTime);
+
+    nodes.startOffset = newCurrentTime;
+    nodes.startTime = ctx.currentTime;
 
     if (nodes.source && sourceDeck.isPlaying) {
       try {
@@ -312,8 +315,6 @@ class AudioEngineSingleton {
 
       source.connect(nodes.gainNode);
       nodes.source = source;
-      nodes.startOffset = newCurrentTime;
-      nodes.startTime = ctx.currentTime;
 
       source.start(0, newCurrentTime);
 
