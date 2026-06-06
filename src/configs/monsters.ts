@@ -1,0 +1,48 @@
+import { MonsterConfig, MonsterType } from '../types';
+
+export const MONSTER_CONFIGS: Record<MonsterType, MonsterConfig> = {
+  normal: {
+    type: 'normal',
+    name: '普通怪物',
+    hp: 100,
+    speed: 60,
+    reward: 10,
+    armor: 0,
+    color: '#88cc88',
+    size: 16,
+    isFlying: false,
+  },
+  armored: {
+    type: 'armored',
+    name: '装甲怪物',
+    hp: 200,
+    speed: 45,
+    reward: 20,
+    armor: 0.3,
+    color: '#888888',
+    size: 20,
+    isFlying: false,
+  },
+  flying: {
+    type: 'flying',
+    name: '飞行怪物',
+    hp: 80,
+    speed: 90,
+    reward: 15,
+    armor: 0,
+    color: '#cc88cc',
+    size: 14,
+    isFlying: true,
+  },
+  boss: {
+    type: 'boss',
+    name: 'Boss',
+    hp: 1000,
+    speed: 35,
+    reward: 100,
+    armor: 0.2,
+    color: '#ff4444',
+    size: 32,
+    isFlying: false,
+  },
+};
