@@ -14,6 +14,8 @@ interface JsonStore {
   viewMode: ViewMode;
   searchPath: string;
   highlightedPaths: Set<string>;
+  matchedPaths: string[];
+  currentMatchIndex: number;
   contextMenu: ContextMenuState;
   expandedPaths: Set<string>;
 
@@ -22,6 +24,10 @@ interface JsonStore {
   setViewMode: (mode: ViewMode) => void;
   setSearchPath: (path: string) => void;
   setHighlightedPaths: (paths: Set<string>) => void;
+  setMatchedPaths: (paths: string[]) => void;
+  setCurrentMatchIndex: (index: number) => void;
+  goToNextMatch: () => void;
+  goToPrevMatch: () => void;
   setContextMenu: (menu: ContextMenuState) => void;
   toggleExpand: (path: string) => void;
   expandAll: () => void;
@@ -77,6 +83,8 @@ export const useJsonStore = create<JsonStore>((set, get) => {
     viewMode: 'view',
     searchPath: '',
     highlightedPaths: new Set(),
+    matchedPaths: [],
+    currentMatchIndex: -1,
     contextMenu: { visible: false, x: 0, y: 0, node: null },
     expandedPaths: new Set(['$', '$.users', '$.users[0]', '$.users[0].profile', '$.metadata']),
 
@@ -88,6 +96,9 @@ export const useJsonStore = create<JsonStore>((set, get) => {
         parsedData: data,
         treeData,
         parseError: error,
+        matchedPaths: [],
+        currentMatchIndex: -1,
+        highlightedPaths: new Set(),
       });
     },
 
@@ -107,6 +118,34 @@ export const useJsonStore = create<JsonStore>((set, get) => {
     setSearchPath: (path: string) => set({ searchPath: path }),
 
     setHighlightedPaths: (paths: Set<string>) => set({ highlightedPaths: paths }),
+
+    setMatchedPaths: (paths: string[]) => set({ matchedPaths: paths, currentMatchIndex: paths.length > 0 ? 0 : -1 }),
+
+    setCurrentMatchIndex: (index: number) => set({ currentMatchIndex: index }),
+
+    goToNextMatch: () => {
+      const { matchedPaths, currentMatchIndex } = get();
+      if (matchedPaths.length === 0) return;
+      const nextIndex = (currentMatchIndex + 1) % matchedPaths.length;
+      set({ currentMatchIndex: nextIndex });
+      const path = matchedPaths[nextIndex];
+      const element = document.querySelector(`[data-json-path="${CSS.escape(path)}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    },
+
+    goToPrevMatch: () => {
+      const { matchedPaths, currentMatchIndex } = get();
+      if (matchedPaths.length === 0) return;
+      const prevIndex = currentMatchIndex <= 0 ? matchedPaths.length - 1 : currentMatchIndex - 1;
+      set({ currentMatchIndex: prevIndex });
+      const path = matchedPaths[prevIndex];
+      const element = document.querySelector(`[data-json-path="${CSS.escape(path)}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    },
 
     setContextMenu: (menu: ContextMenuState) => set({ contextMenu: menu }),
 

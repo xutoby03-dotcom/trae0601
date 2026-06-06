@@ -38,9 +38,10 @@ const TypeIcon = ({ type }: { type: string }) => {
 };
 
 function TreeNodeComponent({ node, depth }: TreeNodeProps) {
-  const { expandedPaths, highlightedPaths, toggleExpand, setContextMenu } = useJsonStore();
+  const { expandedPaths, highlightedPaths, matchedPaths, currentMatchIndex, toggleExpand, setContextMenu } = useJsonStore();
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedPaths.has(node.path);
+  const isCurrentMatch = matchedPaths[currentMatchIndex] === node.path;
   const hasChildren = node.children && node.children.length > 0;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -97,7 +98,11 @@ function TreeNodeComponent({ node, depth }: TreeNodeProps) {
     <div className="select-none" data-json-path={node.path}>
       <div
         className={`flex items-center py-0.5 px-2 rounded cursor-pointer transition-colors group hover:bg-gray-700/50 ${
-          isHighlighted ? 'bg-yellow-500/20 ring-1 ring-yellow-500/50' : ''
+          isCurrentMatch
+            ? 'bg-yellow-500/40 ring-2 ring-yellow-500 shadow-lg shadow-yellow-500/20'
+            : isHighlighted
+            ? 'bg-yellow-500/15 ring-1 ring-yellow-500/30'
+            : ''
         }`}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleClick}

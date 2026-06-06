@@ -1,20 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, X, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, X, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
 import { JSONPath } from 'jsonpath-plus';
 import { useJsonStore } from '@/store/jsonStore';
 import { normalizeJsonPath, getParentPaths } from '@/utils/jsonUtils';
 
 export function SearchBar() {
-  const { searchPath, setSearchPath, parsedData, setHighlightedPaths, expandedPaths } = useJsonStore();
+  const {
+    searchPath,
+    setSearchPath,
+    parsedData,
+    setHighlightedPaths,
+    setMatchedPaths,
+    matchedPaths,
+    currentMatchIndex,
+    goToNextMatch,
+    goToPrevMatch,
+    setCurrentMatchIndex,
+  } = useJsonStore();
   const [localValue, setLocalValue] = useState(searchPath);
   const [error, setError] = useState<string | null>(null);
-  const [matchCount, setMatchCount] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const executeSearch = useCallback(
-    (path: string) => {
+    (path: string, scrollToFirst: boolean = true) => {
       if (!path || !parsedData) {
         setHighlightedPaths(new Set());
-        setMatchCount(0);
+        setMatchedPaths([]);
         setError(null);
         return;
       }
@@ -28,16 +39,17 @@ export function SearchBar() {
 
         const rawPaths = results as string[];
         const normalizedPaths = rawPaths.map(normalizeJsonPath);
-        const highlightedSet = new Set(normalizedPaths);
+        const uniquePaths = [...new Set(normalizedPaths)];
+        const highlightedSet = new Set(uniquePaths);
 
         setHighlightedPaths(highlightedSet);
-        setMatchCount(highlightedSet.size);
+        setMatchedPaths(uniquePaths);
 
-        if (highlightedSet.size > 0) {
-          const { expandedPaths: currentExpanded, toggleExpand } = useJsonStore.getState();
+        if (uniquePaths.length > 0) {
+          const { expandedPaths: currentExpanded } = useJsonStore.getState();
           const newExpanded = new Set(currentExpanded);
 
-          normalizedPaths.forEach((p) => {
+          uniquePaths.forEach((p) => {
             const parents = getParentPaths(p);
             parents.forEach((parent) => newExpanded.add(parent));
             newExpanded.add(p);
@@ -45,39 +57,60 @@ export function SearchBar() {
 
           useJsonStore.setState({ expandedPaths: newExpanded });
 
-          setTimeout(() => {
-            const firstPath = normalizedPaths[0];
-            const element = document.querySelector(`[data-json-path="${CSS.escape(firstPath)}"]`);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 100);
+          if (scrollToFirst) {
+            setTimeout(() => {
+              const firstPath = uniquePaths[0];
+              const element = document.querySelector(`[data-json-path="${CSS.escape(firstPath)}"]`);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }, 100);
+          }
         }
 
         setError(null);
       } catch (e) {
         setError((e as Error).message);
         setHighlightedPaths(new Set());
-        setMatchCount(0);
+        setMatchedPaths([]);
       }
     },
-    [parsedData, setHighlightedPaths]
+    [parsedData, setHighlightedPaths, setMatchedPaths]
   );
 
   useEffect(() => {
     const timer = setTimeout(() => {
       executeSearch(localValue);
       setSearchPath(localValue);
-    }, 300);
+    }, 150);
     return () => clearTimeout(timer);
   }, [localValue, executeSearch, setSearchPath]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      executeSearch(localValue);
+      setSearchPath(localValue);
+    }
+  };
 
   const handleClear = () => {
     setLocalValue('');
     setSearchPath('');
     setHighlightedPaths(new Set());
-    setMatchCount(0);
+    setMatchedPaths([]);
     setError(null);
+    inputRef.current?.focus();
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goToPrevMatch();
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    goToNextMatch();
   };
 
   return (
@@ -85,22 +118,43 @@ export function SearchBar() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
+          ref={inputRef}
           type="text"
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="输入 JSONPath，如 $.users[0].name"
-          className="w-full pl-10 pr-24 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
+          className="w-full pl-10 pr-40 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
         />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-          {matchCount > 0 && (
-            <span className="text-xs text-gray-400 bg-gray-700 px-2 py-0.5 rounded">
-              {matchCount} 匹配
-            </span>
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {matchedPaths.length > 0 && (
+            <div className="flex items-center gap-1 bg-gray-700 rounded px-1 py-0.5">
+              <button
+                onClick={handlePrev}
+                className="p-0.5 text-gray-400 hover:text-white hover:bg-gray-600 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={matchedPaths.length === 0}
+                title="上一个"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-xs text-gray-300 font-mono min-w-12 text-center">
+                {currentMatchIndex >= 0 ? `${currentMatchIndex + 1}/${matchedPaths.length}` : `${matchedPaths.length}`} 匹配
+              </span>
+              <button
+                onClick={handleNext}
+                className="p-0.5 text-gray-400 hover:text-white hover:bg-gray-600 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={matchedPaths.length === 0}
+                title="下一个"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
           {localValue && (
             <button
               onClick={handleClear}
-              className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              className="p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors ml-1"
+              title="清除"
             >
               <X className="w-4 h-4" />
             </button>
