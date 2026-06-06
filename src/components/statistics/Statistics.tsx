@@ -288,6 +288,11 @@ export const Statistics = () => {
             </div>
             <p className="text-2xl font-bold text-white">{formatDuration(aggregated.totalTime)}</p>
             <p className="text-slate-400 text-sm">累计练习时长</p>
+            {dailyStats.length > 0 && (
+              <p className="text-violet-400/70 text-xs mt-2">
+                日均 {Math.round((aggregated.totalTime / 60) / dailyStats.length)} 分钟
+              </p>
+            )}
           </div>
 
           <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-2xl p-5 border border-emerald-500/20">
@@ -348,6 +353,45 @@ export const Statistics = () => {
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorAccuracy)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/50 mb-6">
+          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-400" />
+            练习时长趋势
+          </h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorDuration" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    color: '#f1f5f9',
+                  }}
+                  formatter={(value: number) => [`${value} 分钟`, '练习时长']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="duration"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorDuration)"
                 />
               </AreaChart>
             </ResponsiveContainer>
