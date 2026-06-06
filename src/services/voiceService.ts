@@ -23,7 +23,6 @@ const deviceMap: Record<string, DeviceType> = {
   '窗帘': 'curtain',
   '音响': 'speaker',
   '加湿器': 'humidifier',
-  '换气扇': 'humidifier',
   '摄像头': 'camera',
 };
 

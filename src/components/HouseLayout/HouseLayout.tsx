@@ -32,15 +32,25 @@ const devicePositions: Record<string, { x: number; y: number }> = {
   'living-curtain-1': { x: 50, y: 80 },
   'living-speaker-1': { x: 15, y: 50 },
   'living-camera-1': { x: 85, y: 50 },
+  'living-humidifier-1': { x: 50, y: 50 },
   'bedroom-light-1': { x: 15, y: 15 },
   'bedroom-ac-1': { x: 85, y: 15 },
   'bedroom-curtain-1': { x: 50, y: 80 },
   'bedroom-humidifier-1': { x: 15, y: 50 },
+  'bedroom-speaker-1': { x: 85, y: 50 },
+  'bedroom-camera-1': { x: 50, y: 50 },
   'kitchen-light-1': { x: 15, y: 15 },
-  'kitchen-speaker-1': { x: 85, y: 15 },
-  'kitchen-camera-1': { x: 50, y: 75 },
+  'kitchen-ac-1': { x: 85, y: 15 },
+  'kitchen-speaker-1': { x: 15, y: 50 },
+  'kitchen-camera-1': { x: 85, y: 50 },
+  'kitchen-humidifier-1': { x: 50, y: 80 },
+  'kitchen-curtain-1': { x: 50, y: 50 },
   'bathroom-light-1': { x: 15, y: 15 },
-  'bathroom-humidifier-1': { x: 75, y: 75 },
+  'bathroom-ac-1': { x: 85, y: 15 },
+  'bathroom-humidifier-1': { x: 15, y: 50 },
+  'bathroom-camera-1': { x: 85, y: 50 },
+  'bathroom-speaker-1': { x: 50, y: 50 },
+  'bathroom-curtain-1': { x: 50, y: 80 },
 };
 
 export const HouseLayout = () => {
@@ -49,6 +59,19 @@ export const HouseLayout = () => {
   return (
     <div className="relative w-full h-full flex items-center justify-center p-4">
       <div className="relative w-full max-w-5xl aspect-[850/620]">
+        <div className="absolute inset-0 -m-6 border-4 border-gray-600/80 rounded-[30px] bg-gray-800/20 shadow-2xl" />
+        
+        <div className="absolute inset-0 -m-3 border-2 border-gray-700/60 rounded-[22px]" />
+
+        <div className="absolute left-[52%] top-[48%] w-[120px] h-[80px] bg-gray-800/40 rounded-lg border border-gray-600/40 flex items-center justify-center">
+          <span className="text-gray-500 text-xs font-medium">走廊</span>
+        </div>
+
+        <div className="absolute left-[47%] top-[48%] w-[5%] h-[80px] bg-gray-900/80" />
+        <div className="absolute left-[60%] top-[48%] w-[5%] h-[80px] bg-gray-900/80" />
+        <div className="absolute left-[52%] top-[40%] w-[120px] h-[8%] bg-gray-900/80" />
+        <div className="absolute left-[52%] top-[56%] w-[120px] h-[8%] bg-gray-900/80" />
+
         {roomInfo.map((room) => {
           const roomDevices = devices.filter((d) => d.room === room.id);
           const left = (room.x / 850) * 100;
@@ -59,7 +82,7 @@ export const HouseLayout = () => {
           return (
             <div
               key={room.id}
-              className={`absolute rounded-xl border-2 bg-gradient-to-br ${roomColors[room.id]} backdrop-blur-sm transition-all duration-300`}
+              className={`absolute rounded-xl border-2 bg-gradient-to-br ${roomColors[room.id]} backdrop-blur-sm transition-all duration-300 overflow-hidden`}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
@@ -67,9 +90,24 @@ export const HouseLayout = () => {
                 height: `${height}%`,
               }}
             >
-              <div className="absolute top-2 left-0 right-0 text-center">
-                <span className="text-gray-300 text-sm font-medium">{room.name}</span>
+              <div className="absolute top-2 left-0 right-0 text-center z-10">
+                <span className="text-gray-300 text-sm font-medium bg-gray-900/60 px-3 py-1 rounded-full">
+                  {room.name}
+                </span>
               </div>
+
+              {room.id === 'living' && (
+                <div className="absolute bottom-0 left-[20%] right-[20%] h-3 bg-gray-900/80 rounded-t-lg" />
+              )}
+              {room.id === 'bedroom' && (
+                <div className="absolute bottom-0 left-[40%] right-[40%] h-3 bg-gray-900/80 rounded-t-lg" />
+              )}
+              {room.id === 'kitchen' && (
+                <div className="absolute top-0 left-[30%] right-[30%] h-3 bg-gray-900/80 rounded-b-lg" />
+              )}
+              {room.id === 'bathroom' && (
+                <div className="absolute top-0 left-[50%] right-[20%] h-3 bg-gray-900/80 rounded-b-lg" />
+              )}
 
               {roomDevices.map((device) => {
                 const pos = devicePositions[device.id] || { x: 50, y: 50 };
@@ -79,7 +117,7 @@ export const HouseLayout = () => {
                 return (
                   <div
                     key={device.id}
-                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                    className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-20"
                     style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                     onClick={() => selectDevice(device)}
                     onDoubleClick={() => toggleDevice(device.id)}
@@ -96,7 +134,7 @@ export const HouseLayout = () => {
                       <div style={{ color }}>{deviceIcons[device.type]}</div>
                     </div>
                     <div className="text-center mt-1">
-                      <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">
+                      <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors bg-gray-900/80 px-1.5 py-0.5 rounded">
                         {device.name}
                       </span>
                     </div>
@@ -106,6 +144,15 @@ export const HouseLayout = () => {
             </div>
           );
         })}
+
+        <div className="absolute left-4 top-4 flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-xs text-gray-500">设备在线</span>
+        </div>
+
+        <div className="absolute right-4 bottom-4 text-xs text-gray-600">
+          平面图 · 1:100
+        </div>
       </div>
     </div>
   );
