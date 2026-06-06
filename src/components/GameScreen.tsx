@@ -1,7 +1,7 @@
 import { useEffect, useRef, useReducer, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { gameReducer, initialGameState, GameRenderer } from '../game';
-import { MAP_CONFIGS, TOWER_CONFIGS, getTowerLevelConfig, getTowerUpgradeCost, getTowerSellValue, CANVAS_WIDTH, CANVAS_HEIGHT } from '../configs';
+import { MAP_CONFIGS, TOWER_CONFIGS, WAVE_CONFIGS, getTowerLevelConfig, getTowerUpgradeCost, getTowerSellValue, CANVAS_WIDTH, CANVAS_HEIGHT } from '../configs';
 import { TowerType } from '../types';
 import { distance } from '../utils';
 
@@ -153,47 +153,107 @@ export const GameScreen = () => {
     return Math.ceil(ms / 1000).toString();
   };
 
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4 gap-4">
-      <div className="w-full max-w-[1200px] flex justify-between items-center panel-glass rounded-xl px-6 py-3">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">💰</span>
-            <span className="text-xl font-bold text-yellow-400">{state.gold}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">❤️</span>
-            <span className="text-xl font-bold text-red-400">{state.lives}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌊</span>
-            <span className="text-xl font-bold text-blue-400">
-              {state.currentWave}/{state.totalWaves}
-            </span>
-          </div>
-        </div>
+  const getNextWavePreview = () => {
+    if (state.currentWave >= state.totalWaves) return null;
+    const waveConfig = WAVE_CONFIGS[state.currentWave];
+    const counts: Record<string, number> = {};
+    for (const group of waveConfig.monsters) {
+      counts[group.type] = (counts[group.type] || 0) + group.count;
+    }
+    return counts;
+  };
 
-        <div className="text-center">
-          {!state.waveInProgress && state.currentWave < state.totalWaves ? (
-            <div className="text-lg">
-              <span className="text-gray-400">下一波: </span>
-              <span className="text-orange-400 font-bold animate-pulse">
-                {formatTime(state.waveTimer)}秒
+  const monsterTypeInfo: Record<string, { name: string; color: string; emoji: string }> = {
+    normal: { name: '普通', color: '#88cc88', emoji: '🟢' },
+    armored: { name: '装甲', color: '#888888', emoji: '⚫' },
+    flying: { name: '飞行', color: '#cc88cc', emoji: '🟣' },
+    boss: { name: 'Boss', color: '#ff4444', emoji: '🔴' },
+  };
+
+  const nextWavePreview = getNextWavePreview();
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-4 gap-3">
+      <div className="w-full max-w-[1200px] panel-glass rounded-xl overflow-hidden">
+        <div className="flex justify-between items-center px-6 py-3">
+          <div className="flex items-center gap-6">
+            {state.map && (
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📍</span>
+                <span className="text-lg font-semibold text-gray-300">{state.map.name}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🌊</span>
+              <span className="text-xl font-bold text-blue-400">
+                第 {state.currentWave + 1} 波 / {state.totalWaves}
               </span>
             </div>
-          ) : state.waveInProgress ? (
-            <div className="text-lg text-red-400 font-bold animate-pulse">
-              ⚔️ 战斗中...
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💰</span>
+              <span className="text-xl font-bold text-yellow-400">{state.gold}</span>
             </div>
-          ) : null}
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">❤️</span>
+              <span className="text-xl font-bold text-red-400">{state.lives}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">💀</span>
+              <span className="text-xl font-bold text-orange-400">{state.monstersKilled}</span>
+            </div>
+          </div>
+
+          <button
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            onClick={handleBackToMenu}
+          >
+            🏠 返回菜单
+          </button>
         </div>
 
-        <button
-          className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-          onClick={handleBackToMenu}
-        >
-          🏠 返回菜单
-        </button>
+        {!state.waveInProgress && state.currentWave < state.totalWaves && nextWavePreview && (
+          <div className="bg-black/40 px-6 py-2 border-t border-gray-700/50">
+            <div className="flex items-center justify-center gap-3 text-sm">
+              <span className="text-gray-400">下一波预告:</span>
+              {Object.entries(nextWavePreview).map(([type, count]) => {
+                const info = monsterTypeInfo[type];
+                return (
+                  <div
+                    key={type}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-800/80"
+                  >
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: info.color }}
+                    />
+                    <span className="text-gray-300">{info.name}</span>
+                    <span className="font-bold text-white">×{count}</span>
+                  </div>
+                );
+              })}
+              <div className="ml-4 flex items-center gap-2">
+                <span className="text-gray-400">倒计时:</span>
+                <span className="text-orange-400 font-bold animate-pulse">
+                  {formatTime(state.waveTimer)}秒
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {state.waveInProgress && (
+          <div className="bg-red-900/30 px-6 py-2 border-t border-red-700/30">
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className="text-red-400 font-bold animate-pulse">⚔️ 战斗中...</span>
+              <span className="text-gray-400">
+                剩余怪物: <span className="text-white font-semibold">{state.monsters.length}</span>
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-4 items-start">
