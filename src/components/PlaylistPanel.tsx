@@ -15,7 +15,7 @@ const PlaylistPanel = () => {
     setCurrentTime,
     setIsPlaying,
   } = useAudioStore();
-  const { playBuffer } = useAudioEngine();
+  const { playBuffer, pause } = useAudioEngine();
 
   const loadTrack = (index: number) => {
     if (index < 0 || index >= playlist.length) return;
@@ -32,9 +32,11 @@ const PlaylistPanel = () => {
   const removeTrack = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     
+    const wasPlaying = useAudioStore.getState().isPlaying;
     const newPlaylist = playlist.filter((_, i) => i !== index);
     
     if (newPlaylist.length === 0) {
+      pause();
       useAudioStore.setState({
         playlist: [],
         currentIndex: 0,
@@ -58,7 +60,9 @@ const PlaylistPanel = () => {
       setAudioInfo(nextItem.info);
       setSliceRange(0, nextItem.buffer.duration);
       setCurrentTime(0);
-      playBuffer(nextItem.buffer, 0);
+      if (wasPlaying) {
+        playBuffer(nextItem.buffer, 0);
+      }
     } else if (index < currentIndex) {
       newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
@@ -68,6 +72,7 @@ const PlaylistPanel = () => {
   };
 
   const clearAll = () => {
+    pause();
     useAudioStore.setState({
       playlist: [],
       currentIndex: 0,
