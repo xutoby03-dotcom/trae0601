@@ -314,6 +314,14 @@ function clamp(value, min = 0, max = 100) {
     return Math.max(min, Math.min(max, value));
 }
 
+function getPetAge(pet) {
+    const ageMs = Date.now() - pet.createdAt;
+    const ageMinutes = ageMs / (1000 * 60);
+    const days = Math.floor(ageMinutes / (60 * 24));
+    const hours = Math.floor((ageMinutes % (60 * 24)) / 60);
+    return { days, hours, ageMinutes };
+}
+
 function updatePetStats() {
     const pet = getCurrentPet();
     if (!pet || !pet.isAlive) return;
@@ -321,14 +329,16 @@ function updatePetStats() {
     const now = Date.now();
     const timeDiff = (now - pet.lastUpdate) / 1000;
     const decayRate = timeDiff / 60;
+    const age = getPetAge(pet);
+    const ageDecayMultiplier = (100 + age.days) / 100;
 
     if (!pet.isSleeping) {
         pet.stats.hunger = clamp(pet.stats.hunger - 2 * decayRate);
         pet.stats.happiness = clamp(pet.stats.happiness - 1.5 * decayRate);
         pet.stats.cleanliness = clamp(pet.stats.cleanliness - 1 * decayRate);
-        pet.stats.energy = clamp(pet.stats.energy - 1 * decayRate);
+        pet.stats.energy = clamp(pet.stats.energy - 1 * decayRate * ageDecayMultiplier);
     } else {
-        pet.stats.energy = clamp(pet.stats.energy + 3 * decayRate);
+        pet.stats.energy = clamp(pet.stats.energy + 3 * decayRate / ageDecayMultiplier);
         pet.stats.hunger = clamp(pet.stats.hunger - 0.5 * decayRate);
     }
 
@@ -378,6 +388,9 @@ function updateUI() {
 
     document.getElementById('petName').textContent = pet.name;
     document.getElementById('petType').textContent = PET_TYPES[pet.type].emoji;
+
+    const age = getPetAge(pet);
+    document.getElementById('ageDisplay').textContent = `🎂 活了 ${age.days} 天 ${age.hours} 小时`;
 
     const stats = ['hunger', 'happiness', 'health', 'cleanliness', 'energy'];
     stats.forEach(stat => {
