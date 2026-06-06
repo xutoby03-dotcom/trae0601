@@ -25,6 +25,7 @@ const InfoPanel = () => {
     { icon: Clock, label: '时长', value: formatTime(audioInfo.duration), color: 'text-purple-400' },
     { icon: Activity, label: '当前播放', value: formatTime(currentTime), color: 'text-emerald-400' },
     { icon: Radio, label: '采样率', value: `${audioInfo.sampleRate} Hz`, color: 'text-pink-400' },
+    { icon: Gauge, label: '码率', value: audioInfo.bitRate ? `${audioInfo.bitRate} kbps` : '-', color: 'text-cyan-300' },
     { icon: Headphones, label: '声道', value: audioInfo.numberOfChannels === 1 ? '单声道' : '立体声', color: 'text-amber-400' },
     { icon: Gauge, label: 'BPM', value: audioInfo.bpm ? `${audioInfo.bpm}` : '检测中...', color: 'text-rose-400' },
     { icon: FileAudio, label: '文件大小', value: formatFileSize(audioInfo.fileSize), color: 'text-indigo-400' },

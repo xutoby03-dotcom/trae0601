@@ -13,6 +13,13 @@ const PlayerControls = () => {
     setVolume,
     setCurrentTime,
     addMarker,
+    playlist,
+    currentIndex,
+    setCurrentIndex,
+    setAudioBuffer,
+    setAudioFile,
+    setAudioInfo,
+    setSliceRange,
   } = useAudioStore();
   const { playBuffer, pause, seekTo, updateVolume } = useAudioEngine();
 
@@ -41,16 +48,40 @@ const PlayerControls = () => {
     updateVolume(newVolume);
   };
 
+  const loadTrack = (index: number) => {
+    if (index < 0 || index >= playlist.length) return;
+    const item = playlist[index];
+    setCurrentIndex(index);
+    setAudioBuffer(item.buffer);
+    setAudioFile(item.file);
+    setAudioInfo(item.info);
+    setSliceRange(0, item.buffer.duration);
+    setCurrentTime(0);
+    playBuffer(item.buffer, 0);
+  };
+
   const handleSkipBack = () => {
     if (!audioBuffer) return;
-    const newTime = Math.max(0, currentTime - 10);
-    seekTo(newTime);
+    
+    if (playlist.length > 1) {
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+      loadTrack(prevIndex);
+    } else {
+      const newTime = Math.max(0, currentTime - 10);
+      seekTo(newTime);
+    }
   };
 
   const handleSkipForward = () => {
     if (!audioBuffer) return;
-    const newTime = Math.min(duration, currentTime + 10);
-    seekTo(newTime);
+    
+    if (playlist.length > 1) {
+      const nextIndex = currentIndex < playlist.length - 1 ? currentIndex + 1 : 0;
+      loadTrack(nextIndex);
+    } else {
+      const newTime = Math.min(duration, currentTime + 10);
+      seekTo(newTime);
+    }
   };
 
   const handleAddMarker = () => {
@@ -95,10 +126,13 @@ const PlayerControls = () => {
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 w-24">
-            <span className="text-xs font-mono text-gray-400">{formatTime(currentTime)}</span>
-            <span className="text-xs text-gray-600">/</span>
-            <span className="text-xs font-mono text-gray-500">{formatTime(duration)}</span>
+          <div className="flex flex-col gap-0.5 w-24">
+            <span className="text-xs font-mono text-gray-400">{formatTime(currentTime)} / {formatTime(duration)}</span>
+            {playlist.length > 1 && (
+              <span className="text-[10px] text-cyan-400 font-mono">
+                {currentIndex + 1} / {playlist.length}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

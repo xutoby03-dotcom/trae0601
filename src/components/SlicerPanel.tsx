@@ -41,7 +41,7 @@ const SlicerPanel = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `audio_slice_${formatTime(sliceStart).replace(':', '-')}_${formatTime(sliceEnd).replace(':', '-')}.wav`;
+      a.download = `audio_slice_${formatTime(sliceStart).replace(':', '-')}_${formatTime(sliceEnd).replace(':', '-')}.mp3`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -173,7 +173,7 @@ const SlicerPanel = () => {
                        disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
-              {isExporting ? '导出中...' : '导出 WAV'}
+              {isExporting ? '导出中...' : '导出 MP3'}
             </button>
           </div>
         </>

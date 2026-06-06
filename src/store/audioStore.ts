@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { VisualMode, Marker, AudioInfo } from '@/types';
 
+interface PlaylistItem {
+  file: File;
+  buffer: AudioBuffer;
+  info: AudioInfo;
+}
+
 interface AudioState {
   audioFile: File | null;
   audioBuffer: AudioBuffer | null;
@@ -19,6 +25,8 @@ interface AudioState {
   audioContext: AudioContext | null;
   frequencyData: Uint8Array;
   timeData: Uint8Array;
+  playlist: PlaylistItem[];
+  currentIndex: number;
   
   setAudioFile: (file: File | null) => void;
   setAudioBuffer: (buffer: AudioBuffer | null) => void;
@@ -38,6 +46,9 @@ interface AudioState {
   setAnalyser: (analyser: AnalyserNode | null) => void;
   setAudioContext: (ctx: AudioContext | null) => void;
   setAudioData: (frequency: Uint8Array, time: Uint8Array) => void;
+  addToPlaylist: (item: PlaylistItem) => void;
+  clearPlaylist: () => void;
+  setCurrentIndex: (index: number) => void;
   resetAll: () => void;
 }
 
@@ -62,6 +73,8 @@ export const useAudioStore = create<AudioState>((set) => ({
   audioContext: null,
   frequencyData: new Uint8Array(1024),
   timeData: new Uint8Array(1024),
+  playlist: [],
+  currentIndex: 0,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioBuffer: (buffer) => set({ audioBuffer: buffer }),
@@ -103,6 +116,15 @@ export const useAudioStore = create<AudioState>((set) => ({
   setAnalyser: (analyser) => set({ analyser }),
   setAudioContext: (ctx) => set({ audioContext: ctx }),
   setAudioData: (frequency, time) => set({ frequencyData: frequency, timeData: time }),
+  
+  addToPlaylist: (item) =>
+    set((state) => ({
+      playlist: [...state.playlist, item],
+    })),
+  
+  clearPlaylist: () => set({ playlist: [], currentIndex: 0 }),
+  
+  setCurrentIndex: (index) => set({ currentIndex: index }),
   
   resetAll: () =>
     set({

@@ -262,8 +262,9 @@ export const useAudioEngine = () => {
       }
     }
     
-    const wavBlob = audioBufferToWav(slicedBuffer);
-    return wavBlob;
+    const { audioBufferToMp3 } = await import('@/utils/mp3Encoder');
+    const mp3Blob = audioBufferToMp3(slicedBuffer, 192);
+    return mp3Blob;
   }, [audioBuffer, initAudioContext]);
 
   const cleanup = useCallback(() => {

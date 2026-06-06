@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Upload, Mic, MicOff, Music, Loader2 } from 'lucide-react';
+import { Upload, Mic, MicOff, Music, Loader2, ListMusic } from 'lucide-react';
 import { useAudioStore } from '@/store/audioStore';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { detectBPM } from '@/utils/audioAnalyzer';
@@ -12,32 +12,58 @@ const AudioUploader = () => {
     setAudioFile,
     setAudioInfo,
     setSliceRange,
+    setAudioBuffer,
     isRecording,
     audioBuffer,
+    playlist,
+    addToPlaylist,
+    clearPlaylist,
+    setCurrentIndex,
   } = useAudioStore();
-  const { loadAudioFile, startRecording, stopRecording, initAudioContext } = useAudioEngine();
+  const { loadAudioFile, startRecording, stopRecording, initAudioContext, playBuffer } = useAudioEngine();
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = async (file: File, isFirst: boolean = false) => {
+    initAudioContext();
+    const buffer = await loadAudioFile(file);
+    
+    const bpm = detectBPM(buffer);
+    const bitRate = buffer.duration > 0 ? Math.round((file.size * 8) / buffer.duration / 1000) : 0;
+    const info: AudioInfo = {
+      fileName: file.name,
+      duration: buffer.duration,
+      sampleRate: buffer.sampleRate,
+      numberOfChannels: buffer.numberOfChannels,
+      bitRate: bitRate || undefined,
+      bpm: bpm || undefined,
+      fileSize: file.size,
+    };
 
-    setIsLoading(true);
-    try {
-      initAudioContext();
-      const buffer = await loadAudioFile(file);
+    addToPlaylist({ file, buffer, info });
+
+    if (isFirst) {
       setAudioFile(file);
-      
-      const bpm = detectBPM(buffer);
-      const info: AudioInfo = {
-        fileName: file.name,
-        duration: buffer.duration,
-        sampleRate: buffer.sampleRate,
-        numberOfChannels: buffer.numberOfChannels,
-        bpm: bpm || undefined,
-        fileSize: file.size,
-      };
+      setAudioBuffer(buffer);
       setAudioInfo(info);
       setSliceRange(0, buffer.duration);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setIsLoading(true);
+    clearPlaylist();
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        await processFile(files[i], i === 0);
+      }
+      setCurrentIndex(0);
+      
+      if (files.length > 0 && playlist.length === 0) {
+        playBuffer(useAudioStore.getState().playlist[0].buffer, 0);
+      }
     } catch (error) {
       console.error('Failed to load audio:', error);
     } finally {
@@ -60,30 +86,21 @@ const AudioUploader = () => {
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('audio/')) {
-      setIsLoading(true);
-      try {
-        initAudioContext();
-        const buffer = await loadAudioFile(file);
-        setAudioFile(file);
-        
-        const bpm = detectBPM(buffer);
-        const info: AudioInfo = {
-          fileName: file.name,
-          duration: buffer.duration,
-          sampleRate: buffer.sampleRate,
-          numberOfChannels: buffer.numberOfChannels,
-          bpm: bpm || undefined,
-          fileSize: file.size,
-        };
-        setAudioInfo(info);
-        setSliceRange(0, buffer.duration);
-      } catch (error) {
-        console.error('Failed to load audio:', error);
-      } finally {
-        setIsLoading(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/'));
+    if (files.length === 0) return;
+
+    setIsLoading(true);
+    clearPlaylist();
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        await processFile(files[i], i === 0);
       }
+      setCurrentIndex(0);
+    } catch (error) {
+      console.error('Failed to load audio:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,6 +114,7 @@ const AudioUploader = () => {
         ref={fileInputRef}
         type="file"
         accept="audio/*"
+        multiple
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -131,10 +149,10 @@ const AudioUploader = () => {
         <span className="text-sm font-medium">{isRecording ? '停止录音' : '麦克风'}</span>
       </button>
 
-      {audioBuffer && (
+      {playlist.length > 0 && (
         <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-          <Music className="w-4 h-4 text-emerald-400" />
-          <span className="text-xs text-emerald-400">已加载</span>
+          <ListMusic className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs text-emerald-400">{playlist.length} 首</span>
         </div>
       )}
     </div>
