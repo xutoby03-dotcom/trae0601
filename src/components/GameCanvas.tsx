@@ -132,6 +132,14 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
     return { x, y };
   }, [currentTankWidth, currentTankHeight]);
 
+  const clearDragState = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.removeAttribute('data-dragging-decoration');
+      canvas.draggable = false;
+    }
+  }, []);
+
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;
     
@@ -171,6 +179,7 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
         canvas.draggable = true;
       }
     } else {
+      clearDragState();
       let clickedFish: string | null = null;
       for (const f of fish) {
         const size = f.size === 'small' ? 20 : f.size === 'medium' ? 30 : 45;
@@ -188,11 +197,25 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
         onFeedAtPosition(x, y);
       }
     }
-  }, [fish, eggs, decorations, onFishClick, selectFish, getCanvasCoords, collectEgg, onFeedAtPosition]);
+  }, [fish, eggs, decorations, onFishClick, selectFish, getCanvasCoords, collectEgg, onFeedAtPosition, clearDragState]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!canvas.hasAttribute('data-dragging-decoration')) return;
+    requestAnimationFrame(() => {
+      if (canvas && !canvas.draggable) {
+        clearDragState();
+      }
+    });
+  }, [clearDragState]);
 
   const handleCanvasDragStart = useCallback((e: React.DragEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      e.preventDefault();
+      return;
+    }
     
     const decorationId = canvas.getAttribute('data-dragging-decoration');
     if (decorationId) {
@@ -201,8 +224,9 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
       onDecorationDragStart(decorationId);
     } else {
       e.preventDefault();
+      clearDragState();
     }
-  }, [onDecorationDragStart]);
+  }, [onDecorationDragStart, clearDragState]);
 
   const handleCanvasDragEnd = useCallback(() => {
     const canvas = canvasRef.current;
@@ -254,6 +278,8 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
         className="w-full h-full cursor-pointer"
         style={{ imageRendering: 'auto' }}
         onMouseDown={handleCanvasMouseDown}
+        onMouseUp={handleCanvasMouseUp}
+        onMouseLeave={handleCanvasMouseUp}
         onDragStart={handleCanvasDragStart}
         onDragEnd={handleCanvasDragEnd}
         onDragOver={handleDragOver}
