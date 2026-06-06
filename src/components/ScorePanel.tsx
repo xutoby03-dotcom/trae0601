@@ -80,7 +80,6 @@ export const ScorePanel: React.FC<ScorePanelProps> = ({ score, combo, highScore,
               color: fs.combo > 1 ? '#FFD700' : 'var(--accent-color)',
               left: '50%',
               top: '50%',
-              transform: 'translateX(-50%)',
               whiteSpace: 'nowrap',
               zIndex: 10,
             }}
