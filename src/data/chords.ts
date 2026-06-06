@@ -689,9 +689,9 @@ export const CHORDS: Chord[] = [
     name: 'Daug',
     rootNote: 'D',
     type: 'aug',
-    frets: [2, 3, 4, 3, -1, -1],
-    fingers: [1, 2, 4, 3, 0, 0],
-    baseFret: 1,
+    frets: [-1, 5, 4, 3, 3, -1],
+    fingers: [0, 3, 2, 1, 1, 0],
+    baseFret: 3,
   },
 ];
 

@@ -1,14 +1,19 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Play, Music, Loader2, Mic, FileAudio } from 'lucide-react';
+import { Upload, Play, Music, Loader2, Mic, FileAudio, Save, Heart } from 'lucide-react';
 import { CHORDS } from '../data/chords';
 import { audioEngine } from '../utils/audio';
+import { useAppStore } from '../store/appStore';
+import { ChordProgression } from '../types';
 
 export const ChordRecognition: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recognizedChords, setRecognizedChords] = useState<string[]>([]);
+  const [confidences, setConfidences] = useState<number[]>([]);
   const [fileName, setFileName] = useState<string>('');
+  const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addToFavorites = useAppStore(state => state.addToFavorites);
 
   const mockChordProgressions = [
     ['C', 'G', 'Am', 'F'],
@@ -21,16 +26,41 @@ export const ChordRecognition: React.FC = () => {
     ['G', 'Em', 'C', 'D'],
   ];
 
+  const generateConfidences = (length: number): number[] => {
+    return Array.from({ length }, () => Math.floor(Math.random() * 20) + 75);
+  };
+
   const handleFileUpload = (file: File) => {
     setFileName(file.name);
     setIsAnalyzing(true);
     setRecognizedChords([]);
+    setConfidences([]);
+    setSaved(false);
 
     setTimeout(() => {
       const randomIndex = Math.floor(Math.random() * mockChordProgressions.length);
-      setRecognizedChords(mockChordProgressions[randomIndex]);
+      const chords = mockChordProgressions[randomIndex];
+      setRecognizedChords(chords);
+      setConfidences(generateConfidences(chords.length));
       setIsAnalyzing(false);
     }, 2500);
+  };
+
+  const handleSaveToFavorites = () => {
+    if (recognizedChords.length === 0) return;
+
+    const progression: ChordProgression = {
+      id: 'recog-' + Date.now(),
+      name: `识别结果 - ${fileName || '未命名'}`,
+      category: '识别结果',
+      chords: [...recognizedChords],
+      bpm: 100,
+      beatsPerMeasure: 4,
+      createdAt: Date.now(),
+    };
+    addToFavorites(progression);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -134,31 +164,79 @@ export const ChordRecognition: React.FC = () => {
               <Music className="w-5 h-5 text-green-500" />
               识别结果
             </h4>
-            <button
-              onClick={playAllChords}
-              className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              播放全部
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveToFavorites}
+                className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  saved
+                    ? 'bg-pink-500 text-white'
+                    : 'bg-pink-100 hover:bg-pink-200 text-pink-700'
+                }`}
+              >
+                {saved ? (
+                  <><Heart className="w-4 h-4 fill-current" /> 已保存</>
+                ) : (
+                  <><Save className="w-4 h-4" /> 保存到收藏夹</>
+                )}
+              </button>
+              <button
+                onClick={playAllChords}
+                className="flex items-center gap-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                播放全部
+              </button>
+            </div>
           </div>
-          
-          <div className="flex flex-wrap gap-3">
-            {recognizedChords.map((chordId, index) => {
-              const chord = CHORDS.find(c => c.id === chordId);
-              return (
-                <button
-                  key={index}
-                  onClick={() => playChord(chordId)}
-                  className="flex items-center gap-2 px-4 py-3 bg-amber-100 hover:bg-amber-200 rounded-xl transition-colors group"
-                >
-                  <span className="text-2xl font-bold text-amber-900">
-                    {chord?.name || chordId}
-                  </span>
-                  <Play className="w-4 h-4 text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              );
-            })}
+
+          <div className="bg-gray-50 rounded-xl p-4 mb-4">
+            <div className="relative">
+              <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gray-300 -translate-y-1/2" />
+              
+              <div className="relative flex justify-between">
+                {recognizedChords.map((chordId, index) => {
+                  const chord = CHORDS.find(c => c.id === chordId);
+                  const confidence = confidences[index] || 85;
+                  const measureNumber = index + 1;
+                  
+                  return (
+                    <div key={index} className="flex flex-col items-center relative z-10">
+                      <div className="text-xs text-gray-500 mb-1 font-medium">
+                        小节 {measureNumber}
+                      </div>
+                      <div className="text-xs text-emerald-600 font-semibold mb-2">
+                        {confidence}%
+                      </div>
+                      <button
+                        onClick={() => playChord(chordId)}
+                        className="w-16 h-16 bg-white border-2 border-amber-300 rounded-xl flex items-center justify-center shadow-md hover:border-amber-500 hover:shadow-lg transition-all group"
+                      >
+                        <span className="text-lg font-bold text-amber-900">
+                          {chord?.name || chordId}
+                        </span>
+                        <Play className="w-3 h-3 text-amber-500 opacity-0 group-hover:opacity-100 absolute transition-opacity" />
+                      </button>
+                      <div className="w-full max-w-[4rem] h-1 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            confidence >= 90 ? 'bg-emerald-500' :
+                            confidence >= 80 ? 'bg-amber-500' : 'bg-orange-500'
+                          }`}
+                          style={{ width: `${confidence}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="text-sm text-gray-600">平均置信度:</span>
+            <span className="text-sm font-semibold text-emerald-600">
+              {Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length)}%
+            </span>
           </div>
 
           <div className="mt-4 p-4 bg-blue-50 rounded-xl">
