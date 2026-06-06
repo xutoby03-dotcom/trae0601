@@ -263,7 +263,7 @@ export const emojiCategories: EmojiCategory[] = [
       { emoji: '🦨', keywords: ['臭鼬', 'skunk', 'stink'] },
       { emoji: '🦝', keywords: ['浣熊', 'raccoon', 'trash panda'] },
       { emoji: '🦭', keywords: ['海豹', 'seal', 'sea'] },
-      { emoji: '‍🔥', keywords: ['凤凰', 'phoenix', 'fire', 'mythical'] },
+      { emoji: '🐦‍🔥', keywords: ['凤凰', 'phoenix', 'fire', 'mythical'] },
       { emoji: '🐦‍⬛', keywords: ['黑鸟', 'blackbird', 'crow'] },
       { emoji: '🪿', keywords: ['鹅', 'goose'] },
       { emoji: '🦤', keywords: ['渡渡鸟', 'dodo', 'extinct'] },

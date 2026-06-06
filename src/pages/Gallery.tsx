@@ -74,7 +74,11 @@ export const Gallery = () => {
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold">{artwork.title}</h2>
-              <p className="text-white/80 mt-2 flex items-center gap-2">
+              <p className="text-white/90 mt-2 flex items-center gap-2">
+                <span>👤</span>
+                {artwork.author || '匿名艺术家'}
+              </p>
+              <p className="text-white/70 mt-1 flex items-center gap-2 text-sm">
                 <span>🕐</span>
                 {formatDate(artwork.createdAt || Date.now())}
               </p>
@@ -249,7 +253,11 @@ export const Gallery = () => {
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-6 text-white">
               <h3 className="text-xl font-bold">{selectedArtwork.title}</h3>
-              <p className="text-white/80 text-sm mt-1">{formatDate(selectedArtwork.createdAt || Date.now())}</p>
+              <p className="text-white/90 text-sm mt-1 flex items-center gap-1">
+                <span>👤</span>
+                {selectedArtwork.author || '匿名艺术家'}
+              </p>
+              <p className="text-white/70 text-xs mt-1">{formatDate(selectedArtwork.createdAt || Date.now())}</p>
             </div>
             <div className="p-6">
               <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 flex justify-center">

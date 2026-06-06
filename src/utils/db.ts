@@ -5,6 +5,7 @@ export interface Artwork {
   title: string;
   grid: string[][];
   thumbnail: string;
+  author?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -38,6 +39,7 @@ export const saveArtwork = async (artwork: Omit<Artwork, 'id' | 'createdAt' | 'u
   const id = crypto.randomUUID();
   
   await db.add(STORE_NAME, {
+    author: '匿名艺术家',
     ...artwork,
     id,
     createdAt: now,
