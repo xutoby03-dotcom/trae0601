@@ -38,6 +38,18 @@ export function CompareMode() {
     return { added, removed, modified };
   }, [diffs]);
 
+  const diffPaths = useMemo(() => {
+    const added: string[] = [];
+    const removed: string[] = [];
+    const modified: string[] = [];
+    diffs.forEach((d) => {
+      if (d.type === 'added') added.push(d.path);
+      else if (d.type === 'removed') removed.push(d.path);
+      else modified.push(d.path);
+    });
+    return { added, removed, modified };
+  }, [diffs]);
+
   const showDiffView = !parseError && !parseError2 && parsedData && parsedData2;
 
   return (
@@ -94,7 +106,12 @@ export function CompareMode() {
 
           <div className="flex-1 overflow-hidden">
             {showDiffView ? (
-              <DiffViewer oldText={formattedLeft} newText={formattedRight} side="left" />
+              <DiffViewer
+                oldText={formattedLeft}
+                newText={formattedRight}
+                side="left"
+                diffs={diffPaths}
+              />
             ) : (
               <JsonEditor value={jsonText} onChange={setJsonText} error={parseError} />
             )}
@@ -137,7 +154,12 @@ export function CompareMode() {
 
           <div className="flex-1 overflow-hidden">
             {showDiffView ? (
-              <DiffViewer oldText={formattedLeft} newText={formattedRight} side="right" />
+              <DiffViewer
+                oldText={formattedLeft}
+                newText={formattedRight}
+                side="right"
+                diffs={diffPaths}
+              />
             ) : (
               <JsonEditor
                 value={jsonText2}
