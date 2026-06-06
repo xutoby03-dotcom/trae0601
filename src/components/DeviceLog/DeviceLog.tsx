@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSmartHomeStore } from '@/store/useSmartHomeStore';
-import { X, Clock, Lightbulb, Thermometer, Blinds, Speaker, Droplets, Camera } from 'lucide-react';
+import { X, Clock, Lightbulb, Thermometer, Blinds, Speaker, Droplets, Camera, Filter, ChevronDown } from 'lucide-react';
 import type { DeviceType, RoomType } from '@/types';
 
 const deviceIcons: Record<DeviceType, React.ReactNode> = {
@@ -19,6 +19,15 @@ const roomNames: Record<RoomType, string> = {
   bathroom: '卫生间',
 };
 
+const deviceTypeNames: Record<DeviceType, string> = {
+  light: '灯光',
+  ac: '空调',
+  curtain: '窗帘',
+  speaker: '音响',
+  humidifier: '加湿器',
+  camera: '摄像头',
+};
+
 const formatTime = (timestamp: number): string => {
   const date = new Date(timestamp);
   const now = new Date();
@@ -35,8 +44,20 @@ const formatTime = (timestamp: number): string => {
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
 };
 
+const getDeviceTypeFromId = (deviceId: string): DeviceType => {
+  if (deviceId.includes('light')) return 'light';
+  if (deviceId.includes('ac')) return 'ac';
+  if (deviceId.includes('curtain')) return 'curtain';
+  if (deviceId.includes('speaker')) return 'speaker';
+  if (deviceId.includes('humidifier')) return 'humidifier';
+  if (deviceId.includes('camera')) return 'camera';
+  return 'light';
+};
+
 export const DeviceLog = () => {
   const { logs, showLogPanel, setShowLogPanel, loadLogs } = useSmartHomeStore();
+  const [selectedRoom, setSelectedRoom] = useState<RoomType | 'all'>('all');
+  const [selectedType, setSelectedType] = useState<DeviceType | 'all'>('all');
 
   useEffect(() => {
     if (showLogPanel) {
@@ -46,15 +67,12 @@ export const DeviceLog = () => {
 
   if (!showLogPanel) return null;
 
-  const getDeviceTypeFromId = (deviceId: string): DeviceType => {
-    if (deviceId.includes('light')) return 'light';
-    if (deviceId.includes('ac')) return 'ac';
-    if (deviceId.includes('curtain')) return 'curtain';
-    if (deviceId.includes('speaker')) return 'speaker';
-    if (deviceId.includes('humidifier')) return 'humidifier';
-    if (deviceId.includes('camera')) return 'camera';
-    return 'light';
-  };
+  const filteredLogs = logs.filter((log) => {
+    const roomMatch = selectedRoom === 'all' || log.room === selectedRoom;
+    const deviceType = getDeviceTypeFromId(log.deviceId);
+    const typeMatch = selectedType === 'all' || deviceType === selectedType;
+    return roomMatch && typeMatch;
+  });
 
   return (
     <div className="fixed inset-y-0 right-0 z-40 w-96 max-w-full">
@@ -62,7 +80,7 @@ export const DeviceLog = () => {
       <div className="absolute right-0 inset-y-0 w-full bg-gray-900/95 border-l border-gray-700 shadow-2xl overflow-hidden animate-slide-in-right">
         <div className="h-full flex flex-col">
           <div className="p-6 border-b border-gray-800">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
                   <Clock className="w-5 h-5 text-white" />
@@ -79,10 +97,60 @@ export const DeviceLog = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <Filter className="w-4 h-4" />
+                <span className="text-xs">筛选:</span>
+              </div>
+              
+              <div className="relative flex-1">
+                <select
+                  value={selectedRoom}
+                  onChange={(e) => setSelectedRoom(e.target.value as RoomType | 'all')}
+                  className="w-full appearance-none bg-gray-800 text-white text-sm py-2 px-3 pr-8 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                >
+                  <option value="all">全部房间</option>
+                  {Object.entries(roomNames).map(([key, name]) => (
+                    <option key={key} value={key}>{name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+
+              <div className="relative flex-1">
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value as DeviceType | 'all')}
+                  className="w-full appearance-none bg-gray-800 text-white text-sm py-2 px-3 pr-8 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                >
+                  <option value="all">全部设备</option>
+                  {Object.entries(deviceTypeNames).map(([key, name]) => (
+                    <option key={key} value={key}>{name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {(selectedRoom !== 'all' || selectedType !== 'all') && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs text-gray-500">筛选结果: {filteredLogs.length} 条</span>
+                <button
+                  onClick={() => {
+                    setSelectedRoom('all');
+                    setSelectedType('all');
+                  }}
+                  className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  清除筛选
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
-            {logs.length === 0 ? (
+            {filteredLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <Clock className="w-12 h-12 text-gray-600 mb-4" />
                 <p className="text-gray-500">暂无操作记录</p>
@@ -90,7 +158,7 @@ export const DeviceLog = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {logs.map((log) => {
+                {filteredLogs.map((log) => {
                   const deviceType = getDeviceTypeFromId(log.deviceId);
                   return (
                     <div

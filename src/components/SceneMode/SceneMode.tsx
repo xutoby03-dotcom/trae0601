@@ -1,7 +1,7 @@
 import { useSmartHomeStore } from '@/store/useSmartHomeStore';
 import { scenes } from '@/data/initialData';
 import type { SceneType } from '@/types';
-import { Home, LogOut, Moon, Music } from 'lucide-react';
+import { Home, LogOut, Moon, Music, Check } from 'lucide-react';
 
 const sceneIcons: Record<SceneType, React.ReactNode> = {
   home: <Home className="w-5 h-5" />,
@@ -24,12 +24,17 @@ export const SceneMode = () => {
               onClick={() => applySceneMode(scene.id)}
               className={`group relative flex flex-col items-center gap-1 px-4 py-3 rounded-xl transition-all duration-300 ${
                 isActive
-                  ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                  ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30 ring-2 ring-cyan-400 ring-offset-2 ring-offset-gray-900'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
-              <div className={isActive ? 'animate-pulse' : ''}>
+              <div className={`relative ${isActive ? 'animate-pulse' : ''}`}>
                 {sceneIcons[scene.id]}
+                {isActive && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full flex items-center justify-center shadow-md">
+                    <Check className="w-3 h-3 text-gray-900" />
+                  </div>
+                )}
               </div>
               <span className="text-xs font-medium">{scene.name}</span>
               

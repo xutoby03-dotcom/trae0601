@@ -13,6 +13,7 @@ interface SmartHomeState {
   energyData: EnergyData[];
   selectedDevice: Device | null;
   activeScene: SceneType | null;
+  activeSceneTimestamp: number | null;
   showEnergyPanel: boolean;
   showLogPanel: boolean;
   
@@ -42,6 +43,7 @@ export const useSmartHomeStore = create<SmartHomeState>()(
       energyData: generateInitialEnergyData(),
       selectedDevice: null,
       activeScene: null,
+      activeSceneTimestamp: null,
       showEnergyPanel: false,
       showLogPanel: false,
 
@@ -123,7 +125,7 @@ export const useSmartHomeStore = create<SmartHomeState>()(
 
       applySceneMode: (sceneId: SceneType) => {
         const updatedDevices = applyScene(sceneId, get().devices);
-        set({ devices: updatedDevices, activeScene: sceneId });
+        set({ devices: updatedDevices, activeScene: sceneId, activeSceneTimestamp: Date.now() });
         
         updatedDevices.forEach(d => {
           const log: DeviceLog = {
@@ -185,6 +187,7 @@ export const useSmartHomeStore = create<SmartHomeState>()(
       partialize: (state) => ({
         devices: state.devices,
         activeScene: state.activeScene,
+        activeSceneTimestamp: state.activeSceneTimestamp,
         energyData: state.energyData,
       }),
     }
