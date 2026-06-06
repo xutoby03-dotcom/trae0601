@@ -38,6 +38,7 @@ export const GameCanvas = () => {
     playCoinSound,
     playGameOverSound,
     playShieldSound,
+    playShieldBreakSound,
     startBGM,
     stopBGM,
     setBGMVolume,
@@ -111,6 +112,9 @@ export const GameCanvas = () => {
     }
     engine.setOnStatsUpdate(handleStatsUpdate);
     engine.setOnGameOver(handleGameOver);
+    engine.setOnShieldBreak(() => {
+      if (soundEnabled) playShieldBreakSound();
+    });
     engineRef.current = engine;
 
     initAudioContext();
@@ -226,10 +230,10 @@ export const GameCanvas = () => {
       <canvas ref={canvasRef} className="block w-full h-full" />
 
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none">
-        <div className="flex flex-col gap-2 pointer-events-auto">
-          <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2">
-            <p className="text-white font-bold text-lg">🏃 {Math.floor(stats.distance)}m</p>
-          </div>
+        <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 pointer-events-auto">
+          <p className="text-white font-bold text-lg">🏃 {Math.floor(stats.distance)}m</p>
+        </div>
+        <div className="flex items-center gap-3">
           {stats.shieldTime > 0 && (
             <div className="bg-cyan-500/30 backdrop-blur-sm rounded-xl px-4 py-2 border border-cyan-400/50 animate-pulse">
               <p className="text-cyan-300 font-bold text-lg flex items-center gap-2">
@@ -237,8 +241,6 @@ export const GameCanvas = () => {
               </p>
             </div>
           )}
-        </div>
-        <div className="flex items-center gap-3">
           <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2">
             <p className="text-yellow-400 font-bold text-lg">💰 {stats.coins}</p>
           </div>

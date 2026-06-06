@@ -45,6 +45,7 @@ export class GameEngine {
 
   private onStatsUpdate?: (stats: GameStats) => void;
   private onGameOver?: (stats: GameStats) => void;
+  private onShieldBreak?: () => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -94,6 +95,10 @@ export class GameEngine {
 
   public setOnGameOver(callback: (stats: GameStats) => void) {
     this.onGameOver = callback;
+  }
+
+  public setOnShieldBreak(callback: () => void) {
+    this.onShieldBreak = callback;
   }
 
   public start() {
@@ -495,6 +500,7 @@ export class GameEngine {
           if (this.stats.shieldTime > 0 && (obs.type === 'high' || obs.type === 'blade')) {
             this.obstacles = this.obstacles.filter((o) => o.id !== obs.id);
             this.spawnShieldBreakParticles(obs.x + obs.width / 2, obs.y + obs.height / 2);
+            this.onShieldBreak?.();
           } else {
             this.triggerGameOver();
             return;
