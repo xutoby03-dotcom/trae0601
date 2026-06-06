@@ -476,11 +476,16 @@ export const Statistics = () => {
                   key={day.date}
                   className={cn(
                     'bg-slate-800/30 rounded-xl border border-slate-700/50 overflow-hidden transition-all',
-                    hasActivity ? 'cursor-pointer hover:bg-slate-800/50' : 'opacity-60'
+                    hasActivity ? '' : 'opacity-60'
                   )}
-                  onClick={() => hasActivity && toggleDay(day.date)}
                 >
-                  <div className="flex items-center justify-between p-4">
+                  <div
+                    className={cn(
+                      'flex items-center justify-between p-4',
+                      hasActivity ? 'cursor-pointer hover:bg-slate-800/50' : ''
+                    )}
+                    onClick={() => hasActivity && toggleDay(day.date)}
+                  >
                     <div className="flex items-center gap-4">
                       <div
                         className={cn(
@@ -526,7 +531,10 @@ export const Statistics = () => {
                   </div>
 
                   {isExpanded && hasActivity && (
-                    <div className="border-t border-slate-700/50 p-4 bg-slate-800/50">
+                    <div
+                      className="border-t border-slate-700/50 p-4 bg-slate-800/50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center p-3 bg-amber-500/10 rounded-xl">
                           <Music className="w-5 h-5 text-amber-400 mx-auto mb-2" />
