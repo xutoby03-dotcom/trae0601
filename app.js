@@ -30,6 +30,7 @@ let nameInputGame = null;
 let nameInputScore = 0;
 let nameInputPos = 0;
 let nameInputChars = ['A', 'A', 'A'];
+let nameInputCallback = null;
 const NAME_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 const terminal = document.getElementById('terminal');
@@ -287,6 +288,30 @@ function getScores(game, callback) {
     };
 }
 
+function displayWidth(str) {
+    let w = 0;
+    for (const c of str) {
+        w += c.charCodeAt(0) > 127 ? 2 : 1;
+    }
+    return w;
+}
+
+function padToDisplay(str, width, padChar = ' ', align = 'left') {
+    const currentW = displayWidth(str);
+    const pad = width - currentW;
+    if (pad <= 0) return str;
+    
+    if (align === 'right') {
+        return padChar.repeat(pad) + str;
+    } else if (align === 'center') {
+        const padLeft = Math.floor(pad / 2);
+        const padRight = pad - padLeft;
+        return padChar.repeat(padLeft) + str + padChar.repeat(padRight);
+    } else {
+        return str + padChar.repeat(pad);
+    }
+}
+
 function showScores(game) {
     const gamesToShow = [];
     
@@ -296,43 +321,52 @@ function showScores(game) {
         gamesToShow.push(...Object.values(Games));
     }
     
-    let remaining = gamesToShow.length;
-    
     print('');
     
-    gamesToShow.forEach(gameKey => {
+    function showNext(index) {
+        if (index >= gamesToShow.length) {
+            print('');
+            return;
+        }
+        
+        const gameKey = gamesToShow[index];
+        
         getScores(gameKey, (scores) => {
             const title = `=== ${gameKey.toUpperCase()} ===`;
-            print(`  ${padCenter(title, 30, '=')}`);
+            print(`  ${padCenter(title, 34, '=')}`);
             print('');
-            print(`  #############################`);
-            print(`  # 排名 # 名字 #   分数   #`);
-            print(`  #############################`);
             
-            if (scores.length === 0) {
-                print(`  #  --- #  --- #   -----  #`);
-            } else {
-                scores.forEach((s, i) => {
-                    const rank = String(i + 1).padStart(3, ' ');
-                    const name = s.name.substring(0, 3).padEnd(3, ' ');
-                    const score = String(s.score).padStart(7, ' ');
-                    print(`  # ${rank}  # ${name}  # ${score}  #`);
-                });
-                
-                for (let i = scores.length; i < 5; i++) {
-                    print(`  #  ${i + 1}.  # ---  #  ------  #`);
+            const separator = '  #################################';
+            const rankCol = padToDisplay('排名', 4, ' ', 'center');
+            const nameCol = padToDisplay('名字', 4, ' ', 'center');
+            const scoreCol = padToDisplay('分数', 8, ' ', 'center');
+            
+            print(separator);
+            print(`  #  ${rankCol}  #  ${nameCol}  #  ${scoreCol}  #`);
+            print(separator);
+            
+            for (let i = 0; i < 5; i++) {
+                if (i < scores.length) {
+                    const rank = padToDisplay(String(i + 1), 4, ' ', 'right');
+                    const name = padToDisplay(scores[i].name.substring(0, 3), 4, ' ', 'center');
+                    const score = padToDisplay(String(scores[i].score), 8, ' ', 'right');
+                    print(`  #  ${rank}  #  ${name}  #  ${score}  #`);
+                } else {
+                    const rank = padToDisplay('---', 4, ' ', 'center');
+                    const name = padToDisplay('---', 4, ' ', 'center');
+                    const score = padToDisplay('------', 8, ' ', 'center');
+                    print(`  #  ${rank}  #  ${name}  #  ${score}  #`);
                 }
             }
             
-            print(`  #############################`);
+            print(separator);
             print('');
             
-            remaining--;
-            if (remaining === 0) {
-                print('');
-            }
+            showNext(index + 1);
         });
-    });
+    }
+    
+    showNext(0);
 }
 
 function startGame(game) {
@@ -382,15 +416,22 @@ function checkHighScore(game, score, callback) {
     });
 }
 
-function startNameInput(game, score) {
+function startNameInput(game, score, callback = null) {
     nameInputActive = true;
     nameInputGame = game;
     nameInputScore = score;
+    nameInputCallback = callback;
     nameInputPos = 0;
     nameInputChars = ['A', 'A', 'A'];
     gameTitle.textContent = '新高分!';
-    gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
+    gameStatus.textContent = '↑↓选字母 ←→移动 回车确认 | ESC取消';
     drawNameInputScreen();
+}
+
+function cancelNameInput() {
+    nameInputActive = false;
+    nameInputCallback = null;
+    gameTitle.textContent = GameNames[nameInputGame] || '';
 }
 
 function drawNameInputScreen() {
@@ -492,7 +533,14 @@ function confirmNameInput() {
     print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
     print('');
     
-    stopGame();
+    const callback = nameInputCallback;
+    nameInputCallback = null;
+    
+    if (callback) {
+        callback(name);
+    } else {
+        stopGame();
+    }
 }
 
 function stopGame() {
@@ -513,6 +561,10 @@ function updateScore(score) {
 
 function handleGameKey(e) {
     if (nameInputActive) {
+        if (e.key === 'Escape') {
+            cancelNameInput();
+            return;
+        }
         handleNameInputKey(e);
         return;
     }
@@ -976,26 +1028,10 @@ function handleMazeKey(e) {
             if (gameState.isHighScore) {
                 const nextLevel = gameState.level + 1;
                 const currentScore = gameState.score;
-                nameInputGame = Games.MAZE;
-                nameInputScore = currentScore;
-                nameInputActive = true;
-                nameInputPos = 0;
-                nameInputChars = ['A', 'A', 'A'];
-                gameTitle.textContent = '新高分!';
-                gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
-                
-                const originalConfirm = confirmNameInput;
-                confirmNameInput = function() {
-                    const name = nameInputChars.join('');
-                    saveScore(nameInputGame, nameInputScore, name);
-                    nameInputActive = false;
-                    print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
-                    confirmNameInput = originalConfirm;
+                startNameInput(Games.MAZE, currentScore, (name) => {
                     gameState.score = currentScore;
                     startMazeGame(nextLevel);
-                };
-                
-                drawNameInputScreen();
+                });
             } else {
                 startMazeGame(gameState.level + 1);
             }
@@ -1191,26 +1227,10 @@ function handleSokobanKey(e) {
             if (gameState.isHighScore) {
                 const nextLevel = gameState.level + 1;
                 const currentScore = gameState.score;
-                nameInputGame = Games.SOKOBAN;
-                nameInputScore = currentScore;
-                nameInputActive = true;
-                nameInputPos = 0;
-                nameInputChars = ['A', 'A', 'A'];
-                gameTitle.textContent = '新高分!';
-                gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
-                
-                const originalConfirm = confirmNameInput;
-                confirmNameInput = function() {
-                    const name = nameInputChars.join('');
-                    saveScore(nameInputGame, nameInputScore, name);
-                    nameInputActive = false;
-                    print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
-                    confirmNameInput = originalConfirm;
+                startNameInput(Games.SOKOBAN, currentScore, (name) => {
                     gameState.score = currentScore;
                     startSokobanGame(nextLevel);
-                };
-                
-                drawNameInputScreen();
+                });
             } else {
                 startSokobanGame(gameState.level + 1);
             }
