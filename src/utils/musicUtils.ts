@@ -1,4 +1,4 @@
-import { Note, PitchNumber, OctaveShift, Accidental, PITCH_FREQUENCIES, DURATION_VALUES, NoteDuration } from '../types/score';
+import { Note, PitchNumber, OctaveShift, Accidental, PITCH_FREQUENCIES, DURATION_VALUES, NoteDuration, Measure } from '../types/score';
 
 export function getNoteFrequency(pitch: PitchNumber, octave: OctaveShift, accidental: Accidental): number {
   const key = `${pitch}${octave}`;
@@ -43,8 +43,8 @@ export function cycleAccidental(current: Accidental, direction: 'up' | 'down'): 
   }
 }
 
-export function flattenAllNotes(measures: { notes: Note[] }[]): Note[] {
-  return measures.flatMap(m => m.notes);
+export function flattenAllNotes(measures: Measure[]): Note[] {
+  return measures.flatMap(m => [...m.melody, ...m.harmony]);
 }
 
 export function getNoteAtPosition(flatNotes: Note[], playPosition: number): Note | null {
@@ -58,8 +58,8 @@ export function getNoteAtPosition(flatNotes: Note[], playPosition: number): Note
   return null;
 }
 
-export function getTotalDuration(measures: { notes: Note[] }[]): number {
+export function getTotalDuration(measures: Measure[]): number {
   return measures.reduce((total, measure) => {
-    return total + getTotalNotesDuration(measure.notes);
+    return total + getTotalNotesDuration(measure.melody);
   }, 0);
 }

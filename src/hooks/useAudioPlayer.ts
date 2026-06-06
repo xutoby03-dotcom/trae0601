@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Note, DURATION_VALUES } from '../types/score';
-import { getNoteFrequency, getTotalDuration } from '../utils/musicUtils';
+import { getNoteFrequency, getTotalNotesDuration } from '../utils/musicUtils';
 
 interface UseAudioPlayerProps {
   notes: Note[];
@@ -9,6 +9,23 @@ interface UseAudioPlayerProps {
   currentPlayPosition: number;
   onPositionChange: (position: number) => void;
   onStop: () => void;
+}
+
+function playClick(ctx: AudioContext, time: number, isDownbeat: boolean) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = 'square';
+  osc.frequency.value = isDownbeat ? 1200 : 800;
+  
+  gain.gain.setValueAtTime(0.15, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start(time);
+  osc.stop(time + 0.05);
 }
 
 export function useAudioPlayer({
@@ -34,14 +51,26 @@ export function useAudioPlayer({
   useEffect(() => {
     if (isPlaying && audioContextRef.current && notes.length > 0) {
       const ctx = audioContextRef.current;
-      const totalDuration = getTotalDuration([{ notes }]);
+      const totalDuration = getTotalNotesDuration(notes);
       startTimeRef.current = ctx.currentTime;
       startPositionRef.current = currentPlayPosition;
+
+      const secondsPerBeat = 60 / bpm;
+      const startBeat = Math.floor(currentPlayPosition);
+      const totalBeats = Math.ceil(totalDuration);
+      
+      for (let beat = startBeat; beat < totalBeats; beat++) {
+        const beatTime = (beat - currentPlayPosition) * secondsPerBeat;
+        if (beatTime >= 0) {
+          const isDownbeat = beat % 4 === 0;
+          playClick(ctx, ctx.currentTime + beatTime, isDownbeat);
+        }
+      }
 
       let noteStart = 0;
       notes.forEach((note) => {
         const noteDuration = DURATION_VALUES[note.duration];
-        const noteStartTime = (noteStart - currentPlayPosition) * (60 / bpm);
+        const noteStartTime = (noteStart - currentPlayPosition) * secondsPerBeat;
         
         if (noteStartTime >= 0 && note.pitch !== null) {
           const freq = getNoteFrequency(note.pitch, note.octave, note.accidental);
@@ -51,7 +80,7 @@ export function useAudioPlayer({
           osc.type = 'sine';
           osc.frequency.value = freq;
           
-          const durationInSec = noteDuration * (60 / bpm);
+          const durationInSec = noteDuration * secondsPerBeat;
           gain.gain.setValueAtTime(0.3, ctx.currentTime + noteStartTime);
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + noteStartTime + durationInSec * 0.9);
           

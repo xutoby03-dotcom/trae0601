@@ -21,7 +21,8 @@ export interface Note {
 
 export interface Measure {
   id: string;
-  notes: Note[];
+  melody: Note[];
+  harmony: Note[];
   timeSignature: { numerator: number; denominator: number };
 }
 

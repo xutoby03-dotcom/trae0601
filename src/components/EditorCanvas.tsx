@@ -1,19 +1,21 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Note } from '../types/score';
+import { Measure } from '../types/score';
 import {
   drawNote,
   drawLyrics,
   drawMeasureBar,
   drawStaffLine,
-  calculateNotePositions,
+  calculateAlignedPositions,
   MEASURE_PADDING,
   NOTE_WIDTH_BY_DURATION,
   NoteRenderInfo,
+  VOICE_GAP,
+  drawVoiceLabel,
 } from '../utils/renderUtils';
 import { getNoteAtPosition, flattenAllNotes } from '../utils/musicUtils';
 
 interface EditorCanvasProps {
-  measures: { id: string; notes: Note[] }[];
+  measures: Measure[];
   selectedNoteId: string | null;
   currentPlayPosition: number;
   isPlaying: boolean;
@@ -52,7 +54,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     });
 
     const canvasWidth = Math.max(1400, totalWidth);
-    const canvasHeight = 400;
+    const canvasHeight = 500;
 
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
@@ -60,31 +62,47 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     ctx.fillStyle = '#faf8f5';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    const staffY = 120;
-    drawStaffLine(ctx, MEASURE_PADDING, staffY, canvasWidth - MEASURE_PADDING * 2);
+    const melodyStaffY = 120;
+    const harmonyStaffY = melodyStaffY + VOICE_GAP;
+
+    drawStaffLine(ctx, MEASURE_PADDING, melodyStaffY, canvasWidth - MEASURE_PADDING * 2);
+    drawStaffLine(ctx, MEASURE_PADDING, harmonyStaffY, canvasWidth - MEASURE_PADDING * 2);
+
+    drawVoiceLabel(ctx, MEASURE_PADDING + 10, melodyStaffY - 15, '主旋律', 'melody');
+    drawVoiceLabel(ctx, MEASURE_PADDING + 10, harmonyStaffY - 15, '和声', 'harmony');
 
     let currentX = MEASURE_PADDING + 80;
     let allNotePositions: NoteRenderInfo[] = [];
 
     measures.forEach((measure, measureIdx) => {
-      const positions = calculateNotePositions(measure.notes, currentX - MEASURE_PADDING, staffY);
-      allNotePositions = allNotePositions.concat(positions);
+      const { melodyPositions, harmonyPositions, measureWidth } = calculateAlignedPositions(
+        measure.melody,
+        measure.harmony,
+        currentX - MEASURE_PADDING,
+        melodyStaffY,
+        harmonyStaffY
+      );
+
+      allNotePositions = allNotePositions.concat(melodyPositions, harmonyPositions);
 
       const playingNoteId = getPlayingNoteId();
 
-      positions.forEach((pos) => {
+      melodyPositions.forEach((pos) => {
         const isSelected = pos.note.id === selectedNoteId;
         const isPlayingNote = pos.note.id === playingNoteId;
         drawNote(ctx, pos.note, pos.x, pos.y, isSelected, isPlayingNote);
         drawLyrics(ctx, pos.note, pos.x, pos.y);
       });
 
-      const measureWidth = measure.notes.reduce((sum, note) => {
-        return sum + NOTE_WIDTH_BY_DURATION[note.duration] + 15;
-      }, 0);
+      harmonyPositions.forEach((pos) => {
+        const isSelected = pos.note.id === selectedNoteId;
+        const isPlayingNote = pos.note.id === playingNoteId;
+        drawNote(ctx, pos.note, pos.x, pos.y, isSelected, isPlayingNote);
+        drawLyrics(ctx, pos.note, pos.x, pos.y);
+      });
 
       if (measureIdx < measures.length - 1) {
-        drawMeasureBar(ctx, currentX + measureWidth + MEASURE_PADDING, staffY, 100);
+        drawMeasureBar(ctx, currentX + measureWidth + MEASURE_PADDING, melodyStaffY, VOICE_GAP + 60);
       }
 
       currentX += measureWidth + MEASURE_PADDING + 20;
@@ -95,7 +113,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     ctx.fillStyle = '#666';
     ctx.font = '16px "PingFang SC", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('1=C 4/4', MEASURE_PADDING + 20, staffY + 5);
+    ctx.fillText('1=C 4/4', MEASURE_PADDING + 20, melodyStaffY + 5);
   }, [measures, selectedNoteId, currentPlayPosition, getPlayingNoteId, canvasRef]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -112,8 +130,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
       if (
         x >= pos.x - 5 &&
         x <= pos.x + pos.width + 5 &&
-        y >= pos.y - 40 &&
-        y <= pos.y + 60
+        y >= pos.y - 30 &&
+        y <= pos.y + 55
       ) {
         onNoteClick(pos.note.id);
         return;
@@ -138,7 +156,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
     <div
       ref={containerRef}
       className="w-full overflow-x-auto overflow-y-hidden bg-stone-100 rounded-lg shadow-inner"
-      style={{ minHeight: '450px' }}
+      style={{ minHeight: '550px' }}
     >
       <canvas
         ref={canvasRef}

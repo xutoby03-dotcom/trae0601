@@ -1,4 +1,4 @@
-import { Score, Note, DURATION_VALUES } from '../types/score';
+import { Score, Note, DURATION_VALUES, Measure } from '../types/score';
 
 export function exportPNG(canvas: HTMLCanvasElement, filename: string = 'score.png') {
   const dataURL = canvas.toDataURL('image/png');
@@ -56,10 +56,14 @@ function getMusicXMLType(duration: string): string {
   return map[duration] || 'quarter';
 }
 
-export function exportMusicXML(score: Score, filename: string = 'score.xml') {
+function measureToMusicXML(measure: Measure, measureIdx: number, score: Score): string {
   let notesXml = '';
-  score.measures.forEach((measure, measureIdx) => {
-    notesXml += `
+  
+  [...measure.melody, ...measure.harmony].forEach((note) => {
+    notesXml += noteToMusicXMLStep(note);
+  });
+
+  return `
     <measure number="${measureIdx + 1}">
       <attributes>
         <divisions>4</divisions>
@@ -74,14 +78,14 @@ export function exportMusicXML(score: Score, filename: string = 'score.xml') {
           <sign>G</sign>
           <line>2</line>
         </clef>
-      </attributes>`;
-    
-    measure.notes.forEach((note) => {
-      notesXml += noteToMusicXMLStep(note);
-    });
-    
-    notesXml += `
+      </attributes>${notesXml}
     </measure>`;
+}
+
+export function exportMusicXML(score: Score, filename: string = 'score.xml') {
+  let measuresXml = '';
+  score.measures.forEach((measure, idx) => {
+    measuresXml += measureToMusicXML(measure, idx, score);
   });
 
   const musicXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -94,7 +98,7 @@ export function exportMusicXML(score: Score, filename: string = 'score.xml') {
       <part-name>${score.title}</part-name>
     </score-part>
   </part-list>
-  <part id="P1">${notesXml}
+  <part id="P1">${measuresXml}
   </part>
 </score-partwise>`;
 
