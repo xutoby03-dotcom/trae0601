@@ -1,5 +1,73 @@
 import { JsonValue, JsonType, TreeNode, DiffResult, TableColumn, TableRow } from '@/types';
 
+export function getPathLineMap(jsonStr: string): Map<string, number> {
+  const lineMap = new Map<string, number>();
+  const lines = jsonStr.split('\n');
+  const pathStack: string[] = ['$'];
+  let arrayIndexStack: number[] = [];
+
+  lineMap.set('$', 1);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('}') || trimmed.startsWith(']')) {
+      pathStack.pop();
+      if (trimmed.startsWith(']')) {
+        arrayIndexStack.pop();
+      }
+      continue;
+    }
+
+    const keyMatch = trimmed.match(/^"([^"]+)"\s*:/);
+    if (keyMatch) {
+      const key = keyMatch[1];
+      const parentPath = pathStack[pathStack.length - 1];
+      const currentPath = parentPath + '.' + key;
+      lineMap.set(currentPath, lineNum);
+
+      const rest = trimmed.slice(keyMatch[0].length).trim();
+      if (rest.startsWith('{')) {
+        pathStack.push(currentPath);
+      } else if (rest.startsWith('[')) {
+        pathStack.push(currentPath);
+        arrayIndexStack.push(0);
+      }
+      continue;
+    }
+
+    if (trimmed.startsWith('{') && pathStack.length > 0) {
+      continue;
+    }
+
+    if (trimmed === '[' || trimmed.startsWith('[') && pathStack.length > 0) {
+      continue;
+    }
+
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      continue;
+    }
+
+    if (trimmed === ',' || trimmed === '') {
+      continue;
+    }
+
+    if (trimmed.match(/^\d/) || trimmed.startsWith('"') || trimmed === 'true' || trimmed === 'false' || trimmed === 'null') {
+      if (arrayIndexStack.length > 0) {
+        const arrPath = pathStack[pathStack.length - 1];
+        const idx = arrayIndexStack[arrayIndexStack.length - 1];
+        const elementPath = arrPath + '[' + idx + ']';
+        lineMap.set(elementPath, lineNum);
+        arrayIndexStack[arrayIndexStack.length - 1] = idx + 1;
+      }
+    }
+  }
+
+  return lineMap;
+}
+
 export function getJsonType(value: JsonValue): JsonType {
   if (value === null) return 'null';
   if (Array.isArray(value)) return 'array';
@@ -225,7 +293,13 @@ function convertToYaml(data: JsonValue, indent: number): string {
   const type = getJsonType(data);
 
   if (type === 'null') return 'null';
-  if (type === 'string') return `"${data}"`;
+  if (type === 'string') {
+    const str = data as string;
+    if (/[\n\r"\\:{}#&*!|>'"%@`\[\],;]/.test(str) || str.length === 0 || /^\s|\s$/.test(str)) {
+      return JSON.stringify(str);
+    }
+    return str;
+  }
   if (type === 'number' || type === 'boolean') return String(data);
 
   if (type === 'object' && data !== null) {

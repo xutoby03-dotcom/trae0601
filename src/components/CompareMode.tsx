@@ -1,12 +1,25 @@
-import { useMemo } from 'react';
-import { Plus, Minus, RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, Minus, RefreshCw, Edit3, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { JsonEditor } from './JsonEditor';
+import { DiffViewer } from './DiffViewer';
 import { useJsonStore } from '@/store/jsonStore';
-import { diffJson } from '@/utils/jsonUtils';
+import { diffJson, formatJson } from '@/utils/jsonUtils';
 
 export function CompareMode() {
   const { jsonText, jsonText2, setJsonText, setJsonText2, parsedData, parsedData2, parseError, parseError2 } =
     useJsonStore();
+  const [showLeftEditor, setShowLeftEditor] = useState(false);
+  const [showRightEditor, setShowRightEditor] = useState(false);
+
+  const formattedLeft = useMemo(() => {
+    if (parsedData) return formatJson(parsedData);
+    return jsonText;
+  }, [parsedData, jsonText]);
+
+  const formattedRight = useMemo(() => {
+    if (parsedData2) return formatJson(parsedData2);
+    return jsonText2;
+  }, [parsedData2, jsonText2]);
 
   const diffs = useMemo(() => {
     if (!parsedData || !parsedData2) return [];
@@ -24,6 +37,8 @@ export function CompareMode() {
     });
     return { added, removed, modified };
   }, [diffs]);
+
+  const showDiffView = !parseError && !parseError2 && parsedData && parsedData2;
 
   return (
     <div className="h-full flex flex-col">
@@ -52,9 +67,37 @@ export function CompareMode() {
           <div className="px-4 py-2 bg-gray-800/30 border-b border-gray-700 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
             <span className="text-sm text-gray-400">原始 JSON (左侧)</span>
+            <div className="flex-1" />
+            <button
+              onClick={() => setShowLeftEditor(!showLeftEditor)}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+            >
+              {showLeftEditor ? (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                  收起编辑
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-3.5 h-3.5" />
+                  编辑
+                </>
+              )}
+            </button>
           </div>
+
+          {showLeftEditor && (
+            <div className="h-48 border-b border-gray-700 overflow-hidden flex-shrink-0">
+              <JsonEditor value={jsonText} onChange={setJsonText} error={parseError} />
+            </div>
+          )}
+
           <div className="flex-1 overflow-hidden">
-            <JsonEditor value={jsonText} onChange={setJsonText} error={parseError} />
+            {showDiffView ? (
+              <DiffViewer oldText={formattedLeft} newText={formattedRight} side="left" />
+            ) : (
+              <JsonEditor value={jsonText} onChange={setJsonText} error={parseError} />
+            )}
           </div>
         </div>
 
@@ -62,14 +105,47 @@ export function CompareMode() {
           <div className="px-4 py-2 bg-gray-800/30 border-b border-gray-700 flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-purple-500" />
             <span className="text-sm text-gray-400">新 JSON (右侧)</span>
+            <div className="flex-1" />
+            <button
+              onClick={() => setShowRightEditor(!showRightEditor)}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+            >
+              {showRightEditor ? (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                  收起编辑
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-3.5 h-3.5" />
+                  编辑
+                </>
+              )}
+            </button>
           </div>
+
+          {showRightEditor && (
+            <div className="h-48 border-b border-gray-700 overflow-hidden flex-shrink-0">
+              <JsonEditor
+                value={jsonText2}
+                onChange={setJsonText2}
+                error={parseError2}
+                placeholder="在此粘贴要对比的 JSON..."
+              />
+            </div>
+          )}
+
           <div className="flex-1 overflow-hidden">
-            <JsonEditor
-              value={jsonText2}
-              onChange={setJsonText2}
-              error={parseError2}
-              placeholder="在此粘贴要对比的 JSON..."
-            />
+            {showDiffView ? (
+              <DiffViewer oldText={formattedLeft} newText={formattedRight} side="right" />
+            ) : (
+              <JsonEditor
+                value={jsonText2}
+                onChange={setJsonText2}
+                error={parseError2}
+                placeholder="在此粘贴要对比的 JSON..."
+              />
+            )}
           </div>
         </div>
       </div>
