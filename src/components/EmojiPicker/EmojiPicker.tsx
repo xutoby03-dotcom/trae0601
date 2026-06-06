@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { emojiCategories } from '../../data/emojis';
+import { emojiCategories, searchEmojis, EmojiItem } from '../../data/emojis';
 import { useCanvasStore } from '../../store/useStore';
 
 export const EmojiPicker = () => {
@@ -12,9 +12,12 @@ export const EmojiPicker = () => {
     if (!searchQuery) {
       return emojiCategories[activeCategory]?.emojis || [];
     }
-    const allEmojis = emojiCategories.flatMap(cat => cat.emojis);
-    return allEmojis.filter(emoji => emoji.includes(searchQuery));
+    return searchEmojis(searchQuery);
   }, [activeCategory, searchQuery]);
+
+  const getEmojiChar = (item: string | EmojiItem): string => {
+    return typeof item === 'string' ? item : item.emoji;
+  };
 
   return (
     <div className="w-72 bg-white rounded-2xl shadow-xl overflow-hidden border border-purple-100 flex flex-col h-full max-h-[600px]">
@@ -24,7 +27,7 @@ export const EmojiPicker = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="搜索 emoji..."
+            placeholder="搜索 emoji (支持中英文)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-full bg-white/90 backdrop-blur text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
@@ -60,23 +63,27 @@ export const EmojiPicker = () => {
           </p>
         )}
         <div className="grid grid-cols-6 gap-1">
-          {filteredEmojis.map((emoji, idx) => (
-            <button
-              key={`${emoji}-${idx}`}
-              onClick={() => setCurrentEmoji(emoji)}
-              className={`
-                aspect-square flex items-center justify-center
-                text-xl rounded-lg transition-all duration-150
-                hover:scale-110 hover:bg-purple-100
-                ${currentEmoji === emoji 
-                  ? 'bg-purple-200 scale-110 ring-2 ring-purple-400 animate-bounce' 
-                  : ''
-                }
-              `}
-            >
-              {emoji}
-            </button>
-          ))}
+          {filteredEmojis.map((item, idx) => {
+            const emoji = getEmojiChar(item);
+            return (
+              <button
+                key={`${emoji}-${idx}`}
+                onClick={() => setCurrentEmoji(emoji)}
+                className={`
+                  aspect-square flex items-center justify-center
+                  text-xl rounded-lg transition-all duration-150
+                  hover:scale-110 hover:bg-purple-100
+                  ${currentEmoji === emoji 
+                    ? 'bg-purple-200 scale-110 ring-2 ring-purple-400 animate-bounce' 
+                    : ''
+                  }
+                `}
+                title={typeof item !== 'string' ? item.keywords.join(', ') : ''}
+              >
+                {emoji}
+              </button>
+            );
+          })}
         </div>
         {filteredEmojis.length === 0 && (
           <div className="text-center py-8 text-gray-400">

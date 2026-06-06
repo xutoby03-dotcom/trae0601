@@ -1,29 +1,44 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Eye, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Artwork, getArtworks, deleteArtwork } from '../utils/db';
+import { Trash2, Eye, ArrowLeft, Home, AlertTriangle } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { Artwork, getArtworks, getArtwork, deleteArtwork } from '../utils/db';
 import { useCanvasStore } from '../store/useStore';
 
 export const Gallery = () => {
+  const { id } = useParams<{ id: string }>();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
+  const [artworkNotFound, setArtworkNotFound] = useState(false);
   const { loadGrid } = useCanvasStore();
 
   const fetchArtworks = async () => {
     setLoading(true);
     try {
-      const works = await getArtworks();
-      setArtworks(works);
+      if (id) {
+        const artwork = await getArtwork(id);
+        if (artwork) {
+          setSelectedArtwork(artwork);
+          setArtworks([artwork]);
+        } else {
+          setArtworkNotFound(true);
+        }
+      } else {
+        const works = await getArtworks();
+        setArtworks(works);
+      }
     } catch (err) {
       console.error('Failed to load artworks:', err);
+      if (id) {
+        setArtworkNotFound(true);
+      }
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchArtworks();
-  }, []);
+  }, [id]);
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,20 +74,52 @@ export const Gallery = () => {
               <ArrowLeft className="w-4 h-4" />
               返回创作
             </Link>
-            <h1 className="text-3xl font-bold text-gray-800">🖼️ 我的画廊</h1>
-            <p className="text-gray-500 mt-1">你创作的所有 emoji 艺术作品</p>
+            <h1 className="text-3xl font-bold text-gray-800">
+              {id ? '🖼️ 查看作品' : '🖼️ 我的画廊'}
+            </h1>
+            <p className="text-gray-500 mt-1">
+              {id ? '分享的 emoji 艺术作品' : '你创作的所有 emoji 艺术作品'}
+            </p>
           </div>
-          <div className="text-right">
-            <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-              {artworks.length}
-            </span>
-            <p className="text-sm text-gray-500">个作品</p>
-          </div>
+          {!id && (
+            <div className="text-right">
+              <span className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+                {artworks.length}
+              </span>
+              <p className="text-sm text-gray-500">个作品</p>
+            </div>
+          )}
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-500"></div>
+          </div>
+        ) : artworkNotFound ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4 animate-bounce">🔍</div>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <AlertTriangle className="w-6 h-6 text-orange-500" />
+              <h3 className="text-xl font-semibold text-gray-700">作品不存在</h3>
+            </div>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+              抱歉，找不到这个作品。它可能已经被删除了，或者链接有误。
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link
+                to="/gallery"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all"
+              >
+                <Home className="w-4 h-4" />
+                浏览画廊
+              </Link>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all"
+              >
+                开始创作
+              </Link>
+            </div>
           </div>
         ) : artworks.length === 0 ? (
           <div className="text-center py-20">
@@ -87,6 +134,7 @@ export const Gallery = () => {
             </Link>
           </div>
         ) : (
+          !id ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {artworks.map((artwork) => (
               <div
@@ -129,6 +177,7 @@ export const Gallery = () => {
               </div>
             ))}
           </div>
+          ) : null
         )}
       </div>
 

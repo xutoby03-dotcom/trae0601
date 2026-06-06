@@ -11,6 +11,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Editor />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/gallery/:id" element={<Gallery />} />
         </Routes>
       </div>
     </Router>
