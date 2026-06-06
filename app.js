@@ -25,6 +25,13 @@ let currentGame = null;
 let gameInterval = null;
 let gameState = {};
 
+let nameInputActive = false;
+let nameInputGame = null;
+let nameInputScore = 0;
+let nameInputPos = 0;
+let nameInputChars = ['A', 'A', 'A'];
+const NAME_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
 const terminal = document.getElementById('terminal');
 const output = document.getElementById('output');
 const commandInput = document.getElementById('command-input');
@@ -87,6 +94,13 @@ function printHTML(html, className = 'output-line') {
     line.innerHTML = html;
     output.appendChild(line);
     output.scrollTop = output.scrollHeight;
+}
+
+function padCenter(str, len, char = ' ') {
+    const pad = len - str.length;
+    const padLeft = Math.floor(pad / 2);
+    const padRight = pad - padLeft;
+    return char.repeat(padLeft) + str + char.repeat(padRight);
 }
 
 function handleCommandKey(e) {
@@ -159,7 +173,8 @@ function showHelp() {
     print('  ║            用法: play <game_name>      ║');
     print('  ║            例如: play snake            ║');
     print('  ║ score    - 查看高分榜                  ║');
-    print('  ║            用法: score <game_name>     ║');
+    print('  ║            用法: score [game_name]     ║');
+    print('  ║            不带参数查看所有游戏        ║');
     print('  ║ cls      - 清屏                        ║');
     print('  ║ theme    - 切换主题                    ║');
     print('  ║            用法: theme <color>         ║');
@@ -273,30 +288,51 @@ function getScores(game, callback) {
 }
 
 function showScores(game) {
+    const gamesToShow = [];
+    
     if (game && Games[game.toUpperCase()]) {
-        const gameKey = Games[game.toUpperCase()];
+        gamesToShow.push(Games[game.toUpperCase()]);
+    } else {
+        gamesToShow.push(...Object.values(Games));
+    }
+    
+    let remaining = gamesToShow.length;
+    
+    print('');
+    
+    gamesToShow.forEach(gameKey => {
         getScores(gameKey, (scores) => {
+            const title = `=== ${gameKey.toUpperCase()} ===`;
+            print(`  ${padCenter(title, 30, '=')}`);
             print('');
-            print(`  ╔═══════════════════════════════════╗`);
-            print(`  ║  ${GameNames[gameKey]} 高分榜          ║`);
-            print(`  ╠═══════════════════════════════════╣`);
+            print(`  #############################`);
+            print(`  # 排名 # 名字 #   分数   #`);
+            print(`  #############################`);
+            
             if (scores.length === 0) {
-                print(`  ║     暂无记录                       ║`);
+                print(`  #  --- #  --- #   -----  #`);
             } else {
                 scores.forEach((s, i) => {
-                    const rank = `${i + 1}.`;
-                    const name = s.name.padEnd(10, ' ');
-                    const score = String(s.score).padStart(8, ' ');
-                    print(`  ║  ${rank} ${name} ${score}     ║`);
+                    const rank = String(i + 1).padStart(3, ' ');
+                    const name = s.name.substring(0, 3).padEnd(3, ' ');
+                    const score = String(s.score).padStart(7, ' ');
+                    print(`  # ${rank}  # ${name}  # ${score}  #`);
                 });
+                
+                for (let i = scores.length; i < 5; i++) {
+                    print(`  #  ${i + 1}.  # ---  #  ------  #`);
+                }
             }
-            print(`  ╚═══════════════════════════════════╝`);
+            
+            print(`  #############################`);
             print('');
+            
+            remaining--;
+            if (remaining === 0) {
+                print('');
+            }
         });
-    } else {
-        print('请指定游戏: score <game_name>', 'output-error');
-        print('可用游戏: snake, space, maze, sokoban, math', 'output-dim');
-    }
+    });
 }
 
 function startGame(game) {
@@ -331,6 +367,134 @@ function startGame(game) {
     }
 }
 
+function checkHighScore(game, score, callback) {
+    if (score <= 0) {
+        callback(false);
+        return;
+    }
+    getScores(game, (scores) => {
+        if (scores.length < 5) {
+            callback(true);
+        } else {
+            const lowest = scores[scores.length - 1].score;
+            callback(score > lowest);
+        }
+    });
+}
+
+function startNameInput(game, score) {
+    nameInputActive = true;
+    nameInputGame = game;
+    nameInputScore = score;
+    nameInputPos = 0;
+    nameInputChars = ['A', 'A', 'A'];
+    gameTitle.textContent = '新高分!';
+    gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
+    drawNameInputScreen();
+}
+
+function drawNameInputScreen() {
+    let screen = '';
+    
+    screen += '╔' + '═'.repeat(40) + '╗\n';
+    screen += '║' + padCenter('  新高分! 输入你的名字 ', 40, ' ') + '║\n';
+    screen += '╠' + '═'.repeat(40) + '╣\n';
+    screen += '║' + ' '.repeat(40) + '║\n';
+    screen += '║' + `  分数: ${String(nameInputScore).padEnd(31, ' ')}║\n`;
+    screen += '║' + ' '.repeat(40) + '║\n';
+    screen += '║' + ' '.repeat(40) + '║\n';
+    
+    let nameLine = '  ';
+    for (let i = 0; i < 3; i++) {
+        if (i === nameInputPos) {
+            nameLine += `[${nameInputChars[i]}] `;
+        } else {
+            nameLine += ` ${nameInputChars[i]}  `;
+        }
+    }
+    screen += '║' + nameLine.padEnd(40, ' ') + '║\n';
+    
+    screen += '║' + ' '.repeat(40) + '║\n';
+    screen += '║' + ' '.repeat(40) + '║\n';
+    screen += '║' + '  ↑↓ 选择字母   ←→ 移动位置'.padEnd(40, ' ') + '║\n';
+    screen += '║' + '  回车 确认保存'.padEnd(40, ' ') + '║\n';
+    screen += '║' + ' '.repeat(40) + '║\n';
+    screen += '╚' + '═'.repeat(40) + '╝\n';
+    
+    gameScreen.textContent = screen;
+}
+
+function handleNameInputKey(e) {
+    if (!nameInputActive) return false;
+    
+    switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+            e.preventDefault();
+            nameInputChars[nameInputPos] = nextChar(nameInputChars[nameInputPos]);
+            drawNameInputScreen();
+            return true;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+            e.preventDefault();
+            nameInputChars[nameInputPos] = prevChar(nameInputChars[nameInputPos]);
+            drawNameInputScreen();
+            return true;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+            e.preventDefault();
+            nameInputPos = Math.max(0, nameInputPos - 1);
+            drawNameInputScreen();
+            return true;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+            e.preventDefault();
+            nameInputPos = Math.min(2, nameInputPos + 1);
+            drawNameInputScreen();
+            return true;
+        case 'Enter':
+        case ' ':
+            e.preventDefault();
+            confirmNameInput();
+            return true;
+    }
+    
+    if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+        e.preventDefault();
+        nameInputChars[nameInputPos] = e.key.toUpperCase();
+        if (nameInputPos < 2) nameInputPos++;
+        drawNameInputScreen();
+        return true;
+    }
+    
+    return false;
+}
+
+function nextChar(c) {
+    const idx = NAME_CHARSET.indexOf(c);
+    return NAME_CHARSET[(idx + 1) % NAME_CHARSET.length];
+}
+
+function prevChar(c) {
+    const idx = NAME_CHARSET.indexOf(c);
+    return NAME_CHARSET[(idx - 1 + NAME_CHARSET.length) % NAME_CHARSET.length];
+}
+
+function confirmNameInput() {
+    const name = nameInputChars.join('');
+    saveScore(nameInputGame, nameInputScore, name);
+    nameInputActive = false;
+    
+    print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
+    print('');
+    
+    stopGame();
+}
+
 function stopGame() {
     if (gameInterval) {
         clearInterval(gameInterval);
@@ -348,6 +512,11 @@ function updateScore(score) {
 }
 
 function handleGameKey(e) {
+    if (nameInputActive) {
+        handleNameInputKey(e);
+        return;
+    }
+    
     if (!currentGame) return;
     
     if (e.key === 'Escape') {
@@ -411,10 +580,11 @@ function spawnSnakeFood() {
 function handleSnakeKey(e) {
     if (gameState.gameOver) {
         if (e.key === ' ' || e.key === 'Enter') {
-            if (gameState.score > 0) {
-                saveScore(Games.SNAKE, gameState.score);
+            if (gameState.isHighScore) {
+                startNameInput(Games.SNAKE, gameState.score);
+            } else {
+                startSnakeGame();
             }
-            startSnakeGame();
         }
         return;
     }
@@ -484,11 +654,16 @@ function updateSnakeGame() {
 function endSnakeGame() {
     gameState.gameOver = true;
     clearInterval(gameInterval);
-    if (gameState.score > 0) {
-        saveScore(Games.SNAKE, gameState.score);
-    }
-    drawSnakeGame();
-    gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+    
+    checkHighScore(Games.SNAKE, gameState.score, (isHigh) => {
+        gameState.isHighScore = isHigh;
+        drawSnakeGame();
+        if (isHigh) {
+            gameStatus.textContent = '新高分! 按空格/回车输入名字 | ESC 返回';
+        } else {
+            gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+        }
+    });
 }
 
 function drawSnakeGame() {
@@ -566,10 +741,11 @@ function startSpaceGame() {
 function handleSpaceKey(e) {
     if (gameState.gameOver) {
         if (e.key === ' ' || e.key === 'Enter') {
-            if (gameState.score > 0) {
-                saveScore(Games.SPACE, gameState.score);
+            if (gameState.isHighScore) {
+                startNameInput(Games.SPACE, gameState.score);
+            } else {
+                startSpaceGame();
             }
-            startSpaceGame();
         }
         return;
     }
@@ -662,11 +838,16 @@ function updateSpaceGame() {
 function endSpaceGame() {
     gameState.gameOver = true;
     clearInterval(gameInterval);
-    if (gameState.score > 0) {
-        saveScore(Games.SPACE, gameState.score);
-    }
-    drawSpaceGame();
-    gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+    
+    checkHighScore(Games.SPACE, gameState.score, (isHigh) => {
+        gameState.isHighScore = isHigh;
+        drawSpaceGame();
+        if (isHigh) {
+            gameStatus.textContent = '新高分! 按空格/回车输入名字 | ESC 返回';
+        } else {
+            gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+        }
+    });
 }
 
 function drawSpaceGame() {
@@ -792,7 +973,32 @@ function startMazeGame(level = 0) {
 function handleMazeKey(e) {
     if (gameState.won) {
         if (e.key === ' ' || e.key === 'Enter') {
-            startMazeGame(gameState.level + 1);
+            if (gameState.isHighScore) {
+                const nextLevel = gameState.level + 1;
+                const currentScore = gameState.score;
+                nameInputGame = Games.MAZE;
+                nameInputScore = currentScore;
+                nameInputActive = true;
+                nameInputPos = 0;
+                nameInputChars = ['A', 'A', 'A'];
+                gameTitle.textContent = '新高分!';
+                gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
+                
+                const originalConfirm = confirmNameInput;
+                confirmNameInput = function() {
+                    const name = nameInputChars.join('');
+                    saveScore(nameInputGame, nameInputScore, name);
+                    nameInputActive = false;
+                    print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
+                    confirmNameInput = originalConfirm;
+                    gameState.score = currentScore;
+                    startMazeGame(nextLevel);
+                };
+                
+                drawNameInputScreen();
+            } else {
+                startMazeGame(gameState.level + 1);
+            }
         }
         return;
     }
@@ -840,8 +1046,16 @@ function handleMazeKey(e) {
                 gameState.won = true;
                 gameState.score += 100 + Math.max(0, 200 - gameState.moves * 2);
                 updateScore(gameState.score);
-                saveScore(Games.MAZE, gameState.score);
-                gameStatus.textContent = '恭喜通关! 按空格进入下一关 | ESC 返回';
+                
+                checkHighScore(Games.MAZE, gameState.score, (isHigh) => {
+                    gameState.isHighScore = isHigh;
+                    drawMazeGame();
+                    if (isHigh) {
+                        gameStatus.textContent = '新高分! 按空格输入名字并下一关 | ESC 返回';
+                    } else {
+                        gameStatus.textContent = '恭喜通关! 按空格进入下一关 | ESC 返回';
+                    }
+                });
             }
         }
     }
@@ -974,7 +1188,32 @@ function getBox(x, y) {
 function handleSokobanKey(e) {
     if (gameState.won) {
         if (e.key === ' ' || e.key === 'Enter') {
-            startSokobanGame(gameState.level + 1);
+            if (gameState.isHighScore) {
+                const nextLevel = gameState.level + 1;
+                const currentScore = gameState.score;
+                nameInputGame = Games.SOKOBAN;
+                nameInputScore = currentScore;
+                nameInputActive = true;
+                nameInputPos = 0;
+                nameInputChars = ['A', 'A', 'A'];
+                gameTitle.textContent = '新高分!';
+                gameStatus.textContent = '↑↓选字母 ←→移动 回车确认';
+                
+                const originalConfirm = confirmNameInput;
+                confirmNameInput = function() {
+                    const name = nameInputChars.join('');
+                    saveScore(nameInputGame, nameInputScore, name);
+                    nameInputActive = false;
+                    print(`  新纪录已保存! ${name} - ${nameInputScore} 分`, 'output-success');
+                    confirmNameInput = originalConfirm;
+                    gameState.score = currentScore;
+                    startSokobanGame(nextLevel);
+                };
+                
+                drawNameInputScreen();
+            } else {
+                startSokobanGame(gameState.level + 1);
+            }
         }
         return;
     }
@@ -1033,8 +1272,16 @@ function handleSokobanKey(e) {
         gameState.won = true;
         gameState.score += 150 + Math.max(0, 300 - gameState.moves * 3);
         updateScore(gameState.score);
-        saveScore(Games.SOKOBAN, gameState.score);
-        gameStatus.textContent = '恭喜通关! 按空格进入下一关 | ESC 返回';
+        
+        checkHighScore(Games.SOKOBAN, gameState.score, (isHigh) => {
+            gameState.isHighScore = isHigh;
+            drawSokobanGame();
+            if (isHigh) {
+                gameStatus.textContent = '新高分! 按空格输入名字并下一关 | ESC 返回';
+            } else {
+                gameStatus.textContent = '恭喜通关! 按空格进入下一关 | ESC 返回';
+            }
+        });
     }
     
     drawSokobanGame();
@@ -1144,10 +1391,11 @@ function generateMathProblem() {
 function handleMathKey(e) {
     if (gameState.gameOver) {
         if (e.key === ' ' || e.key === 'Enter') {
-            if (gameState.score > 0) {
-                saveScore(Games.MATH, gameState.score);
+            if (gameState.isHighScore) {
+                startNameInput(Games.MATH, gameState.score);
+            } else {
+                startMathGame();
             }
-            startMathGame();
         }
         return;
     }
@@ -1187,11 +1435,16 @@ function handleMathKey(e) {
 function endMathGame() {
     gameState.gameOver = true;
     clearInterval(gameInterval);
-    if (gameState.score > 0) {
-        saveScore(Games.MATH, gameState.score);
-    }
-    drawMathGame();
-    gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+    
+    checkHighScore(Games.MATH, gameState.score, (isHigh) => {
+        gameState.isHighScore = isHigh;
+        drawMathGame();
+        if (isHigh) {
+            gameStatus.textContent = '新高分! 按空格/回车输入名字 | ESC 返回';
+        } else {
+            gameStatus.textContent = '游戏结束! 按空格/回车重新开始 | ESC 返回';
+        }
+    });
 }
 
 function drawMathGame() {
