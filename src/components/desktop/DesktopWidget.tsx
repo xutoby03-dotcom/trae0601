@@ -65,7 +65,8 @@ const StickyNoteWidget: React.FC<{ content?: string; widgetId: string }> = ({ co
           onChange={(e) => setText(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="w-full h-full bg-transparent resize-none outline-none border-none"
+          onMouseDown={(e) => e.stopPropagation()}
+          className="w-full h-full bg-transparent resize-none outline-none border-none cursor-text"
           style={{ fontFamily: 'cursive' }}
         />
       ) : (
@@ -134,7 +135,6 @@ const DesktopWidget: React.FC<DesktopWidgetProps> = ({ widget }) => {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    if ((e.target as HTMLElement).closest('[data-widget-content]')) return;
     e.preventDefault();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setDragOffset({
