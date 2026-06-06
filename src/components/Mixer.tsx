@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { useDJStore } from '../store/useDJStore';
 import { useAudioEngine } from '../hooks/useAudioEngine';
+import { audioEngine } from '../utils/audioEngine';
 import { Deck } from './Deck';
 import { Crossfader } from './Crossfader';
 import { VolumeFader } from './VolumeFader';
@@ -20,17 +21,12 @@ export const Mixer: React.FC = () => {
     setDeckBuffer,
     setCuePoint,
     setDeckBPM,
-    initAudioContext,
   } = useDJStore();
 
-  const { getDestinationStream, beatsAligned } = useAudioEngine();
+  const { getDestinationStream, beatsAligned, isReady } = useAudioEngine();
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<BlobPart[]>([]);
   const [masterLevel, setMasterLevel] = useState(0);
-
-  useEffect(() => {
-    initAudioContext();
-  }, [initAudioContext]);
 
   const handleStartRecording = useCallback(() => {
     const stream = getDestinationStream();
@@ -52,7 +48,7 @@ export const Mixer: React.FC = () => {
       const webmBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
       
       try {
-        const audioContext = useDJStore.getState().audioContext;
+        const audioContext = audioEngine.getAudioContext();
         if (!audioContext) return;
 
         const arrayBuffer = await webmBlob.arrayBuffer();
@@ -85,7 +81,7 @@ export const Mixer: React.FC = () => {
   }, [mixer.recordedBlob]);
 
   const handleLoadProject = useCallback(async (project: DJProject) => {
-    const audioContext = useDJStore.getState().audioContext;
+    const audioContext = audioEngine.getAudioContext();
     if (!audioContext) return;
 
     if (project.deckA.audioData.byteLength > 0) {

@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { useDJStore } from '../store/useDJStore';
-import { useAudioEngine } from '../hooks/useAudioEngine';
+import { useAudioControls } from '../hooks/useAudioControls';
 import { detectBPM } from '../utils/bpmDetector';
+import { audioEngine } from '../utils/audioEngine';
 import { VirtualDeck } from './VirtualDeck';
 import { Waveform } from './Waveform';
 import { VolumeFader } from './VolumeFader';
@@ -34,10 +35,10 @@ export const Deck: React.FC<DeckProps> = ({ deckId, color, beatsAligned }) => {
     setDeckCurrentTime,
   } = useDJStore();
   
-  const { togglePlay, seekDeck } = useAudioEngine();
+  const { togglePlay, seekDeck } = useAudioControls();
 
   const handleUpload = useCallback(async (file: File) => {
-    const audioContext = useDJStore.getState().audioContext;
+    const audioContext = audioEngine.getAudioContext();
     if (!audioContext) return;
 
     try {
