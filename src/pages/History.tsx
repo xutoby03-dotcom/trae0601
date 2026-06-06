@@ -79,41 +79,44 @@ export default function History() {
   return (
     <div className="min-h-screen relative z-10">
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ x: -5 }}
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 mb-8 text-gold hover:opacity-80 transition-opacity"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>返回首页</span>
-        </motion.button>
+        <div className="flex items-center justify-between mb-8">
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            whileHover={{ x: -5 }}
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-gold hover:opacity-80 transition-opacity"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>返回首页</span>
+          </motion.button>
+
+          {history.length > 0 && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleClearAll}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30 transition-all border border-red-500 border-opacity-30"
+            >
+              <Trash className="w-4 h-4" />
+              <span className="text-sm">清空全部</span>
+            </motion.button>
+          )}
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-gradient-gold flex-1 text-center">
-              历史记录
-            </h1>
-            {history.length > 0 && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleClearAll}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30 transition-all border border-red-500 border-opacity-30"
-              >
-                <Trash className="w-4 h-4" />
-                <span className="text-sm">清空全部</span>
-              </motion.button>
-            )}
-          </div>
+          <h1 className="font-display text-3xl md:text-4xl font-bold mb-4 text-gradient-gold">
+            历史记录
+          </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
-            共 {displayedRecords.length} 条记录
-            {selectedSpreadId !== 'all' && ` · 已筛选`}
+            共 {history.length} 条记录
+            {selectedSpreadId !== 'all' && ` · 当前筛选剩 ${displayedRecords.length} 条`}
           </p>
         </motion.div>
 
