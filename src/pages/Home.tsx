@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { Timer, Music, Headphones, Piano, BarChart3, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Timer, Music, Headphones, Piano, BarChart3, Sparkles, Flame } from 'lucide-react';
+import { getTodayStats } from '@/utils/storage';
 import { cn } from '@/lib/utils';
 
 const cards = [
@@ -42,11 +44,25 @@ const cards = [
     icon: BarChart3,
     gradient: 'from-pink-500 to-rose-600',
     glow: 'shadow-pink-500/25',
+    showBadge: true,
   },
 ];
 
+const formatDuration = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  return `${mins}分钟`;
+};
+
 export default function Home() {
   const navigate = useNavigate();
+  const [todayMinutes, setTodayMinutes] = useState(0);
+
+  useEffect(() => {
+    const today = getTodayStats();
+    if (today) {
+      setTodayMinutes(Math.floor(today.practiceDuration / 60));
+    }
+  }, []);
 
   return (
     <div className="flex flex-col items-center min-h-[calc(100vh-120px)] px-4 py-8">
@@ -77,6 +93,15 @@ export default function Home() {
                 index === 0 && 'sm:col-span-2 lg:col-span-1'
               )}
             >
+              {card.showBadge && todayMinutes > 0 && (
+                <div className="absolute -top-2 -right-2 z-10">
+                  <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full shadow-lg shadow-orange-500/30">
+                    <Flame className="w-3.5 h-3.5 text-white" />
+                    <span className="text-white text-xs font-bold">今日 {formatDuration(todayMinutes * 60)}</span>
+                  </div>
+                </div>
+              )}
+
               <div
                 className={cn(
                   'w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mb-4 shadow-lg',

@@ -134,10 +134,14 @@ export const loadDailyStats = (): DailyStats[] => {
 };
 
 export const getLast7DaysStats = (): DailyStats[] => {
+  return getLastNDaysStats(7);
+};
+
+export const getLastNDaysStats = (days: number): DailyStats[] => {
   const stats = loadDailyStats();
   const result: DailyStats[] = [];
 
-  for (let i = 6; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
@@ -160,4 +164,10 @@ export const getLast7DaysStats = (): DailyStats[] => {
   }
 
   return result;
+};
+
+export const getTodayStats = (): DailyStats | undefined => {
+  const today = new Date().toISOString().split('T')[0];
+  const stats = loadDailyStats();
+  return stats.find(s => s.date === today);
 };
