@@ -110,11 +110,6 @@ export const GameCanvas = () => {
     if (currentSkin) {
       engine.setSkin(currentSkin);
     }
-    engine.setOnStatsUpdate(handleStatsUpdate);
-    engine.setOnGameOver(handleGameOver);
-    engine.setOnShieldBreak(() => {
-      if (soundEnabled) playShieldBreakSound();
-    });
     engineRef.current = engine;
 
     initAudioContext();
@@ -130,6 +125,26 @@ export const GameCanvas = () => {
       stopBGM();
     };
   }, []);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setOnStatsUpdate(handleStatsUpdate);
+    }
+  }, [handleStatsUpdate]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setOnGameOver(handleGameOver);
+    }
+  }, [handleGameOver]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setOnShieldBreak(() => {
+        if (soundEnabled) playShieldBreakSound();
+      });
+    }
+  }, [soundEnabled, playShieldBreakSound]);
 
   useEffect(() => {
     if (engineRef.current) {
