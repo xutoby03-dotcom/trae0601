@@ -29,12 +29,15 @@ export const GameCanvas = () => {
   const [finalStats, setFinalStats] = useState<GameStats | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
 
+  const prevShieldRef = useRef(0);
+
   const {
     initAudioContext,
     playJumpSound,
     playSlideSound,
     playCoinSound,
     playGameOverSound,
+    playShieldSound,
     startBGM,
     stopBGM,
     setBGMVolume,
@@ -45,9 +48,13 @@ export const GameCanvas = () => {
       if (newStats.coins > stats.coins && soundEnabled) {
         playCoinSound();
       }
+      if (newStats.shieldTime > 0 && prevShieldRef.current <= 0 && soundEnabled) {
+        playShieldSound();
+      }
+      prevShieldRef.current = newStats.shieldTime;
       setStats(newStats);
     },
-    [stats.coins, setStats, playCoinSound, soundEnabled]
+    [stats.coins, setStats, playCoinSound, playShieldSound, soundEnabled]
   );
 
   const handleGameOver = useCallback(
@@ -219,8 +226,17 @@ export const GameCanvas = () => {
       <canvas ref={canvasRef} className="block w-full h-full" />
 
       <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 pointer-events-auto">
-          <p className="text-white font-bold text-lg">🏃 {Math.floor(stats.distance)}m</p>
+        <div className="flex flex-col gap-2 pointer-events-auto">
+          <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2">
+            <p className="text-white font-bold text-lg">🏃 {Math.floor(stats.distance)}m</p>
+          </div>
+          {stats.shieldTime > 0 && (
+            <div className="bg-cyan-500/30 backdrop-blur-sm rounded-xl px-4 py-2 border border-cyan-400/50 animate-pulse">
+              <p className="text-cyan-300 font-bold text-lg flex items-center gap-2">
+                🛡️ {(stats.shieldTime / 1000).toFixed(1)}s
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2">

@@ -2,6 +2,7 @@ import {
   Player,
   Obstacle,
   Coin,
+  Shield,
   Particle,
   GameState,
   ThemeType,
@@ -23,15 +24,18 @@ export class GameEngine {
   private player: Player;
   private obstacles: Obstacle[] = [];
   private coins: Coin[] = [];
+  private shields: Shield[] = [];
   private particles: Particle[] = [];
   private backgroundLayers: { x: number; speed: number }[] = [];
 
-  private stats: GameStats = { distance: 0, coins: 0, speed: 0 };
+  private stats: GameStats = { distance: 0, coins: 0, speed: 0, shieldTime: 0 };
   private animationId: number | null = null;
   private lastTime: number = 0;
   private obstacleIdCounter: number = 0;
   private coinIdCounter: number = 0;
+  private shieldIdCounter: number = 0;
   private lastObstacleX: number = 0;
+  private lastShieldX: number = 0;
   private skin: Skin | null = null;
 
   private shakeAmount: number = 0;
@@ -123,11 +127,14 @@ export class GameEngine {
     this.player = this.createPlayer();
     this.obstacles = [];
     this.coins = [];
+    this.shields = [];
     this.particles = [];
-    this.stats = { distance: 0, coins: 0, speed: defaultConfig.baseSpeed };
+    this.stats = { distance: 0, coins: 0, speed: defaultConfig.baseSpeed, shieldTime: 0 };
     this.obstacleIdCounter = 0;
     this.coinIdCounter = 0;
+    this.shieldIdCounter = 0;
     this.lastObstacleX = this.width - 200;
+    this.lastShieldX = 0;
     this.shakeAmount = 0;
     this.currentPlatform = null;
     this.initBackgroundLayers();
@@ -183,13 +190,20 @@ export class GameEngine {
     );
 
     this.stats.distance += this.stats.speed * 0.1;
+    
+    if (this.stats.shieldTime > 0) {
+      this.stats.shieldTime = Math.max(0, this.stats.shieldTime - deltaTime);
+    }
+
     this.updateObstacles();
     this.updatePlayer(deltaTime);
     this.updateCoins();
+    this.updateShields();
     this.updateParticles();
     this.updateBackground();
     this.spawnObstacles();
     this.spawnCoins();
+    this.spawnShields();
     this.checkCollisions();
     this.updateShake();
 
@@ -279,6 +293,36 @@ export class GameEngine {
       if (coin.x + 20 < 0 || coin.collected) {
         this.coins.splice(i, 1);
       }
+    }
+  }
+
+  private updateShields() {
+    const speed = this.stats.speed;
+    this.lastShieldX -= speed;
+
+    for (let i = this.shields.length - 1; i >= 0; i--) {
+      const shield = this.shields[i];
+      shield.x -= speed;
+      shield.animationFrame = (shield.animationFrame + 0.15) % (Math.PI * 2);
+
+      if (shield.x + 30 < 0 || shield.collected) {
+        this.shields.splice(i, 1);
+      }
+    }
+  }
+
+  private spawnShields() {
+    const minGap = 3000;
+    if (this.lastShieldX < this.width - minGap && Math.random() < 0.003) {
+      this.lastShieldX = this.width + 200;
+      const baseY = this.groundY - 80 - Math.random() * 80;
+      this.shields.push({
+        id: this.shieldIdCounter++,
+        x: this.width + 50,
+        y: baseY,
+        collected: false,
+        animationFrame: Math.random() * Math.PI * 2,
+      });
     }
   }
 
@@ -448,8 +492,13 @@ export class GameEngine {
         }
       } else {
         if (this.rectIntersect(playerBox, obs)) {
-          this.triggerGameOver();
-          return;
+          if (this.stats.shieldTime > 0 && (obs.type === 'high' || obs.type === 'blade')) {
+            this.obstacles = this.obstacles.filter((o) => o.id !== obs.id);
+            this.spawnShieldBreakParticles(obs.x + obs.width / 2, obs.y + obs.height / 2);
+          } else {
+            this.triggerGameOver();
+            return;
+          }
         }
       }
     }
@@ -461,6 +510,17 @@ export class GameEngine {
           coin.collected = true;
           this.stats.coins++;
           this.spawnCoinParticles(coin.x, coin.y);
+        }
+      }
+    }
+
+    for (const shield of this.shields) {
+      if (!shield.collected) {
+        const shieldBox = { x: shield.x - 20, y: shield.y - 20, width: 40, height: 40 };
+        if (this.rectIntersect(playerBox, shieldBox)) {
+          shield.collected = true;
+          this.stats.shieldTime = 5000;
+          this.spawnShieldPickupParticles(shield.x, shield.y);
         }
       }
     }
@@ -560,6 +620,39 @@ export class GameEngine {
     }
   }
 
+  private spawnShieldPickupParticles(x: number, y: number) {
+    for (let i = 0; i < 12; i++) {
+      const angle = (Math.PI * 2 * i) / 12;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * 4,
+        vy: Math.sin(angle) * 4,
+        life: 25,
+        maxLife: 25,
+        color: '#00BFFF',
+        size: 5,
+      });
+    }
+  }
+
+  private spawnShieldBreakParticles(x: number, y: number) {
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 30,
+        maxLife: 30,
+        color: '#00BFFF',
+        size: 4 + Math.random() * 4,
+      });
+    }
+  }
+
   private render() {
     const ctx = this.ctx;
     const colors = themeColors[this.theme];
@@ -583,7 +676,11 @@ export class GameEngine {
     this.renderGround(colors);
     this.renderObstacles(colors);
     this.renderCoins();
+    this.renderShields();
     this.renderPlayer();
+    if (this.stats.shieldTime > 0) {
+      this.renderShieldAura();
+    }
     this.renderParticles();
 
     ctx.restore();
@@ -726,6 +823,69 @@ export class GameEngine {
 
       ctx.restore();
     }
+  }
+
+  private renderShields() {
+    const ctx = this.ctx;
+
+    for (const shield of this.shields) {
+      if (shield.collected) continue;
+
+      const pulse = 0.85 + Math.sin(shield.animationFrame) * 0.15;
+
+      ctx.save();
+      ctx.translate(shield.x, shield.y);
+      ctx.scale(pulse, pulse);
+
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 22);
+      gradient.addColorStop(0, 'rgba(0, 191, 255, 0.9)');
+      gradient.addColorStop(0.6, 'rgba(0, 191, 255, 0.4)');
+      gradient.addColorStop(1, 'rgba(0, 191, 255, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#00BFFF';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.arc(-5, -5, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  private renderShieldAura() {
+    const ctx = this.ctx;
+    const p = this.player;
+    const centerX = p.x + p.width / 2;
+    const centerY = p.y + p.height / 2;
+    const radius = Math.max(p.width, p.height) * 0.85;
+    const time = Date.now() * 0.003;
+    const flicker = 0.85 + Math.sin(time * 3) * 0.15;
+
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    gradient.addColorStop(0, 'rgba(0, 191, 255, 0)');
+    gradient.addColorStop(0.7, `rgba(0, 191, 255, ${0.25 * flicker})`);
+    gradient.addColorStop(1, `rgba(0, 191, 255, ${0.5 * flicker})`);
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(0, 191, 255, ${0.7 * flicker})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   private renderPlayer() {

@@ -54,6 +54,17 @@ export const useAudio = () => {
     setTimeout(() => playTone(100, 0.5, 'sawtooth', 0.2), 500);
   }, [playTone]);
 
+  const playShieldSound = useCallback(() => {
+    playTone(523, 0.1, 'sine', 0.2);
+    setTimeout(() => playTone(659, 0.1, 'sine', 0.2), 80);
+    setTimeout(() => playTone(784, 0.15, 'sine', 0.25), 160);
+  }, [playTone]);
+
+  const playShieldBreakSound = useCallback(() => {
+    playTone(300, 0.15, 'square', 0.2);
+    setTimeout(() => playTone(200, 0.2, 'sawtooth', 0.15), 100);
+  }, [playTone]);
+
   const bgmPatterns = [
     [220, 262, 294, 330, 220, 262, 294, 330, 196, 247, 294, 349, 196, 247, 294, 349],
     [523, 587, 659, 784, 659, 587, 523, 440, 523, 587, 659, 784, 880, 784, 659, 523],
@@ -129,6 +140,8 @@ export const useAudio = () => {
     playSlideSound,
     playCoinSound,
     playGameOverSound,
+    playShieldSound,
+    playShieldBreakSound,
     startBGM,
     stopBGM,
     setBGMVolume,

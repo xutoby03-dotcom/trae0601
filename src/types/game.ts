@@ -35,6 +35,14 @@ export interface Coin {
   animationFrame: number;
 }
 
+export interface Shield {
+  id: number;
+  x: number;
+  y: number;
+  collected: boolean;
+  animationFrame: number;
+}
+
 export interface Particle {
   x: number;
   y: number;
@@ -88,4 +96,5 @@ export interface GameStats {
   distance: number;
   coins: number;
   speed: number;
+  shieldTime: number;
 }

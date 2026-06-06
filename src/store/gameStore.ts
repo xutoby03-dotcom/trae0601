@@ -31,7 +31,7 @@ export const useGameStore = create<GameStore>((set) => ({
   gameState: 'menu',
   currentTheme: 'volcano',
   currentSkin: null,
-  stats: { distance: 0, coins: 0, speed: 0 },
+  stats: { distance: 0, coins: 0, speed: 0, shieldTime: 0 },
   totalCoins: 0,
   bestDistance: 0,
   showMenu: 'main',
