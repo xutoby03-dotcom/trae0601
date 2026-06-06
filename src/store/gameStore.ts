@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { GameState, Furniture, Staff, MenuItem, Customer, Position, CustomerState } from '@/types/game';
-import { FURNITURE_DATA, STAFF_DATA, MENU_DATA, CUSTOMER_EMOJIS, GRID_SIZE } from '@/data/gameData';
+import { FURNITURE_DATA, STAFF_CANDIDATES, MENU_DATA, CUSTOMER_EMOJIS, GRID_SIZE } from '@/data/gameData';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -18,10 +18,14 @@ const createInitialFurniture = (): Furniture[] => {
 };
 
 const createInitialStaff = (): Staff[] => {
-  return Object.entries(STAFF_DATA).map(([type, data]) => ({
-    ...data,
-    id: `staff_${type}_${generateId()}`,
-    type: type as Staff['type'],
+  return [];
+};
+
+const getStaffCandidates = (): Staff[] => {
+  return STAFF_CANDIDATES.map((candidate, idx) => ({
+    ...candidate,
+    id: `staff_candidate_${idx}_${generateId()}`,
+    hired: false,
   }));
 };
 
@@ -29,15 +33,41 @@ const createInitialMenu = (): MenuItem[] => {
   return MENU_DATA.map(item => ({ ...item }));
 };
 
-const createCustomer = (): Customer => {
-  const unlockedItems = MENU_DATA.filter(m => m.unlocked);
-  const orderCount = Math.floor(Math.random() * 2) + 1;
+const selectMenuItemsByPrice = (menu: MenuItem[], count: number): MenuItem[] => {
+  const unlockedItems = menu.filter(m => m.unlocked);
+  if (unlockedItems.length === 0) return [];
+  
   const order: MenuItem[] = [];
   
-  for (let i = 0; i < orderCount; i++) {
-    const randomItem = unlockedItems[Math.floor(Math.random() * unlockedItems.length)];
-    order.push({ ...randomItem });
+  for (let i = 0; i < count; i++) {
+    const totalWeight = unlockedItems.reduce((sum, item) => {
+      const priceRatio = item.currentPrice / item.basePrice;
+      const weight = 1 / (priceRatio * priceRatio);
+      return sum + Math.max(0.1, weight);
+    }, 0);
+    
+    let random = Math.random() * totalWeight;
+    let selected = unlockedItems[0];
+    
+    for (const item of unlockedItems) {
+      const priceRatio = item.currentPrice / item.basePrice;
+      const weight = 1 / (priceRatio * priceRatio);
+      random -= Math.max(0.1, weight);
+      if (random <= 0) {
+        selected = item;
+        break;
+      }
+    }
+    
+    order.push({ ...selected });
   }
+  
+  return order;
+};
+
+const createCustomer = (menu: MenuItem[]): Customer => {
+  const orderCount = Math.floor(Math.random() * 2) + 1;
+  const order = selectMenuItemsByPrice(menu, orderCount);
 
   return {
     id: `customer_${generateId()}`,
@@ -94,6 +124,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   grid: createInitialGrid(),
   furnitureInventory: createInitialFurniture(),
   staff: createInitialStaff(),
+  staffCandidates: getStaffCandidates(),
   menu: createInitialMenu(),
   
   customers: [],
@@ -222,25 +253,34 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   hireStaff: (staffId) => {
     const state = get();
-    const staff = state.staff.find(s => s.id === staffId);
-    if (!staff || staff.hired || state.money < staff.hireCost) return;
+    const candidate = state.staffCandidates.find(s => s.id === staffId);
+    if (!candidate || state.money < candidate.hireCost) return;
     
-    const newStaff = state.staff.map(s => 
-      s.id === staffId ? { ...s, hired: true } : s
-    );
+    const existingSameType = state.staff.find(s => s.type === candidate.type);
+    if (existingSameType) return;
+    
+    const newHire = { ...candidate, hired: true };
+    const newCandidates = state.staffCandidates.filter(s => s.id !== staffId);
     
     set({
-      money: state.money - staff.hireCost,
-      staff: newStaff,
+      money: state.money - candidate.hireCost,
+      staff: [...state.staff, newHire],
+      staffCandidates: newCandidates,
     });
   },
 
   fireStaff: (staffId) => {
     const state = get();
-    const newStaff = state.staff.map(s => 
-      s.id === staffId ? { ...s, hired: false } : s
-    );
-    set({ staff: newStaff });
+    const staffToFire = state.staff.find(s => s.id === staffId);
+    if (!staffToFire) return;
+    
+    const newStaff = state.staff.filter(s => s.id !== staffId);
+    const firedCandidate = { ...staffToFire, hired: false };
+    
+    set({
+      staff: newStaff,
+      staffCandidates: [...state.staffCandidates, firedCandidate],
+    });
   },
 
   updateMenuPrice: (menuItemId, price) => {
@@ -320,7 +360,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const baseSatisfaction = get().calculateSatisfaction();
     
     if (Math.random() < 0.03 * state.gameSpeed * (baseSatisfaction / 70)) {
-      const newCustomer = createCustomer();
+      const newCustomer = createCustomer(state.menu);
       customers = [...customers, newCustomer];
     }
     

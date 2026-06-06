@@ -58,38 +58,19 @@ export const FURNITURE_DATA: Record<FurnitureType, Omit<Furniture, 'id' | 'posit
   },
 };
 
-export const STAFF_DATA: Record<StaffType, Omit<Staff, 'id'>> = {
-  cashier: {
-    type: 'cashier',
-    name: '收银员',
-    salary: 100,
-    skill: 1,
-    hired: false,
-    hireCost: 200,
-    emoji: '💁',
-    description: '加快点餐速度',
-  },
-  waiter: {
-    type: 'waiter',
-    name: '服务员',
-    salary: 120,
-    skill: 1,
-    hired: false,
-    hireCost: 250,
-    emoji: '🧑‍🍳',
-    description: '加快上菜速度，提升满意度',
-  },
-  chef: {
-    type: 'chef',
-    name: '咖啡师',
-    salary: 150,
-    skill: 1,
-    hired: false,
-    hireCost: 300,
-    emoji: '👨‍🍳',
-    description: '加快制作速度',
-  },
-};
+export const STAFF_CANDIDATES: Omit<Staff, 'id' | 'hired'>[] = [
+  { type: 'cashier', name: '小明', salary: 80, skill: 1, hireCost: 150, emoji: '👦', description: '新手收银员，速度一般' },
+  { type: 'cashier', name: '小红', salary: 120, skill: 2, hireCost: 300, emoji: '👩', description: '熟练收银员，点餐较快' },
+  { type: 'cashier', name: '老王', salary: 180, skill: 3, hireCost: 500, emoji: '👨', description: '资深收银员，闪电速度' },
+  
+  { type: 'waiter', name: '小李', salary: 100, skill: 1, hireCost: 200, emoji: '🧑', description: '新手服务员，态度友好' },
+  { type: 'waiter', name: '小美', salary: 150, skill: 2, hireCost: 400, emoji: '👧', description: '熟练服务员，顾客满意' },
+  { type: 'waiter', name: '阿花', salary: 220, skill: 3, hireCost: 600, emoji: '👵', description: '金牌服务员，五星好评' },
+  
+  { type: 'chef', name: '阿强', salary: 130, skill: 1, hireCost: 250, emoji: '👨‍🍳', description: '新手咖啡师，手艺尚可' },
+  { type: 'chef', name: '阿杰', salary: 190, skill: 2, hireCost: 450, emoji: '🧑‍🍳', description: '熟练咖啡师，出品稳定' },
+  { type: 'chef', name: '大师', salary: 280, skill: 3, hireCost: 700, emoji: '👨‍🍳', description: '咖啡大师，赛过星巴克' },
+];
 
 export const MENU_DATA: MenuItem[] = [
   { id: 'espresso', type: 'coffee', name: '意式浓缩', cost: 5, basePrice: 15, currentPrice: 15, unlocked: true, unlockCost: 0, prepTime: 3, emoji: '☕' },

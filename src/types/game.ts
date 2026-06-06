@@ -74,6 +74,7 @@ export interface GameState {
   grid: (Furniture | null)[][];
   furnitureInventory: Furniture[];
   staff: Staff[];
+  staffCandidates: Staff[];
   menu: MenuItem[];
   
   customers: Customer[];
