@@ -107,14 +107,62 @@
                     <div id="tile-palette" class="tile-palette"></div>
                     <div class="editor-buttons">
                         <button class="btn" onclick="clearLevel()">清空</button>
-                        <button class="btn" onclick="saveLevel()">保存</button>
-                        <button class="btn" onclick="loadLevel()">加载</button>
+                        <button class="btn" onclick="showSaveDialog()">保存</button>
+                        <button class="btn" onclick="showLoadDialog()">加载</button>
+                        <button class="btn" onclick="showShareDialog()">分享</button>
+                        <button class="btn" onclick="showImportDialog()">导入</button>
                         <button class="btn" onclick="testLevel()">测试</button>
                     </div>
                 </div>
                 <canvas id="editorCanvas"></canvas>
             </div>
             <button class="btn back-btn" onclick="showMenu()">返回</button>
+        </div>
+
+        <div id="save-dialog" class="screen overlay">
+            <h2>保存关卡</h2>
+            <div class="dialog-content">
+                <label>关卡名称:</label>
+                <input type="text" id="level-name-input" placeholder="输入关卡名称" maxlength="20">
+                <div class="dialog-buttons">
+                    <button class="btn" onclick="confirmSave()">确定</button>
+                    <button class="btn" onclick="hideDialogs()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="load-dialog" class="screen overlay">
+            <h2>加载关卡</h2>
+            <div class="dialog-content">
+                <div id="saved-levels-list" class="saved-levels-list"></div>
+                <div class="dialog-buttons">
+                    <button class="btn" onclick="hideDialogs()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="share-dialog" class="screen overlay">
+            <h2>分享关卡</h2>
+            <div class="dialog-content">
+                <p>复制下面的分享链接:</p>
+                <textarea id="share-link-output" readonly rows="4" style="width:100%;font-family:monospace;"></textarea>
+                <div class="dialog-buttons">
+                    <button class="btn" onclick="copyShareLink()">复制链接</button>
+                    <button class="btn" onclick="hideDialogs()">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="import-dialog" class="screen overlay">
+            <h2>导入关卡</h2>
+            <div class="dialog-content">
+                <label>粘贴分享链接:</label>
+                <textarea id="import-link-input" rows="4" style="width:100%;font-family:monospace;" placeholder="粘贴分享链接到这里..."></textarea>
+                <div class="dialog-buttons">
+                    <button class="btn" onclick="confirmImport()">导入</button>
+                    <button class="btn" onclick="hideDialogs()">取消</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -39,7 +39,9 @@ let game = {
     levelData: null,
     levelWidth: 0,
     levelHeight: 0,
-    tileMap: []
+    tileMap: [],
+    spawnX: 100,
+    spawnY: 200
 };
 
 function initGame() {
@@ -52,6 +54,34 @@ function initGame() {
     document.addEventListener('keyup', handleKeyUp);
     
     generateLevelButtons();
+    checkUrlLevelData();
+}
+
+function checkUrlLevelData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const levelData = urlParams.get('level');
+    if (levelData) {
+        try {
+            const jsonStr = decodeURIComponent(atob(levelData));
+            const data = JSON.parse(jsonStr);
+            if (data.tileMap && data.width && data.height) {
+                setTimeout(() => {
+                    if (confirm('检测到分享的关卡，是否导入到编辑器？')) {
+                        showEditor();
+                        editor.width = data.width;
+                        editor.height = data.height;
+                        editor.tileMap = data.tileMap;
+                        editor.enemies = data.enemies || [];
+                        editor.collectibles = data.collectibles || [];
+                        editor.cameraX = 0;
+                        renderEditor();
+                    }
+                }, 500);
+            }
+        } catch (e) {
+            console.error('Failed to load level from URL:', e);
+        }
+    }
 }
 
 function handleKeyDown(e) {
@@ -372,7 +402,18 @@ function breakBrick(x, y) {
 
 function checkWinCondition() {
     const flagX = (game.levelWidth - 3) * TILE_SIZE;
-    if (game.player.x >= flagX - 20) {
+    const flagY = 8 * TILE_SIZE;
+    const flagWidth = 6;
+    const flagHeight = 12 * TILE_SIZE;
+    
+    const flagRect = {
+        x: flagX,
+        y: flagY,
+        width: flagWidth,
+        height: flagHeight
+    };
+    
+    if (rectCollision(game.player, flagRect)) {
         levelComplete();
     }
 }
@@ -420,8 +461,8 @@ function playerDie() {
 }
 
 function respawnPlayer() {
-    game.player.x = 100;
-    game.player.y = 200;
+    game.player.x = game.spawnX;
+    game.player.y = game.spawnY;
     game.player.vx = 0;
     game.player.vy = 0;
     game.player.dead = false;
@@ -493,8 +534,20 @@ function updateHUD() {
 }
 
 function showScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
+    const screen = document.getElementById(screenId);
+    if (screen && screen.classList.contains('overlay')) {
+        screen.classList.add('active');
+    } else {
+        document.querySelectorAll('.screen').forEach(s => {
+            if (!s.classList.contains('overlay')) {
+                s.classList.remove('active');
+            }
+        });
+        document.querySelectorAll('.screen.overlay').forEach(s => s.classList.remove('active'));
+        if (screen) {
+            screen.classList.add('active');
+        }
+    }
 }
 
 function showMenu() {

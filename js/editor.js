@@ -311,23 +311,84 @@ function clearLevel() {
     }
 }
 
-function saveLevel() {
-    const levelData = {
+function getCurrentLevelData() {
+    return {
         width: editor.width,
         height: editor.height,
         tileMap: editor.tileMap,
         enemies: editor.enemies,
-        collectibles: editor.collectibles
+        collectibles: editor.collectibles,
+        createdAt: Date.now()
     };
+}
+
+function getSavedLevels() {
+    const saved = localStorage.getItem('customLevels');
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            return [];
+        }
+    }
+    return [];
+}
+
+function saveLevelsList(levels) {
+    localStorage.setItem('customLevels', JSON.stringify(levels));
+}
+
+function showSaveDialog() {
+    document.getElementById('level-name-input').value = '';
+    showScreen('save-dialog');
+}
+
+function confirmSave() {
+    const nameInput = document.getElementById('level-name-input');
+    const name = nameInput.value.trim();
     
-    localStorage.setItem('customLevel', JSON.stringify(levelData));
+    if (!name) {
+        alert('请输入关卡名称！');
+        return;
+    }
+    
+    const levels = getSavedLevels();
+    const levelData = getCurrentLevelData();
+    levelData.name = name;
+    levelData.id = Date.now();
+    
+    levels.push(levelData);
+    saveLevelsList(levels);
+    
+    hideDialogs();
     alert('关卡已保存！');
 }
 
-function loadLevel() {
-    const saved = localStorage.getItem('customLevel');
-    if (saved) {
-        const levelData = JSON.parse(saved);
+function showLoadDialog() {
+    const levels = getSavedLevels();
+    const listContainer = document.getElementById('saved-levels-list');
+    
+    if (levels.length === 0) {
+        listContainer.innerHTML = '<p style="color:#999;padding:20px;text-align:center;">暂无保存的关卡</p>';
+    } else {
+        listContainer.innerHTML = levels.map((level, index) => `
+            <div class="saved-level-item">
+                <span class="saved-level-name">${escapeHtml(level.name)}</span>
+                <div class="saved-level-actions">
+                    <button class="btn" onclick="loadSavedLevel(${index})">加载</button>
+                    <button class="btn delete" onclick="deleteSavedLevel(${index})">删除</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    showScreen('load-dialog');
+}
+
+function loadSavedLevel(index) {
+    const levels = getSavedLevels();
+    if (levels[index]) {
+        const levelData = levels[index];
         editor.width = levelData.width;
         editor.height = levelData.height;
         editor.tileMap = levelData.tileMap;
@@ -335,10 +396,93 @@ function loadLevel() {
         editor.collectibles = levelData.collectibles || [];
         editor.cameraX = 0;
         renderEditor();
-        alert('关卡已加载！');
-    } else {
-        alert('没有找到保存的关卡！');
+        hideDialogs();
+        alert(`已加载关卡：${levelData.name}`);
     }
+}
+
+function deleteSavedLevel(index) {
+    const levels = getSavedLevels();
+    if (levels[index] && confirm(`确定要删除关卡"${levels[index].name}"吗？`)) {
+        levels.splice(index, 1);
+        saveLevelsList(levels);
+        showLoadDialog();
+    }
+}
+
+function showShareDialog() {
+    const levelData = getCurrentLevelData();
+    const jsonStr = JSON.stringify(levelData);
+    const base64 = btoa(encodeURIComponent(jsonStr));
+    const shareUrl = `${window.location.origin}${window.location.pathname}?level=${base64}`;
+    
+    document.getElementById('share-link-output').value = shareUrl;
+    showScreen('share-dialog');
+}
+
+function copyShareLink() {
+    const textarea = document.getElementById('share-link-output');
+    textarea.select();
+    document.execCommand('copy');
+    alert('链接已复制到剪贴板！');
+}
+
+function showImportDialog() {
+    document.getElementById('import-link-input').value = '';
+    showScreen('import-dialog');
+}
+
+function confirmImport() {
+    const input = document.getElementById('import-link-input').value.trim();
+    
+    if (!input) {
+        alert('请粘贴分享链接！');
+        return;
+    }
+    
+    try {
+        let base64;
+        if (input.includes('?level=')) {
+            const urlParams = new URLSearchParams(input.split('?')[1]);
+            base64 = urlParams.get('level');
+        } else {
+            base64 = input;
+        }
+        
+        const jsonStr = decodeURIComponent(atob(base64));
+        const levelData = JSON.parse(jsonStr);
+        
+        if (levelData.tileMap && levelData.width && levelData.height) {
+            editor.width = levelData.width;
+            editor.height = levelData.height;
+            editor.tileMap = levelData.tileMap;
+            editor.enemies = levelData.enemies || [];
+            editor.collectibles = levelData.collectibles || [];
+            editor.cameraX = 0;
+            renderEditor();
+            hideDialogs();
+            alert('关卡导入成功！');
+        } else {
+            throw new Error('无效的关卡数据');
+        }
+    } catch (e) {
+        alert('导入失败：无效的链接或数据格式！');
+        console.error(e);
+    }
+}
+
+function hideDialogs() {
+    document.getElementById('save-dialog').classList.remove('active');
+    document.getElementById('load-dialog').classList.remove('active');
+    document.getElementById('share-dialog').classList.remove('active');
+    document.getElementById('import-dialog').classList.remove('active');
+    showScreen('editor-screen');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function testLevel() {
@@ -354,7 +498,9 @@ function testLevel() {
     game.levelHeight = editor.height;
     game.tileMap = JSON.parse(JSON.stringify(editor.tileMap));
     
-    game.player = createPlayer(100, 200);
+    game.spawnX = 100;
+    game.spawnY = 200;
+    game.player = createPlayer(game.spawnX, game.spawnY);
     
     for (const enemy of editor.enemies) {
         switch (enemy.type) {

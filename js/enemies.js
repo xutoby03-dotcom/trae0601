@@ -273,15 +273,14 @@ function checkEnemyCollisions() {
         if (!enemy.alive) continue;
         
         if (rectCollision(p, enemy)) {
-            if (enemy.type === 'spike') {
-                playerDie();
-                return;
-            }
-            
             const playerBottom = p.y + p.height;
             const enemyTop = enemy.y;
             
             if (p.vy > 0 && playerBottom - enemyTop < 15) {
+                if (enemy.type === 'spike') {
+                    playerDie();
+                    return;
+                }
                 stompEnemy(enemy);
                 p.vy = -8;
                 p.onGround = false;

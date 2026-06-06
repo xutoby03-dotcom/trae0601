@@ -13,7 +13,10 @@ function loadLevel(levelNum) {
     game.levelHeight = levelData.height;
     game.tileMap = levelData.tileMap;
     
-    game.player = createPlayer(100, 200);
+    game.spawnX = levelData.spawnX || 100;
+    game.spawnY = levelData.spawnY || 200;
+    
+    game.player = createPlayer(game.spawnX, game.spawnY);
     
     for (const enemy of levelData.enemies) {
         switch (enemy.type) {
@@ -98,13 +101,30 @@ function generateLevel(levelNum) {
     
     addFlag(tileMap, width, height);
     
+    const spawnPoints = [
+        { x: 100, y: 200 },
+        { x: 80, y: 350 },
+        { x: 120, y: 300 },
+        { x: 90, y: 280 },
+        { x: 150, y: 320 },
+        { x: 110, y: 260 },
+        { x: 130, y: 290 },
+        { x: 100, y: 310 },
+        { x: 140, y: 270 },
+        { x: 120, y: 330 }
+    ];
+    
+    const spawn = spawnPoints[levelNum - 1] || { x: 100, y: 200 };
+    
     return {
         width: width,
         height: height,
         tileMap: tileMap,
         enemies: enemies,
         collectibles: collectibles,
-        boss: bossData
+        boss: bossData,
+        spawnX: spawn.x,
+        spawnY: spawn.y
     };
 }
 
