@@ -1,35 +1,31 @@
 import { Story } from './types';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
-import { NOTO_SANS_SC_BASE64 } from './fontData';
 
-// 加载中文字体
-// 使用说明：
-// 1. 下载 Noto Sans SC Regular TTF 字体: https://fonts.google.com/noto/specimen/Noto+Sans+SC
-// 2. 将 ttf 文件转换为 base64 (可用 https://www.base64encoder.io/base64-file-encoder/)
-// 3. 把完整的 base64 字符串粘贴到 src/fontData.ts 中的 NOTO_SANS_SC_BASE64 变量
-function loadChineseFont(doc: jsPDF): boolean {
+const FONT_NAME = 'NotoSansSC';
+const FONT_CDN_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.0.18/files/noto-sans-sc-chinese-simplified-400-normal.ttf';
+
+async function loadChineseFont(doc: jsPDF): Promise<boolean> {
   try {
-    if (!NOTO_SANS_SC_BASE64 || NOTO_SANS_SC_BASE64.trim() === '') {
-      console.warn(
-        '⚠️  未检测到中文字体 base64，PDF 中的中文将显示为方块。\n' +
-        '请按以下步骤设置中文字体：\n' +
-        '1. 下载 Noto Sans SC Regular TTF 字体\n' +
-        '2. 将 ttf 转换为 base64 字符串\n' +
-        '3. 粘贴到 src/fontData.ts 的 NOTO_SANS_SC_BASE64 变量中\n' +
-        '详细说明见 src/fontData.ts 文件头部注释'
-      );
-      return false;
+    const response = await fetch(FONT_CDN_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    const fontName = 'NotoSansSC';
-    doc.addFileToVFS(`${fontName}.ttf`, NOTO_SANS_SC_BASE64);
-    doc.addFont(`${fontName}.ttf`, fontName, 'normal');
-    doc.setFont(fontName);
-    
+    const buffer = await response.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+
+    doc.addFileToVFS(`${FONT_NAME}.ttf`, base64);
+    doc.addFont(`${FONT_NAME}.ttf`, FONT_NAME, 'normal');
+    doc.setFont(FONT_NAME);
+
     return true;
   } catch (e) {
-    console.warn('加载中文字体失败:', e);
+    const msg = `中文字体加载失败: ${e instanceof Error ? e.message : String(e)}，PDF 中文将显示为方块。请检查网络连接后重试。`;
+    alert(msg);
+    console.warn(msg);
     return false;
   }
 }
@@ -41,8 +37,7 @@ export async function exportToPDF(story: Story): Promise<void> {
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
 
-  // 加载中文字体
-  const hasChineseFont = loadChineseFont(doc);
+  const hasChineseFont = await loadChineseFont(doc);
 
   // ========== 封面页 ==========
   doc.setFillColor(102, 126, 234);
@@ -50,15 +45,18 @@ export async function exportToPDF(story: Story): Promise<void> {
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(36);
+  if (hasChineseFont) doc.setFont(FONT_NAME);
   doc.text(story.title, pageWidth / 2, pageHeight / 2 - 20, { align: 'center' });
   
   doc.setFontSize(14);
+  if (hasChineseFont) doc.setFont(FONT_NAME);
   doc.text(`类型：${story.type}`, pageWidth / 2, pageHeight / 2 + 20, { align: 'center' });
   doc.text(`主人公：${story.protagonist.name}`, pageWidth / 2, pageHeight / 2 + 40, { align: 'center' });
   doc.text(`场景：${story.scene}`, pageWidth / 2, pageHeight / 2 + 60, { align: 'center' });
   
   const date = new Date(story.createdAt);
   doc.setFontSize(12);
+  if (hasChineseFont) doc.setFont(FONT_NAME);
   doc.text(`创建时间：${date.toLocaleDateString()}`, pageWidth / 2, pageHeight / 2 + 90, { align: 'center' });
 
   // ========== 目录页 ==========
@@ -68,9 +66,11 @@ export async function exportToPDF(story: Story): Promise<void> {
 
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(24);
+  if (hasChineseFont) doc.setFont(FONT_NAME);
   doc.text('目录', pageWidth / 2, 30, { align: 'center' });
 
   doc.setFontSize(14);
+  if (hasChineseFont) doc.setFont(FONT_NAME);
   let yPos = 60;
   story.paragraphs.forEach((_, index) => {
     const chapterNum = index + 1;
@@ -92,13 +92,16 @@ export async function exportToPDF(story: Story): Promise<void> {
     if (yPos > pageHeight - margin) {
       doc.addPage();
       yPos = margin;
+      if (hasChineseFont) doc.setFont(FONT_NAME);
     }
 
     doc.setFontSize(18);
+    if (hasChineseFont) doc.setFont(FONT_NAME);
     doc.text(`第 ${index + 1} 章`, margin, yPos);
     yPos += 12;
 
     doc.setFontSize(12);
+    if (hasChineseFont) doc.setFont(FONT_NAME);
     const lines = doc.splitTextToSize(paragraph.content, contentWidth);
     
     if (paragraph.type === 'dialogue' && paragraph.speaker) {
@@ -112,6 +115,7 @@ export async function exportToPDF(story: Story): Promise<void> {
       if (yPos > pageHeight - margin) {
         doc.addPage();
         yPos = margin;
+        if (hasChineseFont) doc.setFont(FONT_NAME);
       }
       doc.text(line, paragraph.type === 'dialogue' ? margin + 10 : margin, yPos);
       yPos += 7;
@@ -119,16 +123,6 @@ export async function exportToPDF(story: Story): Promise<void> {
 
     yPos += 10;
   });
-
-  if (!hasChineseFont) {
-    console.warn(
-      '提示：PDF 中文字体未加载成功。如需完美支持中文，请：\n' +
-      '1. 下载 Noto Sans SC 字体文件\n' +
-      '2. 转换为 base64 格式\n' +
-      '3. 在 src/fontData.ts 中填入完整的 base64 字符串\n' +
-      '4. 取消 exportUtils.ts 中相关注释'
-    );
-  }
 
   doc.save(`${story.title}.pdf`);
 }
