@@ -342,7 +342,14 @@ function updatePetStats() {
         pet.stats.health = clamp(pet.stats.health - 1.5 * decayRate);
     }
 
-    if (pet.stats.health <= 0) {
+    const allStatsZero = 
+        pet.stats.hunger <= 0 && 
+        pet.stats.happiness <= 0 && 
+        pet.stats.health <= 0 && 
+        pet.stats.cleanliness <= 0 && 
+        pet.stats.energy <= 0;
+
+    if (pet.stats.health <= 0 || allStatsZero) {
         pet.isAlive = false;
         showDeathModal();
     }
@@ -408,6 +415,9 @@ function hideModal(modalId) {
 }
 
 function showFoodMenu() {
+    const pet = getCurrentPet();
+    if (!pet || !pet.isAlive) return;
+    
     const grid = document.getElementById('foodGrid');
     grid.innerHTML = '';
     
@@ -450,6 +460,9 @@ function feedPet(food) {
 }
 
 function showGameMenu() {
+    const pet = getCurrentPet();
+    if (!pet || !pet.isAlive) return;
+    
     const grid = document.getElementById('gameGrid');
     grid.innerHTML = '';
     
@@ -618,7 +631,7 @@ function startDrawGame() {
 
 function finishMiniGame(score, gameType) {
     const pet = getCurrentPet();
-    if (!pet) return;
+    if (!pet || !pet.isAlive) return;
 
     const happinessGain = Math.min(30, Math.floor(score / 2) + 10);
     const energyCost = Math.floor(Math.random() * 10) + 10;
