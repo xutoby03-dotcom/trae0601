@@ -1,5 +1,5 @@
-import { Fish, Food, Decoration } from '../../store/types';
-import { FISH_CONFIGS, DECORATION_CONFIGS, TANK_WIDTH, TANK_HEIGHT, SAND_HEIGHT } from '../../utils/constants';
+import { Fish, Food, Decoration, Egg } from '../../store/types';
+import { FISH_CONFIGS, DECORATION_CONFIGS, SAND_HEIGHT } from '../../utils/constants';
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -13,11 +13,12 @@ export class Renderer {
     this.height = height;
   }
 
-  render(fish: Fish[], foods: Food[], decorations: Decoration[], deltaTime: number) {
+  render(fish: Fish[], foods: Food[], decorations: Decoration[], eggs: Egg[], deltaTime: number) {
     this.time += deltaTime;
     this.drawBackground();
     this.drawSand();
     this.drawDecorations(decorations);
+    this.drawEggs(eggs);
     this.drawFood(foods);
     this.drawFish(fish);
     this.drawWaterEffect();
@@ -72,6 +73,41 @@ export class Renderer {
       this.ctx.textAlign = 'center';
       this.ctx.textBaseline = 'bottom';
       this.ctx.fillText(config.emoji, 0, 0);
+      this.ctx.restore();
+    });
+  }
+
+  private drawEggs(eggs: Egg[]) {
+    eggs.forEach((egg) => {
+      const pulse = 1 + Math.sin(this.time * 3 + egg.x * 0.1) * 0.1;
+      const size = 12 * pulse;
+      
+      this.ctx.save();
+      this.ctx.translate(egg.x, egg.y);
+      
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, 0, size, size * 0.8, 0, 0, Math.PI * 2);
+      const gradient = this.ctx.createRadialGradient(-3, -3, 0, 0, 0, size);
+      gradient.addColorStop(0, '#fff8dc');
+      gradient.addColorStop(0.5, '#f0e68c');
+      gradient.addColorStop(1, '#daa520');
+      this.ctx.fillStyle = gradient;
+      this.ctx.fill();
+      
+      this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+      this.ctx.lineWidth = 2;
+      this.ctx.stroke();
+      
+      this.ctx.beginPath();
+      this.ctx.arc(-size * 0.3, -size * 0.3, size * 0.2, 0, Math.PI * 2);
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      this.ctx.fill();
+      
+      this.ctx.fillStyle = '#8b4513';
+      this.ctx.font = 'bold 10px Arial';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText(`+${egg.value}`, 0, size + 14);
+      
       this.ctx.restore();
     });
   }

@@ -80,9 +80,19 @@ export const DECORATION_CONFIGS: Record<DecorationType, DecorationConfig> = {
   pipe: { name: '水管', price: 60, emoji: '🔧', width: 50, height: 70 },
 };
 
-export const TANK_WIDTH = 960;
-export const TANK_HEIGHT = 540;
+export const BASE_TANK_WIDTH = 960;
+export const BASE_TANK_HEIGHT = 540;
+export const TANK_WIDTH_PER_LEVEL = 120;
+export const TANK_HEIGHT_PER_LEVEL = 68;
 export const SAND_HEIGHT = 60;
+
+export function getTankWidth(level: number): number {
+  return BASE_TANK_WIDTH + (level - 1) * TANK_WIDTH_PER_LEVEL;
+}
+
+export function getTankHeight(level: number): number {
+  return BASE_TANK_HEIGHT + (level - 1) * TANK_HEIGHT_PER_LEVEL;
+}
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const HUNGER_DECAY_PER_DAY = 15;

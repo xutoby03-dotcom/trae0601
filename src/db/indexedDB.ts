@@ -49,6 +49,7 @@ export function createInitialState(): GameState {
     fish: [],
     decorations: [],
     food: [],
+    eggs: [],
     lastLoginTime: now,
     lastSettleTime: now,
     selectedFishId: null,

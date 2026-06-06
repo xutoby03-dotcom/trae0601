@@ -5,7 +5,6 @@ import ControlBar from '../components/ControlBar';
 import FishStatusModal from '../components/FishStatusModal';
 import { useGameStore } from '../store/gameStore';
 import { FishType, DecorationType } from '../store/types';
-import { DECORATION_CONFIGS } from '../utils/constants';
 
 type DragItem = { type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number } | null;
 
@@ -58,6 +57,10 @@ export default function Home() {
     feed();
   };
 
+  const handleFeedAtPosition = (x: number, y: number) => {
+    feed(x, y);
+  };
+
   if (!isInitialized) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -83,13 +86,14 @@ export default function Home() {
             onFishClick={handleFishClick}
             dragItem={dragItem}
             onDrop={handleDrop}
+            onFeedAtPosition={handleFeedAtPosition}
           />
           <ControlBar onFeed={handleFeed} />
         </div>
       </div>
 
       <div className="text-gray-500 text-sm mt-2">
-        从左侧商店拖拽鱼和装饰到鱼缸中 · 点击鱼查看状态 · 关闭网页后鱼仍会生长
+        从左侧商店拖拽鱼和装饰到鱼缸中 · 点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱 · 关闭网页后鱼仍会生长
       </div>
 
       {selectedFishId && (

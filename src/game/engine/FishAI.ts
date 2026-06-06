@@ -1,8 +1,11 @@
 import { Fish, Food } from '../../store/types';
-import { TANK_WIDTH, TANK_HEIGHT, SAND_HEIGHT } from '../../utils/constants';
+import { getTankWidth, getTankHeight, SAND_HEIGHT } from '../../utils/constants';
 
-export function updateFishAI(fish: Fish, foods: Food[], deltaTime: number): Fish {
+export function updateFishAI(fish: Fish, foods: Food[], deltaTime: number, tankLevel: number): Fish {
   let { x, y, vx, vy, targetX, targetY, speed, facingRight, wobblePhase, hunger, mood } = fish;
+
+  const tankWidth = getTankWidth(tankLevel);
+  const tankHeight = getTankHeight(tankLevel);
 
   const speedMultiplier = 0.5 + (hunger / 100) * 0.3 + (mood / 100) * 0.2;
   const actualSpeed = speed * speedMultiplier;
@@ -27,8 +30,8 @@ export function updateFishAI(fish: Fish, foods: Food[], deltaTime: number): Fish
   } else {
     const distToTarget = Math.hypot(targetX - x, targetY - y);
     if (distToTarget < 20 || Math.random() < 0.005) {
-      targetX = 50 + Math.random() * (TANK_WIDTH - 100);
-      targetY = 50 + Math.random() * (TANK_HEIGHT - SAND_HEIGHT - 100);
+      targetX = 50 + Math.random() * (tankWidth - 100);
+      targetY = 50 + Math.random() * (tankHeight - SAND_HEIGHT - 100);
     }
   }
 
@@ -55,27 +58,27 @@ export function updateFishAI(fish: Fish, foods: Food[], deltaTime: number): Fish
 
   const margin = 30;
   const minY = margin;
-  const maxY = TANK_HEIGHT - SAND_HEIGHT - margin;
+  const maxY = tankHeight - SAND_HEIGHT - margin;
 
   if (x < margin) {
     x = margin;
     vx = Math.abs(vx);
-    targetX = 50 + Math.random() * (TANK_WIDTH - 100);
+    targetX = 50 + Math.random() * (tankWidth - 100);
   }
-  if (x > TANK_WIDTH - margin) {
-    x = TANK_WIDTH - margin;
+  if (x > tankWidth - margin) {
+    x = tankWidth - margin;
     vx = -Math.abs(vx);
-    targetX = 50 + Math.random() * (TANK_WIDTH - 100);
+    targetX = 50 + Math.random() * (tankWidth - 100);
   }
   if (y < minY) {
     y = minY;
     vy = Math.abs(vy);
-    targetY = 50 + Math.random() * (TANK_HEIGHT - SAND_HEIGHT - 100);
+    targetY = 50 + Math.random() * (tankHeight - SAND_HEIGHT - 100);
   }
   if (y > maxY) {
     y = maxY;
     vy = -Math.abs(vy);
-    targetY = 50 + Math.random() * (TANK_HEIGHT - SAND_HEIGHT - 100);
+    targetY = 50 + Math.random() * (tankHeight - SAND_HEIGHT - 100);
   }
 
   if (Math.abs(vx) > 0.1) {

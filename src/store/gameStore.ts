@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { GameState, Fish, FishType, Decoration, DecorationType, Food } from './types';
-import { FISH_CONFIGS, DECORATION_CONFIGS, DAY_MS, HUNGER_DECAY_PER_DAY, MOOD_DECAY_PER_DAY, HEALTH_DECAY_RATE, TANK_WIDTH, TANK_HEIGHT, SAND_HEIGHT } from '../utils/constants';
+import { GameState, Fish, FishType, Decoration, DecorationType, Food, Egg } from './types';
+import { FISH_CONFIGS, DECORATION_CONFIGS, DAY_MS, HUNGER_DECAY_PER_DAY, MOOD_DECAY_PER_DAY, HEALTH_DECAY_RATE, getTankWidth, getTankHeight, SAND_HEIGHT } from '../utils/constants';
 import { saveGameState, loadGameState, createInitialState } from '../db/indexedDB';
 
 interface GameActions {
@@ -10,12 +10,13 @@ interface GameActions {
   addDecoration: (type: DecorationType, x: number, y: number) => void;
   removeDecoration: (id: string) => void;
   moveDecoration: (id: string, x: number, y: number) => void;
-  feed: (x?: number) => void;
+  feed: (x?: number, y?: number) => void;
   selectFish: (id: string | null) => void;
   setShopTab: (tab: 'fish' | 'decoration') => void;
   updateFish: (id: string, updates: Partial<Fish>) => void;
   updateFood: (id: string, updates: Partial<Food>) => void;
   removeFood: (id: string) => void;
+  collectEgg: (id: string) => void;
   processOfflineTime: () => void;
   dailySettle: () => void;
   save: () => void;
@@ -113,16 +114,22 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }));
   },
 
-  feed: (x?: number) => {
+  feed: (x?: number, y?: number) => {
+    const state = get();
+    const tankWidth = getTankWidth(state.tankLevel);
+    const tankHeight = getTankHeight(state.tankLevel);
+    
     const foodCount = 5;
     const foods: Food[] = [];
+    const baseX = x ?? tankWidth / 2;
+    const startY = y ?? 10;
+    
     for (let i = 0; i < foodCount; i++) {
-      const baseX = x ?? TANK_WIDTH / 2;
       foods.push({
         id: generateId(),
         x: baseX + (Math.random() - 0.5) * 100,
-        y: 10,
-        targetY: TANK_HEIGHT - SAND_HEIGHT - 10,
+        y: startY,
+        targetY: tankHeight - SAND_HEIGHT - 10,
         eaten: false,
       });
     }
@@ -157,6 +164,18 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     }));
   },
 
+  collectEgg: (id: string) => {
+    const state = get();
+    const egg = state.eggs.find((e) => e.id === id);
+    if (!egg) return;
+
+    set((s) => ({
+      coins: s.coins + egg.value,
+      eggs: s.eggs.filter((e) => e.id !== id),
+    }));
+    get().save();
+  },
+
   processOfflineTime: () => {
     const state = get();
     const now = Date.now();
@@ -188,19 +207,32 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
       };
     }).filter((fish) => fish.health > 0);
 
+    const tankWidth = getTankWidth(state.tankLevel);
+    const tankHeight = getTankHeight(state.tankLevel);
     const daysSinceSettle = Math.floor((now - state.lastSettleTime) / DAY_MS);
-    let earnedCoins = 0;
+    
+    const newEggs: Egg[] = [];
     if (daysSinceSettle > 0) {
       updatedFish.forEach((fish) => {
-        const config = FISH_CONFIGS[fish.type];
-        const dailyEgg = config.eggValue * (fish.health / 100);
-        earnedCoins += dailyEgg * daysSinceSettle;
+        if (fish.health >= 50) {
+          const config = FISH_CONFIGS[fish.type];
+          const eggValue = Math.floor(config.eggValue * (fish.health / 100) * daysSinceSettle);
+          if (eggValue > 0) {
+            newEggs.push({
+              id: generateId(),
+              x: 50 + Math.random() * (tankWidth - 100),
+              y: tankHeight - SAND_HEIGHT / 2 - 10,
+              value: eggValue,
+              fishType: fish.type,
+            });
+          }
+        }
       });
     }
 
     set({
       fish: updatedFish,
-      coins: state.coins + Math.floor(earnedCoins),
+      eggs: [...state.eggs, ...newEggs],
       lastLoginTime: now,
       lastSettleTime: daysSinceSettle > 0 ? now : state.lastSettleTime,
     });
@@ -210,12 +242,26 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
   dailySettle: () => {
     const state = get();
     const now = Date.now();
-    let earnedCoins = 0;
+    const tankWidth = getTankWidth(state.tankLevel);
+    const tankHeight = getTankHeight(state.tankLevel);
 
+    const newEggs: Egg[] = [];
+    
     const updatedFish = state.fish.map((fish) => {
       const config = FISH_CONFIGS[fish.type];
-      const dailyEgg = config.eggValue * (fish.health / 100);
-      earnedCoins += dailyEgg;
+      
+      if (fish.health >= 50) {
+        const eggValue = Math.floor(config.eggValue * (fish.health / 100));
+        if (eggValue > 0) {
+          newEggs.push({
+            id: generateId(),
+            x: 50 + Math.random() * (tankWidth - 100),
+            y: tankHeight - SAND_HEIGHT / 2 - 10,
+            value: eggValue,
+            fishType: fish.type,
+          });
+        }
+      }
 
       const newHunger = Math.max(0, fish.hunger - HUNGER_DECAY_PER_DAY * config.hungerRate);
       const newMood = Math.max(0, fish.mood - MOOD_DECAY_PER_DAY);
@@ -237,7 +283,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
     set({
       fish: updatedFish,
-      coins: state.coins + Math.floor(earnedCoins),
+      eggs: [...state.eggs, ...newEggs],
       lastSettleTime: now,
     });
     get().save();

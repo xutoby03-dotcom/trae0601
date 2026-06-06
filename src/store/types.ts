@@ -41,6 +41,14 @@ export interface Food {
   eaten: boolean;
 }
 
+export interface Egg {
+  id: string;
+  x: number;
+  y: number;
+  value: number;
+  fishType: FishType;
+}
+
 export interface FishConfig {
   name: string;
   price: number;
@@ -66,6 +74,7 @@ export interface GameState {
   fish: Fish[];
   decorations: Decoration[];
   food: Food[];
+  eggs: Egg[];
   lastLoginTime: number;
   lastSettleTime: number;
   selectedFishId: string | null;

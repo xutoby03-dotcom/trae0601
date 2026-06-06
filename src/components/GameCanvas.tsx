@@ -2,44 +2,49 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Renderer } from '../game/engine/Renderer';
 import { updateFishAI, checkFishFoodCollision } from '../game/engine/FishAI';
 import { useGameStore } from '../store/gameStore';
-import { TANK_WIDTH, TANK_HEIGHT, SAND_HEIGHT, DAY_MS, DECORATION_CONFIGS } from '../utils/constants';
+import { getTankWidth, getTankHeight, SAND_HEIGHT, DAY_MS, BASE_TANK_WIDTH, BASE_TANK_HEIGHT } from '../utils/constants';
 import { FishType, DecorationType } from '../store/types';
+import { DECORATION_CONFIGS } from '../utils/constants';
 
 interface GameCanvasProps {
   onFishClick: (fishId: string) => void;
   dragItem: { type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number } | null;
   onDrop: (x: number, y: number) => void;
+  onFeedAtPosition: (x: number, y: number) => void;
 }
 
-export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvasProps) {
+export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosition }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const lastSettleCheckRef = useRef<number>(Date.now());
-  const [canvasSize, setCanvasSize] = useState({ width: TANK_WIDTH, height: TANK_HEIGHT });
+  const [canvasSize, setCanvasSize] = useState({ width: BASE_TANK_WIDTH, height: BASE_TANK_HEIGHT });
   const [isDragOver, setIsDragOver] = useState(false);
   const [draggingDecorationId, setDraggingDecorationId] = useState<string | null>(null);
 
-  const { fish, food, decorations, updateFish, updateFood, removeFood, dailySettle, selectFish, coins, moveDecoration, save } = useGameStore();
+  const { fish, food, decorations, eggs, tankLevel, updateFish, updateFood, removeFood, dailySettle, selectFish, coins, moveDecoration, save, collectEgg } = useGameStore();
+
+  const currentTankWidth = getTankWidth(tankLevel);
+  const currentTankHeight = getTankHeight(tankLevel);
 
   useEffect(() => {
     const updateSize = () => {
-      const maxWidth = Math.min(window.innerWidth - 40, TANK_WIDTH);
-      const maxHeight = Math.min(window.innerHeight - 200, TANK_HEIGHT);
-      const ratio = TANK_WIDTH / TANK_HEIGHT;
+      const baseRatio = BASE_TANK_WIDTH / BASE_TANK_HEIGHT;
+      const maxWidth = Math.min(window.innerWidth - 40, currentTankWidth);
+      const maxHeight = Math.min(window.innerHeight - 200, currentTankHeight);
       let width = maxWidth;
-      let height = width / ratio;
+      let height = width / baseRatio;
       if (height > maxHeight) {
         height = maxHeight;
-        width = height * ratio;
+        width = height * baseRatio;
       }
       setCanvasSize({ width, height });
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  }, [currentTankWidth, currentTankHeight]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,7 +53,7 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    rendererRef.current = new Renderer(ctx, TANK_WIDTH, TANK_HEIGHT);
+    rendererRef.current = new Renderer(ctx, currentTankWidth, currentTankHeight);
 
     const gameLoop = (timestamp: number) => {
       const deltaTime = Math.min((timestamp - lastTimeRef.current) / 1000, 0.1);
@@ -63,11 +68,13 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
         }
       }
 
-      const currentFood = useGameStore.getState().food;
-      const currentFish = useGameStore.getState().fish;
+      const currentState = useGameStore.getState();
+      const currentFood = currentState.food;
+      const currentFish = currentState.fish;
+      const currentTankLevel = currentState.tankLevel;
 
       currentFish.forEach((f) => {
-        const updatedFish = updateFishAI(f, currentFood, deltaTime);
+        const updatedFish = updateFishAI(f, currentFood, deltaTime, currentTankLevel);
         updateFish(f.id, updatedFish);
 
         const foodId = checkFishFoodCollision(updatedFish, currentFood);
@@ -83,14 +90,16 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
 
       currentFood.forEach((f) => {
         if (f.eaten) return;
-        if (f.y < f.targetY) {
+        const tankH = getTankHeight(currentTankLevel);
+        if (f.y < Math.min(f.targetY, tankH - SAND_HEIGHT - 10)) {
           updateFood(f.id, { y: f.y + 30 * deltaTime });
         }
       });
 
       if (rendererRef.current) {
         const state = useGameStore.getState();
-        rendererRef.current.render(state.fish, state.food, state.decorations, deltaTime);
+        rendererRef.current.resize(getTankWidth(state.tankLevel), getTankHeight(state.tankLevel));
+        rendererRef.current.render(state.fish, state.food, state.decorations, state.eggs, deltaTime);
       }
 
       animationRef.current = requestAnimationFrame(gameLoop);
@@ -102,25 +111,39 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [updateFish, updateFood, removeFood, dailySettle]);
+  }, [updateFish, updateFood, removeFood, dailySettle, currentTankWidth, currentTankHeight]);
 
   const getCanvasCoords = useCallback((e: React.MouseEvent | React.DragEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const scaleX = TANK_WIDTH / rect.width;
-    const scaleY = TANK_HEIGHT / rect.height;
+    const scaleX = currentTankWidth / rect.width;
+    const scaleY = currentTankHeight / rect.height;
     const clientX = 'clientX' in e ? e.clientX : 0;
     const clientY = 'clientY' in e ? e.clientY : 0;
     const x = (clientX - rect.left) * scaleX;
     const y = (clientY - rect.top) * scaleY;
     return { x, y };
-  }, []);
+  }, [currentTankWidth, currentTankHeight]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;
     
     const { x, y } = getCanvasCoords(e);
+
+    let clickedEgg: string | null = null;
+    for (const egg of eggs) {
+      const dist = Math.hypot(egg.x - x, egg.y - y);
+      if (dist < 20) {
+        clickedEgg = egg.id;
+        break;
+      }
+    }
+
+    if (clickedEgg) {
+      collectEgg(clickedEgg);
+      return;
+    }
 
     let clickedDecoration: string | null = null;
     for (const d of decorations) {
@@ -152,19 +175,20 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
         onFishClick(clickedFish);
       } else {
         selectFish(null);
+        onFeedAtPosition(x, y);
       }
     }
-  }, [fish, decorations, onFishClick, selectFish, getCanvasCoords]);
+  }, [fish, eggs, decorations, onFishClick, selectFish, getCanvasCoords, collectEgg, onFeedAtPosition]);
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!draggingDecorationId) return;
 
     const { x, y } = getCanvasCoords(e);
-    const clampedY = Math.max(TANK_HEIGHT - SAND_HEIGHT - 60, Math.min(y, TANK_HEIGHT - 10));
-    const clampedX = Math.max(30, Math.min(x, TANK_WIDTH - 30));
+    const clampedY = Math.max(currentTankHeight - SAND_HEIGHT - 60, Math.min(y, currentTankHeight - 10));
+    const clampedX = Math.max(30, Math.min(x, currentTankWidth - 30));
     
     moveDecoration(draggingDecorationId, clampedX, clampedY);
-  }, [draggingDecorationId, moveDecoration, getCanvasCoords]);
+  }, [draggingDecorationId, moveDecoration, getCanvasCoords, currentTankWidth, currentTankHeight]);
 
   const handleCanvasMouseUp = useCallback(() => {
     if (draggingDecorationId) {
@@ -189,9 +213,9 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
     if (coins < dragItem.price) return;
     
     const { x, y } = getCanvasCoords(e);
-    const clampedY = Math.max(50, Math.min(y, TANK_HEIGHT - SAND_HEIGHT - 30));
+    const clampedY = Math.max(50, Math.min(y, currentTankHeight - SAND_HEIGHT - 30));
     onDrop(x, clampedY);
-  }, [dragItem, coins, getCanvasCoords, onDrop]);
+  }, [dragItem, coins, getCanvasCoords, onDrop, currentTankHeight]);
 
   return (
     <div 
@@ -200,8 +224,8 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
     >
       <canvas
         ref={canvasRef}
-        width={TANK_WIDTH}
-        height={TANK_HEIGHT}
+        width={currentTankWidth}
+        height={currentTankHeight}
         className={`w-full h-full ${draggingDecorationId ? 'cursor-grabbing' : 'cursor-pointer'}`}
         style={{ imageRendering: 'auto' }}
         onMouseDown={handleCanvasMouseDown}
@@ -220,8 +244,13 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop }: GameCanvas
         </div>
       )}
       <div className="absolute top-3 left-3 text-white/60 text-sm">
-        点击鱼查看状态
+        点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱
       </div>
+      {tankLevel > 1 && (
+        <div className="absolute top-3 right-3 text-green-400 text-sm font-bold bg-slate-900/60 px-3 py-1 rounded-lg">
+          Lv.{tankLevel} 鱼缸
+        </div>
+      )}
     </div>
   );
 }
