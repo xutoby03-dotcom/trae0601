@@ -295,6 +295,12 @@ class AudioEngineSingleton {
 
     state.setDeckCurrentTime(deckId, newCurrentTime);
 
+    const sourceNewPhase = calculateBeatPhase(newCurrentTime, targetBPM);
+    state.setBeatPhase(deckId, sourceNewPhase);
+
+    const targetNewPhase = calculateBeatPhase(targetDeck.currentTime, targetBPM);
+    state.setBeatPhase(targetDeckId, targetNewPhase);
+
     nodes.startOffset = newCurrentTime;
     nodes.startTime = ctx.currentTime;
 
