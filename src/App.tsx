@@ -6,7 +6,8 @@ import Visualizer from '@/components/Visualizer';
 import InfoPanel from '@/components/InfoPanel';
 import Equalizer from '@/components/Equalizer';
 import PlayerControls from '@/components/PlayerControls';
-import MarkersPanel from '@/components/MarkersPanel';
+import PlaylistPanel from '@/components/PlaylistPanel';
+import MarkersListPanel from '@/components/MarkersListPanel';
 import SlicerPanel from '@/components/SlicerPanel';
 import { useAudioStore } from '@/store/audioStore';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
@@ -70,7 +71,8 @@ function App() {
         </section>
 
         <aside className="w-80 p-4 space-y-4 overflow-y-auto border-l border-white/5 bg-black/20">
-          <MarkersPanel />
+          <PlaylistPanel />
+          <MarkersListPanel />
           <SlicerPanel />
         </aside>
       </main>
