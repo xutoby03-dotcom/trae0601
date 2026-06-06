@@ -11,8 +11,8 @@ import { cn } from '@/lib/utils';
 const DIFFICULTIES: { value: EarTrainingDifficulty; label: string; description: string }[] = [
   { value: 'single', label: '单音', description: '听单个音符' },
   { value: 'double', label: '双音', description: '听两个音的音程' },
-  { value: 'interval', label: '和弦', description: '听三个音的组合' },
-  { value: 'triad', label: '三和弦', description: '分辨和弦类型' },
+  { value: 'interval', label: '三音叠加', description: '听三个音的自由组合' },
+  { value: 'triad', label: '标准三和弦', description: '分辨标准和弦类型' },
   { value: 'seventh', label: '七和弦', description: '分辨七和弦类型' },
 ];
 
@@ -31,9 +31,21 @@ const generateQuestion = (difficulty: EarTrainingDifficulty): EarTrainingQuestio
       break;
     }
     case 'interval': {
-      const chordType = ['major', 'minor'] as const;
-      const type = chordType[Math.floor(Math.random() * chordType.length)];
-      notes = getChordNotes(root, type);
+      const root = getRandomRootNote(52, 67);
+      const intervalSets = [
+        [0, 3, 6],
+        [0, 4, 8],
+        [0, 3, 7],
+        [0, 4, 7],
+        [0, 2, 7],
+        [0, 5, 7],
+        [0, 3, 8],
+        [0, 4, 6],
+        [0, 1, 7],
+        [0, 5, 8],
+      ];
+      const intervals = intervalSets[Math.floor(Math.random() * intervalSets.length)];
+      notes = intervals.map((i) => root + i);
       break;
     }
     case 'triad': {

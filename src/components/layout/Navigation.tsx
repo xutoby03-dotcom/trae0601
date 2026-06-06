@@ -3,7 +3,7 @@ import { Timer, Music, Headphones, Piano, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { to: '/', label: '节拍器', icon: Timer },
+  { to: '/metronome', label: '节拍器', icon: Timer },
   { to: '/rhythm', label: '节奏训练', icon: Music },
   { to: '/ear-training', label: '听音训练', icon: Headphones },
   { to: '/chord-training', label: '和弦识别', icon: Piano },

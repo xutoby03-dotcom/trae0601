@@ -7,14 +7,16 @@ import { saveRhythmResult, updateDailyStats } from '@/utils/storage';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
-type TrainingPhase = 'idle' | 'demo' | 'waiting' | 'recording' | 'result';
+type TrainingPhase = 'idle' | 'countIn' | 'waiting' | 'recording' | 'result';
 
 const TOLERANCE_MS = 80;
+const COUNT_IN_BEATS = 4;
 
 export const RhythmTraining = () => {
   const [selectedPattern, setSelectedPattern] = useState<RhythmPattern>(RHYTHM_PATTERNS[0]);
   const [phase, setPhase] = useState<TrainingPhase>('idle');
   const [currentBeatIndex, setCurrentBeatIndex] = useState(-1);
+  const [metronomeBeat, setMetronomeBeat] = useState(-1);
   const [hits, setHits] = useState<RhythmHit[]>([]);
   const [accuracy, setAccuracy] = useState(0);
   const [feedback, setFeedback] = useState<'early' | 'late' | 'perfect' | null>(null);
@@ -23,51 +25,72 @@ export const RhythmTraining = () => {
   const expectedTimesRef = useRef<number[]>([]);
   const nextExpectedIndexRef = useRef<number>(0);
   const hitTimesRef = useRef<number[]>([]);
-  const demoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { addRhythmResult } = useAppStore();
 
   const calculateExpectedTimes = useCallback((pattern: RhythmPattern): number[] => {
     const secondsPerBeat = 60.0 / pattern.bpm;
-    return pattern.beats.map((beat) => beat.time * secondsPerBeat * 1000);
+    const countInOffset = COUNT_IN_BEATS * secondsPerBeat * 1000;
+    return pattern.beats.map((beat) => beat.time * secondsPerBeat * 1000 + countInOffset);
   }, []);
 
   const clearAllTimeouts = useCallback(() => {
-    if (demoTimeoutRef.current) {
-      clearTimeout(demoTimeoutRef.current);
-      demoTimeoutRef.current = null;
+    timeoutRefs.current.forEach((t) => clearTimeout(t));
+    timeoutRefs.current = [];
+    if (metronomeIntervalRef.current) {
+      clearInterval(metronomeIntervalRef.current);
+      metronomeIntervalRef.current = null;
     }
-    if (recordingTimeoutRef.current) {
-      clearTimeout(recordingTimeoutRef.current);
-      recordingTimeoutRef.current = null;
-    }
+  }, []);
+
+  const startMetronome = useCallback((bpm: number, startBeat: number = 0, beatsPerMeasure: number = 4) => {
+    const msPerBeat = (60.0 / bpm) * 1000;
+    let beat = startBeat;
+
+    const tick = () => {
+      const inMeasure = beat % beatsPerMeasure;
+      playClick(inMeasure === 0 ? 1200 : 800, 0.05, inMeasure === 0 ? 0.4 : 0.25);
+      setMetronomeBeat(inMeasure);
+      beat++;
+    };
+
+    tick();
+    metronomeIntervalRef.current = setInterval(tick, msPerBeat);
   }, []);
 
   const playDemo = useCallback(async () => {
     await resumeAudioContext();
-    setPhase('demo');
+    clearAllTimeouts();
+    setPhase('countIn');
     setCurrentBeatIndex(-1);
+    setMetronomeBeat(-1);
 
     const expectedTimes = calculateExpectedTimes(selectedPattern);
     expectedTimesRef.current = expectedTimes;
 
-    const totalDuration = expectedTimes[expectedTimes.length - 1] + 1000;
+    const secondsPerBeat = 60.0 / selectedPattern.bpm;
+    const msPerBeat = secondsPerBeat * 1000;
 
-    selectedPattern.beats.forEach((beat, index) => {
-      setTimeout(() => {
-        setCurrentBeatIndex(index);
-        playClick(beat.isAccented ? 1200 : 800, 0.05, beat.isAccented ? 0.6 : 0.4);
-      }, expectedTimes[index] + 500);
-    });
+    let countInBeat = 0;
+    const countInInterval = setInterval(() => {
+      playClick(countInBeat === 0 ? 1400 : 1000, 0.05, countInBeat === 0 ? 0.5 : 0.35);
+      setMetronomeBeat(countInBeat);
+      countInBeat++;
 
-    demoTimeoutRef.current = setTimeout(() => {
-      setCurrentBeatIndex(-1);
-      setPhase('waiting');
-    }, totalDuration + 800);
-  }, [selectedPattern, calculateExpectedTimes]);
+      if (countInBeat >= COUNT_IN_BEATS) {
+        clearInterval(countInInterval);
+        setPhase('waiting');
+        setMetronomeBeat(-1);
+      }
+    }, msPerBeat);
+
+    timeoutRefs.current.push(countInInterval as unknown as ReturnType<typeof setTimeout>);
+  }, [selectedPattern, calculateExpectedTimes, clearAllTimeouts]);
 
   const startRecording = useCallback(async () => {
     await resumeAudioContext();
+    clearAllTimeouts();
     setPhase('recording');
     setHits([]);
     setFeedback(null);
@@ -75,15 +98,20 @@ export const RhythmTraining = () => {
     nextExpectedIndexRef.current = 0;
     startTimeRef.current = performance.now();
 
+    startMetronome(selectedPattern.bpm, 0, 4);
+
     const expectedTimes = expectedTimesRef.current;
     const totalDuration = expectedTimes[expectedTimes.length - 1] + 1500;
 
-    recordingTimeoutRef.current = setTimeout(() => {
+    const timeout = setTimeout(() => {
       finishRecording();
     }, totalDuration);
-  }, []);
+    timeoutRefs.current.push(timeout);
+  }, [selectedPattern.bpm, startMetronome, clearAllTimeouts]);
 
   const finishRecording = useCallback(() => {
+    clearAllTimeouts();
+    setMetronomeBeat(-1);
     setPhase('result');
 
     const expectedTimes = expectedTimesRef.current;
@@ -135,7 +163,7 @@ export const RhythmTraining = () => {
     saveRhythmResult(result);
     addRhythmResult(result);
     updateDailyStats('rhythm', acc >= 60, 10);
-  }, [selectedPattern.id, addRhythmResult]);
+  }, [selectedPattern.id, addRhythmResult, clearAllTimeouts]);
 
   const handleTap = useCallback(() => {
     if (phase !== 'recording') return;
@@ -161,7 +189,7 @@ export const RhythmTraining = () => {
           setFeedback('late');
         }
 
-        playClick(1000, 0.03, 0.3);
+        playClick(1000, 0.03, 0.2);
 
         setTimeout(() => setFeedback(null), 200);
       }
@@ -192,6 +220,7 @@ export const RhythmTraining = () => {
     clearAllTimeouts();
     setPhase('idle');
     setCurrentBeatIndex(-1);
+    setMetronomeBeat(-1);
     setHits([]);
     setAccuracy(0);
     setFeedback(null);
@@ -222,13 +251,7 @@ export const RhythmTraining = () => {
                 className={cn(
                   'absolute rounded-full transition-all duration-100',
                   sizeClass,
-                  currentBeatIndex === index && phase === 'demo'
-                    ? beat.isAccented
-                      ? 'bg-violet-400 scale-150 shadow-lg shadow-violet-500/50'
-                      : 'bg-slate-200 scale-125'
-                    : beat.isAccented
-                    ? 'bg-violet-600/60'
-                    : 'bg-slate-600'
+                  beat.isAccented ? 'bg-violet-600/60' : 'bg-slate-600'
                 )}
                 style={{ left: `calc(${position}% - 10px)` }}
               />
@@ -239,16 +262,38 @@ export const RhythmTraining = () => {
     );
   };
 
+  const renderMetronomeIndicator = () => {
+    if (phase !== 'countIn' && phase !== 'recording') return null;
+
+    return (
+      <div className="flex justify-center gap-2 py-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={cn(
+              'w-4 h-4 rounded-full transition-all duration-75',
+              metronomeBeat === i
+                ? i === 0
+                  ? 'bg-violet-400 scale-150 shadow-lg shadow-violet-500/50'
+                  : 'bg-slate-300 scale-125'
+                : 'bg-slate-700'
+            )}
+          />
+        ))}
+      </div>
+    );
+  };
+
   const getPhaseMessage = () => {
     switch (phase) {
       case 'idle':
         return '选择节奏型，点击开始';
-      case 'demo':
-        return '请听示范...';
+      case 'countIn':
+        return '预备拍... 稳住速度';
       case 'waiting':
         return '按空格键开始跟打';
       case 'recording':
-        return '跟着打！按空格键';
+        return '跟着节拍器打！按空格';
       case 'result':
         return '练习完成！';
       default:
@@ -291,6 +336,7 @@ export const RhythmTraining = () => {
             <span className="text-violet-400 font-mono text-sm">{selectedPattern.bpm} BPM</span>
           </div>
 
+          {renderMetronomeIndicator()}
           {renderRhythmVisual()}
 
           {feedback && (
@@ -314,20 +360,20 @@ export const RhythmTraining = () => {
         {phase === 'result' && (
           <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/50">
             <div className="text-center mb-6">
-              <div
-                className={cn(
-                  'text-6xl font-bold mb-2',
-                  accuracy >= 80
-                    ? 'text-emerald-400'
-                    : accuracy >= 60
-                    ? 'text-amber-400'
-                    : 'text-red-400'
-                )}
-              >
-                {accuracy}%
-              </div>
-              <p className="text-slate-400">准确率</p>
+            <div
+              className={cn(
+                'text-6xl font-bold mb-2',
+                accuracy >= 80
+                  ? 'text-emerald-400'
+                  : accuracy >= 60
+                  ? 'text-amber-400'
+                  : 'text-red-400'
+              )}
+            >
+              {accuracy}%
             </div>
+            <p className="text-slate-400">准确率</p>
+          </div>
 
             <div className="space-y-2">
               {hits.map((hit, index) => (
@@ -384,7 +430,7 @@ export const RhythmTraining = () => {
             </div>
           )}
 
-          {(phase === 'demo' || phase === 'result') && (
+          {(phase === 'countIn' || phase === 'result') && (
             <button
               onClick={reset}
               className="flex items-center gap-2 px-8 py-4 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition-all hover:scale-105 active:scale-95"
