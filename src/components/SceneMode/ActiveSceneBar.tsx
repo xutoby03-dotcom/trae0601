@@ -5,22 +5,22 @@ import { Home, LogOut, Moon, Music, Clock, Sparkles } from 'lucide-react';
 const sceneConfig: Record<SceneType, { name: string; icon: React.ReactNode; color: string }> = {
   home: {
     name: '回家模式',
-    icon: <Home className="w-4 h-4" />,
+    icon: <Home className="w-3.5 h-3.5" />,
     color: 'from-cyan-500 to-blue-600',
   },
   away: {
     name: '离家模式',
-    icon: <LogOut className="w-4 h-4" />,
+    icon: <LogOut className="w-3.5 h-3.5" />,
     color: 'from-amber-500 to-orange-600',
   },
   sleep: {
     name: '睡眠模式',
-    icon: <Moon className="w-4 h-4" />,
+    icon: <Moon className="w-3.5 h-3.5" />,
     color: 'from-purple-500 to-indigo-600',
   },
   party: {
     name: '派对模式',
-    icon: <Music className="w-4 h-4" />,
+    icon: <Music className="w-3.5 h-3.5" />,
     color: 'from-pink-500 to-rose-600',
   },
 };
@@ -46,11 +46,9 @@ export const ActiveSceneBar = () => {
 
   if (!activeScene || !activeSceneTimestamp) {
     return (
-      <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-20">
-        <div className="flex items-center gap-2 px-4 py-2 bg-gray-900/60 border border-gray-700/50 rounded-full backdrop-blur-md">
-          <Sparkles className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-500">尚未选择场景</span>
-        </div>
+      <div className="flex items-center justify-center gap-2 py-1.5">
+        <Sparkles className="w-3.5 h-3.5 text-gray-500" />
+        <span className="text-xs text-gray-500">尚未选择场景</span>
       </div>
     );
   }
@@ -58,19 +56,17 @@ export const ActiveSceneBar = () => {
   const config = sceneConfig[activeScene];
 
   return (
-    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-20">
-      <div className={`flex items-center gap-3 px-4 py-2 bg-gradient-to-r ${config.color} rounded-full shadow-lg shadow-black/30 animate-slide-in`}>
-        <div className="flex items-center gap-1.5">
-          {config.icon}
-          <span className="text-sm font-medium text-white">{config.name}</span>
-        </div>
-        <div className="w-px h-4 bg-white/30" />
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-white/80" />
-          <span className="text-xs text-white/80">
-            {formatTime(activeSceneTimestamp)} 激活
-          </span>
-        </div>
+    <div className={`flex items-center justify-center gap-2 py-1.5 px-3 mx-2 bg-gradient-to-r ${config.color} rounded-xl shadow-md animate-fade-in`}>
+      <div className="flex items-center gap-1.5">
+        {config.icon}
+        <span className="text-xs font-medium text-white">{config.name}</span>
+      </div>
+      <div className="w-px h-3 bg-white/30" />
+      <div className="flex items-center gap-1">
+        <Clock className="w-3 h-3 text-white/80" />
+        <span className="text-[11px] text-white/80">
+          {formatTime(activeSceneTimestamp)} 激活
+        </span>
       </div>
     </div>
   );
