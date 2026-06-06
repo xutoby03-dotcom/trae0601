@@ -7,6 +7,7 @@ export function useAudioControls() {
   const togglePlay = (deckId: DeckId) => audioEngine.togglePlay(deckId);
   const seekDeck = (deckId: DeckId, time: number) => audioEngine.seekDeck(deckId, time);
   const updateLoop = (deckId: DeckId) => audioEngine.updateLoop(deckId);
+  const syncDeck = (deckId: DeckId) => audioEngine.syncDeck(deckId);
   const getWaveformData = (deckId: DeckId) => audioEngine.getWaveformData(deckId);
   const beatsAligned = audioEngine.getBeatsAligned();
 
@@ -16,6 +17,7 @@ export function useAudioControls() {
     togglePlay,
     seekDeck,
     updateLoop,
+    syncDeck,
     getWaveformData,
     beatsAligned,
   };

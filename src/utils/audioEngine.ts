@@ -253,6 +253,78 @@ class AudioEngineSingleton {
     state.setDeckPlaying(deckId, false);
   }
 
+  syncDeck(deckId: DeckId): void {
+    const ctx = this.audioContext;
+    const state = useDJStore.getState();
+    const targetDeckId: DeckId = deckId === 'A' ? 'B' : 'A';
+    const sourceDeck = state[`deck${deckId}`];
+    const targetDeck = state[`deck${targetDeckId}`];
+    const nodes = this.deckNodes[deckId];
+
+    if (!ctx || !nodes || sourceDeck.detectedBPM === 0 || targetDeck.detectedBPM === 0) {
+      return;
+    }
+
+    const targetBPM = targetDeck.detectedBPM;
+    const sourceBPM = sourceDeck.detectedBPM;
+
+    const pitchRatio = targetBPM / sourceBPM;
+    const pitch = (pitchRatio - 1) * 100;
+    const clampedPitch = Math.max(-50, Math.min(50, pitch));
+
+    state.setDeckPitch(deckId, clampedPitch);
+
+    const targetBeatDuration = 60 / targetBPM;
+    const targetBeatPhase = targetDeck.beatPhase;
+    const targetBeatTime = targetBeatPhase * targetBeatDuration;
+
+    const sourceBeatDuration = 60 / (targetBPM);
+    const currentSourceBeatTime = sourceDeck.beatPhase * sourceBeatDuration;
+
+    const phaseDiff = targetBeatTime - currentSourceBeatTime;
+    const adjustedDiff = phaseDiff > sourceBeatDuration / 2
+      ? phaseDiff - sourceBeatDuration
+      : phaseDiff < -sourceBeatDuration / 2
+        ? phaseDiff + sourceBeatDuration
+        : phaseDiff;
+
+    let newCurrentTime = sourceDeck.currentTime + adjustedDiff;
+
+    if (newCurrentTime < 0) newCurrentTime = 0;
+    if (newCurrentTime > sourceDeck.duration) newCurrentTime = sourceDeck.duration;
+
+    state.setDeckCurrentTime(deckId, newCurrentTime);
+
+    if (nodes.source && sourceDeck.isPlaying) {
+      try {
+        nodes.source.stop();
+      } catch (e) {}
+
+      const source = ctx.createBufferSource();
+      source.buffer = sourceDeck.audioBuffer;
+      source.playbackRate.value = 1 + clampedPitch / 100;
+      source.loop = sourceDeck.loopEnabled;
+
+      if (sourceDeck.loopEnabled) {
+        source.loopStart = sourceDeck.loopStart;
+        source.loopEnd = sourceDeck.loopEnd;
+      }
+
+      source.connect(nodes.gainNode);
+      nodes.source = source;
+      nodes.startOffset = newCurrentTime;
+      nodes.startTime = ctx.currentTime;
+
+      source.start(0, newCurrentTime);
+
+      source.onended = () => {
+        if (sourceDeck.loopEnabled) {
+          state.setDeckCurrentTime(deckId, sourceDeck.loopStart);
+        }
+      };
+    }
+  }
+
   togglePlay(deckId: DeckId): void {
     const deckState = useDJStore.getState()[`deck${deckId}`];
     if (deckState.isPlaying) {

@@ -3,6 +3,7 @@ import { useDJStore } from '../store/useDJStore';
 import { useAudioControls } from '../hooks/useAudioControls';
 import { detectBPM } from '../utils/bpmDetector';
 import { audioEngine } from '../utils/audioEngine';
+import { cn } from '../lib/utils';
 import { VirtualDeck } from './VirtualDeck';
 import { Waveform } from './Waveform';
 import { VolumeFader } from './VolumeFader';
@@ -22,6 +23,8 @@ interface DeckProps {
 
 export const Deck: React.FC<DeckProps> = ({ deckId, color, beatsAligned }) => {
   const deck = useDJStore((state) => state[`deck${deckId}`] as DeckState);
+  const otherDeckId: DeckId = deckId === 'A' ? 'B' : 'A';
+  const otherDeck = useDJStore((state) => state[`deck${otherDeckId}`] as DeckState);
   const {
     setDeckBuffer,
     setDeckVolume,
@@ -35,7 +38,7 @@ export const Deck: React.FC<DeckProps> = ({ deckId, color, beatsAligned }) => {
     setDeckCurrentTime,
   } = useDJStore();
   
-  const { togglePlay, seekDeck } = useAudioControls();
+  const { togglePlay, seekDeck, syncDeck } = useAudioControls();
 
   const handleUpload = useCallback(async (file: File) => {
     const audioContext = audioEngine.getAudioContext();
@@ -105,14 +108,37 @@ export const Deck: React.FC<DeckProps> = ({ deckId, color, beatsAligned }) => {
             onCue={handleCue}
           />
           
-          <BPMDisplay
-            bpm={deck.bpm}
-            detectedBPM={deck.detectedBPM}
-            isPlaying={deck.isPlaying}
-            beatPhase={deck.beatPhase}
-            isAligned={beatsAligned}
-            color={color}
-          />
+          <div className="flex items-center gap-3">
+            <BPMDisplay
+              bpm={deck.bpm}
+              detectedBPM={deck.detectedBPM}
+              isPlaying={deck.isPlaying}
+              beatPhase={deck.beatPhase}
+              isAligned={beatsAligned}
+              color={color}
+            />
+            
+            <button
+              onClick={() => syncDeck(deckId)}
+              disabled={deck.detectedBPM === 0 || otherDeck.detectedBPM === 0}
+              className={cn(
+                "px-4 py-3 rounded-lg font-black text-sm tracking-[0.2em] uppercase transition-all duration-150",
+                "border-2",
+                deck.detectedBPM === 0 || otherDeck.detectedBPM === 0
+                  ? "bg-gray-800 border-gray-700 text-gray-600 cursor-not-allowed"
+                  : beatsAligned
+                    ? "bg-green-600 border-green-400 text-white shadow-lg shadow-green-500/40"
+                    : "bg-yellow-600 border-yellow-400 text-white shadow-lg shadow-yellow-500/30 hover:bg-yellow-500 active:scale-95"
+              )}
+              title={
+                deck.detectedBPM === 0 || otherDeck.detectedBPM === 0
+                  ? "Load both tracks first to enable SYNC"
+                  : `Sync to Deck ${otherDeckId} BPM`
+              }
+            >
+              SYNC
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 flex-1">
