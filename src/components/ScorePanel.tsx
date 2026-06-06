@@ -5,6 +5,7 @@ interface ScorePanelProps {
   combo: number;
   highScore: number | null;
   scoreGain: number | null;
+  scoreGainCombo: number;
 }
 
 interface FloatScore {
@@ -13,20 +14,20 @@ interface FloatScore {
   combo: number;
 }
 
-export const ScorePanel: React.FC<ScorePanelProps> = ({ score, combo, highScore, scoreGain }) => {
+export const ScorePanel: React.FC<ScorePanelProps> = ({ score, combo, highScore, scoreGain, scoreGainCombo }) => {
   const [floatScores, setFloatScores] = useState<FloatScore[]>([]);
   const nextIdRef = useRef(0);
 
   useEffect(() => {
     if (scoreGain !== null && scoreGain > 0) {
       const id = nextIdRef.current++;
-      setFloatScores((prev) => [...prev, { id, value: scoreGain, combo }]);
+      setFloatScores((prev) => [...prev, { id, value: scoreGain, combo: scoreGainCombo }]);
 
       setTimeout(() => {
         setFloatScores((prev) => prev.filter((s) => s.id !== id));
       }, 800);
     }
-  }, [scoreGain, combo]);
+  }, [scoreGain, scoreGainCombo]);
 
   const isHighCombo = combo > 1;
 
@@ -81,6 +82,7 @@ export const ScorePanel: React.FC<ScorePanelProps> = ({ score, combo, highScore,
               top: '50%',
               transform: 'translateX(-50%)',
               whiteSpace: 'nowrap',
+              zIndex: 10,
             }}
           >
             +{fs.value.toLocaleString()}

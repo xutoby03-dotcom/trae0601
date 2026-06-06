@@ -23,6 +23,7 @@ function App() {
     gameState,
     clearingCells,
     scoreGain,
+    scoreGainCombo,
     tryPlaceBlock,
     handleCellDragOver,
     canPlaceAtHover,
@@ -181,6 +182,7 @@ function App() {
             combo={gameState.combo}
             highScore={highScore}
             scoreGain={scoreGain}
+            scoreGainCombo={scoreGainCombo}
           />
         </div>
 

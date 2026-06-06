@@ -17,14 +17,17 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
   const [dragBlockIndex, setDragBlockIndex] = useState<number | null>(null);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
+  const [scoreGainCombo, setScoreGainCombo] = useState<number>(0);
   const scoreGainIdRef = useRef(0);
 
-  const triggerScoreGain = useCallback((gain: number) => {
+  const triggerScoreGain = useCallback((gain: number, newCombo: number) => {
     const id = ++scoreGainIdRef.current;
     setScoreGain(gain);
+    setScoreGainCombo(newCombo);
     setTimeout(() => {
       if (scoreGainIdRef.current === id) {
         setScoreGain(null);
+        setScoreGainCombo(0);
       }
     }, 100);
   }, []);
@@ -35,6 +38,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
     setDragBlockIndex(null);
     setClearingCells([]);
     setScoreGain(null);
+    setScoreGainCombo(0);
   }, [gameState.difficulty]);
 
   const startDrag = useCallback((blockIndex: number) => {
@@ -65,8 +69,9 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
         const toClear = findLinesToClear(newGrid);
 
         if (toClear.length > 0) {
+          const newComboForGain = prev.combo + 1;
           const gain = calculateScore(toClear.length, prev.combo);
-          triggerScoreGain(gain);
+          triggerScoreGain(gain, newComboForGain);
 
           setClearingCells(toClear);
           setTimeout(() => {
@@ -154,6 +159,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
     gameState,
     clearingCells,
     scoreGain,
+    scoreGainCombo,
     tryPlaceBlock,
     handleCellDragOver,
     canPlaceAtHover,
