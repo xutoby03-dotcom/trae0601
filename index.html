@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电子宠物 - 拓麻歌子</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="device-shell">
+            <div class="device-screen">
+                <div class="screen-header">
+                    <div class="pet-name" id="petName">小猫咪</div>
+                    <div class="pet-type" id="petType">🐱</div>
+                </div>
+                
+                <div class="stats-panel">
+                    <div class="stat">
+                        <span class="stat-label">🍖 饥饿</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill" id="hungerBar" style="width: 80%"></div>
+                        </div>
+                        <span class="stat-value" id="hungerValue">80</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">😊 心情</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill" id="happinessBar" style="width: 80%"></div>
+                        </div>
+                        <span class="stat-value" id="happinessValue">80</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">❤️ 健康</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill" id="healthBar" style="width: 100%"></div>
+                        </div>
+                        <span class="stat-value" id="healthValue">100</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">✨ 清洁</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill" id="cleanlinessBar" style="width: 90%"></div>
+                        </div>
+                        <span class="stat-value" id="cleanlinessValue">90</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">⚡ 体力</span>
+                        <div class="stat-bar">
+                            <div class="stat-fill" id="energyBar" style="width: 85%"></div>
+                        </div>
+                        <span class="stat-value" id="energyValue">85</span>
+                    </div>
+                </div>
+
+                <div class="pet-display" id="petDisplay">
+                    <pre class="ascii-pet" id="asciiPet"></pre>
+                    <div class="pet-status" id="petStatus">正在玩耍...</div>
+                </div>
+
+                <div class="action-panel">
+                    <button class="action-btn" id="feedBtn">🍚 喂食</button>
+                    <button class="action-btn" id="playBtn">🎮 玩耍</button>
+                    <button class="action-btn" id="cleanBtn">🛁 洗澡</button>
+                    <button class="action-btn" id="sleepBtn">😴 睡觉</button>
+                    <button class="action-btn" id="studyBtn">📚 学习</button>
+                </div>
+            </div>
+
+            <div class="device-controls">
+                <button class="ctrl-btn" id="selectBtn">选择</button>
+                <button class="ctrl-btn" id="cancelBtn">取消</button>
+                <button class="ctrl-btn" id="switchBtn">切换宠物</button>
+            </div>
+        </div>
+
+        <div class="modal" id="foodModal">
+            <div class="modal-content">
+                <h3>🍽️ 选择食物</h3>
+                <div class="food-grid" id="foodGrid"></div>
+                <button class="close-btn" id="closeFoodModal">关闭</button>
+            </div>
+        </div>
+
+        <div class="modal" id="gameModal">
+            <div class="modal-content">
+                <h3>🎮 选择游戏</h3>
+                <div class="game-grid" id="gameGrid"></div>
+                <button class="close-btn" id="closeGameModal">关闭</button>
+            </div>
+        </div>
+
+        <div class="modal" id="miniGameModal">
+            <div class="modal-content">
+                <h3 id="miniGameTitle">迷你游戏</h3>
+                <div class="mini-game-area" id="miniGameArea"></div>
+                <div class="mini-game-score" id="miniGameScore"></div>
+                <button class="close-btn" id="closeMiniGame">结束游戏</button>
+            </div>
+        </div>
+
+        <div class="modal" id="petSelectModal">
+            <div class="modal-content">
+                <h3>🐾 选择宠物</h3>
+                <div class="pet-select-grid" id="petSelectGrid"></div>
+                <button class="close-btn" id="closePetSelect">关闭</button>
+            </div>
+        </div>
+
+        <div class="modal" id="deathModal">
+            <div class="modal-content">
+                <h3>💀 宠物去了天堂...</h3>
+                <p>你的宠物因为没有得到好好照顾而离开了。</p>
+                <p>下次要记得好好照顾它哦！</p>
+                <button class="action-btn" id="restartBtn">🔄 重新开始</button>
+            </div>
+        </div>
+
+        <div class="modal" id="newPetModal">
+            <div class="modal-content">
+                <h3>🎉 领养新宠物</h3>
+                <p>选择你想要的宠物类型：</p>
+                <div class="new-pet-grid">
+                    <button class="pet-type-btn" data-type="cat">🐱 猫咪</button>
+                    <button class="pet-type-btn" data-type="dog">🐶 狗狗</button>
+                    <button class="pet-type-btn" data-type="bird">🐦 小鸟</button>
+                    <button class="pet-type-btn" data-type="rabbit">🐰 兔子</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
