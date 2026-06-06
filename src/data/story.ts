@@ -489,9 +489,18 @@ export const STORY_NODES: Record<string, SceneNode> = {
 黑龙被你的声音惊醒，它张开巨大的翅膀，整个洞穴都在震动。
 
 "渺小的人类，竟敢打扰我的沉睡？！我要把你烧成灰烬！"
+
+黑龙喷出一口烈焰，你狼狈地躲开。它的力量远超你的想象...
+
+突然，黑龙停止了攻击，用它巨大的眼睛盯着你。
+
+"等等...你很有潜力..." 黑龙的声音在你脑海中响起，"与其死在这里，不如成为我的部下吧。我会赐予你永恒的生命和强大的力量。"
+
+你的意志开始动摇...永恒的生命？强大的力量？
     `,
     options: [
-      { text: '战斗！', nextNodeId: 'dragon_victory', startsBattle: 'dragon' },
+      { text: '战斗！我绝不会屈服！', nextNodeId: 'dragon_victory', startsBattle: 'dragon' },
+      { text: '接受黑龙的诱惑...', nextNodeId: 'ending_bad' },
     ],
   },
 
@@ -502,9 +511,14 @@ export const STORY_NODES: Record<string, SceneNode> = {
 虚弱的黑龙愤怒地向你扑来，但它的速度明显慢了很多！
 
 "我...我不甘心...！"
+
+突然，黑龙停下了攻击，用仅剩的力气说道："等等...小子...我们做个交易如何...我把我的力量分给你...你放我一条生路..."
+
+你的内心开始动摇...黑龙的力量...那可是凡人无法企及的力量...
     `,
     options: [
-      { text: '战斗！', nextNodeId: 'dragon_victory', startsBattle: 'dragon_weak' },
+      { text: '战斗！乘胜追击！', nextNodeId: 'dragon_victory', startsBattle: 'dragon_weak' },
+      { text: '接受黑龙的交易...', nextNodeId: 'ending_bad' },
     ],
   },
 
@@ -519,9 +533,14 @@ export const STORY_NODES: Record<string, SceneNode> = {
 公主激动地流下了眼泪："谢谢你...勇敢的冒险者。你救了我，也救了整个王国。"
 
 你打开笼子，公主扑进了你的怀里。
+
+就在这时，你想起了神殿守护者的话——"在王国的北方，还有一个更大的威胁在沉睡。"
+
+远处的北方天际，似乎有不祥的乌云在聚集...
     `,
     options: [
-      { text: '带公主回王城', nextNodeId: 'ending_good' },
+      { text: '带公主回王城，过上幸福生活', nextNodeId: 'ending_good' },
+      { text: '继续北征，消灭真正的魔王！', nextNodeId: 'ending_hidden', requiresFlag: 'has_dragon_eye' },
     ],
     setFlag: 'defeated_dragon',
   },

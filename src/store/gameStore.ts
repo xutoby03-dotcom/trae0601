@@ -32,7 +32,7 @@ interface GameStore extends GameState {
   addItem: (itemId: string) => void;
   useItem: (itemId: string) => boolean;
   equipItemAction: (itemId: string) => void;
-  startBattle: (enemyId: string) => void;
+  startBattle: (enemyId: string, nextNodeId?: string) => void;
   playerAttack: () => void;
   playerUseSkill: (skillId: string) => void;
   playerUseItemInBattle: (itemId: string) => void;
@@ -82,6 +82,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       get().setFlag(node.setFlag, true);
     }
     if (node.autoSave) {
+      get().saveGame(0);
     }
 
     if (node.isEnding) {
@@ -116,12 +117,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     if (option.startsBattle) {
-      get().startBattle(option.startsBattle);
-      const currentNode = STORY_NODES[state.currentNodeId];
-      const nextNode = STORY_NODES[option.nextNodeId];
-      if (nextNode) {
-        set({ currentNodeId: option.nextNodeId });
-      }
+      get().startBattle(option.startsBattle, option.nextNodeId);
     } else {
       get().goToNode(option.nextNodeId);
     }
@@ -185,7 +181,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }));
   },
 
-  startBattle: (enemyId) => {
+  startBattle: (enemyId, nextNodeId) => {
     const enemy = { ...ENEMIES[enemyId] };
     if (!enemy) return;
 
@@ -199,6 +195,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       turn,
       log: [`遭遇了 ${enemy.name}！`],
       isActive: true,
+      nextNodeId,
     };
 
     set({ battle, screen: 'battle' });
@@ -387,6 +384,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (victory) {
       const enemy = state.battle.enemy;
+      const nextNodeId = state.battle.nextNodeId;
       let newStats = {
         ...state.player.stats,
         exp: state.player.stats.exp + enemy.exp,
@@ -411,7 +409,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       });
 
       setTimeout(() => {
-        set({ battle: null, screen: 'game' });
+        if (nextNodeId) {
+          set({ battle: null, screen: 'game' });
+          get().goToNode(nextNodeId);
+        } else {
+          set({ battle: null, screen: 'game' });
+        }
       }, 2000);
     } else {
       const newLog = [...state.battle.log, '你被击败了...'];

@@ -100,6 +100,7 @@ export interface BattleState {
   log: string[];
   isActive: boolean;
   victory?: boolean;
+  nextNodeId?: string;
 }
 
 export interface SaveSlot {
