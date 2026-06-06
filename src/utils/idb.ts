@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { DesktopIcon, WindowState, UserPreferences, VirtualFile } from '../types';
+import { DesktopIcon, WindowState, UserPreferences, VirtualFile, DesktopWidget } from '../types';
 
 interface DesktopDB extends DBSchema {
   desktopIcons: {
@@ -19,6 +19,10 @@ interface DesktopDB extends DBSchema {
     value: VirtualFile;
     indexes: { 'by-parent': string };
   };
+  widgets: {
+    key: string;
+    value: DesktopWidget;
+  };
 }
 
 let db: IDBPDatabase<DesktopDB> | null = null;
@@ -26,8 +30,8 @@ let db: IDBPDatabase<DesktopDB> | null = null;
 export const initDB = async () => {
   if (db) return db;
 
-  db = await openDB<DesktopDB>('virtual-desktop-db', 1, {
-    upgrade(db) {
+  db = await openDB<DesktopDB>('virtual-desktop-db', 2, {
+    upgrade(db, oldVersion) {
       if (!db.objectStoreNames.contains('desktopIcons')) {
         db.createObjectStore('desktopIcons', { keyPath: 'id' });
       }
@@ -40,6 +44,9 @@ export const initDB = async () => {
       if (!db.objectStoreNames.contains('files')) {
         const fileStore = db.createObjectStore('files', { keyPath: 'id' });
         fileStore.createIndex('by-parent', 'parentId');
+      }
+      if (!db.objectStoreNames.contains('widgets')) {
+        db.createObjectStore('widgets', { keyPath: 'id' });
       }
     },
   });
@@ -112,4 +119,19 @@ export const saveFiles = async (files: VirtualFile[]) => {
 export const getFiles = async (): Promise<VirtualFile[]> => {
   const db = await getDB();
   return db.getAll('files');
+};
+
+export const saveWidgets = async (widgets: DesktopWidget[]) => {
+  const db = await getDB();
+  const tx = db.transaction('widgets', 'readwrite');
+  await tx.store.clear();
+  for (const widget of widgets) {
+    await tx.store.put(widget);
+  }
+  await tx.done;
+};
+
+export const getWidgets = async (): Promise<DesktopWidget[]> => {
+  const db = await getDB();
+  return db.getAll('widgets');
 };

@@ -51,3 +51,15 @@ export interface VirtualFile {
   createdAt: number;
   updatedAt: number;
 }
+
+export type WidgetType = 'clock' | 'sticky-note' | 'system-info';
+
+export interface DesktopWidget {
+  id: string;
+  type: WidgetType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  content?: string;
+}
