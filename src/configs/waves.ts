@@ -3,7 +3,7 @@ import { WaveConfig } from '../types';
 export const WAVE_CONFIGS: WaveConfig[] = [
   {
     waveNumber: 1,
-    delay: 3000,
+    delay: 5000,
     monsters: [{ type: 'normal', count: 5, interval: 1000 }],
   },
   {

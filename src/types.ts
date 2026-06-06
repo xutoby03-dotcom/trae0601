@@ -79,7 +79,7 @@ export interface Tower {
   x: number;
   y: number;
   slotIndex: number;
-  lastFireTime: number;
+  fireCooldown: number;
   angle: number;
 }
 

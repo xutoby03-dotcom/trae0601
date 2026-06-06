@@ -90,7 +90,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         x: slot.x,
         y: slot.y,
         slotIndex,
-        lastFireTime: 0,
+        fireCooldown: 0,
         angle: 0,
       };
 
@@ -338,13 +338,14 @@ const updateMonsters = (state: GameState, dt: number): GameState => {
 const updateTowers = (state: GameState, dt: number): GameState => {
   if (!state.map) return state;
 
-  const now = performance.now();
   const newProjectiles: Projectile[] = [];
   const updatedTowers: Tower[] = [];
 
   for (const tower of state.towers) {
     const levelConfig = getTowerLevelConfig(tower.type, tower.level);
     const fireInterval = 1000 / levelConfig.fireRate;
+
+    let newCooldown = Math.max(0, tower.fireCooldown - dt);
 
     let target: Monster | null = null;
     let minProgress = -1;
@@ -364,7 +365,7 @@ const updateTowers = (state: GameState, dt: number): GameState => {
     if (target) {
       newAngle = getAngle({ x: tower.x, y: tower.y }, { x: target.x, y: target.y });
 
-      if (now - tower.lastFireTime >= fireInterval) {
+      if (newCooldown <= 0) {
         const projectile: Projectile = {
           id: generateId(),
           x: tower.x,
@@ -382,7 +383,7 @@ const updateTowers = (state: GameState, dt: number): GameState => {
 
         updatedTowers.push({
           ...tower,
-          lastFireTime: now,
+          fireCooldown: fireInterval,
           angle: newAngle,
         });
         continue;
@@ -391,6 +392,7 @@ const updateTowers = (state: GameState, dt: number): GameState => {
 
     updatedTowers.push({
       ...tower,
+      fireCooldown: newCooldown,
       angle: newAngle,
     });
   }

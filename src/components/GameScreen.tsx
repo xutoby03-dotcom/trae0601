@@ -325,6 +325,9 @@ export const GameScreen = () => {
                 >
                   💸 出售 (+💰 {getTowerSellValue(state.selectedTower.type, state.selectedTower.level)})
                 </button>
+                <p className="text-xs text-gray-500 text-center">
+                  出售按总投入 60% 回收
+                </p>
               </div>
             </div>
           )}

@@ -229,42 +229,76 @@ export class GameRenderer {
   }
 
   private drawMonster(monster: Monster) {
-    this.ctx.shadowColor = monster.color;
-    this.ctx.shadowBlur = 8;
+    const time = performance.now();
+    const floatOffset = monster.isFlying ? Math.sin(time / 200) * 4 : 0;
+    const bodyY = monster.y + floatOffset;
 
     if (monster.isFlying) {
-      const wingOffset = Math.sin(performance.now() / 100) * 3;
-      this.ctx.fillStyle = this.darkenColor(monster.color, 20);
+      this.ctx.shadowBlur = 0;
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       this.ctx.beginPath();
-      this.ctx.ellipse(monster.x - monster.size * 0.8, monster.y - wingOffset, monster.size * 0.5, monster.size * 0.3, -0.3, 0, Math.PI * 2);
+      this.ctx.ellipse(monster.x, monster.y + 8, monster.size * 0.8, monster.size * 0.3, 0, 0, Math.PI * 2);
       this.ctx.fill();
+    }
+
+    this.ctx.shadowColor = monster.color;
+    this.ctx.shadowBlur = monster.isFlying ? 15 : 8;
+
+    if (monster.isFlying) {
+      const wingFlap = Math.sin(time / 80) * 0.8;
+      const wingY = bodyY - 2;
+
+      this.ctx.fillStyle = this.lightenColor(monster.color, 20);
+      this.ctx.shadowBlur = 12;
       this.ctx.beginPath();
-      this.ctx.ellipse(monster.x + monster.size * 0.8, monster.y - wingOffset, monster.size * 0.5, monster.size * 0.3, 0.3, 0, Math.PI * 2);
+      this.ctx.ellipse(
+        monster.x - monster.size * 0.9,
+        wingY - wingFlap * monster.size * 0.5,
+        monster.size * 0.6,
+        monster.size * 0.35,
+        -0.5 - wingFlap * 0.3,
+        0,
+        Math.PI * 2
+      );
       this.ctx.fill();
+
+      this.ctx.beginPath();
+      this.ctx.ellipse(
+        monster.x + monster.size * 0.9,
+        wingY - wingFlap * monster.size * 0.5,
+        monster.size * 0.6,
+        monster.size * 0.35,
+        0.5 + wingFlap * 0.3,
+        0,
+        Math.PI * 2
+      );
+      this.ctx.fill();
+
+      this.ctx.shadowBlur = 8;
     }
 
     this.ctx.fillStyle = monster.color;
     this.ctx.beginPath();
-    this.ctx.arc(monster.x, monster.y, monster.size, 0, Math.PI * 2);
+    this.ctx.arc(monster.x, bodyY, monster.size, 0, Math.PI * 2);
     this.ctx.fill();
 
     this.ctx.fillStyle = this.darkenColor(monster.color, 30);
     this.ctx.beginPath();
-    this.ctx.arc(monster.x, monster.y, monster.size * 0.6, 0, Math.PI * 2);
+    this.ctx.arc(monster.x, bodyY, monster.size * 0.6, 0, Math.PI * 2);
     this.ctx.fill();
 
     this.ctx.shadowBlur = 0;
 
     this.ctx.fillStyle = '#fff';
     this.ctx.beginPath();
-    this.ctx.arc(monster.x - monster.size * 0.25, monster.y - monster.size * 0.15, monster.size * 0.2, 0, Math.PI * 2);
-    this.ctx.arc(monster.x + monster.size * 0.25, monster.y - monster.size * 0.15, monster.size * 0.2, 0, Math.PI * 2);
+    this.ctx.arc(monster.x - monster.size * 0.25, bodyY - monster.size * 0.15, monster.size * 0.2, 0, Math.PI * 2);
+    this.ctx.arc(monster.x + monster.size * 0.25, bodyY - monster.size * 0.15, monster.size * 0.2, 0, Math.PI * 2);
     this.ctx.fill();
 
     this.ctx.fillStyle = '#000';
     this.ctx.beginPath();
-    this.ctx.arc(monster.x - monster.size * 0.25, monster.y - monster.size * 0.15, monster.size * 0.1, 0, Math.PI * 2);
-    this.ctx.arc(monster.x + monster.size * 0.25, monster.y - monster.size * 0.15, monster.size * 0.1, 0, Math.PI * 2);
+    this.ctx.arc(monster.x - monster.size * 0.25, bodyY - monster.size * 0.15, monster.size * 0.1, 0, Math.PI * 2);
+    this.ctx.arc(monster.x + monster.size * 0.25, bodyY - monster.size * 0.15, monster.size * 0.1, 0, Math.PI * 2);
     this.ctx.fill();
 
     if (monster.slowTimer > 0) {
@@ -273,14 +307,14 @@ export class GameRenderer {
       this.ctx.shadowColor = '#44aaff';
       this.ctx.shadowBlur = 10;
       this.ctx.beginPath();
-      this.ctx.arc(monster.x, monster.y, monster.size + 6, 0, Math.PI * 2);
+      this.ctx.arc(monster.x, bodyY, monster.size + 6, 0, Math.PI * 2);
       this.ctx.stroke();
       this.ctx.shadowBlur = 0;
     }
 
     const hpBarWidth = monster.size * 2;
     const hpBarHeight = 4;
-    const hpBarY = monster.y - monster.size - 10;
+    const hpBarY = bodyY - monster.size - 10;
     const hpPercent = monster.hp / monster.maxHp;
 
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
