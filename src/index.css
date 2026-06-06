@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #f3f3f3;
+  --color-desktop-background: linear-gradient(135deg, #0078d4 0%, #00bcf2 100%);
+  --color-taskbar-background: rgba(255, 255, 255, 0.85);
+  --color-taskbar-border: rgba(0, 0, 0, 0.1);
+  --color-window-background: #ffffff;
+  --color-window-border: rgba(0, 0, 0, 0.1);
+  --color-window-titlebar: #f3f3f3;
+  --color-window-titlebar-active: #ffffff;
+  --color-window-titlebar-text: #666666;
+  --color-window-titlebar-text-active: #000000;
+  --color-text-primary: #000000;
+  --color-text-secondary: #666666;
+  --color-accent: #0078d4;
+  --color-accent-hover: #106ebe;
+  --color-button-background: #f3f3f3;
+  --color-button-hover: #e5e5e5;
+  --color-button-active: #d9d9d9;
+  --color-start-menu-background: rgba(255, 255, 255, 0.95);
+  --color-start-menu-border: rgba(0, 0, 0, 0.1);
+  --color-icon-text: #ffffff;
+  --color-icon-text-hover: #ffffff;
+  --color-tray-background: rgba(0, 0, 0, 0.05);
+  --color-input-background: #ffffff;
+  --color-input-border: #d1d5db;
+  
+  --border-window: 1px solid rgba(0, 0, 0, 0.1);
+  --border-button: 1px solid rgba(0, 0, 0, 0.1);
+  --border-taskbar: 1px solid rgba(0, 0, 0, 0.1);
+  --border-start-menu: 1px solid rgba(0, 0, 0, 0.1);
+  
+  --shadow-window: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-window-active: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-start-menu: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  --taskbar-height: 48px;
+  --window-border-width: 1px;
+  --window-titlebar-height: 32px;
+  
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", monospace;
+}
+
+[data-theme="dark"] {
+  --color-background: #1a1a1a;
+  --color-desktop-background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --color-taskbar-background: rgba(32, 32, 32, 0.85);
+  --color-taskbar-border: rgba(255, 255, 255, 0.1);
+  --color-window-background: #202020;
+  --color-window-border: rgba(255, 255, 255, 0.1);
+  --color-window-titlebar: #2a2a2a;
+  --color-window-titlebar-active: #303030;
+  --color-window-titlebar-text: #888888;
+  --color-window-titlebar-text-active: #ffffff;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #aaaaaa;
+  --color-accent: #4cc2ff;
+  --color-accent-hover: #3aa8e0;
+  --color-button-background: #3a3a3a;
+  --color-button-hover: #4a4a4a;
+  --color-button-active: #5a5a5a;
+  --color-start-menu-background: rgba(32, 32, 32, 0.95);
+  --color-start-menu-border: rgba(255, 255, 255, 0.1);
+  --color-icon-text: #ffffff;
+  --color-icon-text-hover: #ffffff;
+  --color-tray-background: rgba(255, 255, 255, 0.05);
+  --color-input-background: #2a2a2a;
+  --color-input-border: #404040;
+  
+  --border-window: 1px solid rgba(255, 255, 255, 0.1);
+  --border-button: 1px solid rgba(255, 255, 255, 0.1);
+  --border-taskbar: 1px solid rgba(255, 255, 255, 0.1);
+  --border-start-menu: 1px solid rgba(255, 255, 255, 0.1);
+  
+  --shadow-window: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-window-active: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-start-menu: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="win95"] {
+  --color-background: #c0c0c0;
+  --color-desktop-background: #008080;
+  --color-taskbar-background: #c0c0c0;
+  --color-taskbar-border: #dfdfdf;
+  --color-window-background: #c0c0c0;
+  --color-window-border: #c0c0c0;
+  --color-window-titlebar: #000080;
+  --color-window-titlebar-active: #000080;
+  --color-window-titlebar-text: #ffffff;
+  --color-window-titlebar-text-active: #ffffff;
+  --color-text-primary: #000000;
+  --color-text-secondary: #808080;
+  --color-accent: #000080;
+  --color-accent-hover: #0000a0;
+  --color-button-background: #c0c0c0;
+  --color-button-hover: #d0d0d0;
+  --color-button-active: #b0b0b0;
+  --color-start-menu-background: #c0c0c0;
+  --color-start-menu-border: #c0c0c0;
+  --color-icon-text: #ffffff;
+  --color-icon-text-hover: #ffffff;
+  --color-tray-background: #a0a0a0;
+  --color-input-background: #ffffff;
+  --color-input-border: #808080;
+  
+  --border-window: 2px outset #dfdfdf;
+  --border-button: 2px outset #dfdfdf;
+  --border-taskbar: 2px outset #dfdfdf;
+  --border-start-menu: 2px outset #dfdfdf;
+  
+  --shadow-window: none;
+  --shadow-window-active: none;
+  --shadow-start-menu: none;
+  
+  --taskbar-height: 28px;
+  --window-border-width: 2px;
+  --window-titlebar-height: 20px;
+  
+  --font-sans: "MS Sans Serif", "Tahoma", "Microsoft Sans Serif", sans-serif;
+  --font-mono: "Courier New", "Lucida Console", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-window-background);
+  margin-top: -4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+[data-theme="win95"] * {
+  border-radius: 0 !important;
+}
+
+[data-theme="win95"] button {
+  border: 2px outset #dfdfdf;
+  background: #c0c0c0;
+  padding: 2px 8px;
+}
+
+[data-theme="win95"] button:active {
+  border-style: inset;
+}
