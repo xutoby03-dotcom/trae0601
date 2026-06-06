@@ -19,6 +19,7 @@ interface TestState {
   saveToHistory: () => void;
   loadHistoryFromStorage: () => void;
   clearHistoryData: () => void;
+  deleteHistoryItem: (id: string) => void;
   resetTest: () => void;
   setResult: (result: TestResult) => void;
 }
@@ -100,6 +101,13 @@ export const useTestStore = create<TestState>((set, get) => ({
   clearHistoryData: () => {
     clearHistory();
     set({ history: [] });
+  },
+
+  deleteHistoryItem: (id: string) => {
+    const { history } = get();
+    const newHistory = history.filter((h) => h.id !== id);
+    set({ history: newHistory });
+    saveHistory(newHistory);
   },
 
   resetTest: () => {
