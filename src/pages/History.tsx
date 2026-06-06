@@ -333,7 +333,7 @@ export default function History() {
                             </div>
 
                             <div className="flex flex-col items-center justify-center">
-                              <h5 className="text-white font-semibold text-sm mb-3 self-start">
+                              <h5 className="text-white font-semibold text-sm mb-3 self-center">
                                 雷达图概览
                               </h5>
                               <div className="w-[120px] h-[120px]">
