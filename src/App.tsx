@@ -33,7 +33,7 @@ function App() {
   const selectedNote = allNotes.find((n) => n.id === score.selectedNoteId) || null;
 
   useAudioPlayer({
-    notes: allNotes,
+    measures: score.measures,
     bpm: score.bpm,
     isPlaying: score.isPlaying,
     currentPlayPosition: score.currentPlayPosition,

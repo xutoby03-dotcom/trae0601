@@ -12,7 +12,7 @@ import {
   VOICE_GAP,
   drawVoiceLabel,
 } from '../utils/renderUtils';
-import { getNoteAtPosition, flattenAllNotes } from '../utils/musicUtils';
+import { getNoteAtPosition, flattenMelodyNotes, flattenAllNotes } from '../utils/musicUtils';
 
 interface EditorCanvasProps {
   measures: Measure[];
@@ -35,8 +35,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({
   const notePositionsRef = useRef<NoteRenderInfo[]>([]);
 
   const getPlayingNoteId = useCallback(() => {
-    const allNotes = flattenAllNotes(measures);
-    const note = getNoteAtPosition(allNotes, currentPlayPosition);
+    const melodyNotes = flattenMelodyNotes(measures);
+    const note = getNoteAtPosition(melodyNotes, currentPlayPosition);
     return note?.id || null;
   }, [measures, currentPlayPosition]);
 

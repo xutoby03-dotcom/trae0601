@@ -47,9 +47,13 @@ export function flattenAllNotes(measures: Measure[]): Note[] {
   return measures.flatMap(m => [...m.melody, ...m.harmony]);
 }
 
-export function getNoteAtPosition(flatNotes: Note[], playPosition: number): Note | null {
+export function flattenMelodyNotes(measures: Measure[]): Note[] {
+  return measures.flatMap(m => m.melody);
+}
+
+export function getNoteAtPosition(melodyNotes: Note[], playPosition: number): Note | null {
   let cumulativeTime = 0;
-  for (const note of flatNotes) {
+  for (const note of melodyNotes) {
     if (playPosition >= cumulativeTime && playPosition < cumulativeTime + DURATION_VALUES[note.duration]) {
       return note;
     }
@@ -59,7 +63,13 @@ export function getNoteAtPosition(flatNotes: Note[], playPosition: number): Note
 }
 
 export function getTotalDuration(measures: Measure[]): number {
-  return measures.reduce((total, measure) => {
-    return total + getTotalNotesDuration(measure.melody);
-  }, 0);
+  let melodyTotal = 0;
+  let harmonyTotal = 0;
+  
+  measures.forEach((measure) => {
+    melodyTotal += getTotalNotesDuration(measure.melody);
+    harmonyTotal += getTotalNotesDuration(measure.harmony);
+  });
+  
+  return Math.max(melodyTotal, harmonyTotal);
 }

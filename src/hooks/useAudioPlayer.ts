@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Note, DURATION_VALUES } from '../types/score';
+import { Note, DURATION_VALUES, Measure } from '../types/score';
 import { getNoteFrequency, getTotalNotesDuration } from '../utils/musicUtils';
 
 interface UseAudioPlayerProps {
-  notes: Note[];
+  measures: Measure[];
   bpm: number;
   isPlaying: boolean;
   currentPlayPosition: number;
@@ -28,8 +28,41 @@ function playClick(ctx: AudioContext, time: number, isDownbeat: boolean) {
   osc.stop(time + 0.05);
 }
 
+function playNote(ctx: AudioContext, note: Note, startTime: number, secondsPerBeat: number) {
+  if (note.pitch === null) return;
+  
+  const freq = getNoteFrequency(note.pitch, note.octave, note.accidental);
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  
+  const durationInSec = DURATION_VALUES[note.duration] * secondsPerBeat;
+  gain.gain.setValueAtTime(0.3, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, startTime + durationInSec * 0.9);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  
+  osc.start(startTime);
+  osc.stop(startTime + durationInSec);
+}
+
+export function getTotalDurationMax(measures: Measure[]): number {
+  let melodyTotal = 0;
+  let harmonyTotal = 0;
+  
+  measures.forEach((measure) => {
+    melodyTotal += getTotalNotesDuration(measure.melody);
+    harmonyTotal += getTotalNotesDuration(measure.harmony);
+  });
+  
+  return Math.max(melodyTotal, harmonyTotal);
+}
+
 export function useAudioPlayer({
-  notes,
+  measures,
   bpm,
   isPlaying,
   currentPlayPosition,
@@ -49,9 +82,9 @@ export function useAudioPlayer({
   }, [isPlaying]);
 
   useEffect(() => {
-    if (isPlaying && audioContextRef.current && notes.length > 0) {
+    if (isPlaying && audioContextRef.current) {
       const ctx = audioContextRef.current;
-      const totalDuration = getTotalNotesDuration(notes);
+      const totalDuration = getTotalDurationMax(measures);
       startTimeRef.current = ctx.currentTime;
       startPositionRef.current = currentPlayPosition;
 
@@ -67,31 +100,35 @@ export function useAudioPlayer({
         }
       }
 
-      let noteStart = 0;
-      notes.forEach((note) => {
-        const noteDuration = DURATION_VALUES[note.duration];
-        const noteStartTime = (noteStart - currentPlayPosition) * secondsPerBeat;
+      let globalBeatOffset = 0;
+      
+      measures.forEach((measure) => {
+        let melodyBeat = 0;
+        let harmonyBeat = 0;
         
-        if (noteStartTime >= 0 && note.pitch !== null) {
-          const freq = getNoteFrequency(note.pitch, note.octave, note.accidental);
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
+        measure.melody.forEach((note) => {
+          const noteGlobalBeat = globalBeatOffset + melodyBeat;
+          const noteStartTime = (noteGlobalBeat - currentPlayPosition) * secondsPerBeat;
           
-          osc.type = 'sine';
-          osc.frequency.value = freq;
+          if (noteStartTime >= 0) {
+            playNote(ctx, note, ctx.currentTime + noteStartTime, secondsPerBeat);
+          }
           
-          const durationInSec = noteDuration * secondsPerBeat;
-          gain.gain.setValueAtTime(0.3, ctx.currentTime + noteStartTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + noteStartTime + durationInSec * 0.9);
-          
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          osc.start(ctx.currentTime + noteStartTime);
-          osc.stop(ctx.currentTime + noteStartTime + durationInSec);
-        }
+          melodyBeat += DURATION_VALUES[note.duration];
+        });
         
-        noteStart += noteDuration;
+        measure.harmony.forEach((note) => {
+          const noteGlobalBeat = globalBeatOffset + harmonyBeat;
+          const noteStartTime = (noteGlobalBeat - currentPlayPosition) * secondsPerBeat;
+          
+          if (noteStartTime >= 0) {
+            playNote(ctx, note, ctx.currentTime + noteStartTime, secondsPerBeat);
+          }
+          
+          harmonyBeat += DURATION_VALUES[note.duration];
+        });
+        
+        globalBeatOffset += Math.max(melodyBeat, harmonyBeat);
       });
 
       const updatePosition = () => {
@@ -115,7 +152,7 @@ export function useAudioPlayer({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, notes, bpm, onPositionChange, onStop, currentPlayPosition]);
+  }, [isPlaying, measures, bpm, onPositionChange, onStop, currentPlayPosition]);
 
   useEffect(() => {
     return () => {
