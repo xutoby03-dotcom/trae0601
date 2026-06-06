@@ -84,7 +84,7 @@ export function generateStory(config: StoryConfig): StoryParagraph[] {
     if (content.includes(`${name}说道`) || content.includes(`${name}举起`) || content.includes(`${name}对着`) || content.includes(`${name}推了推`) || content.includes(`${name}红着脸`)) {
       speaker = name;
     } else if (content.includes('"')) {
-      const speakerMatch = content.match(/(.+?)[说道|缓缓|冷静|深沉|紧张|温柔]/);
+      const speakerMatch = content.match(/(.+?)(?:说道|缓缓|冷静|深沉|紧张|温柔)/);
       if (speakerMatch) {
         speaker = speakerMatch[1].trim();
       }
