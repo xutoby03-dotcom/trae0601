@@ -332,11 +332,12 @@ function showScores(game) {
         const gameKey = gamesToShow[index];
         
         getScores(gameKey, (scores) => {
+            const LINE_WIDTH = 32;
             const title = `=== ${gameKey.toUpperCase()} ===`;
-            print(`  ${padCenter(title, 34, '=')}`);
+            print(`  ${padCenter(title, LINE_WIDTH, '=')}`);
             print('');
             
-            const separator = '  #################################';
+            const separator = '  ' + '#'.repeat(LINE_WIDTH);
             const rankCol = padToDisplay('排名', 4, ' ', 'center');
             const nameCol = padToDisplay('名字', 4, ' ', 'center');
             const scoreCol = padToDisplay('分数', 8, ' ', 'center');
@@ -429,9 +430,16 @@ function startNameInput(game, score, callback = null) {
 }
 
 function cancelNameInput() {
+    const callback = nameInputCallback;
+    const game = nameInputGame;
+    
     nameInputActive = false;
     nameInputCallback = null;
-    gameTitle.textContent = GameNames[nameInputGame] || '';
+    gameTitle.textContent = GameNames[game] || '';
+    
+    if (callback) {
+        callback('---');
+    }
 }
 
 function drawNameInputScreen() {
