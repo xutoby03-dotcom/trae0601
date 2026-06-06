@@ -33,7 +33,7 @@
             :key="scheduled.id"
             class="course-card"
             :style="getCardStyle(scheduled)"
-            :class="{ 'conflict-course': isCourseConflict(scheduled.id) }"
+            :class="{ 'conflict-course': isCourseConflict(scheduled.id), 'resizing': resizingId === scheduled.id }"
             draggable="true"
             @dragstart="handleDragStart($event, scheduled)"
             @click.stop="handleCourseClick(scheduled)"
@@ -45,6 +45,12 @@
             <div class="course-info">
               <span>👨‍🏫 {{ scheduled.course.teacher }}</span>
             </div>
+            <div
+              class="resize-handle"
+              @mousedown.stop="startResize($event, scheduled)"
+            >
+              <span class="resize-icon">⋮⋮</span>
+            </div>
           </div>
         </div>
       </div>
@@ -53,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 
 const store = useScheduleStore()
@@ -71,8 +77,11 @@ const weekDays = [
 const periods = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 const draggedCourse = ref(null)
+const resizingId = ref(null)
+const resizingData = ref(null)
+const dayColumnRefs = ref({})
 
-const emit = defineEmits(['editCourse', 'addCourse'])
+const emit = defineEmits(['editCourse', 'addCourse', 'addCourseFromLibrary', 'toast'])
 
 const getTimeSlot = (period) => {
   const timeSlots = {
@@ -102,9 +111,15 @@ const getDayCourses = (day) => {
 }
 
 const getCardStyle = (scheduled) => {
-  const duration = scheduled.endPeriod - scheduled.startPeriod + 1
+  let duration = scheduled.endPeriod - scheduled.startPeriod + 1
+  let top = (scheduled.startPeriod - 1) * 80 + 2
+  
+  if (resizingId.value === scheduled.id && resizingData.value) {
+    duration = resizingData.value.previewEndPeriod - scheduled.startPeriod + 1
+  }
+  
   return {
-    top: `${(scheduled.startPeriod - 1) * 80 + 2}px`,
+    top: `${top}px`,
     height: `${duration * 80 - 4}px`,
     left: '2px',
     right: '2px',
@@ -153,27 +168,14 @@ const handleDrop = (event, day) => {
   
   if (courseIdFromData) {
     const courseId = parseInt(courseIdFromData)
-    const duration = 2
-    const endPeriod = Math.min(startPeriod + duration - 1, 12)
-    
-    if (store.checkConflict(day, startPeriod, endPeriod)) {
-      alert('该时间段有课程冲突！')
-      return
-    }
-    
-    store.addScheduledCourse({
-      courseId,
-      day,
-      startPeriod,
-      endPeriod,
-      classroom: ''
-    })
+    const endPeriod = Math.min(startPeriod + 1, 12)
+    emit('addCourseFromLibrary', { courseId, day, startPeriod, endPeriod })
   } else if (draggedCourse.value) {
     const duration = draggedCourse.value.endPeriod - draggedCourse.value.startPeriod + 1
     const endPeriod = Math.min(startPeriod + duration - 1, 12)
     
     if (store.checkConflict(day, startPeriod, endPeriod, draggedCourse.value.id)) {
-      alert('该时间段有课程冲突！')
+      emit('toast', { message: '该时间段有课程冲突！', type: 'error' })
       return
     }
     
@@ -187,6 +189,63 @@ const handleDrop = (event, day) => {
   draggedCourse.value = null
 }
 
+const startResize = (event, scheduled) => {
+  event.preventDefault()
+  resizingId.value = scheduled.id
+  
+  const dayColumn = event.currentTarget.closest('.day-column')
+  const rect = dayColumn.getBoundingClientRect()
+  
+  resizingData.value = {
+    scheduled,
+    dayColumnRect: rect,
+    startY: event.clientY,
+    originalEndPeriod: scheduled.endPeriod,
+    previewEndPeriod: scheduled.endPeriod
+  }
+  
+  document.addEventListener('mousemove', handleResizeMove)
+  document.addEventListener('mouseup', handleResizeEnd)
+}
+
+const handleResizeMove = (event) => {
+  if (!resizingData.value) return
+  
+  const { dayColumnRect, scheduled, originalEndPeriod } = resizingData.value
+  const relativeY = event.clientY - dayColumnRect.top
+  const cellHeight = dayColumnRect.height / 12
+  const endPeriod = Math.floor(relativeY / cellHeight) + 1
+  
+  const newEndPeriod = Math.min(
+    Math.max(endPeriod, scheduled.startPeriod),
+    12
+  )
+  
+  resizingData.value.previewEndPeriod = newEndPeriod
+}
+
+const handleResizeEnd = () => {
+  if (resizingData.value) {
+    const { scheduled, previewEndPeriod, originalEndPeriod } = resizingData.value
+    
+    if (previewEndPeriod !== originalEndPeriod) {
+      if (store.checkConflict(scheduled.day, scheduled.startPeriod, previewEndPeriod, scheduled.id)) {
+        emit('toast', { message: '调整后有课程冲突，已回滚', type: 'error' })
+      } else {
+        store.updateScheduledCourse(scheduled.id, {
+          endPeriod: previewEndPeriod
+        })
+      }
+    }
+  }
+  
+  resizingId.value = null
+  resizingData.value = null
+  
+  document.removeEventListener('mousemove', handleResizeMove)
+  document.removeEventListener('mouseup', handleResizeEnd)
+}
+
 const handleCellClick = (day, period) => {
   if (!getCourseAt(day, period)) {
     emit('addCourse', { day, period })
@@ -196,6 +255,11 @@ const handleCellClick = (day, period) => {
 const handleCourseClick = (course) => {
   emit('editCourse', course)
 }
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleResizeMove)
+  document.removeEventListener('mouseup', handleResizeEnd)
+})
 </script>
 
 <style scoped>
@@ -350,5 +414,43 @@ const handleCourseClick = (course) => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.resize-icon {
+  font-size: 14px;
+  color: white;
+  opacity: 0.8;
+  letter-spacing: 2px;
+  transform: rotate(90deg);
+}
+
+.course-card.resizing {
+  opacity: 0.8;
+  transform: scale(1.01);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.course-card:hover .resize-handle {
+  background: rgba(255, 255, 255, 0.3);
 }
 </style>

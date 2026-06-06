@@ -29,6 +29,8 @@
           <ScheduleView
             @edit-course="openEditCourseModal"
             @add-course="openAddCourseModal"
+            @add-course-from-library="openAddCourseFromLibraryModal"
+            @toast="showToast"
           />
         </div>
         <aside class="sidebar">
@@ -97,6 +99,12 @@
         </div>
       </div>
     </div>
+
+    <Toast
+      :message="toastData.message"
+      :type="toastData.type"
+      @close="toastData.message = ''"
+    />
   </div>
 </template>
 
@@ -108,6 +116,7 @@ import CourseLibrary from './components/CourseLibrary.vue'
 import CreditsStats from './components/CreditsStats.vue'
 import GradesManager from './components/GradesManager.vue'
 import SemesterSelector from './components/SemesterSelector.vue'
+import Toast from './components/Toast.vue'
 import { exportToICS } from './utils/icsExport'
 
 const store = useScheduleStore()
@@ -123,6 +132,16 @@ const activeTab = ref('schedule')
 const showAddCourseModal = ref(false)
 const showEditCourseModal = ref(false)
 const editingScheduleId = ref(null)
+
+const toastData = reactive({
+  message: '',
+  type: 'error'
+})
+
+const showToast = ({ message, type = 'error' }) => {
+  toastData.message = message
+  toastData.type = type
+}
 
 const defaultScheduleForm = {
   courseId: null,
@@ -156,6 +175,16 @@ const openAddCourseModal = ({ day, period }) => {
   showAddCourseModal.value = true
 }
 
+const openAddCourseFromLibraryModal = ({ courseId, day, startPeriod, endPeriod }) => {
+  Object.assign(scheduleForm, defaultScheduleForm)
+  scheduleForm.courseId = courseId
+  scheduleForm.day = day
+  scheduleForm.startPeriod = startPeriod
+  scheduleForm.endPeriod = endPeriod
+  editingScheduleId.value = null
+  showAddCourseModal.value = true
+}
+
 const openEditCourseModal = (scheduledCourse) => {
   Object.assign(scheduleForm, {
     courseId: scheduledCourse.courseId,
@@ -177,15 +206,15 @@ const closeModal = () => {
 
 const saveSchedule = () => {
   if (!scheduleForm.courseId) {
-    alert('请选择课程')
+    showToast({ message: '请选择课程', type: 'warning' })
     return
   }
   if (scheduleForm.startPeriod > scheduleForm.endPeriod) {
-    alert('开始节次不能大于结束节次')
+    showToast({ message: '开始节次不能大于结束节次', type: 'warning' })
     return
   }
   if (hasConflict.value) {
-    alert('该时间段有课程冲突，请调整时间')
+    showToast({ message: '该时间段有课程冲突，请调整时间', type: 'error' })
     return
   }
 
@@ -199,8 +228,10 @@ const saveSchedule = () => {
 
   if (showAddCourseModal.value) {
     store.addScheduledCourse(data)
+    showToast({ message: '课程添加成功', type: 'success' })
   } else if (showEditCourseModal.value && editingScheduleId.value) {
     store.updateScheduledCourse(editingScheduleId.value, data)
+    showToast({ message: '课程更新成功', type: 'success' })
   }
 
   closeModal()
@@ -209,6 +240,7 @@ const saveSchedule = () => {
 const deleteScheduledCourse = () => {
   if (confirm('确定要删除这个课程安排吗？')) {
     store.deleteScheduledCourse(editingScheduleId.value)
+    showToast({ message: '课程已删除', type: 'success' })
     closeModal()
   }
 }
@@ -219,6 +251,7 @@ const handleExportICS = () => {
     store.getCourseById,
     store.currentSemester?.name || '课程表'
   )
+  showToast({ message: '日历文件已导出', type: 'success' })
 }
 </script>
 
