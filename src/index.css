@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ql-container {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  border: none !important;
+}
+
+.ql-toolbar {
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 8px !important;
+  background: white;
+}
+
+.ql-editor {
+  padding: 0 !important;
+  min-height: 400px;
+}
+
+.ql-editor.ql-blank::before {
+  color: #d1d5db;
+  font-style: normal;
+}
+
+.ql-editor h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2em;
+  font-weight: 700;
+  margin-bottom: 0.5em;
+  color: #1f2937;
+}
+
+.ql-editor h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: #1f2937;
+}
+
+.ql-editor h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+  color: #1f2937;
+}
+
+.ql-editor p {
+  margin-bottom: 1em;
+  color: #374151;
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid #f59e0b;
+  padding-left: 1em;
+  margin: 1.5em 0;
+  color: #6b7280;
+  font-style: italic;
+  background: #fef3c7;
+  padding: 1em;
+  border-radius: 0 8px 8px 0;
+}
+
+.ql-editor ul,
+.ql-editor ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+
+.ql-editor li {
+  margin-bottom: 0.5em;
+  color: #374151;
+}
+
+.ql-editor strong {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.ql-editor em {
+  font-style: italic;
+}
+
+.ql-editor u {
+  text-decoration: underline;
+  text-decoration-color: #f59e0b;
+  text-decoration-thickness: 2px;
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label::before,
+.ql-snow .ql-picker.ql-size .ql-picker-item::before {
+  content: attr(data-value) !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-in-95 {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-from-bottom-2 {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-duration: 0.2s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.zoom-in-95 {
+  animation-name: zoom-in-95;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slide-in-from-bottom-2;
+}
+
+.duration-150 {
+  animation-duration: 150ms;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
