@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trash2, Eye, ArrowLeft, Home, AlertTriangle } from 'lucide-react';
+import { Trash2, Eye, ArrowLeft, Home, AlertTriangle, Palette } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { Artwork, getArtworks, getArtwork, deleteArtwork } from '../utils/db';
 import { useCanvasStore } from '../store/useStore';
@@ -7,6 +7,7 @@ import { useCanvasStore } from '../store/useStore';
 export const Gallery = () => {
   const { id } = useParams<{ id: string }>();
   const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [singleArtwork, setSingleArtwork] = useState<Artwork | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedArtwork, setSelectedArtwork] = useState<Artwork | null>(null);
   const [artworkNotFound, setArtworkNotFound] = useState(false);
@@ -14,12 +15,13 @@ export const Gallery = () => {
 
   const fetchArtworks = async () => {
     setLoading(true);
+    setSingleArtwork(null);
+    setArtworkNotFound(false);
     try {
       if (id) {
         const artwork = await getArtwork(id);
         if (artwork) {
-          setSelectedArtwork(artwork);
-          setArtworks([artwork]);
+          setSingleArtwork(artwork);
         } else {
           setArtworkNotFound(true);
         }
@@ -64,6 +66,67 @@ export const Gallery = () => {
       minute: '2-digit',
     });
   };
+
+  const renderArtworkDetail = (artwork: Artwork) => (
+    <div className="max-w-3xl mx-auto">
+      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-purple-100">
+        <div className="bg-gradient-to-r from-pink-500 to-purple-500 p-8 text-white">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">{artwork.title}</h2>
+              <p className="text-white/80 mt-2 flex items-center gap-2">
+                <span>🕐</span>
+                {formatDate(artwork.createdAt || Date.now())}
+              </p>
+            </div>
+            <div className="text-5xl">🎨</div>
+          </div>
+        </div>
+        
+        <div className="p-8">
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 flex justify-center">
+            <div 
+              className="grid gap-px bg-white p-3 rounded-xl shadow-inner"
+              style={{ 
+                gridTemplateColumns: 'repeat(32, 14px)',
+                gridTemplateRows: 'repeat(32, 14px)',
+              }}
+            >
+              {artwork.grid?.map((row, y) =>
+                row.map((emoji, x) => (
+                  <div
+                    key={`${x}-${y}`}
+                    className="flex items-center justify-center"
+                    style={{ width: 14, height: 14, fontSize: 12 }}
+                  >
+                    {emoji}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          
+          <div className="flex gap-4 mt-8">
+            <Link
+              to="/"
+              onClick={() => loadGrid(artwork.grid!)}
+              className="flex-1 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl text-center font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+            >
+              <Palette className="w-5 h-5" />
+              🎨 在编辑器中打开
+            </Link>
+            <Link
+              to="/gallery"
+              className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+            >
+              <Home className="w-5 h-5" />
+              浏览画廊
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -121,6 +184,8 @@ export const Gallery = () => {
               </Link>
             </div>
           </div>
+        ) : singleArtwork ? (
+          renderArtworkDetail(singleArtwork)
         ) : artworks.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🎨</div>
@@ -134,7 +199,6 @@ export const Gallery = () => {
             </Link>
           </div>
         ) : (
-          !id ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {artworks.map((artwork) => (
               <div
@@ -177,7 +241,6 @@ export const Gallery = () => {
               </div>
             ))}
           </div>
-          ) : null
         )}
       </div>
 
