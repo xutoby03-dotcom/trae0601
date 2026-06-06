@@ -55,16 +55,21 @@ export const useAudio = () => {
   }, [playTone]);
 
   const bgmPatterns = [
-    [262, 294, 330, 349, 392, 440, 494, 523],
-    [330, 392, 494, 392, 330, 294, 330, 392],
-    [220, 277, 330, 392, 440, 392, 330, 277],
+    [220, 262, 294, 330, 220, 262, 294, 330, 196, 247, 294, 349, 196, 247, 294, 349],
+    [523, 587, 659, 784, 659, 587, 523, 440, 523, 587, 659, 784, 880, 784, 659, 523],
+    [262, 330, 392, 523, 392, 330, 294, 349, 392, 523, 659, 523, 440, 349, 294, 262],
   ];
+
+  const bgmSpeeds = [300, 250, 500];
+  const bgmTypes: OscillatorType[] = ['sawtooth', 'sine', 'triangle'];
 
   const startBGM = useCallback((patternIndex: number = 0, volume: number = 0.3) => {
     if (!audioContextRef.current || isPlayingRef.current) return;
 
     isPlayingRef.current = true;
     const pattern = bgmPatterns[patternIndex % bgmPatterns.length];
+    const speed = bgmSpeeds[patternIndex % bgmSpeeds.length];
+    const waveType = bgmTypes[patternIndex % bgmTypes.length];
     let noteIndex = 0;
 
     bgmGainRef.current = audioContextRef.current.createGain();
@@ -75,11 +80,11 @@ export const useAudio = () => {
       if (!isPlayingRef.current || !audioContextRef.current || !bgmGainRef.current) return;
 
       const osc = audioContextRef.current.createOscillator();
-      osc.type = 'triangle';
+      osc.type = waveType;
       osc.frequency.value = pattern[noteIndex % pattern.length];
       osc.connect(bgmGainRef.current);
       osc.start();
-      osc.stop(audioContextRef.current.currentTime + 0.3);
+      osc.stop(audioContextRef.current.currentTime + speed / 1000 * 0.8);
 
       bgmOscillatorsRef.current.push(osc);
       osc.onended = () => {
@@ -88,7 +93,7 @@ export const useAudio = () => {
       };
 
       noteIndex++;
-      setTimeout(playNote, 400);
+      setTimeout(playNote, speed);
     };
 
     playNote();

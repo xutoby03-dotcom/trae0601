@@ -36,6 +36,8 @@ export class GameEngine {
 
   private shakeAmount: number = 0;
   private shakeDecay: number = 0.9;
+  private currentPlatform: Obstacle | null = null;
+  private platformPrevY: Map<number, number> = new Map();
 
   private onStatsUpdate?: (stats: GameStats) => void;
   private onGameOver?: (stats: GameStats) => void;
@@ -125,8 +127,9 @@ export class GameEngine {
     this.stats = { distance: 0, coins: 0, speed: defaultConfig.baseSpeed };
     this.obstacleIdCounter = 0;
     this.coinIdCounter = 0;
-    this.lastObstacleX = this.width;
+    this.lastObstacleX = this.width - 200;
     this.shakeAmount = 0;
+    this.currentPlatform = null;
     this.initBackgroundLayers();
   }
 
@@ -180,8 +183,8 @@ export class GameEngine {
     );
 
     this.stats.distance += this.stats.speed * 0.1;
-    this.updatePlayer(deltaTime);
     this.updateObstacles();
+    this.updatePlayer(deltaTime);
     this.updateCoins();
     this.updateParticles();
     this.updateBackground();
@@ -194,6 +197,14 @@ export class GameEngine {
   }
 
   private updatePlayer(deltaTime: number) {
+    if (this.currentPlatform && this.player.isOnGround) {
+      const prevY = this.platformPrevY.get(this.currentPlatform.id);
+      if (prevY !== undefined) {
+        const deltaY = this.currentPlatform.y - prevY;
+        this.player.y += deltaY;
+      }
+    }
+
     this.player.velocityY += defaultConfig.gravity;
     this.player.y += this.player.velocityY;
 
@@ -210,6 +221,7 @@ export class GameEngine {
       this.player.y = this.groundY - this.player.height;
       this.player.velocityY = 0;
       this.player.isOnGround = true;
+      this.currentPlatform = null;
       if (this.player.state === 'jumping') {
         this.player.state = 'running';
       }
@@ -224,9 +236,15 @@ export class GameEngine {
 
   private updateObstacles() {
     const speed = this.stats.speed;
+    this.lastObstacleX -= speed;
 
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
       const obs = this.obstacles[i];
+      
+      if (obs.type === 'platform') {
+        this.platformPrevY.set(obs.id, obs.y);
+      }
+      
       obs.x -= speed;
 
       if (obs.type === 'platform' && obs.platformDirection !== undefined) {
@@ -241,6 +259,10 @@ export class GameEngine {
       }
 
       if (obs.x + obs.width < 0) {
+        this.platformPrevY.delete(obs.id);
+        if (this.currentPlatform?.id === obs.id) {
+          this.currentPlatform = null;
+        }
         this.obstacles.splice(i, 1);
       }
     }
@@ -387,6 +409,17 @@ export class GameEngine {
       height: this.player.height - 10,
     };
 
+    if (this.currentPlatform && this.player.isOnGround) {
+      const obs = this.currentPlatform;
+      const stillOnPlatform =
+        playerBox.x + playerBox.width > obs.x + 5 &&
+        playerBox.x < obs.x + obs.width - 5;
+      if (!stillOnPlatform) {
+        this.currentPlatform = null;
+        this.player.isOnGround = false;
+      }
+    }
+
     for (const obs of this.obstacles) {
       if (obs.type === 'pit') {
         if (
@@ -400,14 +433,15 @@ export class GameEngine {
       } else if (obs.type === 'platform') {
         if (
           this.player.velocityY >= 0 &&
-          playerBox.y + playerBox.height <= obs.y + 10 &&
-          playerBox.y + playerBox.height >= obs.y - 10 &&
-          playerBox.x + playerBox.width > obs.x &&
-          playerBox.x < obs.x + obs.width
+          playerBox.y + playerBox.height <= obs.y + 15 &&
+          playerBox.y + playerBox.height >= obs.y - 15 &&
+          playerBox.x + playerBox.width > obs.x + 5 &&
+          playerBox.x < obs.x + obs.width - 5
         ) {
           this.player.y = obs.y - this.player.height;
           this.player.velocityY = 0;
           this.player.isOnGround = true;
+          this.currentPlatform = obs;
           if (this.player.state === 'jumping') {
             this.player.state = 'running';
           }
