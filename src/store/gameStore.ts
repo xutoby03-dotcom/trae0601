@@ -354,9 +354,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const cashier = state.staff.find(s => s.type === 'cashier' && s.hired);
     const waiter = state.staff.find(s => s.type === 'waiter' && s.hired);
     
-    const chefSpeed = chef ? 1 + chef.skill * 0.3 : 1;
-    const cashierSpeed = cashier ? 1 + cashier.skill * 0.3 : 1;
-    const waiterBonus = waiter ? waiter.skill * 5 : 0;
+    const chefSkill = chef?.skill || 0;
+    const cashierSkill = cashier?.skill || 0;
+    const waiterSkill = waiter?.skill || 0;
+    
+    const chefSpeed = 1 + chefSkill * 0.5;
+    const cashierOrderSpeed = 1 + cashierSkill * 0.4;
+    const patienceSlowdown = 1 - cashierSkill * 0.15;
+    const waiterSatisfactionMultiplier = 1 + waiterSkill * 0.2;
+    const waiterRevenueMultiplier = 1 + waiterSkill * 0.1;
     const baseSatisfaction = get().calculateSatisfaction();
     
     if (Math.random() < 0.03 * state.gameSpeed * (baseSatisfaction / 70)) {
@@ -374,12 +380,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           break;
           
         case 'waiting_in_line':
-          c.patience -= 1 * state.gameSpeed;
+          c.patience -= 1 * state.gameSpeed * patienceSlowdown;
           if (c.patience <= 0) {
             c.state = 'leaving';
             customersLost++;
             satisfaction = Math.max(0, satisfaction - 5);
-          } else if (Math.random() < 0.1 * cashierSpeed * state.gameSpeed) {
+          } else if (Math.random() < 0.1 * cashierOrderSpeed * state.gameSpeed) {
             c.state = 'ordering';
           }
           break;
@@ -387,17 +393,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
         case 'ordering':
           const orderTotal = c.order.reduce((sum, item) => sum + item.currentPrice, 0);
           const orderCost = c.order.reduce((sum, item) => sum + item.cost, 0);
-          c.totalSpent = orderTotal;
-          dailyRevenue += orderTotal;
+          const adjustedRevenue = orderTotal * waiterRevenueMultiplier;
+          c.totalSpent = adjustedRevenue;
+          dailyRevenue += adjustedRevenue;
           dailyCost += orderCost;
-          c.satisfaction += waiterBonus + (baseSatisfaction - 50) * 0.5;
+          c.satisfaction += (5 + (baseSatisfaction - 50) * 0.5) * waiterSatisfactionMultiplier;
           
           orderQueue = [...orderQueue, { customerId: c.id, items: c.order }];
           c.state = 'waiting_food';
           break;
           
         case 'waiting_food':
-          c.patience -= 0.5 * state.gameSpeed;
+          c.patience -= 0.5 * state.gameSpeed * patienceSlowdown;
           c.waitTime += 1 * state.gameSpeed;
           if (c.patience <= 0) {
             c.state = 'leaving';
@@ -412,7 +419,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (Math.random() < 0.1 * state.gameSpeed) {
             c.state = 'leaving';
             customersServed++;
-            satisfaction = Math.min(100, satisfaction + 2 + waiterBonus + (baseSatisfaction - 50) * 0.2);
+            satisfaction = Math.min(100, satisfaction + (2 + (baseSatisfaction - 50) * 0.2) * waiterSatisfactionMultiplier);
           }
           break;
           

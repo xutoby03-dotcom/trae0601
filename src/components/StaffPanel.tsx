@@ -88,9 +88,49 @@ const StaffPanel = () => {
     );
   };
 
+  const renderStaffOverview = () => {
+    const positions: { type: StaffType; name: string; emoji: string }[] = [
+      { type: 'cashier', name: '收银员', emoji: '💁' },
+      { type: 'waiter', name: '服务员', emoji: '🧑‍🍳' },
+      { type: 'chef', name: '咖啡师', emoji: '👨‍🍳' },
+    ];
+
+    return (
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '20px',
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+      }}>
+        {positions.map(pos => {
+          const hired = staff.find(s => s.type === pos.type);
+          return (
+            <div key={pos.type} style={{ textAlign: 'center', color: 'white' }}>
+              <div style={{ fontSize: '24px', marginBottom: '4px' }}>{pos.emoji}</div>
+              <div style={{ fontSize: '11px', opacity: 0.9 }}>{pos.name}</div>
+              {hired ? (
+                <>
+                  <div style={{ fontSize: '12px', fontWeight: 600, marginTop: '2px' }}>{hired.name}</div>
+                  <div style={{ fontSize: '11px' }}>{getSkillStars(hired.skill)}</div>
+                </>
+              ) : (
+                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '4px' }}>未招聘</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div>
       <h3>👥 员工招聘</h3>
+      
+      {renderStaffOverview()}
       
       {renderPosition('cashier')}
       {renderPosition('waiter')}
@@ -101,10 +141,10 @@ const StaffPanel = () => {
           📊 技能效果说明
         </div>
         <ul style={{ fontSize: '12px', color: '#718096', paddingLeft: '16px', margin: 0 }}>
-          <li>收银员技能：加快点餐速度</li>
-          <li>服务员技能：提升顾客满意度加成</li>
-          <li>咖啡师技能：加快餐品制作速度</li>
-          <li>等级越高，效果越强！</li>
+          <li><strong>收银员</strong>：等级越高，客人耐心扣得越慢，点餐越快</li>
+          <li><strong>服务员</strong>：等级越高，满意度加成 + 收入加成越高</li>
+          <li><strong>咖啡师</strong>：等级越高，订单制作速度越快</li>
+          <li>⭐⭐⭐ 三星满级效果最强！</li>
         </ul>
       </div>
     </div>
