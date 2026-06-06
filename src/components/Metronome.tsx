@@ -72,7 +72,7 @@ export const Metronome: React.FC<MetronomeProps> = ({
     const newTapTimes = [...tapTimes, now].filter(t => now - t < 3000);
     setTapTimes(newTapTimes);
 
-    if (newTapTimes.length >= 2) {
+    if (newTapTimes.length >= 4) {
       const intervals = [];
       for (let i = 1; i < newTapTimes.length; i++) {
         intervals.push(newTapTimes[i] - newTapTimes[i - 1]);
@@ -81,9 +81,9 @@ export const Metronome: React.FC<MetronomeProps> = ({
       const calculatedBpm = Math.round(60000 / avgInterval);
       const clampedBpm = Math.max(40, Math.min(200, calculatedBpm));
       
-      if (newTapTimes.length >= 4) {
-        onBpmChange(clampedBpm);
-      }
+      onBpmChange(clampedBpm);
+      setTapTimes([]);
+      return;
     }
 
     tapTimeoutRef.current = window.setTimeout(() => {

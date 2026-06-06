@@ -56,30 +56,31 @@ export const ProgressionPage: React.FC = () => {
     else if (chord.type === '6') newId += '6';
     else if (chord.type === 'm6') newId += 'm6';
 
-    let found = CHORDS.find(c => c.id === newId);
+    if (CHORDS.find(c => c.id === newId)) {
+      return newId;
+    }
 
-    if (!found) {
-      const sharpToFlat: Record<string, string> = {
-        'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
-      };
-      if (sharpToFlat[newRoot]) {
-        let flatId = sharpToFlat[newRoot];
-        if (chord.type === 'minor') flatId += 'm';
-        else if (chord.type === '7') flatId += '7';
-        else if (chord.type === 'maj7') flatId += 'maj7';
-        else if (chord.type === 'm7') flatId += 'm7';
-        else if (chord.type === 'dim') flatId += 'dim';
-        else if (chord.type === 'aug') flatId += 'aug';
-        else if (chord.type === 'sus2') flatId += 'sus2';
-        else if (chord.type === 'sus4') flatId += 'sus4';
-        else if (chord.type === '6') flatId += '6';
-        else if (chord.type === 'm6') flatId += 'm6';
-        found = CHORDS.find(c => c.id === flatId);
-        if (found) newId = flatId;
+    const sharpToFlat: Record<string, string> = {
+      'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
+    };
+    if (sharpToFlat[newRoot]) {
+      let flatId = sharpToFlat[newRoot];
+      if (chord.type === 'minor') flatId += 'm';
+      else if (chord.type === '7') flatId += '7';
+      else if (chord.type === 'maj7') flatId += 'maj7';
+      else if (chord.type === 'm7') flatId += 'm7';
+      else if (chord.type === 'dim') flatId += 'dim';
+      else if (chord.type === 'aug') flatId += 'aug';
+      else if (chord.type === 'sus2') flatId += 'sus2';
+      else if (chord.type === 'sus4') flatId += 'sus4';
+      else if (chord.type === '6') flatId += '6';
+      else if (chord.type === 'm6') flatId += 'm6';
+      if (CHORDS.find(c => c.id === flatId)) {
+        return flatId;
       }
     }
 
-    return newId;
+    return chordId;
   };
 
   const displayChordIds = useMemo(() => {
@@ -97,9 +98,10 @@ export const ProgressionPage: React.FC = () => {
 
   const applyTransposeToProgression = () => {
     if (transpose === 0) return;
+    const validChordIds = displayChordIds.filter(id => CHORDS.find(c => c.id === id));
     setCurrentProgression({
       ...currentProgression,
-      chords: displayChordIds,
+      chords: validChordIds,
     });
     setTranspose(0);
   };
