@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Terminal Game Collection</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="terminal">
+        <div id="screen">
+            <div id="output"></div>
+            <div id="input-line">
+                <span id="prompt">&gt;</span>
+                <input type="text" id="command-input" autocomplete="off" autofocus>
+            </div>
+        </div>
+    </div>
+    <div id="game-container" style="display: none;">
+        <div id="game-header">
+            <span id="game-title"></span>
+            <span id="game-score">SCORE: 0</span>
+            <span id="game-hint">ESC: 返回菜单</span>
+        </div>
+        <pre id="game-screen"></pre>
+        <div id="game-footer">
+            <span id="game-status"></span>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

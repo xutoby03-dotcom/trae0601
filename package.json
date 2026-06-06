@@ -1,0 +1,13 @@
+{
+  "name": "ascii-terminal-games",
+  "version": "1.0.0",
+  "description": "ASCII风格终端游戏集合",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "dev": "python3 -m http.server 8080"
+  },
+  "keywords": ["ascii", "games", "terminal"],
+  "author": "",
+  "license": "MIT"
+}
