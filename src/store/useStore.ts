@@ -17,6 +17,7 @@ import { analyzeText } from '../utils/textAnalysis';
 
 interface AppState {
   articles: Article[];
+  allArticles: Article[];
   folders: Folder[];
   tags: Tag[];
   currentArticle: Article | null;
@@ -59,6 +60,7 @@ interface AppState {
 
 export const useStore = create<AppState>((set, get) => ({
   articles: [],
+  allArticles: [],
   folders: [],
   tags: [],
   currentArticle: null,
@@ -85,26 +87,30 @@ export const useStore = create<AppState>((set, get) => ({
 
   loadArticles: async () => {
     const state = get();
-    let articles: Article[];
+    let allArticles: Article[];
     
     if (state.searchQuery) {
-      articles = await searchArticles(state.searchQuery);
+      allArticles = await searchArticles(state.searchQuery);
     } else {
-      articles = await getAllArticles();
+      allArticles = await getAllArticles();
     }
     
+    set({ allArticles });
+    
+    let filtered = [...allArticles];
+    
     if (state.selectedFolderId) {
-      articles = articles.filter(a => a.folderId === state.selectedFolderId);
+      filtered = filtered.filter(a => a.folderId === state.selectedFolderId);
     }
     
     if (state.selectedTagId) {
       const selectedTag = state.tags.find(t => t.id === state.selectedTagId);
       if (selectedTag) {
-        articles = articles.filter(a => a.tags.includes(selectedTag.name));
+        filtered = filtered.filter(a => a.tags.includes(selectedTag.name));
       }
     }
     
-    set({ articles });
+    set({ articles: filtered });
   },
 
   loadFolders: async () => {

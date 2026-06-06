@@ -18,6 +18,7 @@ import { stripHtml } from '../../utils/textAnalysis';
 const Sidebar: React.FC = () => {
   const {
     articles,
+    allArticles,
     folders,
     tags,
     currentArticle,
@@ -164,11 +165,11 @@ const Sidebar: React.FC = () => {
             >
               <Folder size={16} />
               全部文章
-              <span className="ml-auto text-xs text-white/40">{articles.length}</span>
+              <span className="ml-auto text-xs text-white/40">{allArticles.length}</span>
             </button>
             
             {folders.map(folder => {
-              const folderArticles = articles.filter(a => a.folderId === folder.id);
+              const folderArticles = allArticles.filter(a => a.folderId === folder.id);
               const isExpanded = expandedFolders.has(folder.id);
               const isSelected = selectedFolderId === folder.id;
               
@@ -221,7 +222,7 @@ const Sidebar: React.FC = () => {
               全部
             </button>
             {tags.map(tag => {
-              const count = articles.filter(a => a.tags.includes(tag.name)).length;
+              const count = allArticles.filter(a => a.tags.includes(tag.name)).length;
               return (
                 <button
                   key={tag.id}
