@@ -336,7 +336,7 @@ export default function History() {
                               <h5 className="text-white font-semibold text-sm mb-3 self-start">
                                 雷达图概览
                               </h5>
-                              <div className="w-full max-w-[200px] h-[200px]">
+                              <div className="w-[120px] h-[120px]">
                                 <MiniRadarChart
                                   result={result}
                                   color={detail.color}
@@ -344,7 +344,7 @@ export default function History() {
                               </div>
                               <button
                                 onClick={() => handleViewResult(result)}
-                                className="btn-secondary text-sm mt-3 w-full"
+                                className="btn-secondary text-sm mt-3 w-[120px]"
                               >
                                 查看完整结果
                               </button>

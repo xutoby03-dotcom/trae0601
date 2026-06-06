@@ -72,8 +72,9 @@ export default function MiniRadarChart({
         },
         pointLabels: {
           color: 'rgba(255, 255, 255, 0.5)',
+          padding: 0,
           font: {
-            size: 10,
+            size: 8,
             family: 'Inter, sans-serif',
           },
         },
