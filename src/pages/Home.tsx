@@ -3,7 +3,6 @@ import { HouseLayout } from '@/components/HouseLayout/HouseLayout';
 import { DeviceModal } from '@/components/DeviceModal/DeviceModal';
 import { VoiceControl } from '@/components/VoiceControl/VoiceControl';
 import { SceneMode } from '@/components/SceneMode/SceneMode';
-import { ActiveSceneBar } from '@/components/SceneMode/ActiveSceneBar';
 import { EnergyStats } from '@/components/EnergyStats/EnergyStats';
 import { DeviceLog } from '@/components/DeviceLog/DeviceLog';
 import { ToastContainer } from '@/components/Toast/ToastContainer';
