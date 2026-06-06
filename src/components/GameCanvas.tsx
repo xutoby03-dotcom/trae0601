@@ -26,6 +26,7 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const lastSettleCheckRef = useRef<number>(Date.now());
+  const dragStartedRef = useRef<boolean>(false);
   const [canvasSize, setCanvasSize] = useState({ width: BASE_TANK_WIDTH, height: BASE_TANK_HEIGHT });
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -204,9 +205,10 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
     if (!canvas) return;
     if (!canvas.hasAttribute('data-dragging-decoration')) return;
     requestAnimationFrame(() => {
-      if (canvas && !canvas.draggable) {
+      if (!dragStartedRef.current) {
         clearDragState();
       }
+      dragStartedRef.current = false;
     });
   }, [clearDragState]);
 
@@ -219,6 +221,7 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
     
     const decorationId = canvas.getAttribute('data-dragging-decoration');
     if (decorationId) {
+      dragStartedRef.current = true;
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', decorationId);
       onDecorationDragStart(decorationId);
@@ -234,6 +237,7 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
       canvas.removeAttribute('data-dragging-decoration');
       canvas.draggable = false;
     }
+    dragStartedRef.current = false;
     onDragEnd();
   }, [onDragEnd]);
 
