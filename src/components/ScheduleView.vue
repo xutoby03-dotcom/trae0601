@@ -27,23 +27,23 @@
             class="grid-cell"
             :class="{ 'conflict-cell': hasConflict(day.key, period) }"
             @click="handleCellClick(day.key, period)"
+          ></div>
+          <div
+            v-for="scheduled in getDayCourses(day.key)"
+            :key="scheduled.id"
+            class="course-card"
+            :style="getCardStyle(scheduled)"
+            :class="{ 'conflict-course': isCourseConflict(scheduled.id) }"
+            draggable="true"
+            @dragstart="handleDragStart($event, scheduled)"
+            @click.stop="handleCourseClick(scheduled)"
           >
-            <div
-              v-if="getCourseAt(day.key, period)"
-              class="course-card"
-              :style="{ background: getCourseColor(day.key, period) }"
-              :class="{ 'conflict-course': isCourseConflict(getCourseAt(day.key, period).id) }"
-              draggable="true"
-              @dragstart="handleDragStart($event, getCourseAt(day.key, period))"
-              @click.stop="handleCourseClick(getCourseAt(day.key, period))"
-            >
-              <div class="course-name">{{ getCourseAt(day.key, period).course.name }}</div>
-              <div class="course-info">
-                <span>📍 {{ getCourseAt(day.key, period).classroom }}</span>
-              </div>
-              <div class="course-info">
-                <span>👨‍🏫 {{ getCourseAt(day.key, period).course.teacher }}</span>
-              </div>
+            <div class="course-name">{{ scheduled.course.name }}</div>
+            <div class="course-info">
+              <span>📍 {{ scheduled.classroom }}</span>
+            </div>
+            <div class="course-info">
+              <span>👨‍🏫 {{ scheduled.course.teacher }}</span>
             </div>
           </div>
         </div>
@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useScheduleStore } from '../stores/schedule'
 
 const store = useScheduleStore()
@@ -92,6 +92,26 @@ const getTimeSlot = (period) => {
   return timeSlots[period] || ''
 }
 
+const getDayCourses = (day) => {
+  return store.currentScheduledCourses
+    .filter(sc => sc.day === day)
+    .map(sc => ({
+      ...sc,
+      course: store.getCourseById(sc.courseId)
+    }))
+}
+
+const getCardStyle = (scheduled) => {
+  const duration = scheduled.endPeriod - scheduled.startPeriod + 1
+  return {
+    top: `${(scheduled.startPeriod - 1) * 80 + 2}px`,
+    height: `${duration * 80 - 4}px`,
+    left: '2px',
+    right: '2px',
+    background: scheduled.course?.color || '#667eea'
+  }
+}
+
 const getCourseAt = (day, period) => {
   const scheduled = store.currentScheduledCourses.find(sc => {
     return sc.day === day && period >= sc.startPeriod && period <= sc.endPeriod
@@ -102,11 +122,6 @@ const getCourseAt = (day, period) => {
     ...scheduled,
     course: store.getCourseById(scheduled.courseId)
   }
-}
-
-const getCourseColor = (day, period) => {
-  const course = getCourseAt(day, period)
-  return course?.course?.color || '#667eea'
 }
 
 const hasConflict = (day, period) => {
@@ -128,23 +143,47 @@ const handleDragStart = (event, course) => {
 }
 
 const handleDrop = (event, day) => {
-  if (!draggedCourse.value) return
   const rect = event.currentTarget.getBoundingClientRect()
   const y = event.clientY - rect.top
   const cellHeight = rect.height / 12
   const period = Math.floor(y / cellHeight) + 1
-  const duration = draggedCourse.value.endPeriod - draggedCourse.value.startPeriod + 1
   const startPeriod = Math.min(Math.max(period, 1), 12)
-  const endPeriod = Math.min(startPeriod + duration - 1, 12)
-  if (store.checkConflict(day, startPeriod, endPeriod, draggedCourse.value.id)) {
-    alert('该时间段有课程冲突！')
-    return
+
+  const courseIdFromData = event.dataTransfer.getData('courseId')
+  
+  if (courseIdFromData) {
+    const courseId = parseInt(courseIdFromData)
+    const duration = 2
+    const endPeriod = Math.min(startPeriod + duration - 1, 12)
+    
+    if (store.checkConflict(day, startPeriod, endPeriod)) {
+      alert('该时间段有课程冲突！')
+      return
+    }
+    
+    store.addScheduledCourse({
+      courseId,
+      day,
+      startPeriod,
+      endPeriod,
+      classroom: ''
+    })
+  } else if (draggedCourse.value) {
+    const duration = draggedCourse.value.endPeriod - draggedCourse.value.startPeriod + 1
+    const endPeriod = Math.min(startPeriod + duration - 1, 12)
+    
+    if (store.checkConflict(day, startPeriod, endPeriod, draggedCourse.value.id)) {
+      alert('该时间段有课程冲突！')
+      return
+    }
+    
+    store.updateScheduledCourse(draggedCourse.value.id, {
+      day,
+      startPeriod,
+      endPeriod
+    })
   }
-  store.updateScheduledCourse(draggedCourse.value.id, {
-    day,
-    startPeriod,
-    endPeriod
-  })
+  
   draggedCourse.value = null
 }
 
@@ -261,10 +300,6 @@ const handleCourseClick = (course) => {
 
 .course-card {
   position: absolute;
-  left: 2px;
-  right: 2px;
-  top: 2px;
-  bottom: 2px;
   border-radius: 8px;
   padding: 8px;
   color: white;
@@ -273,6 +308,7 @@ const handleCourseClick = (course) => {
   cursor: grab;
   transition: transform 0.2s, box-shadow 0.2s;
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .course-card:hover {
