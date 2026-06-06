@@ -405,6 +405,14 @@ const createGradient = (ctx, size) => {
   return gradient
 }
 
+const getQRModules = async () => {
+  const qr = await QRCode.create(qrContent.value, {
+    errorCorrectionLevel: errorLevel.value,
+    margin: 0
+  })
+  return qr.modules
+}
+
 const generateQR = async () => {
   const canvas = qrCanvas.value
   if (!canvas) return
@@ -413,24 +421,9 @@ const generateQR = async () => {
   const size = canvasSize
 
   try {
-    const qrData = await QRCode.toCanvas(qrContent.value, {
-      errorCorrectionLevel: errorLevel.value,
-      margin: 0,
-      width: size
-    })
-
-    const tempCanvas = document.createElement('canvas')
-    tempCanvas.width = size
-    tempCanvas.height = size
-    const tempCtx = tempCanvas.getContext('2d')
-    await QRCode.toCanvas(tempCanvas, qrContent.value, {
-      errorCorrectionLevel: errorLevel.value,
-      margin: 0,
-      width: size
-    })
-
-    const imageData = tempCtx.getImageData(0, 0, size, size)
-    const data = imageData.data
+    const modules = await getQRModules()
+    const moduleCount = modules.size
+    const actualModuleSize = size / moduleCount
 
     ctx.fillStyle = backgroundColor.value
     ctx.fillRect(0, 0, size, size)
@@ -455,32 +448,13 @@ const generateQR = async () => {
       ? createGradient(ctx, size)
       : foregroundColor.value
 
-    const modules = []
-    const moduleSize = size / Math.sqrt(data.length / 4)
-
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const idx = (y * size + x) * 4
-        const isBlack = data[idx] < 128
-        if (isBlack) {
-          const moduleX = Math.floor(x / moduleSize)
-          const moduleY = Math.floor(y / moduleSize)
-          if (!modules[moduleY]) modules[moduleY] = []
-          modules[moduleY][moduleX] = true
-        }
-      }
-    }
-
-    const moduleCount = modules.length
-    const actualModuleSize = size / moduleCount
-
     if (bgImage.value) {
       ctx.globalAlpha = qrOpacity.value / 100
     }
 
     for (let y = 0; y < moduleCount; y++) {
       for (let x = 0; x < moduleCount; x++) {
-        if (modules[y] && modules[y][x]) {
+        if (modules.get(y, x)) {
           const cx = x * actualModuleSize + actualModuleSize / 2
           const cy = y * actualModuleSize + actualModuleSize / 2
           const s = actualModuleSize * 0.9
@@ -635,76 +609,154 @@ const exportPNG = () => {
   link.click()
 }
 
+const getSvgShapePaths = (cx, cy, s, template, fill) => {
+  switch (template) {
+    case 'dots':
+      return `<circle cx="${cx}" cy="${cy}" r="${s / 2}" fill="${fill}"/>`
+    case 'flower': {
+      const petalCount = 5
+      const petalSize = s * 0.45
+      let paths = ''
+      for (let i = 0; i < petalCount; i++) {
+        const angle = (i * 2 * Math.PI) / petalCount - Math.PI / 2
+        const px = cx + Math.cos(angle) * s * 0.3
+        const py = cy + Math.sin(angle) * s * 0.3
+        paths += `<circle cx="${px}" cy="${py}" r="${petalSize}" fill="${fill}"/>`
+      }
+      paths += `<circle cx="${cx}" cy="${cy}" r="${s * 0.25}" fill="${adjustColor(fill, 30)}"/>`
+      return paths
+    }
+    case 'star': {
+      const spikes = 5
+      const outerRadius = s * 0.5
+      const innerRadius = s * 0.2
+      let points = ''
+      for (let i = 0; i < spikes * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius
+        const angle = (i * Math.PI) / spikes - Math.PI / 2
+        const px = cx + Math.cos(angle) * radius
+        const py = cy + Math.sin(angle) * radius
+        points += `${px},${py} `
+      }
+      return `<polygon points="${points.trim()}" fill="${fill}"/>`
+    }
+    case 'heart': {
+      const s2 = s * 0.45
+      const d = `
+        M ${cx} ${cy + s2 * 0.3}
+        C ${cx} ${cy - s2 * 0.3} ${cx - s2} ${cy - s2 * 0.3} ${cx - s2} ${cy + s2 * 0.1}
+        C ${cx - s2} ${cy + s2 * 0.6} ${cx} ${cy + s2} ${cx} ${cy + s2}
+        C ${cx} ${cy + s2} ${cx + s2} ${cy + s2 * 0.6} ${cx + s2} ${cy + s2 * 0.1}
+        C ${cx + s2} ${cy - s2 * 0.3} ${cx} ${cy - s2 * 0.3} ${cx} ${cy + s2 * 0.3}
+        Z
+      `
+      return `<path d="${d}" fill="${fill}"/>`
+    }
+    case 'geometric': {
+      const s2 = s * 0.4
+      const points = `${cx},${cy - s2} ${cx + s2},${cy} ${cx},${cy + s2} ${cx - s2},${cy}`
+      return `<polygon points="${points}" fill="${fill}"/>`
+    }
+    default:
+      return `<rect x="${cx - s / 2 + 1}" y="${cy - s / 2 + 1}" width="${s - 2}" height="${s - 2}" fill="${fill}"/>`
+  }
+}
+
 const exportSVG = async () => {
   const size = canvasSize
-  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`
-  
-  svgContent += `<rect width="${size}" height="${size}" fill="${backgroundColor.value}"/>`
-  
-  const tempCanvas = document.createElement('canvas')
-  tempCanvas.width = size
-  tempCanvas.height = size
-  const tempCtx = tempCanvas.getContext('2d')
-  await QRCode.toCanvas(tempCanvas, qrContent.value, {
-    errorCorrectionLevel: errorLevel.value,
-    margin: 0,
-    width: size
-  })
-  
-  const imageData = tempCtx.getImageData(0, 0, size, size)
-  const data = imageData.data
-  const modules = []
-  const moduleSize = size / Math.sqrt(data.length / 4)
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const idx = (y * size + x) * 4
-      const isBlack = data[idx] < 128
-      if (isBlack) {
-        const moduleX = Math.floor(x / moduleSize)
-        const moduleY = Math.floor(y / moduleSize)
-        if (!modules[moduleY]) modules[moduleY] = []
-        modules[moduleY][moduleX] = true
-      }
-    }
-  }
-
-  const moduleCount = modules.length
+  const modules = await getQRModules()
+  const moduleCount = modules.size
   const actualModuleSize = size / moduleCount
-  const fillColor = foregroundColor.value
 
-  for (let y = 0; y < moduleCount; y++) {
-    for (let x = 0; x < moduleCount; x++) {
-      if (modules[y] && modules[y][x]) {
-        const cx = x * actualModuleSize + actualModuleSize / 2
-        const cy = y * actualModuleSize + actualModuleSize / 2
-        const s = actualModuleSize * 0.9
-        
-        const isFinderPattern =
-          (x < 7 && y < 7) ||
-          (x >= moduleCount - 7 && y < 7) ||
-          (x < 7 && y >= moduleCount - 7)
+  const fillRef = useGradient.value ? 'url(#qrGradient)' : foregroundColor.value
 
-        if (isFinderPattern) {
-          svgContent += `<rect x="${x * actualModuleSize}" y="${y * actualModuleSize}" width="${actualModuleSize}" height="${actualModuleSize}" fill="${fillColor}"/>`
-        } else if (selectedTemplate.value === 'dots') {
-          svgContent += `<circle cx="${cx}" cy="${cy}" r="${s / 2}" fill="${fillColor}"/>`
-        } else {
-          svgContent += `<rect x="${x * actualModuleSize + 1}" y="${y * actualModuleSize + 1}" width="${actualModuleSize - 2}" height="${actualModuleSize - 2}" fill="${fillColor}"/>`
-        }
-      }
-    }
+  let defs = ''
+  if (useGradient.value) {
+    const angleRad = (gradientAngle.value * Math.PI) / 180
+    const centerX = size / 2
+    const centerY = size / 2
+    const radius = size / 2
+    const x1 = centerX + Math.cos(angleRad) * radius
+    const y1 = centerY + Math.sin(angleRad) * radius
+    const x2 = centerX - Math.cos(angleRad) * radius
+    const y2 = centerY - Math.sin(angleRad) * radius
+    defs = `
+      <defs>
+        <linearGradient id="qrGradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="${foregroundColor.value}"/>
+          <stop offset="100%" stop-color="${gradientEndColor.value}"/>
+        </linearGradient>
+      </defs>
+    `
   }
 
   if (logoImage.value) {
     const logoSizePx = (size * logoSize.value) / 100
     const logoX = (size - logoSizePx) / 2
     const logoY = (size - logoSizePx) / 2
-    svgContent += `<image href="${logoImage.value}" x="${logoX}" y="${logoY}" width="${logoSizePx}" height="${logoSizePx}"/>`
+    const radius = (logoSizePx * logoRadius.value) / 100
+    const padding = 8
+    const rx = radius + padding
+    defs = defs ? defs.slice(0, -7) : '<defs>'
+    defs += `
+      <clipPath id="logoClip">
+        <rect x="${logoX}" y="${logoY}" width="${logoSizePx}" height="${logoSizePx}" rx="${radius}" ry="${radius}"/>
+      </clipPath>
+    </defs>
+    `
+  }
+
+  let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`
+  svgContent += defs
+
+  svgContent += `<rect width="${size}" height="${size}" fill="${backgroundColor.value}"/>`
+
+  if (bgImage.value) {
+    svgContent += `<image href="${bgImage.value}" x="0" y="0" width="${size}" height="${size}" opacity="0.3" preserveAspectRatio="xMidYMid slice"/>`
+  }
+
+  const qrGroupOpacity = bgImage.value ? ` opacity="${qrOpacity.value / 100}"` : ''
+  svgContent += `<g${qrGroupOpacity}>`
+
+  for (let y = 0; y < moduleCount; y++) {
+    for (let x = 0; x < moduleCount; x++) {
+      if (modules.get(y, x)) {
+        const cx = x * actualModuleSize + actualModuleSize / 2
+        const cy = y * actualModuleSize + actualModuleSize / 2
+        const s = actualModuleSize * 0.9
+
+        const isFinderPattern =
+          (x < 7 && y < 7) ||
+          (x >= moduleCount - 7 && y < 7) ||
+          (x < 7 && y >= moduleCount - 7)
+
+        if (isFinderPattern) {
+          svgContent += `<rect x="${x * actualModuleSize}" y="${y * actualModuleSize}" width="${actualModuleSize}" height="${actualModuleSize}" fill="${fillRef}"/>`
+        } else {
+          svgContent += getSvgShapePaths(cx, cy, s, selectedTemplate.value, fillRef)
+        }
+      }
+    }
+  }
+
+  svgContent += '</g>'
+
+  if (logoImage.value) {
+    const logoSizePx = (size * logoSize.value) / 100
+    const logoX = (size - logoSizePx) / 2
+    const logoY = (size - logoSizePx) / 2
+    const radius = (logoSizePx * logoRadius.value) / 100
+    const padding = 8
+    const rx = radius + padding
+
+    svgContent += `<rect x="${logoX - padding}" y="${logoY - padding}" width="${logoSizePx + padding * 2}" height="${logoSizePx + padding * 2}" rx="${rx}" ry="${rx}" fill="${backgroundColor.value}"/>`
+    svgContent += `<g clip-path="url(#logoClip)">`
+    svgContent += `<image href="${logoImage.value}" x="${logoX}" y="${logoY}" width="${logoSizePx}" height="${logoSizePx}" preserveAspectRatio="xMidYMid slice"/>`
+    svgContent += '</g>'
   }
 
   svgContent += '</svg>'
-  
+
   const blob = new Blob([svgContent], { type: 'image/svg+xml' })
   const link = document.createElement('a')
   link.download = 'art-qrcode.svg'
