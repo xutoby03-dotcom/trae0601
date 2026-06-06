@@ -7,6 +7,7 @@ import { InventoryScreen } from './components/InventoryScreen';
 import { SaveLoadScreen } from './components/SaveLoadScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { EndingScreen } from './components/EndingScreen';
+import { InstructionsScreen } from './components/InstructionsScreen';
 import { PlayerHUD } from './components/PlayerHUD';
 import { loadSaves } from './utils/gameUtils';
 
@@ -62,6 +63,8 @@ function App() {
         return <GameOverScreen />;
       case 'ending':
         return <EndingScreen />;
+      case 'instructions':
+        return <InstructionsScreen />;
       default:
         return <TitleScreen />;
     }

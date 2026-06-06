@@ -31,7 +31,12 @@ export const SceneDisplay = () => {
   const endingClass = node.isEnding ? `ending-${node.endingType}` : '';
 
   const returnToTitle = () => {
-    setScreen('title');
+    useGameStore.setState({
+      screen: 'title',
+      currentNodeId: 'title',
+      battle: null,
+      message: null,
+    });
   };
 
   return (

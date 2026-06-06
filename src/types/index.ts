@@ -92,7 +92,7 @@ export interface SceneNode {
   setFlag?: string;
 }
 
-export type GameScreen = 'title' | 'game' | 'battle' | 'inventory' | 'save' | 'load' | 'gameover' | 'ending';
+export type GameScreen = 'title' | 'game' | 'battle' | 'inventory' | 'save' | 'load' | 'gameover' | 'ending' | 'instructions';
 
 export interface BattleState {
   enemy: Enemy;

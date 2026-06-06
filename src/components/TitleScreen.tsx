@@ -30,7 +30,7 @@ export const TitleScreen = () => {
           <button className="title-btn" onClick={handleLoad}>
             📖 读取存档
           </button>
-          <button className="title-btn" onClick={() => setScreen('game')}>
+          <button className="title-btn" onClick={() => setScreen('instructions')}>
             ❓ 游戏说明
           </button>
         </div>
