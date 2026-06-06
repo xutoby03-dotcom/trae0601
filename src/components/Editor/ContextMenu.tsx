@@ -5,7 +5,7 @@ import { rewriteText, getStyleName, getStyleDescription } from '../../utils/rewr
 import type { RewriteStyle } from '../../types';
 
 const ContextMenu: React.FC = () => {
-  const { contextMenu, hideContextMenu, currentArticle, updateCurrentArticle } = useStore();
+  const { contextMenu, hideContextMenu, currentArticle, applyRewrite } = useStore();
   const [rewrittenText, setRewrittenText] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<RewriteStyle | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -32,14 +32,7 @@ const ContextMenu: React.FC = () => {
   const handleApplyRewrite = () => {
     if (!currentArticle || !selectedStyle) return;
     
-    const editor = (window as any).quillEditor?.getEditor?.();
-    if (editor) {
-      const range = editor.getSelection();
-      if (range) {
-        editor.deleteText(range.index, range.length);
-        editor.insertText(range.index, rewrittenText);
-      }
-    }
+    applyRewrite(selectedStyle, rewrittenText);
     
     hideContextMenu();
     setShowPreview(false);

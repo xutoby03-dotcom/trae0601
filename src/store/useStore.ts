@@ -216,5 +216,28 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   applyRewrite: (style: RewriteStyle, newText: string) => {
+    const state = get();
+    if (!state.currentArticle) return;
+    
+    const quillEditor = (window as any).quillEditor;
+    const editor = quillEditor?.getEditor?.();
+    if (!editor) return;
+    
+    const range = editor.getSelection();
+    if (!range) return;
+    
+    editor.deleteText(range.index, range.length);
+    editor.insertText(range.index, newText);
+    
+    const updatedContent = editor.root.innerHTML;
+    const updated = { 
+      ...state.currentArticle, 
+      content: updatedContent, 
+      updatedAt: new Date() 
+    };
+    set({ currentArticle: updated });
+    
+    get().analyzeContent(updatedContent);
+    get().saveCurrentArticle();
   }
 }));

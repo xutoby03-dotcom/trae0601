@@ -1,5 +1,16 @@
 import type { ExportFormat } from '../types';
 import { stripHtml } from './textAnalysis';
+import {
+  Document,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  Packer,
+  LevelFormat,
+  AlignmentType,
+  convertInchesToTwip
+} from 'docx';
+import { saveAs } from 'file-saver';
 
 export function exportToMarkdown(html: string, title: string): string {
   let markdown = '';
@@ -98,17 +109,203 @@ export function exportToMarkdown(html: string, title: string): string {
   return markdown;
 }
 
+interface TextRunStyle {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: {};
+}
+
+function collectTextRuns(node: Node, style: TextRunStyle = {}): TextRun[] {
+  const runs: TextRun[] = [];
+  
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = node.textContent || '';
+    if (text) {
+      runs.push(new TextRun({
+        text,
+        bold: style.bold,
+        italics: style.italic,
+        underline: style.underline
+      }));
+    }
+  } else if (node.nodeType === Node.ELEMENT_NODE) {
+    const elem = node as HTMLElement;
+    const tagName = elem.tagName.toLowerCase();
+    let newStyle = { ...style };
+    
+    if (tagName === 'strong' || tagName === 'b') {
+      newStyle.bold = true;
+    }
+    if (tagName === 'em' || tagName === 'i') {
+      newStyle.italic = true;
+    }
+    if (tagName === 'u') {
+      newStyle.underline = {};
+    }
+    
+    elem.childNodes.forEach(child => {
+      runs.push(...collectTextRuns(child, newStyle));
+    });
+  }
+  
+  return runs;
+}
+
+function convertHtmlToDocxParagraphs(html: string): Paragraph[] {
+  const paragraphs: Paragraph[] = [];
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  let listNumbering: number | null = null;
+  let bulletLevel = 0;
+  
+  function processNode(node: Node) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const elem = node as HTMLElement;
+      const tagName = elem.tagName.toLowerCase();
+      
+      switch (tagName) {
+        case 'h1': {
+          const runs = collectTextRuns(elem);
+          paragraphs.push(new Paragraph({
+            text: '',
+            heading: HeadingLevel.HEADING_1,
+            children: runs.length > 0 ? runs : [new TextRun('')]
+          }));
+          break;
+        }
+        case 'h2': {
+          const runs = collectTextRuns(elem);
+          paragraphs.push(new Paragraph({
+            text: '',
+            heading: HeadingLevel.HEADING_2,
+            children: runs.length > 0 ? runs : [new TextRun('')]
+          }));
+          break;
+        }
+        case 'h3': {
+          const runs = collectTextRuns(elem);
+          paragraphs.push(new Paragraph({
+            text: '',
+            heading: HeadingLevel.HEADING_3,
+            children: runs.length > 0 ? runs : [new TextRun('')]
+          }));
+          break;
+        }
+        case 'p': {
+          const runs = collectTextRuns(elem);
+          paragraphs.push(new Paragraph({
+            children: runs.length > 0 ? runs : [new TextRun('')],
+            spacing: { after: 200 }
+          }));
+          break;
+        }
+        case 'blockquote': {
+          const runs = collectTextRuns(elem);
+          paragraphs.push(new Paragraph({
+            children: runs,
+            indent: {
+              left: convertInchesToTwip(0.5),
+              right: convertInchesToTwip(0.5)
+            },
+            style: 'Quote',
+            spacing: { before: 100, after: 100 }
+          }));
+          break;
+        }
+        case 'ul': {
+          bulletLevel++;
+          elem.childNodes.forEach(child => {
+            if ((child as HTMLElement).tagName?.toLowerCase() === 'li') {
+              const runs = collectTextRuns(child);
+              paragraphs.push(new Paragraph({
+                children: runs,
+                bullet: {
+                  level: bulletLevel - 1
+                },
+                spacing: { after: 100 }
+              }));
+            }
+          });
+          bulletLevel--;
+          break;
+        }
+        case 'ol': {
+          if (listNumbering === null) listNumbering = 0;
+          elem.childNodes.forEach(child => {
+            if ((child as HTMLElement).tagName?.toLowerCase() === 'li') {
+              listNumbering = (listNumbering ?? 0) + 1;
+              const runs = collectTextRuns(child);
+              paragraphs.push(new Paragraph({
+                children: runs,
+                numbering: {
+                  reference: 'default-numbering',
+                  level: 0
+                },
+                spacing: { after: 100 }
+              }));
+            }
+          });
+          break;
+        }
+        default:
+          elem.childNodes.forEach(child => processNode(child));
+      }
+    }
+  }
+  
+  tempDiv.childNodes.forEach(child => processNode(child));
+  
+  return paragraphs;
+}
+
 export async function exportToDocx(html: string, title: string): Promise<void> {
-  const markdown = exportToMarkdown(html, title);
-  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${title || '文档'}.md`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const paragraphs: Paragraph[] = [];
+  
+  if (title) {
+    paragraphs.push(new Paragraph({
+      text: title,
+      heading: HeadingLevel.TITLE,
+      spacing: { after: 400 }
+    }));
+  }
+  
+  const contentParagraphs = convertHtmlToDocxParagraphs(html);
+  paragraphs.push(...contentParagraphs);
+  
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: convertInchesToTwip(1),
+            right: convertInchesToTwip(1),
+            bottom: convertInchesToTwip(1),
+            left: convertInchesToTwip(1)
+          }
+        }
+      },
+      children: paragraphs
+    }],
+    numbering: {
+      config: [
+        {
+          reference: 'default-numbering',
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: '%1.',
+              alignment: AlignmentType.LEFT
+            }
+          ]
+        }
+      ]
+    }
+  });
+  
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `${title || '文档'}.docx`);
 }
 
 export function downloadMarkdown(html: string, title: string): void {
@@ -214,7 +411,7 @@ export async function exportDocument(
       downloadMarkdown(html, title);
       break;
     case 'docx':
-      downloadHTML(html, title);
+      await exportToDocx(html, title);
       break;
     case 'pdf':
       await exportToPDF(html, title);
