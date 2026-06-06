@@ -9,7 +9,8 @@ import {
   ChevronLeft,
   Trash2,
   File,
-  FilePlus
+  FilePlus,
+  Tag
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { stripHtml } from '../../utils/textAnalysis';
@@ -18,8 +19,10 @@ const Sidebar: React.FC = () => {
   const {
     articles,
     folders,
+    tags,
     currentArticle,
     selectedFolderId,
+    selectedTagId,
     searchQuery,
     sidebarCollapsed,
     selectArticle,
@@ -27,6 +30,7 @@ const Sidebar: React.FC = () => {
     removeArticle,
     setSearchQuery,
     setSelectedFolderId,
+    setSelectedTagId,
     toggleSidebar,
     toggleTemplateModal
   } = useStore();
@@ -202,7 +206,50 @@ const Sidebar: React.FC = () => {
           </div>
 
           <div className="text-xs text-white/40 uppercase tracking-wider mb-2 px-2">
-            {selectedFolderId ? '当前文件夹' : '最近文章'}
+            标签
+          </div>
+          
+          <div className="flex flex-wrap gap-1.5 px-2 mb-4">
+            <button
+              onClick={() => setSelectedTagId(null)}
+              className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                selectedTagId === null
+                  ? 'bg-white/30 text-white'
+                  : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
+              }`}
+            >
+              全部
+            </button>
+            {tags.map(tag => {
+              const count = articles.filter(a => a.tags.includes(tag.name)).length;
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => setSelectedTagId(selectedTagId === tag.id ? null : tag.id)}
+                  className={`px-2 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+                    selectedTagId === tag.id
+                      ? 'bg-white/30 text-white'
+                      : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
+                  }`}
+                  style={{
+                    borderLeft: selectedTagId === tag.id ? `3px solid ${tag.color}` : `3px solid transparent`
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                  {count > 0 && (
+                    <span className="text-white/40 ml-0.5">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-xs text-white/40 uppercase tracking-wider mb-2 px-2">
+            {selectedFolderId ? '当前文件夹' : selectedTagId ? '标签文章' : '最近文章'}
           </div>
           
           <div className="space-y-1">
@@ -230,6 +277,29 @@ const Sidebar: React.FC = () => {
                       <div className="text-xs text-white/40 truncate mt-0.5">
                         {getArticleExcerpt(article.content)}
                       </div>
+                      {article.tags && article.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {article.tags.slice(0, 3).map((tagName, idx) => {
+                            const tag = tags.find(t => t.name === tagName);
+                            return (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: tag ? `${tag.color}20` : 'rgba(255,255,255,0.1)',
+                                  color: tag ? tag.color : 'rgba(255,255,255,0.6)'
+                                }}
+                              >
+                                <span
+                                  className="w-1 h-1 rounded-full"
+                                  style={{ backgroundColor: tag?.color || 'rgba(255,255,255,0.4)' }}
+                                />
+                                {tagName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                       <div className="text-xs text-white/30 mt-1">
                         {formatDate(article.updatedAt)}
                       </div>

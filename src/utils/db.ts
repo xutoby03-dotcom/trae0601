@@ -154,6 +154,24 @@ export async function initDefaultData(): Promise<void> {
     }
   }
 
+  const tags = await getAllTags();
+  if (tags.length === 0) {
+    const defaultTags: Tag[] = [
+      { id: 'tag-1', name: '重要', color: '#ef4444' },
+      { id: 'tag-2', name: '工作', color: '#3b82f6' },
+      { id: 'tag-3', name: '学习', color: '#22c55e' },
+      { id: 'tag-4', name: '灵感', color: '#f59e0b' },
+      { id: 'tag-5', name: '待办', color: '#8b5cf6' },
+      { id: 'tag-6', name: '示例', color: '#06b6d4' },
+      { id: 'tag-7', name: '欢迎', color: '#ec4899' },
+      { id: 'tag-8', name: '草稿', color: '#6b7280' }
+    ];
+    
+    for (const tag of defaultTags) {
+      await db.put('tags', tag);
+    }
+  }
+
   const articles = await getAllArticles();
   if (articles.length === 0) {
     const sampleArticle: Article = {

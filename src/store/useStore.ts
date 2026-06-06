@@ -21,6 +21,7 @@ interface AppState {
   tags: Tag[];
   currentArticle: Article | null;
   selectedFolderId: string | null;
+  selectedTagId: string | null;
   searchQuery: string;
   analysisResult: AnalysisResult | null;
   isTemplateModalOpen: boolean;
@@ -44,6 +45,7 @@ interface AppState {
   removeArticle: (id: string) => Promise<void>;
   setSearchQuery: (query: string) => void;
   setSelectedFolderId: (id: string | null) => void;
+  setSelectedTagId: (id: string | null) => void;
   analyzeContent: (html: string) => void;
   createFolder: (name: string, parentId?: string | null) => Promise<void>;
   removeFolder: (id: string) => Promise<void>;
@@ -61,6 +63,7 @@ export const useStore = create<AppState>((set, get) => ({
   tags: [],
   currentArticle: null,
   selectedFolderId: null,
+  selectedTagId: null,
   searchQuery: '',
   analysisResult: null,
   isTemplateModalOpen: false,
@@ -92,6 +95,13 @@ export const useStore = create<AppState>((set, get) => ({
     
     if (state.selectedFolderId) {
       articles = articles.filter(a => a.folderId === state.selectedFolderId);
+    }
+    
+    if (state.selectedTagId) {
+      const selectedTag = state.tags.find(t => t.id === state.selectedTagId);
+      if (selectedTag) {
+        articles = articles.filter(a => a.tags.includes(selectedTag.name));
+      }
     }
     
     set({ articles });
@@ -165,6 +175,11 @@ export const useStore = create<AppState>((set, get) => ({
 
   setSelectedFolderId: (id: string | null) => {
     set({ selectedFolderId: id });
+    get().loadArticles();
+  },
+
+  setSelectedTagId: (id: string | null) => {
+    set({ selectedTagId: id });
     get().loadArticles();
   },
 
