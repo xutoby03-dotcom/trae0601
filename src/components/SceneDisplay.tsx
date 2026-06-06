@@ -10,7 +10,7 @@ export const SceneDisplay = () => {
     return <div className="scene-display">场景加载失败...</div>;
   }
 
-  const isOptionAvailable = (option: any) => {
+  const availableOptions = node.options.filter((option: any) => {
     if (option.requiresItem && !hasItem(player.inventory, option.requiresItem)) {
       return false;
     }
@@ -18,21 +18,26 @@ export const SceneDisplay = () => {
       return false;
     }
     return true;
-  };
+  });
 
-  const getOptionText = (option: any) => {
-    let text = option.text;
-    if (option.requiresItem && !hasItem(player.inventory, option.requiresItem)) {
-      const itemName = option.requiresItem;
-      text += ` 🔒(需要道具)`;
-    }
-    return text;
-  };
+  const weaponName = player.equipment.weapon 
+    ? `${player.equipment.weapon.icon} ${player.equipment.weapon.name}` 
+    : '✊ 赤手空拳';
+  
+  const armorName = player.equipment.armor 
+    ? `${player.equipment.armor.icon} ${player.equipment.armor.name}` 
+    : '👕 布衣';
 
   const endingClass = node.isEnding ? `ending-${node.endingType}` : '';
 
   return (
     <div className={`scene-display ${endingClass}`}>
+      <div className="equipment-overview">
+        <span className="equip-item">🗡️ {weaponName}</span>
+        <span className="equip-divider">|</span>
+        <span className="equip-item">🛡️ {armorName}</span>
+      </div>
+
       <div className="scene-header">
         <h2 className="scene-title">{node.title}</h2>
       </div>
@@ -44,14 +49,13 @@ export const SceneDisplay = () => {
       </div>
 
       <div className="scene-options">
-        {node.options.map((option, index) => (
+        {availableOptions.map((option, index) => (
           <button
             key={index}
-            className={`option-btn ${!isOptionAvailable(option) ? 'disabled' : ''}`}
-            onClick={() => isOptionAvailable(option) && selectOption(option)}
-            disabled={!isOptionAvailable(option)}
+            className="option-btn"
+            onClick={() => selectOption(option)}
           >
-            {getOptionText(option)}
+            {option.text}
           </button>
         ))}
       </div>

@@ -277,6 +277,27 @@ body {
   flex-direction: column;
 }
 
+.equipment-overview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  background: var(--color-bg-dark);
+  border-radius: 4px;
+  border: 1px solid var(--color-panel-light);
+  font-size: 0.95rem;
+}
+
+.equip-item {
+  color: var(--color-text);
+}
+
+.equip-divider {
+  color: var(--color-text-muted);
+}
+
 .scene-header {
   border-bottom: 2px solid var(--color-border);
   padding-bottom: 15px;
@@ -1006,6 +1027,134 @@ body {
   z-index: 1000;
   animation: popupIn 0.3s ease-out;
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+/* 结局画面 */
+.ending-screen {
+  width: 100%;
+  max-width: 700px;
+}
+
+.ending-container {
+  background: var(--color-panel);
+  border: 4px solid var(--ending-border);
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 0 40px var(--ending-glow);
+  background: linear-gradient(135deg, var(--color-panel) 0%, var(--ending-bg) 100%);
+}
+
+.ending-badge {
+  margin-bottom: 20px;
+}
+
+.ending-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 10px;
+  animation: endingBounce 1s ease-in-out infinite;
+}
+
+@keyframes endingBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.ending-type {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+.ending-title {
+  font-size: 1.8rem;
+  color: var(--color-gold);
+  margin-bottom: 25px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.ending-description {
+  text-align: left;
+  line-height: 1.8;
+  font-size: 1.05rem;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border-left: 4px solid var(--ending-border);
+}
+
+.ending-description p {
+  margin-bottom: 10px;
+}
+
+.ending-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 30px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stat-row span:first-child {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.stat-value.gold {
+  color: var(--color-gold);
+}
+
+.ending-options {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.ending-btn {
+  font-family: inherit;
+  font-size: 1.1rem;
+  padding: 15px 30px;
+  border: 2px solid var(--ending-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--color-panel-light);
+}
+
+.ending-btn:hover {
+  transform: scale(1.05);
+  background: var(--ending-border);
+  color: var(--color-bg-dark);
+}
+
+.ending-btn.restart {
+  background: var(--color-exp);
+  border-color: var(--color-exp);
+  color: var(--color-bg-dark);
+}
+
+.ending-btn.restart:hover {
+  background: #26de81;
+}
+
+.ending-btn.title {
+  background: var(--color-panel-light);
 }
 
 @keyframes popupIn {

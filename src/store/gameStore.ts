@@ -86,6 +86,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     if (node.isEnding) {
+      set({
+        currentNodeId: nodeId,
+        screen: 'ending',
+        currentEndingType: node.endingType,
+      });
+      return;
     }
 
     set({ currentNodeId: nodeId });

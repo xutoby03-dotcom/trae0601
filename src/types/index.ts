@@ -92,7 +92,7 @@ export interface SceneNode {
   setFlag?: string;
 }
 
-export type GameScreen = 'title' | 'game' | 'battle' | 'inventory' | 'save' | 'load' | 'gameover';
+export type GameScreen = 'title' | 'game' | 'battle' | 'inventory' | 'save' | 'load' | 'gameover' | 'ending';
 
 export interface BattleState {
   enemy: Enemy;
@@ -118,4 +118,5 @@ export interface GameState {
   battle: BattleState | null;
   saves: SaveSlot[];
   message: string | null;
+  currentEndingType?: 'good' | 'bad' | 'neutral' | 'hidden';
 }

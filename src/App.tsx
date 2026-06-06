@@ -6,6 +6,7 @@ import { BattleScreen } from './components/BattleScreen';
 import { InventoryScreen } from './components/InventoryScreen';
 import { SaveLoadScreen } from './components/SaveLoadScreen';
 import { GameOverScreen } from './components/GameOverScreen';
+import { EndingScreen } from './components/EndingScreen';
 import { PlayerHUD } from './components/PlayerHUD';
 import { loadSaves } from './utils/gameUtils';
 
@@ -59,6 +60,8 @@ function App() {
         return <SaveLoadScreen mode="load" />;
       case 'gameover':
         return <GameOverScreen />;
+      case 'ending':
+        return <EndingScreen />;
       default:
         return <TitleScreen />;
     }
