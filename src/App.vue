@@ -670,7 +670,7 @@ const exportSVG = async () => {
 
   const fillRef = useGradient.value ? 'url(#qrGradient)' : foregroundColor.value
 
-  let defs = ''
+  let defsContent = ''
   if (useGradient.value) {
     const angleRad = (gradientAngle.value * Math.PI) / 180
     const centerX = size / 2
@@ -680,13 +680,11 @@ const exportSVG = async () => {
     const y1 = centerY + Math.sin(angleRad) * radius
     const x2 = centerX - Math.cos(angleRad) * radius
     const y2 = centerY - Math.sin(angleRad) * radius
-    defs = `
-      <defs>
-        <linearGradient id="qrGradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="${foregroundColor.value}"/>
-          <stop offset="100%" stop-color="${gradientEndColor.value}"/>
-        </linearGradient>
-      </defs>
+    defsContent += `
+      <linearGradient id="qrGradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="${foregroundColor.value}"/>
+        <stop offset="100%" stop-color="${gradientEndColor.value}"/>
+      </linearGradient>
     `
   }
 
@@ -695,16 +693,14 @@ const exportSVG = async () => {
     const logoX = (size - logoSizePx) / 2
     const logoY = (size - logoSizePx) / 2
     const radius = (logoSizePx * logoRadius.value) / 100
-    const padding = 8
-    const rx = radius + padding
-    defs = defs ? defs.slice(0, -7) : '<defs>'
-    defs += `
+    defsContent += `
       <clipPath id="logoClip">
         <rect x="${logoX}" y="${logoY}" width="${logoSizePx}" height="${logoSizePx}" rx="${radius}" ry="${radius}"/>
       </clipPath>
-    </defs>
     `
   }
+
+  const defs = defsContent ? `<defs>${defsContent}</defs>` : ''
 
   let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`
   svgContent += defs
