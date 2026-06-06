@@ -151,6 +151,31 @@ export class Renderer {
       }
 
       this.ctx.restore();
+
+      const isLowHunger = f.hunger < 30;
+      const isLowHealth = f.health < 40;
+      if (isLowHunger || isLowHealth) {
+        this.ctx.save();
+        this.ctx.translate(f.x, f.y - size - 15);
+        
+        const pulseScale = 1 + Math.sin(this.time * 5) * 0.1;
+        this.ctx.scale(pulseScale, pulseScale);
+        
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, size * 0.6, 0, Math.PI * 2);
+        this.ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+        this.ctx.fill();
+        this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        
+        this.ctx.font = `${size * 0.8}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('❗', 0, 0);
+        
+        this.ctx.restore();
+      }
     });
   }
 

@@ -6,14 +6,21 @@ import { getTankWidth, getTankHeight, SAND_HEIGHT, DAY_MS, BASE_TANK_WIDTH, BASE
 import { FishType, DecorationType } from '../store/types';
 import { DECORATION_CONFIGS } from '../utils/constants';
 
+type DragItem = 
+  | { source: 'shop'; type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number }
+  | { source: 'tank'; type: 'decoration'; decorationId: string }
+  | null;
+
 interface GameCanvasProps {
   onFishClick: (fishId: string) => void;
-  dragItem: { type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number } | null;
+  dragItem: DragItem;
   onDrop: (x: number, y: number) => void;
   onFeedAtPosition: (x: number, y: number) => void;
+  onDecorationDragStart: (decorationId: string) => void;
+  onDragEnd: () => void;
 }
 
-export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosition }: GameCanvasProps) {
+export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosition, onDecorationDragStart, onDragEnd }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const animationRef = useRef<number>(0);
@@ -21,7 +28,6 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
   const lastSettleCheckRef = useRef<number>(Date.now());
   const [canvasSize, setCanvasSize] = useState({ width: BASE_TANK_WIDTH, height: BASE_TANK_HEIGHT });
   const [isDragOver, setIsDragOver] = useState(false);
-  const [draggingDecorationId, setDraggingDecorationId] = useState<string | null>(null);
 
   const { fish, food, decorations, eggs, tankLevel, updateFish, updateFood, removeFood, dailySettle, selectFish, coins, moveDecoration, save, collectEgg } = useGameStore();
 
@@ -158,8 +164,12 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
     }
 
     if (clickedDecoration) {
-      setDraggingDecorationId(clickedDecoration);
       selectFish(null);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.setAttribute('data-dragging-decoration', clickedDecoration);
+        canvas.draggable = true;
+      }
     } else {
       let clickedFish: string | null = null;
       for (const f of fish) {
@@ -180,22 +190,28 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
     }
   }, [fish, eggs, decorations, onFishClick, selectFish, getCanvasCoords, collectEgg, onFeedAtPosition]);
 
-  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!draggingDecorationId) return;
-
-    const { x, y } = getCanvasCoords(e);
-    const clampedY = Math.max(currentTankHeight - SAND_HEIGHT - 60, Math.min(y, currentTankHeight - 10));
-    const clampedX = Math.max(30, Math.min(x, currentTankWidth - 30));
+  const handleCanvasDragStart = useCallback((e: React.DragEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    moveDecoration(draggingDecorationId, clampedX, clampedY);
-  }, [draggingDecorationId, moveDecoration, getCanvasCoords, currentTankWidth, currentTankHeight]);
-
-  const handleCanvasMouseUp = useCallback(() => {
-    if (draggingDecorationId) {
-      setDraggingDecorationId(null);
-      save();
+    const decorationId = canvas.getAttribute('data-dragging-decoration');
+    if (decorationId) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', decorationId);
+      onDecorationDragStart(decorationId);
+    } else {
+      e.preventDefault();
     }
-  }, [draggingDecorationId, save]);
+  }, [onDecorationDragStart]);
+
+  const handleCanvasDragEnd = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.removeAttribute('data-dragging-decoration');
+      canvas.draggable = false;
+    }
+    onDragEnd();
+  }, [onDragEnd]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -209,13 +225,22 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    if (!dragItem) return;
-    if (coins < dragItem.price) return;
     
-    const { x, y } = getCanvasCoords(e);
-    const clampedY = Math.max(50, Math.min(y, currentTankHeight - SAND_HEIGHT - 30));
-    onDrop(x, clampedY);
-  }, [dragItem, coins, getCanvasCoords, onDrop, currentTankHeight]);
+    if (dragItem?.source === 'shop') {
+      const price = dragItem.price;
+      if (coins < price) return;
+      
+      const { x, y } = getCanvasCoords(e);
+      const clampedY = Math.max(50, Math.min(y, currentTankHeight - SAND_HEIGHT - 30));
+      onDrop(x, clampedY);
+    } else if (dragItem?.source === 'tank' && dragItem.type === 'decoration') {
+      const { x, y } = getCanvasCoords(e);
+      const clampedY = Math.max(currentTankHeight - SAND_HEIGHT - 60, Math.min(y, currentTankHeight - 10));
+      const clampedX = Math.max(30, Math.min(x, currentTankWidth - 30));
+      moveDecoration(dragItem.decorationId, clampedX, clampedY);
+      save();
+    }
+  }, [dragItem, coins, getCanvasCoords, onDrop, currentTankWidth, currentTankHeight, moveDecoration, save]);
 
   return (
     <div 
@@ -226,25 +251,31 @@ export default function GameCanvas({ onFishClick, dragItem, onDrop, onFeedAtPosi
         ref={canvasRef}
         width={currentTankWidth}
         height={currentTankHeight}
-        className={`w-full h-full ${draggingDecorationId ? 'cursor-grabbing' : 'cursor-pointer'}`}
+        className="w-full h-full cursor-pointer"
         style={{ imageRendering: 'auto' }}
         onMouseDown={handleCanvasMouseDown}
-        onMouseMove={handleCanvasMouseMove}
-        onMouseUp={handleCanvasMouseUp}
-        onMouseLeave={handleCanvasMouseUp}
+        onDragStart={handleCanvasDragStart}
+        onDragEnd={handleCanvasDragEnd}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       />
-      {isDragOver && dragItem && (
+      {isDragOver && dragItem?.source === 'shop' && (
         <div className="absolute inset-0 bg-blue-400/20 pointer-events-none flex items-center justify-center">
           <span className="text-white text-lg font-bold bg-blue-600/80 px-4 py-2 rounded-lg">
             松开放置
           </span>
         </div>
       )}
+      {isDragOver && dragItem?.source === 'tank' && (
+        <div className="absolute inset-0 bg-green-400/20 pointer-events-none flex items-center justify-center">
+          <span className="text-white text-lg font-bold bg-green-600/80 px-4 py-2 rounded-lg">
+            松开移动
+          </span>
+        </div>
+      )}
       <div className="absolute top-3 left-3 text-white/60 text-sm">
-        点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱
+        点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱 · 拖动装饰可移动/删除
       </div>
       {tankLevel > 1 && (
         <div className="absolute top-3 right-3 text-green-400 text-sm font-bold bg-slate-900/60 px-3 py-1 rounded-lg">

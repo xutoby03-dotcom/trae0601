@@ -1,14 +1,44 @@
-import { Cookie, Maximize2, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Cookie, Maximize2, Info, Trash2 } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
+
+type DragItem = 
+  | { source: 'shop'; type: 'fish' | 'decoration'; itemType: string; price: number }
+  | { source: 'tank'; type: 'decoration'; decorationId: string }
+  | null;
 
 interface ControlBarProps {
   onFeed: () => void;
+  onDropOnTrash: () => void;
+  dragItem: DragItem;
 }
 
-export default function ControlBar({ onFeed }: ControlBarProps) {
+export default function ControlBar({ onFeed, onDropOnTrash, dragItem }: ControlBarProps) {
   const { coins, tankLevel, upgradeTank, fish } = useGameStore();
+  const [isTrashHover, setIsTrashHover] = useState(false);
   const upgradeCost = tankLevel * 500;
   const canUpgrade = coins >= upgradeCost;
+
+  const isDecorationDragging = dragItem?.source === 'tank' && dragItem.type === 'decoration';
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isDecorationDragging) {
+      setIsTrashHover(true);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setIsTrashHover(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsTrashHover(false);
+    if (isDecorationDragging) {
+      onDropOnTrash();
+    }
+  };
 
   return (
     <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between gap-4 border border-blue-800/50">
@@ -55,6 +85,27 @@ export default function ControlBar({ onFeed }: ControlBarProps) {
           <Maximize2 size={18} />
           扩缸 (💰{upgradeCost})
         </button>
+
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 border-2 ${
+            isTrashHover && isDecorationDragging
+              ? 'bg-red-600 border-red-400 text-white scale-110'
+              : isDecorationDragging
+              ? 'bg-slate-800 border-red-500/50 text-red-400 animate-pulse'
+              : 'bg-slate-800 border-slate-600 text-gray-400'
+          }`}
+        >
+          <Trash2 size={20} />
+          <span className="text-sm">
+            {isDecorationDragging ? '拖到这里删除' : '垃圾桶'}
+          </span>
+          {isDecorationDragging && (
+            <span className="text-xs text-yellow-400">(退一半钱)</span>
+          )}
+        </div>
 
         <button
           onClick={onFeed}

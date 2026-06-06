@@ -6,10 +6,13 @@ import FishStatusModal from '../components/FishStatusModal';
 import { useGameStore } from '../store/gameStore';
 import { FishType, DecorationType } from '../store/types';
 
-type DragItem = { type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number } | null;
+type DragItem = 
+  | { source: 'shop'; type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number }
+  | { source: 'tank'; type: 'decoration'; decorationId: string }
+  | null;
 
 export default function Home() {
-  const { initialize, addFish, addDecoration, feed, selectFish, selectedFishId, coins, save } = useGameStore();
+  const { initialize, addFish, addDecoration, feed, selectFish, selectedFishId, coins, save, removeDecorationRefund } = useGameStore();
   const [dragItem, setDragItem] = useState<DragItem>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -34,21 +37,36 @@ export default function Home() {
     selectFish(null);
   };
 
-  const handleDragStart = (item: DragItem) => {
-    setDragItem(item);
+  const handleShopDragStart = (item: { type: 'fish' | 'decoration'; itemType: FishType | DecorationType; price: number }) => {
+    setDragItem({ source: 'shop', ...item });
+  };
+
+  const handleTankDecorationDragStart = (decorationId: string) => {
+    setDragItem({ source: 'tank', type: 'decoration', decorationId });
   };
 
   const handleDragEnd = () => {
     setDragItem(null);
   };
 
-  const handleDrop = (x: number, y: number) => {
+  const handleDropOnCanvas = (x: number, y: number) => {
     if (!dragItem) return;
     
-    if (dragItem.type === 'fish') {
-      addFish(dragItem.itemType as FishType, x, y);
-    } else {
-      addDecoration(dragItem.itemType as DecorationType, x, y);
+    if (dragItem.source === 'shop') {
+      if (dragItem.type === 'fish') {
+        addFish(dragItem.itemType as FishType, x, y);
+      } else {
+        addDecoration(dragItem.itemType as DecorationType, x, y);
+      }
+    }
+    setDragItem(null);
+  };
+
+  const handleDropOnTrash = () => {
+    if (!dragItem) return;
+    
+    if (dragItem.source === 'tank' && dragItem.type === 'decoration') {
+      removeDecorationRefund(dragItem.decorationId);
     }
     setDragItem(null);
   };
@@ -79,21 +97,23 @@ export default function Home() {
       </h1>
 
       <div className="flex gap-4 items-start">
-        <ShopPanel onDragStart={handleDragStart} onDragEnd={handleDragEnd} />
+        <ShopPanel onDragStart={handleShopDragStart} onDragEnd={handleDragEnd} />
 
         <div className="flex flex-col gap-4">
           <GameCanvas
             onFishClick={handleFishClick}
             dragItem={dragItem}
-            onDrop={handleDrop}
+            onDrop={handleDropOnCanvas}
             onFeedAtPosition={handleFeedAtPosition}
+            onDecorationDragStart={handleTankDecorationDragStart}
+            onDragEnd={handleDragEnd}
           />
-          <ControlBar onFeed={handleFeed} />
+          <ControlBar onFeed={handleFeed} onDropOnTrash={handleDropOnTrash} dragItem={dragItem} />
         </div>
       </div>
 
       <div className="text-gray-500 text-sm mt-2">
-        从左侧商店拖拽鱼和装饰到鱼缸中 · 点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱 · 关闭网页后鱼仍会生长
+        从左侧商店拖拽鱼和装饰到鱼缸中 · 点击鱼查看状态 · 点击空白处喂食 · 点击鱼蛋收钱 · 拖动装饰到垃圾桶删除 · 关闭网页后鱼仍会生长
       </div>
 
       {selectedFishId && (

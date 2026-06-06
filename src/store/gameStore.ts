@@ -9,6 +9,7 @@ interface GameActions {
   removeFish: (id: string) => void;
   addDecoration: (type: DecorationType, x: number, y: number) => void;
   removeDecoration: (id: string) => void;
+  removeDecorationRefund: (id: string) => void;
   moveDecoration: (id: string, x: number, y: number) => void;
   feed: (x?: number, y?: number) => void;
   selectFish: (id: string | null) => void;
@@ -101,6 +102,21 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
 
   removeDecoration: (id: string) => {
     set((s) => ({
+      decorations: s.decorations.filter((d) => d.id !== id),
+    }));
+    get().save();
+  },
+
+  removeDecorationRefund: (id: string) => {
+    const state = get();
+    const decoration = state.decorations.find((d) => d.id === id);
+    if (!decoration) return;
+
+    const config = DECORATION_CONFIGS[decoration.type];
+    const refund = Math.floor(config.price / 2);
+
+    set((s) => ({
+      coins: s.coins + refund,
       decorations: s.decorations.filter((d) => d.id !== id),
     }));
     get().save();
