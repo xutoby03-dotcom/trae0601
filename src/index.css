@@ -354,6 +354,22 @@ body {
   cursor: not-allowed;
 }
 
+.dead-end {
+  text-align: center;
+  padding: 20px;
+}
+
+.dead-end-text {
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+.dead-end-btn {
+  text-align: center;
+  min-width: 200px;
+}
+
 /* 结局颜色 */
 .ending-good {
   border-color: var(--color-good);

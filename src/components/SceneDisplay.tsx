@@ -3,7 +3,7 @@ import { STORY_NODES } from '../data/story';
 import { hasItem } from '../utils/gameUtils';
 
 export const SceneDisplay = () => {
-  const { currentNodeId, selectOption, player } = useGameStore();
+  const { currentNodeId, selectOption, player, setScreen } = useGameStore();
   const node = STORY_NODES[currentNodeId];
 
   if (!node) {
@@ -22,20 +22,24 @@ export const SceneDisplay = () => {
 
   const weaponName = player.equipment.weapon 
     ? `${player.equipment.weapon.icon} ${player.equipment.weapon.name}` 
-    : '✊ 赤手空拳';
+    : '赤手空拳';
   
   const armorName = player.equipment.armor 
     ? `${player.equipment.armor.icon} ${player.equipment.armor.name}` 
-    : '👕 布衣';
+    : '布衣';
 
   const endingClass = node.isEnding ? `ending-${node.endingType}` : '';
+
+  const returnToTitle = () => {
+    setScreen('title');
+  };
 
   return (
     <div className={`scene-display ${endingClass}`}>
       <div className="equipment-overview">
-        <span className="equip-item">🗡️ {weaponName}</span>
+        <span className="equip-item">{weaponName}</span>
         <span className="equip-divider">|</span>
-        <span className="equip-item">🛡️ {armorName}</span>
+        <span className="equip-item">{armorName}</span>
       </div>
 
       <div className="scene-header">
@@ -49,15 +53,24 @@ export const SceneDisplay = () => {
       </div>
 
       <div className="scene-options">
-        {availableOptions.map((option, index) => (
-          <button
-            key={index}
-            className="option-btn"
-            onClick={() => selectOption(option)}
-          >
-            {option.text}
-          </button>
-        ))}
+        {availableOptions.length > 0 ? (
+          availableOptions.map((option, index) => (
+            <button
+              key={index}
+              className="option-btn"
+              onClick={() => selectOption(option)}
+            >
+              {option.text}
+            </button>
+          ))
+        ) : (
+          <div className="dead-end">
+            <p className="dead-end-text">🚫 此路不通</p>
+            <button className="option-btn dead-end-btn" onClick={returnToTitle}>
+              返回标题画面
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
