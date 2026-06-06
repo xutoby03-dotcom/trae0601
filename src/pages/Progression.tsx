@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChordLibrary } from '../components/ChordLibrary';
 import { ProgressionEditor } from '../components/ProgressionEditor';
 import { Metronome } from '../components/Metronome';
 import { useAppStore } from '../store/appStore';
 import { Chord, ChordProgression } from '../types';
-import { CHORDS } from '../data/chords';
+import { CHORDS, ROOT_NOTES } from '../data/chords';
 import { audioEngine } from '../utils/audio';
-import { Save } from 'lucide-react';
+import { Save, ChevronUp, ChevronDown } from 'lucide-react';
 
 export const ProgressionPage: React.FC = () => {
   const selectedChord = useAppStore(state => state.selectedChord);
@@ -28,15 +28,88 @@ export const ProgressionPage: React.FC = () => {
   const [saveName, setSaveName] = useState('');
   const [saveCategory, setSaveCategory] = useState('');
   const [playingChordIndex, setPlayingChordIndex] = useState(-1);
+  const [transpose, setTranspose] = useState(0);
   
   const intervalRef = useRef<number | null>(null);
+
+  const findTransposedChordId = (chordId: string, semitones: number): string => {
+    if (semitones === 0) return chordId;
+
+    const chord = CHORDS.find(c => c.id === chordId);
+    if (!chord) return chordId;
+
+    const rootIndex = ROOT_NOTES.indexOf(chord.rootNote);
+    if (rootIndex === -1) return chordId;
+
+    const newRootIndex = (rootIndex + semitones + 12) % 12;
+    const newRoot = ROOT_NOTES[newRootIndex];
+
+    let newId = newRoot;
+    if (chord.type === 'minor') newId += 'm';
+    else if (chord.type === '7') newId += '7';
+    else if (chord.type === 'maj7') newId += 'maj7';
+    else if (chord.type === 'm7') newId += 'm7';
+    else if (chord.type === 'dim') newId += 'dim';
+    else if (chord.type === 'aug') newId += 'aug';
+    else if (chord.type === 'sus2') newId += 'sus2';
+    else if (chord.type === 'sus4') newId += 'sus4';
+    else if (chord.type === '6') newId += '6';
+    else if (chord.type === 'm6') newId += 'm6';
+
+    let found = CHORDS.find(c => c.id === newId);
+
+    if (!found) {
+      const sharpToFlat: Record<string, string> = {
+        'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
+      };
+      if (sharpToFlat[newRoot]) {
+        let flatId = sharpToFlat[newRoot];
+        if (chord.type === 'minor') flatId += 'm';
+        else if (chord.type === '7') flatId += '7';
+        else if (chord.type === 'maj7') flatId += 'maj7';
+        else if (chord.type === 'm7') flatId += 'm7';
+        else if (chord.type === 'dim') flatId += 'dim';
+        else if (chord.type === 'aug') flatId += 'aug';
+        else if (chord.type === 'sus2') flatId += 'sus2';
+        else if (chord.type === 'sus4') flatId += 'sus4';
+        else if (chord.type === '6') flatId += '6';
+        else if (chord.type === 'm6') flatId += 'm6';
+        found = CHORDS.find(c => c.id === flatId);
+        if (found) newId = flatId;
+      }
+    }
+
+    return newId;
+  };
+
+  const displayChordIds = useMemo(() => {
+    if (transpose === 0) return currentProgression.chords;
+    return currentProgression.chords.map(id => findTransposedChordId(id, transpose));
+  }, [currentProgression.chords, transpose]);
+
+  const handleTranspose = (delta: number) => {
+    setTranspose((prev) => (prev + delta + 12) % 12);
+  };
+
+  const handleResetTranspose = () => {
+    setTranspose(0);
+  };
+
+  const applyTransposeToProgression = () => {
+    if (transpose === 0) return;
+    setCurrentProgression({
+      ...currentProgression,
+      chords: displayChordIds,
+    });
+    setTranspose(0);
+  };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
   };
 
   useEffect(() => {
-    if (isPlaying && currentProgression.chords.length > 0) {
+    if (isPlaying && displayChordIds.length > 0) {
       const beatInterval = (60 / currentProgression.bpm) * 1000;
       let beat = 0;
       let chordIndex = 0;
@@ -51,7 +124,7 @@ export const ProgressionPage: React.FC = () => {
 
         if (beat === 0) {
           setPlayingChordIndex(chordIndex);
-          const chordId = currentProgression.chords[chordIndex];
+          const chordId = displayChordIds[chordIndex];
           const chord = CHORDS.find(c => c.id === chordId);
           if (chord) {
             audioEngine.playChord(chord.frets);
@@ -61,7 +134,7 @@ export const ProgressionPage: React.FC = () => {
         beat++;
         if (beat >= currentProgression.beatsPerMeasure) {
           beat = 0;
-          chordIndex = (chordIndex + 1) % currentProgression.chords.length;
+          chordIndex = (chordIndex + 1) % displayChordIds.length;
         }
       };
 
@@ -81,7 +154,7 @@ export const ProgressionPage: React.FC = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, currentProgression, setCurrentBeat]);
+  }, [isPlaying, currentProgression, displayChordIds, setCurrentBeat]);
 
   const handleSave = () => {
     setShowSaveModal(true);
@@ -125,12 +198,16 @@ export const ProgressionPage: React.FC = () => {
 
         <div className="col-span-6">
           <ProgressionEditor
-            chordIds={currentProgression.chords}
+            chordIds={displayChordIds}
             onReorder={reorderProgression}
             onRemove={removeChordFromProgression}
             onClear={handleClear}
             onSave={handleSave}
             playingIndex={playingChordIndex}
+            transpose={transpose}
+            onTranspose={handleTranspose}
+            onResetTranspose={handleResetTranspose}
+            onApplyTranspose={applyTransposeToProgression}
           />
         </div>
 

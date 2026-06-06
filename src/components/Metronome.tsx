@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Hand } from 'lucide-react';
 import { audioEngine } from '../utils/audio';
 
 interface MetronomeProps {
@@ -21,6 +21,8 @@ export const Metronome: React.FC<MetronomeProps> = ({
 }) => {
   const intervalRef = useRef<number | null>(null);
   const beatRef = useRef(0);
+  const [tapTimes, setTapTimes] = useState<number[]>([]);
+  const tapTimeoutRef = useRef<number | null>(null);
 
   const tick = useCallback(() => {
     audioEngine.init();
@@ -58,6 +60,35 @@ export const Metronome: React.FC<MetronomeProps> = ({
   const handleReset = () => {
     beatRef.current = 0;
     onBeat?.(0);
+  };
+
+  const handleTapTempo = () => {
+    const now = Date.now();
+
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current);
+    }
+
+    const newTapTimes = [...tapTimes, now].filter(t => now - t < 3000);
+    setTapTimes(newTapTimes);
+
+    if (newTapTimes.length >= 2) {
+      const intervals = [];
+      for (let i = 1; i < newTapTimes.length; i++) {
+        intervals.push(newTapTimes[i] - newTapTimes[i - 1]);
+      }
+      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const calculatedBpm = Math.round(60000 / avgInterval);
+      const clampedBpm = Math.max(40, Math.min(200, calculatedBpm));
+      
+      if (newTapTimes.length >= 4) {
+        onBpmChange(clampedBpm);
+      }
+    }
+
+    tapTimeoutRef.current = window.setTimeout(() => {
+      setTapTimes([]);
+    }, 3000);
   };
 
   return (
@@ -141,6 +172,33 @@ export const Metronome: React.FC<MetronomeProps> = ({
             {tempo}
           </button>
         ))}
+      </div>
+
+      <div className="mt-4">
+        <button
+          onClick={handleTapTempo}
+          className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+            tapTimes.length > 0
+              ? 'bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-200'
+              : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+          }`}
+        >
+          <Hand className={`w-5 h-5 ${tapTimes.length > 0 ? 'animate-bounce' : ''}`} />
+          <span>
+            Tap Tempo
+            {tapTimes.length > 0 && ` (${tapTimes.length}/4)`}
+          </span>
+        </button>
+        {tapTimes.length > 0 && tapTimes.length < 4 && (
+          <p className="text-xs text-center text-gray-500 mt-2">
+            再敲 {4 - tapTimes.length} 下计算 BPM
+          </p>
+        )}
+        {tapTimes.length >= 4 && (
+          <p className="text-xs text-center text-green-600 mt-2">
+            ✓ BPM 已设置
+          </p>
+        )}
       </div>
     </div>
   );

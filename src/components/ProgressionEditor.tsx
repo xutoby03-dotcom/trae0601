@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Chord } from '../types';
 import { CHORDS } from '../data/chords';
-import { X, GripVertical, Play, Trash2, Save, Volume2 } from 'lucide-react';
+import { X, GripVertical, Play, Trash2, Save, Volume2, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { audioEngine } from '../utils/audio';
 
 interface SortableChordCardProps {
@@ -99,6 +99,10 @@ interface ProgressionEditorProps {
   onClear: () => void;
   onSave: () => void;
   playingIndex?: number;
+  transpose?: number;
+  onTranspose?: (delta: number) => void;
+  onResetTranspose?: () => void;
+  onApplyTranspose?: () => void;
 }
 
 export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
@@ -108,6 +112,10 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
   onClear,
   onSave,
   playingIndex = -1,
+  transpose = 0,
+  onTranspose,
+  onResetTranspose,
+  onApplyTranspose,
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -137,7 +145,50 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
     <div className="bg-amber-50 rounded-2xl shadow-xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-amber-900">和弦进行</h3>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {chords.length > 0 && (
+            <div className="flex items-center gap-1 bg-white rounded-lg shadow-sm px-2 py-1 mr-2">
+              <button
+                onClick={() => onTranspose?.(-1)}
+                className="p-1.5 hover:bg-amber-100 rounded-md transition-colors"
+                title="降半音"
+              >
+                <ChevronDown className="w-4 h-4 text-amber-700" />
+              </button>
+              <div className="px-2 text-center min-w-[50px]">
+                <div className="text-[10px] text-gray-500">移调</div>
+                <div className="text-sm font-bold text-amber-900">
+                  {transpose === 0 ? '0' : transpose > 0 ? `+${transpose}` : transpose}
+                </div>
+              </div>
+              <button
+                onClick={() => onTranspose?.(1)}
+                className="p-1.5 hover:bg-amber-100 rounded-md transition-colors"
+                title="升半音"
+              >
+                <ChevronUp className="w-4 h-4 text-amber-700" />
+              </button>
+              {transpose !== 0 && (
+                <>
+                  <button
+                    onClick={onResetTranspose}
+                    className="ml-1 px-2 py-1 text-xs text-amber-600 hover:bg-amber-100 rounded-md transition-colors"
+                    title="重置"
+                  >
+                    重置
+                  </button>
+                  <button
+                    onClick={onApplyTranspose}
+                    className="ml-1 px-2 py-1 text-xs bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors flex items-center gap-0.5"
+                    title="应用移调"
+                  >
+                    <Check className="w-3 h-3" />
+                    应用
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <button
             onClick={onClear}
             disabled={chords.length === 0}
@@ -156,6 +207,15 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
           </button>
         </div>
       </div>
+
+      {transpose !== 0 && chords.length > 0 && (
+        <div className="mb-4 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-center">
+          <span className="text-blue-700 text-sm">
+            预览模式：已移调 {transpose > 0 ? '+' : ''}{transpose} 半音
+            <span className="text-blue-500 ml-2 text-xs">（点击「应用」永久修改）</span>
+          </span>
+        </div>
+      )}
 
       {chords.length === 0 ? (
         <div className="text-center py-12 text-gray-400">

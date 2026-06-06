@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChordProgression } from '../types';
 import { CHORDS } from '../data/chords';
-import { Play, Trash2, Edit2, Save, X, Heart, Music } from 'lucide-react';
+import { Play, Trash2, Edit2, Save, X, Heart, Music, Search, Filter } from 'lucide-react';
 import { audioEngine } from '../utils/audio';
 
 interface FavoritesProps {
@@ -21,8 +21,18 @@ export const Favorites: React.FC<FavoritesProps> = ({
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const categories = [...new Set(favorites.map(f => f.category))];
+  const categories = [...new Set(favorites.map(f => f.category).filter(Boolean))];
+
+  const filteredFavorites = useMemo(() => {
+    return favorites.filter(fav => {
+      const matchesSearch = fav.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !selectedCategory || fav.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [favorites, searchTerm, selectedCategory]);
 
   const startEdit = (progression: ChordProgression) => {
     setEditingId(progression.id);
@@ -85,21 +95,72 @@ export const Favorites: React.FC<FavoritesProps> = ({
         我的收藏
       </h3>
 
-      {categories.length > 1 && (
+      <div className="flex gap-3 mb-6">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="搜索和弦进行..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+          />
+        </div>
+        {categories.length > 0 && (
+          <div className="relative">
+            <select
+              value={selectedCategory || ''}
+              onChange={(e) => setSelectedCategory(e.target.value || null)}
+              className="appearance-none pl-4 pr-10 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent bg-white cursor-pointer"
+            >
+              <option value="">全部分类</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat || '未分类'}
+                </option>
+              ))}
+            </select>
+            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+        )}
+      </div>
+
+      {categories.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {['全部', ...categories].map(cat => (
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              selectedCategory === null
+                ? 'bg-amber-500 text-white'
+                : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+            }`}
+          >
+            全部
+          </button>
+          {categories.map(cat => (
             <button
               key={cat}
-              className="px-3 py-1.5 text-sm rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
+              onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                selectedCategory === cat
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+              }`}
             >
-              {cat === '' ? '未分类' : cat}
+              {cat || '未分类'}
             </button>
           ))}
         </div>
       )}
 
-      <div className="space-y-4">
-        {favorites.map(progression => (
+      {filteredFavorites.length === 0 ? (
+        <div className="text-center py-8 text-gray-400">
+          <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>没有找到匹配的和弦进行</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredFavorites.map(progression => (
           <div
             key={progression.id}
             className={`p-4 rounded-xl border-2 transition-all ${
@@ -205,6 +266,7 @@ export const Favorites: React.FC<FavoritesProps> = ({
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
