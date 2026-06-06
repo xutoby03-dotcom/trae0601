@@ -41,6 +41,20 @@ function init() {
     commandInput.addEventListener('keydown', handleCommandKey);
     document.addEventListener('keydown', handleGameKey);
     initDB();
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            startGame(btn.dataset.game);
+        });
+    });
+    
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setTheme(btn.dataset.theme);
+        });
+    });
+    
+    updateThemeButtons();
 }
 
 function printWelcome() {
@@ -184,11 +198,18 @@ function setTheme(theme) {
     if (Themes[theme.toUpperCase()]) {
         currentTheme = Themes[theme.toUpperCase()];
         document.body.className = `theme-${currentTheme}`;
+        updateThemeButtons();
         print(`主题已切换为: ${currentTheme}`, 'output-success');
     } else {
         print(`未知主题: ${theme}`, 'output-error');
         print('可用主题: green, amber, blue', 'output-dim');
     }
+}
+
+function updateThemeButtons() {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    });
 }
 
 let db = null;
@@ -488,7 +509,7 @@ function drawSnakeGame() {
                 else if (isFood) line += '*';
                 else line += ' ';
             } else {
-                if (isHead) line += '@';
+                if (isHead) line += 'O';
                 else if (isBody) line += 'O';
                 else if (isFood) line += '*';
                 else line += ' ';
@@ -513,10 +534,20 @@ const SPACE_WIDTH = 40;
 const SPACE_HEIGHT = 20;
 
 function startSpaceGame() {
+    const stars = [];
+    for (let y = 0; y < SPACE_HEIGHT; y++) {
+        for (let x = 0; x < SPACE_WIDTH; x++) {
+            if (Math.random() < 0.03) {
+                stars.push({ x, y });
+            }
+        }
+    }
+    
     gameState = {
         player: { x: 20, y: SPACE_HEIGHT - 2 },
         bullets: [],
         enemies: [],
+        stars,
         score: 0,
         lives: 3,
         enemyTimer: 0,
@@ -649,6 +680,7 @@ function drawSpaceGame() {
             const isPlayer = gameState.player.x === x && gameState.player.y === y;
             const isBullet = gameState.bullets.some(b => b.x === x && b.y === y);
             const isEnemy = gameState.enemies.some(e => e.x === x && e.y === y);
+            const isStar = gameState.stars.some(s => s.x === x && s.y === y);
             
             if (gameState.gameOver && isPlayer) {
                 line += 'X';
@@ -658,7 +690,7 @@ function drawSpaceGame() {
                 line += '|';
             } else if (isEnemy) {
                 line += 'M';
-            } else if (Math.random() < 0.02) {
+            } else if (isStar) {
                 line += '.';
             } else {
                 line += ' ';
