@@ -124,19 +124,25 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
     })
   );
 
-  const chords = chordIds.map(id => CHORDS.find(c => c.id === id)).filter(Boolean) as Chord[];
+  const chordsWithIndex = chordIds
+    .map((id, originalIndex) => ({
+      chord: CHORDS.find(c => c.id === id),
+      originalIndex,
+      id,
+    }))
+    .filter(item => item.chord) as { chord: Chord; originalIndex: number; id: string }[];
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = chords.findIndex(
-        (_, i) => `${chordIds[i]}-${i}` === active.id
+      const oldItem = chordsWithIndex.find(
+        (_, i) => `${chordsWithIndex[i].id}-${chordsWithIndex[i].originalIndex}` === active.id
       );
-      const newIndex = chords.findIndex(
-        (_, i) => `${chordIds[i]}-${i}` === over.id
+      const newItem = chordsWithIndex.find(
+        (_, i) => `${chordsWithIndex[i].id}-${chordsWithIndex[i].originalIndex}` === over.id
       );
-      if (oldIndex !== -1 && newIndex !== -1) {
-        onReorder(oldIndex, newIndex);
+      if (oldItem && newItem) {
+        onReorder(oldItem.originalIndex, newItem.originalIndex);
       }
     }
   };
@@ -146,7 +152,7 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-amber-900">和弦进行</h3>
         <div className="flex items-center gap-2">
-          {chords.length > 0 && (
+          {chordsWithIndex.length > 0 && (
             <div className="flex items-center gap-1 bg-white rounded-lg shadow-sm px-2 py-1 mr-2">
               <button
                 onClick={() => onTranspose?.(-1)}
@@ -191,7 +197,7 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
           )}
           <button
             onClick={onClear}
-            disabled={chords.length === 0}
+            disabled={chordsWithIndex.length === 0}
             className="flex items-center gap-1 px-3 py-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 className="w-4 h-4" />
@@ -199,7 +205,7 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
           </button>
           <button
             onClick={onSave}
-            disabled={chords.length === 0}
+            disabled={chordsWithIndex.length === 0}
             className="flex items-center gap-1 px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
@@ -208,7 +214,7 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
         </div>
       </div>
 
-      {transpose !== 0 && chords.length > 0 && (
+      {transpose !== 0 && chordsWithIndex.length > 0 && (
         <div className="mb-4 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-center">
           <span className="text-blue-700 text-sm">
             预览模式：已移调 {transpose > 0 ? '+' : ''}{transpose} 半音
@@ -217,7 +223,7 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
         </div>
       )}
 
-      {chords.length === 0 ? (
+      {chordsWithIndex.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <Play className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p>从左侧和弦库点击 + 添加和弦</p>
@@ -230,17 +236,17 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={chordIds.map((id, i) => `${id}-${i}`)}
+            items={chordsWithIndex.map(item => `${item.id}-${item.originalIndex}`)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
-              {chords.map((chord, index) => (
+              {chordsWithIndex.map((item) => (
                 <SortableChordCard
-                  key={`${chordIds[index]}-${index}`}
-                  chord={chord}
-                  index={index}
+                  key={`${item.id}-${item.originalIndex}`}
+                  chord={item.chord}
+                  index={item.originalIndex}
                   onRemove={onRemove}
-                  isPlaying={index === playingIndex}
+                  isPlaying={item.originalIndex === playingIndex}
                 />
               ))}
             </div>
@@ -248,11 +254,11 @@ export const ProgressionEditor: React.FC<ProgressionEditorProps> = ({
         </DndContext>
       )}
 
-      {chords.length > 0 && (
+      {chordsWithIndex.length > 0 && (
         <div className="mt-4 pt-4 border-t border-amber-200">
           <p className="text-sm text-gray-600">
             当前进行: <span className="font-semibold text-amber-900">
-              {chords.map(c => c.name).join(' - ')}
+              {chordsWithIndex.map(item => item.chord.name).join(' - ')}
             </span>
           </p>
         </div>
