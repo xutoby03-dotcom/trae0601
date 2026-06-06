@@ -47,6 +47,7 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   setSelectedFolderId: (id: string | null) => void;
   setSelectedTagId: (id: string | null) => void;
+  setAllArticles: (articles: Article[]) => void;
   analyzeContent: (html: string) => void;
   createFolder: (name: string, parentId?: string | null) => Promise<void>;
   removeFolder: (id: string) => Promise<void>;
@@ -87,17 +88,21 @@ export const useStore = create<AppState>((set, get) => ({
 
   loadArticles: async () => {
     const state = get();
-    let allArticles: Article[];
-    
-    if (state.searchQuery) {
-      allArticles = await searchArticles(state.searchQuery);
-    } else {
-      allArticles = await getAllArticles();
-    }
+    const allArticles = await getAllArticles();
     
     set({ allArticles });
     
     let filtered = [...allArticles];
+    
+    if (state.searchQuery) {
+      const lowerQuery = state.searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        article =>
+          article.title.toLowerCase().includes(lowerQuery) ||
+          article.content.toLowerCase().includes(lowerQuery) ||
+          article.tags.some(tag => tag.toLowerCase().includes(lowerQuery))
+      );
+    }
     
     if (state.selectedFolderId) {
       filtered = filtered.filter(a => a.folderId === state.selectedFolderId);
@@ -111,6 +116,10 @@ export const useStore = create<AppState>((set, get) => ({
     }
     
     set({ articles: filtered });
+  },
+
+  setAllArticles: (articles: Article[]) => {
+    set({ allArticles: articles });
   },
 
   loadFolders: async () => {
