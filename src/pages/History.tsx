@@ -1,16 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Trash2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Trash2, Calendar, ChevronDown, ChevronUp, ArrowUpDown, Trash } from 'lucide-react';
 import { useReadingStore } from '@/store/useReadingStore';
 import { ReadingRecord } from '@/types';
 import { TarotCard } from '@/components/TarotCard';
-import { deleteRecord } from '@/utils/storage';
+import { deleteRecord, clearRecords } from '@/utils/storage';
+
+const FILTER_TABS = [
+  { id: 'all', name: '全部', spreadId: null },
+  { id: 'three-card', name: '三牌阵', spreadId: 'three-card' },
+  { id: 'celtic-cross', name: '凯尔特十字', spreadId: 'celtic-cross' },
+  { id: 'time-flow', name: '时间之流', spreadId: 'time-flow' },
+  { id: 'soul-mirror', name: '心灵镜像', spreadId: 'soul-mirror' }
+];
 
 export default function History() {
   const navigate = useNavigate();
   const { history, loadHistory } = useReadingStore();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedSpreadId, setSelectedSpreadId] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     loadHistory();
@@ -39,6 +49,33 @@ export default function History() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const handleClearAll = () => {
+    if (confirm('确定要清空所有历史记录吗？此操作不可恢复。')) {
+      clearRecords();
+      loadHistory();
+    }
+  };
+
+  const displayedRecords = useMemo(() => {
+    let filtered = [...history];
+    
+    if (selectedSpreadId !== 'all') {
+      filtered = filtered.filter(r => r.spreadId === selectedSpreadId);
+    }
+    
+    filtered.sort((a, b) => {
+      return sortOrder === 'desc' 
+        ? b.timestamp - a.timestamp 
+        : a.timestamp - b.timestamp;
+    });
+    
+    return filtered;
+  }, [history, selectedSpreadId, sortOrder]);
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
+
   return (
     <div className="min-h-screen relative z-10">
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -56,14 +93,68 @@ export default function History() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
-          <h1 className="font-display text-3xl md:text-4xl font-bold mb-4 text-gradient-gold">
-            历史记录
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-gradient-gold flex-1 text-center">
+              历史记录
+            </h1>
+            {history.length > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleClearAll}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-500 bg-opacity-20 text-red-400 hover:bg-opacity-30 transition-all border border-red-500 border-opacity-30"
+              >
+                <Trash className="w-4 h-4" />
+                <span className="text-sm">清空全部</span>
+              </motion.button>
+            )}
+          </div>
           <p style={{ color: 'var(--text-secondary)' }}>
-            共 {history.length} 条记录
+            共 {displayedRecords.length} 条记录
+            {selectedSpreadId !== 'all' && ` · 已筛选`}
           </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-wrap items-center justify-center gap-3 mb-8"
+        >
+          <div className="flex flex-wrap gap-2">
+            {FILTER_TABS.map((tab) => (
+              <motion.button
+                key={tab.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedSpreadId(tab.id)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedSpreadId === tab.id
+                    ? 'bg-gold text-white shadow-lg'
+                    : 'bg-glass border border-gold border-opacity-30 hover:border-opacity-60'
+                }`}
+                style={{
+                  color: selectedSpreadId === tab.id ? 'white' : 'var(--text-primary)'
+                }}
+              >
+                {tab.name}
+              </motion.button>
+            ))}
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleSortOrder}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-glass border border-gold border-opacity-30 hover:border-opacity-60 transition-all"
+          >
+            <ArrowUpDown className="w-4 h-4 text-gold" />
+            <span className="text-sm">
+              {sortOrder === 'desc' ? '最新在前' : '最早在前'}
+            </span>
+          </motion.button>
         </motion.div>
 
         {history.length === 0 ? (
@@ -78,9 +169,21 @@ export default function History() {
               完成一次占卜后，记录将保存在这里
             </p>
           </motion.div>
+        ) : displayedRecords.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-20 bg-glass card-shadow rounded-2xl border border-gold"
+          >
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-lg mb-2">没有匹配的记录</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              试试切换其他筛选条件
+            </p>
+          </motion.div>
         ) : (
           <div className="space-y-4">
-            {history.map((record, index) => (
+            {displayedRecords.map((record, index) => (
               <motion.div
                 key={record.id}
                 initial={{ opacity: 0, y: 20 }}
