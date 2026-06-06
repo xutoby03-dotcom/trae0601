@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="visible" class="toast-container">
       <div class="toast" :class="type">
-        <span class="toast-icon">{{ icon }}</span>
+        <span class="toast-icon">{{ icons[type] || '❌' }}</span>
         <span class="toast-message">{{ message }}</span>
       </div>
     </div>
@@ -28,12 +28,12 @@ const emit = defineEmits(['close'])
 
 const visible = ref(false)
 
-const icon = {
+const icons = {
   error: '❌',
   success: '✅',
   warning: '⚠️',
   info: 'ℹ️'
-}[props.type] || '❌'
+}
 
 watch(() => props.message, (val) => {
   if (val) {

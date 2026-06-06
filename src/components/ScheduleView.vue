@@ -48,6 +48,7 @@
             <div
               class="resize-handle"
               @mousedown.stop="startResize($event, scheduled)"
+              @click.stop
             >
               <span class="resize-icon">⋮⋮</span>
             </div>
@@ -211,9 +212,9 @@ const startResize = (event, scheduled) => {
 const handleResizeMove = (event) => {
   if (!resizingData.value) return
   
-  const { dayColumnRect, scheduled, originalEndPeriod } = resizingData.value
+  const { dayColumnRect, scheduled } = resizingData.value
   const relativeY = event.clientY - dayColumnRect.top
-  const cellHeight = dayColumnRect.height / 12
+  const cellHeight = 80
   const endPeriod = Math.floor(relativeY / cellHeight) + 1
   
   const newEndPeriod = Math.min(
