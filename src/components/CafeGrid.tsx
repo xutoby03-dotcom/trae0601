@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GRID_SIZE } from '@/data/gameData';
 
 const CafeGrid = () => {
-  const { grid, customers, selectedFurniture, placeFurniture, removeFurniture, phase, orderQueue, preparingOrders, startDay, togglePause, isPaused, gameSpeed, setGameSpeed } = useGameStore();
+  const { grid, customers, selectedFurniture, placeFurniture, placeFurnitureById, removeFurniture, phase, orderQueue, preparingOrders, startDay, togglePause, isPaused, gameSpeed, setGameSpeed } = useGameStore();
 
   const handleCellClick = (x: number, y: number) => {
     if (phase !== 'planning') return;
@@ -11,6 +11,23 @@ const CafeGrid = () => {
       removeFurniture(x, y);
     } else if (selectedFurniture) {
       placeFurniture(x, y);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (phase === 'planning') {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, x: number, y: number) => {
+    if (phase !== 'planning') return;
+    e.preventDefault();
+    
+    const furnitureId = e.dataTransfer.getData('furnitureId');
+    if (furnitureId && !grid[y][x]) {
+      placeFurnitureById(furnitureId, x, y);
     }
   };
 
@@ -115,6 +132,8 @@ const CafeGrid = () => {
                   key={`${x}-${y}`}
                   className={`grid-cell ${furniture ? 'occupied' : ''} ${selectedFurniture && !furniture && phase === 'planning' ? 'can-place' : ''}`}
                   onClick={() => handleCellClick(x, y)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, x, y)}
                 >
                   {furniture && <span>{furniture.emoji}</span>}
                   {customersInCell.map(c => (
@@ -130,7 +149,7 @@ const CafeGrid = () => {
       </div>
 
       {phase === 'planning' && (
-        <p className="hint">💡 从右侧选择家具，点击格子放置；点击已放置的家具可移除</p>
+        <p className="hint">💡 拖拽或点击右侧家具到格子上放置；点击已放置的家具可移除</p>
       )}
     </div>
   );

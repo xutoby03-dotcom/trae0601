@@ -82,6 +82,7 @@ export interface GameState {
   
   gameSpeed: number;
   isPaused: boolean;
+  dayTick: number;
   
   selectedFurniture: Furniture | null;
 }

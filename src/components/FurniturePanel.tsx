@@ -17,6 +17,13 @@ const FurniturePanel = () => {
             key={furniture.id}
             className={`furniture-item ${selectedFurniture?.id === furniture.id ? 'selected' : ''}`}
             onClick={() => phase === 'planning' && selectFurniture(furniture)}
+            draggable={phase === 'planning'}
+            onDragStart={(e) => {
+              if (phase === 'planning') {
+                e.dataTransfer.setData('furnitureId', furniture.id);
+                e.dataTransfer.effectAllowed = 'move';
+              }
+            }}
           >
             <span className="emoji">{furniture.emoji}</span>
             <div className="info">

@@ -56,6 +56,7 @@ const createCustomer = (): Customer => {
 interface GameStore extends GameState {
   selectFurniture: (furniture: Furniture | null) => void;
   placeFurniture: (x: number, y: number) => void;
+  placeFurnitureById: (furnitureId: string, x: number, y: number) => void;
   removeFurniture: (x: number, y: number) => void;
   buyFurniture: (furnitureId: string) => void;
   
@@ -101,6 +102,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   gameSpeed: 1,
   isPaused: false,
+  dayTick: 0,
   
   selectedFurniture: null,
 
@@ -119,10 +121,55 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const newInventory = furnitureInventory.filter(f => f.id !== selectedFurniture.id);
     
+    const tempState = { ...state, grid: newGrid, furnitureInventory: newInventory };
+    const calculateSatisfaction = () => {
+      let totalBonus = 0;
+      newGrid.forEach(row => {
+        row.forEach(cell => {
+          if (cell) {
+            totalBonus += cell.satisfactionBonus;
+          }
+        });
+      });
+      return Math.min(100, 50 + totalBonus);
+    };
+    
     set({
       grid: newGrid,
       furnitureInventory: newInventory,
       selectedFurniture: null,
+      satisfaction: calculateSatisfaction(),
+    });
+  },
+
+  placeFurnitureById: (furnitureId, x, y) => {
+    const state = get();
+    const furniture = state.furnitureInventory.find(f => f.id === furnitureId);
+    if (!furniture || state.grid[y][x]) return;
+    
+    const newGrid = state.grid.map(row => [...row]);
+    const placedFurniture = { ...furniture, position: { x, y } };
+    newGrid[y][x] = placedFurniture;
+    
+    const newInventory = state.furnitureInventory.filter(f => f.id !== furnitureId);
+    
+    const calculateSatisfaction = () => {
+      let totalBonus = 0;
+      newGrid.forEach(row => {
+        row.forEach(cell => {
+          if (cell) {
+            totalBonus += cell.satisfactionBonus;
+          }
+        });
+      });
+      return Math.min(100, 50 + totalBonus);
+    };
+    
+    set({
+      grid: newGrid,
+      furnitureInventory: newInventory,
+      selectedFurniture: null,
+      satisfaction: calculateSatisfaction(),
     });
   },
 
@@ -137,9 +184,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     const removedFurniture = { ...furniture, position: null };
     
+    const calculateSatisfaction = () => {
+      let totalBonus = 0;
+      newGrid.forEach(row => {
+        row.forEach(cell => {
+          if (cell) {
+            totalBonus += cell.satisfactionBonus;
+          }
+        });
+      });
+      return Math.min(100, 50 + totalBonus);
+    };
+    
     set({
       grid: newGrid,
       furnitureInventory: [...furnitureInventory, removedFurniture],
+      satisfaction: calculateSatisfaction(),
     });
   },
 
@@ -220,6 +280,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       orderQueue: [],
       preparingOrders: [],
       isPaused: false,
+      dayTick: 0,
     });
   },
 
@@ -240,7 +301,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.phase !== 'running' || state.isPaused) return;
     
-    let { customers, orderQueue, preparingOrders, dailyRevenue, dailyCost, customersServed, customersLost, money, satisfaction } = state;
+    let { customers, orderQueue, preparingOrders, dailyRevenue, dailyCost, customersServed, customersLost, money, satisfaction, dayTick } = state;
+    
+    dayTick += 1 * state.gameSpeed;
+    
+    if (dayTick >= 600) {
+      get().endDay();
+      return;
+    }
     
     const chef = state.staff.find(s => s.type === 'chef' && s.hired);
     const cashier = state.staff.find(s => s.type === 'cashier' && s.hired);
@@ -249,8 +317,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const chefSpeed = chef ? 1 + chef.skill * 0.3 : 1;
     const cashierSpeed = cashier ? 1 + cashier.skill * 0.3 : 1;
     const waiterBonus = waiter ? waiter.skill * 5 : 0;
+    const baseSatisfaction = get().calculateSatisfaction();
     
-    if (Math.random() < 0.03 * state.gameSpeed) {
+    if (Math.random() < 0.03 * state.gameSpeed * (baseSatisfaction / 70)) {
       const newCustomer = createCustomer();
       customers = [...customers, newCustomer];
     }
@@ -281,7 +350,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           c.totalSpent = orderTotal;
           dailyRevenue += orderTotal;
           dailyCost += orderCost;
-          c.satisfaction += waiterBonus;
+          c.satisfaction += waiterBonus + (baseSatisfaction - 50) * 0.5;
           
           orderQueue = [...orderQueue, { customerId: c.id, items: c.order }];
           c.state = 'waiting_food';
@@ -303,7 +372,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           if (Math.random() < 0.1 * state.gameSpeed) {
             c.state = 'leaving';
             customersServed++;
-            satisfaction = Math.min(100, satisfaction + 2 + waiterBonus);
+            satisfaction = Math.min(100, satisfaction + 2 + waiterBonus + (baseSatisfaction - 50) * 0.2);
           }
           break;
           
@@ -342,11 +411,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     customers = updatedCustomers.filter(c => c.state !== 'leaving' || Math.random() > 0.1);
     
-    if (Math.random() < 0.005 * state.gameSpeed && state.customers.length > 0) {
-      get().endDay();
-      return;
-    }
-    
     set({
       customers,
       orderQueue,
@@ -357,6 +421,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       customersLost,
       money,
       satisfaction,
+      dayTick,
     });
   },
 
