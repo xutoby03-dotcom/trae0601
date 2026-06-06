@@ -72,10 +72,12 @@ export const GameScreen = () => {
           totalDamageDealt: state.totalDamageDealt,
           goldRemaining: state.gold,
           livesRemaining: state.lives,
+          levelIndex: state.levelIndex,
+          mapName: state.map?.name,
         },
       });
     }
-  }, [state.status, state.monstersKilled, state.totalDamageDealt, state.gold, state.lives, navigate]);
+  }, [state.status, state.monstersKilled, state.totalDamageDealt, state.gold, state.lives, state.levelIndex, state.map, navigate]);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!rendererRef.current || !state.map) return;
