@@ -7,7 +7,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { GameOverModal } from './components/GameOverModal';
 import { getThemeConfig } from './theme';
-import { addLeaderboardEntry } from './storage';
+import { addLeaderboardEntry, getLeaderboard } from './storage';
 import { ThemeMode, Skin, Difficulty, DIFFICULTY_CONFIG, Position } from './types';
 
 function App() {
@@ -16,10 +16,13 @@ function App() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [highScore, setHighScore] = useState<number | null>(null);
+  const [isNewRecord, setIsNewRecord] = useState(false);
 
   const {
     gameState,
     clearingCells,
+    scoreGain,
     tryPlaceBlock,
     handleCellDragOver,
     canPlaceAtHover,
@@ -30,6 +33,33 @@ function App() {
   } = useGame(difficulty);
 
   const theme = getThemeConfig(themeMode, skin);
+
+  const fetchHighScore = useCallback(async (d: Difficulty) => {
+    try {
+      const entries = await getLeaderboard(d);
+      if (entries.length > 0) {
+        setHighScore(entries[0].score);
+      } else {
+        setHighScore(null);
+      }
+    } catch {
+      setHighScore(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHighScore(difficulty);
+  }, [difficulty, fetchHighScore]);
+
+  useEffect(() => {
+    if (gameState.gameOver) {
+      if (highScore === null || gameState.score > highScore) {
+        setIsNewRecord(true);
+      } else {
+        setIsNewRecord(false);
+      }
+    }
+  }, [gameState.gameOver, gameState.score, highScore]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -44,18 +74,20 @@ function App() {
     root.style.setProperty('--accent-color', theme.accentColor);
   }, [theme]);
 
-  const handleSaveScore = (name: string) => {
-    addLeaderboardEntry({
+  const handleSaveScore = async (name: string) => {
+    await addLeaderboardEntry({
       name,
       score: gameState.score,
       difficulty: gameState.difficulty,
       date: new Date().toLocaleDateString('zh-CN'),
     });
+    fetchHighScore(gameState.difficulty);
   };
 
   const handleDifficultyChange = (d: Difficulty) => {
     setDifficulty(d);
     resetGame(d);
+    setIsNewRecord(false);
     setShowSettings(false);
   };
 
@@ -66,6 +98,11 @@ function App() {
   const handleGridDrop = useCallback((position: Position, blockIndex: number) => {
     tryPlaceBlock(position, blockIndex);
   }, [tryPlaceBlock]);
+
+  const handlePlayAgain = () => {
+    setIsNewRecord(false);
+    resetGame();
+  };
 
   return (
     <div
@@ -139,7 +176,12 @@ function App() {
           >
             {DIFFICULTY_CONFIG[difficulty].label}
           </div>
-          <ScorePanel score={gameState.score} combo={gameState.combo} />
+          <ScorePanel
+            score={gameState.score}
+            combo={gameState.combo}
+            highScore={highScore}
+            scoreGain={scoreGain}
+          />
         </div>
 
         <div
@@ -266,7 +308,8 @@ function App() {
       <GameOverModal
         isOpen={gameState.gameOver}
         score={gameState.score}
-        onPlayAgain={() => resetGame()}
+        isNewRecord={isNewRecord}
+        onPlayAgain={handlePlayAgain}
         onSaveScore={handleSaveScore}
       />
     </div>

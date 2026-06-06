@@ -4,6 +4,7 @@ import { Modal } from './Modal';
 interface GameOverModalProps {
   isOpen: boolean;
   score: number;
+  isNewRecord: boolean;
   onPlayAgain: () => void;
   onSaveScore: (name: string) => void;
 }
@@ -11,6 +12,7 @@ interface GameOverModalProps {
 export const GameOverModal: React.FC<GameOverModalProps> = ({
   isOpen,
   score,
+  isNewRecord,
   onPlayAgain,
   onSaveScore,
 }) => {
@@ -33,11 +35,37 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={() => {}} title="游戏结束">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>
+        {isNewRecord && (
+          <div
+            style={{
+              padding: '10px 20px',
+              backgroundColor: 'rgba(255, 215, 0, 0.15)',
+              border: '2px solid #FFD700',
+              borderRadius: 12,
+              color: '#FFD700',
+              fontWeight: 'bold',
+              fontSize: 16,
+              animation: 'pulse 0.6s ease-in-out infinite',
+              boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
+            }}
+          >
+            🏆 恭喜！新纪录！
+          </div>
+        )}
+
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 8 }}>
             最终得分
           </div>
-          <div style={{ fontSize: 48, fontWeight: 'bold', color: 'var(--accent-color)' }}>
+          <div
+            style={{
+              fontSize: 48,
+              fontWeight: 'bold',
+              color: isNewRecord ? '#FFD700' : 'var(--accent-color)',
+              textShadow: isNewRecord ? '0 0 15px rgba(255, 215, 0, 0.5)' : 'none',
+              transition: 'all 0.3s ease',
+            }}
+          >
             {score.toLocaleString()}
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Difficulty, Position, GameState } from '../types';
 import {
   initializeGame,
@@ -16,12 +16,25 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
   const [dragOverPosition, setDragOverPosition] = useState<Position | null>(null);
   const [dragBlockIndex, setDragBlockIndex] = useState<number | null>(null);
   const [clearingCells, setClearingCells] = useState<Position[]>([]);
+  const [scoreGain, setScoreGain] = useState<number | null>(null);
+  const scoreGainIdRef = useRef(0);
+
+  const triggerScoreGain = useCallback((gain: number) => {
+    const id = ++scoreGainIdRef.current;
+    setScoreGain(gain);
+    setTimeout(() => {
+      if (scoreGainIdRef.current === id) {
+        setScoreGain(null);
+      }
+    }, 100);
+  }, []);
 
   const resetGame = useCallback((difficulty?: Difficulty) => {
     setGameState(initializeGame(difficulty || gameState.difficulty));
     setDragOverPosition(null);
     setDragBlockIndex(null);
     setClearingCells([]);
+    setScoreGain(null);
   }, [gameState.difficulty]);
 
   const startDrag = useCallback((blockIndex: number) => {
@@ -52,13 +65,15 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
         const toClear = findLinesToClear(newGrid);
 
         if (toClear.length > 0) {
+          const gain = calculateScore(toClear.length, prev.combo);
+          triggerScoreGain(gain);
+
           setClearingCells(toClear);
           setTimeout(() => {
             setClearingCells([]);
             setGameState((p) => {
               const clearedGrid = clearCells(p.grid, toClear);
               const newCombo = p.combo + 1;
-              const scoreGain = calculateScore(toClear.length, p.combo);
 
               const remainingBlocks = p.currentBlocks.filter((_, i) => i !== blockIndex);
               let nextBlocks = remainingBlocks;
@@ -74,7 +89,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
                 grid: clearedGrid,
                 currentBlocks: nextBlocks,
                 selectedBlockIndex: null,
-                score: p.score + scoreGain,
+                score: p.score + gain,
                 combo: newCombo,
                 gameOver: isOver,
               };
@@ -109,7 +124,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
       setDragOverPosition(null);
       setDragBlockIndex(null);
     },
-    []
+    [triggerScoreGain]
   );
 
   const canPlaceAtHover = useCallback((): boolean => {
@@ -138,6 +153,7 @@ export function useGame(initialDifficulty: Difficulty = 'easy') {
   return {
     gameState,
     clearingCells,
+    scoreGain,
     tryPlaceBlock,
     handleCellDragOver,
     canPlaceAtHover,
