@@ -182,7 +182,26 @@ export default function DreamDetail() {
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {dream.tags.map((tag, i) => (
-                  <span key={i} className={`tag tag-${tag.type}`}>
+                  <span
+                    key={i}
+                    className={`tag tag-${tag.type}`}
+                    style={{ cursor: 'pointer', transition: 'opacity 0.2s, transform 0.2s' }}
+                    onClick={() =>
+                      navigate(
+                        `/search?tagType=${encodeURIComponent(tag.type)}&tagValue=${encodeURIComponent(tag.value)}`
+                      )
+                    }
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.opacity = '0.8'
+                      el.style.transform = 'scale(1.05)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLElement
+                      el.style.opacity = '1'
+                      el.style.transform = 'scale(1)'
+                    }}
+                  >
                     {TAG_TYPE_LABELS[tag.type]}: {tag.value}
                   </span>
                 ))}

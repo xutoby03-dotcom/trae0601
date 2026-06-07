@@ -1,18 +1,24 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Dream, Atmosphere, ATMOSPHERE_LABELS, TAG_TYPE_LABELS, DreamTag } from '../types'
 import { searchDreams, getAllDreams } from '../db'
 import DreamCard from '../components/DreamCard'
 
 export default function Search() {
+  const [searchParams] = useSearchParams()
   const [allDreams, setAllDreams] = useState<Dream[]>([])
-  const [keyword, setKeyword] = useState('')
-  const [atmosphere, setAtmosphere] = useState<string>('all')
-  const [tagType, setTagType] = useState<string>('all')
+  const [keyword, setKeyword] = useState(() => searchParams.get('keyword') || '')
+  const [atmosphere, setAtmosphere] = useState<string>(() => searchParams.get('atmosphere') || 'all')
+  const [tagType, setTagType] = useState<string>(() => searchParams.get('tagType') || 'all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [results, setResults] = useState<Dream[]>([])
   const [allTags, setAllTags] = useState<{ type: DreamTag['type']; value: string; compositeKey: string }[]>([])
-  const [selectedTag, setSelectedTag] = useState<string>('all')
+  const [selectedTag, setSelectedTag] = useState<string>(() => {
+    const t = searchParams.get('tagType')
+    const v = searchParams.get('tagValue')
+    return t && v ? `${t}:${v}` : 'all'
+  })
 
   useEffect(() => {
     getAllDreams().then((dreams) => {
