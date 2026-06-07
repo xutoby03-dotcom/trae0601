@@ -47,8 +47,16 @@ export default function Home() {
       result = [...result].sort((a, b) => {
         const aReady = !a.isLocked && !a.isOpened ? 0 : 1
         const bReady = !b.isLocked && !b.isOpened ? 0 : 1
-        return aReady - bReady
+        if (aReady !== bReady) return aReady - bReady
+        if (aReady === 0 && bReady === 0) {
+          return new Date(a.openDate).getTime() - new Date(b.openDate).getTime()
+        }
+        return 0
       })
+    }
+
+    if (filter === 'ready-to-open') {
+      result = [...result].sort((a, b) => new Date(a.openDate).getTime() - new Date(b.openDate).getTime())
     }
 
     return result
