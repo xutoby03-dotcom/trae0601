@@ -75,12 +75,21 @@ export default function Search() {
     const typeOrder: DreamTag['type'][] = ['person', 'place', 'object']
     typeOrder.forEach((type) => {
       const tags = filteredTags.filter((t) => t.type === type)
+      if (type === tagType && tagValue && !tags.some((t) => t.value === tagValue)) {
+        tags.unshift({ type: type as DreamTag['type'], value: tagValue, compositeKey: `${tagType}:${tagValue}` })
+      }
       if (tags.length > 0) {
         groups.push({ groupLabel: TAG_TYPE_LABELS[type], tags })
       }
     })
+    if (tagType === 'all' && tagValue && !filteredTags.some((t) => t.compositeKey === selectedTag)) {
+      groups.unshift({
+        groupLabel: '当前筛选',
+        tags: [{ type: 'person' as DreamTag['type'], value: tagValue, compositeKey: selectedTag }],
+      })
+    }
     return groups
-  }, [filteredTags])
+  }, [filteredTags, tagType, tagValue, selectedTag])
 
   return (
     <div className="fade-in">
