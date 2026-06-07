@@ -21,4 +21,4 @@ export interface Template {
   defaultDaysAhead: number
 }
 
-export type CapsuleFilter = 'all' | 'on-the-way' | 'opened'
+export type CapsuleFilter = 'all' | 'on-the-way' | 'ready-to-open' | 'opened'

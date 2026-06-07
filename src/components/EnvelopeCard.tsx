@@ -14,6 +14,7 @@ export default function EnvelopeCard({ capsule, index }: Props) {
   const navigate = useNavigate()
   const canOpen = !capsule.isLocked
   const isOpened = capsule.isOpened
+  const isReadyToOpen = canOpen && !isOpened
 
   return (
     <motion.div
@@ -25,7 +26,10 @@ export default function EnvelopeCard({ capsule, index }: Props) {
       onClick={() => navigate(`/capsule/${capsule.id}`)}
       className="group relative cursor-pointer overflow-hidden rounded-xl transition-shadow duration-300 hover:shadow-2xl"
       style={{
-        background: `linear-gradient(145deg, ${THEME_COLORS.cream}F0, ${THEME_COLORS.paperTexture}F0)`,
+        background: isReadyToOpen
+          ? `linear-gradient(145deg, ${capsule.moodColor}0A, ${THEME_COLORS.cream}F0, ${THEME_COLORS.paperTexture}F0)`
+          : `linear-gradient(145deg, ${THEME_COLORS.cream}F0, ${THEME_COLORS.paperTexture}F0)`,
+        boxShadow: isReadyToOpen ? `0 0 0 1px ${capsule.moodColor}30, 0 4px 20px ${capsule.moodColor}15` : undefined,
       }}
     >
       <div
@@ -33,25 +37,36 @@ export default function EnvelopeCard({ capsule, index }: Props) {
         style={{ background: capsule.moodColor }}
       />
 
+      {isReadyToOpen && (
+        <motion.div
+          className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+          style={{ background: capsule.moodColor, color: '#fff' }}
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          等你拆
+        </motion.div>
+      )}
+
       <div className="p-4 pl-5">
         <div className="mb-2 flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3
               className="truncate text-sm font-bold tracking-wide"
-              style={{ color: THEME_COLORS.darkBrown, fontFamily: '"Playfair Display", "Noto Serif SC", serif' }}
+              style={{ color: isReadyToOpen ? capsule.moodColor : THEME_COLORS.darkBrown, fontFamily: '"Playfair Display", "Noto Serif SC", serif' }}
             >
               {canOpen ? capsule.title : capsule.title.replace(/./g, '•').slice(0, 8) + (capsule.title.length > 8 ? '…' : '')}
             </h3>
           </div>
           <div className="ml-2 flex-shrink-0">
-            {canOpen && !isOpened && (
+            {isReadyToOpen && (
               <motion.div
-                animate={{ scale: [1, 1.15, 1] }}
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                className="flex h-7 w-7 items-center justify-center rounded-full"
+                className="flex h-8 w-8 items-center justify-center rounded-full"
                 style={{ background: `${capsule.moodColor}25` }}
               >
-                <MailOpen size={14} style={{ color: capsule.moodColor }} />
+                <MailOpen size={16} style={{ color: capsule.moodColor }} />
               </motion.div>
             )}
             {!canOpen && (
@@ -73,9 +88,15 @@ export default function EnvelopeCard({ capsule, index }: Props) {
           </div>
         )}
 
-        {canOpen && !isOpened && (
-          <div className="mb-2 text-xs font-medium" style={{ color: capsule.moodColor }}>
-            ✨ 信已到期，点击拆信
+        {isReadyToOpen && (
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold" style={{ color: capsule.moodColor }}>
+            <motion.span
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              ✨
+            </motion.span>
+            信已到期，点击拆信
           </div>
         )}
 
@@ -88,7 +109,7 @@ export default function EnvelopeCard({ capsule, index }: Props) {
         <div className="flex items-center justify-between text-[10px] text-[#8B7355]/70">
           <span>{formatDate(capsule.createdAt)}</span>
           <span style={{ color: canOpen ? capsule.moodColor : undefined }}>
-            {canOpen ? (isOpened ? '已拆信' : '可拆信') : '密封中'}
+            {isReadyToOpen ? '等你拆' : canOpen ? '已拆信' : '密封中'}
           </span>
         </div>
 
@@ -119,11 +140,11 @@ export default function EnvelopeCard({ capsule, index }: Props) {
         </div>
       )}
 
-      {canOpen && !isOpened && (
+      {isReadyToOpen && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(circle at 50% 50%, ${capsule.moodColor}08, transparent 70%)` }}
-          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          style={{ background: `radial-gradient(circle at 50% 50%, ${capsule.moodColor}0A, transparent 70%)` }}
+          animate={{ opacity: [0.3, 0.8, 0.3] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}

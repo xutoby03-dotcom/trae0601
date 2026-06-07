@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { Lock, MailOpen } from 'lucide-react'
+import { Lock, Mail, MailOpen } from 'lucide-react'
 import { useCapsuleStore } from '@/store/capsuleStore'
 import { formatDate, THEME_COLORS } from '@/lib/utils'
 
@@ -14,7 +14,12 @@ export default function Timeline() {
   }, [loadCapsules])
 
   const sorted = useMemo(() => {
-    return [...capsules].sort((a, b) => new Date(a.openDate).getTime() - new Date(b.openDate).getTime())
+    return [...capsules].sort((a, b) => {
+      const aReady = !a.isLocked && !a.isOpened ? 0 : 1
+      const bReady = !b.isLocked && !b.isOpened ? 0 : 1
+      if (aReady !== bReady) return aReady - bReady
+      return new Date(a.openDate).getTime() - new Date(b.openDate).getTime()
+    })
   }, [capsules])
 
   return (
@@ -51,6 +56,7 @@ export default function Timeline() {
           {sorted.map((capsule, i) => {
             const isOpened = capsule.isOpened
             const isLocked = capsule.isLocked
+            const isReadyToOpen = !isLocked && !isOpened
 
             return (
               <motion.div
@@ -63,14 +69,22 @@ export default function Timeline() {
                 <div className="relative z-10 mt-1.5 flex-shrink-0">
                   <div
                     className={`flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 ${
-                      isOpened ? 'border-solid' : 'border-dashed'
+                      isReadyToOpen ? 'border-solid' : isOpened ? 'border-solid' : 'border-dashed'
                     }`}
                     style={{
-                      borderColor: isOpened ? capsule.moodColor : '#4A322860',
-                      background: isOpened ? `${capsule.moodColor}20` : '#2C181060',
+                      borderColor: isReadyToOpen ? capsule.moodColor : isOpened ? capsule.moodColor : '#4A322860',
+                      background: isReadyToOpen ? `${capsule.moodColor}25` : isOpened ? `${capsule.moodColor}20` : '#2C181060',
+                      boxShadow: isReadyToOpen ? `0 0 12px ${capsule.moodColor}40` : undefined,
                     }}
                   >
-                    {isOpened ? (
+                    {isReadyToOpen ? (
+                      <motion.div
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <Mail size={14} style={{ color: capsule.moodColor }} />
+                      </motion.div>
+                    ) : isOpened ? (
                       <MailOpen size={14} style={{ color: capsule.moodColor }} />
                     ) : (
                       <Lock size={12} className="text-[#8B7355]/60" />
@@ -83,31 +97,40 @@ export default function Timeline() {
                   onClick={() => navigate(`/capsule/${capsule.id}`)}
                   className="flex-1 cursor-pointer rounded-xl p-4 transition-shadow hover:shadow-lg"
                   style={{
-                    background: `linear-gradient(145deg, ${THEME_COLORS.cream}0D, ${THEME_COLORS.paperTexture}0D)`,
-                    border: `1px solid ${isOpened ? capsule.moodColor + '30' : '#4A322830'}`,
+                    background: isReadyToOpen
+                      ? `linear-gradient(145deg, ${capsule.moodColor}08, ${THEME_COLORS.cream}0D, ${THEME_COLORS.paperTexture}0D)`
+                      : `linear-gradient(145deg, ${THEME_COLORS.cream}0D, ${THEME_COLORS.paperTexture}0D)`,
+                    border: `1px solid ${isReadyToOpen ? capsule.moodColor + '40' : isOpened ? capsule.moodColor + '30' : '#4A322830'}`,
                     borderLeft: `3px solid ${capsule.moodColor}`,
+                    boxShadow: isReadyToOpen ? `0 2px 12px ${capsule.moodColor}15` : undefined,
                   }}
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <h3
                       className="truncate text-sm font-bold"
                       style={{
-                        color: isOpened ? THEME_COLORS.cream : '#8B7355',
+                        color: isReadyToOpen ? capsule.moodColor : isOpened ? THEME_COLORS.cream : '#8B7355',
                         fontFamily: '"Playfair Display", "Noto Serif SC", serif',
                       }}
                     >
-                      {isOpened ? capsule.title : capsule.title.replace(/./g, '•').slice(0, 6) + (capsule.title.length > 6 ? '…' : '')}
+                      {isLocked ? capsule.title.replace(/./g, '•').slice(0, 6) + (capsule.title.length > 6 ? '…' : '') : capsule.title}
                     </h3>
                     <span
                       className="ml-2 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
                       style={{
-                        background: isOpened ? `${capsule.moodColor}20` : '#4A322820',
-                        color: isOpened ? capsule.moodColor : '#8B7355',
+                        background: isReadyToOpen ? capsule.moodColor : isOpened ? `${capsule.moodColor}20` : '#4A322820',
+                        color: isReadyToOpen ? '#fff' : isOpened ? capsule.moodColor : '#8B7355',
                       }}
                     >
-                      {isOpened ? '已拆信' : isLocked ? '密封中' : '可拆信'}
+                      {isReadyToOpen ? '等你拆 ✨' : isOpened ? '已拆信' : '密封中'}
                     </span>
                   </div>
+
+                  {isReadyToOpen && (
+                    <p className="mb-2 text-xs font-medium" style={{ color: capsule.moodColor, opacity: 0.7 }}>
+                      时光已到，快去拆信吧
+                    </p>
+                  )}
 
                   {isOpened && (
                     <p className="mb-2 line-clamp-2 text-xs leading-relaxed text-[#8B7355]/70" style={{ fontFamily: '"Noto Serif SC", serif' }}>

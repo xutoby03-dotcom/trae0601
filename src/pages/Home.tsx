@@ -8,8 +8,9 @@ import { useCapsuleStore } from '@/store/capsuleStore'
 import { MOOD_COLORS, THEME_COLORS } from '@/lib/utils'
 import type { CapsuleFilter } from '@/types'
 
-const filters: { key: CapsuleFilter; label: string }[] = [
+const filters: { key: CapsuleFilter; label: string; emoji?: string }[] = [
   { key: 'all', label: '全部' },
+  { key: 'ready-to-open', label: '可拆信', emoji: '✨' },
   { key: 'on-the-way', label: '在路上' },
   { key: 'opened', label: '已拆信' },
 ]
@@ -28,6 +29,7 @@ export default function Home() {
     let result = capsules
 
     if (filter === 'on-the-way') result = result.filter((c) => c.isLocked)
+    if (filter === 'ready-to-open') result = result.filter((c) => !c.isLocked && !c.isOpened)
     if (filter === 'opened') result = result.filter((c) => c.isOpened)
 
     if (moodFilter) result = result.filter((c) => c.moodColor === moodFilter)
@@ -39,6 +41,14 @@ export default function Home() {
           c.title.toLowerCase().includes(q) ||
           (c.isOpened && c.content.toLowerCase().includes(q))
       )
+    }
+
+    if (filter === 'all') {
+      result = [...result].sort((a, b) => {
+        const aReady = !a.isLocked && !a.isOpened ? 0 : 1
+        const bReady = !b.isLocked && !b.isOpened ? 0 : 1
+        return aReady - bReady
+      })
     }
 
     return result
@@ -95,6 +105,7 @@ export default function Home() {
                   background: filter === f.key ? THEME_COLORS.gold : 'transparent',
                 }}
               >
+                {f.emoji && <span className="mr-0.5">{f.emoji}</span>}
                 {f.label}
               </button>
             ))}
