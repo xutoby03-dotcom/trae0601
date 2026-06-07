@@ -16,6 +16,7 @@ interface CapsuleStore {
   addCapsule: (capsule: Omit<TimeCapsule, 'id' | 'createdAt' | 'isLocked' | 'isOpened'>) => Promise<void>
   openCapsule: (id: string) => Promise<void>
   deleteCapsule: (id: string) => Promise<void>
+  checkAndUnlockCapsules: () => void
   setFilter: (filter: CapsuleFilter) => void
   setMoodFilter: (color: string | null) => void
   exportBackup: () => Promise<void>
@@ -88,6 +89,23 @@ export const useCapsuleStore = create<CapsuleStore>((set, get) => ({
   deleteCapsule: async (id) => {
     await dbDelete(id)
     set((state) => ({ capsules: state.capsules.filter((c) => c.id !== id) }))
+  },
+
+  checkAndUnlockCapsules: () => {
+    const { capsules } = get()
+    const now = Date.now()
+    const locked = capsules.filter((c) => c.isLocked && new Date(c.openDate).getTime() <= now)
+    if (locked.length === 0) return
+
+    const ids = new Set(locked.map((c) => c.id))
+    for (const c of locked) {
+      dbUpdate({ ...c, isLocked: false })
+    }
+    set((state) => ({
+      capsules: state.capsules.map((c) =>
+        ids.has(c.id) ? { ...c, isLocked: false } : c
+      ),
+    }))
   },
 
   setFilter: (filter) => set({ filter }),

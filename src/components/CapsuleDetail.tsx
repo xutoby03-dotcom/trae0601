@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, MailOpen } from 'lucide-react'
 import CountdownTimer from './CountdownTimer'
@@ -16,6 +16,12 @@ export default function CapsuleDetail({ capsule, onOpen }: Props) {
 
   const canOpen = !capsule.isLocked
   const isOpened = capsule.isOpened
+
+  useEffect(() => {
+    if (isOpened && !showContent) {
+      setShowContent(true)
+    }
+  }, [isOpened, showContent])
 
   const handleOpen = () => {
     if (!canOpen || isOpened) return
@@ -77,7 +83,7 @@ export default function CapsuleDetail({ capsule, onOpen }: Props) {
                       className="mb-1 text-lg font-bold"
                       style={{ color: THEME_COLORS.darkBrown, fontFamily: '"Playfair Display", "Noto Serif SC", serif' }}
                     >
-                      {isOpened ? capsule.title : capsule.title.replace(/./g, '•')}
+                      {canOpen ? capsule.title : capsule.title.replace(/./g, '•')}
                     </h2>
 
                     <div className="mb-3">

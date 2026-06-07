@@ -40,7 +40,7 @@ export default function EnvelopeCard({ capsule, index }: Props) {
               className="truncate text-sm font-bold tracking-wide"
               style={{ color: THEME_COLORS.darkBrown, fontFamily: '"Playfair Display", "Noto Serif SC", serif' }}
             >
-              {isOpened ? capsule.title : capsule.title.replace(/./g, '•').slice(0, 8) + (capsule.title.length > 8 ? '…' : '')}
+              {canOpen ? capsule.title : capsule.title.replace(/./g, '•').slice(0, 8) + (capsule.title.length > 8 ? '…' : '')}
             </h3>
           </div>
           <div className="ml-2 flex-shrink-0">

@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Home from '@/pages/Home'
 import CreateCapsule from '@/pages/CreateCapsule'
 import CapsuleDetailPage from '@/pages/CapsuleDetail'
@@ -11,10 +11,17 @@ import { useCapsuleStore } from '@/store/capsuleStore'
 
 export default function App() {
   const loadCapsules = useCapsuleStore((s) => s.loadCapsules)
+  const checkAndUnlockCapsules = useCapsuleStore((s) => s.checkAndUnlockCapsules)
+  const intervalRef = useRef<ReturnType<typeof setInterval>>()
 
   useEffect(() => {
     loadCapsules()
   }, [loadCapsules])
+
+  useEffect(() => {
+    intervalRef.current = setInterval(checkAndUnlockCapsules, 1000)
+    return () => clearInterval(intervalRef.current)
+  }, [checkAndUnlockCapsules])
 
   return (
     <Router>
