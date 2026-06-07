@@ -11,8 +11,8 @@ export default function Search() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [results, setResults] = useState<Dream[]>([])
-  const [allTags, setAllTags] = useState<{ type: DreamTag['type']; value: string }[]>([])
-  const [selectedTagValue, setSelectedTagValue] = useState<string>('all')
+  const [allTags, setAllTags] = useState<{ type: DreamTag['type']; value: string; compositeKey: string }[]>([])
+  const [selectedTag, setSelectedTag] = useState<string>('all')
 
   useEffect(() => {
     getAllDreams().then((dreams) => {
@@ -25,6 +25,7 @@ export default function Search() {
       const tagsArr = Array.from(tagSet.entries()).map(([key, type]) => ({
         type,
         value: key.split(':').slice(1).join(':'),
+        compositeKey: key,
       }))
       setAllTags(tagsArr)
     })
@@ -34,20 +35,35 @@ export default function Search() {
     const filters: Parameters<typeof searchDreams>[0] = {}
     if (keyword.trim()) filters.keyword = keyword.trim()
     if (atmosphere !== 'all') filters.atmosphere = atmosphere
-    if (tagType !== 'all' || selectedTagValue !== 'all') {
-      if (tagType !== 'all') filters.tagType = tagType
-      if (selectedTagValue !== 'all') filters.tagValue = selectedTagValue
+    if (selectedTag !== 'all') {
+      const sepIdx = selectedTag.indexOf(':')
+      filters.tagType = selectedTag.slice(0, sepIdx)
+      filters.tagValue = selectedTag.slice(sepIdx + 1)
+    } else if (tagType !== 'all') {
+      filters.tagType = tagType
     }
     if (startDate) filters.startDate = new Date(startDate).getTime()
     if (endDate) filters.endDate = new Date(endDate).getTime() + 86400000
 
     searchDreams(filters).then(setResults)
-  }, [keyword, atmosphere, tagType, selectedTagValue, startDate, endDate, allDreams])
+  }, [keyword, atmosphere, tagType, selectedTag, startDate, endDate, allDreams])
 
   const filteredTags = useMemo(() => {
     if (tagType === 'all') return allTags
     return allTags.filter((t) => t.type === tagType)
   }, [allTags, tagType])
+
+  const groupedTags = useMemo(() => {
+    const groups: { groupLabel: string; tags: typeof filteredTags }[] = []
+    const typeOrder: DreamTag['type'][] = ['person', 'place', 'object']
+    typeOrder.forEach((type) => {
+      const tags = filteredTags.filter((t) => t.type === type)
+      if (tags.length > 0) {
+        groups.push({ groupLabel: TAG_TYPE_LABELS[type], tags })
+      }
+    })
+    return groups
+  }, [filteredTags])
 
   return (
     <div className="fade-in">
@@ -93,7 +109,7 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               标签类型
             </label>
-            <select value={tagType} onChange={(e) => { setTagType(e.target.value); setSelectedTagValue('all') }} style={{ width: '100%' }}>
+            <select value={tagType} onChange={(e) => { setTagType(e.target.value); setSelectedTag('all') }} style={{ width: '100%' }}>
               <option value="all">全部类型</option>
               {(Object.entries(TAG_TYPE_LABELS) as [DreamTag['type'], string][]).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -105,12 +121,16 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               具体标签
             </label>
-            <select value={selectedTagValue} onChange={(e) => setSelectedTagValue(e.target.value)} style={{ width: '100%' }}>
+            <select value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)} style={{ width: '100%' }}>
               <option value="all">全部</option>
-              {filteredTags.map((t, i) => (
-                <option key={i} value={t.value}>
-                  {TAG_TYPE_LABELS[t.type]}: {t.value}
-                </option>
+              {groupedTags.map((group) => (
+                <optgroup key={group.groupLabel} label={group.groupLabel}>
+                  {group.tags.map((t) => (
+                    <option key={t.compositeKey} value={t.compositeKey}>
+                      {t.value}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

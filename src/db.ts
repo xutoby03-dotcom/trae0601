@@ -66,12 +66,16 @@ export async function searchDreams(filters: {
       if (!inTitle && !inFragments && !inTags) return false
     }
     if (filters.atmosphere && d.atmosphere !== filters.atmosphere) return false
-    if (filters.tagType || filters.tagValue) {
-      const hasTag = d.tags.some((t) => {
-        if (filters.tagType && t.type !== filters.tagType) return false
-        if (filters.tagValue && t.value !== filters.tagValue) return false
-        return true
-      })
+    if (filters.tagType && filters.tagValue) {
+      const hasTag = d.tags.some(
+        (t) => t.type === filters.tagType && t.value === filters.tagValue
+      )
+      if (!hasTag) return false
+    } else if (filters.tagType) {
+      const hasTag = d.tags.some((t) => t.type === filters.tagType)
+      if (!hasTag) return false
+    } else if (filters.tagValue) {
+      const hasTag = d.tags.some((t) => t.value === filters.tagValue)
       if (!hasTag) return false
     }
     if (filters.startDate && d.createdAt < filters.startDate) return false
