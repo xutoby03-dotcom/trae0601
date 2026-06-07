@@ -5,25 +5,37 @@ import { searchDreams, getAllDreams } from '../db'
 import DreamCard from '../components/DreamCard'
 
 export default function Search() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [allDreams, setAllDreams] = useState<Dream[]>([])
-  const [keyword, setKeyword] = useState(() => searchParams.get('keyword') || '')
-  const [atmosphere, setAtmosphere] = useState<string>(() => searchParams.get('atmosphere') || 'all')
-  const [tagType, setTagType] = useState<string>(() => searchParams.get('tagType') || 'all')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+
+  const keyword = searchParams.get('keyword') || ''
+  const atmosphere = searchParams.get('atmosphere') || 'all'
+  const tagType = searchParams.get('tagType') || 'all'
+  const tagValue = searchParams.get('tagValue') || ''
+  const startDate = searchParams.get('startDate') || ''
+  const endDate = searchParams.get('endDate') || ''
+  const selectedTag = tagType !== 'all' && tagValue ? `${tagType}:${tagValue}` : 'all'
+
   const [results, setResults] = useState<Dream[]>([])
   const [allTags, setAllTags] = useState<{ type: DreamTag['type']; value: string; compositeKey: string }[]>([])
-  const [selectedTag, setSelectedTag] = useState<string>(() => {
-    const t = searchParams.get('tagType')
-    const v = searchParams.get('tagValue')
-    return t && v ? `${t}:${v}` : 'all'
-  })
+
+  function updateParams(patch: Record<string, string>) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      Object.entries(patch).forEach(([k, v]) => {
+        if (v === '' || v === 'all') {
+          next.delete(k)
+        } else {
+          next.set(k, v)
+        }
+      })
+      return next
+    }, { replace: true })
+  }
 
   useEffect(() => {
     getAllDreams().then((dreams) => {
       setAllDreams(dreams)
-      setResults(dreams)
       const tagSet = new Map<string, DreamTag['type']>()
       dreams.forEach((d) =>
         d.tags.forEach((t) => tagSet.set(`${t.type}:${t.value}`, t.type))
@@ -41,10 +53,9 @@ export default function Search() {
     const filters: Parameters<typeof searchDreams>[0] = {}
     if (keyword.trim()) filters.keyword = keyword.trim()
     if (atmosphere !== 'all') filters.atmosphere = atmosphere
-    if (selectedTag !== 'all') {
-      const sepIdx = selectedTag.indexOf(':')
-      filters.tagType = selectedTag.slice(0, sepIdx)
-      filters.tagValue = selectedTag.slice(sepIdx + 1)
+    if (tagType !== 'all' && tagValue) {
+      filters.tagType = tagType
+      filters.tagValue = tagValue
     } else if (tagType !== 'all') {
       filters.tagType = tagType
     }
@@ -52,7 +63,7 @@ export default function Search() {
     if (endDate) filters.endDate = new Date(endDate).getTime() + 86400000
 
     searchDreams(filters).then(setResults)
-  }, [keyword, atmosphere, tagType, selectedTag, startDate, endDate, allDreams])
+  }, [keyword, atmosphere, tagType, tagValue, startDate, endDate, allDreams])
 
   const filteredTags = useMemo(() => {
     if (tagType === 'all') return allTags
@@ -92,7 +103,7 @@ export default function Search() {
           <input
             type="text"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => updateParams({ keyword: e.target.value })}
             placeholder="搜索关键词..."
             style={{ width: '100%', fontSize: '1rem' }}
           />
@@ -103,7 +114,11 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               氛围
             </label>
-            <select value={atmosphere} onChange={(e) => setAtmosphere(e.target.value)} style={{ width: '100%' }}>
+            <select
+              value={atmosphere}
+              onChange={(e) => updateParams({ atmosphere: e.target.value })}
+              style={{ width: '100%' }}
+            >
               <option value="all">全部氛围</option>
               {(Object.entries(ATMOSPHERE_LABELS) as [Atmosphere, string][]).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -115,7 +130,11 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               标签类型
             </label>
-            <select value={tagType} onChange={(e) => { setTagType(e.target.value); setSelectedTag('all') }} style={{ width: '100%' }}>
+            <select
+              value={tagType}
+              onChange={(e) => updateParams({ tagType: e.target.value, tagValue: '' })}
+              style={{ width: '100%' }}
+            >
               <option value="all">全部类型</option>
               {(Object.entries(TAG_TYPE_LABELS) as [DreamTag['type'], string][]).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -127,7 +146,19 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               具体标签
             </label>
-            <select value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)} style={{ width: '100%' }}>
+            <select
+              value={selectedTag}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === 'all') {
+                  updateParams({ tagType: tagType !== 'all' ? tagType : 'all', tagValue: '' })
+                } else {
+                  const sepIdx = v.indexOf(':')
+                  updateParams({ tagType: v.slice(0, sepIdx), tagValue: v.slice(sepIdx + 1) })
+                }
+              }}
+              style={{ width: '100%' }}
+            >
               <option value="all">全部</option>
               {groupedTags.map((group) => (
                 <optgroup key={group.groupLabel} label={group.groupLabel}>
@@ -145,14 +176,24 @@ export default function Search() {
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               起始日期
             </label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ width: '100%' }} />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => updateParams({ startDate: e.target.value })}
+              style={{ width: '100%' }}
+            />
           </div>
 
           <div style={{ flex: 1, minWidth: '140px' }}>
             <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
               结束日期
             </label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ width: '100%' }} />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => updateParams({ endDate: e.target.value })}
+              style={{ width: '100%' }}
+            />
           </div>
         </div>
       </div>
