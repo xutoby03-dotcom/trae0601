@@ -109,7 +109,7 @@ export default function EnvelopeCard({ capsule, index }: Props) {
         <div className="flex items-center justify-between text-[10px] text-[#8B7355]/70">
           <span>{formatDate(capsule.createdAt)}</span>
           <span style={{ color: canOpen ? capsule.moodColor : undefined }}>
-            {isReadyToOpen ? '等你拆' : canOpen ? '已拆信' : '密封中'}
+            {isReadyToOpen ? `${formatDate(capsule.openDate)} 到期 · 等你拆` : isOpened ? '已拆信' : '密封中'}
           </span>
         </div>
 
