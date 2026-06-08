@@ -13,6 +13,7 @@ export default function App() {
         <Route path="/beans/:id" element={<BeanDetail />} />
         <Route path="/beans/:id/edit" element={<BeanForm />} />
         <Route path="/brews/new" element={<BrewForm />} />
+        <Route path="/brews/:brewId/edit" element={<BrewForm />} />
       </Routes>
     </Router>
   );

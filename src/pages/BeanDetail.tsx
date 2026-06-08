@@ -425,20 +425,36 @@ export default function BeanDetail() {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleDeleteBrew(brew.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: '#D4A574',
-                        padding: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <Link
+                        to={`/brews/${brew.id}/edit`}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#6F4E37',
+                          padding: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Pencil size={15} />
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteBrew(brew.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: '#D4A574',
+                          padding: 4,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 )
               })}

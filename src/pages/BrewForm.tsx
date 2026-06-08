@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useCoffeeStore } from '@/store/coffeeStore'
 import StarRating from '@/components/StarRating'
@@ -10,9 +10,17 @@ import type { GrindSize, Flavor } from '@/types'
 export default function BrewForm() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const beanId = searchParams.get('beanId') || ''
+  const { brewId } = useParams<{ brewId: string }>()
+  const isEditing = Boolean(brewId)
+
+  const beanIdFromSearch = searchParams.get('beanId') || ''
   const beans = useCoffeeStore((s) => s.beans)
+  const brews = useCoffeeStore((s) => s.brews)
   const addBrew = useCoffeeStore((s) => s.addBrew)
+  const updateBrew = useCoffeeStore((s) => s.updateBrew)
+
+  const existingBrew = isEditing ? brews.find((b) => b.id === brewId) : null
+  const beanId = isEditing ? (existingBrew?.beanId || '') : beanIdFromSearch
   const bean = beans.find((b) => b.id === beanId)
 
   const [ratio, setRatio] = useState('1:15')
@@ -31,25 +39,54 @@ export default function BrewForm() {
   })
   const [notes, setNotes] = useState('')
 
+  useEffect(() => {
+    if (isEditing && existingBrew) {
+      setRatio(existingBrew.ratio)
+      setWaterTemp(existingBrew.waterTemp)
+      setGrindSize(existingBrew.grindSize)
+      setExtractionTime(existingBrew.extractionTime)
+      setEquipment(existingBrew.equipment)
+      setBrewedAt(existingBrew.brewedAt)
+      setRating(existingBrew.rating)
+      setFlavor(existingBrew.flavor)
+      setNotes(existingBrew.notes)
+    }
+  }, [isEditing, existingBrew])
+
   const updateFlavor = (key: keyof Flavor, value: number) => {
     setFlavor((prev) => ({ ...prev, [key]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    addBrew({
-      beanId,
-      ratio,
-      waterTemp,
-      grindSize,
-      extractionTime,
-      equipment,
-      rating,
-      flavor,
-      notes,
-      brewedAt,
-    })
-    navigate(`/beans/${beanId}`)
+    if (isEditing && brewId) {
+      updateBrew(brewId, {
+        ratio,
+        waterTemp,
+        grindSize,
+        extractionTime,
+        equipment,
+        rating,
+        flavor,
+        notes,
+        brewedAt,
+      })
+      navigate(`/beans/${beanId}`)
+    } else {
+      addBrew({
+        beanId,
+        ratio,
+        waterTemp,
+        grindSize,
+        extractionTime,
+        equipment,
+        rating,
+        flavor,
+        notes,
+        brewedAt,
+      })
+      navigate(`/beans/${beanId}`)
+    }
   }
 
   return (
@@ -61,7 +98,9 @@ export default function BrewForm() {
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-xl font-bold text-[#3E2412]">记录冲煮</h1>
+        <h1 className="text-xl font-bold text-[#3E2412]">
+          {isEditing ? '编辑冲煮记录' : '记录冲煮'}
+        </h1>
         {bean && (
           <p className="mt-0.5 text-sm text-[#8B6914]">{bean.name}</p>
         )}
@@ -177,7 +216,7 @@ export default function BrewForm() {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#6F4E37] py-3 text-sm font-semibold text-white shadow-md hover:bg-[#5C3A1E] active:scale-[0.98] transition-all"
         >
           <Save size={18} />
-          保存冲煮记录
+          {isEditing ? '保存修改' : '保存冲煮记录'}
         </button>
       </form>
     </div>
