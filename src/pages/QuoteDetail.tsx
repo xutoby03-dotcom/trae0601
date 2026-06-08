@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCineQuoteStore } from '@/store'
 import { useImageUrl } from '@/hooks/useImage'
-import { ArrowLeft, Crop as CropIcon, Sun, Subtitles, Share2, Download, RotateCcw, Trash2, Film } from 'lucide-react'
+import { ArrowLeft, Crop as CropIcon, Sun, Subtitles, Share2, Download, RotateCcw, Trash2, Film, Copy, Check } from 'lucide-react'
 import { EMOTION_COLORS } from '@/types'
 import ReactCrop, { type Crop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
@@ -23,6 +23,8 @@ export default function QuoteDetail() {
   const [subtitleText, setSubtitleText] = useState('')
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null)
+  const [shareSize, setShareSize] = useState<'square' | 'portrait'>('square')
+  const [copied, setCopied] = useState(false)
 
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -123,36 +125,54 @@ export default function QuoteDetail() {
       sh = img.naturalHeight
     }
 
-    canvas.width = sw
-    canvas.height = sh
+    let outW: number, outH: number
+    if (shareSize === 'square') {
+      const side = Math.min(sw, sh)
+      outW = side
+      outH = side
+    } else {
+      outW = sw
+      outH = Math.round(sw * 4 / 3)
+    }
+
+    canvas.width = outW
+    canvas.height = outH
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    ctx.fillStyle = '#0d0d1a'
+    ctx.fillRect(0, 0, outW, outH)
+
+    const drawH = shareSize === 'portrait' ? Math.min(sh, outH) : Math.min(sh, outH)
+    const drawW = shareSize === 'portrait' ? Math.min(sw, outW) : Math.min(sw, outW)
+    const dx = Math.round((outW - drawW) / 2)
+    const dy = shareSize === 'square' ? Math.round((outH - drawH) / 2) : 0
+
     ctx.filter = `brightness(${brightness / 100})`
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, drawW, drawH)
     ctx.filter = 'none'
 
     if (showSubtitle && subtitleText) {
-      const barHeight = sh * 0.12
+      const barHeight = outH * 0.1
       ctx.fillStyle = 'rgba(0,0,0,0.7)'
-      ctx.fillRect(0, sh - barHeight, sw, barHeight)
+      ctx.fillRect(0, outH - barHeight, outW, barHeight)
 
       const fontSize = Math.max(16, Math.floor(barHeight * 0.4))
       ctx.font = `${fontSize}px "Noto Serif SC", serif`
       ctx.fillStyle = '#ffffff'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(subtitleText, sw / 2, sh - barHeight / 2, sw - 40)
+      ctx.fillText(subtitleText, outW / 2, outH - barHeight / 2, outW - 40)
     }
 
     if (movie) {
-      const watermarkSize = Math.max(12, Math.floor(sh * 0.03))
+      const watermarkSize = Math.max(12, Math.floor(outH * 0.028))
       ctx.font = `${watermarkSize}px "DM Sans", sans-serif`
       ctx.fillStyle = 'rgba(255,255,255,0.5)'
       ctx.textAlign = 'right'
       ctx.textBaseline = 'bottom'
       const label = `${movie.name} (${movie.year}) · ${quote?.character ?? ''}`
-      ctx.fillText(label, sw - 20, sh - (showSubtitle ? sh * 0.12 + 10 : 20))
+      ctx.fillText(label, outW - 20, outH - (showSubtitle ? outH * 0.1 + 10 : 20))
     }
 
     const blob = await new Promise<Blob | null>((resolve) =>
@@ -164,7 +184,7 @@ export default function QuoteDetail() {
       setSharePreviewUrl(url)
       setShareModalOpen(true)
     }
-  }, [imageUrl, completedCrop, brightness, showSubtitle, subtitleText, movie, quote, sharePreviewUrl])
+  }, [imageUrl, completedCrop, brightness, showSubtitle, subtitleText, movie, quote, sharePreviewUrl, shareSize])
 
   const handleDownload = useCallback(() => {
     if (!sharePreviewUrl) return
@@ -173,6 +193,19 @@ export default function QuoteDetail() {
     a.download = `quote-${quoteId}.png`
     a.click()
   }, [sharePreviewUrl, quoteId])
+
+  const handleCopy = useCallback(() => {
+    if (!quote) return
+    const parts: string[] = []
+    if (movie) parts.push(`🎬 ${movie.name} (${movie.year})`)
+    if (quote.character) parts.push(`🎭 ${quote.character}`)
+    parts.push(`💬 「${quote.text}」`)
+    if (quote.timestamp) parts.push(`⏱ ${quote.timestamp}`)
+    navigator.clipboard.writeText(parts.join('\n')).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [quote, movie])
 
   if (!store.initialized) {
     return (
@@ -328,6 +361,19 @@ export default function QuoteDetail() {
                 <p className="text-sm text-gray-500">{quote.timestamp}</p>
               )}
 
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition',
+                  copied
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : 'bg-cinema-700 text-gray-400 hover:text-amber-primary border border-cinema-600 hover:border-amber-primary/30'
+                )}
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? '已复制' : '复制台词'}
+              </button>
+
               <div className="flex flex-wrap gap-1.5">
                 {quote.emotions.map((e) => (
                   <EmotionTag key={e} emotion={e} size="sm" />
@@ -379,6 +425,32 @@ export default function QuoteDetail() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="bg-cinema-800 rounded-xl max-w-lg w-full max-h-[90vh] overflow-auto p-6">
             <h3 className="font-display text-lg text-white mb-4">分享卡片预览</h3>
+
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setShareSize('square')}
+                className={cn(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition',
+                  shareSize === 'square'
+                    ? 'bg-amber-primary text-cinema-900'
+                    : 'bg-cinema-700 text-gray-400 hover:text-white'
+                )}
+              >
+                方图 1:1
+              </button>
+              <button
+                onClick={() => setShareSize('portrait')}
+                className={cn(
+                  'flex-1 py-2 rounded-lg text-sm font-medium transition',
+                  shareSize === 'portrait'
+                    ? 'bg-amber-primary text-cinema-900'
+                    : 'bg-cinema-700 text-gray-400 hover:text-white'
+                )}
+              >
+                竖图 3:4
+              </button>
+            </div>
+
             {sharePreviewUrl && (
               <img
                 src={sharePreviewUrl}
@@ -388,6 +460,12 @@ export default function QuoteDetail() {
             )}
             <div className="flex gap-3 mt-4">
               <button
+                onClick={generateShareCard}
+                className="flex-1 flex items-center justify-center gap-2 border border-amber-primary text-amber-primary py-2.5 rounded-lg hover:bg-amber-primary/10 transition text-sm"
+              >
+                重新生成
+              </button>
+              <button
                 onClick={handleDownload}
                 className="flex-1 flex items-center justify-center gap-2 bg-amber-primary text-cinema-900 font-medium py-2.5 rounded-lg hover:bg-amber-light transition"
               >
@@ -396,7 +474,7 @@ export default function QuoteDetail() {
               </button>
               <button
                 onClick={() => setShareModalOpen(false)}
-                className="flex-1 border border-gray-600 text-gray-300 py-2.5 rounded-lg hover:border-gray-400 transition"
+                className="border border-gray-600 text-gray-300 py-2.5 px-4 rounded-lg hover:border-gray-400 transition text-sm"
               >
                 关闭
               </button>
