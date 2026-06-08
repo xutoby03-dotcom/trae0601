@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 import { useCoffeeStore } from '@/store/coffeeStore'
 import StarRating from '@/components/StarRating'
-import { GRIND_SIZES, EQUIPMENT_OPTIONS } from '@/utils/constants'
-import type { GrindSize } from '@/types'
+import FlavorSlider from '@/components/FlavorSlider'
+import { GRIND_SIZES, EQUIPMENT_OPTIONS, FLAVOR_KEYS, FLAVOR_LABELS } from '@/utils/constants'
+import type { GrindSize, Flavor } from '@/types'
 
 export default function BrewForm() {
   const navigate = useNavigate()
@@ -21,7 +22,18 @@ export default function BrewForm() {
   const [equipment, setEquipment] = useState(EQUIPMENT_OPTIONS[0])
   const [brewedAt, setBrewedAt] = useState(new Date().toISOString().split('T')[0])
   const [rating, setRating] = useState(0)
+  const [flavor, setFlavor] = useState<Flavor>({
+    acidity: 5,
+    sweetness: 5,
+    bitterness: 5,
+    body: 5,
+    aroma: 5,
+  })
   const [notes, setNotes] = useState('')
+
+  const updateFlavor = (key: keyof Flavor, value: number) => {
+    setFlavor((prev) => ({ ...prev, [key]: value }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,6 +45,7 @@ export default function BrewForm() {
       extractionTime,
       equipment,
       rating,
+      flavor,
       notes,
       brewedAt,
     })
@@ -133,6 +146,18 @@ export default function BrewForm() {
           <div className="space-y-1">
             <label className="text-sm text-[#6F4E37]">评分</label>
             <StarRating value={rating} onChange={setRating} />
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <p className="text-sm text-[#6F4E37] font-medium">这次喝到的风味</p>
+            {FLAVOR_KEYS.map((key) => (
+              <FlavorSlider
+                key={key}
+                label={FLAVOR_LABELS[key]}
+                value={flavor[key]}
+                onChange={(value) => updateFlavor(key, value)}
+              />
+            ))}
           </div>
 
           <div className="space-y-1">

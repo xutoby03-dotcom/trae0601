@@ -35,6 +35,7 @@ export interface BrewRecord {
   extractionTime: string
   equipment: string
   rating: number
+  flavor: Flavor
   notes: string
   brewedAt: string
   createdAt: string

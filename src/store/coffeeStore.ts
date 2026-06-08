@@ -102,6 +102,21 @@ export const useCoffeeStore = create<CoffeeState>()(
     }),
     {
       name: 'coffee-bean-vault',
+      version: 1,
+      migrate: (persisted: any, version: number) => {
+        if (version === 0) {
+          const defaultFlavor = { acidity: 5, sweetness: 5, bitterness: 5, body: 5, aroma: 5 }
+          if (persisted.brews) {
+            persisted.brews = persisted.brews.map((brew: any) => {
+              if (!brew.flavor) {
+                return { ...brew, flavor: defaultFlavor }
+              }
+              return brew
+            })
+          }
+        }
+        return persisted
+      },
     }
   )
 )

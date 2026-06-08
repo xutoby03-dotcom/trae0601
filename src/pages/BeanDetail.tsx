@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Plus, Award } from 'lucide-react'
 import { useCoffeeStore } from '@/store/coffeeStore'
 import FlavorRadar from '@/components/FlavorRadar'
-import BrewHistoryChart from '@/components/BrewHistoryChart'
+import BrewHistoryChart, { calcMatchScore } from '@/components/BrewHistoryChart'
 import StarRating from '@/components/StarRating'
 import { getRoastColor, getRoastLabel, getProcessLabel, formatDate } from '@/utils/helpers'
+import type { Flavor } from '@/types'
 
 export default function BeanDetail() {
   const { id } = useParams<{ id: string }>()
@@ -28,9 +29,16 @@ export default function BeanDetail() {
   )
 
   const bestBrew = useMemo(() => {
-    if (beanBrews.length === 0) return null
-    return beanBrews.reduce((best, cur) => (cur.rating > best.rating ? cur : best))
-  }, [beanBrews])
+    if (beanBrews.length === 0 || !bean) return null
+    return beanBrews.reduce((best, cur) =>
+      calcMatchScore(cur.flavor, bean.flavor) > calcMatchScore(best.flavor, bean.flavor) ? cur : best
+    )
+  }, [beanBrews, bean])
+
+  const bestMatchScore = useMemo(() => {
+    if (!bestBrew || !bean) return 0
+    return calcMatchScore(bestBrew.flavor, bean.flavor)
+  }, [bestBrew, bean])
 
   if (!bean) {
     return (
@@ -271,15 +279,19 @@ export default function BeanDetail() {
                 style={{
                   fontSize: 13,
                   fontFamily: 'DM Sans',
-                  color: roastColor.band,
+                  color: '#6F4E37',
                   fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}
               >
-                最佳冲煮 · {formatDate(bestBrew.brewedAt)}
+                <Award size={14} style={{ color: '#D4A574' }} />
+                最贴合口味 · {formatDate(bestBrew.brewedAt)} · {bestMatchScore}%
               </span>
             )}
           </div>
-          <BrewHistoryChart brews={beanBrews} />
+          <BrewHistoryChart brews={beanBrews} beanFlavor={bean.flavor} />
         </div>
 
         <div>
@@ -332,69 +344,104 @@ export default function BeanDetail() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {beanBrews.map((brew) => (
-                <div
-                  key={brew.id}
-                  style={{
-                    background: '#FFFDF8',
-                    border: '1px solid #E8D5C0',
-                    borderRadius: 12,
-                    padding: 16,
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        marginBottom: 6,
-                        fontFamily: 'DM Sans',
-                        fontSize: 14,
-                        color: '#3E2412',
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>{formatDate(brew.brewedAt)}</span>
-                      <span style={{ color: '#B8A090', fontSize: 13 }}>{brew.equipment}</span>
-                      <span style={{ color: '#B8A090', fontSize: 13 }}>{brew.ratio}</span>
-                    </div>
-                    <StarRating value={brew.rating} readonly />
-                    {brew.notes && (
-                      <div
-                        style={{
-                          marginTop: 6,
-                          fontSize: 13,
-                          color: '#8B7355',
-                          fontFamily: 'DM Sans',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: 400,
-                        }}
-                      >
-                        {brew.notes}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleDeleteBrew(brew.id)}
+              {beanBrews.map((brew) => {
+                const isBest = bestBrew?.id === brew.id
+                const matchScore = bean ? calcMatchScore(brew.flavor, bean.flavor) : 0
+                return (
+                  <div
+                    key={brew.id}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#D4A574',
-                      padding: 4,
+                      background: isBest ? '#FFF8EE' : '#FFFDF8',
+                      border: isBest ? '2px solid #D4A574' : '1px solid #E8D5C0',
+                      borderRadius: 12,
+                      padding: 16,
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
                     }}
                   >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          marginBottom: 6,
+                          fontFamily: 'DM Sans',
+                          fontSize: 14,
+                          color: '#3E2412',
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{formatDate(brew.brewedAt)}</span>
+                        <span style={{ color: '#B8A090', fontSize: 13 }}>{brew.equipment}</span>
+                        <span style={{ color: '#B8A090', fontSize: 13 }}>{brew.ratio}</span>
+                        {isBest && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              background: '#D4A574',
+                              color: '#FFF',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '1px 8px',
+                              borderRadius: 10,
+                            }}
+                          >
+                            <Award size={11} />
+                            最贴合 {matchScore}%
+                          </span>
+                        )}
+                        {!isBest && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: '#8B6914',
+                              background: '#F5E6D3',
+                              padding: '1px 8px',
+                              borderRadius: 10,
+                            }}
+                          >
+                            匹配 {matchScore}%
+                          </span>
+                        )}
+                      </div>
+                      <StarRating value={brew.rating} readonly />
+                      {brew.notes && (
+                        <div
+                          style={{
+                            marginTop: 6,
+                            fontSize: 13,
+                            color: '#8B7355',
+                            fontFamily: 'DM Sans',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: 400,
+                          }}
+                        >
+                          {brew.notes}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBrew(brew.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#D4A574',
+                        padding: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
