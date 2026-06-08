@@ -18,10 +18,15 @@ export default function StatisticsPage() {
   }, [clothes])
 
   const colorDist = useMemo(() => {
-    const map: Partial<Record<ClothingColor, number>> = {}
-    clothes.forEach(c => { map[c.color] = (map[c.color] || 0) + 1 })
-    return (Object.entries(map) as [ClothingColor, number][])
-      .sort((a, b) => b[1] - a[1])
+    const wearMap: Partial<Record<ClothingColor, number>> = {}
+    const countMap: Partial<Record<ClothingColor, number>> = {}
+    clothes.forEach(c => {
+      wearMap[c.color] = (wearMap[c.color] || 0) + c.totalWearCount
+      countMap[c.color] = (countMap[c.color] || 0) + 1
+    })
+    const colors = Object.keys(wearMap) as ClothingColor[]
+    colors.sort((a, b) => (wearMap[b] || 0) - (wearMap[a] || 0))
+    return colors.map(c => ({ color: c, wear: wearMap[c] || 0, count: countMap[c] || 0 }))
   }, [clothes])
 
   const categoryDist = useMemo(() => {
@@ -64,7 +69,7 @@ export default function StatisticsPage() {
     return `${PASTEL_COLORS[i % PASTEL_COLORS.length]} ${start}deg ${end}deg`
   }).join(', ')
 
-  const maxColorCount = Math.max(...colorDist.map(([, v]) => v), 1)
+  const maxColorWear = Math.max(...colorDist.map(d => d.wear), 1)
   const maxCatCount = Math.max(...categoryDist.map(([, v]) => v), 1)
   const maxMonthCount = Math.max(...monthlyTrend.map(m => m.count), 1)
 
@@ -101,23 +106,25 @@ export default function StatisticsPage() {
         </div>
       </Section>
 
-      <Section title="颜色分布">
+      <Section title="最常穿颜色">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {colorDist.map(([color, count]) => (
+          {colorDist.map(({ color, wear, count }) => (
             <div key={color} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ width: 48, fontSize: 13, textAlign: 'right', color: '#555' }}>{COLOR_LABELS[color]}</span>
               <div style={{ flex: 1, background: '#f5f5f5', borderRadius: 6, height: 28, position: 'relative', overflow: 'hidden' }}>
                 <div style={{
                   height: '100%',
-                  width: `${(count / maxColorCount) * 100}%`,
+                  width: wear > 0 ? `${(wear / maxColorWear) * 100}%` : '0%',
                   background: COLOR_HEX[color],
                   borderRadius: 6,
                   transition: 'width 0.3s',
                   display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8,
+                  minWidth: wear > 0 ? 48 : 0,
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: color === 'white' || color === 'beige' || color === 'yellow' ? '#333' : '#fff' }}>{count}</span>
+                  {wear > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: color === 'white' || color === 'beige' || color === 'yellow' ? '#333' : '#fff' }}>{wear}次</span>}
                 </div>
               </div>
+              <span style={{ fontSize: 11, color: '#999', minWidth: 42 }}>{count}件</span>
             </div>
           ))}
           {colorDist.length === 0 && <EmptyHint />}
