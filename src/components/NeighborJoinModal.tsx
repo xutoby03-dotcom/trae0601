@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import type { FoodItem } from '../types'
 import { useStore, NEIGHBORS } from '../store/useStore'
 import { X, Minus, Plus, Clock, MessageSquare, UserPlus } from 'lucide-react'
@@ -18,19 +18,27 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
   )
   const maxQty = item.quantity - item.currentQuantity
 
-  const [selectedNeighbor, setSelectedNeighbor] = useState(availableNeighbors[0] ?? NEIGHBORS[0])
+  const [selectedNeighbor, setSelectedNeighbor] = useState(availableNeighbors[0])
   const [quantity, setQuantity] = useState(1)
   const [pickupTime, setPickupTime] = useState('')
   const [message, setMessage] = useState('')
 
-  const isSelectedAvailable = availableNeighbors.some(n => n.id === selectedNeighbor.id)
+  useEffect(() => {
+    if (!availableNeighbors.some(n => n.id === selectedNeighbor.id)) {
+      setSelectedNeighbor(availableNeighbors[0])
+    }
+  }, [availableNeighbors])
 
-  const safeQty = Math.min(quantity, maxQty, 1)
-  const canSubmit = pickupTime.trim() && isSelectedAvailable && safeQty >= 1 && maxQty >= 1
+  useEffect(() => {
+    if (quantity > maxQty) setQuantity(Math.max(1, maxQty))
+  }, [maxQty])
+
+  const clampedQty = Math.max(1, Math.min(quantity, maxQty))
+  const canSubmit = !!pickupTime.trim() && availableNeighbors.length > 0 && clampedQty >= 1 && maxQty >= 1
 
   const handleSubmit = () => {
-    if (!canSubmit) return
-    addNeighborOrder(item.id, selectedNeighbor, safeQty, pickupTime.trim(), message.trim())
+    if (!canSubmit || !selectedNeighbor) return
+    addNeighborOrder(item.id, selectedNeighbor, clampedQty, pickupTime.trim(), message.trim())
     onClose()
   }
 
@@ -62,7 +70,10 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">选择邻居</label>
             {availableNeighbors.length === 0 ? (
-              <p className="text-sm text-gray-400 py-2">所有邻居都已参与拼单</p>
+              <div className="py-3 px-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                <p className="text-sm text-gray-400">👥 所有邻居都已参与拼单</p>
+                <p className="text-xs text-gray-300 mt-1">没有可拼的邻居了</p>
+              </div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {availableNeighbors.map(neighbor => (
@@ -84,7 +95,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
             )}
           </div>
 
-          {availableNeighbors.length > 0 && (
+          {availableNeighbors.length > 0 ? (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">选择份数</label>
@@ -96,7 +107,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="text-xl font-bold text-gray-800 w-8 text-center">{safeQty}</span>
+                  <span className="text-xl font-bold text-gray-800 w-8 text-center">{clampedQty}</span>
                   <button
                     onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
                     className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
@@ -107,7 +118,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                   <span className="text-sm text-gray-400 ml-2">最多 {maxQty} 份</span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
-                  合计：<span className="font-bold text-primary">¥{(item.sharePrice * safeQty).toFixed(1)}</span>
+                  合计：<span className="font-bold text-primary">¥{(item.sharePrice * clampedQty).toFixed(1)}</span>
                 </div>
               </div>
 
@@ -147,6 +158,11 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                 确认邻居拼单
               </button>
             </>
+          ) : (
+            <div className="py-4 px-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
+              <p className="text-sm text-gray-500">😅 无法继续拼单</p>
+              <p className="text-xs text-gray-400 mt-1">所有邻居都已参与，没有可拼的人选了</p>
+            </div>
           )}
         </div>
 
