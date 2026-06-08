@@ -48,7 +48,7 @@ function SkeletonTable() {
 }
 
 export default function Stats() {
-  const { statsMap, statsLoading, fetchStats } = useStore()
+  const { statsMap, statsLoadingMap, fetchStats } = useStore()
   const [activeStatus, setActiveStatus] = useState('')
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function Stats() {
 
   const cacheKey = activeStatus || 'all'
   const stats = statsMap[cacheKey]
-  const loading = statsLoading && !stats
+  const loading = statsLoadingMap[cacheKey] && !stats
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">

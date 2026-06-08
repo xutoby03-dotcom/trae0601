@@ -11,7 +11,7 @@ interface Store {
   items: Item[]
   filters: ItemFilters
   statsMap: Record<string, Stats>
-  statsLoading: boolean
+  statsLoadingMap: Record<string, boolean>
   currentItem: (Item & { priceRecords: PriceRecord[] }) | null
   priceRecords: PriceRecord[]
   bargains: BargainOffer[]
@@ -39,7 +39,7 @@ export const useStore = create<Store>((set, get) => ({
   items: [],
   filters: defaultFilters,
   statsMap: {},
-  statsLoading: false,
+  statsLoadingMap: {},
   currentItem: null,
   priceRecords: [],
   bargains: [],
@@ -93,18 +93,18 @@ export const useStore = create<Store>((set, get) => ({
   fetchStats: async (status?: string) => {
     const key = status || 'all'
     if (get().statsMap[key]) return
-    set({ statsLoading: true })
+    set((state) => ({ statsLoadingMap: { ...state.statsLoadingMap, [key]: true } }))
     try {
       const query = status ? `?status=${status}` : ''
       const res = await fetch(`/api/stats${query}`)
       const json: ApiResponse<Stats> = await res.json()
       set((state) => ({
         statsMap: { ...state.statsMap, [key]: json.data },
-        statsLoading: false,
+        statsLoadingMap: { ...state.statsLoadingMap, [key]: false },
       }))
     } catch (error) {
       console.error(error)
-      set({ statsLoading: false })
+      set((state) => ({ statsLoadingMap: { ...state.statsLoadingMap, [key]: false } }))
     }
   },
 
