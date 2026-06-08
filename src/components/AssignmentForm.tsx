@@ -33,6 +33,7 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
   const [estimatedHours, setEstimatedHours] = useState(assignment?.estimatedHours || 2);
   const [submitMethod, setSubmitMethod] = useState(assignment?.submitMethod || '');
   const [attachmentUrl, setAttachmentUrl] = useState(assignment?.attachmentUrl || '');
+  const [manualProgress, setManualProgress] = useState(assignment?.progress ?? 0);
   const [steps, setSteps] = useState<Omit<Step, 'id'>[]>(
     assignment?.steps
       ? assignment.steps.map(({ id, ...rest }) => rest)
@@ -59,6 +60,10 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
     if (!title.trim() || !courseId || !deadline) return;
 
     const stepsData = steps.map((s, i) => ({ ...s, id: generateStepId(), order: i }));
+    const hasSteps = stepsData.length > 0;
+    const progress = hasSteps
+      ? Math.round((stepsData.filter((s) => s.completed).length / stepsData.length) * 100)
+      : manualProgress;
 
     const data = {
       title: title.trim(),
@@ -67,7 +72,7 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
       estimatedHours,
       submitMethod,
       attachmentUrl,
-      progress: 0,
+      progress,
       status: 'in_progress' as const,
       steps: stepsData,
     };
@@ -175,6 +180,30 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
               placeholder="https://..."
               className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-radar-cyan/50 focus:ring-1 focus:ring-radar-cyan/20 transition-colors"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5">完成进度</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={steps.length > 0 ? Math.round((steps.filter((s) => s.completed).length / steps.length) * 100) : manualProgress}
+                onChange={(e) => steps.length === 0 && setManualProgress(Number(e.target.value))}
+                disabled={steps.length > 0}
+                className="flex-1 h-2 rounded-full appearance-none bg-slate-700/50 accent-radar-cyan disabled:accent-slate-500 cursor-pointer disabled:cursor-not-allowed"
+              />
+              <span className="text-sm font-medium text-radar-cyan w-10 text-right">
+                {steps.length > 0
+                  ? `${Math.round((steps.filter((s) => s.completed).length / steps.length) * 100)}%`
+                  : `${manualProgress}%`}
+              </span>
+            </div>
+            {steps.length > 0 && (
+              <p className="text-[10px] text-slate-500 mt-1">有步骤时进度按勾选自动计算</p>
+            )}
           </div>
 
           <div>

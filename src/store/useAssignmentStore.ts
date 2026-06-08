@@ -65,8 +65,10 @@ export const useAssignmentStore = create<AssignmentStore>()(
       addAssignment: (assignment) =>
         set((state) => {
           const id = generateId();
-          const progress = computeProgressFromSteps(assignment.steps);
-          const status = computeStatus(assignment.deadline, progress || assignment.progress);
+          const progress = assignment.steps.length > 0
+            ? computeProgressFromSteps(assignment.steps)
+            : assignment.progress;
+          const status = computeStatus(assignment.deadline, progress);
           return {
             assignments: [
               ...state.assignments,
@@ -80,7 +82,7 @@ export const useAssignmentStore = create<AssignmentStore>()(
           assignments: state.assignments.map((a) => {
             if (a.id !== id) return a;
             const updated = { ...a, ...data };
-            if (data.steps) {
+            if (data.steps && data.steps.length > 0) {
               updated.progress = computeProgressFromSteps(data.steps);
             }
             updated.status = computeStatus(updated.deadline, updated.progress);
