@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { loadCareTasks, completeTask, loadPlants } from '../utils/storage'
 import { CareTask } from '../types'
-import { format, startOfDay, addDays, isSameDay, parseISO, isAfter, isWithinInterval } from 'date-fns'
+import { format, startOfWeek, endOfWeek, addDays, isSameDay, parseISO, isAfter, isWithinInterval } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 
 type CareType = 'water' | 'fertilize' | 'repot'
@@ -80,8 +80,8 @@ export default function CalendarView() {
     })
   }, [tasks, filterPlant, filterType])
 
-  const weekStart = startOfDay(new Date())
-  const weekEnd = addDays(weekStart, 6)
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
 
   const weekDays = (() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -98,7 +98,7 @@ export default function CalendarView() {
     if (onlyThisWeek) {
       list = list.filter(t => {
         if (!t.completedDate) return false
-        return isWithinInterval(parseISO(t.completedDate), { start: weekStart, end: addDays(weekEnd, 1) })
+        return isWithinInterval(parseISO(t.completedDate), { start: weekStart, end: weekEnd })
       })
     }
     return list
