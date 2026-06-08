@@ -27,6 +27,10 @@ interface WalkStore {
   getStats: () => RouteStats
 }
 
+function needsBackfill(r: { totalMinutes?: number; totalDistance?: number; totalBudget?: number }): boolean {
+  return r.totalMinutes === undefined || r.totalDistance === undefined || r.totalBudget === undefined
+}
+
 function loadSavedRoutes(): WalkRoute[] {
   try {
     const data = localStorage.getItem('walk-routes')
@@ -34,12 +38,14 @@ function loadSavedRoutes(): WalkRoute[] {
     const routes: WalkRoute[] = JSON.parse(data)
     let dirty = false
     const fixed = routes.map((r) => {
-      if (r.totalMinutes !== undefined) return r
+      if (!needsBackfill(r)) return r
       dirty = true
       const places = r.placeIds
         .map((id) => allPlaces.find((p) => p.id === id))
         .filter((p): p is Place => p !== undefined)
-      if (places.length === 0) return r
+      if (places.length === 0) {
+        return { ...r, totalMinutes: r.totalMinutes ?? 0, totalDistance: r.totalDistance ?? 0, totalBudget: r.totalBudget ?? 0 }
+      }
       const stats = computeStats(places, '10:00')
       return { ...r, totalMinutes: stats.totalMinutes, totalDistance: stats.totalDistance, totalBudget: stats.totalBudget }
     })
