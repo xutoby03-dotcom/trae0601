@@ -1,10 +1,8 @@
-import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useCallback } from 'react'
 import { loadCareTasks, completeTask } from '../utils/storage'
 import { CareTask } from '../types'
-import { format, startOfDay, addDays, isSameDay, parseISO, isBefore, isAfter } from 'date-fns'
+import { format, startOfDay, addDays, isSameDay, parseISO, isAfter } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { useState } from 'react'
 
 const TYPE_CONFIG = {
   water: { icon: '💧', label: '浇水', color: 'var(--blue-500)', bg: 'var(--blue-50)' },
@@ -53,15 +51,13 @@ function TaskRow({ task, onDone }: { task: CareTask; onDone: () => void }) {
 }
 
 export default function CalendarView() {
-  const [, setTick] = useState(0)
-  const refresh = () => setTick(t => t + 1)
+  const [tasks, setTasks] = useState<CareTask[]>(() => loadCareTasks())
+  const refresh = useCallback(() => setTasks(loadCareTasks()), [])
 
-  const tasks = useMemo(() => loadCareTasks(), [])
-
-  const weekDays = useMemo(() => {
+  const weekDays = (() => {
     const today = startOfDay(new Date())
     return Array.from({ length: 7 }, (_, i) => addDays(today, i))
-  }, [])
+  })()
 
   return (
     <div>
@@ -75,10 +71,7 @@ export default function CalendarView() {
       }}>
         {weekDays.map(day => {
           const dayTasks = tasks.filter(t => isSameDay(parseISO(t.scheduledDate), day))
-          const pendingTasks = dayTasks.filter(t => !t.completed)
-          const completedTasks = dayTasks.filter(t => t.completed)
           const isToday = isSameDay(day, new Date())
-          const isPast = isBefore(day, startOfDay(new Date()))
 
           return (
             <div key={day.toISOString()} style={{
@@ -102,7 +95,7 @@ export default function CalendarView() {
                 <div style={{
                   fontSize: 20,
                   fontWeight: 700,
-                  color: isToday ? 'var(--green-600)' : isPast ? 'var(--gray-400)' : 'var(--gray-700)',
+                  color: isToday ? 'var(--green-600)' : 'var(--gray-700)',
                 }}>
                   {format(day, 'd')}
                 </div>
