@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Plus, ChevronDown, ChevronRight, AlertTriangle, Box, Grid3X3, ShoppingBag, Database } from 'lucide-react'
+import { Search, Plus, ChevronDown, ChevronRight, AlertTriangle, Box, Grid3X3, ShoppingBag, Database, TrendingUp, Clock, Flame, Snowflake } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import type { Category, StorageType } from '@/types'
 import { CATEGORIES, STORAGE_TYPES } from '@/types'
-import { formatPrice } from '@/utils/helpers'
+import { formatPrice, daysSince } from '@/utils/helpers'
 import { DEMO_MATERIALS, DEMO_PROJECTS, DEMO_PROJECT_MATERIALS, DEMO_USAGE_RECORDS } from '@/utils/demoData'
 
 export default function Home() {
   const navigate = useNavigate()
   const materials = useStore((s) => s.materials)
+  const usageRecords = useStore((s) => s.usageRecords)
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<Category | ''>('')
   const [colorFilter, setColorFilter] = useState('')
@@ -64,6 +65,47 @@ export default function Home() {
     })
   }
 
+  const topUsedMaterials = useMemo(() => {
+    const usageMap: Record<string, { totalQty: number; count: number }> = {}
+    usageRecords.forEach((r) => {
+      if (!usageMap[r.materialId]) usageMap[r.materialId] = { totalQty: 0, count: 0 }
+      usageMap[r.materialId].totalQty += r.quantity
+      usageMap[r.materialId].count += 1
+    })
+    return materials
+      .map((m) => ({
+        ...m,
+        totalUsedQty: usageMap[m.id]?.totalQty || 0,
+        usageCount: usageMap[m.id]?.count || 0,
+      }))
+      .filter((m) => m.totalUsedQty > 0)
+      .sort((a, b) => b.totalUsedQty - a.totalUsedQty || b.usageCount - a.usageCount)
+      .slice(0, 5)
+  }, [materials, usageRecords])
+
+  const maxUsedQty = useMemo(
+    () => Math.max(...topUsedMaterials.map((m) => m.totalUsedQty), 1),
+    [topUsedMaterials]
+  )
+
+  const idleMaterials = useMemo(() => {
+    const lastUsedMap: Record<string, string> = {}
+    usageRecords.forEach((r) => {
+      if (!lastUsedMap[r.materialId] || r.date > lastUsedMap[r.materialId]) {
+        lastUsedMap[r.materialId] = r.date
+      }
+    })
+    return materials
+      .map((m) => {
+        const lastUsed = lastUsedMap[m.id]
+        const idle = lastUsed ? daysSince(lastUsed) : daysSince(m.createdAt)
+        return { ...m, idleDays: idle, lastUsedDate: lastUsed || null }
+      })
+      .filter((m) => m.idleDays > 30)
+      .sort((a, b) => b.idleDays - a.idleDays)
+      .slice(0, 5)
+  }, [materials, usageRecords])
+
   const toggleSection = (type: StorageType) => {
     setExpandedSections((prev) => ({ ...prev, [type]: !prev[type] }))
   }
@@ -95,6 +137,94 @@ export default function Home() {
               </Link>
             ))}
           </div>
+        </div>
+      )}
+
+      {(topUsedMaterials.length > 0 || idleMaterials.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {topUsedMaterials.length > 0 && (
+            <div className="card space-y-3">
+              <div className="flex items-center gap-2">
+                <Flame className="w-5 h-5 text-caramel" />
+                <h3 className="font-serif font-semibold text-bark">常用材料排行</h3>
+              </div>
+              <div className="space-y-2">
+                {topUsedMaterials.map((m, idx) => (
+                  <Link
+                    key={m.id}
+                    to={`/material/${m.id}`}
+                    className="flex items-center gap-3 bg-parchment rounded-xl px-3 py-2 hover:shadow-craft-hover hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      idx === 0 ? 'bg-caramel text-white' : idx === 1 ? 'bg-sand text-bark' : idx === 2 ? 'bg-sand-light text-bark' : 'bg-parchment text-sand border border-sand-light'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <div
+                      className="w-5 h-5 rounded-md flex-shrink-0 shadow-sm border border-white/50"
+                      style={{ backgroundColor: m.colorHex }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-bark truncate">{m.name}</span>
+                        <span className="text-xs text-caramel font-medium flex-shrink-0 ml-2">
+                          {m.totalUsedQty} {m.unit}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-sand-light/60 rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full bg-caramel rounded-full transition-all duration-500"
+                          style={{ width: `${(m.totalUsedQty / maxUsedQty) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {idleMaterials.length > 0 && (
+            <div className="card space-y-3">
+              <div className="flex items-center gap-2">
+                <Snowflake className="w-5 h-5 text-clay" />
+                <h3 className="font-serif font-semibold text-bark">长期闲置材料</h3>
+              </div>
+              <div className="space-y-2">
+                {idleMaterials.map((m, idx) => (
+                  <Link
+                    key={m.id}
+                    to={`/material/${m.id}`}
+                    className="flex items-center gap-3 bg-parchment rounded-xl px-3 py-2 hover:shadow-craft-hover hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+                      m.idleDays > 60 ? 'bg-clay-light text-clay' : 'bg-sand-light text-caramel-dark'
+                    }`}>
+                      <Clock className="w-3.5 h-3.5" />
+                    </span>
+                    <div
+                      className="w-5 h-5 rounded-md flex-shrink-0 shadow-sm border border-white/50"
+                      style={{ backgroundColor: m.colorHex }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-bark truncate">{m.name}</span>
+                        <span className={`text-xs font-medium flex-shrink-0 ml-2 ${m.idleDays > 60 ? 'text-clay' : 'text-caramel'}`}>
+                          {m.idleDays} 天未用
+                        </span>
+                      </div>
+                      <p className="text-xs text-sand mt-0.5">
+                        {m.lastUsedDate
+                          ? `最后使用于 ${new Date(m.lastUsedDate).toLocaleDateString('zh-CN')}`
+                          : `入库后从未使用`
+                        }
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
