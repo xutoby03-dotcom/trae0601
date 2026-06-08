@@ -244,27 +244,36 @@ export default function Home() {
             </div>
             <div className="flex-1 flex items-center gap-2 overflow-x-auto min-w-0">
               {selectedProperties.map((p) => (
-                <button
+                <span
                   key={p.id}
-                  onClick={() => toggleCompare(p.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-700 text-sm text-[#F5F5F4] hover:bg-stone-600 transition-colors shrink-0"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-700 text-sm text-[#F5F5F4] shrink-0"
                 >
                   {p.community}
-                  <X size={12} className="text-[#78716C]" />
-                </button>
+                  <button
+                    onClick={() => toggleCompare(p.id)}
+                    className="ml-0.5 p-0.5 rounded hover:bg-stone-500 transition-colors"
+                    aria-label={`移除${p.community}`}
+                  >
+                    <X size={12} className="text-[#78716C]" />
+                  </button>
+                </span>
               ))}
             </div>
-            <Link
-              to="/compare"
-              className={cn(
-                'shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                compareIds.length >= 2
-                  ? 'bg-[#F97316] hover:bg-[#EA580C] text-white'
-                  : 'bg-stone-700 text-stone-400 pointer-events-none'
-              )}
-            >
-              开始对比
-            </Link>
+            {compareIds.length >= 2 ? (
+              <Link
+                to="/compare"
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[#F97316] hover:bg-[#EA580C] text-white transition-colors"
+              >
+                开始对比
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-stone-700 text-stone-500 cursor-not-allowed"
+              >
+                开始对比
+              </button>
+            )}
           </div>
         </div>
       )}
