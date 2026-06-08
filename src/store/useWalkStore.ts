@@ -30,7 +30,21 @@ interface WalkStore {
 function loadSavedRoutes(): WalkRoute[] {
   try {
     const data = localStorage.getItem('walk-routes')
-    return data ? JSON.parse(data) : []
+    if (!data) return []
+    const routes: WalkRoute[] = JSON.parse(data)
+    let dirty = false
+    const fixed = routes.map((r) => {
+      if (r.totalMinutes !== undefined) return r
+      dirty = true
+      const places = r.placeIds
+        .map((id) => allPlaces.find((p) => p.id === id))
+        .filter((p): p is Place => p !== undefined)
+      if (places.length === 0) return r
+      const stats = computeStats(places, '10:00')
+      return { ...r, totalMinutes: stats.totalMinutes, totalDistance: stats.totalDistance, totalBudget: stats.totalBudget }
+    })
+    if (dirty) localStorage.setItem('walk-routes', JSON.stringify(fixed))
+    return fixed
   } catch {
     return []
   }

@@ -178,13 +178,13 @@ export default function RouteManager() {
                 </div>
                 <div className="flex gap-2 mt-1">
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-50 text-[#F97316]">
-                    ⏱ {formatMinutes(route.totalMinutes ?? 0)}
+                    ⏱ {formatMinutes(route.totalMinutes)}
                   </span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-500">
-                    🚶 {(route.totalDistance ?? 0).toFixed(1)}km
+                    🚶 {route.totalDistance.toFixed(1)}km
                   </span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500">
-                    💰 ¥{route.totalBudget ?? 0}
+                    💰 ¥{route.totalBudget}
                   </span>
                 </div>
               </button>
