@@ -42,26 +42,24 @@ export function checkEssentials(
   const essentials = ESSENTIAL_ITEMS[scene]
   if (!essentials.length) return []
 
-  const selectedCategories = new Set<EquipmentCategory>()
   const selectedNames = new Set<string>()
 
   selectedEquipment.forEach((se) => {
     const eq = allEquipment.find((e) => e.id === se.equipmentId)
     if (eq) {
-      selectedCategories.add(eq.category)
       selectedNames.add(eq.name)
     }
   })
 
   return essentials.map((item) => {
-    const categorySatisfied = selectedCategories.has(item.category)
+    const keyword = item.label.replace(/\/.*/, '')
     const nameSatisfied = Array.from(selectedNames).some((name) =>
-      name.includes(item.label.replace(/\/.*/, ''))
+      name.includes(keyword)
     )
     return {
       category: item.category,
       label: item.label,
-      satisfied: categorySatisfied || nameSatisfied,
+      satisfied: nameSatisfied,
     }
   })
 }

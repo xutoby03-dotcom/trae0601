@@ -34,8 +34,9 @@ const BorrowModal: React.FC<BorrowModalProps> = ({ isOpen, onClose, equipment })
       plannedReturnDate,
       hasDeposit,
       depositAmount: hasDeposit ? depositAmount : 0,
+      quantity,
       status: 'borrowed',
-      notes: String(quantity),
+      notes,
     })
 
     setBorrowerName('')

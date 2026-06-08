@@ -24,6 +24,7 @@ export interface BorrowRecord {
   actualReturnDate: string | null
   hasDeposit: boolean
   depositAmount: number
+  quantity: number
   status: BorrowStatus
   isIntact: boolean | null
   damageDescription: string

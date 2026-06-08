@@ -222,7 +222,7 @@ export const useStore = create<CampingStore>()(
           }
           const eq = state.equipment.find((e) => e.id === record.equipmentId)
           if (!eq) return state
-          const borrowedQty = record.notes && parseInt(record.notes) ? parseInt(record.notes) : 1
+          const borrowedQty = record.quantity
           return {
             borrowRecords: [...state.borrowRecords, newRecord],
             equipment: state.equipment.map((e) =>
@@ -241,7 +241,7 @@ export const useStore = create<CampingStore>()(
         set((state) => {
           const record = state.borrowRecords.find((r) => r.id === recordId)
           if (!record) return state
-          const returnedQty = 1
+          const returnedQty = record.quantity
           return {
             borrowRecords: state.borrowRecords.map((r) =>
               r.id === recordId

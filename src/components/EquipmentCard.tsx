@@ -1,5 +1,6 @@
 import { useDraggable } from '@dnd-kit/core'
-import { Package, GripVertical } from 'lucide-react'
+import { Package, GripVertical, Calendar } from 'lucide-react'
+import { useStore } from '../store/useStore'
 import type { Equipment } from '../store/types'
 import { CATEGORY_LABELS, STATUS_LABELS } from '../store/types'
 import { cn } from '../lib/utils'
@@ -19,6 +20,11 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `equipment-${equipment.id}`,
   })
+  const borrowRecords = useStore((s) => s.borrowRecords)
+
+  const activeBorrow = borrowRecords.find(
+    (r) => r.equipmentId === equipment.id && r.status !== 'returned'
+  )
 
   return (
     <div
@@ -51,9 +57,20 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
         <div className="text-xs text-gray-600">
           可用 {equipment.availableQuantity} / 共 {equipment.totalQuantity}
         </div>
-        <span className={cn(STATUS_BADGE_CLASS[equipment.status])}>
-          {STATUS_LABELS[equipment.status]}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={cn(STATUS_BADGE_CLASS[equipment.status])}>
+            {STATUS_LABELS[equipment.status]}
+          </span>
+          {activeBorrow && (
+            <span className={cn(
+              'camp-badge',
+              activeBorrow.status === 'overdue' ? 'bg-sunset-50 text-sunset-500' : 'bg-earth-50 text-earth-500'
+            )}>
+              <Calendar className="w-3 h-3 mr-1" />
+              {activeBorrow.status === 'overdue' ? '逾期' : '归还'} {activeBorrow.plannedReturnDate}
+            </span>
+          )}
+        </div>
         {equipment.notes && (
           <div className="truncate text-xs text-gray-500">{equipment.notes}</div>
         )}
