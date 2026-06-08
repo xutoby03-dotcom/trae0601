@@ -24,7 +24,10 @@ export default function Home() {
     }
     const read = filtered
       .filter(b => b.readCount > 0)
-      .sort((a, b) => new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime())
+      .sort((a, b) => {
+        if (b.readCount !== a.readCount) return b.readCount - a.readCount
+        return new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime()
+      })
     const unread = filtered.filter(b => b.readCount === 0)
     return [...read, ...unread]
   }, [books, selectedTheme, sessions])
