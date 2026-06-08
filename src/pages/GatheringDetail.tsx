@@ -618,10 +618,10 @@ function PrepTimeline({ gatheringId }: { gatheringId: string }) {
     return total
   }
 
-  const sorted = [...tasks].sort((a, b) => {
-    const diff = parseTimeToMinutes(b.timeBefore) - parseTimeToMinutes(a.timeBefore)
-    return diff !== 0 ? diff : a.id.localeCompare(b.id)
-  })
+  const sorted = [...tasks].map((t, i) => ({ task: t, index: i })).sort((a, b) => {
+    const diff = parseTimeToMinutes(b.task.timeBefore) - parseTimeToMinutes(a.task.timeBefore)
+    return diff !== 0 ? diff : a.index - b.index
+  }).map((entry) => entry.task)
   const completedCount = tasks.filter((t) => t.completed).length
 
   const handleSubmit = () => {
