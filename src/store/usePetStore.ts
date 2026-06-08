@@ -55,7 +55,8 @@ const FEEDING_SLOTS: { taskType: TaskType; timeSlot: TimeSlot; deadlineMinutes: 
   { taskType: 'breakfast', timeSlot: 'morning', deadlineMinutes: 120 },
   { taskType: 'lunch', timeSlot: 'noon', deadlineMinutes: 120 },
   { taskType: 'dinner', timeSlot: 'evening', deadlineMinutes: 120 },
-  { taskType: 'dinner', timeSlot: 'night', deadlineMinutes: 90 },
+  { taskType: 'supper', timeSlot: 'night', deadlineMinutes: 90 },
+  { taskType: 'snack', timeSlot: 'night', deadlineMinutes: 60 },
 ]
 
 const NON_FEEDING_RULES: { taskType: TaskType; timeSlot: TimeSlot; petType?: Pet['type']; deadlineMinutes: number }[] = [
@@ -336,7 +337,7 @@ export const usePetStore = create<PetStore>()(
         let totalMedicineTasks = 0
         let completedMedicineTasks = 0
 
-        const isFeedingType = (t: TaskType) => t === 'breakfast' || t === 'lunch' || t === 'dinner'
+        const isFeedingType = (t: TaskType) => t === 'breakfast' || t === 'lunch' || t === 'dinner' || t === 'supper' || t === 'snack'
 
         for (let i = 6; i >= 0; i--) {
           const d = new Date(end)
