@@ -428,29 +428,17 @@ export default function BeanDetail() {
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <Link
                         to={`/brews/${brew.id}/edit`}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#6F4E37',
-                          padding: 4,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
+                        aria-label="编辑冲煮记录"
+                        title="编辑冲煮记录"
+                        className="inline-flex items-center justify-center rounded-lg p-2 text-[#6F4E37] hover:bg-[#F5E6D3] active:bg-[#E8D5BC] transition-colors"
                       >
                         <Pencil size={15} />
                       </Link>
                       <button
                         onClick={() => handleDeleteBrew(brew.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#D4A574',
-                          padding: 4,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
+                        aria-label="删除冲煮记录"
+                        title="删除冲煮记录"
+                        className="inline-flex items-center justify-center rounded-lg p-2 text-[#D4A574] hover:bg-[#F5E6D3] hover:text-[#6F4E37] active:bg-[#E8D5BC] transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
