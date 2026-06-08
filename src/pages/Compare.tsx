@@ -101,13 +101,14 @@ export default function Compare() {
                 const checked = compareIds.includes(p.id)
                 const disabled = !checked && compareIds.length >= 3
                 return (
-                  <label
+                  <div
                     key={p.id}
+                    onClick={() => !disabled && handleToggle(p.id)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
-                      checked
-                        ? 'bg-zinc-800 border-zinc-600'
-                        : disabled
+                      disabled
                         ? 'bg-zinc-900/50 border-zinc-800 opacity-50 cursor-not-allowed'
+                        : checked
+                        ? 'bg-zinc-800 border-zinc-600 cursor-pointer'
                         : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700 cursor-pointer'
                     }`}
                   >
@@ -120,7 +121,7 @@ export default function Compare() {
                     </span>
                     <span className="text-sm">{p.community}</span>
                     <span className="text-xs text-zinc-500 ml-auto">¥{p.rent}/月</span>
-                  </label>
+                  </div>
                 )
               })}
             </div>
@@ -290,7 +291,7 @@ export default function Compare() {
           </>
         )}
 
-        {selectedProps.length === 1 && (
+        {selectedProps.length < 2 && properties.length > 0 && (
           <p className="text-center text-zinc-500 text-sm py-8">请至少选择 2 套房源进行对比</p>
         )}
       </div>
