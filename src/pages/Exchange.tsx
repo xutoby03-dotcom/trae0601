@@ -1,14 +1,15 @@
 import React, { useState } from 'react'
 import { useCollectionStore, useExchangeMatches } from '@/store/useCollectionStore'
 import { RARITY_CONFIG } from '@/types'
-import type { Rarity } from '@/types'
+import type { Rarity, ExchangeRequest } from '@/types'
 import { Plus, Heart, HeartOff, Search, ArrowRightLeft, Star, X, Package, Sparkles } from 'lucide-react'
 
-type TabKey = 'publish' | 'marketplace' | 'matches'
+type TabKey = 'publish' | 'marketplace' | 'saved' | 'matches'
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'publish', label: '发布需求', icon: <Plus size={16} /> },
   { key: 'marketplace', label: '需求广场', icon: <Search size={16} /> },
+  { key: 'saved', label: '已收藏', icon: <Heart size={16} /> },
   { key: 'matches', label: '匹配提示', icon: <Star size={16} /> },
 ]
 
@@ -313,6 +314,89 @@ function MarketplaceTab() {
   )
 }
 
+function SavedTab() {
+  const exchangeRequests = useCollectionStore((s) => s.exchangeRequests)
+  const savedExchanges = useCollectionStore((s) => s.savedExchanges)
+  const removeSavedExchange = useCollectionStore((s) => s.removeSavedExchange)
+
+  const savedRequests = savedExchanges
+    .map((se) => {
+      const req = exchangeRequests.find((r) => r.id === se.exchangeRequestId)
+      return req ? { ...req, savedAt: se.savedAt } : null
+    })
+    .filter(Boolean) as (ExchangeRequest & { savedAt: string })[]
+
+  if (savedRequests.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <Heart size={48} className="text-amber-primary/20 mb-4" />
+        <p className="text-amber-light/40 text-center">还没有收藏的需求</p>
+        <p className="text-amber-light/30 text-sm mt-1">在需求广场点击 ♡ 收藏感兴趣的需求</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {savedRequests.map((req) => {
+        const rarityCfg = RARITY_CONFIG[req.haveRarity]
+
+        return (
+          <div key={req.id} className="card-collectible rounded-xl p-4">
+            <div className="flex gap-3">
+              {req.havePhoto ? (
+                <img
+                  src={req.havePhoto}
+                  alt={req.haveCharacterName}
+                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-amber-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Package size={24} className="text-amber-primary/30" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-amber-light font-bold text-sm truncate">
+                      我有 <span className="text-amber-primary">{req.haveCharacterName}</span>
+                      <span className="text-amber-light/40 text-xs ml-1">({req.haveSeriesName})</span>
+                    </p>
+                    <p className="text-amber-light font-bold text-sm truncate mt-0.5">
+                      想换 <span className="text-amber-primary">{req.wantCharacterName}</span>
+                      <span className="text-amber-light/40 text-xs ml-1">({req.wantSeriesName})</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeSavedExchange(req.id)}
+                    className="flex-shrink-0 p-1.5 rounded-full hover:bg-red-400/10 transition-colors"
+                    title="取消收藏"
+                  >
+                    <Heart size={18} className="text-red-400 fill-red-400" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className={`badge-rarity-${req.haveRarity} text-xs font-semibold px-2 py-0.5 rounded-full`}>
+                    {rarityCfg.label}
+                  </span>
+                  {req.maxPriceDifference !== 0 && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-primary/10 text-amber-primary border border-amber-primary/20">
+                      补差价 ≤¥{Math.abs(req.maxPriceDifference)}
+                    </span>
+                  )}
+                </div>
+                {req.notes && (
+                  <p className="text-amber-light/40 text-xs mt-2 line-clamp-2">{req.notes}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function MatchesTab() {
   const matches = useExchangeMatches()
 
@@ -392,6 +476,7 @@ export default function Exchange() {
 
       {activeTab === 'publish' && <PublishTab />}
       {activeTab === 'marketplace' && <MarketplaceTab />}
+      {activeTab === 'saved' && <SavedTab />}
       {activeTab === 'matches' && <MatchesTab />}
     </div>
   )
