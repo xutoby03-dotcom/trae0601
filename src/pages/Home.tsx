@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, GitCompareArrows, Clock, Star, AlertTriangle, Home as HomeIcon, MapPin } from 'lucide-react'
+import { Plus, GitCompareArrows, Clock, AlertTriangle, Home as HomeIcon, X } from 'lucide-react'
 import { usePropertyStore } from '@/lib/store'
 import { calculateTotalScore, RISK_TAG_LABELS } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 
 export default function Home() {
   const [sortKey, setSortKey] = useState<SortKey>('score')
+  const [showLimitToast, setShowLimitToast] = useState(false)
   const navigate = useNavigate()
   const { properties, compareIds, toggleCompare } = usePropertyStore()
 
@@ -36,8 +37,27 @@ export default function Home() {
     })
   }, [properties, sortKey])
 
+  const selectedProperties = useMemo(
+    () => properties.filter((p) => compareIds.includes(p.id)),
+    [properties, compareIds]
+  )
+
+  const handleToggleCompare = (id: string) => {
+    if (!compareIds.includes(id) && compareIds.length >= 3) {
+      setShowLimitToast(true)
+      return
+    }
+    toggleCompare(id)
+  }
+
+  useEffect(() => {
+    if (!showLimitToast) return
+    const timer = setTimeout(() => setShowLimitToast(false), 2000)
+    return () => clearTimeout(timer)
+  }, [showLimitToast])
+
   return (
-    <div className="min-h-screen bg-[#1C1917] text-[#F5F5F4]">
+    <div className={cn('min-h-screen bg-[#1C1917] text-[#F5F5F4]', compareIds.length > 0 && 'pb-20')}>
       <header className="sticky top-0 z-10 bg-[#1C1917]/95 backdrop-blur border-b border-stone-800">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -52,18 +72,6 @@ export default function Home() {
               >
                 <Plus size={16} />
                 添加房源
-              </Link>
-              <Link
-                to="/compare"
-                className={cn(
-                  'inline-flex items-center gap-1.5 border px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  compareIds.length >= 2
-                    ? 'border-[#F97316] text-[#F97316] hover:bg-[#F97316]/10'
-                    : 'border-stone-700 text-stone-600 pointer-events-none'
-                )}
-              >
-                <GitCompareArrows size={16} />
-                对比房源
               </Link>
             </div>
           </div>
@@ -133,7 +141,7 @@ export default function Home() {
                       <div
                         onClick={(e) => {
                           e.stopPropagation()
-                          toggleCompare(property.id)
+                          handleToggleCompare(property.id)
                         }}
                         className="absolute top-3 right-3"
                       >
@@ -226,6 +234,47 @@ export default function Home() {
           </>
         )}
       </main>
+
+      {compareIds.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-[#292524]/95 backdrop-blur border-t border-stone-700">
+          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-[#A8A29E] shrink-0">
+              <GitCompareArrows size={16} />
+              <span>已选 <strong className="text-[#F5F5F4]">{compareIds.length}</strong>/3 套</span>
+            </div>
+            <div className="flex-1 flex items-center gap-2 overflow-x-auto min-w-0">
+              {selectedProperties.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => toggleCompare(p.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-700 text-sm text-[#F5F5F4] hover:bg-stone-600 transition-colors shrink-0"
+                >
+                  {p.community}
+                  <X size={12} className="text-[#78716C]" />
+                </button>
+              ))}
+            </div>
+            <Link
+              to="/compare"
+              className={cn(
+                'shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                compareIds.length >= 2
+                  ? 'bg-[#F97316] hover:bg-[#EA580C] text-white'
+                  : 'bg-stone-700 text-stone-400 pointer-events-none'
+              )}
+            >
+              开始对比
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {showLimitToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#292524] border border-stone-700 shadow-xl text-sm">
+          <AlertTriangle size={16} className="text-[#F97316]" />
+          <span className="text-[#F5F5F4]">最多选择 3 套房源对比</span>
+        </div>
+      )}
     </div>
   )
 }
