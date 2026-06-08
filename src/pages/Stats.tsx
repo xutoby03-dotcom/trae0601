@@ -1,8 +1,15 @@
 import { useKitchenStore } from '@/store/kitchenStore'
-import { Trophy, AlertTriangle, Activity, TrendingUp } from 'lucide-react'
+import { Trophy, AlertTriangle, Activity, TrendingUp, ClipboardList } from 'lucide-react'
+
+const FREQUENCY_LABEL: Record<string, string> = {
+  daily: '每天',
+  weekly: '每周',
+  biweekly: '每两周',
+  monthly: '每月',
+}
 
 export default function Stats() {
-  const { getMemberStats, getDelayedTasks, getKitchenHealthScore, tasks, completionRecords } = useKitchenStore()
+  const { getMemberStats, getDelayedTasks, getKitchenHealthScore, getMemberById, tasks, completionRecords, members } = useKitchenStore()
 
   const memberStats = getMemberStats()
   const delayedTasks = getDelayedTasks()
@@ -164,6 +171,56 @@ export default function Stats() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="bg-white/5 rounded-xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-4">
+              <ClipboardList size={18} className="text-sky-400" />
+              <h2 className="font-handwritten text-xl chalk-text font-bold">当前派工</h2>
+            </div>
+
+            {tasks.length === 0 ? (
+              <p className="chalk-text opacity-50 text-center py-8 font-handwritten text-lg">暂无任务</p>
+            ) : (
+              <div className="space-y-2">
+                {tasks.map((task) => {
+                  const member = task.assignedMemberId ? getMemberById(task.assignedMemberId) : undefined
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2.5"
+                    >
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${task.isCompleted ? 'bg-green-400' : 'bg-amber-400'}`} />
+                      <span className={`chalk-text text-sm truncate flex-1 ${task.isCompleted ? 'line-through opacity-50' : ''}`}>
+                        {task.name}
+                      </span>
+                      <span className="chalk-text opacity-40 text-xs flex-shrink-0">
+                        {FREQUENCY_LABEL[task.frequency]}
+                      </span>
+                      {task.rotationType === 'auto-assign' && (
+                        <span className="text-sky-400/80 text-[10px] bg-sky-400/10 px-1.5 py-0.5 rounded flex-shrink-0">自动</span>
+                      )}
+                      {member ? (
+                        <span className="flex items-center gap-1.5 flex-shrink-0">
+                          <span
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
+                            style={{ backgroundColor: member.color + '40', border: `2px solid ${member.color}` }}
+                          >
+                            {member.avatar}
+                          </span>
+                          <span className="chalk-text text-xs">{member.name}</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-gray-500/30 border-2 border-gray-500">🤖</span>
+                          <span className="chalk-text text-xs opacity-50">待分配</span>
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           <div className="bg-white/5 rounded-xl p-5 border border-white/10">
