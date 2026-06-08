@@ -18,7 +18,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState<SortKey>('score')
   const [showLimitToast, setShowLimitToast] = useState(false)
   const navigate = useNavigate()
-  const { properties, compareIds, toggleCompare } = usePropertyStore()
+  const { properties, compareIds, toggleCompare, clearCompare } = usePropertyStore()
 
   const sorted = useMemo(() => {
     return [...properties].sort((a, b) => {
@@ -242,7 +242,7 @@ export default function Home() {
               <GitCompareArrows size={16} />
               <span>已选 <strong className="text-[#F5F5F4]">{compareIds.length}</strong>/3 套</span>
             </div>
-            <div className="flex-1 flex items-center gap-2 overflow-x-auto min-w-0">
+            <div className="flex-1 flex items-center gap-2 overflow-x-auto min-w-0 scrollbar-none">
               {selectedProperties.map((p) => (
                 <span
                   key={p.id}
@@ -259,6 +259,12 @@ export default function Home() {
                 </span>
               ))}
             </div>
+            <button
+              onClick={clearCompare}
+              className="shrink-0 text-xs text-[#78716C] hover:text-[#F5F5F4] transition-colors px-2 py-1"
+            >
+              清空
+            </button>
             {compareIds.length >= 2 ? (
               <Link
                 to="/compare"
