@@ -99,7 +99,7 @@ const ExceptionPage: React.FC = () => {
             <Text className={styles.formLabel}>请描述遇到的具体问题</Text>
             <Textarea
               className={styles.formTextarea}
-              placeholder="例如：输入取件码638291后，屏幕提示"取件码不存在或已过期"，可能是快递被提前取走了..."
+              placeholder={'例如：输入取件码638291后，屏幕提示\u201C取件码不存在或已过期\u201D，可能是快递被提前取走了...'}
               value={description}
               onInput={(e) => setDescription(e.detail.value)}
               maxlength={500}
