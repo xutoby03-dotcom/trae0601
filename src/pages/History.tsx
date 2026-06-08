@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, Calendar, TrendingUp } from 'lucide-react'
+import { BarChart3, Calendar, Flame, TrendingUp } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useActivityStore } from '@/store/activityStore'
 
@@ -13,6 +13,9 @@ export default function History() {
   }, [fetchHistoryStats, fetchActivityTypeStats])
 
   const statsActivities = historyStats?.activities ?? []
+  const topType = activityTypeStats.length > 0
+    ? activityTypeStats.reduce((a, b) => a.participantCount > b.participantCount ? a : b)
+    : null
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
@@ -21,7 +24,7 @@ export default function History() {
         <p className="mt-1 text-sm text-zinc-500">查看过往活动统计与出勤数据</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-dark-border bg-dark-surface p-5">
           <div className="flex items-center gap-2 text-zinc-500">
             <Calendar className="h-4 w-4" />
@@ -40,14 +43,28 @@ export default function History() {
               : '-'}
           </p>
         </div>
+        <div className="col-span-2 rounded-xl border border-dark-border bg-dark-surface p-5 sm:col-span-1">
+          <div className="flex items-center gap-2 text-zinc-500">
+            <Flame className="h-4 w-4" />
+            <span className="text-xs">最受欢迎类型</span>
+          </div>
+          {topType ? (
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-2xl font-bold text-accent">{topType.type}</p>
+              <span className="text-xs text-zinc-500">{topType.participantCount} 人参与</span>
+            </div>
+          ) : (
+            <p className="mt-2 text-2xl font-bold text-zinc-600">-</p>
+          )}
+        </div>
       </div>
 
-      {activityTypeStats.length > 0 && (
-        <div className="mt-6">
-          <div className="mb-3 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-accent" />
-            <h2 className="font-heading text-lg font-semibold text-white">活动类型参与人数</h2>
-          </div>
+      <div className="mt-6">
+        <div className="mb-3 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-accent" />
+          <h2 className="font-heading text-lg font-semibold text-white">活动类型参与人数</h2>
+        </div>
+        {activityTypeStats.length > 0 ? (
           <div className="rounded-xl border border-dark-border bg-dark-surface p-4">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={activityTypeStats} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -73,8 +90,12 @@ export default function History() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="rounded-xl border border-dashed border-dark-border py-12 text-center text-sm text-zinc-600">
+            暂无活动类型数据，结束活动后将在此展示
+          </div>
+        )}
+      </div>
 
       <div className="mt-6">
         <h2 className="mb-3 font-heading text-lg font-semibold text-white">已结束活动列表</h2>
