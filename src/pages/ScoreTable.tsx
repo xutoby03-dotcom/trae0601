@@ -102,6 +102,9 @@ export default function ScoreTable() {
                 {game.scoringRule === "bonus_per_round" && game.bonusPointsAmount > 0 && (
                   <span className="text-[#2ECC71] ml-1">· 每回合领先者+{game.bonusPointsAmount}分</span>
                 )}
+                {game.scoringRule === "elimination" && game.eliminationThreshold > 0 && (
+                  <span className="text-[#8B2500] ml-1">· 达{game.eliminationThreshold}分淘汰</span>
+                )}
                 {game.isFinished && <span className="text-[#2ECC71] ml-2">已结束</span>}
               </p>
             </div>

@@ -71,6 +71,20 @@ function applyBonusToRound(round: Round, bonusPointsAmount: number): { playerId:
   }));
 }
 
+function syncElimination(game: Game): Game {
+  if (game.scoringRule !== "elimination" || game.eliminationThreshold <= 0) return game;
+  return {
+    ...game,
+    players: game.players.map((p) => {
+      const total = game.rounds.reduce((sum, round) => {
+        const entry = round.scores.find((s) => s.playerId === p.id);
+        return sum + (entry ? entry.score + entry.bonusPoints : 0);
+      }, 0);
+      return { ...p, isEliminated: total >= game.eliminationThreshold };
+    }),
+  };
+}
+
 function updateRoundScores(game: Game, roundNumber: number, updater: (scores: ScoreEntry[]) => ScoreEntry[]): Game {
   return {
     ...game,
@@ -116,9 +130,9 @@ export const useGameStore = create<GameState>()(
         set({
           undoStack: [...undoStack, { type: "SET_SCORE", payload: { roundNumber, playerId, oldScore, newScore: score } }],
           redoStack: [],
-          game: updateRoundScores(game, roundNumber, (scores) =>
+          game: syncElimination(updateRoundScores(game, roundNumber, (scores) =>
             scores.map((s) => (s.playerId === playerId ? { ...s, score } : s))
-          ),
+          )),
         });
       },
 
@@ -139,7 +153,7 @@ export const useGameStore = create<GameState>()(
         set({
           undoStack: [...undoStack, { type: "LOCK_ROUND", payload: { roundNumber, previousBonuses, calculatedBonuses: finalCalculatedBonuses } }],
           redoStack: [],
-          game: {
+          game: syncElimination({
             ...game,
             rounds: game.rounds.map((r) =>
               r.roundNumber === roundNumber
@@ -153,7 +167,7 @@ export const useGameStore = create<GameState>()(
                   }
                 : r
             ),
-          },
+          }),
         });
       },
 
@@ -169,7 +183,7 @@ export const useGameStore = create<GameState>()(
         set({
           undoStack: [...undoStack, { type: "UNLOCK_ROUND", payload: { roundNumber, previousBonuses } }],
           redoStack: [],
-          game: {
+          game: syncElimination({
             ...game,
             rounds: game.rounds.map((r) =>
               r.roundNumber === roundNumber
@@ -182,7 +196,7 @@ export const useGameStore = create<GameState>()(
                   }
                 : r
             ),
-          },
+          }),
         });
       },
 
@@ -235,16 +249,16 @@ export const useGameStore = create<GameState>()(
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: updateRoundScores(game, roundNumber, (scores) =>
+            game: syncElimination(updateRoundScores(game, roundNumber, (scores) =>
               scores.map((s) => (s.playerId === playerId ? { ...s, score: oldScore } : s))
-            ),
+            )),
           });
         } else if (action.type === "LOCK_ROUND") {
           const { roundNumber, previousBonuses } = action.payload;
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: {
+            game: syncElimination({
               ...game,
               rounds: game.rounds.map((r) =>
                 r.roundNumber === roundNumber
@@ -258,14 +272,14 @@ export const useGameStore = create<GameState>()(
                     }
                   : r
               ),
-            },
+            }),
           });
         } else if (action.type === "UNLOCK_ROUND") {
           const { roundNumber, previousBonuses } = action.payload;
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: {
+            game: syncElimination({
               ...game,
               rounds: game.rounds.map((r) =>
                 r.roundNumber === roundNumber
@@ -279,7 +293,7 @@ export const useGameStore = create<GameState>()(
                     }
                   : r
               ),
-            },
+            }),
           });
         } else if (action.type === "ELIMINATE_PLAYER") {
           const { playerId } = action.payload;
@@ -306,16 +320,16 @@ export const useGameStore = create<GameState>()(
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: updateRoundScores(game, roundNumber, (scores) =>
+            game: syncElimination(updateRoundScores(game, roundNumber, (scores) =>
               scores.map((s) => (s.playerId === playerId ? { ...s, score: newScore } : s))
-            ),
+            )),
           });
         } else if (action.type === "LOCK_ROUND") {
           const { roundNumber, calculatedBonuses } = action.payload;
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: {
+            game: syncElimination({
               ...game,
               rounds: game.rounds.map((r) =>
                 r.roundNumber === roundNumber
@@ -329,14 +343,14 @@ export const useGameStore = create<GameState>()(
                     }
                   : r
               ),
-            },
+            }),
           });
         } else if (action.type === "UNLOCK_ROUND") {
           const { roundNumber } = action.payload;
           set({
             undoStack: newUndoStack,
             redoStack: newRedoStack,
-            game: {
+            game: syncElimination({
               ...game,
               rounds: game.rounds.map((r) =>
                 r.roundNumber === roundNumber
@@ -347,7 +361,7 @@ export const useGameStore = create<GameState>()(
                     }
                   : r
               ),
-            },
+            }),
           });
         } else if (action.type === "ELIMINATE_PLAYER") {
           const { playerId } = action.payload;
