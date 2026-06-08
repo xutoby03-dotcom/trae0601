@@ -12,6 +12,7 @@ import {
 } from '@/types'
 import Timeline from '@/components/Timeline'
 import TasteRating from '@/components/TasteRating'
+import PhotoCompareBar from '@/components/PhotoCompareBar'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import {
@@ -65,6 +66,9 @@ export default function PlantDetail() {
   const filteredObs = filterType === 'all'
     ? plantObs
     : plantObs.filter((o) => o.type === filterType)
+
+  const obsWithPhotos = filteredObs.filter((o) => o.photos.length > 0)
+  const obsWithoutPhotos = filteredObs.filter((o) => o.photos.length === 0)
 
   const totalHarvestWeight = plantHarvests.reduce((sum, h) => sum + h.weightGrams, 0)
   const avgRating = plantHarvests.length > 0
@@ -322,7 +326,31 @@ export default function PlantDetail() {
               </button>
             ))}
           </div>
-          <Timeline observations={filteredObs} />
+
+          {obsWithPhotos.length > 0 && (
+            <PhotoCompareBar observations={obsWithPhotos} />
+          )}
+
+          {obsWithoutPhotos.length > 0 && (
+            <div>
+              {obsWithPhotos.length > 0 && (
+                <div className="flex items-center gap-2 mb-3 mt-2">
+                  <div className="h-px flex-1 bg-earth-200" />
+                  <span className="text-[10px] font-serif text-earth-400">纯文字记录</span>
+                  <div className="h-px flex-1 bg-earth-200" />
+                </div>
+              )}
+              <Timeline observations={obsWithoutPhotos} />
+            </div>
+          )}
+
+          {obsWithoutPhotos.length === 0 && obsWithPhotos.length === 0 && (
+            <div className="text-center py-12">
+              <span className="text-4xl">📝</span>
+              <p className="font-serif text-earth-500 mt-3">还没有观察记录</p>
+              <p className="font-serif text-earth-400 text-sm mt-1">开始记录植物的成长吧</p>
+            </div>
+          )}
         </>
       )}
 
