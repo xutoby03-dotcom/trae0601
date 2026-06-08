@@ -56,15 +56,21 @@ export default function Export() {
     lines.push(`总花费：¥${totalCost.toFixed(0)}`)
     lines.push('')
     lines.push('分类统计：')
-    tagCosts.forEach(({ tag, cost }) => {
-      lines.push(`  ${tag}：¥${cost.toFixed(0)}`)
+    tagCosts.forEach(({ tag, cost, config }) => {
+      lines.push(`  ${config.emoji} ${tag}：¥${cost.toFixed(0)}`)
     })
     lines.push('')
     lines.push('每日花费：')
     dailyCosts.forEach(({ date, location, cost }) => {
       lines.push(`  ${formatDate(date)} ${location}：¥${cost.toFixed(0)}`)
     })
-    navigator.clipboard.writeText(lines.join('\n'))
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${trip.title}-花费小结.txt`
+    a.click()
+    URL.revokeObjectURL(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -203,7 +209,7 @@ export default function Export() {
           className="btn-primary w-full flex items-center justify-center gap-2 py-3"
         >
           {copied ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-          {copied ? '已复制到剪贴板' : '导出花费小结'}
+          {copied ? '下载完成' : '导出花费小结'}
         </button>
       </div>
     </div>
