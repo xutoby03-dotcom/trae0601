@@ -45,7 +45,7 @@ const OrdersPage: React.FC = () => {
   };
 
   const renderCode = (req: PickupRequest) => {
-    if (req.status === 'delivered' || req.status === 'completed') {
+    if (req.status === 'delivered' || req.status === 'completed' || req.status === 'exception_resolved') {
       return <Text className={styles.codeHidden}>已隐藏</Text>;
     }
     if (req.status === 'accepted' || req.status === 'picked_up') {

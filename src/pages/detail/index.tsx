@@ -20,6 +20,7 @@ const statusEmoji: Record<string, string> = {
   delivered: '✅',
   completed: '🎉',
   exception: '⚠️',
+  exception_resolved: '🚫',
 };
 const statusText: Record<string, string> = {
   pending: '等待邻居帮忙',
@@ -28,11 +29,12 @@ const statusText: Record<string, string> = {
   delivered: '快递已送达',
   completed: '任务完成',
   exception: '出现异常',
+  exception_resolved: '异常已处理',
 };
 
 const DetailPage: React.FC = () => {
   const router = useRouter();
-  const { getRequestById, acceptRequest, markPickedUp, markDelivered, isExpiring } = usePickupStore();
+  const { getRequestById, acceptRequest, markPickedUp, markDelivered, isExpiring, updatePickupCode, resolveException } = usePickupStore();
 
   const request = useMemo(() => {
     const id = router.params.id || '';
@@ -85,6 +87,38 @@ const DetailPage: React.FC = () => {
 
   const handleException = () => {
     Taro.navigateTo({ url: `/pages/exception/index?id=${request.id}` });
+  };
+
+  const handleUpdateCode = () => {
+    Taro.showModal({
+      title: '重新提供取件码',
+      editable: true,
+      placeholderText: '请输入新的取件码',
+      confirmText: '确认修改',
+      cancelText: '取消',
+      success: (res: { confirm: boolean; content?: string }) => {
+        if (res.confirm && res.content && res.content.trim()) {
+          updatePickupCode(request.id, res.content.trim());
+          Taro.showToast({ title: '取件码已更新', icon: 'success' });
+        }
+      },
+    });
+  };
+
+  const handleResolveException = () => {
+    Taro.showModal({
+      title: '确认取消',
+      content: '取消后该订单将标记为异常已处理，确认取消？',
+      confirmText: '确认取消',
+      confirmColor: '#F53F3F',
+      cancelText: '再想想',
+      success: (res: { confirm: boolean }) => {
+        if (res.confirm) {
+          resolveException(request.id);
+          Taro.showToast({ title: '已取消', icon: 'success' });
+        }
+      },
+    });
   };
 
   return (
@@ -290,6 +324,14 @@ const DetailPage: React.FC = () => {
                 {request.exceptionDesc && (
                   <Text className={styles.exceptionDesc}>{request.exceptionDesc}</Text>
                 )}
+              </View>
+            </View>
+            <View className={styles.exceptionActions}>
+              <View className={classnames(styles.actionBtn, styles.secondaryBtn)} onClick={handleUpdateCode}>
+                <Text className={styles.actionText}>🔑 重新给码</Text>
+              </View>
+              <View className={classnames(styles.actionBtn, styles.dangerBtn)} onClick={handleResolveException}>
+                <Text className={styles.actionText}>取消这单</Text>
               </View>
             </View>
           </View>

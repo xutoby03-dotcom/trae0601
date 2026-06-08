@@ -56,3 +56,10 @@
     color: $color-error;
   }
 }
+
+.exceptionResolved {
+  background: rgba($color-text-tertiary, 0.1);
+  .tagText {
+    color: $color-text-tertiary;
+  }
+}

@@ -314,6 +314,16 @@
   line-height: $line-height-normal;
 }
 
+.exceptionActions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+}
+
+.exceptionActions .actionBtn {
+  flex: 1;
+}
+
 .bottomBar {
   position: fixed;
   bottom: 0;

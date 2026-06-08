@@ -15,6 +15,7 @@ const statusConfig: Record<RequestStatus, { label: string; type: string }> = {
   delivered: { label: '已送达', type: 'delivered' },
   completed: { label: '已完成', type: 'completed' },
   exception: { label: '异常', type: 'exception' },
+  exception_resolved: { label: '异常已处理', type: 'exceptionResolved' },
 };
 
 const StatusTag: React.FC<StatusTagProps> = ({ status }) => {

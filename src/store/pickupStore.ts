@@ -18,6 +18,8 @@ interface PickupState {
   markPickedUp: (id: string) => void;
   markDelivered: (id: string, photoUrl: string) => void;
   reportException: (id: string, type: ExceptionType, desc: string) => void;
+  updatePickupCode: (id: string, newCode: string) => void;
+  resolveException: (id: string) => void;
 
   getFilteredRequests: () => PickupRequest[];
   getMyOrders: () => PickupRequest[];
@@ -112,6 +114,35 @@ export const usePickupStore = create<PickupState>((set, get) => ({
     }));
   },
 
+  updatePickupCode: (id, newCode) => {
+    set((state) => ({
+      requests: state.requests.map((req) =>
+        req.id === id
+          ? {
+              ...req,
+              pickupCode: newCode,
+              status: 'accepted' as RequestStatus,
+              exceptionType: undefined,
+              exceptionDesc: undefined,
+            }
+          : req
+      ),
+    }));
+  },
+
+  resolveException: (id) => {
+    set((state) => ({
+      requests: state.requests.map((req) =>
+        req.id === id
+          ? {
+              ...req,
+              status: 'exception_resolved' as RequestStatus,
+            }
+          : req
+      ),
+    }));
+  },
+
   isExpiring: (deadline) => {
     const deadlineTime = dayjs(deadline);
     const now = dayjs();
@@ -163,7 +194,7 @@ export const usePickupStore = create<PickupState>((set, get) => ({
     if (orderTab === 'active') {
       return myOrders.filter((req) => ['accepted', 'picked_up'].includes(req.status));
     }
-    return myOrders.filter((req) => ['delivered', 'completed', 'exception'].includes(req.status));
+    return myOrders.filter((req) => ['delivered', 'completed', 'exception', 'exception_resolved'].includes(req.status));
   },
 
   getMyPublished: () => {

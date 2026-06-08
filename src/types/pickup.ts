@@ -1,6 +1,6 @@
 export type PackageSize = 'small' | 'medium' | 'large';
 
-export type RequestStatus = 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'completed' | 'exception';
+export type RequestStatus = 'pending' | 'accepted' | 'picked_up' | 'delivered' | 'completed' | 'exception' | 'exception_resolved';
 
 export type ExceptionType = 'code_invalid' | 'door_stuck' | 'package_damaged' | 'other';
 
