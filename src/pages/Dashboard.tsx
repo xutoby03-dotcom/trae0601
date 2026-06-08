@@ -206,7 +206,10 @@ export default function Dashboard() {
                 CATEGORIES.forEach((cat) => {
                   const raw = editValues[cat]
                   if (raw !== undefined && raw !== '') {
-                    updateBudget(cat, Number(raw))
+                    const val = Number(raw)
+                    if (Number.isFinite(val)) {
+                      updateBudget(cat, val)
+                    }
                   }
                 })
                 setShowBudgetEditor(false)
