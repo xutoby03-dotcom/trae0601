@@ -592,7 +592,36 @@ function PrepTimeline({ gatheringId }: { gatheringId: string }) {
   const tasks = useMemo(() => allTasks.filter((t) => t.gatheringId === gatheringId), [allTasks, gatheringId])
   const participants = useMemo(() => allParticipants.filter((p) => p.gatheringId === gatheringId), [allParticipants, gatheringId])
 
-  const sorted = [...tasks].sort((a, b) => a.timeBefore.localeCompare(b.timeBefore))
+  function parseTimeToMinutes(timeBefore: string): number {
+    const str = timeBefore.replace(/提前/g, '')
+    let total = 0
+    let remaining = str
+    const dayMatch = remaining.match(/(\d+)\s*天/)
+    if (dayMatch) {
+      total += parseInt(dayMatch[1], 10) * 1440
+      remaining = remaining.replace(/\d+\s*天/, '')
+    }
+    const hourMatch = remaining.match(/(\d+)\s*小?时/)
+    if (hourMatch) {
+      total += parseInt(hourMatch[1], 10) * 60
+      remaining = remaining.replace(/\d+\s*小?时/, '')
+    }
+    const minMatch = remaining.match(/(\d+)\s*分[钟]?/)
+    if (minMatch) {
+      total += parseInt(minMatch[1], 10)
+      remaining = remaining.replace(/\d+\s*分[钟]?/, '')
+    }
+    if (total === 0) {
+      const numMatch = str.match(/(\d+)/)
+      if (numMatch) total = parseInt(numMatch[1], 10)
+    }
+    return total
+  }
+
+  const sorted = [...tasks].sort((a, b) => {
+    const diff = parseTimeToMinutes(b.timeBefore) - parseTimeToMinutes(a.timeBefore)
+    return diff !== 0 ? diff : a.id.localeCompare(b.id)
+  })
   const completedCount = tasks.filter((t) => t.completed).length
 
   const handleSubmit = () => {
