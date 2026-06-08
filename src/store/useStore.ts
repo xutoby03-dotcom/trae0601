@@ -20,7 +20,7 @@ interface Store {
   resetFilters: () => void
   fetchItems: () => Promise<void>
   fetchItem: (id: number) => Promise<void>
-  fetchStats: () => Promise<void>
+  fetchStats: (status?: string) => Promise<void>
   fetchPriceRecords: (id: number) => Promise<void>
   fetchBargains: (id: number) => Promise<void>
   createItem: (item: Record<string, unknown>) => Promise<Item | null>
@@ -88,9 +88,10 @@ export const useStore = create<Store>((set, get) => ({
     }
   },
 
-  fetchStats: async () => {
+  fetchStats: async (status?: string) => {
     try {
-      const res = await fetch('/api/stats')
+      const query = status ? `?status=${status}` : ''
+      const res = await fetch(`/api/stats${query}`)
       const json: ApiResponse<Stats> = await res.json()
       set({ stats: json.data })
     } catch (error) {

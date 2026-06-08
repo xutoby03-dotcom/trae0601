@@ -58,6 +58,14 @@ export interface Stats {
   totalSoldCount: number
   recycledSpaceEstimate: number
   categoryBreakdown: { category: string; count: number; value: number }[]
+  categoryDetails: {
+    category: string
+    listedValue: number
+    listedCount: number
+    soldValue: number
+    soldCount: number
+    spaceEstimate: number
+  }[]
 }
 
 export interface EstimateResult {

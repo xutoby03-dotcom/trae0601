@@ -1,6 +1,12 @@
-import { useEffect } from 'react'
-import { Package, ShoppingCart, Home, PieChart } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Package, ShoppingCart, Home, PieChart, Table2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
+
+const statusTabs = [
+  { key: '', label: '全部' },
+  { key: 'selling', label: '在售' },
+  { key: 'sold', label: '已售' },
+] as const
 
 function SkeletonCard() {
   return (
@@ -32,10 +38,11 @@ function SkeletonBar() {
 
 export default function Stats() {
   const { stats, fetchStats } = useStore()
+  const [activeStatus, setActiveStatus] = useState('')
 
   useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
+    fetchStats(activeStatus || undefined)
+  }, [activeStatus, fetchStats])
 
   if (!stats) {
     return (
@@ -57,6 +64,22 @@ export default function Stats() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-8">
+      <div className="flex items-center gap-2">
+        {statusTabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveStatus(tab.key)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              activeStatus === tab.key
+                ? 'bg-brand-500 text-white shadow-sm'
+                : 'bg-white text-carbon-400 hover:text-carbon-600 border border-carbon-200'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl p-6 shadow-sm relative">
           <div className="flex justify-between items-start">
@@ -84,6 +107,47 @@ export default function Stats() {
             </div>
             <Home className="w-10 h-10 text-carbon-200" />
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-carbon-700 mb-5">
+          <Table2 className="w-5 h-5 text-brand-500" />
+          分类明细
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-carbon-100">
+                <th className="text-left py-3 px-4 text-carbon-400 font-medium">分类</th>
+                <th className="text-right py-3 px-4 text-carbon-400 font-medium">挂售件数</th>
+                <th className="text-right py-3 px-4 text-carbon-400 font-medium">挂售金额</th>
+                <th className="text-right py-3 px-4 text-carbon-400 font-medium">已售件数</th>
+                <th className="text-right py-3 px-4 text-carbon-400 font-medium">已售金额</th>
+                <th className="text-right py-3 px-4 text-carbon-400 font-medium">回收空间</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.categoryDetails.map((cat) => (
+                <tr key={cat.category} className="border-b border-carbon-50 hover:bg-carbon-50/50 transition">
+                  <td className="py-3 px-4 font-medium text-carbon-700">{cat.category}</td>
+                  <td className="py-3 px-4 text-right text-carbon-600">{cat.listedCount}</td>
+                  <td className="py-3 px-4 text-right text-carbon-600">¥{cat.listedValue.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right text-carbon-600">{cat.soldCount}</td>
+                  <td className="py-3 px-4 text-right text-carbon-600">¥{cat.soldValue.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right text-carbon-600">{cat.spaceEstimate} m³</td>
+                </tr>
+              ))}
+              <tr className="bg-carbon-50/50 font-semibold text-carbon-700">
+                <td className="py-3 px-4">合计</td>
+                <td className="py-3 px-4 text-right">{stats.totalListedCount}</td>
+                <td className="py-3 px-4 text-right">¥{stats.totalListedValue.toLocaleString()}</td>
+                <td className="py-3 px-4 text-right">{stats.totalSoldCount}</td>
+                <td className="py-3 px-4 text-right">¥{stats.totalSoldValue.toLocaleString()}</td>
+                <td className="py-3 px-4 text-right">{stats.recycledSpaceEstimate} m³</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
