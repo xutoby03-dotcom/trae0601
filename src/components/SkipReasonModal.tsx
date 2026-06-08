@@ -25,7 +25,8 @@ export default function SkipReasonModal({ open, onClose, onSkip }: SkipReasonMod
   const [selected, setSelected] = useState<SkipReason | null>(null);
   const [customText, setCustomText] = useState('');
   const { addSkipRecord } = useCompletionStore();
-  const { currentTask, reset } = useLotteryStore();
+  const { currentTask, addSkippedId } = useLotteryStore();
+  const setLotteryState = useLotteryStore.setState;
   const { getFilteredTasks } = useTaskStore();
   const { filter } = useFilterStore();
 
@@ -36,10 +37,10 @@ export default function SkipReasonModal({ open, onClose, onSkip }: SkipReasonMod
       selected,
       selected === 'other' ? customText : undefined
     );
-    reset();
+    addSkippedId(currentTask.id);
+    setLotteryState({ currentTask: null, isDrawing: false, hasDrawn: false });
     setSelected(null);
     setCustomText('');
-    onClose();
     onSkip();
   };
 
@@ -57,6 +58,7 @@ export default function SkipReasonModal({ open, onClose, onSkip }: SkipReasonMod
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           <div className="absolute inset-0 bg-black/30" onClick={handleClose} />
 
@@ -64,8 +66,8 @@ export default function SkipReasonModal({ open, onClose, onSkip }: SkipReasonMod
             className="relative bg-[#FFF8F0] rounded-3xl p-6 w-full max-w-sm shadow-2xl border-2 border-[#FF6B35]/20"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 400 }}
           >
             <button
               onClick={handleClose}

@@ -11,7 +11,7 @@ import SkipReasonModal from '@/components/SkipReasonModal';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { currentTask, hasDrawn, reset, draw } = useLotteryStore();
+  const { currentTask, hasDrawn, skippedTaskIds, noMoreTasks, reset, draw, setNoMoreTasks } = useLotteryStore();
   const { getFilteredTasks } = useTaskStore();
   const { filter } = useFilterStore();
   const [skipModalOpen, setSkipModalOpen] = useState(false);
@@ -25,10 +25,15 @@ export default function Home() {
   };
 
   const handleSkip = () => {
-    const filteredTasks = getFilteredTasks(filter);
+    const filteredTasks = getFilteredTasks(filter).filter(
+      (t) => !skippedTaskIds.includes(t.id)
+    );
     if (filteredTasks.length > 0) {
       draw(filteredTasks);
+    } else {
+      setNoMoreTasks(true);
     }
+    setSkipModalOpen(false);
   };
 
   const handleReDraw = () => {
@@ -65,7 +70,30 @@ export default function Home() {
 
         <div className="flex items-center justify-center min-h-[400px]">
           <AnimatePresence mode="wait">
-            {!hasDrawn ? (
+            {noMoreTasks ? (
+              <motion.div
+                key="no-more"
+                initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                className="w-full bg-white rounded-3xl p-8 shadow-xl border-2 border-[#4ECDC4]/20 text-center"
+              >
+                <span className="text-5xl block mb-4">🤷</span>
+                <h2 className="text-lg font-bold text-gray-700 mb-2">
+                  当前筛选下没有更多任务了
+                </h2>
+                <p className="text-sm text-gray-400 mb-6">
+                  试试调整筛选条件，或者重新抽签
+                </p>
+                <button
+                  onClick={handleReDraw}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#FF6B35] to-[#FF8F5E] text-white font-bold shadow-lg hover:shadow-xl transition-all active:scale-95"
+                >
+                  重新抽签
+                </button>
+              </motion.div>
+            ) : !hasDrawn ? (
               <LotteryBox key="box" onDrawn={handleDrawn} />
             ) : currentTask ? (
               <motion.div
