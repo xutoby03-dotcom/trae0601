@@ -28,9 +28,12 @@ export default function Stats() {
     tools.forEach(t => {
       toolCountMap[t.ownerId] = (toolCountMap[t.ownerId] || 0) + 1
     })
+    const effectiveBorrowStatuses = new Set(['active', 'returned', 'overdue'])
     const borrowCountMap: Record<string, number> = {}
     borrowRecords.forEach(r => {
-      borrowCountMap[r.ownerId] = (borrowCountMap[r.ownerId] || 0) + 1
+      if (effectiveBorrowStatuses.has(r.status)) {
+        borrowCountMap[r.ownerId] = (borrowCountMap[r.ownerId] || 0) + 1
+      }
     })
     return users
       .map(u => ({
@@ -167,7 +170,7 @@ export default function Stats() {
                   : 'bg-wood-50 text-wood-600 border-wood-200 hover:border-grass-400'
               }`}
             >
-              {onlyWithBorrows ? '只看有借出记录' : '全部贡献者'}
+              {onlyWithBorrows ? '只看真借出' : '全部贡献者'}
             </button>
           </div>
           <div className="space-y-2">
