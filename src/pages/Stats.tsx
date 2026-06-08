@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGardenStore } from '@/store/useGardenStore'
 import { VARIETY_PRESETS, OBSERVATION_TYPE_CONFIG, type ObservationType } from '@/types'
@@ -8,12 +8,13 @@ import {
 } from 'recharts'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Trophy, AlertTriangle, TrendingUp, Leaf, Bug } from 'lucide-react'
+import { Trophy, AlertTriangle, TrendingUp, Leaf, Bug, X } from 'lucide-react'
 
 const CHART_COLORS = ['#4A7C59', '#D4573B', '#E8854A', '#7FB5C4', '#C4A35A', '#98D4A8', '#D06A2E', '#5A9DB0']
 
 export default function Stats() {
   const { plants, observations, harvests } = useGardenStore()
+  const [varietyFilter, setVarietyFilter] = useState<string | null>(null)
 
   const varietyStats = useMemo(() => {
     const map = new Map<string, {
@@ -73,6 +74,7 @@ export default function Stats() {
 
   const problemPlants = useMemo(() => {
     return plants
+      .filter((p) => !varietyFilter || p.variety === varietyFilter)
       .map((p) => {
         const plantObs = observations.filter((o) => o.plantId === p.id)
         const issues = plantObs.filter((o) => ['pest', 'yellowing'].includes(o.type))
@@ -84,7 +86,7 @@ export default function Stats() {
       })
       .filter((p) => p.issueCount > 0)
       .sort((a, b) => b.issueCount - a.issueCount)
-  }, [plants, observations])
+  }, [plants, observations, varietyFilter])
 
   const monthlyHarvest = useMemo(() => {
     const months = Array.from({ length: 12 }, (_, i) => i)
@@ -152,37 +154,56 @@ export default function Stats() {
               <p className="font-serif text-earth-400 text-center py-4">暂无品种数据</p>
             ) : (
               <div className="space-y-3">
-                {varietyStats.map((vs, i) => (
-                  <div key={vs.variety} className="flex items-center gap-3 p-3 rounded-xl bg-earth-50/50">
-                    <span className="text-2xl">{vs.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-serif font-semibold text-earth-800">{vs.variety}</span>
-                        <span className="text-xs font-serif text-earth-500">
-                          {vs.count}盆 · {vs.harvests}次收获 · {vs.totalWeight}g
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="h-2 rounded-full bg-earth-200 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${vs.healthyRate >= 80 ? 'bg-leaf-400' : vs.healthyRate >= 50 ? 'bg-earth-400' : 'bg-tomato-400'}`}
-                              style={{ width: `${Math.max(vs.healthyRate, 5)}%` }}
-                            />
+                {varietyStats.map((vs, i) => {
+                  const isFiltered = varietyFilter === vs.variety
+                  return (
+                    <button
+                      key={vs.variety}
+                      type="button"
+                      onClick={() => setVarietyFilter(isFiltered ? null : vs.variety)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 ${
+                        isFiltered
+                          ? 'bg-leaf-50 ring-2 ring-leaf-300 shadow-md'
+                          : 'bg-earth-50/50 hover:bg-earth-100/60'
+                      }`}
+                    >
+                      <span className="text-2xl">{vs.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-serif font-semibold text-earth-800">{vs.variety}</span>
+                            {isFiltered && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full bg-leaf-400 text-white text-[9px] font-serif">
+                                已筛选
+                              </span>
+                            )}
                           </div>
-                          <span className="text-[10px] font-serif text-earth-500">
-                            好养率 {vs.healthyRate}% · {vs.count - vs.plantsWithIssues}/{vs.count}盆无异常
+                          <span className="text-xs font-serif text-earth-500">
+                            {vs.count}盆 · {vs.harvests}次收获 · {vs.totalWeight}g
                           </span>
                         </div>
-                        {vs.issueCount > 0 && (
-                          <span className="tag bg-tomato-50 text-tomato-600 border border-tomato-200">
-                            ⚠️ {vs.issueCount}次异常
-                          </span>
-                        )}
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <div className="h-2 rounded-full bg-earth-200 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${vs.healthyRate >= 80 ? 'bg-leaf-400' : vs.healthyRate >= 50 ? 'bg-earth-400' : 'bg-tomato-400'}`}
+                                style={{ width: `${Math.max(vs.healthyRate, 5)}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-serif text-earth-500">
+                              好养率 {vs.healthyRate}% · {vs.count - vs.plantsWithIssues}/{vs.count}盆无异常
+                            </span>
+                          </div>
+                          {vs.issueCount > 0 && (
+                            <span className="tag bg-tomato-50 text-tomato-600 border border-tomato-200">
+                              ⚠️ {vs.issueCount}次异常
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -238,49 +259,71 @@ export default function Stats() {
             </div>
           )}
 
-          {problemPlants.length > 0 && (
+          {(problemPlants.length > 0 || varietyFilter) && (
             <div className="card-paper p-5">
               <div className="tape-decoration pt-2">
-                <h3 className="font-handwriting text-lg text-earth-700 mb-4 flex items-center gap-2">
-                  <AlertTriangle size={18} className="text-tomato-500" />
-                  问题花盆排行
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-handwriting text-lg text-earth-700 flex items-center gap-2">
+                    <AlertTriangle size={18} className="text-tomato-500" />
+                    问题花盆排行
+                  </h3>
+                  {varietyFilter && (
+                    <button
+                      onClick={() => setVarietyFilter(null)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-earth-100 hover:bg-earth-200 text-earth-600 text-xs font-serif transition-colors"
+                    >
+                      <X size={12} />
+                      清除筛选: {varietyFilter}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                {problemPlants.map((p, i) => (
-                  <Link
-                    key={p.id}
-                    to={`/plant/${p.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-tomato-50/50 transition-colors"
-                  >
-                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-mono font-bold ${
-                      i === 0 ? 'bg-tomato-500 text-white' :
-                      i === 1 ? 'bg-chili-400 text-white' :
-                      i === 2 ? 'bg-earth-400 text-white' :
-                      'bg-earth-200 text-earth-600'
-                    }`}>
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="font-serif font-semibold text-earth-800">{p.name}</span>
-                      <span className="text-xs font-serif text-earth-500 ml-2">({p.variety})</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {Object.entries(p.issueTypes).map(([type, count]) => {
-                        const config = OBSERVATION_TYPE_CONFIG[type as ObservationType]
-                        return (
-                          <span key={type} className="tag bg-tomato-50 text-tomato-600 border border-tomato-200">
-                            {config?.emoji || '⚠️'} {count}
-                          </span>
-                        )
-                      })}
-                    </div>
-                    <span className="font-mono text-lg font-bold text-tomato-500">
-                      {p.issueCount}
-                    </span>
-                  </Link>
-                ))}
-              </div>
+
+              {varietyFilter && problemPlants.length === 0 ? (
+                <div className="text-center py-8">
+                  <span className="text-4xl">🌿</span>
+                  <p className="font-serif text-earth-500 mt-3">
+                    「{varietyFilter}」暂时没有异常花盆
+                  </p>
+                  <p className="font-serif text-earth-400 text-sm mt-1">这个品种长得不错！</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {problemPlants.map((p, i) => (
+                    <Link
+                      key={p.id}
+                      to={`/plant/${p.id}`}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-tomato-50/50 transition-colors"
+                    >
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-mono font-bold ${
+                        i === 0 ? 'bg-tomato-500 text-white' :
+                        i === 1 ? 'bg-chili-400 text-white' :
+                        i === 2 ? 'bg-earth-400 text-white' :
+                        'bg-earth-200 text-earth-600'
+                      }`}>
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-serif font-semibold text-earth-800">{p.name}</span>
+                        <span className="text-xs font-serif text-earth-500 ml-2">({p.variety})</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {Object.entries(p.issueTypes).map(([type, count]) => {
+                          const config = OBSERVATION_TYPE_CONFIG[type as ObservationType]
+                          return (
+                            <span key={type} className="tag bg-tomato-50 text-tomato-600 border border-tomato-200">
+                              {config?.emoji || '⚠️'} {count}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <span className="font-mono text-lg font-bold text-tomato-500">
+                        {p.issueCount}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
