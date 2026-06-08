@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Cat, Dog, Calendar, Hospital, ChevronRight } from 'lucide-react'
+import { Search, Filter, Cat, Dog, Calendar, Hospital, ChevronRight, XCircle, FileText } from 'lucide-react'
 import { usePetStore } from '@/store'
 import { RECORD_TYPE_CONFIG } from '@/types'
 import type { HealthRecordType } from '@/types'
@@ -19,6 +19,15 @@ export default function SearchPage() {
   const [selectedHospital, setSelectedHospital] = useState(ALL)
   const [selectedType, setSelectedType] = useState<HealthRecordType | typeof ALL>(ALL)
   const [searchText, setSearchText] = useState('')
+
+  const hasActiveFilter = selectedPet !== ALL || selectedHospital !== ALL || selectedType !== ALL || searchText.trim() !== ''
+
+  const clearFilters = () => {
+    setSelectedPet(ALL)
+    setSelectedHospital(ALL)
+    setSelectedType(ALL)
+    setSearchText('')
+  }
 
   const filteredRecords = useMemo(() => {
     return records
@@ -48,6 +57,18 @@ export default function SearchPage() {
 
   const typeKeys = Object.keys(RECORD_TYPE_CONFIG) as HealthRecordType[]
 
+  if (records.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
+        <div className="w-24 h-24 bg-warm-100 rounded-full flex items-center justify-center mb-4">
+          <FileText className="w-12 h-12 text-warm-300" />
+        </div>
+        <h2 className="font-serif text-xl font-semibold text-warm-800 mb-2">暂无记录</h2>
+        <p className="text-warm-400 text-sm text-center">先为宠物添加健康记录，再来这里查询</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5 animate-fade-in">
       <header>
@@ -61,13 +82,26 @@ export default function SearchPage() {
             placeholder="搜索记录、宠物、医院..."
             className="input-field pl-10"
           />
+          {searchText && (
+            <button onClick={() => setSearchText('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-300 hover:text-warm-500 transition-colors">
+              <XCircle className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </header>
 
       <section className="space-y-4">
-        <div className="flex items-center gap-2 text-warm-600">
-          <Filter className="w-4 h-4" />
-          <span className="text-sm font-medium">筛选条件</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-warm-600">
+            <Filter className="w-4 h-4" />
+            <span className="text-sm font-medium">筛选条件</span>
+          </div>
+          {hasActiveFilter && (
+            <button onClick={clearFilters} className="text-xs text-warm-400 hover:text-warm-600 flex items-center gap-1 transition-colors">
+              <XCircle className="w-3 h-3" />
+              清除筛选
+            </button>
+          )}
         </div>
 
         <div>
@@ -83,23 +117,29 @@ export default function SearchPage() {
             >
               {ALL}
             </button>
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => setSelectedPet(pet.id)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                  selectedPet === pet.id
-                    ? 'bg-warm-400 text-white shadow-sm'
-                    : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-                }`}
-              >
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: selectedPet === pet.id ? '#fff' : petColorMap[pet.id] }}
-                />
-                {pet.name}
-              </button>
-            ))}
+            {pets.map((pet) => {
+              const isCat = pet.species === 'cat'
+              return (
+                <button
+                  key={pet.id}
+                  onClick={() => setSelectedPet(pet.id)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    selectedPet === pet.id
+                      ? 'bg-warm-400 text-white shadow-sm'
+                      : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+                  }`}
+                >
+                  {pet.photo ? (
+                    <img src={pet.photo} alt={pet.name} className="w-4 h-4 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <span className="flex-shrink-0">
+                      {isCat ? <Cat className="w-3.5 h-3.5" /> : <Dog className="w-3.5 h-3.5" />}
+                    </span>
+                  )}
+                  {pet.name}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -221,9 +261,16 @@ export default function SearchPage() {
                         {config.label}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-warm-400">
-                      <Calendar className="w-3 h-3 flex-shrink-0" />
-                      <span>{record.date}</span>
+                    <div className="flex items-center gap-2 text-xs text-warm-400">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        {record.date}
+                      </span>
+                      {pet && (
+                        <span className="flex items-center gap-1 text-warm-500">
+                          · {pet.name}
+                        </span>
+                      )}
                     </div>
                   </div>
 
