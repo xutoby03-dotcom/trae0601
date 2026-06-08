@@ -19,31 +19,29 @@ export default function BlindDrawButton({ mood, timeSlot, onConsume }: Props) {
   const [drawnItem, setDrawnItem] = useState<MediaItem | null>(null)
   const [showSwapInput, setShowSwapInput] = useState(false)
   const [swapReason, setSwapReason] = useState('')
+  const [reasonError, setReasonError] = useState(false)
   const [isSpinning, setIsSpinning] = useState(false)
 
   const handleDraw = () => {
     setIsSpinning(true)
     setDrawnItem(null)
     setShowSwapInput(false)
+    setSwapReason('')
+    setReasonError(false)
 
     setTimeout(() => {
       const item = blindDraw(mood, timeSlot)
       setDrawnItem(item)
       setIsSpinning(false)
-
-      if (item) {
-        recordBlindDraw({
-          mediaId: item.id,
-          mood,
-          timeSlot,
-          accepted: true,
-        })
-      }
     }, 800)
   }
 
   const handleSwap = () => {
-    if (drawnItem && swapReason.trim()) {
+    if (!swapReason.trim()) {
+      setReasonError(true)
+      return
+    }
+    if (drawnItem) {
       recordBlindDraw({
         mediaId: drawnItem.id,
         mood,
@@ -53,12 +51,18 @@ export default function BlindDrawButton({ mood, timeSlot, onConsume }: Props) {
       })
     }
     setSwapReason('')
-    setShowSwapInput(false)
+    setReasonError(false)
     handleDraw()
   }
 
   const handleAccept = () => {
     if (drawnItem) {
+      recordBlindDraw({
+        mediaId: drawnItem.id,
+        mood,
+        timeSlot,
+        accepted: true,
+      })
       consumeItem(drawnItem.id, mood)
       setDrawnItem(null)
       onConsume()
@@ -149,14 +153,25 @@ export default function BlindDrawButton({ mood, timeSlot, onConsume }: Props) {
                   <MessageSquare size={12} />
                   <span>为什么不想看这个？</span>
                 </div>
+                {reasonError && (
+                  <p className="text-red-400/80 text-xs mb-2">得说个原因才能换哦～</p>
+                )}
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={swapReason}
-                    onChange={(e) => setSwapReason(e.target.value)}
+                    onChange={(e) => {
+                      setSwapReason(e.target.value)
+                      if (e.target.value.trim()) setReasonError(false)
+                    }}
                     onKeyDown={(e) => e.key === 'Enter' && handleSwap()}
                     placeholder="比如：看过了、没心情看这个类型..."
-                    className="flex-1 bg-slate-900/60 border border-slate-600/40 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/40"
+                    className={cn(
+                      'flex-1 bg-slate-900/60 border rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-600 focus:outline-none',
+                      reasonError
+                        ? 'border-red-500/50 focus:border-red-400/60'
+                        : 'border-slate-600/40 focus:border-amber-500/40'
+                    )}
                     autoFocus
                   />
                   <button
