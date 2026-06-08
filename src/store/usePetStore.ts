@@ -51,9 +51,14 @@ interface PetStore {
   }
 }
 
-const DEFAULT_TASK_RULES: { taskType: TaskType; timeSlot: TimeSlot; petType?: Pet['type']; deadlineMinutes: number }[] = [
+const FEEDING_SLOTS: { taskType: TaskType; timeSlot: TimeSlot; deadlineMinutes: number }[] = [
   { taskType: 'breakfast', timeSlot: 'morning', deadlineMinutes: 120 },
+  { taskType: 'lunch', timeSlot: 'noon', deadlineMinutes: 120 },
   { taskType: 'dinner', timeSlot: 'evening', deadlineMinutes: 120 },
+  { taskType: 'dinner', timeSlot: 'night', deadlineMinutes: 90 },
+]
+
+const NON_FEEDING_RULES: { taskType: TaskType; timeSlot: TimeSlot; petType?: Pet['type']; deadlineMinutes: number }[] = [
   { taskType: 'litter', timeSlot: 'evening', petType: 'cat', deadlineMinutes: 180 },
   { taskType: 'walk', timeSlot: 'morning', petType: 'dog', deadlineMinutes: 120 },
   { taskType: 'walk', timeSlot: 'evening', petType: 'dog', deadlineMinutes: 120 },
@@ -81,14 +86,22 @@ export const usePetStore = create<PetStore>()(
         }
         set((state) => {
           const newTemplates: TaskTemplate[] = []
-          for (const rule of DEFAULT_TASK_RULES) {
-            if (rule.petType && rule.petType !== pet.type) continue
-            if (rule.taskType === 'breakfast' && pet.medications) {
-              // medicine template created separately if pet has medications
-            }
-            if (rule.taskType === 'dinner' && pet.feedPerDay <= 1) continue
-            if (rule.taskType === 'medicine' && !pet.medications) continue
 
+          const feedCount = Math.min(pet.feedPerDay, FEEDING_SLOTS.length)
+          for (let i = 0; i < feedCount; i++) {
+            const slot = FEEDING_SLOTS[i]
+            newTemplates.push({
+              id: generateId(),
+              petId: pet.id,
+              taskType: slot.taskType,
+              timeSlot: slot.timeSlot,
+              deadlineMinutes: slot.deadlineMinutes,
+            })
+          }
+
+          for (const rule of NON_FEEDING_RULES) {
+            if (rule.petType && rule.petType !== pet.type) continue
+            if (rule.taskType === 'medicine' && !pet.medications) continue
             newTemplates.push({
               id: generateId(),
               petId: pet.id,
@@ -106,9 +119,55 @@ export const usePetStore = create<PetStore>()(
       },
 
       updatePet: (id, petData) => {
-        set((state) => ({
-          pets: state.pets.map((p) => (p.id === id ? { ...p, ...petData } : p)),
-        }))
+        set((state) => {
+          const updatedPets = state.pets.map((p) => (p.id === id ? { ...p, ...petData } : p))
+          const pet = updatedPets.find((p) => p.id === id)
+          if (!pet) return { pets: updatedPets }
+
+          const otherTemplates = state.taskTemplates.filter((t) => t.petId !== id)
+          const newTemplates: TaskTemplate[] = []
+
+          const feedCount = Math.min(pet.feedPerDay, FEEDING_SLOTS.length)
+          for (let i = 0; i < feedCount; i++) {
+            const slot = FEEDING_SLOTS[i]
+            newTemplates.push({
+              id: generateId(),
+              petId: pet.id,
+              taskType: slot.taskType,
+              timeSlot: slot.timeSlot,
+              deadlineMinutes: slot.deadlineMinutes,
+            })
+          }
+
+          for (const rule of NON_FEEDING_RULES) {
+            if (rule.petType && rule.petType !== pet.type) continue
+            if (rule.taskType === 'medicine' && !pet.medications) continue
+            newTemplates.push({
+              id: generateId(),
+              petId: pet.id,
+              taskType: rule.taskType,
+              timeSlot: rule.timeSlot,
+              deadlineMinutes: rule.deadlineMinutes,
+            })
+          }
+
+          const oldPetTemplates = state.taskTemplates.filter((t) => t.petId === id)
+          const oldTemplateIds = new Set(oldPetTemplates.map((t) => t.id))
+          const orphanedInstanceIds = new Set(
+            state.taskInstances
+              .filter((inst) => oldTemplateIds.has(inst.templateId))
+              .map((inst) => inst.id)
+          )
+
+          return {
+            pets: updatedPets,
+            taskTemplates: [...otherTemplates, ...newTemplates],
+            taskInstances: state.taskInstances.filter((t) => t.petId !== id),
+            taskAssignments: state.taskAssignments.filter(
+              (a) => !orphanedInstanceIds.has(a.taskInstanceId)
+            ),
+          }
+        })
       },
 
       deletePet: (id) => {
@@ -277,22 +336,40 @@ export const usePetStore = create<PetStore>()(
         let totalMedicineTasks = 0
         let completedMedicineTasks = 0
 
+        const isFeedingType = (t: TaskType) => t === 'breakfast' || t === 'lunch' || t === 'dinner'
+
         for (let i = 6; i >= 0; i--) {
           const d = new Date(end)
           d.setDate(d.getDate() - i)
           const dateStr = format(d, 'yyyy-MM-dd')
-          const dayTasks = state.taskInstances.filter((t) => t.date === dateStr)
-          const completed = dayTasks.filter((t) => t.completed).length
-          const total = dayTasks.length
-          days.push({ date: dateStr, completed, total })
 
-          const feedingTasks = dayTasks.filter((t) => t.taskType === 'breakfast' || t.taskType === 'dinner')
-          const missedFeed = feedingTasks.filter((t) => !t.completed).length
-          missedFeedings += missedFeed
+          const activePetIds = new Set(
+            state.pets
+              .filter((p) => dateStr >= format(new Date(p.createdAt), 'yyyy-MM-dd'))
+              .map((p) => p.id)
+          )
 
-          const medTasks = dayTasks.filter((t) => t.taskType === 'medicine')
-          totalMedicineTasks += medTasks.length
-          completedMedicineTasks += medTasks.filter((t) => t.completed).length
+          const dayTemplates = state.taskTemplates.filter((tp) => activePetIds.has(tp.petId))
+          const feedingTemplateCount = dayTemplates.filter((tp) => isFeedingType(tp.taskType)).length
+          const medicineTemplateCount = dayTemplates.filter((tp) => tp.taskType === 'medicine').length
+          const totalTemplateCount = dayTemplates.length
+
+          const dayTasks = state.taskInstances.filter((t) => t.date === dateStr && activePetIds.has(t.petId))
+          const hasInstances = dayTasks.length > 0
+
+          const completed = hasInstances ? dayTasks.filter((t) => t.completed).length : 0
+          days.push({ date: dateStr, completed, total: totalTemplateCount })
+
+          const dayFeedingCompleted = hasInstances
+            ? dayTasks.filter((t) => isFeedingType(t.taskType) && t.completed).length
+            : 0
+          missedFeedings += feedingTemplateCount - dayFeedingCompleted
+
+          const dayMedCompleted = hasInstances
+            ? dayTasks.filter((t) => t.taskType === 'medicine' && t.completed).length
+            : 0
+          totalMedicineTasks += medicineTemplateCount
+          completedMedicineTasks += dayMedCompleted
 
           const dayRecords = state.dailyRecords.filter((r) => r.date === dateStr)
           const hasAbnormal = dayRecords.some(

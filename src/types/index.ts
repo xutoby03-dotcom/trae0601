@@ -1,6 +1,6 @@
 export type PetType = 'cat' | 'dog'
 
-export type TaskType = 'breakfast' | 'dinner' | 'litter' | 'walk' | 'medicine'
+export type TaskType = 'breakfast' | 'lunch' | 'dinner' | 'litter' | 'walk' | 'medicine'
 
 export type TimeSlot = 'morning' | 'noon' | 'evening' | 'night'
 
@@ -74,6 +74,7 @@ export interface FosterSession {
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   breakfast: '早饭',
+  lunch: '午饭',
   dinner: '晚饭',
   litter: '清理猫砂',
   walk: '遛狗',
@@ -96,6 +97,7 @@ export const POOP_STATUS_LABELS: Record<PoopStatus, string> = {
 
 export const TASK_TYPE_COLORS: Record<TaskType, string> = {
   breakfast: 'bg-orange-400',
+  lunch: 'bg-yellow-400',
   dinner: 'bg-amber-500',
   litter: 'bg-emerald-400',
   walk: 'bg-sky-400',
@@ -104,6 +106,7 @@ export const TASK_TYPE_COLORS: Record<TaskType, string> = {
 
 export const TASK_TYPE_BORDER_COLORS: Record<TaskType, string> = {
   breakfast: 'border-l-orange-400',
+  lunch: 'border-l-yellow-400',
   dinner: 'border-l-amber-500',
   litter: 'border-l-emerald-400',
   walk: 'border-l-sky-400',
