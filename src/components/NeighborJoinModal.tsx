@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import type { FoodItem } from '../types'
+import type { UserProfile } from '../types'
 import { useStore, NEIGHBORS } from '../store/useStore'
 import { X, Minus, Plus, Clock, MessageSquare, UserPlus } from 'lucide-react'
 
@@ -18,13 +19,13 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
   )
   const maxQty = item.quantity - item.currentQuantity
 
-  const [selectedNeighbor, setSelectedNeighbor] = useState(availableNeighbors[0])
+  const [selectedNeighbor, setSelectedNeighbor] = useState<UserProfile | undefined>(availableNeighbors[0])
   const [quantity, setQuantity] = useState(1)
   const [pickupTime, setPickupTime] = useState('')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    if (!availableNeighbors.some(n => n.id === selectedNeighbor.id)) {
+    if (!selectedNeighbor || !availableNeighbors.some(n => n.id === selectedNeighbor.id)) {
       setSelectedNeighbor(availableNeighbors[0])
     }
   }, [availableNeighbors])
@@ -34,7 +35,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
   }, [maxQty])
 
   const clampedQty = Math.max(1, Math.min(quantity, maxQty))
-  const canSubmit = !!pickupTime.trim() && availableNeighbors.length > 0 && clampedQty >= 1 && maxQty >= 1
+  const canSubmit = !!pickupTime.trim() && !!selectedNeighbor && availableNeighbors.length > 0 && clampedQty >= 1 && maxQty >= 1
 
   const handleSubmit = () => {
     if (!canSubmit || !selectedNeighbor) return
@@ -82,7 +83,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                     type="button"
                     onClick={() => setSelectedNeighbor(neighbor)}
                     className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                      selectedNeighbor.id === neighbor.id
+                      selectedNeighbor?.id === neighbor.id
                         ? 'bg-amber-100 border-amber-400 text-amber-800'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-amber-300'
                     }`}
