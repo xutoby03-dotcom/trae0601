@@ -19,6 +19,7 @@ export default function NewOrder() {
   const navigate = useNavigate()
   const { contacts, addOrder } = useRepairStore()
   const beforeInputRef = useRef<HTMLInputElement>(null)
+  const afterInputRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
   const [roomId, setRoomId] = useState<RoomId>('kitchen')
@@ -28,17 +29,18 @@ export default function NewOrder() {
   const [contactId, setContactId] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
   const [beforePhotos, setBeforePhotos] = useState<string[]>([])
+  const [afterPhotos, setAfterPhotos] = useState<string[]>([])
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (setter: React.Dispatch<React.SetStateAction<string[]>>) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
     const results = await Promise.all(Array.from(files).map(fileToBase64))
-    setBeforePhotos((prev) => [...prev, ...results])
+    setter((prev) => [...prev, ...results])
     if (e.target) e.target.value = ''
   }
 
-  const removePhoto = (idx: number) => {
-    setBeforePhotos((prev) => prev.filter((_, i) => i !== idx))
+  const removePhoto = (setter: React.Dispatch<React.SetStateAction<string[]>>, idx: number) => {
+    setter((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const handleSubmit = () => {
@@ -50,7 +52,7 @@ export default function NewOrder() {
       urgency,
       status: 'pending',
       beforePhotos,
-      afterPhotos: [],
+      afterPhotos,
       estimatedCost,
       contactId,
       appointmentTime,
@@ -91,17 +93,36 @@ export default function NewOrder() {
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-dark-700 flex items-center gap-1.5"><Camera className="w-3.5 h-3.5" />维修前照片</label>
-          <input ref={beforeInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
+          <input ref={beforeInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload(setBeforePhotos)} />
           <div className="flex flex-wrap gap-2">
             {beforePhotos.map((src, i) => (
               <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-surface-200 group">
                 <img src={src} alt="" className="w-full h-full object-cover" />
-                <button onClick={() => removePhoto(i)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => removePhoto(setBeforePhotos, i)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <Trash2 className="w-3 h-3 text-white" />
                 </button>
               </div>
             ))}
             <button onClick={() => beforeInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-surface-300 flex flex-col items-center justify-center gap-1 text-dark-700/40 hover:border-brand-400 hover:text-brand-500 transition-colors">
+              <ImagePlus className="w-5 h-5" />
+              <span className="text-[10px]">上传</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-dark-700 flex items-center gap-1.5"><Camera className="w-3.5 h-3.5" />维修后照片</label>
+          <input ref={afterInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload(setAfterPhotos)} />
+          <div className="flex flex-wrap gap-2">
+            {afterPhotos.map((src, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-surface-200 group">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => removePhoto(setAfterPhotos, i)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => afterInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-surface-300 flex flex-col items-center justify-center gap-1 text-dark-700/40 hover:border-brand-400 hover:text-brand-500 transition-colors">
               <ImagePlus className="w-5 h-5" />
               <span className="text-[10px]">上传</span>
             </button>
