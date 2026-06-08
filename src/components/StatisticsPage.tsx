@@ -118,13 +118,10 @@ export default function StatisticsPage() {
                   background: COLOR_HEX[color],
                   borderRadius: 6,
                   transition: 'width 0.3s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8,
-                  minWidth: wear > 0 ? 48 : 0,
-                }}>
-                  {wear > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: color === 'white' || color === 'beige' || color === 'yellow' ? '#333' : '#fff' }}>{wear}次</span>}
-                </div>
+                }} />
               </div>
-              <span style={{ fontSize: 11, color: '#999', minWidth: 42 }}>{count}件</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#333', minWidth: 36 }}>{wear}次</span>
+              <span style={{ fontSize: 11, color: '#999', minWidth: 36 }}>{count}件</span>
             </div>
           ))}
           {colorDist.length === 0 && <EmptyHint />}
