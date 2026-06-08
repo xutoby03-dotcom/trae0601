@@ -7,7 +7,7 @@ const DIFFICULTY_STARS = { easy: 1, medium: 2, hard: 3 }
 
 export default function RecipeCard({ match }: { match: RecipeMatch }) {
   const navigate = useNavigate()
-  const { recipe, matchScore, missingIngredients, substitutableIngredients } = match
+  const { recipe, matchScore, missingIngredients, substitutableIngredients, shortIngredients } = match
   const requiredMissing = missingIngredients.filter((i) => i.required)
   const optionalMissing = missingIngredients.filter((i) => !i.required)
 
@@ -42,13 +42,21 @@ export default function RecipeCard({ match }: { match: RecipeMatch }) {
         </div>
       </div>
 
-      {(requiredMissing.length > 0 || substitutableIngredients.length > 0) && (
+      {(requiredMissing.length > 0 || shortIngredients.length > 0 || substitutableIngredients.length > 0) && (
         <div className="mt-3 pt-3 border-t border-stone-800 space-y-1.5">
           {requiredMissing.length > 0 && (
             <div className="flex items-start gap-1.5 text-sm">
               <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
               <span className="text-red-400">
                 缺：{requiredMissing.map((i) => `${i.ingredientName}${i.amount}${i.unit}`).join('、')}
+              </span>
+            </div>
+          )}
+          {shortIngredients.length > 0 && (
+            <div className="flex items-start gap-1.5 text-sm">
+              <AlertTriangle size={14} className="text-orange-400 shrink-0 mt-0.5" />
+              <span className="text-orange-400">
+                量不足：{shortIngredients.map((s) => `${s.ingredientName}差${s.shortage}${s.unit}`).join('、')}
               </span>
             </div>
           )}

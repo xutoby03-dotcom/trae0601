@@ -103,8 +103,10 @@ export function matchRecipes(
     .filter((match) => match.matchScore > 10)
     .sort((a, b) => {
       if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore
-      const aMissing = a.missingIngredients.filter((i) => i.required).length
-      const bMissing = b.missingIngredients.filter((i) => i.required).length
+      const aShort = a.shortIngredients.filter((s) => a.recipe.ingredients.some((ri) => ri.ingredientName === s.ingredientName && ri.required)).length
+      const bShort = b.shortIngredients.filter((s) => b.recipe.ingredients.some((ri) => ri.ingredientName === s.ingredientName && ri.required)).length
+      const aMissing = a.missingIngredients.filter((i) => i.required).length + aShort
+      const bMissing = b.missingIngredients.filter((i) => i.required).length + bShort
       if (aMissing !== bMissing) return aMissing - bMissing
       return a.recipe.cookTime - b.recipe.cookTime
     })
@@ -115,36 +117,68 @@ function computeMatch(
   userIngredients: Ingredient[],
   preference?: string,
   favoriteRecipeIds?: Set<string>,
-  favoriteIngredientSnapshots?: Record<string, string[]>
-): RecipeMatch {
+  favoriteIngredientSnapshots?: Record<string, string[]>)
+: RecipeMatch {
   const matchedIngredients: string[] = []
   const missingIngredients: RecipeMatch['missingIngredients'] = []
   const substitutableIngredients: RecipeMatch['missingIngredients'] = []
+  const shortIngredients: RecipeMatch['shortIngredients'] = []
   const ingredientRemainders: RecipeMatch['ingredientRemainders'] = []
+  let quantityScore = 0
 
   recipe.ingredients.forEach((ri) => {
     const userIng = matchIngredient(ri.ingredientName, userIngredients)
     if (userIng) {
-      matchedIngredients.push(ri.ingredientName)
-      const remaining = Math.max(0, userIng.quantity - ri.amount)
+      const remaining = Number((userIng.quantity - ri.amount).toFixed(2))
+      const hasEnough = userIng.quantity >= ri.amount
       ingredientRemainders.push({
         name: ri.ingredientName,
         used: ri.amount,
-        remaining: Number(remaining.toFixed(2)),
+        remaining,
         unit: ri.unit,
+        hasEnough,
+        shortage: hasEnough ? 0 : Number((ri.amount - userIng.quantity).toFixed(2)),
       })
+      if (hasEnough) {
+        matchedIngredients.push(ri.ingredientName)
+        quantityScore += 1
+      } else {
+        shortIngredients.push({
+          ingredientName: ri.ingredientName,
+          have: userIng.quantity,
+          need: ri.amount,
+          unit: ri.unit,
+          shortage: Number((ri.amount - userIng.quantity).toFixed(2)),
+        })
+        quantityScore += userIng.quantity / ri.amount
+      }
     } else if (ri.substitute) {
       const subIng = matchIngredient(ri.substitute, userIngredients)
       if (subIng) {
-        matchedIngredients.push(ri.ingredientName)
         const subAmount = ri.substituteAmount || ri.amount
-        const remaining = Math.max(0, subIng.quantity - subAmount)
+        const remaining = Number((subIng.quantity - subAmount).toFixed(2))
+        const hasEnough = subIng.quantity >= subAmount
         ingredientRemainders.push({
           name: `${ri.substitute}(替${ri.ingredientName})`,
           used: subAmount,
-          remaining: Number(remaining.toFixed(2)),
+          remaining,
           unit: ri.substituteUnit || ri.unit,
+          hasEnough,
+          shortage: hasEnough ? 0 : Number((subAmount - subIng.quantity).toFixed(2)),
         })
+        if (hasEnough) {
+          matchedIngredients.push(ri.ingredientName)
+          quantityScore += 1
+        } else {
+          shortIngredients.push({
+            ingredientName: ri.substitute + '(替' + ri.ingredientName + ')',
+            have: subIng.quantity,
+            need: subAmount,
+            unit: ri.substituteUnit || ri.unit,
+            shortage: Number((subAmount - subIng.quantity).toFixed(2)),
+          })
+          quantityScore += subIng.quantity / subAmount
+        }
         substitutableIngredients.push(ri)
       } else {
         missingIngredients.push(ri)
@@ -154,7 +188,7 @@ function computeMatch(
     }
   })
 
-  const baseScore = (matchedIngredients.length / recipe.ingredients.length) * 60
+  const baseScore = (quantityScore / recipe.ingredients.length) * 60
   const preferenceBonus = preference && recipe.preference.includes(preference as never) ? 20 : 0
 
   let favoriteBonus = 0
@@ -173,6 +207,7 @@ function computeMatch(
     matchedIngredients,
     missingIngredients,
     substitutableIngredients,
+    shortIngredients,
     ingredientRemainders,
   }
 }

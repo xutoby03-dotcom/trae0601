@@ -44,12 +44,14 @@ export default function RecipeDetail() {
     const userIng = activeIngredients.find(
       (i) => i.name.trim().toLowerCase() === ri.ingredientName.trim().toLowerCase()
     )
+    const remaining = userIng ? Number((userIng.quantity - ri.amount).toFixed(2)) : -ri.amount
     return {
       name: ri.ingredientName,
       used: ri.amount,
-      remaining: userIng ? Number(Math.max(0, userIng.quantity - ri.amount).toFixed(2)) : 0,
+      remaining,
       unit: ri.unit,
       hasEnough: userIng ? userIng.quantity >= ri.amount : false,
+      shortage: userIng ? (userIng.quantity >= ri.amount ? 0 : Number((ri.amount - userIng.quantity).toFixed(2))) : ri.amount,
     }
   })
 
@@ -62,8 +64,15 @@ export default function RecipeDetail() {
           (i) => i.name.trim().toLowerCase() === ri.substitute!.trim().toLowerCase()
         )
       : null
-    return ri.required && !userIng && !subIng
+    if (!userIng && !subIng) return ri.required
+    const matched = userIng || (subIng ? { quantity: ri.substituteAmount || ri.amount } : null)
+    if (matched && ri.required && matched.quantity < ri.amount) return true
+    return false
   })
+
+  const shortOnes = match?.shortIngredients || ingredientRemainders
+    .filter((r) => !r.hasEnough && r.shortage > 0)
+    .map((r) => ({ ingredientName: r.name, have: 0, need: r.used, unit: r.unit, shortage: r.shortage }))
 
   const substitutable = recipe.ingredients.filter((ri) => {
     const userIng = activeIngredients.find(
@@ -126,9 +135,36 @@ export default function RecipeDetail() {
               缺少必要食材
             </div>
             <div className="space-y-1">
-              {missingRequired.map((ri, i) => (
-                <div key={i} className="text-sm text-red-300">
-                  {ri.ingredientName} {ri.amount}{ri.unit}
+              {missingRequired.map((ri, i) => {
+                const userIng = activeIngredients.find(
+                  (ing) => ing.name.trim().toLowerCase() === ri.ingredientName.trim().toLowerCase()
+                )
+                const short = userIng && userIng.quantity < ri.amount
+                  ? Number((ri.amount - userIng.quantity).toFixed(2))
+                  : null
+                return (
+                  <div key={i} className="text-sm text-red-300">
+                    {ri.ingredientName} {ri.amount}{ri.unit}
+                    {short !== null && (
+                      <span className="text-orange-400 ml-2">（有{userIng!.quantity}{ri.unit}，差{short}{ri.unit}）</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {shortOnes.length > 0 && missingRequired.length === 0 && (
+          <section className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-orange-400 font-medium mb-2">
+              <AlertTriangle size={16} />
+              食材数量不足
+            </div>
+            <div className="space-y-1">
+              {shortOnes.map((s, i) => (
+                <div key={i} className="text-sm text-orange-300">
+                  {s.ingredientName}：有{s.have}{s.unit}，需{s.need}{s.unit}，差{s.shortage}{s.unit}
                 </div>
               ))}
             </div>
@@ -201,14 +237,18 @@ export default function RecipeDetail() {
                     <td className="px-4 py-3 text-center">
                       <span
                         className={
-                          item.remaining === 0
-                            ? 'text-green-400'
-                            : item.remaining > 0
+                          item.remaining > 0
                             ? 'text-yellow-400'
+                            : item.remaining === 0
+                            ? 'text-green-400'
                             : 'text-red-400'
                         }
                       >
-                        {item.remaining > 0 ? `${item.remaining}${item.unit}` : item.remaining === 0 ? '用完' : '不够'}
+                        {item.remaining > 0
+                          ? `${item.remaining}${item.unit}`
+                          : item.remaining === 0
+                          ? '用完'
+                          : `缺${item.shortage}${item.unit}`}
                       </span>
                     </td>
                   </tr>

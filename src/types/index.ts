@@ -45,11 +45,20 @@ export interface Favorite {
   ingredientSnapshot: string[]
 }
 
+export interface ShortIngredient {
+  ingredientName: string
+  have: number
+  need: number
+  unit: string
+  shortage: number
+}
+
 export interface RecipeMatch {
   recipe: Recipe
   matchScore: number
   matchedIngredients: string[]
   missingIngredients: RecipeIngredient[]
   substitutableIngredients: RecipeIngredient[]
-  ingredientRemainders: { name: string; used: number; remaining: number; unit: string }[]
+  shortIngredients: ShortIngredient[]
+  ingredientRemainders: { name: string; used: number; remaining: number; unit: string; hasEnough: boolean; shortage: number }[]
 }
