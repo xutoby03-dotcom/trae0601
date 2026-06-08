@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #1A0F08;
+  color: #E8C9A0;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2C1810;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5C3A22;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4A574;
+}
+
+@layer components {
+  .cabinet-shelf {
+    background: linear-gradient(180deg, #5C3A22 0%, #4A2E1A 60%, #3D2415 100%);
+    border-bottom: 3px solid #6B4430;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  .cabinet-glass {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(4px);
+  }
+
+  .card-collectible {
+    background: linear-gradient(145deg, #2A1A10 0%, #1E1208 100%);
+    border: 1px solid rgba(212,165,116,0.15);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-collectible:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,165,116,0.2);
+    border-color: rgba(212,165,116,0.3);
+  }
+
+  .badge-rarity-common {
+    background: rgba(156,163,175,0.2);
+    color: #9CA3AF;
+    border: 1px solid rgba(156,163,175,0.3);
+  }
+
+  .badge-rarity-rare {
+    background: rgba(59,130,246,0.15);
+    color: #60A5FA;
+    border: 1px solid rgba(59,130,246,0.3);
+  }
+
+  .badge-rarity-hidden {
+    background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,170,0,0.15));
+    color: #FFD700;
+    border: 1px solid rgba(255,215,0,0.4);
+    text-shadow: 0 0 8px rgba(255,215,0,0.5);
+  }
+
+  .badge-duplicate {
+    background: linear-gradient(135deg, #FF6B6B, #FF4757);
+    color: white;
+    box-shadow: 0 2px 8px rgba(255,107,107,0.4);
+  }
+
+  .badge-exchangeable {
+    background: linear-gradient(135deg, #2ED573, #1ABC9C);
+    color: white;
+    box-shadow: 0 2px 8px rgba(46,213,115,0.3);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #D4A574, #B8895A);
+    color: #1A0F08;
+    font-weight: 700;
+    border-radius: 9999px;
+    padding: 0.5rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(212,165,116,0.3);
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #E8C9A0, #D4A574);
+    box-shadow: 0 4px 16px rgba(212,165,116,0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: rgba(212,165,116,0.1);
+    color: #D4A574;
+    border: 1px solid rgba(212,165,116,0.3);
+    border-radius: 9999px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(212,165,116,0.2);
+    border-color: rgba(212,165,116,0.5);
+  }
+
+  .input-field {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(212,165,116,0.2);
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    color: #E8C9A0;
+    transition: all 0.2s;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: #D4A574;
+    box-shadow: 0 0 0 3px rgba(212,165,116,0.15);
+    background: rgba(255,255,255,0.08);
+  }
+
+  .input-field::placeholder {
+    color: rgba(232,201,160,0.4);
+  }
+
+  .progress-bar-bg {
+    background: rgba(255,255,255,0.08);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    background: linear-gradient(90deg, #D4A574, #FFD700);
+    border-radius: 9999px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tab-active {
+    color: #D4A574;
+    border-bottom: 2px solid #D4A574;
+  }
+
+  .match-glow {
+    box-shadow: 0 0 20px rgba(255,215,0,0.2), 0 4px 12px rgba(0,0,0,0.2);
+    border-color: rgba(255,215,0,0.4);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.1) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
