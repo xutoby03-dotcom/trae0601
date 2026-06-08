@@ -120,8 +120,8 @@ export default function StatisticsPage() {
                   transition: 'width 0.3s',
                 }} />
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#333', minWidth: 36 }}>{wear}次</span>
-              <span style={{ fontSize: 11, color: '#999', minWidth: 36 }}>{count}件</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#333', width: 48, flexShrink: 0, textAlign: 'right' }}>{wear}次</span>
+              <span style={{ fontSize: 11, color: '#999', width: 40, flexShrink: 0, textAlign: 'right' }}>{count}件</span>
             </div>
           ))}
           {colorDist.length === 0 && <EmptyHint />}
