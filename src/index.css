@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+:root {
+  font-family: "Noto Sans SC", system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FFF8F0;
+  color: #5C3D2E;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #FFF8F0;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-caramel text-white px-5 py-2.5 rounded-full font-medium shadow-craft
+    hover:bg-caramel-light hover:shadow-craft-hover hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply bg-parchment text-caramel-dark px-5 py-2.5 rounded-full font-medium shadow-craft
+    hover:bg-sand-light hover:shadow-craft-hover hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0;
+  }
+
+  .btn-danger {
+    @apply bg-clay text-white px-5 py-2.5 rounded-full font-medium shadow-craft
+    hover:opacity-90 hover:shadow-craft-hover hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0;
+  }
+
+  .btn-mint {
+    @apply bg-mint text-white px-5 py-2.5 rounded-full font-medium shadow-craft
+    hover:bg-mint-light hover:text-caramel-dark hover:shadow-craft-hover hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-craft p-4 transition-all duration-200
+    hover:shadow-craft-hover;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border-2 border-sand-light bg-parchment
+    text-bark placeholder-sand focus:border-caramel focus:outline-none
+    focus:ring-2 focus:ring-caramel/20 transition-all duration-200;
+  }
+
+  .select-field {
+    @apply w-full px-4 py-2.5 rounded-xl border-2 border-sand-light bg-parchment
+    text-bark focus:border-caramel focus:outline-none
+    focus:ring-2 focus:ring-caramel/20 transition-all duration-200 appearance-none;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-caramel {
+    @apply badge bg-sand-light text-caramel-dark;
+  }
+
+  .badge-mint {
+    @apply badge bg-mint-light text-caramel-dark;
+  }
+
+  .badge-clay {
+    @apply badge bg-clay-light text-caramel-dark;
+  }
+
+  .section-title {
+    @apply font-serif text-xl font-semibold text-bark mb-4;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4B896;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B5E3C;
+}
