@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Zap, Clock, Coins } from 'lucide-react';
@@ -11,10 +11,11 @@ import SkipReasonModal from '@/components/SkipReasonModal';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { currentTask, hasDrawn, skippedTaskIds, noMoreTasks, reset, draw, setNoMoreTasks } = useLotteryStore();
+  const { currentTask, hasDrawn, noMoreTasks, reset, draw, setNoMoreTasks } = useLotteryStore();
   const { getFilteredTasks } = useTaskStore();
   const { filter } = useFilterStore();
   const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const skippedIdsRef = useRef<Set<string>>(new Set());
 
   const handleDrawn = () => {};
 
@@ -24,19 +25,22 @@ export default function Home() {
     }
   };
 
-  const handleSkip = () => {
-    const filteredTasks = getFilteredTasks(filter).filter(
-      (t) => !skippedTaskIds.includes(t.id)
+  const handleSkip = (skippedTaskId: string) => {
+    skippedIdsRef.current.add(skippedTaskId);
+    const filtered = getFilteredTasks(filter);
+    const candidates = filtered.filter(
+      (t) => !skippedIdsRef.current.has(t.id)
     );
-    if (filteredTasks.length > 0) {
-      draw(filteredTasks);
-    } else {
-      setNoMoreTasks(true);
-    }
     setSkipModalOpen(false);
+    if (candidates.length > 0) {
+      draw(candidates);
+    } else {
+      useLotteryStore.setState({ currentTask: null, isDrawing: false, hasDrawn: false, noMoreTasks: true });
+    }
   };
 
   const handleReDraw = () => {
+    skippedIdsRef.current.clear();
     reset();
   };
 
@@ -73,10 +77,9 @@ export default function Home() {
             {noMoreTasks ? (
               <motion.div
                 key="no-more"
-                initial={{ opacity: 0, scale: 0.8, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
                 className="w-full bg-white rounded-3xl p-8 shadow-xl border-2 border-[#4ECDC4]/20 text-center"
               >
                 <span className="text-5xl block mb-4">🤷</span>
@@ -98,10 +101,10 @@ export default function Home() {
             ) : currentTask ? (
               <motion.div
                 key="result"
-                initial={{ opacity: 0, scale: 0.8, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="w-full bg-white rounded-3xl p-6 shadow-xl border-2 border-[#FF6B35]/10"
               >
                 <div className="text-center mb-4">
