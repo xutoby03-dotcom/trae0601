@@ -170,7 +170,7 @@ export default function Stats() {
                   : 'bg-wood-50 text-wood-600 border-wood-200 hover:border-grass-400'
               }`}
             >
-              {onlyWithBorrows ? '只看真借出' : '全部贡献者'}
+              {onlyWithBorrows ? '查看全部贡献者' : '只看真借出'}
             </button>
           </div>
           <div className="space-y-2">
