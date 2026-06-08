@@ -53,8 +53,8 @@ interface PetStore {
 
 const FEEDING_SLOTS: { taskType: TaskType; timeSlot: TimeSlot; deadlineMinutes: number }[] = [
   { taskType: 'breakfast', timeSlot: 'morning', deadlineMinutes: 120 },
-  { taskType: 'lunch', timeSlot: 'noon', deadlineMinutes: 120 },
   { taskType: 'dinner', timeSlot: 'evening', deadlineMinutes: 120 },
+  { taskType: 'lunch', timeSlot: 'noon', deadlineMinutes: 120 },
   { taskType: 'supper', timeSlot: 'night', deadlineMinutes: 90 },
   { taskType: 'snack', timeSlot: 'night', deadlineMinutes: 60 },
 ]
