@@ -1,23 +1,36 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Phone, Calendar, MessageSquare, Receipt, Clock, Camera, Plus, ChevronRight, Trash2, Wrench, User } from 'lucide-react'
+import { Phone, Calendar, MessageSquare, Receipt, Clock, Camera, Plus, Trash2, Wrench, User, Star, ImagePlus, X } from 'lucide-react'
 import { STATUS_CONFIG, URGENCY_CONFIG, COST_CATEGORY_CONFIG, CONTACT_TYPE_CONFIG } from '@/types'
 import type { OrderStatus, CostCategory } from '@/types'
 import { useRepairStore } from '@/store/repairStore'
 import PageHeader from '@/components/PageHeader'
 import StarRating from '@/components/StarRating'
-import { getRoomName, getRoomIcon, formatCurrency, formatDateTime, formatDate } from '@/utils/format'
+import { getRoomName, getRoomIcon, formatCurrency, formatDateTime } from '@/utils/format'
 
 const STATUS_FLOW: OrderStatus[] = ['pending', 'scheduled', 'in_progress', 'completed']
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { orders, contacts, addCommunication, addQuotation, addVisit, addCost, removeCost, setOrderRating, updateOrderStatus } = useRepairStore()
+  const store = useRepairStore()
+  const { orders, contacts, addCommunication, addQuotation, addVisit, addCost, removeCost, setOrderRating, updateOrderStatus, updateOrder, updateContact } = store
 
   const order = orders.find((o) => o.id === id)
   const contact = order?.contactId ? contacts.find((c) => c.id === order.contactId) : null
+
+  const beforeInputRef = useRef<HTMLInputElement>(null)
+  const afterInputRef = useRef<HTMLInputElement>(null)
 
   const [msgContent, setMsgContent] = useState('')
   const [msgDir, setMsgDir] = useState<'outgoing' | 'incoming'>('outgoing')
@@ -32,6 +45,8 @@ export default function OrderDetail() {
   const [costCat, setCostCat] = useState<CostCategory>('labor')
   const [costAmount, setCostAmount] = useState('')
   const [costNote, setCostNote] = useState('')
+  const [tagInput, setTagInput] = useState('')
+  const [showTagInput, setShowTagInput] = useState(false)
 
   if (!order) return <div className="p-8 text-center text-dark-700/60">工单未找到</div>
 
@@ -62,6 +77,61 @@ export default function OrderDetail() {
     if (!costAmount) return
     addCost(order.id, { category: costCat, amount: Number(costAmount), note: costNote.trim() })
     setCostAmount(''); setCostNote(''); setShowCostForm(false)
+  }
+
+  const handlePhotoUpload = async (type: 'beforePhotos' | 'afterPhotos', e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    const results = await Promise.all(Array.from(files).map(fileToBase64))
+    updateOrder(order.id, { [type]: [...order[type], ...results] })
+    if (e.target) e.target.value = ''
+  }
+
+  const removePhoto = (type: 'beforePhotos' | 'afterPhotos', idx: number) => {
+    const updated = order[type].filter((_, i) => i !== idx)
+    updateOrder(order.id, { [type]: updated })
+  }
+
+  const handleAddTag = () => {
+    if (!tagInput.trim() || !contact) return
+    const newTags = [...contact.tags, tagInput.trim()]
+    updateContact(contact.id, { tags: newTags })
+    setTagInput('')
+  }
+
+  const handleRemoveTag = (tag: string) => {
+    if (!contact) return
+    updateContact(contact.id, { tags: contact.tags.filter((t) => t !== tag) })
+  }
+
+  const renderPhotoGrid = (type: 'beforePhotos' | 'afterPhotos', label: string) => {
+    const photos = order[type]
+    const inputRef = type === 'beforePhotos' ? beforeInputRef : afterInputRef
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-dark-700/60 font-medium">{label}</span>
+          <button onClick={() => inputRef.current?.click()} className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
+            <ImagePlus className="w-3 h-3" />添加
+          </button>
+          <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handlePhotoUpload(type, e)} />
+        </div>
+        {photos.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {photos.map((src, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-surface-200 group">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => removePhoto(type, i)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-dark-700/30 py-3 text-center border border-dashed border-surface-200 rounded-lg">暂无照片</div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -97,6 +167,16 @@ export default function OrderDetail() {
 
         <div className="flex gap-5">
           <div className="flex-[2] space-y-5">
+            <section className="bg-white rounded-xl border border-surface-200 shadow-sm">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100">
+                <div className="flex items-center gap-2 text-sm font-semibold text-dark-900"><Camera className="w-4 h-4 text-brand-500" />维修照片</div>
+              </div>
+              <div className="p-4 space-y-4">
+                {renderPhotoGrid('beforePhotos', '维修前')}
+                {renderPhotoGrid('afterPhotos', '维修后')}
+              </div>
+            </section>
+
             <section className="bg-white rounded-xl border border-surface-200 shadow-sm">
               <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100">
                 <div className="flex items-center gap-2 text-sm font-semibold text-dark-900"><MessageSquare className="w-4 h-4 text-brand-500" />沟通记录</div>
@@ -183,10 +263,41 @@ export default function OrderDetail() {
             {contact && (
               <div className="bg-white rounded-xl border border-surface-200 shadow-sm p-4 space-y-3">
                 <h3 className="text-sm font-semibold text-dark-900 flex items-center gap-2"><User className="w-4 h-4 text-brand-500" />联系人</h3>
-                <div className="flex items-center justify-between"><span className="text-sm font-medium text-dark-900">{contact.name}</span><span className={`px-2 py-0.5 rounded text-xs font-medium bg-surface-100 text-dark-700`}>{CONTACT_TYPE_CONFIG[contact.type].label}</span></div>
+                <div className="flex items-center justify-between"><span className="text-sm font-medium text-dark-900">{contact.name}</span><span className="px-2 py-0.5 rounded text-xs font-medium bg-surface-100 text-dark-700">{CONTACT_TYPE_CONFIG[contact.type].label}</span></div>
                 <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-dark-700/40" /><span className="text-sm text-dark-900">{contact.phone}</span></div>
-                <div className="flex items-center gap-2"><span className="text-dark-700/50 text-xs">评分</span><StarRating rating={contact.avgRating} size="sm" /></div>
-                <div className="flex flex-wrap gap-1">{contact.tags.map((t) => <span key={t} className="px-2 py-0.5 bg-brand-50 text-brand-600 rounded text-[11px]">{t}</span>)}</div>
+                <div className="flex items-center gap-2"><span className="text-dark-700/50 text-xs">评分</span><StarRating rating={contact.avgRating} size="sm" /><span className="text-[11px] text-dark-700/40">{contact.avgRating.toFixed(1)} · {contact.totalOrders}次</span></div>
+                <div>
+                  <div className="flex items-center gap-1 mb-1.5">
+                    <span className="text-dark-700/50 text-xs">标签</span>
+                    <button onClick={() => setShowTagInput(!showTagInput)} className="text-[11px] text-brand-500 hover:text-brand-600">
+                      {showTagInput ? '收起' : '编辑'}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {contact.tags.map((t) => (
+                      <span key={t} className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-brand-50 text-brand-600 rounded text-[11px] group">
+                        {t}
+                        {showTagInput && (
+                          <button onClick={() => handleRemoveTag(t)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5">
+                            <X className="w-2.5 h-2.5 text-brand-400 hover:text-red-500" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                    {showTagInput && (
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                          placeholder="新标签"
+                          className="text-[11px] border border-surface-200 rounded px-1.5 py-0.5 w-16 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                        />
+                        <button onClick={handleAddTag} className="text-[11px] text-brand-500 hover:text-brand-600"><Plus className="w-3 h-3" /></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -226,7 +337,7 @@ export default function OrderDetail() {
             </div>
 
             <div className="bg-white rounded-xl border border-surface-200 shadow-sm p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-dark-900 flex items-center gap-2"><Camera className="w-4 h-4 text-brand-500" />服务评分</h3>
+              <h3 className="text-sm font-semibold text-dark-900 flex items-center gap-2"><Star className="w-4 h-4 text-brand-500" />服务评分</h3>
               <StarRating rating={order.rating} onChange={(r) => setOrderRating(order.id, r)} />
               {order.rating > 0 && <p className="text-xs text-dark-700/50">已评 {order.rating} 星</p>}
             </div>

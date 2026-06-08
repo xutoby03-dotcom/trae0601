@@ -1,14 +1,24 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, X, UserPlus, Calendar } from 'lucide-react'
+import { Save, X, UserPlus, Calendar, Camera, ImagePlus, Trash2 } from 'lucide-react'
 import { ROOMS, URGENCY_CONFIG, CONTACT_TYPE_CONFIG } from '@/types'
 import type { Urgency, RoomId } from '@/types'
 import { useRepairStore } from '@/store/repairStore'
 import PageHeader from '@/components/PageHeader'
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function NewOrder() {
   const navigate = useNavigate()
   const { contacts, addOrder } = useRepairStore()
+  const beforeInputRef = useRef<HTMLInputElement>(null)
 
   const [title, setTitle] = useState('')
   const [roomId, setRoomId] = useState<RoomId>('kitchen')
@@ -17,6 +27,19 @@ export default function NewOrder() {
   const [estimatedCost, setEstimatedCost] = useState(0)
   const [contactId, setContactId] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
+  const [beforePhotos, setBeforePhotos] = useState<string[]>([])
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    const results = await Promise.all(Array.from(files).map(fileToBase64))
+    setBeforePhotos((prev) => [...prev, ...results])
+    if (e.target) e.target.value = ''
+  }
+
+  const removePhoto = (idx: number) => {
+    setBeforePhotos((prev) => prev.filter((_, i) => i !== idx))
+  }
 
   const handleSubmit = () => {
     if (!title.trim()) return
@@ -26,7 +49,7 @@ export default function NewOrder() {
       description,
       urgency,
       status: 'pending',
-      beforePhotos: [],
+      beforePhotos,
       afterPhotos: [],
       estimatedCost,
       contactId,
@@ -64,6 +87,25 @@ export default function NewOrder() {
               <option key={key} value={key}>{cfg.label}</option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-dark-700 flex items-center gap-1.5"><Camera className="w-3.5 h-3.5" />维修前照片</label>
+          <input ref={beforeInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoUpload} />
+          <div className="flex flex-wrap gap-2">
+            {beforePhotos.map((src, i) => (
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-surface-200 group">
+                <img src={src} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => removePhoto(i)} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-3 h-3 text-white" />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => beforeInputRef.current?.click()} className="w-20 h-20 rounded-lg border-2 border-dashed border-surface-300 flex flex-col items-center justify-center gap-1 text-dark-700/40 hover:border-brand-400 hover:text-brand-500 transition-colors">
+              <ImagePlus className="w-5 h-5" />
+              <span className="text-[10px]">上传</span>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-1.5">

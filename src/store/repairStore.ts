@@ -276,11 +276,36 @@ export const useRepairStore = create<RepairStore>()(
       },
 
       setOrderRating: (id, rating) => {
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id ? { ...o, rating, updatedAt: new Date().toISOString() } : o
-          ),
-        }))
+        set((state) => {
+          const order = state.orders.find((o) => o.id === id)
+          let contactsUpdate = state.contacts
+          if (order && order.contactId) {
+            const contactId = order.contactId
+            const contactOrders = state.orders.filter((o) => o.contactId === contactId && o.rating > 0)
+            const oldRating = order.rating
+            let ratedOrders: typeof contactOrders
+            if (oldRating > 0) {
+              ratedOrders = contactOrders.map((o) =>
+                o.id === id ? { ...o, rating } : o
+              )
+            } else {
+              ratedOrders = [...contactOrders, { ...order, rating }]
+            }
+            const totalRating = ratedOrders.reduce((s, o) => s + o.rating, 0)
+            const totalOrders = state.orders.filter((o) => o.contactId === contactId && o.status === 'completed').length
+            contactsUpdate = state.contacts.map((c) =>
+              c.id === contactId
+                ? { ...c, avgRating: totalRating / ratedOrders.length, totalOrders: Math.max(totalOrders, ratedOrders.length) }
+                : c
+            )
+          }
+          return {
+            orders: state.orders.map((o) =>
+              o.id === id ? { ...o, rating, updatedAt: new Date().toISOString() } : o
+            ),
+            contacts: contactsUpdate,
+          }
+        })
       },
 
       addCommunication: (orderId, record) => {
