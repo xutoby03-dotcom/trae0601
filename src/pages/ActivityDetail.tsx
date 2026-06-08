@@ -77,7 +77,12 @@ export default function ActivityDetail() {
       </button>
 
       <div className="overflow-hidden rounded-2xl border border-dark-border bg-dark-surface">
-        <div className="h-48 bg-gradient-to-br from-accent/60 via-urgent/40 to-status/60 sm:h-56" />
+        <div className={`h-48 relative overflow-hidden sm:h-56 ${currentActivity.poster ? '' : 'bg-gradient-to-br from-accent/60 via-urgent/40 to-status/60'}`}>
+          {currentActivity.poster && (
+            <img src={currentActivity.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          )}
+          {currentActivity.poster && <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />}
+        </div>
 
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">

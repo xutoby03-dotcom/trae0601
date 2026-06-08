@@ -44,12 +44,16 @@ export default function ActivityCard({ activity, index = 0 }: { activity: Activi
       to={`/activity/${activity.id}`}
       className="group block overflow-hidden rounded-xl border border-dark-border bg-dark-surface transition-all hover:border-dark-hover hover:shadow-lg hover:shadow-accent/5"
     >
-      <div className={`h-28 bg-gradient-to-br ${gradient} relative`}>
-        <span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[activity.status]}`}>
+      <div className={`h-28 relative overflow-hidden ${activity.poster ? '' : `bg-gradient-to-br ${gradient}`}`}>
+        {activity.poster && (
+          <img src={activity.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        {activity.poster && <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />}
+        <span className={`absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-xs font-medium backdrop-blur-sm ${statusColors[activity.status]}`}>
           {statusLabels[activity.status]}
         </span>
         {activity.type && (
-          <span className="absolute left-2 top-2 rounded-full bg-black/30 px-2 py-0.5 text-xs text-white/80">
+          <span className="absolute left-2 top-2 z-10 rounded-full bg-black/40 px-2 py-0.5 text-xs text-white/90 backdrop-blur-sm">
             {activity.type}
           </span>
         )}
