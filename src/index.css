@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+XiaoWei&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: #1a1a2e;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gradient-coral {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8c42 100%);
+}
+
+.gradient-gold {
+  background: linear-gradient(135deg, #ffd93d 0%, #ffb347 100%);
+}
+
+.gradient-mint {
+  background: linear-gradient(135deg, #6bcb77 0%, #4ecdc4 100%);
+}
+
+.gradient-lavender {
+  background: linear-gradient(135deg, #c4b5fd 0%, #845ec2 100%);
+}
+
+.gradient-ocean {
+  background: linear-gradient(135deg, #4d96ff 0%, #0f3460 100%);
+}
+
+.text-glow-coral {
+  text-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 20px rgba(255, 217, 61, 0.4);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes ring-pulse {
+  0% { stroke-dashoffset: 0; }
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
