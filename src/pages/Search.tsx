@@ -28,13 +28,25 @@ export default function SearchPage() {
 
   const hospitalCounts = useMemo(() => {
     const map: Record<string, number> = {}
-    records.forEach((r) => {
-      if (r.hospital) {
-        map[r.hospital] = (map[r.hospital] || 0) + 1
-      }
-    })
+    records
+      .filter((r) => {
+        if (selectedPet !== ALL && r.petId !== selectedPet) return false
+        if (selectedType !== ALL && r.type !== selectedType) return false
+        if (searchText.trim()) {
+          const q = searchText.trim().toLowerCase()
+          const pet = pets.find((p) => p.id === r.petId)
+          const haystack = [r.title, r.hospital, r.doctor, pet?.name].filter(Boolean).join(' ').toLowerCase()
+          if (!haystack.includes(q)) return false
+        }
+        return true
+      })
+      .forEach((r) => {
+        if (r.hospital) {
+          map[r.hospital] = (map[r.hospital] || 0) + 1
+        }
+      })
     return map
-  }, [records])
+  }, [records, selectedPet, selectedType, searchText, pets])
 
   const hospitals = useMemo(() => Object.keys(hospitalCounts), [hospitalCounts])
 
