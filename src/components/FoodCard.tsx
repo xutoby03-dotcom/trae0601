@@ -43,7 +43,13 @@ export default function FoodCard({ item, onConsume, onClick }: FoodCardProps) {
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="text-3xl leading-none">{item.icon}</span>
+        {item.photo ? (
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
+            <img src={item.photo} alt={item.name} className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <span className="text-3xl leading-none shrink-0">{item.icon}</span>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <h3 className="truncate text-sm font-semibold text-gray-800">

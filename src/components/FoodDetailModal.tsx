@@ -84,7 +84,13 @@ export default function FoodDetailModal({
         </button>
 
         <div className="flex flex-col items-center mb-5">
-          <span className="text-5xl mb-2">{item.icon}</span>
+          {item.photo ? (
+            <div className="mb-2 h-24 w-24 overflow-hidden rounded-2xl shadow-sm">
+              <img src={item.photo} alt={item.name} className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <span className="text-5xl mb-2">{item.icon}</span>
+          )}
           <h2 className="text-xl font-bold text-gray-800">{item.name}</h2>
           <span
             className={`mt-1.5 text-xs font-medium rounded-full px-3 py-1 ${badgeColor}`}
