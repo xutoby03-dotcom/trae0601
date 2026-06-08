@@ -229,7 +229,7 @@ export const useStore = create<CraftStore>()(
               const shortage = pm.requiredQuantity - pm.usedQuantity - material.quantity
               if (shortage > 0) {
                 const existing = state.shoppingItems.find(
-                  (s) => s.materialId === pm.materialId && !s.purchased && s.reason === '项目缺料'
+                  (s) => s.materialId === pm.materialId && s.projectId === project.id && !s.purchased
                 )
                 if (!existing) {
                   newItems.push({
