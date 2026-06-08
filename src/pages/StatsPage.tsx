@@ -65,6 +65,34 @@ export const StatsPage: React.FC = () => {
           ? nextDayEnergy.reduce((a, b) => a + b, 0) / nextDayEnergy.length
           : 0
 
+      const nextDayStdDev = (() => {
+        if (nextDayEnergy.length < 2) return 0
+        const mean = avgNextDayEnergy
+        const variance = nextDayEnergy.reduce((s, v) => s + (v - mean) ** 2, 0) / nextDayEnergy.length
+        return Math.sqrt(variance)
+      })()
+
+      const allNextDayEnergies = dates
+        .slice(0, -1)
+        .map((d, i) => {
+          const nextDay = records[dates[i + 1]]
+          if (!nextDay) return null
+          return nextDay.energy
+        })
+        .filter((v): v is 1|2|3|4|5 => v !== null)
+
+      const overallNextDayAvg =
+        allNextDayEnergies.length > 0
+          ? allNextDayEnergies.reduce((a, b) => a + b, 0) / allNextDayEnergies.length
+          : 0
+
+      const overallNextDayStdDev = (() => {
+        if (allNextDayEnergies.length < 2) return 0
+        const mean = overallNextDayAvg
+        const variance = allNextDayEnergies.reduce((s, v) => s + (v - mean) ** 2, 0) / allNextDayEnergies.length
+        return Math.sqrt(variance)
+      })()
+
       const overallAvgEnergy =
         weekRecords.length > 0
           ? weekRecords.reduce((s, r) => s + r.energy, 0) / weekRecords.length
@@ -79,6 +107,9 @@ export const StatsPage: React.FC = () => {
         correlation,
         nextDayCount: nextDayEnergy.length,
         avgNextDayEnergy,
+        nextDayStdDev,
+        overallNextDayAvg,
+        overallNextDayStdDev,
         overallAvgEnergy,
         recordCount: weekRecords.length,
       }
@@ -181,43 +212,77 @@ export const StatsPage: React.FC = () => {
               次日精力变化
             </h3>
             <p className="text-xs text-gray-400 mb-4">
-              完成某习惯后，第二天的精力是否更好？
+              完成某习惯后，第二天的精力是否更稳？
             </p>
             <div className="space-y-3">
               {habitStats
                 .filter((s) => s.nextDayCount >= 2)
                 .map((stat) => {
-                  const diff = stat.avgNextDayEnergy - stat.overallAvgEnergy
+                  const diff = stat.avgNextDayEnergy - stat.overallNextDayAvg
                   const isPositive = diff > 0.2
                   const isNegative = diff < -0.2
+                  const stabilityDiff = stat.overallNextDayStdDev - stat.nextDayStdDev
+                  const isMoreStable = stabilityDiff > 0.1
+                  const isLessStable = stabilityDiff < -0.1
                   return (
                     <div
                       key={stat.habit.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
+                      className="p-3 bg-gray-50 rounded-xl"
                     >
-                      <span className="text-lg">{stat.habit.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800">
-                          {stat.habit.name}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {stat.nextDayCount}天数据
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-lg">{stat.habit.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-800">
+                            {stat.habit.name}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {stat.nextDayCount}天数据
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div
-                          className={`text-sm font-bold ${
-                            isPositive
-                              ? 'text-emerald-500'
-                              : isNegative
-                              ? 'text-red-500'
-                              : 'text-gray-500'
-                          }`}
-                        >
-                          {diff > 0 ? '+' : ''}
-                          {diff.toFixed(1)}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-white rounded-lg p-2">
+                          <div className="text-gray-400">次日平均精力</div>
+                          <div
+                            className={`font-semibold ${
+                              isPositive
+                                ? 'text-emerald-500'
+                                : isNegative
+                                ? 'text-red-500'
+                                : 'text-gray-600'
+                            }`}
+                          >
+                            {diff > 0 ? '+' : ''}{diff.toFixed(1)} vs 整体
+                          </div>
                         </div>
-                        <div className="text-[10px] text-gray-400">次日精力差</div>
+                        <div className="bg-white rounded-lg p-2">
+                          <div className="text-gray-400">次日精力波动</div>
+                          <div
+                            className={`font-semibold ${
+                              isMoreStable
+                                ? 'text-emerald-500'
+                                : isLessStable
+                                ? 'text-red-500'
+                                : 'text-gray-600'
+                            }`}
+                          >
+                            σ {stat.nextDayStdDev.toFixed(2)}
+                            {isMoreStable && ' 更稳'}
+                            {isLessStable && ' 波动大'}
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-2">
+                          <div className="text-gray-400">习惯后次日 σ</div>
+                          <div className="font-semibold text-gray-700">
+                            {stat.nextDayStdDev.toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-lg p-2">
+                          <div className="text-gray-400">整体次日 σ</div>
+                          <div className="font-semibold text-gray-700">
+                            {stat.overallNextDayStdDev.toFixed(2)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )

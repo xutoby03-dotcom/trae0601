@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { useHabitStore } from '../store/useHabitStore'
 import { getWeekDates } from '../utils/analysis'
 import { formatDate } from '../utils/date'
@@ -16,11 +16,17 @@ export const ReviewPage: React.FC = () => {
     [reviews, weekStart]
   )
 
-  const review = existingReview
-
   const hasData = useMemo(() => {
     return currentWeekDates.some((d) => records[d])
   }, [currentWeekDates, records])
+
+  useEffect(() => {
+    if (hasData && !existingReview) {
+      generateReview(weekStart)
+    }
+  }, [hasData, existingReview, weekStart, generateReview])
+
+  const review = existingReview
 
   const getCorrelationIcon = (correlation: number) => {
     if (correlation > 0.3) return <TrendingUp size={16} className="text-emerald-500" />
@@ -29,7 +35,7 @@ export const ReviewPage: React.FC = () => {
   }
 
   const getSuggestionStyle = (suggestion: string) => {
-    if (suggestion.includes('值得坚持') || suggestion.includes('更好'))
+    if (suggestion.includes('值得坚持') || suggestion.includes('更稳'))
       return { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" /> }
     if (suggestion.includes('太') || suggestion.includes('负相关') || suggestion.includes('下降') || suggestion.includes('消耗'))
       return { bg: 'bg-red-50', border: 'border-red-200', icon: <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" /> }
@@ -68,8 +74,8 @@ export const ReviewPage: React.FC = () => {
 
       {hasData && !review && (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">📊</p>
-          <p className="text-gray-500">点击"生成复盘"查看本周分析</p>
+          <p className="text-4xl mb-3">⏳</p>
+          <p className="text-gray-500">正在生成本周复盘...</p>
         </div>
       )}
 

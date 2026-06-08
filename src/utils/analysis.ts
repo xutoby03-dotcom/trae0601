@@ -71,7 +71,7 @@ export function generateInsight(
     return `${habitName}和精力呈负相关，可能消耗过大，考虑调整强度。`
   }
   if (avgEnergyAfter > avgEnergyOverall + 0.5) {
-    return `做${habitName}的日子精力普遍更好，平均高出${(avgEnergyAfter - avgEnergyOverall).toFixed(1)}分。`
+    return `做${habitName}的日子精力普遍更稳，平均高出${(avgEnergyAfter - avgEnergyOverall).toFixed(1)}分。`
   }
   if (avgEnergyAfter < avgEnergyOverall - 0.5) {
     return `做${habitName}后精力反而下降，可能需要减少投入或调整时间。`
