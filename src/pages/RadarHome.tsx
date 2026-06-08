@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAssignmentStore, getUrgencyScore } from '@/store/useAssignmentStore';
 import RadarChart from '@/components/RadarChart';
 import TaskCard from '@/components/TaskCard';
+import AssignmentForm from '@/components/AssignmentForm';
+import type { Assignment } from '@/types';
 
 export default function RadarHome() {
   const { assignments, courses } = useAssignmentStore();
   const navigate = useNavigate();
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | undefined>();
 
   const activeAssignments = assignments
     .filter((a) => a.status !== 'completed')
@@ -75,10 +79,17 @@ export default function RadarHome() {
             </div>
           )}
           {activeAssignments.map((a) => (
-            <TaskCard key={a.id} assignment={a} />
+            <TaskCard key={a.id} assignment={a} onEdit={setEditingAssignment} />
           ))}
         </div>
       </div>
+
+      {editingAssignment && (
+        <AssignmentForm
+          assignment={editingAssignment}
+          onClose={() => setEditingAssignment(undefined)}
+        />
+      )}
     </div>
   );
 }

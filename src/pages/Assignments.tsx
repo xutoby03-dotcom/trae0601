@@ -119,7 +119,14 @@ export default function Assignments() {
       ) : (
         <div className="space-y-3">
           {filteredAssignments.map((a) => (
-            <TaskCard key={a.id} assignment={a} />
+            <TaskCard
+              key={a.id}
+              assignment={a}
+              onEdit={(a) => {
+                setEditingAssignment(a);
+                setShowForm(true);
+              }}
+            />
           ))}
         </div>
       )}

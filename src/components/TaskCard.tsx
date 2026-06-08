@@ -1,13 +1,14 @@
-import { Clock, ExternalLink, ChevronDown, ChevronUp, Check, Trash2 } from 'lucide-react';
+import { Clock, ExternalLink, ChevronDown, ChevronUp, Check, Trash2, Edit2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Assignment } from '@/types';
 import { useAssignmentStore, isUrgent, formatDeadline, getUrgencyScore } from '@/store/useAssignmentStore';
 
 interface TaskCardProps {
   assignment: Assignment;
+  onEdit?: (assignment: Assignment) => void;
 }
 
-export default function TaskCard({ assignment }: TaskCardProps) {
+export default function TaskCard({ assignment, onEdit }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { courses, toggleStep, deleteAssignment } = useAssignmentStore();
   const course = courses.find((c) => c.id === assignment.courseId);
@@ -61,6 +62,14 @@ export default function TaskCard({ assignment }: TaskCardProps) {
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(assignment)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-radar-cyan hover:bg-radar-cyan/10 transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => deleteAssignment(assignment.id)}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-radar-red hover:bg-radar-red/10 transition-colors"
