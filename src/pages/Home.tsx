@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Cat, Dog, Syringe, Stethoscope, AlertTriangle, Clock, ChevronRight, PawPrint } from 'lucide-react'
+import { Plus, Cat, Dog, Syringe, Stethoscope, AlertTriangle, Clock, ChevronRight, PawPrint, X } from 'lucide-react'
 import { usePetStore } from '@/store'
 import { RECORD_TYPE_CONFIG } from '@/types'
 import type { HealthRecordType } from '@/types'
@@ -17,6 +18,7 @@ export default function Home() {
   const getUpcomingReminders = usePetStore((s) => s.getUpcomingReminders)
 
   const reminders = getUpcomingReminders()
+  const [petPickerType, setPetPickerType] = useState<HealthRecordType | null>(null)
 
   const quickActions = [
     { label: '添加宠物', icon: PawPrint, onClick: () => navigate('/add-pet'), color: 'bg-warm-400' },
@@ -25,13 +27,20 @@ export default function Home() {
   ]
 
   function navigateToRecord(type: HealthRecordType) {
-    if (pets.length === 1) {
-      navigate(`/pet/${pets[0].id}/add-record?type=${type}`)
-    } else if (pets.length > 1) {
-      navigate(`/add-pet`)
-    } else {
+    if (pets.length === 0) {
       navigate('/add-pet')
+    } else if (pets.length === 1) {
+      navigate(`/pet/${pets[0].id}/add-record?type=${type}`)
+    } else {
+      setPetPickerType(type)
     }
+  }
+
+  function pickPet(petId: string) {
+    if (petPickerType) {
+      navigate(`/pet/${petId}/add-record?type=${petPickerType}`)
+    }
+    setPetPickerType(null)
   }
 
   function getLastVaccineRecord(petId: string) {
@@ -219,6 +228,51 @@ export default function Home() {
           })}
         </div>
       </section>
+
+      {petPickerType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fade-in" onClick={() => setPetPickerType(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-[90%] max-w-sm p-6 animate-bounce-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-lg font-semibold text-warm-800">
+                选择宠物
+              </h3>
+              <button onClick={() => setPetPickerType(null)} className="p-1 rounded-lg hover:bg-warm-100 transition-colors">
+                <X className="w-5 h-5 text-warm-400" />
+              </button>
+            </div>
+            <p className="text-sm text-warm-400 mb-4">
+              为哪只宠物添加{RECORD_TYPE_CONFIG[petPickerType].label}记录？
+            </p>
+            <div className="space-y-2">
+              {pets.map((pet) => {
+                const isCat = pet.species === 'cat'
+                return (
+                  <button
+                    key={pet.id}
+                    onClick={() => pickPet(pet.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-warm-100 hover:border-warm-300 hover:bg-warm-50 transition-all duration-200 active:scale-[0.98]"
+                  >
+                    <div className="flex-shrink-0">
+                      {pet.photo ? (
+                        <img src={pet.photo} alt={pet.name} className="w-10 h-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isCat ? 'bg-pet-orange/20' : 'bg-pet-blue/20'}`}>
+                          {isCat ? <Cat className="w-5 h-5 text-pet-orange" /> : <Dog className="w-5 h-5 text-pet-blue" />}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-left flex-1">
+                      <span className="font-medium text-warm-800 text-sm">{pet.name}</span>
+                      <p className="text-xs text-warm-400">{pet.breed} · {isCat ? '猫' : '狗'}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-warm-300" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

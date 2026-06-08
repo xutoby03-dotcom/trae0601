@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Save,
@@ -32,9 +32,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
 export default function AddRecord() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const addRecord = usePetStore((s) => s.addRecord)
 
-  const [type, setType] = useState<HealthRecordType>('vaccine')
+  const urlType = searchParams.get('type') as HealthRecordType | null
+  const [type, setType] = useState<HealthRecordType>(
+    urlType && RECORD_TYPE_CONFIG[urlType] ? urlType : 'vaccine'
+  )
   const [title, setTitle] = useState('')
   const [date, setDate] = useState('')
   const [nextDate, setNextDate] = useState('')
