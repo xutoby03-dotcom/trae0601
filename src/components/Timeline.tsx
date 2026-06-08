@@ -27,7 +27,7 @@ export default function Timeline({ records, unit }: TimelineProps) {
           unit === 'km'
             ? record.distance
             : unit === 'hours'
-              ? record.duration
+              ? Math.round(record.duration / 6) / 10
               : record.count
         return (
           <div key={record.id} className="relative flex items-start gap-4 py-3">

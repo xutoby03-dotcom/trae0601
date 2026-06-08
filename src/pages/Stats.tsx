@@ -205,7 +205,7 @@ export default function Stats() {
                       {item.gear.name}
                     </span>
                     <span className="text-[10px] text-white/30">
-                      {Math.round(item.totalUsage)} {item.gear.maxUsageUnit === 'km' ? 'km' : item.gear.maxUsageUnit === 'hours' ? 'h' : '次'}
+                      {Math.round(item.totalUsage)} {item.gear.maxUsageUnit === 'km' ? 'km' : item.gear.maxUsageUnit === 'hours' ? '小时' : '次'}
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-white/5">

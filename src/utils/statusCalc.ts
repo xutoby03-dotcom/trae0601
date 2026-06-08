@@ -37,7 +37,7 @@ export function getTotalUsage(
     return records.reduce((sum, r) => sum + r.distance, 0)
   }
   if (gear.maxUsageUnit === 'hours') {
-    return records.reduce((sum, r) => sum + r.duration, 0)
+    return records.reduce((sum, r) => sum + r.duration, 0) / 60
   }
   return records.reduce((sum, r) => sum + r.count, 0)
 }
