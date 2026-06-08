@@ -1,14 +1,23 @@
-import { useState, useCallback } from 'react'
-import { loadCareTasks, completeTask } from '../utils/storage'
+import { useState, useCallback, useMemo } from 'react'
+import { loadCareTasks, completeTask, loadPlants } from '../utils/storage'
 import { CareTask } from '../types'
-import { format, startOfDay, addDays, isSameDay, parseISO, isAfter } from 'date-fns'
+import { format, startOfDay, addDays, isSameDay, parseISO, isAfter, isWithinInterval } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 
-const TYPE_CONFIG = {
+type CareType = 'water' | 'fertilize' | 'repot'
+
+const TYPE_CONFIG: Record<CareType, { icon: string; label: string; color: string; bg: string }> = {
   water: { icon: '💧', label: '浇水', color: 'var(--blue-500)', bg: 'var(--blue-50)' },
   fertilize: { icon: '🧪', label: '施肥', color: 'var(--purple-500)', bg: 'var(--purple-50)' },
   repot: { icon: '🏺', label: '换盆', color: 'var(--amber-600)', bg: 'var(--amber-50)' },
 }
+
+const TYPE_OPTIONS: { value: CareType | ''; label: string; icon: string }[] = [
+  { value: '', label: '全部类型', icon: '📋' },
+  { value: 'water', label: '浇水', icon: '💧' },
+  { value: 'fertilize', label: '施肥', icon: '🧪' },
+  { value: 'repot', label: '换盆', icon: '🏺' },
+]
 
 function TaskRow({ task, onDone }: { task: CareTask; onDone: () => void }) {
   const cfg = TYPE_CONFIG[task.type]
@@ -54,14 +63,143 @@ export default function CalendarView() {
   const [tasks, setTasks] = useState<CareTask[]>(() => loadCareTasks())
   const refresh = useCallback(() => setTasks(loadCareTasks()), [])
 
+  const [filterPlant, setFilterPlant] = useState('')
+  const [filterType, setFilterType] = useState<CareType | ''>('')
+  const [onlyThisWeek, setOnlyThisWeek] = useState(true)
+
+  const plantNames = useMemo(() => {
+    const names = Array.from(new Set(loadPlants().map(p => p.name)))
+    return names.sort()
+  }, [])
+
+  const filtered = useMemo(() => {
+    return tasks.filter(t => {
+      if (filterPlant && t.plantName !== filterPlant) return false
+      if (filterType && t.type !== filterType) return false
+      return true
+    })
+  }, [tasks, filterPlant, filterType])
+
+  const weekStart = startOfDay(new Date())
+  const weekEnd = addDays(weekStart, 6)
+
   const weekDays = (() => {
-    const today = startOfDay(new Date())
-    return Array.from({ length: 7 }, (_, i) => addDays(today, i))
+    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   })()
+
+  const pendingTasks = useMemo(() => {
+    return filtered
+      .filter(t => !t.completed && !isAfter(parseISO(t.scheduledDate), addDays(weekStart, 7)))
+      .sort((a, b) => parseISO(a.scheduledDate).getTime() - parseISO(b.scheduledDate).getTime())
+  }, [filtered, weekStart])
+
+  const completedTasks = useMemo(() => {
+    let list = filtered.filter(t => t.completed)
+    if (onlyThisWeek) {
+      list = list.filter(t => {
+        if (!t.completedDate) return false
+        return isWithinInterval(parseISO(t.completedDate), { start: weekStart, end: addDays(weekEnd, 1) })
+      })
+    }
+    return list
+      .sort((a, b) => {
+        const da = a.completedDate ? parseISO(a.completedDate).getTime() : 0
+        const db = b.completedDate ? parseISO(b.completedDate).getTime() : 0
+        return db - da
+      })
+      .slice(0, 20)
+  }, [filtered, onlyThisWeek, weekStart, weekEnd])
+
+  const activeFilterCount = (filterPlant ? 1 : 0) + (filterType ? 1 : 0)
+
+  const clearFilters = () => {
+    setFilterPlant('')
+    setFilterType('')
+  }
 
   return (
     <div>
       <h2 className="page-title">📅 照料日历</h2>
+
+      <div style={{
+        display: 'flex',
+        gap: 10,
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        marginBottom: 20,
+        padding: 14,
+        background: 'white',
+        borderRadius: 'var(--radius)',
+        boxShadow: 'var(--shadow)',
+      }}>
+        <select
+          value={filterPlant}
+          onChange={e => setFilterPlant(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--gray-200)',
+            fontSize: 13,
+            color: filterPlant ? 'var(--green-600)' : 'var(--gray-600)',
+            fontWeight: filterPlant ? 600 : 400,
+            background: filterPlant ? 'var(--green-50)' : 'white',
+            cursor: 'pointer',
+          }}
+        >
+          <option value="">🌿 全部植物</option>
+          {plantNames.map(name => (
+            <option key={name} value={name}>🌱 {name}</option>
+          ))}
+        </select>
+
+        <div style={{ display: 'flex', gap: 4 }}>
+          {TYPE_OPTIONS.map(opt => {
+            const active = filterType === opt.value
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setFilterType(opt.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: active ? '1px solid var(--green-400)' : '1px solid var(--gray-200)',
+                  background: active ? 'var(--green-50)' : 'white',
+                  color: active ? 'var(--green-600)' : 'var(--gray-500)',
+                  fontWeight: active ? 600 : 400,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.icon} {opt.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearFilters}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--gray-200)',
+              background: 'white',
+              color: 'var(--gray-400)',
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            ✕ 清除筛选
+          </button>
+        )}
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+            {filtered.length} 项任务
+          </span>
+        </div>
+      </div>
 
       <div style={{
         display: 'grid',
@@ -70,7 +208,7 @@ export default function CalendarView() {
         marginBottom: 24,
       }}>
         {weekDays.map(day => {
-          const dayTasks = tasks.filter(t => isSameDay(parseISO(t.scheduledDate), day))
+          const dayTasks = filtered.filter(t => isSameDay(parseISO(t.scheduledDate), day))
           const isToday = isSameDay(day, new Date())
 
           return (
@@ -108,7 +246,7 @@ export default function CalendarView() {
                   </div>
                 )}
                 {dayTasks.slice(0, 3).map(task => {
-                  const cfg = TYPE_CONFIG[task.type]
+                  const cfg = TYPE_CONFIG[task.type as CareType]
                   return (
                     <div key={task.id} style={{
                       display: 'flex',
@@ -144,42 +282,52 @@ export default function CalendarView() {
           🔔 待办任务
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {tasks.filter(t => !t.completed && !isAfter(parseISO(t.scheduledDate), addDays(startOfDay(new Date()), 7))).length === 0 ? (
+          {pendingTasks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 30, color: 'var(--gray-400)' }}>
               🎉 本周没有待办任务
             </div>
           ) : (
-            tasks
-              .filter(t => !t.completed && !isAfter(parseISO(t.scheduledDate), addDays(startOfDay(new Date()), 7)))
-              .sort((a, b) => parseISO(a.scheduledDate).getTime() - parseISO(b.scheduledDate).getTime())
-              .map(task => (
-                <TaskRow key={task.id} task={task} onDone={refresh} />
-              ))
+            pendingTasks.map(task => (
+              <TaskRow key={task.id} task={task} onDone={refresh} />
+            ))
           )}
         </div>
       </div>
 
       <div>
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--gray-700)', marginBottom: 12 }}>
-          ✓ 已完成
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--gray-700)' }}>
+            ✓ 已完成
+          </h3>
+          <button
+            onClick={() => setOnlyThisWeek(v => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: onlyThisWeek ? '1px solid var(--green-400)' : '1px solid var(--gray-200)',
+              background: onlyThisWeek ? 'var(--green-50)' : 'white',
+              color: onlyThisWeek ? 'var(--green-600)' : 'var(--gray-400)',
+              fontSize: 12,
+              fontWeight: onlyThisWeek ? 600 : 400,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            📅 仅本周
+          </button>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {tasks.filter(t => t.completed).length === 0 ? (
+          {completedTasks.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 20, color: 'var(--gray-400)', fontSize: 14 }}>
               暂无已完成任务
             </div>
           ) : (
-            tasks
-              .filter(t => t.completed)
-              .sort((a, b) => {
-                const da = a.completedDate ? parseISO(a.completedDate).getTime() : 0
-                const db = b.completedDate ? parseISO(b.completedDate).getTime() : 0
-                return db - da
-              })
-              .slice(0, 10)
-              .map(task => (
-                <TaskRow key={task.id} task={task} onDone={refresh} />
-              ))
+            completedTasks.map(task => (
+              <TaskRow key={task.id} task={task} onDone={refresh} />
+            ))
           )}
         </div>
       </div>
