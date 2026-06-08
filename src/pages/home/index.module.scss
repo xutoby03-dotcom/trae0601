@@ -1,0 +1,158 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 120rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-lg $spacing-lg $spacing-xl;
+  padding-top: 24rpx;
+}
+
+.greeting {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: 8rpx;
+}
+
+.subtitle {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: $spacing-lg;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-round;
+  padding: 0 $spacing-lg;
+  height: 72rpx;
+}
+
+.searchIcon {
+  font-size: $font-size-md;
+  margin-right: $spacing-sm;
+}
+
+.searchInput {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-white;
+  height: 72rpx;
+  line-height: 72rpx;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+}
+
+.filterTabs {
+  display: flex;
+  padding: $spacing-md $spacing-lg;
+  gap: $spacing-sm;
+  background: $color-bg-card;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.filterTab {
+  @include button-reset;
+  height: 64rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  background: $color-bg-page;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+}
+
+.filterTabActive {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}
+
+.tabText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+}
+
+.tabTextActive {
+  color: $color-text-white;
+}
+
+.listContainer {
+  padding: $spacing-md $spacing-lg;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  margin-top: $spacing-md;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.sectionIcon {
+  font-size: $font-size-md;
+  margin-right: $spacing-xs;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionCount {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-left: $spacing-xs;
+}
+
+.summaryBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: $color-bg-card;
+  margin: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summaryNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: $line-height-tight;
+}
+
+.summaryLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}

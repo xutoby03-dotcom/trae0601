@@ -1,0 +1,287 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.tabBar {
+  display: flex;
+  background: $color-bg-card;
+  padding: $spacing-sm $spacing-lg;
+  gap: $spacing-sm;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tabItem {
+  @include button-reset;
+  flex: 1;
+  height: 72rpx;
+  border-radius: $radius-round;
+  background: $color-bg-page;
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+}
+
+.tabItemActive {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.tabText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.tabTextActive {
+  color: $color-text-white;
+}
+
+.listContainer {
+  padding: $spacing-md $spacing-lg;
+}
+
+.orderCard {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.95;
+    transform: scale(0.99);
+  }
+}
+
+.orderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.orderLocker {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.orderLockerIcon {
+  font-size: $font-size-md;
+  margin-right: $spacing-xs;
+}
+
+.orderLockerText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.orderBody {
+  padding: $spacing-md 0;
+  border-top: 1rpx solid $color-divider;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.orderInfoRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.orderInfoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  width: 120rpx;
+  flex-shrink: 0;
+}
+
+.orderInfoValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  flex: 1;
+  @include text-ellipsis;
+}
+
+.codeRevealed {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-lg;
+  letter-spacing: 2rpx;
+}
+
+.codeHidden {
+  color: $color-text-tertiary;
+  font-style: italic;
+}
+
+.progressSteps {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.stepDot {
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background: $color-border;
+  flex-shrink: 0;
+  transition: all $transition-base;
+}
+
+.stepDotActive {
+  background: $color-primary;
+}
+
+.stepDotDone {
+  background: $color-success;
+}
+
+.stepLine {
+  flex: 1;
+  height: 4rpx;
+  background: $color-border;
+  margin: 0 8rpx;
+}
+
+.stepLineActive {
+  background: $color-primary;
+}
+
+.stepLineDone {
+  background: $color-success;
+}
+
+.stepLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stepLabelActive {
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.stepLabelDone {
+  color: $color-success;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.orderFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: $spacing-md;
+  gap: $spacing-sm;
+}
+
+.actionBtn {
+  @include button-reset;
+  height: $button-height-sm;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+}
+
+.primaryBtn {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}
+
+.secondaryBtn {
+  background: $color-bg-page;
+  color: $color-text-secondary;
+}
+
+.dangerBtn {
+  background: rgba($color-error, 0.08);
+  color: $color-error;
+}
+
+.actionText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+.exceptionBanner {
+  display: flex;
+  align-items: center;
+  background: rgba($color-error, 0.06);
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-top: $spacing-md;
+  gap: $spacing-xs;
+}
+
+.exceptionIcon {
+  font-size: $font-size-md;
+}
+
+.exceptionText {
+  font-size: $font-size-sm;
+  color: $color-error;
+  flex: 1;
+  @include text-ellipsis-multi(1);
+}
+
+.photoRow {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-sm;
+  gap: $spacing-xs;
+}
+
+.photoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.photoImg {
+  width: 120rpx;
+  height: 90rpx;
+  border-radius: $radius-xs;
+}

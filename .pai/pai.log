@@ -1,0 +1,29 @@
+[22:24:41.111] Server listening on port 52949, PID 82219
+[22:24:41.137] readProjectFiles, Found 51 files to read.
+[22:24:41.161] Starting PAI Cloud Dev...
+[22:24:42.429] [PAI SDK] createCloudSession response: {
+  "code": 0,
+  "msg": "success",
+  "sandboxId": "vefaas-f0vkicge-pyw70jixna-d8jd1a8200p4ii03ah70-sandbox",
+  "endpoint": "https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com"
+}
+[22:24:42.993] [PAI SDK] cloudServer.start called, appId: pai-preview-trae-8019df95
+[22:24:43.663] [PAI SDK] Received event: log {"content":"\n> taro_template@1.0.0 dev:h5\n> npm run build:h5 -- --watch\n\n","timestamp":1780928683874}
+[22:24:43.771] [PAI SDK] Received event: log {"content":"\n> taro_template@1.0.0 build:h5\n> taro build --type h5 --watch\n\n","timestamp":1780928683985}
+[22:24:44.171] [PAI SDK] Received event: log {"content":"👽 Taro v4.1.9\n\n","timestamp":1780928684372}
+[22:24:45.433] [PAI SDK] Received event: log {"content":"Tips:\n1. 建议开启持久化缓存功能，能有效提升二次编译速度，详情请参考: https://docs.taro.zone/docs/config-detail#cache。\n\n\n","timestamp":1780928685659}
+[22:24:46.701] [PAI SDK] Received event: log {"content":"- 即将开始启动编译，请稍等~\n","timestamp":1780928686933}
+[22:25:05.652] [PAI SDK] Received event: log {"content":"🙅   编译失败. 6/8/2026, 10:25:05 PM\n\n","timestamp":1780928705850}
+[22:25:05.654] [PAI SDK] cloudServer.start response: {
+  "status": "running",
+  "msg": "Cloud Server started successfully.",
+  "hash": "pai-preview-trae-8019df95"
+}
+[22:25:05.761] [PAI SDK] Received event: compile_error [{"filename":"","lineNumber":0,"description":"ERROR in ./src/pages/exception/index.tsx\nModule build failed (from ../../../var/cache/aipa-dev-server/prewarm/taro/a1bbf427d8f435dfb115d5256b2475a3/node_modules/.pnpm/babel-loader@8.2.1_@babel+core@7.29.0_webpack@5.78.0_@swc+core@1.3.96_postcss@8.5.14_/node_modules/babel-loader/lib/index.js):\nSyntaxError: /src/pages/exception/index.tsx: Unexpected token (102:58)\n\n  100 |             <Textarea\n  101 |               className={styles.formTextarea}\n> 102 |               placeholder=\"例如：输入取件码638291后，屏幕提示\"取件码不存在或已过期\"，可能是快递被提前取走了...\"\n      |                                                           ^\n  103 |               value={description}\n  104 |               onInput={(e) => setDescription(e.detail.value)}\n  105 |               maxlength={500}","timestamp":1780928705963}]
+[22:25:17.504] [Preview Server] Frontend connected, clients size = 1
+[22:25:17.515] Sending cached status to new connection, lastStatusMessage = {"event":"status_change","message":{"url":"https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8jd1a8200p4ii03ah70-sandbox&hash=pai-preview-trae-8019df95","schema":"aipa://preview?type=pai&aipa_id=pai-preview-trae-8019df95&uuid=32846acf-668b-4169-b485-4ae83fe8853c","status":"running","msg":"Cloud Server started successfully.","framework":"taro"}}
+[22:25:17.517] Sending cached status to new connection, lastErrorMessage = {"event":"compile_error","message":[{"filename":"","lineNumber":0,"description":"ERROR in ./src/pages/exception/index.tsx\nModule build failed (from ../../../var/cache/aipa-dev-server/prewarm/taro/a1bbf427d8f435dfb115d5256b2475a3/node_modules/.pnpm/babel-loader@8.2.1_@babel+core@7.29.0_webpack@5.78.0_@swc+core@1.3.96_postcss@8.5.14_/node_modules/babel-loader/lib/index.js):\nSyntaxError: /src/pages/exception/index.tsx: Unexpected token (102:58)\n\n  100 |             <Textarea\n  101 |               className={styles.formTextarea}\n> 102 |               placeholder=\"例如：输入取件码638291后，屏幕提示\"取件码不存在或已过期\"，可能是快递被提前取走了...\"\n      |                                                           ^\n  103 |               value={description}\n  104 |               onInput={(e) => setDescription(e.detail.value)}\n  105 |               maxlength={500}","timestamp":1780928705963}]}
+[22:25:48.348] [Preview Server] Frontend disconnected, clients size = 1
+[22:25:48.435] [Preview Server] Frontend connected, clients size = 1
+[22:25:48.436] Sending cached status to new connection, lastStatusMessage = {"event":"status_change","message":{"url":"https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8jd1a8200p4ii03ah70-sandbox&hash=pai-preview-trae-8019df95","schema":"aipa://preview?type=pai&aipa_id=pai-preview-trae-8019df95&uuid=32846acf-668b-4169-b485-4ae83fe8853c","status":"running","msg":"Cloud Server started successfully.","framework":"taro"}}
+[22:25:48.436] Sending cached status to new connection, lastErrorMessage = {"event":"compile_error","message":[{"filename":"","lineNumber":0,"description":"ERROR in ./src/pages/exception/index.tsx\nModule build failed (from ../../../var/cache/aipa-dev-server/prewarm/taro/a1bbf427d8f435dfb115d5256b2475a3/node_modules/.pnpm/babel-loader@8.2.1_@babel+core@7.29.0_webpack@5.78.0_@swc+core@1.3.96_postcss@8.5.14_/node_modules/babel-loader/lib/index.js):\nSyntaxError: /src/pages/exception/index.tsx: Unexpected token (102:58)\n\n  100 |             <Textarea\n  101 |               className={styles.formTextarea}\n> 102 |               placeholder=\"例如：输入取件码638291后，屏幕提示\"取件码不存在或已过期\"，可能是快递被提前取走了...\"\n      |                                                           ^\n  103 |               value={description}\n  104 |               onInput={(e) => setDescription(e.detail.value)}\n  105 |               maxlength={500}","timestamp":1780928705963}]}

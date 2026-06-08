@@ -1,0 +1,176 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 160rpx;
+}
+
+.header {
+  background: rgba($color-error, 0.06);
+  padding: $spacing-lg;
+  display: flex;
+  align-items: center;
+}
+
+.headerIcon {
+  font-size: 48rpx;
+  margin-right: $spacing-md;
+}
+
+.headerTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+}
+
+.headerDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.section {
+  background: $color-bg-card;
+  margin: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.typeList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.typeItem {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  border-radius: $radius-sm;
+  background: $color-bg-page;
+  transition: all $transition-base;
+  width: 100%;
+  border: 2rpx solid transparent;
+  white-space: nowrap;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.typeItemActive {
+  background: rgba($color-error, 0.06);
+  border-color: $color-error;
+}
+
+.typeIcon {
+  font-size: $font-size-lg;
+  margin-right: $spacing-md;
+}
+
+.typeLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  flex: 1;
+  text-align: left;
+}
+
+.typeLabelActive {
+  color: $color-error;
+}
+
+.typeCheck {
+  font-size: $font-size-md;
+  color: $color-error;
+}
+
+.formGroup {
+  margin-bottom: $spacing-lg;
+}
+
+.formLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.formTextarea {
+  width: 100%;
+  min-height: 200rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+  line-height: $line-height-normal;
+}
+
+.photoUpload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200rpx;
+  height: 200rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  border: 2rpx dashed $color-border;
+}
+
+.photoUploadIcon {
+  font-size: 64rpx;
+}
+
+.photoUploadText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background: $color-bg-card;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.submitBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: $color-error;
+  border-radius: $radius-button;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.submitText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}

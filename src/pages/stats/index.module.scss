@@ -1,0 +1,273 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-lg $spacing-lg $spacing-xl;
+  padding-top: 24rpx;
+}
+
+.headerTitle {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: 8rpx;
+}
+
+.headerSubtitle {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.statsSummary {
+  display: flex;
+  background: $color-bg-card;
+  margin: -40rpx $spacing-lg $spacing-md;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  position: relative;
+  z-index: 2;
+}
+
+.statItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: $line-height-tight;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.section {
+  background: $color-bg-card;
+  margin: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-lg;
+}
+
+.sectionIcon {
+  font-size: $font-size-lg;
+  margin-right: $spacing-xs;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.rankList {
+  display: flex;
+  flex-direction: column;
+}
+
+.rankItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rankIndex {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  background: $color-text-tertiary;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+
+.rankFirst {
+  background: #FFD700;
+}
+
+.rankSecond {
+  background: #C0C0C0;
+}
+
+.rankThird {
+  background: #CD7F32;
+}
+
+.rankAvatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-round;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+
+.rankInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.rankName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.rankBuilding {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 2rpx;
+}
+
+.rankStats {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.rankHelpCount {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.rankHelpLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.lockerItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.lockerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.lockerName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.lockerDetail {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.lockerRate {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.lockerRateNum {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-error;
+}
+
+.lockerRateLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.progressBar {
+  width: 200rpx;
+  height: 12rpx;
+  background: $color-bg-page;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin-top: $spacing-xs;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: $radius-round;
+  background: linear-gradient(90deg, $color-primary, $color-error);
+}
+
+.myStatCard {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+  background: rgba($color-primary, 0.04);
+  border-radius: $radius-sm;
+  border: 2rpx solid rgba($color-primary, 0.12);
+}
+
+.myStatAvatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-round;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+}
+
+.myStatInfo {
+  flex: 1;
+}
+
+.myStatName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.myStatDetail {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.myStatRank {
+  text-align: right;
+}
+
+.myRankNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.myRankLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

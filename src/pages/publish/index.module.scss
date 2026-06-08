@@ -1,0 +1,277 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 160rpx;
+}
+
+.section {
+  background: $color-bg-card;
+  margin: $spacing-md $spacing-lg;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+  display: flex;
+  align-items: center;
+}
+
+.sectionIcon {
+  margin-right: $spacing-xs;
+}
+
+.formGroup {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.formLabel {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  display: flex;
+  align-items: center;
+}
+
+.required {
+  color: $color-error;
+  margin-left: 4rpx;
+}
+
+.formInput {
+  width: 100%;
+  height: 80rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 0 $spacing-lg;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.formTextarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+  line-height: $line-height-normal;
+}
+
+.selectGroup {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.selectItem {
+  @include button-reset;
+  height: 64rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-sm;
+  background: $color-bg-page;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  transition: all $transition-base;
+  white-space: nowrap;
+  border: 2rpx solid transparent;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+}
+
+.selectItemActive {
+  background: rgba($color-primary, 0.08);
+  color: $color-primary;
+  border-color: $color-primary;
+}
+
+.selectText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+.selectTextActive {
+  color: $color-primary;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toggleLabel {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.toggleSwitch {
+  width: 96rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-border;
+  position: relative;
+  transition: all $transition-base;
+}
+
+.toggleSwitchActive {
+  background: $color-primary;
+}
+
+.toggleDot {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: $color-bg-card;
+  position: absolute;
+  top: 6rpx;
+  left: 6rpx;
+  transition: all $transition-base;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+.toggleDotActive {
+  left: 46rpx;
+}
+
+.rewardGroup {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.rewardItem {
+  @include button-reset;
+  height: 72rpx;
+  padding: 0 $spacing-xl;
+  border-radius: $radius-round;
+  background: rgba($color-reward, 0.06);
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-reward;
+  transition: all $transition-base;
+  white-space: nowrap;
+  border: 2rpx solid transparent;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+}
+
+.rewardItemActive {
+  background: rgba($color-reward, 0.12);
+  border-color: $color-reward;
+}
+
+.rewardText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+}
+
+.rewardTextActive {
+  color: $color-reward;
+}
+
+.customReward {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-md;
+}
+
+.customRewardInput {
+  width: 160rpx;
+  height: 72rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 0 $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  text-align: center;
+}
+
+.customRewardUnit {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.submitBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
+  background: $color-bg-card;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+}
+
+.submitBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.submitText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}
+
+.dateTimeRow {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.dateInput {
+  flex: 1;
+  height: 80rpx;
+  background: $color-bg-page;
+  border-radius: $radius-sm;
+  padding: 0 $spacing-md;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+}
+
+.dateText {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.datePlaceholder {
+  font-size: $font-size-sm;
+  color: $color-text-disabled;
+}

@@ -1,0 +1,186 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.95;
+    transform: scale(0.99);
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.lockerIcon {
+  font-size: $font-size-md;
+  margin-right: $spacing-xs;
+}
+
+.lockerLocation {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-right: $spacing-sm;
+  @include text-ellipsis;
+}
+
+.lockerName {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.tagBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  white-space: nowrap;
+}
+
+.tagBadgeText {
+  font-size: 20rpx;
+  font-weight: $font-weight-medium;
+  line-height: $line-height-tight;
+}
+
+.urgent {
+  background: rgba($color-urgent, 0.1);
+  .tagBadgeText {
+    color: $color-urgent;
+  }
+}
+
+.building {
+  background: rgba($color-primary, 0.1);
+  .tagBadgeText {
+    color: $color-primary;
+  }
+}
+
+.heavy {
+  background: rgba($color-heavy, 0.1);
+  .tagBadgeText {
+    color: $color-heavy;
+  }
+}
+
+.fragile {
+  background: rgba($color-fragile, 0.1);
+  .tagBadgeText {
+    color: $color-fragile;
+  }
+}
+
+.cardBody {
+  padding: $spacing-md 0;
+  border-top: 1rpx solid $color-divider;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.infoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  width: 96rpx;
+  flex-shrink: 0;
+}
+
+.infoValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  flex: 1;
+  @include text-ellipsis;
+}
+
+.codeValue {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-md;
+}
+
+.publisherInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.publisherName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.buildingTag {
+  font-size: 20rpx;
+  color: $color-primary;
+  background: rgba($color-primary, 0.08);
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+}
+
+.footerRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.deadline {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.reward {
+  display: flex;
+  align-items: center;
+}
+
+.rewardIcon {
+  font-size: $font-size-sm;
+  margin-right: 4rpx;
+}
+
+.rewardAmount {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-reward;
+}
