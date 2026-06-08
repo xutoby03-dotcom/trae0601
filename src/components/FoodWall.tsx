@@ -4,6 +4,7 @@ import { getUrgencyLevel } from '../types'
 import FoodCard from './FoodCard'
 import GroupBuyModal from './GroupBuyModal'
 import ManageModal from './ManageModal'
+import NeighborJoinModal from './NeighborJoinModal'
 import { AlertTriangle } from 'lucide-react'
 
 interface Props {
@@ -12,7 +13,8 @@ interface Props {
 
 export default function FoodWall({ items }: Props) {
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null)
-  const [manageItem, setManageItem] = useState<FoodItem | null>(null)
+  const [manageItemId, setManageItemId] = useState<string | null>(null)
+  const [neighborJoinItem, setNeighborJoinItem] = useState<FoodItem | null>(null)
 
   const activeItems = items.filter(i => i.status !== 'expired')
   const expiredItems = items.filter(i => i.status === 'expired')
@@ -87,7 +89,8 @@ export default function FoodWall({ items }: Props) {
                   key={item.id}
                   item={item}
                   onJoin={setSelectedItem}
-                  onManage={setManageItem}
+                  onManage={(item) => setManageItemId(item.id)}
+                  onNeighborJoin={setNeighborJoinItem}
                 />
               ))}
             </div>
@@ -108,6 +111,7 @@ export default function FoodWall({ items }: Props) {
                 item={item}
                 onJoin={() => {}}
                 onManage={() => {}}
+                onNeighborJoin={() => {}}
               />
             ))}
           </div>
@@ -117,8 +121,11 @@ export default function FoodWall({ items }: Props) {
       {selectedItem && (
         <GroupBuyModal item={selectedItem} onClose={() => setSelectedItem(null)} />
       )}
-      {manageItem && (
-        <ManageModal item={manageItem} onClose={() => setManageItem(null)} />
+      {manageItemId && (
+        <ManageModal itemId={manageItemId} onClose={() => setManageItemId(null)} />
+      )}
+      {neighborJoinItem && (
+        <NeighborJoinModal item={neighborJoinItem} onClose={() => setNeighborJoinItem(null)} />
       )}
     </div>
   )

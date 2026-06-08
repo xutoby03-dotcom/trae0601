@@ -7,6 +7,7 @@ interface StoreContextType {
   currentUser: UserProfile
   addFoodItem: (item: Omit<FoodItem, 'id' | 'status' | 'currentQuantity' | 'orders' | 'createdAt' | 'publisherId' | 'publisherName' | 'publisherAvatar'>) => void
   addOrder: (foodId: string, quantity: number, pickupTime: string, message: string) => void
+  addNeighborOrder: (foodId: string, neighbor: UserProfile, quantity: number, pickupTime: string, message: string) => void
   confirmPickup: (foodId: string, orderId: string) => void
   markNoShow: (foodId: string, orderId: string) => void
   getMonthlyStats: () => MonthlyStats
@@ -297,6 +298,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })))
   }, [updateExpiredItems])
 
+  const addNeighborOrder = useCallback((foodId: string, neighbor: UserProfile, quantity: number, pickupTime: string, message: string) => {
+    setFoodItems(prev => updateExpiredItems(prev.map(item => {
+      if (item.id !== foodId) return item
+      if (item.status === 'expired') return item
+      const alreadyJoined = item.orders.some(o => o.userId === neighbor.id)
+      if (alreadyJoined) return item
+      const newOrder: Order = {
+        id: generateId(),
+        userId: neighbor.id,
+        userName: neighbor.name,
+        userAvatar: neighbor.avatar,
+        quantity,
+        pickupTime,
+        message,
+        createdAt: new Date().toISOString(),
+        pickedUp: false,
+        noShow: false,
+      }
+      const newCurrentQty = item.currentQuantity + quantity
+      const newStatus: FoodItem['status'] = newCurrentQty >= item.quantity ? 'pendingPickup' : 'grouping'
+      return {
+        ...item,
+        currentQuantity: newCurrentQty,
+        orders: [...item.orders, newOrder],
+        status: newStatus,
+      }
+    })))
+  }, [updateExpiredItems])
+
   const confirmPickup = useCallback((foodId: string, orderId: string) => {
     setFoodItems(prev => prev.map(item => {
       if (item.id !== foodId) return item
@@ -351,6 +381,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       currentUser: CURRENT_USER,
       addFoodItem,
       addOrder,
+      addNeighborOrder,
       confirmPickup,
       markNoShow,
       getMonthlyStats,

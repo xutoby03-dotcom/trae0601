@@ -1,27 +1,17 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
-import { Camera, X, AlertTriangle } from 'lucide-react'
+import { Camera, X, AlertTriangle, ImagePlus } from 'lucide-react'
 
-const FOOD_PHOTOS: Record<string, string> = {
-  '牛奶': '🥛',
-  '面包': '🍞',
-  '零食': '🍪',
-  '调料': '🧂',
-  '酸奶': '🥛',
-  '饼干': '🍪',
-  '水饺': '🥟',
-  '果汁': '🧃',
-  '水果': '🍎',
-  '蔬菜': '🥬',
-  '鸡蛋': '🥚',
-  '肉类': '🥩',
-  '饮料': '🥤',
-  '酱料': '🫙',
+const FOOD_EMOJIS: Record<string, string> = {
+  '牛奶': '🥛', '面包': '🍞', '零食': '🍪', '调料': '🧂',
+  '酸奶': '🥛', '饼干': '🍪', '水饺': '🥟', '果汁': '🧃',
+  '水果': '🍎', '蔬菜': '🥬', '鸡蛋': '🥚', '肉类': '🥩',
+  '饮料': '🥤', '酱料': '🫙',
 }
 
 function guessEmoji(name: string): string {
-  for (const [keyword, emoji] of Object.entries(FOOD_PHOTOS)) {
+  for (const [keyword, emoji] of Object.entries(FOOD_EMOJIS)) {
     if (name.includes(keyword)) return emoji
   }
   return '🛒'
@@ -30,7 +20,9 @@ function guessEmoji(name: string): string {
 export default function PublishPage() {
   const navigate = useNavigate()
   const { addFoodItem } = useStore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState('')
+  const [photoData, setPhotoData] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [originalPrice, setOriginalPrice] = useState('')
   const [sharePrice, setSharePrice] = useState('')
@@ -40,13 +32,38 @@ export default function PublishPage() {
   const [allergyWarning, setAllergyWarning] = useState('')
   const [coldChainRequired, setColdChainRequired] = useState(false)
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 400
+        let w = img.width
+        let h = img.height
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX }
+          else { w = Math.round(w * MAX / h); h = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        setPhotoData(canvas.toDataURL('image/jpeg', 0.7))
+      }
+      img.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !originalPrice || !sharePrice || !expiryDate || !pickupLocation.trim()) return
 
     addFoodItem({
       name: name.trim(),
-      photo: guessEmoji(name),
+      photo: photoData || guessEmoji(name),
       quantity,
       originalPrice: parseFloat(originalPrice),
       sharePrice: parseFloat(sharePrice),
@@ -84,19 +101,53 @@ export default function PublishPage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">食品照片</label>
-          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-gray-50">
-            <div className="text-center">
-              {name ? (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoSelect}
+            className="hidden"
+          />
+          <div className="flex items-start gap-3">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-gray-50 overflow-hidden flex-shrink-0"
+            >
+              {photoData ? (
+                <img src={photoData} alt="预览" className="w-full h-full object-cover" />
+              ) : name ? (
                 <span className="text-4xl">{guessEmoji(name)}</span>
               ) : (
-                <>
+                <div className="text-center">
                   <Camera size={24} className="text-gray-400 mx-auto" />
                   <span className="text-xs text-gray-400 mt-1">添加照片</span>
-                </>
+                </div>
               )}
             </div>
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary bg-orange-50 border border-primary/30 rounded-lg hover:bg-orange-100 transition-colors"
+              >
+                <ImagePlus size={14} />
+                选择图片
+              </button>
+              {photoData && (
+                <button
+                  type="button"
+                  onClick={() => { setPhotoData(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-500 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  <X size={12} />
+                  移除图片
+                </button>
+              )}
+              <p className="text-xs text-gray-400">
+                {photoData ? '已选择图片，点击可更换' : '不选图则用名称自动匹配Emoji'}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 mt-1">输入名称后自动匹配图标</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3">

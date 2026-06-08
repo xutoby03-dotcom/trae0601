@@ -3,12 +3,14 @@ import { useStore } from '../store/useStore'
 import { X, Check, UserX, Clock, MapPin } from 'lucide-react'
 
 interface Props {
-  item: FoodItem
+  itemId: string
   onClose: () => void
 }
 
-export default function ManageModal({ item, onClose }: Props) {
-  const { confirmPickup, markNoShow } = useStore()
+export default function ManageModal({ itemId, onClose }: Props) {
+  const { foodItems, confirmPickup, markNoShow } = useStore()
+  const item = foodItems.find(i => i.id === itemId)
+  if (!item) return null
 
   const handleConfirm = (orderId: string) => {
     confirmPickup(item.id, orderId)

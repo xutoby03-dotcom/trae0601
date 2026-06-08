@@ -1,11 +1,12 @@
 import type { FoodItem } from '../types'
 import { formatExpiryLabel, daysUntilExpiry, isExpired } from '../types'
-import { Clock, MapPin, AlertTriangle, Snowflake, PackageOpen, Users } from 'lucide-react'
+import { Clock, MapPin, AlertTriangle, Snowflake, PackageOpen, Users, UserPlus } from 'lucide-react'
 
 interface Props {
   item: FoodItem
   onJoin: (item: FoodItem) => void
   onManage: (item: FoodItem) => void
+  onNeighborJoin: (item: FoodItem) => void
 }
 
 function UrgencyBadge({ expiryDate }: { expiryDate: string }) {
@@ -77,7 +78,7 @@ function StatusBadge({ status }: { status: FoodItem['status'] }) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>{label}</span>
 }
 
-export default function FoodCard({ item, onJoin, onManage }: Props) {
+export default function FoodCard({ item, onJoin, onManage, onNeighborJoin }: Props) {
   const expired = isExpired(item.expiryDate)
   const canJoin = item.status === 'grouping' && !expired && item.currentQuantity < item.quantity
   const isPublisher = item.publisherId === 'user_me'
@@ -93,8 +94,12 @@ export default function FoodCard({ item, onJoin, onManage }: Props) {
   return (
     <div className={`rounded-xl border border-warm-border bg-white p-4 shadow-sm hover:shadow-md transition-shadow slide-in ${urgencyClass}`}>
       <div className="flex gap-3">
-        <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center text-3xl flex-shrink-0 border border-orange-100">
-          {item.photo || '🛒'}
+        <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center text-3xl flex-shrink-0 border border-orange-100 overflow-hidden">
+          {item.photo.startsWith('data:') ? (
+            <img src={item.photo} alt={item.name} className="w-full h-full object-cover" />
+          ) : (
+            <span>{item.photo || '🛒'}</span>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -162,7 +167,33 @@ export default function FoodCard({ item, onJoin, onManage }: Props) {
             我要拼单
           </button>
         )}
-        {(isPublisher && (item.status === 'pendingPickup' || item.status === 'grouping')) && (
+        {canJoin && isPublisher && (
+          <button
+            onClick={() => onNeighborJoin(item)}
+            className="flex-1 py-2 px-3 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors shadow-sm inline-flex items-center justify-center gap-1"
+          >
+            <UserPlus size={14} />
+            邻居来拼
+          </button>
+        )}
+        {canJoin && !isPublisher && (
+          <button
+            onClick={() => onNeighborJoin(item)}
+            className="py-2 px-3 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors inline-flex items-center gap-1"
+          >
+            <UserPlus size={14} />
+            邻居来拼
+          </button>
+        )}
+        {item.status === 'pendingPickup' && (
+          <button
+            onClick={() => onManage(item)}
+            className="flex-1 py-2 px-3 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+          >
+            管理取货
+          </button>
+        )}
+        {isPublisher && item.status === 'grouping' && !canJoin && (
           <button
             onClick={() => onManage(item)}
             className="flex-1 py-2 px-3 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
@@ -178,11 +209,6 @@ export default function FoodCard({ item, onJoin, onManage }: Props) {
         {!canJoin && !expired && item.status === 'grouping' && !isPublisher && (
           <div className="flex-1 py-2 px-3 bg-orange-50 text-primary text-sm font-medium rounded-lg text-center">
             已满份，关注后续
-          </div>
-        )}
-        {item.status === 'pendingPickup' && !isPublisher && (
-          <div className="flex-1 py-2 px-3 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg text-center">
-            📦 待取货中
           </div>
         )}
         {item.status === 'completed' && (
