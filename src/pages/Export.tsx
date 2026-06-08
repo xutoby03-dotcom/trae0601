@@ -50,6 +50,9 @@ export default function Export() {
     link.click()
   }
 
+  const sanitizeFilename = (name: string) =>
+    name.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()
+
   const handleExportCost = () => {
     const lines: string[] = []
     lines.push(`【${trip.title} 花费小结】`)
@@ -68,7 +71,7 @@ export default function Export() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${trip.title}-花费小结.txt`
+    a.download = `${sanitizeFilename(trip.title)}-花费小结.txt`
     a.click()
     URL.revokeObjectURL(url)
     setCopied(true)
