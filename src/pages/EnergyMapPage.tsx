@@ -165,8 +165,21 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
             还没有习惯，去管理页添加吧
           </p>
         ) : (
-          <div style={{ touchAction: 'pan-y' }}>
-            <div className="grid" style={{ gridTemplateColumns: `80px repeat(${dates.length}, 1fr)`, gap: '2px' }}>
+          <div
+            className="overflow-x-auto -mx-4 px-4"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehaviorX: 'contain',
+            }}
+          >
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: `72px repeat(${dates.length}, minmax(28px, 1fr))`,
+                gap: '3px',
+                minWidth: 500,
+              }}
+            >
               <div />
               {dates.map((date) => (
                 <div
@@ -205,7 +218,7 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
                             setDetail({ date, habitId: habit.id, habitName: habit.name, habitIcon: habit.icon })
                           }
                         }}
-                        className={`aspect-square rounded-md transition-all cursor-pointer ${getCellColor(
+                        className={`aspect-square rounded-md transition-colors cursor-pointer ${getCellColor(
                           completed,
                           energy,
                           hasRecord
@@ -213,8 +226,9 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
                         style={{
                           opacity: getCellOpacity(completed),
                           touchAction: 'manipulation',
-                          minHeight: 20,
-                          minWidth: 20,
+                          minHeight: 28,
+                          minWidth: 28,
+                          WebkitTapHighlightColor: 'transparent',
                         }}
                       />
                     )
@@ -244,7 +258,7 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
                           : 'bg-red-300'
                         : 'bg-gray-50'
                     }`}
-                    style={{ minHeight: 20 }}
+                    style={{ minHeight: 28 }}
                   />
                 )
               })}
