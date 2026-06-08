@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useHabitStore } from '../store/useHabitStore'
 import { getLast14Days, calcCorrelation } from '../utils/analysis'
 
@@ -6,6 +6,7 @@ export const StatsPage: React.FC = () => {
   const { habits, records } = useHabitStore()
   const activeHabits = habits.filter((h) => !h.archived)
   const dates = useMemo(() => getLast14Days(), [])
+  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null)
 
   const habitStats = useMemo(() => {
     return activeHabits.map((habit) => {
@@ -122,6 +123,14 @@ export const StatsPage: React.FC = () => {
     [habitStats]
   )
 
+  const displayStats = selectedHabitId
+    ? habitStats.filter((s) => s.habit.id === selectedHabitId)
+    : sortedByCorrelation
+
+  const selectedHabitStat = selectedHabitId
+    ? habitStats.find((s) => s.habit.id === selectedHabitId)
+    : null
+
   const getCorrelationLabel = (r: number) => {
     if (r > 0.6) return { text: '强正相关', color: 'text-emerald-600', bg: 'bg-emerald-50' }
     if (r > 0.3) return { text: '正相关', color: 'text-emerald-500', bg: 'bg-emerald-50' }
@@ -147,6 +156,83 @@ export const StatsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">习惯筛选</h3>
+              {selectedHabitId && (
+                <button
+                  onClick={() => setSelectedHabitId(null)}
+                  className="text-xs text-indigo-500 hover:text-indigo-600 font-medium"
+                >
+                  查看全部
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeHabits.map((habit) => (
+                <button
+                  key={habit.id}
+                  onClick={() =>
+                    setSelectedHabitId(
+                      selectedHabitId === habit.id ? null : habit.id
+                    )
+                  }
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedHabitId === habit.id
+                      ? 'text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  style={
+                    selectedHabitId === habit.id
+                      ? { backgroundColor: habit.color }
+                      : undefined
+                  }
+                >
+                  <span>{habit.icon}</span>
+                  <span>{habit.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedHabitId && selectedHabitStat && (
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">{selectedHabitStat.habit.icon}</span>
+                <div>
+                  <h3 className="font-bold text-lg">{selectedHabitStat.habit.name}</h3>
+                  <p className="text-xs opacity-70">专注分析</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/15 rounded-xl p-3">
+                  <div className="text-xs opacity-70">完成率</div>
+                  <div className="text-xl font-bold">
+                    {Math.round(selectedHabitStat.completionRate * 100)}%
+                  </div>
+                </div>
+                <div className="bg-white/15 rounded-xl p-3">
+                  <div className="text-xs opacity-70">相关系数</div>
+                  <div className="text-xl font-bold">
+                    {selectedHabitStat.correlation.toFixed(2)}
+                  </div>
+                </div>
+                <div className="bg-white/15 rounded-xl p-3">
+                  <div className="text-xs opacity-70">完成时精力</div>
+                  <div className="text-xl font-bold">
+                    {selectedHabitStat.energyOnComplete.toFixed(1)}
+                  </div>
+                </div>
+                <div className="bg-white/15 rounded-xl p-3">
+                  <div className="text-xs opacity-70">次日稳定度</div>
+                  <div className="text-xl font-bold">
+                    σ {selectedHabitStat.nextDayStdDev.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-4">
               习惯 × 精力关联度
             </h3>
@@ -154,7 +240,7 @@ export const StatsPage: React.FC = () => {
               基于近14天数据，分析每个习惯和当天精力水平的相关性
             </p>
             <div className="space-y-3">
-              {sortedByCorrelation.map((stat) => {
+              {displayStats.map((stat) => {
                 const corr = getCorrelationLabel(stat.correlation)
                 return (
                   <div
@@ -215,7 +301,7 @@ export const StatsPage: React.FC = () => {
               完成某习惯后，第二天的精力是否更稳？
             </p>
             <div className="space-y-3">
-              {habitStats
+              {(selectedHabitId ? displayStats : habitStats)
                 .filter((s) => s.nextDayCount >= 2)
                 .map((stat) => {
                   const diff = stat.avgNextDayEnergy - stat.overallNextDayAvg
@@ -287,7 +373,7 @@ export const StatsPage: React.FC = () => {
                     </div>
                   )
                 })}
-              {habitStats.filter((s) => s.nextDayCount >= 2).length === 0 && (
+              {(selectedHabitId ? displayStats : habitStats).filter((s) => s.nextDayCount >= 2).length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">
                   需要更多数据才能分析次日精力变化
                 </p>
@@ -303,8 +389,7 @@ export const StatsPage: React.FC = () => {
               完成 vs 未完成时的平均精力
             </p>
             <div className="space-y-4">
-              {habitStats.map((stat) => {
-                const maxVal = Math.max(stat.energyOnComplete, stat.energyOnMiss, 1)
+              {(selectedHabitId ? displayStats : habitStats).map((stat) => {
                 return (
                   <div key={stat.habit.id}>
                     <div className="flex items-center gap-2 mb-1">

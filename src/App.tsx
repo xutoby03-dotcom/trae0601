@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { EnergyMapPage } from './pages/EnergyMapPage'
 import { RecordPage } from './pages/RecordPage'
 import { HabitsPage } from './pages/HabitsPage'
@@ -18,13 +18,23 @@ const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('map')
+  const [recordDate, setRecordDate] = useState<string | undefined>()
+
+  const navigateToRecord = useCallback((date: string) => {
+    setRecordDate(date)
+    setActiveTab('record')
+  }, [])
+
+  const navigateToStats = useCallback((habitId: string) => {
+    setActiveTab('stats')
+  }, [])
 
   const renderPage = () => {
     switch (activeTab) {
       case 'map':
-        return <EnergyMapPage />
+        return <EnergyMapPage onNavigateToRecord={navigateToRecord} />
       case 'record':
-        return <RecordPage />
+        return <RecordPage initialDate={recordDate} onDateChange={() => setRecordDate(undefined)} />
       case 'habits':
         return <HabitsPage />
       case 'stats':

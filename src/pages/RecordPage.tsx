@@ -36,10 +36,20 @@ const RatingBar: React.FC<{
   )
 }
 
-export const RecordPage: React.FC = () => {
+export const RecordPage: React.FC<{ initialDate?: string; onDateChange?: () => void }> = ({
+  initialDate,
+  onDateChange,
+}) => {
   const { habits, records, upsertRecord, toggleHabitCompletion } =
     useHabitStore()
-  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()))
+  const [selectedDate, setSelectedDate] = useState(
+    initialDate || formatDate(new Date())
+  )
+
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date)
+    onDateChange?.()
+  }
 
   const activeHabits = habits.filter((h) => !h.archived)
   const record = records[selectedDate]
@@ -50,7 +60,7 @@ export const RecordPage: React.FC = () => {
   const changeDate = (delta: number) => {
     const d = new Date(selectedDate)
     d.setDate(d.getDate() + delta)
-    setSelectedDate(formatDate(d))
+    handleDateChange(formatDate(d))
   }
 
   const today = formatDate(new Date())
@@ -95,7 +105,7 @@ export const RecordPage: React.FC = () => {
 
       {!isToday && (
         <button
-          onClick={() => setSelectedDate(today)}
+          onClick={() => handleDateChange(today)}
           className="w-full mb-4 py-2 text-sm text-indigo-500 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors font-medium"
         >
           回到今天
