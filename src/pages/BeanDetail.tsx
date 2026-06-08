@@ -425,22 +425,22 @@ export default function BeanDetail() {
                         </div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <Link
-                        to={`/brews/${brew.id}/edit`}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => navigate(`/brews/${brew.id}/edit`)}
                         aria-label="编辑冲煮记录"
                         title="编辑冲煮记录"
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-[#6F4E37] hover:bg-[#F5E6D3] active:bg-[#E8D5BC] transition-colors"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg text-[#6F4E37] hover:bg-[#F5E6D3] active:bg-[#E8D5BC] transition-colors"
                       >
-                        <Pencil size={15} />
-                      </Link>
+                        <Pencil size={16} className="pointer-events-none" />
+                      </button>
                       <button
                         onClick={() => handleDeleteBrew(brew.id)}
                         aria-label="删除冲煮记录"
                         title="删除冲煮记录"
-                        className="inline-flex items-center justify-center rounded-lg p-2 text-[#D4A574] hover:bg-[#F5E6D3] hover:text-[#6F4E37] active:bg-[#E8D5BC] transition-colors"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg text-[#D4A574] hover:bg-[#F5E6D3] hover:text-[#6F4E37] active:bg-[#E8D5BC] transition-colors"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} className="pointer-events-none" />
                       </button>
                     </div>
                   </div>
