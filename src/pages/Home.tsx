@@ -38,7 +38,9 @@ export default function Home() {
     const selectedTag = useMedicineStore.getState().selectedMemberTag
     if (!selectedTag) return expiredMedicines
     return expiredMedicines.filter(m =>
-      m.suitableFor.length === 0 || m.suitableFor.includes(selectedTag)
+      m.suitableFor.length === 0
+      || m.suitableFor.includes(selectedTag)
+      || m.suitableFor.includes('all')
     )
   }, [expiredMedicines])
 

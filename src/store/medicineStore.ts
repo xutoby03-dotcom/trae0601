@@ -130,13 +130,22 @@ export const useMedicineStore = create<MedicineStore>((set, get) => ({
 
   syncRestockItems: () => {
     set((state) => {
-      const existingUnresolved = new Set(
-        state.restockItems.filter(r => !r.resolved).map(r => r.medicineId)
+      const medicineMap = new Map(state.medicines.map(m => [m.id, m]))
+      const cleaned = state.restockItems.filter(r => {
+        if (r.resolved) return true
+        const med = medicineMap.get(r.medicineId)
+        if (!med) return false
+        if (r.reason === 'low_stock' && isLowStock(med)) return true
+        if (r.reason === 'expiring_soon' && getExpiryStatus(med.expiryDate) === 'expiring_soon') return true
+        return false
+      })
+      const stillUnresolved = new Set(
+        cleaned.filter(r => !r.resolved).map(r => r.medicineId)
       )
-      const newItems: RestockItem[] = []
 
+      const newItems: RestockItem[] = []
       for (const medicine of state.medicines) {
-        if (existingUnresolved.has(medicine.id)) continue
+        if (stillUnresolved.has(medicine.id)) continue
         const status = getExpiryStatus(medicine.expiryDate)
         if (isLowStock(medicine)) {
           newItems.push({
@@ -157,7 +166,7 @@ export const useMedicineStore = create<MedicineStore>((set, get) => ({
         }
       }
 
-      const restockItems = [...state.restockItems, ...newItems]
+      const restockItems = [...cleaned, ...newItems]
       saveToStorage(RESTOCK_KEY, restockItems)
       return { restockItems }
     })
@@ -167,7 +176,9 @@ export const useMedicineStore = create<MedicineStore>((set, get) => ({
     const { medicines, selectedMemberTag } = get()
     if (!selectedMemberTag) return medicines
     return medicines.filter(m =>
-      m.suitableFor.length === 0 || m.suitableFor.includes(selectedMemberTag)
+      m.suitableFor.length === 0
+      || m.suitableFor.includes(selectedMemberTag)
+      || m.suitableFor.includes('all')
     )
   },
 
