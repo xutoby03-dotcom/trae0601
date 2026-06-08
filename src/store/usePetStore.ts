@@ -338,38 +338,69 @@ export const usePetStore = create<PetStore>()(
         let completedMedicineTasks = 0
 
         const isFeedingType = (t: TaskType) => t === 'breakfast' || t === 'lunch' || t === 'dinner' || t === 'supper' || t === 'snack'
+        const feedingTypesForPet = (feedPerDay: number): Set<TaskType> => {
+          const types = new Set<TaskType>()
+          const count = Math.min(feedPerDay, FEEDING_SLOTS.length)
+          for (let i = 0; i < count; i++) {
+            types.add(FEEDING_SLOTS[i].taskType)
+          }
+          return types
+        }
 
         for (let i = 6; i >= 0; i--) {
           const d = new Date(end)
           d.setDate(d.getDate() - i)
           const dateStr = format(d, 'yyyy-MM-dd')
 
-          const activePetIds = new Set(
-            state.pets
-              .filter((p) => dateStr >= format(new Date(p.createdAt), 'yyyy-MM-dd'))
-              .map((p) => p.id)
+          const activePets = state.pets.filter(
+            (p) => dateStr >= format(new Date(p.createdAt), 'yyyy-MM-dd')
           )
+          const activePetIds = new Set(activePets.map((p) => p.id))
 
-          const dayTemplates = state.taskTemplates.filter((tp) => activePetIds.has(tp.petId))
-          const feedingTemplateCount = dayTemplates.filter((tp) => isFeedingType(tp.taskType)).length
-          const medicineTemplateCount = dayTemplates.filter((tp) => tp.taskType === 'medicine').length
-          const totalTemplateCount = dayTemplates.length
+          let expectedFeedings = 0
+          let expectedNonFeedTasks = 0
+          for (const pet of activePets) {
+            expectedFeedings += Math.min(pet.feedPerDay, FEEDING_SLOTS.length)
+            const petTemplates = state.taskTemplates.filter((tp) => tp.petId === pet.id && !isFeedingType(tp.taskType))
+            expectedNonFeedTasks += petTemplates.length
+          }
+          const totalExpected = expectedFeedings + expectedNonFeedTasks
+
+          let expectedMedicine = 0
+          for (const pet of activePets) {
+            if (pet.medications) expectedMedicine++
+          }
 
           const dayTasks = state.taskInstances.filter((t) => t.date === dateStr && activePetIds.has(t.petId))
           const hasInstances = dayTasks.length > 0
 
-          const completed = hasInstances ? dayTasks.filter((t) => t.completed).length : 0
-          days.push({ date: dateStr, completed, total: totalTemplateCount })
+          let completed = 0
+          if (hasInstances) {
+            for (const pet of activePets) {
+              const petTasks = dayTasks.filter((t) => t.petId === pet.id)
+              const expectedTypes = feedingTypesForPet(pet.feedPerDay)
+              const feedingCompleted = petTasks.filter((t) => isFeedingType(t.taskType) && expectedTypes.has(t.taskType) && t.completed).length
+              const otherCompleted = petTasks.filter((t) => !isFeedingType(t.taskType) && t.completed).length
+              completed += feedingCompleted + otherCompleted
+            }
+          }
+          days.push({ date: dateStr, completed, total: totalExpected })
 
           const dayFeedingCompleted = hasInstances
-            ? dayTasks.filter((t) => isFeedingType(t.taskType) && t.completed).length
+            ? activePets.reduce((sum, pet) => {
+                const expectedTypes = feedingTypesForPet(pet.feedPerDay)
+                return sum + dayTasks.filter((t) => t.petId === pet.id && isFeedingType(t.taskType) && expectedTypes.has(t.taskType) && t.completed).length
+              }, 0)
             : 0
-          missedFeedings += feedingTemplateCount - dayFeedingCompleted
+          missedFeedings += expectedFeedings - dayFeedingCompleted
 
           const dayMedCompleted = hasInstances
-            ? dayTasks.filter((t) => t.taskType === 'medicine' && t.completed).length
+            ? activePets.reduce((sum, pet) => {
+                if (!pet.medications) return sum
+                return sum + dayTasks.filter((t) => t.petId === pet.id && t.taskType === 'medicine' && t.completed).length
+              }, 0)
             : 0
-          totalMedicineTasks += medicineTemplateCount
+          totalMedicineTasks += expectedMedicine
           completedMedicineTasks += dayMedCompleted
 
           const dayRecords = state.dailyRecords.filter((r) => r.date === dateStr)
