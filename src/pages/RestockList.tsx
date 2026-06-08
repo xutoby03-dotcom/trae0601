@@ -13,7 +13,7 @@ export default function RestockList() {
 
   const matchesMember = (suitableFor: string[]) => {
     if (!selectedTag) return true
-    return suitableFor.length === 0 || suitableFor.includes(selectedTag) || suitableFor.includes('all')
+    return suitableFor.includes(selectedTag) || suitableFor.includes('all')
   }
 
   const pendingItems = useMemo(
