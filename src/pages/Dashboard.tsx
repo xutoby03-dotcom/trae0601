@@ -12,22 +12,6 @@ export default function Dashboard() {
 
   const monthExpenses = expenses.filter((e) => isCurrentMonth(e.createdAt))
 
-  if (monthExpenses.length === 0) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
-        <span className="text-6xl">🌙</span>
-        <p className="text-white/50 text-lg">本月还没有记录，记一笔吧～</p>
-        <Link
-          to="/new"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl gradient-coral text-white font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          记一笔
-        </Link>
-      </div>
-    )
-  }
-
   const totalBudget = budgets.reduce((sum, b) => sum + b.monthlyLimit, 0)
   const totalSpent = monthExpenses.reduce((sum, e) => sum + e.amount, 0)
   const remaining = totalBudget - totalSpent
@@ -50,6 +34,7 @@ export default function Dashboard() {
   const maxMoodAmount = Math.max(...activeMoods.map((m) => moodSpent[m]), 1)
   const sortedMoods = [...activeMoods].sort((a, b) => moodSpent[b] - moodSpent[a])
   const dominantMood = sortedMoods[0]
+  const hasExpenses = monthExpenses.length > 0
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -93,40 +78,54 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div>
-        <h2 className="text-base font-medium text-white/90 mb-3">情绪消费</h2>
-        {dominantMood && (
-          <div className="glass rounded-2xl p-4 mb-4 flex items-center gap-3">
-            <span className="text-2xl">{MOOD_EMOJIS[dominantMood]}</span>
-            <div>
-              <p className="text-xs text-white/50">本月主情绪</p>
-              <p className="text-white font-medium">
-                {MOOD_EMOJIS[dominantMood]} {dominantMood}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="glass rounded-2xl p-4 space-y-3">
-          {sortedMoods.map((mood) => (
-            <div key={mood} className="flex items-center gap-3">
-              <span className="text-lg w-7 text-center">{MOOD_EMOJIS[mood]}</span>
-              <span className="text-sm text-white/70 w-10 shrink-0">{mood}</span>
-              <div className="flex-1 bg-white/10 rounded-full h-4 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(moodSpent[mood] / maxMoodAmount) * 100}%`,
-                    backgroundColor: MOOD_COLORS[mood],
-                  }}
-                />
+      {hasExpenses ? (
+        <div>
+          <h2 className="text-base font-medium text-white/90 mb-3">情绪消费</h2>
+          {dominantMood && (
+            <div className="glass rounded-2xl p-4 mb-4 flex items-center gap-3">
+              <span className="text-2xl">{MOOD_EMOJIS[dominantMood]}</span>
+              <div>
+                <p className="text-xs text-white/50">本月主情绪</p>
+                <p className="text-white font-medium">
+                  {MOOD_EMOJIS[dominantMood]} {dominantMood}
+                </p>
               </div>
-              <span className="text-xs text-white/60 w-20 text-right shrink-0">
-                ¥{formatAmount(moodSpent[mood])}
-              </span>
             </div>
-          ))}
+          )}
+          <div className="glass rounded-2xl p-4 space-y-3">
+            {sortedMoods.map((mood) => (
+              <div key={mood} className="flex items-center gap-3">
+                <span className="text-lg w-7 text-center">{MOOD_EMOJIS[mood]}</span>
+                <span className="text-sm text-white/70 w-10 shrink-0">{mood}</span>
+                <div className="flex-1 bg-white/10 rounded-full h-4 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${(moodSpent[mood] / maxMoodAmount) * 100}%`,
+                      backgroundColor: MOOD_COLORS[mood],
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-white/60 w-20 text-right shrink-0">
+                  ¥{formatAmount(moodSpent[mood])}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+          <span className="text-5xl">🌙</span>
+          <p className="text-white/50">本月还没有记录，记一笔吧～</p>
+          <Link
+            to="/new"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl gradient-coral text-white font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            记一笔
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Link

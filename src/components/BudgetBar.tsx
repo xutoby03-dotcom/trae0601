@@ -39,9 +39,9 @@ export default function BudgetBar({ category, spent, limit, color }: BudgetBarPr
         </div>
       </div>
 
-      <div className="bg-white/10 rounded-full h-2.5">
+      <div className="bg-white/10 rounded-full h-2.5 overflow-hidden">
         <div
-          className={`rounded-full transition-all duration-500 ${
+          className={`h-full rounded-full transition-all duration-500 ${
             percentage >= 100 ? 'animate-pulse-slow' : ''
           }`}
           style={{
