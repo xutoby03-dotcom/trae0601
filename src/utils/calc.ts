@@ -100,7 +100,15 @@ export function getDominantSlot(schedule: ApplianceSchedule, dailyHours: number)
   for (const seg of breakdown) {
     slotWeight[seg.slot] += seg.fraction
   }
-  return (["valley", "flat", "peak"] as const).find(s => slotWeight[s] > 0) ?? "valley"
+  let best: TimeSlotType = "valley"
+  let bestW = -1
+  for (const s of (["peak", "valley", "flat"] as const)) {
+    if (slotWeight[s] > bestW) {
+      bestW = slotWeight[s]
+      best = s
+    }
+  }
+  return best
 }
 
 export function generateAlerts(appliances: Appliance[], schedules: ApplianceSchedule[], latestBill: Bill | null): Alert[] {

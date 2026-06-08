@@ -31,39 +31,45 @@ function getSegments(startHour: number, dailyHours: number): { hour: number; fra
   return getHourlyBreakdown(startHour, dailyHours)
 }
 
-function ApplianceCard({ app, schedule, bill }: { app: Appliance; schedule: ApplianceSchedule; bill: Bill | null }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `app-${app.id}` })
+function ApplianceCard({
+  app, schedule, bill, segs, showLabel, showCost,
+}: {
+  app: Appliance
+  schedule: ApplianceSchedule
+  bill: Bill | null
+  segs: { hour: number; fraction: number; slot: TimeSlotType }[]
+  showLabel: boolean
+  showCost: boolean
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `app-${app.id}-${showLabel ? "main" : "wrap"}` })
   const emoji = APPLIANCE_ICONS.find(i => i.value === app.icon)?.emoji ?? "⚙️"
   const cost = calcDailyCost(app, schedule, bill)
-  const segments = getSegments(schedule.startHour, app.dailyHours)
+  const totalFrac = segs.reduce((s, sg) => s + sg.fraction, 0)
 
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`absolute inset-0 flex cursor-grab active:cursor-grabbing select-none ${isDragging ? "opacity-30" : "z-10"}`}
+      className={`flex cursor-grab active:cursor-grabbing select-none h-full ${isDragging ? "opacity-30" : "z-10"}`}
     >
-      {segments.map((seg, idx) => {
-        const left = ((seg.hour - schedule.startHour + 24) % 24 + (seg.hour >= schedule.startHour ? seg.hour - schedule.startHour : seg.hour + 24 - schedule.startHour)) / 24 * 100
-        const offset = segments.slice(0, idx).reduce((s, sg) => s + sg.fraction, 0)
-        const leftPct = (offset / app.dailyHours) * 100
-        const widthPct = (seg.fraction / app.dailyHours) * 100
+      {segs.map((seg, idx) => {
+        const widthPct = (seg.fraction / totalFrac) * 100
         const isFirst = idx === 0
-        const isLast = idx === segments.length - 1
+        const isLast = idx === segs.length - 1
         return (
           <div
             key={idx}
-            className={`${SLOT_CARD[seg.slot]} border h-full flex items-center ${isFirst ? "rounded-l-lg pl-2" : ""} ${isLast ? "rounded-r-lg pr-2" : ""} ${!isFirst && !isLast ? "border-l-0" : ""}`}
-            style={{ width: `${widthPct}%`, left: `${leftPct}%` }}
+            className={`${SLOT_CARD[seg.slot]} border h-full flex items-center overflow-hidden ${isFirst && showLabel ? "rounded-l-lg pl-2" : isFirst ? "rounded-l-lg pl-1" : ""} ${isLast && showCost ? "rounded-r-lg pr-2" : isLast ? "rounded-r-lg pr-1" : ""} ${!isFirst ? "border-l-0" : ""}`}
+            style={{ width: `${widthPct}%` }}
           >
-            {idx === 0 && (
-              <>
-                <span className="text-sm shrink-0">{emoji}</span>
-                <span className="text-[11px] font-medium truncate">{app.name}</span>
-              </>
+            {isFirst && showLabel && (
+              <span className="text-sm shrink-0">{emoji}</span>
             )}
-            {idx === segments.length - 1 && (
+            {isFirst && showLabel && (
+              <span className="text-[11px] font-medium truncate">{app.name}</span>
+            )}
+            {isLast && showCost && (
               <span className="text-[10px] opacity-70 ml-auto whitespace-nowrap shrink-0">¥{cost.toFixed(2)}</span>
             )}
           </div>
@@ -174,10 +180,11 @@ export default function Home() {
                     const schedule = schedules.find(s => s.applianceId === app.id)
                     if (!schedule) return null
                     const segments = getSegments(schedule.startHour, app.dailyHours)
-                    const wrapSegs = segments.filter(s => s.hour < schedule.startHour)
                     const mainSegs = segments.filter(s => s.hour >= schedule.startHour)
-                    const mainSpan = Math.ceil(mainSegs.reduce((s, sg) => s + sg.fraction, 0))
+                    const wrapSegs = segments.filter(s => s.hour < schedule.startHour)
                     const mainFrac = mainSegs.reduce((s, sg) => s + sg.fraction, 0)
+                    const wrapFrac = wrapSegs.reduce((s, sg) => s + sg.fraction, 0)
+                    const hasWrap = wrapSegs.length > 0
                     return (
                       <div key={app.id} className="relative" style={{ height: 40 }}>
                         <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "repeat(24, minmax(48px, 1fr))" }}>
@@ -192,17 +199,27 @@ export default function Home() {
                             width: `${(mainFrac / 24) * 100}%`,
                           }}
                         >
-                          <ApplianceCard app={app} schedule={schedule} bill={latestBill} />
+                          <ApplianceCard
+                            app={app} schedule={schedule} bill={latestBill}
+                            segs={mainSegs}
+                            showLabel={true}
+                            showCost={!hasWrap}
+                          />
                         </div>
-                        {wrapSegs.length > 0 && (
+                        {hasWrap && (
                           <div
                             className="absolute top-0 h-10 z-10"
                             style={{
                               left: 0,
-                              width: `${(wrapSegs.reduce((s, sg) => s + sg.fraction, 0) / 24) * 100}%`,
+                              width: `${(wrapFrac / 24) * 100}%`,
                             }}
                           >
-                            <ApplianceCard app={app} schedule={schedule} bill={latestBill} />
+                            <ApplianceCard
+                              app={app} schedule={schedule} bill={latestBill}
+                              segs={wrapSegs}
+                              showLabel={false}
+                              showCost={true}
+                            />
                           </div>
                         )}
                       </div>
