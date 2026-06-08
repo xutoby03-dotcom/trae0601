@@ -208,9 +208,10 @@ export default function Home() {
   const dayEvents = useMemo(() => {
     const map = new Map<string, { followUp: boolean; check: boolean; task: boolean }>()
     for (const r of followUpRecords) {
-      const e = map.get(r.date) ?? { followUp: false, check: false, task: false }
+      if (!r.nextDate) continue
+      const e = map.get(r.nextDate) ?? { followUp: false, check: false, task: false }
       e.followUp = true
-      map.set(r.date, e)
+      map.set(r.nextDate, e)
     }
     for (const t of familyTasks) {
       const e = map.get(t.dueDate) ?? { followUp: false, check: false, task: false }
@@ -222,9 +223,9 @@ export default function Home() {
       const records = followUpRecords.filter((r) => r.diseaseId === item.diseaseId)
       if (records.length === 0) continue
       const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0]
-      const dueDate = parseISO(latest.date)
-      dueDate.setDate(dueDate.getDate() + cycleDays)
-      const key = format(dueDate, 'yyyy-MM-dd')
+      const baseDate = latest.nextDate ? parseISO(latest.nextDate) : parseISO(latest.date)
+      baseDate.setDate(baseDate.getDate() + cycleDays)
+      const key = format(baseDate, 'yyyy-MM-dd')
       const e = map.get(key) ?? { followUp: false, check: false, task: false }
       e.check = true
       map.set(key, e)
@@ -236,13 +237,13 @@ export default function Home() {
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
     const tasks: TaskItem[] = []
 
-    for (const r of followUpRecords.filter((r) => r.date === dateStr)) {
+    for (const r of followUpRecords.filter((r) => r.nextDate === dateStr)) {
       const disease = chronicDiseases.find((d) => d.id === r.diseaseId)
       const elder = elders.find((e) => e.id === disease?.elderId)
       tasks.push({
         type: 'followUp',
-        label: '复诊',
-        sub: `${elder?.name ?? ''} - ${disease ? DISEASE_TYPE_LABELS[disease.type] : ''}`,
+        label: '复诊提醒',
+        sub: `${elder?.name ?? ''} - ${disease ? DISEASE_TYPE_LABELS[disease.type] : ''}复诊`,
         color: '#E8725A',
         Icon: Stethoscope,
       })
@@ -253,16 +254,16 @@ export default function Home() {
       const records = followUpRecords.filter((r) => r.diseaseId === item.diseaseId)
       if (records.length === 0) continue
       const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0]
-      const dueDate = parseISO(latest.date)
-      dueDate.setDate(dueDate.getDate() + cycleDays)
-      const dueStr = format(dueDate, 'yyyy-MM-dd')
-      if (dueStr === dateStr || (isToday(selectedDate) && isBefore(dueDate, selectedDate))) {
+      const baseDate = latest.nextDate ? parseISO(latest.nextDate) : parseISO(latest.date)
+      baseDate.setDate(baseDate.getDate() + cycleDays)
+      const dueStr = format(baseDate, 'yyyy-MM-dd')
+      if (dueStr === dateStr || (isToday(selectedDate) && isBefore(baseDate, selectedDate))) {
         const disease = chronicDiseases.find((d) => d.id === item.diseaseId)
         const elder = elders.find((e) => e.id === disease?.elderId)
         tasks.push({
           type: 'check',
-          label: '检查项目',
-          sub: `${elder?.name ?? ''} - ${item.name}`,
+          label: item.name,
+          sub: `${elder?.name ?? ''} - ${disease ? DISEASE_TYPE_LABELS[disease.type] : ''}检查`,
           color: '#D69E2E',
           Icon: TestTube2,
         })
@@ -274,7 +275,7 @@ export default function Home() {
       tasks.push({
         type: 'task',
         label: TASK_TYPE_LABELS[t.type],
-        sub: `${elder?.name ?? ''} - ${t.description}`,
+        sub: `${elder?.name ?? ''} - ${t.description}（${t.assignee}）`,
         color: '#718096',
         Icon: Pill,
       })
@@ -290,7 +291,7 @@ export default function Home() {
       tasks.push({
         type: 'health',
         label: reminder.label,
-        sub: elder?.name ?? '',
+        sub: `${elder?.name ?? ''} - ${DISEASE_TYPE_LABELS[disease.type]}`,
         color: '#48BB78',
         Icon: reminder.Icon,
       })
