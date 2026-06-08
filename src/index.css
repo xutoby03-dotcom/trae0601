@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Serif SC", serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #3A2F1F;
+  background-color: #FAF6ED;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FAF6ED 0%, #F0E8D0 50%, #EDE5CF 100%);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C4A35A transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #C4A35A;
+  border-radius: 3px;
+}
+
+@layer components {
+  .card-paper {
+    @apply bg-wood-50 rounded-2xl shadow-md border border-earth-200/50 relative overflow-hidden;
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  .card-wood {
+    @apply bg-wood-100 rounded-2xl shadow-lg border border-wood-300/50;
+    background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full
+           bg-leaf-500 text-white font-serif font-semibold
+           shadow-md hover:shadow-lg hover:bg-leaf-600
+           active:scale-95 transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full
+           bg-earth-400 text-white font-serif font-semibold
+           shadow-md hover:shadow-lg hover:bg-earth-500
+           active:scale-95 transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full
+           bg-tomato-500 text-white font-serif font-semibold
+           shadow-md hover:shadow-lg hover:bg-tomato-600
+           active:scale-95 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full
+           bg-transparent text-leaf-700 font-serif
+           hover:bg-leaf-50 active:scale-95 transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-earth-200
+           bg-white/80 text-earth-900 font-serif
+           placeholder:text-earth-300
+           focus:outline-none focus:ring-2 focus:ring-leaf-300 focus:border-leaf-400
+           transition-all duration-200;
+  }
+
+  .label-text {
+    @apply block text-sm font-serif font-semibold text-earth-700 mb-1.5;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-serif font-semibold;
+  }
+
+  .tag-water {
+    @apply tag bg-dew-100 text-dew-700 border border-dew-200;
+  }
+
+  .tag-fertilize {
+    @apply tag bg-chili-100 text-chili-700 border border-chili-200;
+  }
+
+  .tag-pest {
+    @apply tag bg-tomato-100 text-tomato-700 border border-tomato-200 animate-pulse-soft;
+  }
+
+  .section-title {
+    @apply font-handwriting text-2xl text-earth-700;
+  }
+}
+
+.sticker-corner::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #D4573B, #E8854A);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.sticker-corner::after {
+  content: '🌿';
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  font-size: 14px;
+  z-index: 11;
+}
+
+.tape-decoration {
+  position: relative;
+}
+
+.tape-decoration::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 60px;
+  height: 20px;
+  background: rgba(196, 163, 90, 0.4);
+  border-radius: 2px;
+  z-index: 10;
+}
