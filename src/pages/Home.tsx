@@ -41,7 +41,7 @@ function ApplianceCard({
   showLabel: boolean
   showCost: boolean
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `app-${app.id}-${showLabel ? "main" : "wrap"}` })
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `app-${app.id}--${showLabel ? "main" : "wrap"}` })
   const emoji = APPLIANCE_ICONS.find(i => i.value === app.icon)?.emoji ?? "⚙️"
   const cost = calcDailyCost(app, schedule, bill)
   const totalFrac = segs.reduce((s, sg) => s + sg.fraction, 0)
@@ -123,7 +123,7 @@ export default function Home() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, delta } = event
     setActiveId(null)
-    const applianceId = String(active.id).replace("app-", "")
+    const applianceId = String(active.id).split("--")[0].replace("app-", "")
     const schedule = schedules.find(s => s.applianceId === applianceId)
     if (!schedule || !gridRef.current) return
     const hourWidth = gridRef.current.scrollWidth / 24
@@ -132,7 +132,7 @@ export default function Home() {
     if (newHour !== schedule.startHour) moveSchedule(applianceId, newHour)
   }
 
-  const activeApp = activeId ? appliances.find(a => `app-${a.id}` === activeId) : null
+  const activeApp = activeId ? appliances.find(a => `app-${a.id}` === activeId.split("--")[0]) : null
   const activeSchedule = activeApp ? schedules.find(s => s.applianceId === activeApp.id) : null
 
   return (
