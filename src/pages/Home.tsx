@@ -10,6 +10,7 @@ import type { FoodItem } from "@/types";
 export default function Home() {
   const consumeFood = useFridgeStore((s) => s.consumeFood);
   const removeFoodItem = useFridgeStore((s) => s.removeFoodItem);
+  const removeAsWaste = useFridgeStore((s) => s.removeAsWaste);
   const foodItems = useFridgeStore((s) => s.foodItems);
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
 
@@ -65,6 +66,10 @@ export default function Home() {
         }}
         onRemove={(id) => {
           removeFoodItem(id);
+          setSelectedItem(null);
+        }}
+        onWaste={(id, reason) => {
+          removeAsWaste(id, reason);
           setSelectedItem(null);
         }}
       />

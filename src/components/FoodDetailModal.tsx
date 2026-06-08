@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, Trash2, UtensilsCrossed } from "lucide-react";
+import { X, Trash2, UtensilsCrossed, AlertTriangle, Bug } from "lucide-react";
 import type { FoodItem } from "@/types";
 import { CATEGORY_LABELS, LOCATION_LABELS } from "@/types";
 import {
@@ -15,6 +15,7 @@ interface FoodDetailModalProps {
   onClose: () => void;
   onConsume: (id: string) => void;
   onRemove: (id: string) => void;
+  onWaste: (id: string, reason: "expired" | "spoiled") => void;
 }
 
 export default function FoodDetailModal({
@@ -22,6 +23,7 @@ export default function FoodDetailModal({
   onClose,
   onConsume,
   onRemove,
+  onWaste,
 }: FoodDetailModalProps) {
   const [visible, setVisible] = useState(false);
 
@@ -147,7 +149,7 @@ export default function FoodDetailModal({
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={() => {
               onConsume(item.id);
@@ -160,12 +162,32 @@ export default function FoodDetailModal({
           </button>
           <button
             onClick={() => {
+              onWaste(item.id, "expired");
+              onClose();
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl bg-red-50 hover:bg-red-100 active:scale-[0.97] text-red-500 font-medium text-sm transition-all"
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            过期
+          </button>
+          <button
+            onClick={() => {
+              onWaste(item.id, "spoiled");
+              onClose();
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl bg-orange-50 hover:bg-orange-100 active:scale-[0.97] text-orange-500 font-medium text-sm transition-all"
+          >
+            <Bug className="w-3.5 h-3.5" />
+            变质
+          </button>
+          <button
+            onClick={() => {
               onRemove(item.id);
               onClose();
             }}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-red-50 hover:bg-red-100 active:scale-[0.97] text-red-500 font-semibold transition-all"
+            className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 active:scale-[0.97] text-gray-400 font-medium text-sm transition-all"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
             删除
           </button>
         </div>
