@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { AlertTriangle, X, Zap, TrendingDown, Clock } from "lucide-react"
 import { useStore } from "@/store/useStore"
 import { getTimeSlotForHour, getSlotLabel, getSlotColor, APPLIANCE_ICONS, type TimeSlotType } from "@/types"
-import { calcDailyCost, calcOptimalCost, calcSavings, generateAlerts } from "@/utils/calc"
+import { calcDailyCost, calcOptimalCost, calcSavings, generateAlerts, getHourlyBreakdown } from "@/utils/calc"
 import type { Appliance, ApplianceSchedule, Bill } from "@/types"
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
@@ -27,27 +27,49 @@ const ALERT_STYLES = {
   info: "bg-blue-500/15 border-blue-500/30 text-blue-300",
 }
 
+function getSegments(startHour: number, dailyHours: number): { hour: number; fraction: number; slot: TimeSlotType }[] {
+  return getHourlyBreakdown(startHour, dailyHours)
+}
+
 function ApplianceCard({ app, schedule, bill }: { app: Appliance; schedule: ApplianceSchedule; bill: Bill | null }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `app-${app.id}` })
-  const slot = getTimeSlotForHour(schedule.startHour)
   const emoji = APPLIANCE_ICONS.find(i => i.value === app.icon)?.emoji ?? "⚙️"
   const cost = calcDailyCost(app, schedule, bill)
-  const span = Math.min(app.dailyHours, 24 - schedule.startHour)
+  const segments = getSegments(schedule.startHour, app.dailyHours)
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
-      style={{ gridColumn: `${schedule.startHour + 1} / span ${span}` }}
       {...listeners}
       {...attributes}
-      className={`${SLOT_CARD[slot]} border rounded-lg px-2 py-1.5 flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none ${isDragging ? "opacity-30" : "z-10"}`}
-      layout
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className={`absolute inset-0 flex cursor-grab active:cursor-grabbing select-none ${isDragging ? "opacity-30" : "z-10"}`}
     >
-      <span className="text-sm">{emoji}</span>
-      <span className="text-[11px] font-medium truncate">{app.name}</span>
-      <span className="text-[10px] opacity-70 ml-auto whitespace-nowrap">¥{cost.toFixed(2)}</span>
-    </motion.div>
+      {segments.map((seg, idx) => {
+        const left = ((seg.hour - schedule.startHour + 24) % 24 + (seg.hour >= schedule.startHour ? seg.hour - schedule.startHour : seg.hour + 24 - schedule.startHour)) / 24 * 100
+        const offset = segments.slice(0, idx).reduce((s, sg) => s + sg.fraction, 0)
+        const leftPct = (offset / app.dailyHours) * 100
+        const widthPct = (seg.fraction / app.dailyHours) * 100
+        const isFirst = idx === 0
+        const isLast = idx === segments.length - 1
+        return (
+          <div
+            key={idx}
+            className={`${SLOT_CARD[seg.slot]} border h-full flex items-center ${isFirst ? "rounded-l-lg pl-2" : ""} ${isLast ? "rounded-r-lg pr-2" : ""} ${!isFirst && !isLast ? "border-l-0" : ""}`}
+            style={{ width: `${widthPct}%`, left: `${leftPct}%` }}
+          >
+            {idx === 0 && (
+              <>
+                <span className="text-sm shrink-0">{emoji}</span>
+                <span className="text-[11px] font-medium truncate">{app.name}</span>
+              </>
+            )}
+            {idx === segments.length - 1 && (
+              <span className="text-[10px] opacity-70 ml-auto whitespace-nowrap shrink-0">¥{cost.toFixed(2)}</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -151,12 +173,38 @@ export default function Home() {
                   {appliances.map(app => {
                     const schedule = schedules.find(s => s.applianceId === app.id)
                     if (!schedule) return null
+                    const segments = getSegments(schedule.startHour, app.dailyHours)
+                    const wrapSegs = segments.filter(s => s.hour < schedule.startHour)
+                    const mainSegs = segments.filter(s => s.hour >= schedule.startHour)
+                    const mainSpan = Math.ceil(mainSegs.reduce((s, sg) => s + sg.fraction, 0))
+                    const mainFrac = mainSegs.reduce((s, sg) => s + sg.fraction, 0)
                     return (
-                      <div key={app.id} className="grid relative" style={{ gridTemplateColumns: "repeat(24, minmax(48px, 1fr))" }}>
-                        {HOURS.map(h => (
-                          <div key={h} className={`slot-${getTimeSlotForHour(h)} h-10`} />
-                        ))}
-                        <ApplianceCard app={app} schedule={schedule} bill={latestBill} />
+                      <div key={app.id} className="relative" style={{ height: 40 }}>
+                        <div className="absolute inset-0 grid" style={{ gridTemplateColumns: "repeat(24, minmax(48px, 1fr))" }}>
+                          {HOURS.map(h => (
+                            <div key={h} className={`slot-${getTimeSlotForHour(h)} h-10`} />
+                          ))}
+                        </div>
+                        <div
+                          className="absolute top-0 h-10 z-10"
+                          style={{
+                            left: `${(schedule.startHour / 24) * 100}%`,
+                            width: `${(mainFrac / 24) * 100}%`,
+                          }}
+                        >
+                          <ApplianceCard app={app} schedule={schedule} bill={latestBill} />
+                        </div>
+                        {wrapSegs.length > 0 && (
+                          <div
+                            className="absolute top-0 h-10 z-10"
+                            style={{
+                              left: 0,
+                              width: `${(wrapSegs.reduce((s, sg) => s + sg.fraction, 0) / 24) * 100}%`,
+                            }}
+                          >
+                            <ApplianceCard app={app} schedule={schedule} bill={latestBill} />
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -164,9 +212,9 @@ export default function Home() {
               </div>
               <DragOverlay dropAnimation={{ duration: 200 }}>
                 {activeApp && activeSchedule ? (
-                  <div className={`${SLOT_CARD[getTimeSlotForHour(activeSchedule.startHour)]} border rounded-lg px-3 py-2 shadow-2xl flex items-center gap-2 whitespace-nowrap`}>
+                  <div className="border rounded-lg px-3 py-2 shadow-2xl flex items-center gap-2 whitespace-nowrap bg-slate-800/90">
                     <span>{APPLIANCE_ICONS.find(i => i.value === activeApp.icon)?.emoji ?? "⚙️"}</span>
-                    <span className="text-sm font-medium">{activeApp.name}</span>
+                    <span className="text-sm font-medium text-white">{activeApp.name}</span>
                   </div>
                 ) : null}
               </DragOverlay>

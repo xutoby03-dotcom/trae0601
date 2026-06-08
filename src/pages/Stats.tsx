@@ -160,11 +160,11 @@ export default function Stats() {
                   <span className="text-2xl">{getEmoji(item.appliance.icon)}</span>
                   <span className="text-sm text-white font-medium min-w-[80px]">{item.appliance.name}</span>
                   <span className={`text-xs px-2 py-1 rounded-full ${SLOT_BADGE[item.currentSlot]}`}>
-                    {getSlotLabel(item.currentSlot)}
+                    {getSlotLabel(item.currentSlot)} {item.currentStartHour}时
                   </span>
                   <span className="text-slate-500">→</span>
                   <span className={`text-xs px-2 py-1 rounded-full ${SLOT_BADGE[item.suggestedSlot]}`}>
-                    {getSlotLabel(item.suggestedSlot)}
+                    {getSlotLabel(item.suggestedSlot)} {item.suggestedStartHour}时
                   </span>
                   <span className="ml-auto text-green-400 font-semibold text-sm">
                     省 ¥{item.monthlySaving.toFixed(1)}/月
