@@ -45,6 +45,12 @@ export interface Harvest {
   createdAt: string
 }
 
+export const BALCONY_ROWS = 3
+export const BALCONY_COLS = 4
+
+export const ROW_LABELS = ['靠窗', '中间', '靠栏杆']
+export const COL_LABELS = ['左①', '左②', '右①', '右②']
+
 export const VARIETY_PRESETS = [
   { name: '番茄', emoji: '🍅' },
   { name: '薄荷', emoji: '🌿' },

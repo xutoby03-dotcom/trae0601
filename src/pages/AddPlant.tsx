@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGardenStore } from '@/store/useGardenStore'
 import {
   VARIETY_PRESETS,
   POT_SIZE_LABELS,
   LIGHT_POSITION_LABELS,
+  BALCONY_ROWS,
+  BALCONY_COLS,
   type PotSize,
   type LightPosition,
 } from '@/types'
 import PhotoUpload from '@/components/PhotoUpload'
+import PositionPicker from '@/components/PositionPicker'
 import { ArrowLeft, Sprout } from 'lucide-react'
 
 export default function AddPlant() {
@@ -25,12 +28,27 @@ export default function AddPlant() {
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState(2)
   const [fertilizeFrequencyDays, setFertilizeFrequencyDays] = useState(14)
   const [photo, setPhoto] = useState<string[]>([])
+  const [gridRow, setGridRow] = useState(-1)
+  const [gridCol, setGridCol] = useState(-1)
+
+  const firstEmptySlot = useMemo(() => {
+    const occupied = new Set(plants.map((p) => `${p.gridRow}-${p.gridCol}`))
+    for (let r = 0; r < BALCONY_ROWS; r++) {
+      for (let c = 0; c < BALCONY_COLS; c++) {
+        if (!occupied.has(`${r}-${c}`)) return { row: r, col: c }
+      }
+    }
+    return null
+  }, [plants])
+
+  const effectiveRow = gridRow === -1 ? (firstEmptySlot?.row ?? 0) : gridRow
+  const effectiveCol = gridCol === -1 ? (firstEmptySlot?.col ?? 0) : gridCol
+  const isFull = plants.length >= BALCONY_ROWS * BALCONY_COLS
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !variety.trim()) return
 
-    const gridIndex = plants.length
     addPlant({
       name: name.trim(),
       variety: variety.trim(),
@@ -42,8 +60,8 @@ export default function AddPlant() {
       lastWatered: new Date().toISOString(),
       lastFertilized: '',
       fertilizeFrequencyDays,
-      gridRow: Math.floor(gridIndex / 4),
-      gridCol: gridIndex % 4,
+      gridRow: effectiveRow,
+      gridCol: effectiveCol,
       photo: photo[0] || '',
     })
     navigate('/')
@@ -62,6 +80,27 @@ export default function AddPlant() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="card-paper p-5 space-y-4">
+          <div className="tape-decoration pt-2">
+            <h3 className="font-handwriting text-lg text-earth-700 mb-3">🪴 阳台位置</h3>
+          </div>
+
+          {isFull ? (
+            <p className="text-sm font-serif text-tomato-600 text-center py-4">
+              阳台位置已满，请先移除一盆植物再添加
+            </p>
+          ) : (
+            <PositionPicker
+              selectedRow={effectiveRow}
+              selectedCol={effectiveCol}
+              onChange={(row, col) => {
+                setGridRow(row)
+                setGridCol(col)
+              }}
+            />
+          )}
+        </div>
+
         <div className="card-paper p-5 space-y-4">
           <div className="tape-decoration pt-2">
             <h3 className="font-handwriting text-lg text-earth-700 mb-3">🌱 基本信息</h3>
@@ -205,7 +244,7 @@ export default function AddPlant() {
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || !variety.trim()}
+            disabled={!name.trim() || !variety.trim() || isFull}
             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             🌱 种下它！
