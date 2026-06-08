@@ -10,7 +10,8 @@ interface ApiResponse<T> {
 interface Store {
   items: Item[]
   filters: ItemFilters
-  stats: Stats | null
+  statsMap: Record<string, Stats>
+  statsLoading: boolean
   currentItem: (Item & { priceRecords: PriceRecord[] }) | null
   priceRecords: PriceRecord[]
   bargains: BargainOffer[]
@@ -37,7 +38,8 @@ const defaultFilters: ItemFilters = {}
 export const useStore = create<Store>((set, get) => ({
   items: [],
   filters: defaultFilters,
-  stats: null,
+  statsMap: {},
+  statsLoading: false,
   currentItem: null,
   priceRecords: [],
   bargains: [],
@@ -89,13 +91,20 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   fetchStats: async (status?: string) => {
+    const key = status || 'all'
+    if (get().statsMap[key]) return
+    set({ statsLoading: true })
     try {
       const query = status ? `?status=${status}` : ''
       const res = await fetch(`/api/stats${query}`)
       const json: ApiResponse<Stats> = await res.json()
-      set({ stats: json.data })
+      set((state) => ({
+        statsMap: { ...state.statsMap, [key]: json.data },
+        statsLoading: false,
+      }))
     } catch (error) {
       console.error(error)
+      set({ statsLoading: false })
     }
   },
 
