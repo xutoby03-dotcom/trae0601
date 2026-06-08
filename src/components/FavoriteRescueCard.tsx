@@ -6,7 +6,7 @@ import type { FavoriteRescue } from '@/types'
 export default function FavoriteRescueCard({ rescue }: { rescue: FavoriteRescue }) {
   const navigate = useNavigate()
   const recipe = recipes.find((r) => r.id === rescue.recipeId)
-  if (!recipe) return null
+  if (!recipe) return <></>
 
   return (
     <button

@@ -221,7 +221,10 @@ export function matchFavoriteRescues(
 
   const currentNames = new Set(activeIngredients.map((i) => normalizeIngredientName(i.name)))
 
+  const validRecipeIds = new Set(recipes.map((r) => r.id))
+
   return favorites
+    .filter((fav) => validRecipeIds.has(fav.recipeId))
     .map((fav) => {
       const normalizedSnapshot = fav.ingredientSnapshot.map((n) => normalizeIngredientName(n))
       const stillHave = normalizedSnapshot.filter((n) => currentNames.has(n))
