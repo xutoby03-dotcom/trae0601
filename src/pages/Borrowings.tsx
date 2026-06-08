@@ -6,7 +6,7 @@ import { CURRENT_USER_ID } from '@/data/mockData'
 import type { BorrowRecord } from '@/types'
 import {
   BookOpen, ArrowRightLeft, Clock, CheckCircle, AlertTriangle,
-  Camera, ChevronDown, ChevronUp, Star, TrendingUp, TrendingDown
+  Camera, Image, Star, TrendingUp, TrendingDown
 } from 'lucide-react'
 
 type TabType = 'borrowed' | 'lent' | 'credit'
@@ -66,6 +66,7 @@ function BorrowedTab() {
 
   const [returningId, setReturningId] = useState<string | null>(null)
   const [returnForm, setReturnForm] = useState({
+    returnPhoto: '',
     hasDamage: false,
     damageDescription: '',
     damageCompensation: 0,
@@ -78,13 +79,20 @@ function BorrowedTab() {
   const handleReturn = (recordId: string) => {
     returnTool(
       recordId,
-      '',
+      returnForm.returnPhoto,
       returnForm.hasDamage,
       returnForm.damageDescription,
       returnForm.damageCompensation
     )
     setReturningId(null)
-    setReturnForm({ hasDamage: false, damageDescription: '', damageCompensation: 0 })
+    setReturnForm({ returnPhoto: '', hasDamage: false, damageDescription: '', damageCompensation: 0 })
+  }
+
+  const getDisplayStatus = (record: BorrowRecord) => {
+    if (record.status === 'active' && new Date() > new Date(record.expectedReturnTime)) {
+      return 'overdue'
+    }
+    return record.status
   }
 
   return (
@@ -93,6 +101,8 @@ function BorrowedTab() {
         const tool = getToolById(record.toolId)
         const owner = getUserById(record.ownerId)
         if (!tool) return null
+        const displayStatus = getDisplayStatus(record)
+        const isOverdueNow = displayStatus === 'overdue'
 
         return (
           <div key={record.id} className="border border-wood-100 rounded-xl overflow-hidden">
@@ -105,13 +115,13 @@ function BorrowedTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-wood-800 text-sm">{tool.name}</span>
-                  <RecordStatusBadge status={record.status} />
+                  <RecordStatusBadge status={displayStatus} />
                 </div>
                 <p className="text-xs text-wood-500 mb-1">{record.purpose}</p>
                 <div className="text-xs text-wood-400">
                   提供者：{owner?.name} · {formatTime(record.startTime)} ~ {formatTime(record.expectedReturnTime)}
                 </div>
-                {record.isOverdue && (
+                {(isOverdueNow || record.isOverdue) && (
                   <div className="flex items-center gap-1 text-xs text-red-500 mt-1">
                     <AlertTriangle size={12} />
                     已逾期
@@ -126,11 +136,13 @@ function BorrowedTab() {
               </div>
             </div>
 
-            {(record.status === 'active' || record.status === 'overdue') && returningId !== record.id && (
+            {(record.status === 'active') && returningId !== record.id && (
               <div className="px-4 pb-3">
                 <button
                   onClick={() => setReturningId(record.id)}
-                  className="w-full py-2 rounded-lg bg-grass-600 hover:bg-grass-700 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                  className={`w-full py-2 rounded-lg text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                    isOverdueNow ? 'bg-red-500 hover:bg-red-600' : 'bg-grass-600 hover:bg-grass-700'
+                  }`}
                 >
                   <CheckCircle size={14} />
                   归还工具
@@ -143,6 +155,38 @@ function BorrowedTab() {
                 <div className="flex items-center gap-2">
                   <Camera size={14} className="text-wood-400" />
                   <span className="text-xs text-wood-600">归还确认</span>
+                </div>
+                <div>
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-wood-700 mb-2">
+                    <Image size={14} />
+                    归还照片
+                  </label>
+                  {returnForm.returnPhoto ? (
+                    <div className="relative w-full h-36 rounded-xl overflow-hidden border border-wood-200 mb-2">
+                      <img src={returnForm.returnPhoto} alt="归还照片" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setReturnForm(f => ({ ...f, returnPhoto: '' }))}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-sm"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => setReturnForm(f => ({ ...f, returnPhoto: tool.photo }))}
+                      className="w-full h-24 rounded-xl border-2 border-dashed border-wood-200 flex flex-col items-center justify-center bg-wood-50/50 hover:border-grass-400 transition-colors cursor-pointer"
+                    >
+                      <Camera size={20} className="text-wood-300 mb-1" />
+                      <span className="text-xs text-wood-400">点击上传归还照片</span>
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={returnForm.returnPhoto}
+                    onChange={e => setReturnForm(f => ({ ...f, returnPhoto: e.target.value }))}
+                    placeholder="或输入图片地址"
+                    className="w-full px-3 py-2 rounded-lg border border-wood-200 text-sm focus:ring-2 focus:ring-grass-400 outline-none mt-2"
+                  />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -176,7 +220,7 @@ function BorrowedTab() {
                   <button
                     onClick={() => {
                       setReturningId(null)
-                      setReturnForm({ hasDamage: false, damageDescription: '', damageCompensation: 0 })
+                      setReturnForm({ returnPhoto: '', hasDamage: false, damageDescription: '', damageCompensation: 0 })
                     }}
                     className="flex-1 py-2 rounded-lg border border-wood-200 text-wood-600 text-sm"
                   >
@@ -214,6 +258,13 @@ function LentTab() {
   const getUserById = useUserStore(s => s.getUserById)
   const records = getBorrowRecordsByOwner(CURRENT_USER_ID)
 
+  const getDisplayStatus = (record: BorrowRecord) => {
+    if (record.status === 'active' && new Date() > new Date(record.expectedReturnTime)) {
+      return 'overdue'
+    }
+    return record.status
+  }
+
   if (records.length === 0) {
     return <EmptyState text="暂无借出记录" />
   }
@@ -224,6 +275,8 @@ function LentTab() {
         const tool = getToolById(record.toolId)
         const borrower = getUserById(record.borrowerId)
         if (!tool) return null
+        const displayStatus = getDisplayStatus(record)
+        const isOverdueNow = displayStatus === 'overdue'
 
         return (
           <div key={record.id} className="border border-wood-100 rounded-xl p-4">
@@ -236,7 +289,7 @@ function LentTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-wood-800 text-sm">{tool.name}</span>
-                  <RecordStatusBadge status={record.status} />
+                  <RecordStatusBadge status={displayStatus} />
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <img src={borrower?.avatar || ''} alt="" className="w-5 h-5 rounded-full" />
@@ -246,6 +299,12 @@ function LentTab() {
                 <div className="text-xs text-wood-400">
                   {formatTime(record.startTime)} ~ {formatTime(record.expectedReturnTime)}
                 </div>
+                {(isOverdueNow || record.isOverdue) && (
+                  <div className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                    <AlertTriangle size={12} />
+                    已逾期
+                  </div>
+                )}
                 {record.hasDamage && (
                   <div className="text-xs text-amber-600 mt-1">
                     损坏：{record.damageDescription} · 赔付 ¥{record.damageCompensation}

@@ -130,20 +130,29 @@ export default function ToolDetail() {
             <div className="space-y-3">
               {borrowRecords.map(record => {
                 const borrower = getUserById(record.borrowerId)
+                const displayStatus = record.status === 'active' && new Date() > new Date(record.expectedReturnTime)
+                  ? 'overdue'
+                  : record.status
+                const isOverdueNow = displayStatus === 'overdue'
                 return (
                   <div key={record.id} className="flex items-start gap-3 p-3 rounded-xl bg-wood-50/50 border border-wood-100">
                     <img src={borrower?.avatar || ''} alt="" className="w-8 h-8 rounded-full mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-wood-700">{borrower?.name}</span>
-                        <BorrowRecordStatusBadge status={record.status} />
+                        <BorrowRecordStatusBadge status={displayStatus} />
                       </div>
                       <p className="text-xs text-wood-500 mb-1">{record.purpose}</p>
                       <div className="flex items-center gap-3 text-xs text-wood-400">
                         <span>{formatTime(record.startTime)} ~ {formatTime(record.expectedReturnTime)}</span>
-                        {record.isOverdue && <span className="text-red-500">逾期</span>}
+                        {(isOverdueNow || record.isOverdue) && <span className="text-red-500">逾期</span>}
                         {record.hasDamage && <span className="text-amber-600">有损坏</span>}
                       </div>
+                      {record.returnPhoto && (
+                        <div className="mt-2">
+                          <img src={record.returnPhoto} alt="归还照片" className="w-20 h-14 rounded-lg object-cover border border-wood-200" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
