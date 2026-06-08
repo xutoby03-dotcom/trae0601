@@ -23,7 +23,7 @@ const HEALTH_REMINDERS: Record<DiseaseType, { label: string; Icon: typeof Activi
 }
 
 const TASK_STATUS_STYLES: Record<TaskStatus, { bg: string; text: string; label: string }> = {
-  pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: TASK_STATUS_LABELS.pending },
+  pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: '待办' },
   inProgress: { bg: 'bg-sky-100', text: 'text-sky-700', label: TASK_STATUS_LABELS.inProgress },
   completed: { bg: 'bg-green-100', text: 'text-green-700', label: TASK_STATUS_LABELS.completed },
 }
