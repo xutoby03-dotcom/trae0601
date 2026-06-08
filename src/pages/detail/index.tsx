@@ -34,12 +34,12 @@ const statusText: Record<string, string> = {
 
 const DetailPage: React.FC = () => {
   const router = useRouter();
-  const { getRequestById, acceptRequest, markPickedUp, markDelivered, isExpiring, updatePickupCode, resolveException } = usePickupStore();
+  const { requests, acceptRequest, markPickedUp, markDelivered, isExpiring, updatePickupCode, resolveException } = usePickupStore();
 
   const request = useMemo(() => {
     const id = router.params.id || '';
-    return getRequestById(id);
-  }, [router.params.id]);
+    return requests.find((req) => req.id === id);
+  }, [router.params.id, requests]);
 
   if (!request) {
     return (
