@@ -22,24 +22,26 @@ interface PendingPhoto {
 export default function Upload() {
   const { currentTripId, days, addPhoto, addDay } = useTravelStore()
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([])
+  const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return
-    const newPhotos: PendingPhoto[] = Array.from(files)
-      .filter((f) => f.type.startsWith('image/'))
-      .map((_) => ({
-        id: generateId(),
-        url: '',
-        location: '',
-        date: new Date().toISOString().split('T')[0],
-        companions: '',
-        cost: 0,
-        weather: '晴' as Weather,
-        story: '',
-        tags: [] as TagName[],
-        saved: false,
-      }))
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (imageFiles.length === 0) return
+
+    const newPhotos: PendingPhoto[] = imageFiles.map(() => ({
+      id: generateId(),
+      url: '',
+      location: '',
+      date: new Date().toISOString().split('T')[0],
+      companions: '',
+      cost: 0,
+      weather: '晴' as Weather,
+      story: '',
+      tags: [] as TagName[],
+      saved: false,
+    }))
 
     newPhotos.forEach((photo, i) => {
       const reader = new FileReader()
@@ -48,7 +50,7 @@ export default function Upload() {
           prev.map((p) => (p.id === photo.id ? { ...p, url: e.target?.result as string } : p))
         )
       }
-      reader.readAsDataURL(files[i])
+      reader.readAsDataURL(imageFiles[i])
     })
 
     setPendingPhotos((prev) => [...prev, ...newPhotos])
@@ -129,10 +131,19 @@ export default function Upload() {
 
       <div
         onClick={() => fileRef.current?.click()}
-        className="border-2 border-dashed border-warm-peach rounded-2xl p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-warm-orange hover:bg-warm-cream/30 transition-all mb-6"
+        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true) }}
+        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false) }}
+        onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+        className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-all mb-6 ${
+          dragOver
+            ? 'border-warm-orange bg-warm-orange/10 scale-[1.02]'
+            : 'border-warm-peach hover:border-warm-orange hover:bg-warm-cream/30'
+        }`}
       >
-        <UploadIcon className="w-10 h-10 text-warm-orange" />
-        <p className="text-warm-brown/70">拖拽或点击上传照片</p>
+        <UploadIcon className={`w-10 h-10 transition-colors ${dragOver ? 'text-warm-orange' : 'text-warm-orange/70'}`} />
+        <p className={`transition-colors ${dragOver ? 'text-warm-orange font-medium' : 'text-warm-brown/70'}`}>
+          {dragOver ? '松开即可上传' : '拖拽或点击上传照片'}
+        </p>
         <input
           ref={fileRef}
           type="file"
