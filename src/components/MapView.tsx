@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { PetPost } from '@/types'
-import { STATUS_COLORS, TYPE_COLORS } from '@/types'
+import { STATUS_COLORS } from '@/types'
 
 delete (L.Icon.Default.prototype as any)._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -47,7 +47,7 @@ export default function MapView({ posts, onPostClick }: MapViewProps) {
         />
         <MapUpdater posts={posts} />
         {posts.map((post) => {
-          const color = post.status === 'reunited' ? '#22C55E' : TYPE_COLORS[post.type]
+          const color = STATUS_COLORS[post.status]
           const icon = L.divIcon({
             className: '',
             html: `<div style="
