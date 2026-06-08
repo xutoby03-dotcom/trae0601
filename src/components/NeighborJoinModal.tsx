@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { FoodItem } from '../types'
 import { useStore, NEIGHBORS } from '../store/useStore'
 import { X, Minus, Plus, Clock, MessageSquare, UserPlus } from 'lucide-react'
@@ -10,19 +10,27 @@ interface Props {
 
 export default function NeighborJoinModal({ item, onClose }: Props) {
   const { addNeighborOrder } = useStore()
-  const [selectedNeighbor, setSelectedNeighbor] = useState(NEIGHBORS[0])
+
+  const alreadyJoinedIds = item.orders.map(o => o.userId)
+  const availableNeighbors = useMemo(
+    () => NEIGHBORS.filter(n => !alreadyJoinedIds.includes(n.id)),
+    [alreadyJoinedIds.join(',')]
+  )
+  const maxQty = item.quantity - item.currentQuantity
+
+  const [selectedNeighbor, setSelectedNeighbor] = useState(availableNeighbors[0] ?? NEIGHBORS[0])
   const [quantity, setQuantity] = useState(1)
   const [pickupTime, setPickupTime] = useState('')
   const [message, setMessage] = useState('')
-  const maxQty = item.quantity - item.currentQuantity
 
-  const alreadyJoinedIds = item.orders.map(o => o.userId)
-  const availableNeighbors = NEIGHBORS.filter(n => !alreadyJoinedIds.includes(n.id))
+  const isSelectedAvailable = availableNeighbors.some(n => n.id === selectedNeighbor.id)
+
+  const safeQty = Math.min(quantity, maxQty, 1)
+  const canSubmit = pickupTime.trim() && isSelectedAvailable && safeQty >= 1 && maxQty >= 1
 
   const handleSubmit = () => {
-    if (quantity < 1 || quantity > maxQty) return
-    if (!pickupTime.trim()) return
-    addNeighborOrder(item.id, selectedNeighbor, quantity, pickupTime.trim(), message.trim())
+    if (!canSubmit) return
+    addNeighborOrder(item.id, selectedNeighbor, safeQty, pickupTime.trim(), message.trim())
     onClose()
   }
 
@@ -88,7 +96,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="text-xl font-bold text-gray-800 w-8 text-center">{quantity}</span>
+                  <span className="text-xl font-bold text-gray-800 w-8 text-center">{safeQty}</span>
                   <button
                     onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
                     className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50"
@@ -99,7 +107,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
                   <span className="text-sm text-gray-400 ml-2">最多 {maxQty} 份</span>
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
-                  合计：<span className="font-bold text-primary">¥{(item.sharePrice * quantity).toFixed(1)}</span>
+                  合计：<span className="font-bold text-primary">¥{(item.sharePrice * safeQty).toFixed(1)}</span>
                 </div>
               </div>
 
@@ -133,7 +141,7 @@ export default function NeighborJoinModal({ item, onClose }: Props) {
 
               <button
                 onClick={handleSubmit}
-                disabled={!pickupTime.trim() || quantity < 1 || availableNeighbors.length === 0}
+                disabled={!canSubmit}
                 className="w-full mt-2 py-3 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm"
               >
                 确认邻居拼单
