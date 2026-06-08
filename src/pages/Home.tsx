@@ -17,15 +17,27 @@ export default function Home() {
 
   const totalReadings = sessions.length
 
+  const RECENT_DAYS = 30
+
   const sortedBooks = useMemo(() => {
     let filtered = books
     if (selectedTheme !== '全部') {
       filtered = books.filter(b => b.themes.includes(selectedTheme))
     }
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - RECENT_DAYS)
+    const recentCount: Record<string, number> = {}
+    for (const s of sessions) {
+      if (new Date(s.date).getTime() >= cutoff.getTime()) {
+        recentCount[s.bookId] = (recentCount[s.bookId] || 0) + 1
+      }
+    }
     const read = filtered
       .filter(b => b.readCount > 0)
       .sort((a, b) => {
-        if (b.readCount !== a.readCount) return b.readCount - a.readCount
+        const ra = recentCount[a.id] || 0
+        const rb = recentCount[b.id] || 0
+        if (rb !== ra) return rb - ra
         return new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime()
       })
     const unread = filtered.filter(b => b.readCount === 0)
