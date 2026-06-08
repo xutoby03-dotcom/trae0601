@@ -25,6 +25,15 @@ export default function BudgetBar({ category, spent, limit, color }: BudgetBarPr
     textColor = '#ff8c42'
   }
 
+  let warningText = ''
+  if (percentage >= 100) {
+    const over = spent - limit
+    warningText = `已超支 ¥${over.toLocaleString('zh-CN')}，需要控制${category}支出了`
+  } else if (percentage >= 80) {
+    const left = limit - spent
+    warningText = `预算快见底，仅剩 ¥${left.toLocaleString('zh-CN')}`
+  }
+
   return (
     <div className="glass rounded-2xl p-4">
       <div className="flex items-center justify-between mb-2">
@@ -51,7 +60,14 @@ export default function BudgetBar({ category, spent, limit, color }: BudgetBarPr
         />
       </div>
 
-      <div className="mt-1.5 text-right">
+      <div className="mt-1.5 flex items-center justify-between">
+        {warningText ? (
+          <span className="text-xs" style={{ color: textColor }}>
+            {warningText}
+          </span>
+        ) : (
+          <span />
+        )}
         <span className="text-xs font-medium" style={{ color: textColor }}>
           {percentage.toFixed(1)}%
         </span>
