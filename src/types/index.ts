@@ -54,6 +54,7 @@ export interface ShoppingItem {
   materialId: string
   quantity: number
   reason: ShoppingReason
+  projectId: string
   purchased: boolean
   createdAt: string
 }

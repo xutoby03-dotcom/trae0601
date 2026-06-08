@@ -80,6 +80,7 @@ export default function ProjectDetail() {
       materialId,
       quantity: qty,
       reason: '项目缺料',
+      projectId: project.id,
       purchased: false,
     })
   }

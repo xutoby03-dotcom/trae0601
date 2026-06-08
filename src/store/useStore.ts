@@ -212,6 +212,7 @@ export const useStore = create<CraftStore>()(
                 materialId: m.id,
                 quantity: m.lowStockThreshold - m.quantity + 5,
                 reason: '低库存',
+                projectId: '',
                 purchased: false,
               })
             }
@@ -232,11 +233,12 @@ export const useStore = create<CraftStore>()(
                 )
                 if (!existing) {
                   newItems.push({
-                    materialId: pm.materialId,
-                    quantity: shortage,
-                    reason: '项目缺料',
-                    purchased: false,
-                  })
+                materialId: pm.materialId,
+                quantity: shortage,
+                reason: '项目缺料',
+                projectId: project.id,
+                purchased: false,
+              })
                 }
               }
             })
