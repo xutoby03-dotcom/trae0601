@@ -34,16 +34,16 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
   const [submitMethod, setSubmitMethod] = useState(assignment?.submitMethod || '');
   const [attachmentUrl, setAttachmentUrl] = useState(assignment?.attachmentUrl || '');
   const [manualProgress, setManualProgress] = useState(assignment?.progress ?? 0);
-  const [steps, setSteps] = useState<Omit<Step, 'id'>[]>(
+  const [steps, setSteps] = useState<Step[]>(
     assignment?.steps
-      ? assignment.steps.map(({ id, ...rest }) => rest)
+      ? assignment.steps.map((s) => ({ ...s }))
       : []
   );
   const [newStepTitle, setNewStepTitle] = useState('');
 
   const addStep = () => {
     if (!newStepTitle.trim()) return;
-    setSteps([...steps, { title: newStepTitle.trim(), completed: false, order: steps.length }]);
+    setSteps([...steps, { id: generateStepId(), title: newStepTitle.trim(), completed: false, order: steps.length }]);
     setNewStepTitle('');
   };
 
@@ -51,23 +51,25 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
     setSteps(steps.filter((_, i) => i !== index).map((s, i) => ({ ...s, order: i })));
   };
 
-  const toggleStepCompleted = (index: number) => {
-    setSteps(steps.map((s, i) => i === index ? { ...s, completed: !s.completed } : s));
+  const toggleStepCompleted = (stepId: string) => {
+    setSteps(steps.map((s) => s.id === stepId ? { ...s, completed: !s.completed } : s));
   };
 
-  const updateStepTitle = (index: number, newTitle: string) => {
-    setSteps(steps.map((s, i) => i === index ? { ...s, title: newTitle } : s));
+  const updateStepTitle = (stepId: string, newTitle: string) => {
+    setSteps(steps.map((s) => s.id === stepId ? { ...s, title: newTitle } : s));
   };
 
   const loadDefaultSteps = () => {
-    setSteps(DEFAULT_STEPS);
+    setSteps(DEFAULT_STEPS.map((s, i) => ({ ...s, id: generateStepId(), order: i })));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !courseId || !deadline) return;
 
-    const stepsData = steps.map((s, i) => ({ ...s, id: generateStepId(), order: i }));
+    const stepsData = steps
+      .filter((s) => s.title.trim())
+      .map((s, i) => ({ ...s, order: i }));
     const hasSteps = stepsData.length > 0;
     const progress = hasSteps
       ? Math.round((stepsData.filter((s) => s.completed).length / stepsData.length) * 100)
@@ -228,11 +230,11 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
 
             {steps.length > 0 && (
               <div className="space-y-2 mb-2">
-                {steps.map((step, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                {steps.map((step) => (
+                  <div key={step.id} className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggleStepCompleted(i)}
+                      onClick={() => toggleStepCompleted(step.id)}
                       className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
                         step.completed
                           ? 'bg-radar-cyan border-radar-cyan'
@@ -244,14 +246,14 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
                     <input
                       type="text"
                       value={step.title}
-                      onChange={(e) => updateStepTitle(i, e.target.value)}
+                      onChange={(e) => updateStepTitle(step.id, e.target.value)}
                       className={`flex-1 px-2 py-1 rounded text-xs bg-transparent border border-transparent focus:border-radar-cyan/50 focus:bg-slate-800/50 transition-colors ${
                         step.completed ? 'text-slate-500 line-through' : 'text-slate-200'
                       }`}
                     />
                     <button
                       type="button"
-                      onClick={() => removeStep(i)}
+                      onClick={() => removeStep(steps.indexOf(step))}
                       className="p-1 text-slate-500 hover:text-radar-red transition-colors"
                     >
                       <Trash2 className="w-3 h-3" />
