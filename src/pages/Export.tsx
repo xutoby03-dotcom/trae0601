@@ -45,7 +45,7 @@ export default function Export() {
     if (!el) return
     const canvas = await html2canvas(el, { scale: 2, useCORS: true })
     const link = document.createElement('a')
-    link.download = `${trip.title}-海报.png`
+    link.download = `${sanitizeFilename(trip.title)}-海报.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
   }
