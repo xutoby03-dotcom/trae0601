@@ -308,30 +308,44 @@ export default function Detail() {
         <div className="flex items-center justify-between mb-4">
           {STATUS_ORDER.map((status, i) => (
             <div key={status} className="flex items-center">
-              <div className="flex flex-col items-center">
+              <button
+                onClick={() => handleStatusChange(status)}
+                disabled={post.status === status}
+                className={cn(
+                  'flex flex-col items-center group',
+                  post.status === status ? 'cursor-default' : 'cursor-pointer'
+                )}
+              >
                 <div
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white',
-                    i <= currentStatusIndex ? 'opacity-100' : 'opacity-30'
+                    'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white transition',
+                    post.status === status
+                      ? 'opacity-100 ring-2 ring-offset-2'
+                      : 'opacity-40 hover:opacity-70'
                   )}
-                  style={{ backgroundColor: STATUS_COLORS[status] }}
+                  style={{
+                    backgroundColor: STATUS_COLORS[status],
+                    ...(post.status === status ? { ringColor: STATUS_COLORS[status] } : {}),
+                  }}
                 >
                   {i + 1}
                 </div>
                 <span
                   className={cn(
-                    'text-xs mt-1',
-                    i <= currentStatusIndex ? 'text-gray-900 font-medium' : 'text-gray-400'
+                    'text-xs mt-1 transition',
+                    post.status === status
+                      ? 'text-stone-900 font-bold'
+                      : 'text-stone-400 group-hover:text-stone-600'
                   )}
                 >
                   {STATUS_LABELS[status]}
                 </span>
-              </div>
+              </button>
               {i < STATUS_ORDER.length - 1 && (
                 <div
                   className={cn(
                     'flex-1 h-0.5 mx-2',
-                    i < currentStatusIndex ? 'bg-green-400' : 'bg-gray-200'
+                    i < currentStatusIndex ? 'bg-stone-400' : 'bg-stone-200'
                   )}
                 />
               )}
@@ -343,7 +357,7 @@ export default function Detail() {
             {postLogs.map((log) => (
               <div
                 key={log.id}
-                className="flex items-center gap-2 text-xs text-gray-500"
+                className="flex items-center gap-2 text-xs text-stone-500"
               >
                 <Clock className="w-3 h-3" />
                 <span>
@@ -352,17 +366,6 @@ export default function Detail() {
                 </span>
               </div>
             ))}
-          </div>
-        )}
-        {currentStatusIndex < STATUS_ORDER.length - 1 && (
-          <div className="mt-3">
-            <button
-              onClick={() => handleStatusChange(STATUS_ORDER[currentStatusIndex + 1])}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-white hover:opacity-90"
-              style={{ backgroundColor: STATUS_COLORS[STATUS_ORDER[currentStatusIndex + 1]] }}
-            >
-              更新为「{STATUS_LABELS[STATUS_ORDER[currentStatusIndex + 1]]}」
-            </button>
           </div>
         )}
       </div>
