@@ -13,7 +13,8 @@ export default function History() {
   }, [fetchHistoryStats, fetchActivityTypeStats])
 
   const statsActivities = historyStats?.activities ?? []
-  const topType = activityTypeStats.length > 0
+  const totalParticipants = activityTypeStats.reduce((s, t) => s + t.participantCount, 0)
+  const topType = totalParticipants > 0
     ? activityTypeStats.reduce((a, b) => a.participantCount > b.participantCount ? a : b)
     : null
 
@@ -64,7 +65,7 @@ export default function History() {
           <BarChart3 className="h-5 w-5 text-accent" />
           <h2 className="font-heading text-lg font-semibold text-white">活动类型参与人数</h2>
         </div>
-        {activityTypeStats.length > 0 ? (
+        {totalParticipants > 0 ? (
           <div className="rounded-xl border border-dark-border bg-dark-surface p-4">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={activityTypeStats} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
