@@ -201,16 +201,20 @@ export const useStore = create<CraftStore>()(
       generateShoppingList: () => {
         const state = get()
         const newItems: Omit<ShoppingItem, 'id' | 'createdAt'>[] = []
+        const updateMap = new Map<string, number>()
 
         state.materials.forEach((m) => {
           if (m.quantity <= m.lowStockThreshold) {
             const existing = state.shoppingItems.find(
-              (s) => s.materialId === m.id && !s.purchased
+              (s) => s.materialId === m.id && !s.purchased && s.reason === '低库存'
             )
-            if (!existing) {
+            const qty = m.lowStockThreshold - m.quantity + 5
+            if (existing) {
+              updateMap.set(existing.id, qty)
+            } else {
               newItems.push({
                 materialId: m.id,
-                quantity: m.lowStockThreshold - m.quantity + 5,
+                quantity: qty,
                 reason: '低库存',
                 projectId: '',
                 purchased: false,
@@ -231,31 +235,33 @@ export const useStore = create<CraftStore>()(
                 const existing = state.shoppingItems.find(
                   (s) => s.materialId === pm.materialId && s.projectId === project.id && !s.purchased
                 )
-                if (!existing) {
+                if (existing) {
+                  updateMap.set(existing.id, shortage)
+                } else {
                   newItems.push({
-                materialId: pm.materialId,
-                quantity: shortage,
-                reason: '项目缺料',
-                projectId: project.id,
-                purchased: false,
-              })
+                    materialId: pm.materialId,
+                    quantity: shortage,
+                    reason: '项目缺料',
+                    projectId: project.id,
+                    purchased: false,
+                  })
                 }
               }
             })
           })
 
-        if (newItems.length > 0) {
-          set((state) => ({
-            shoppingItems: [
-              ...state.shoppingItems,
-              ...newItems.map((item) => ({
-                ...item,
-                id: generateId(),
-                createdAt: new Date().toISOString(),
-              })),
-            ],
-          }))
-        }
+        set((state) => ({
+          shoppingItems: [
+            ...state.shoppingItems.map((item) =>
+              updateMap.has(item.id) ? { ...item, quantity: updateMap.get(item.id)! } : item
+            ),
+            ...newItems.map((item) => ({
+              ...item,
+              id: generateId(),
+              createdAt: new Date().toISOString(),
+            })),
+          ],
+        }))
       },
     }),
     {
