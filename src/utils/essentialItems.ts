@@ -14,7 +14,7 @@ interface EssentialItem {
 
 const ESSENTIAL_ITEMS: Record<SceneType, EssentialItem[]> = {
   mountain_overnight: [
-    { category: 'shelter', label: '帐篷', keywords: ['帐篷', '天幕'] },
+    { category: 'shelter', label: '帐篷', keywords: ['帐篷'] },
     { category: 'sleeping', label: '睡袋', keywords: ['睡袋'] },
     { category: 'sleeping', label: '防潮垫', keywords: ['防潮垫', '地垫', '垫子'] },
     { category: 'lighting', label: '头灯/手电', keywords: ['头灯', '手电', '电筒'] },
@@ -29,7 +29,7 @@ const ESSENTIAL_ITEMS: Record<SceneType, EssentialItem[]> = {
     { category: 'other', label: '垃圾袋', keywords: ['垃圾'] },
   ],
   family_camping: [
-    { category: 'shelter', label: '帐篷', keywords: ['帐篷', '天幕'] },
+    { category: 'shelter', label: '帐篷', keywords: ['帐篷'] },
     { category: 'sleeping', label: '睡袋', keywords: ['睡袋'] },
     { category: 'sleeping', label: '防潮垫', keywords: ['防潮垫', '地垫', '垫子'] },
     { category: 'lighting', label: '头灯', keywords: ['头灯', '手电', '电筒'] },
