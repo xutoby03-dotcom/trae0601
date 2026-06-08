@@ -1,18 +1,24 @@
 import { motion } from 'framer-motion'
 import { Package, Clock, Check } from 'lucide-react'
-import type { RestockItem, Medicine } from '@/types'
+import type { RestockItem, Medicine, FamilyMember } from '@/types'
 import { getRestockReasonLabel } from '@/utils/expiry'
 import { cn } from '@/lib/utils'
 
 interface RestockItemCardProps {
   item: RestockItem
   medicine: Medicine | undefined
+  members: FamilyMember[]
   onResolve: (itemId: string) => void
   onRestock: (itemId: string, newQuantity: number) => void
 }
 
-export default function RestockItemCard({ item, medicine, onResolve, onRestock }: RestockItemCardProps) {
+export default function RestockItemCard({ item, medicine, members, onResolve, onRestock }: RestockItemCardProps) {
   if (!medicine) return null
+
+  const suitableLabels = medicine.suitableFor.map(tag => {
+    const member = members.find(m => m.tag === tag)
+    return member ? { tag, label: `${member.avatar} ${member.name}` } : { tag, label: tag }
+  })
 
   return (
     <motion.div
@@ -37,7 +43,7 @@ export default function RestockItemCard({ item, medicine, onResolve, onRestock }
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-semibold text-amber-900 text-sm truncate">{medicine.name}</h4>
             <span className={cn(
               'shrink-0 px-1.5 py-0.5 text-[10px] font-medium rounded-full',
@@ -51,6 +57,18 @@ export default function RestockItemCard({ item, medicine, onResolve, onRestock }
           <p className="text-xs text-gray-400 mt-0.5">
             当前数量：{medicine.quantity}{medicine.unit}
           </p>
+          {suitableLabels.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {suitableLabels.map(s => (
+                <span
+                  key={s.tag}
+                  className="px-1.5 py-0.5 text-[10px] rounded-full bg-sky-50 text-sky-600 border border-sky-100"
+                >
+                  {s.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {!item.resolved && (

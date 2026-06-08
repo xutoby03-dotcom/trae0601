@@ -1,20 +1,41 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShoppingCart, CheckCircle2, PackageX } from 'lucide-react'
 import { useMedicineStore } from '@/store/medicineStore'
+import { useMemberStore } from '@/store/memberStore'
 import RestockItemCard from '@/components/RestockItemCard'
+import { cn } from '@/lib/utils'
 
 export default function RestockList() {
   const { restockItems, medicines, resolveRestockItem, resolveRestockAndRestock } = useMedicineStore()
+  const { members } = useMemberStore()
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+
+  const matchesMember = (suitableFor: string[]) => {
+    if (!selectedTag) return true
+    return suitableFor.length === 0 || suitableFor.includes(selectedTag) || suitableFor.includes('all')
+  }
 
   const pendingItems = useMemo(
-    () => restockItems.filter(r => !r.resolved),
-    [restockItems]
+    () => restockItems.filter(r => {
+      if (r.resolved) return false
+      const med = medicines.find(m => m.id === r.medicineId)
+      if (!med) return false
+      return matchesMember(med.suitableFor)
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [restockItems, medicines, selectedTag]
   )
 
   const resolvedItems = useMemo(
-    () => restockItems.filter(r => r.resolved),
-    [restockItems]
+    () => restockItems.filter(r => {
+      if (!r.resolved) return false
+      const med = medicines.find(m => m.id === r.medicineId)
+      if (!med) return false
+      return matchesMember(med.suitableFor)
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [restockItems, medicines, selectedTag]
   )
 
   return (
@@ -29,6 +50,35 @@ export default function RestockList() {
         </p>
       </div>
 
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => setSelectedTag(null)}
+          className={cn(
+            'shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border',
+            !selectedTag
+              ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
+          )}
+        >
+          全部
+        </button>
+        {members.map(member => (
+          <button
+            key={member.id}
+            onClick={() => setSelectedTag(selectedTag === member.tag ? null : member.tag)}
+            className={cn(
+              'shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border',
+              selectedTag === member.tag
+                ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-200'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300 hover:text-emerald-600'
+            )}
+          >
+            <span className="text-base">{member.avatar}</span>
+            {member.name}
+          </button>
+        ))}
+      </div>
+
       {pendingItems.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-amber-800 mb-3">
@@ -40,6 +90,7 @@ export default function RestockList() {
                 key={item.id}
                 item={item}
                 medicine={medicines.find(m => m.id === item.medicineId)}
+                members={members}
                 onResolve={resolveRestockItem}
                 onRestock={resolveRestockAndRestock}
               />
@@ -60,6 +111,7 @@ export default function RestockList() {
                 key={item.id}
                 item={item}
                 medicine={medicines.find(m => m.id === item.medicineId)}
+                members={members}
                 onResolve={resolveRestockItem}
                 onRestock={resolveRestockAndRestock}
               />
