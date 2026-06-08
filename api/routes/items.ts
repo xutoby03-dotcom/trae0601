@@ -123,7 +123,7 @@ router.post('/', (req: Request, res: Response): void => {
       condition,
       accessories_complete !== undefined ? accessories_complete : 1,
       flaws || '',
-      photos || '[]',
+      typeof photos === 'string' ? photos : JSON.stringify(photos || []),
       category,
       current_price,
       suggested_price_min || current_price * 0.85,

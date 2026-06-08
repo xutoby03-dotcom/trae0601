@@ -128,7 +128,15 @@ export const useStore = create<Store>((set, get) => ({
       const payload: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(item)) {
         const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase()
-        payload[snakeKey] = value
+        if (key === 'photos' && Array.isArray(value)) {
+          payload[snakeKey] = JSON.stringify(value)
+        } else if (key === 'accessoriesComplete') {
+          payload[snakeKey] = value ? 1 : 0
+        } else if (key === 'freeShipping') {
+          payload[snakeKey] = value ? 1 : 0
+        } else {
+          payload[snakeKey] = value
+        }
       }
       const res = await fetch('/api/items', {
         method: 'POST',

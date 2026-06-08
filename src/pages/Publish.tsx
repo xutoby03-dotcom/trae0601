@@ -87,7 +87,10 @@ export default function Publish() {
       suggestedPriceMax: estimate?.suggestedMax || 0,
     })
 
-    if (item) navigate('/')
+    if (item) {
+      useStore.getState().fetchItems()
+      navigate('/')
+    }
   }
 
   const isValid = name.trim() !== '' && condition !== '' && category !== ''
