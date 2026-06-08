@@ -26,6 +26,7 @@ export default function PlanForm() {
       monthlyFee: plan.monthlyFee,
       discountedFee: plan.discountedFee,
       speed: plan.speed,
+      uploadSpeed: plan.uploadSpeed,
       contractMonths: plan.contractMonths,
       installFee: plan.installFee,
       routerFee: plan.routerFee,
@@ -121,6 +122,16 @@ export default function PlanForm() {
                 value={form.speed || ''}
                 onChange={(e) => updateField('speed', +e.target.value)}
                 placeholder="如：500"
+                className="input-field"
+              />
+            </FormField>
+
+            <FormField label="上传速率（Mbps）">
+              <input
+                type="number"
+                value={form.uploadSpeed || ''}
+                onChange={(e) => updateField('uploadSpeed', +e.target.value)}
+                placeholder="如：30，不填则视为未知"
                 className="input-field"
               />
             </FormField>
@@ -255,6 +266,9 @@ export default function PlanForm() {
                   <PlanRow label="优惠月租" value={`${plan.discountedFee}元/月`} highlight accent />
                 )}
                 <PlanRow label="速率" value={`${plan.speed}Mbps`} />
+                {plan.uploadSpeed > 0 && (
+                  <PlanRow label="上传" value={`${plan.uploadSpeed}Mbps`} />
+                )}
                 <PlanRow label="合约期" value={`${plan.contractMonths}个月`} />
                 {plan.installFee > 0 && (
                   <PlanRow label="安装费" value={`${plan.installFee}元`} />

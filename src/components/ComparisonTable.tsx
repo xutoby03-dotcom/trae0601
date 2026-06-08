@@ -55,6 +55,14 @@ export default function ComparisonTable() {
       }),
     },
     {
+      label: '上传速率',
+      getValues: (p) => ({
+        text: p.uploadSpeed > 0 ? `${p.uploadSpeed}Mbps` : '未标注',
+        best: false,
+        worst: p.speed >= 200 && !p.uploadSpeed,
+      }),
+    },
+    {
       label: '合约期',
       getValues: (p) => ({
         text: `${p.contractMonths}个月`,

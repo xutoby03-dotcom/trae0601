@@ -1,17 +1,18 @@
 import type { Plan, CostResult } from '@/types'
 
-function getMonthsAtDiscountedRate(plan: Plan): number {
+function getMonthsAtDiscountedRate(plan: Plan, months: number): number {
   if (!plan.discountEndDate || plan.discountedFee <= 0) return 0
   const end = new Date(plan.discountEndDate)
   const now = new Date()
   const diffMs = end.getTime() - now.getTime()
   if (diffMs <= 0) return 0
-  return Math.min(Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30)), plan.contractMonths)
+  const raw = Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30))
+  return Math.min(raw, plan.contractMonths, months)
 }
 
 export function calculateCost(plan: Plan, months: number): CostResult {
-  const discountedMonths = getMonthsAtDiscountedRate(plan)
-  const normalMonths = months - discountedMonths
+  const discountedMonths = getMonthsAtDiscountedRate(plan, months)
+  const normalMonths = Math.max(0, months - discountedMonths)
 
   const monthlyTotal =
     discountedMonths * plan.discountedFee + normalMonths * plan.monthlyFee
@@ -21,8 +22,6 @@ export function calculateCost(plan: Plan, months: number): CostResult {
 
   const fullPriceMonthly = months * plan.monthlyFee
   const discountSaving = fullPriceMonthly - monthlyTotal
-
-  const total = monthlyTotal + installFee + routerFee
 
   return {
     months12: calculateTotalForMonths(plan, 12),
@@ -37,8 +36,8 @@ export function calculateCost(plan: Plan, months: number): CostResult {
 }
 
 function calculateTotalForMonths(plan: Plan, months: number): number {
-  const discountedMonths = getMonthsAtDiscountedRate(plan)
-  const normalMonths = months - discountedMonths
+  const discountedMonths = getMonthsAtDiscountedRate(plan, months)
+  const normalMonths = Math.max(0, months - discountedMonths)
 
   const monthlyTotal =
     discountedMonths * plan.discountedFee + normalMonths * plan.monthlyFee

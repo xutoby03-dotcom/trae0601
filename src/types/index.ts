@@ -4,6 +4,7 @@ export interface Plan {
   monthlyFee: number
   discountedFee: number
   speed: number
+  uploadSpeed: number
   contractMonths: number
   installFee: number
   routerFee: number
@@ -53,6 +54,7 @@ export const EMPTY_PLAN: Omit<Plan, 'id'> = {
   monthlyFee: 0,
   discountedFee: 0,
   speed: 0,
+  uploadSpeed: 0,
   contractMonths: 12,
   installFee: 0,
   routerFee: 0,

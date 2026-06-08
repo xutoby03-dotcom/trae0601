@@ -49,7 +49,7 @@ export function detectPitfalls(plans: Plan[]): Pitfall[] {
       })
     }
 
-    if (plan.speed >= 200 && !plan.freeData) {
+    if (plan.speed >= 200 && !plan.uploadSpeed) {
       pitfalls.push({
         type: 'warning',
         title: '上传速率未标注',
