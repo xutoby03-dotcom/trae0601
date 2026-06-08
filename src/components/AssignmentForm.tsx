@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Check } from 'lucide-react';
 import type { Assignment, Step } from '@/types';
 import { useAssignmentStore } from '@/store/useAssignmentStore';
 
@@ -49,6 +49,14 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
 
   const removeStep = (index: number) => {
     setSteps(steps.filter((_, i) => i !== index).map((s, i) => ({ ...s, order: i })));
+  };
+
+  const toggleStepCompleted = (index: number) => {
+    setSteps(steps.map((s, i) => i === index ? { ...s, completed: !s.completed } : s));
+  };
+
+  const updateStepTitle = (index: number, newTitle: string) => {
+    setSteps(steps.map((s, i) => i === index ? { ...s, title: newTitle } : s));
   };
 
   const loadDefaultSteps = () => {
@@ -222,8 +230,25 @@ export default function AssignmentForm({ assignment, onClose }: AssignmentFormPr
               <div className="space-y-2 mb-2">
                 {steps.map((step, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <span className="text-[11px] text-slate-500 w-4">{i + 1}.</span>
-                    <span className="flex-1 text-xs text-slate-300">{step.title}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleStepCompleted(i)}
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+                        step.completed
+                          ? 'bg-radar-cyan border-radar-cyan'
+                          : 'border-slate-600 hover:border-radar-cyan/50'
+                      }`}
+                    >
+                      {step.completed && <Check className="w-2.5 h-2.5 text-radar-bg" />}
+                    </button>
+                    <input
+                      type="text"
+                      value={step.title}
+                      onChange={(e) => updateStepTitle(i, e.target.value)}
+                      className={`flex-1 px-2 py-1 rounded text-xs bg-transparent border border-transparent focus:border-radar-cyan/50 focus:bg-slate-800/50 transition-colors ${
+                        step.completed ? 'text-slate-500 line-through' : 'text-slate-200'
+                      }`}
+                    />
                     <button
                       type="button"
                       onClick={() => removeStep(i)}
