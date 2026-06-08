@@ -11,9 +11,6 @@ export default function SearchPage() {
   const navigate = useNavigate()
   const pets = usePetStore((s) => s.pets)
   const records = usePetStore((s) => s.records)
-  const getAllHospitals = usePetStore((s) => s.getAllHospitals)
-
-  const hospitals = getAllHospitals()
 
   const [selectedPet, setSelectedPet] = useState(ALL)
   const [selectedHospital, setSelectedHospital] = useState(ALL)
@@ -28,6 +25,18 @@ export default function SearchPage() {
     setSelectedType(ALL)
     setSearchText('')
   }
+
+  const hospitalCounts = useMemo(() => {
+    const map: Record<string, number> = {}
+    records.forEach((r) => {
+      if (r.hospital) {
+        map[r.hospital] = (map[r.hospital] || 0) + 1
+      }
+    })
+    return map
+  }, [records])
+
+  const hospitals = useMemo(() => Object.keys(hospitalCounts), [hospitalCounts])
 
   const filteredRecords = useMemo(() => {
     return records
@@ -168,6 +177,13 @@ export default function SearchPage() {
               >
                 <Hospital className="w-3 h-3" />
                 {h}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  selectedHospital === h
+                    ? 'bg-white/25 text-white'
+                    : 'bg-warm-200 text-warm-500'
+                }`}>
+                  {hospitalCounts[h]}
+                </span>
               </button>
             ))}
           </div>
