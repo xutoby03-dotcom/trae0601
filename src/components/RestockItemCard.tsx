@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
-import { Package, Clock, Check } from 'lucide-react'
+import { Package, Clock, Check, Trash2 } from 'lucide-react'
 import type { RestockItem, Medicine, FamilyMember } from '@/types'
-import { getRestockReasonLabel } from '@/utils/expiry'
+import { getRestockReasonLabel, getExpiryStatus } from '@/utils/expiry'
 import { cn } from '@/lib/utils'
 
 interface RestockItemCardProps {
@@ -19,6 +19,8 @@ export default function RestockItemCard({ item, medicine, members, onResolve, on
     const member = members.find(m => m.tag === tag)
     return member ? { tag, label: `${member.avatar} ${member.name}` } : { tag, label: tag }
   })
+
+  const isExpired = getExpiryStatus(medicine.expiryDate) === 'expired'
 
   return (
     <motion.div
@@ -71,7 +73,18 @@ export default function RestockItemCard({ item, medicine, members, onResolve, on
           )}
         </div>
       </div>
-      {!item.resolved && (
+      {!item.resolved && isExpired && (
+        <div className="flex gap-2 mt-3 ml-13">
+          <button
+            onClick={() => onResolve(item.id)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            已处理
+          </button>
+        </div>
+      )}
+      {!item.resolved && !isExpired && (
         <div className="flex gap-2 mt-3 ml-13">
           <button
             onClick={() => onRestock(item.id, medicine.lowStockThreshold + 5)}
