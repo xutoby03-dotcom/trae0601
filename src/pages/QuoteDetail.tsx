@@ -28,6 +28,7 @@ export default function QuoteDetail() {
 
   const imgRef = useRef<HTMLImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const genSeqRef = useRef(0)
 
   useEffect(() => {
     if (!store.initialized) {
@@ -97,6 +98,13 @@ export default function QuoteDetail() {
 
   const generateShareCard = useCallback(async () => {
     if (!imageUrl || !imgRef.current) return
+
+    const seq = ++genSeqRef.current
+
+    if (sharePreviewUrl) {
+      URL.revokeObjectURL(sharePreviewUrl)
+      setSharePreviewUrl(null)
+    }
 
     const img = imgRef.current
     const canvas = canvasRef.current
@@ -178,19 +186,23 @@ export default function QuoteDetail() {
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, 'image/png')
     )
+
+    if (seq !== genSeqRef.current) return
+
     if (blob) {
-      if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl)
       const url = URL.createObjectURL(blob)
       setSharePreviewUrl(url)
       setShareModalOpen(true)
     }
   }, [imageUrl, completedCrop, brightness, showSubtitle, subtitleText, movie, quote, sharePreviewUrl, shareSize])
 
+  const prevSizeRef = useRef(shareSize)
   useEffect(() => {
-    if (shareModalOpen && !sharePreviewUrl) {
+    if (shareModalOpen && prevSizeRef.current !== shareSize) {
+      prevSizeRef.current = shareSize
       generateShareCard()
     }
-  }, [shareSize, shareModalOpen, sharePreviewUrl, generateShareCard])
+  }, [shareSize, shareModalOpen, generateShareCard])
 
   const handleDownload = useCallback(() => {
     if (!sharePreviewUrl) return
@@ -434,11 +446,7 @@ export default function QuoteDetail() {
 
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => {
-                  if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl)
-                  setSharePreviewUrl(null)
-                  setShareSize('square')
-                }}
+                onClick={() => setShareSize('square')}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-medium transition',
                   shareSize === 'square'
@@ -449,11 +457,7 @@ export default function QuoteDetail() {
                 方图 1:1
               </button>
               <button
-                onClick={() => {
-                  if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl)
-                  setSharePreviewUrl(null)
-                  setShareSize('portrait')
-                }}
+                onClick={() => setShareSize('portrait')}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-medium transition',
                   shareSize === 'portrait'
