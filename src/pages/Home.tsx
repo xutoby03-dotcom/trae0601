@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import PlanForm from '@/components/PlanForm'
 import ComparisonTable from '@/components/ComparisonTable'
 import CostCards from '@/components/CostCards'
@@ -7,6 +7,7 @@ import PitfallAlert from '@/components/PitfallAlert'
 import ExportButton from '@/components/ExportButton'
 import { usePlanStore } from '@/store/planStore'
 import { cn } from '@/lib/utils'
+import { X } from 'lucide-react'
 
 type TabKey = 'input' | 'compare'
 
@@ -17,7 +18,57 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabKey>('input')
+  const [exporting, setExporting] = useState(false)
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const { plans } = usePlanStore()
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message })
+    setTimeout(() => setToast(null), 4000)
+  }, [])
+
+  const handleExport = useCallback(async () => {
+    if (plans.length === 0) return
+
+    if (activeTab !== 'compare') {
+      setActiveTab('compare')
+    }
+
+    setExporting(true)
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        setTimeout(resolve, 600)
+      })
+    })
+
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const element = document.getElementById('compare-content')
+      if (!element) {
+        showToast('error', '未找到对比内容区域，请确保已切换到对比总览页')
+        return
+      }
+
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#f0f4f8',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      })
+
+      const link = document.createElement('a')
+      link.download = `套餐对比_${new Date().toLocaleDateString('zh-CN')}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+
+      showToast('success', '对比图已生成，正在下载')
+    } catch {
+      showToast('error', '导出失败，请重试或截图保存')
+    } finally {
+      setExporting(false)
+    }
+  }, [activeTab, plans.length, showToast])
 
   return (
     <div className="min-h-screen bg-[#f0f4f8]">
@@ -37,7 +88,9 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            {plans.length > 0 && <ExportButton />}
+            {plans.length > 0 && (
+              <ExportButton exporting={exporting} onExport={handleExport} />
+            )}
           </div>
         </div>
       </header>
@@ -107,6 +160,26 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
         所有计算基于你录入的数据，仅供参考 · 请以运营商合同为准
       </footer>
+
+      {toast && (
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl px-5 py-3.5 text-sm font-medium shadow-2xl transition-all',
+            toast.type === 'success'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-red-600 text-white'
+          )}
+        >
+          <span>{toast.type === 'success' ? '✅' : '❌'}</span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 rounded-md p-0.5 transition-colors hover:bg-white/20"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
