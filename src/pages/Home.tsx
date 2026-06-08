@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import PlanForm from '@/components/PlanForm'
 import ComparisonTable from '@/components/ComparisonTable'
 import CostCards from '@/components/CostCards'
@@ -20,11 +20,13 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabKey>('input')
   const [exporting, setExporting] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { plans } = usePlanStore()
 
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast({ type, message })
-    setTimeout(() => setToast(null), 4000)
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
   }, [])
 
   const handleExport = useCallback(async () => {
@@ -173,7 +175,10 @@ export default function Home() {
           <span>{toast.type === 'success' ? '✅' : '❌'}</span>
           <span>{toast.message}</span>
           <button
-            onClick={() => setToast(null)}
+            onClick={() => {
+              if (toastTimer.current) clearTimeout(toastTimer.current)
+              setToast(null)
+            }}
             className="ml-2 rounded-md p-0.5 transition-colors hover:bg-white/20"
           >
             <X size={14} />
