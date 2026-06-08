@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useToolStore } from '@/store/toolStore'
 import { useBorrowStore } from '@/store/borrowStore'
 import { useUserStore } from '@/store/userStore'
 import { CATEGORY_LABELS } from '@/types'
-import { Trophy, Wrench, Users, BarChart3, TrendingUp, Medal } from 'lucide-react'
+import { Trophy, Wrench, Users, BarChart3, TrendingUp, Medal, AlertTriangle, Flame } from 'lucide-react'
 
 export default function Stats() {
   const tools = useToolStore(s => s.tools)
@@ -20,16 +21,26 @@ export default function Stats() {
       .sort((a, b) => b.borrowCount - a.borrowCount)
   }, [tools, borrowRecords])
 
+  const [onlyWithBorrows, setOnlyWithBorrows] = useState(false)
+
   const contributorRanking = useMemo(() => {
-    const countMap: Record<string, number> = {}
+    const toolCountMap: Record<string, number> = {}
     tools.forEach(t => {
-      countMap[t.ownerId] = (countMap[t.ownerId] || 0) + 1
+      toolCountMap[t.ownerId] = (toolCountMap[t.ownerId] || 0) + 1
+    })
+    const borrowCountMap: Record<string, number> = {}
+    borrowRecords.forEach(r => {
+      borrowCountMap[r.ownerId] = (borrowCountMap[r.ownerId] || 0) + 1
     })
     return users
-      .map(u => ({ ...u, toolCount: countMap[u.id] || 0 }))
-      .filter(u => u.toolCount > 0)
-      .sort((a, b) => b.toolCount - a.toolCount)
-  }, [tools, users])
+      .map(u => ({
+        ...u,
+        toolCount: toolCountMap[u.id] || 0,
+        borrowCount: borrowCountMap[u.id] || 0,
+      }))
+      .filter(u => onlyWithBorrows ? u.borrowCount > 0 : u.toolCount > 0)
+      .sort((a, b) => onlyWithBorrows ? b.borrowCount - a.borrowCount : b.toolCount - a.toolCount)
+  }, [tools, users, borrowRecords, onlyWithBorrows])
 
   const categoryStats = useMemo(() => {
     const stats: Record<string, { total: number; available: number; borrowed: number }> = {}
@@ -52,18 +63,25 @@ export default function Stats() {
     const totalBorrows = borrowRecords.length
     const returnedOnTime = borrowRecords.filter(r => r.status === 'returned' && !r.isOverdue).length
     const damaged = borrowRecords.filter(r => r.hasDamage).length
-    const overdue = borrowRecords.filter(r => r.isOverdue).length
+    const overdueMarked = borrowRecords.filter(r => r.isOverdue).length
+    const overdueActive = borrowRecords.filter(
+      r => r.status === 'active' && new Date() > new Date(r.expectedReturnTime)
+    ).length
+    const overdueTotal = overdueMarked + overdueActive
     return {
       totalTools: tools.length,
       totalBorrows,
+      overdueActive,
+      damageCount: damaged,
+      overdueTotal,
       onTimeRate: totalBorrows > 0 ? Math.round((returnedOnTime / totalBorrows) * 100) : 0,
       damageRate: totalBorrows > 0 ? Math.round((damaged / totalBorrows) * 100) : 0,
-      overdueRate: totalBorrows > 0 ? Math.round((overdue / totalBorrows) * 100) : 0,
+      overdueRate: totalBorrows > 0 ? Math.round((overdueTotal / totalBorrows) * 100) : 0,
     }
   }, [tools, borrowRecords])
 
   const maxBorrowCount = Math.max(...toolPopularity.map(t => t.borrowCount), 1)
-  const maxToolCount = Math.max(...contributorRanking.map(u => u.toolCount), 1)
+  const maxToolCount = Math.max(...contributorRanking.map(u => onlyWithBorrows ? u.borrowCount : u.toolCount), 1)
 
   return (
     <div className="min-h-screen pb-8">
@@ -75,10 +93,24 @@ export default function Stats() {
       </div>
 
       <div className="container mx-auto px-4 -mt-4 space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatCard icon={Wrench} label="工具总数" value={overallStats.totalTools} color="grass" />
           <StatCard icon={TrendingUp} label="总借次数" value={overallStats.totalBorrows} color="blue" />
           <StatCard icon={BarChart3} label="准时率" value={`${overallStats.onTimeRate}%`} color="green" />
+          <StatCard
+            icon={AlertTriangle}
+            label="逾期中"
+            value={overallStats.overdueActive}
+            color="red"
+            highlight={overallStats.overdueActive > 0}
+          />
+          <StatCard
+            icon={Flame}
+            label="损坏次数"
+            value={overallStats.damageCount}
+            color="orange"
+            highlight={overallStats.damageCount > 0}
+          />
           <StatCard icon={Users} label="参与者" value={users.length} color="amber" />
         </div>
 
@@ -87,9 +119,13 @@ export default function Stats() {
             <Trophy size={16} className="text-amber-500" />
             最受欢迎工具
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {toolPopularity.slice(0, 5).map((tool, idx) => (
-              <div key={tool.id} className="flex items-center gap-3">
+              <Link
+                key={tool.id}
+                to={`/tool/${tool.id}`}
+                className="flex items-center gap-3 p-2 rounded-xl hover:bg-wood-50 transition-colors group"
+              >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                   idx === 0 ? 'bg-amber-100 text-amber-700' :
                   idx === 1 ? 'bg-gray-100 text-gray-600' :
@@ -100,7 +136,7 @@ export default function Stats() {
                 </div>
                 <img src={tool.photo} alt={tool.name} className="w-10 h-10 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-wood-800 truncate">{tool.name}</div>
+                  <div className="text-sm font-medium text-wood-800 truncate group-hover:text-grass-700 transition-colors">{tool.name}</div>
                   <div className="text-xs text-wood-400">被借 {tool.borrowCount} 次</div>
                 </div>
                 <div className="w-24 bg-wood-100 rounded-full h-2 overflow-hidden">
@@ -109,7 +145,7 @@ export default function Stats() {
                     style={{ width: `${(tool.borrowCount / maxBorrowCount) * 100}%` }}
                   />
                 </div>
-              </div>
+              </Link>
             ))}
             {toolPopularity.every(t => t.borrowCount === 0) && (
               <p className="text-center text-sm text-wood-400 py-4">暂无借用数据</p>
@@ -118,13 +154,25 @@ export default function Stats() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-wood-md border border-wood-100 p-5">
-          <h3 className="font-serif-sc font-semibold text-wood-800 mb-4 flex items-center gap-2">
-            <Medal size={16} className="text-grass-600" />
-            工具贡献排行
-          </h3>
-          <div className="space-y-3">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif-sc font-semibold text-wood-800 flex items-center gap-2">
+              <Medal size={16} className="text-grass-600" />
+              工具贡献排行
+            </h3>
+            <button
+              onClick={() => setOnlyWithBorrows(v => !v)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                onlyWithBorrows
+                  ? 'bg-grass-600 text-white border-grass-600'
+                  : 'bg-wood-50 text-wood-600 border-wood-200 hover:border-grass-400'
+              }`}
+            >
+              {onlyWithBorrows ? '只看有借出记录' : '全部贡献者'}
+            </button>
+          </div>
+          <div className="space-y-2">
             {contributorRanking.map((user, idx) => (
-              <div key={user.id} className="flex items-center gap-3">
+              <div key={user.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-wood-50 transition-colors">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                   idx === 0 ? 'bg-amber-100 text-amber-700' :
                   idx === 1 ? 'bg-gray-100 text-gray-600' :
@@ -136,16 +184,23 @@ export default function Stats() {
                 <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-wood-800">{user.name}</div>
-                  <div className="text-xs text-wood-400">贡献 {user.toolCount} 件工具 · 信用 {user.creditScore}</div>
+                  <div className="text-xs text-wood-400">
+                    {onlyWithBorrows
+                      ? `借出 ${user.borrowCount} 次 · 信用 ${user.creditScore}`
+                      : `贡献 ${user.toolCount} 件工具 · 信用 ${user.creditScore}`}
+                  </div>
                 </div>
                 <div className="w-20 bg-wood-100 rounded-full h-2 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-wood-500 transition-all duration-700"
-                    style={{ width: `${(user.toolCount / maxToolCount) * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-700 ${onlyWithBorrows ? 'bg-blue-500' : 'bg-wood-500'}`}
+                    style={{ width: `${((onlyWithBorrows ? user.borrowCount : user.toolCount) / maxToolCount) * 100}%` }}
                   />
                 </div>
               </div>
             ))}
+            {contributorRanking.length === 0 && (
+              <p className="text-center text-sm text-wood-400 py-4">暂无数据</p>
+            )}
           </div>
         </div>
 
@@ -206,30 +261,36 @@ function StatCard({
   label,
   value,
   color,
+  highlight,
 }: {
   icon: React.ElementType
   label: string
   value: number | string
-  color: 'grass' | 'blue' | 'green' | 'amber'
+  color: 'grass' | 'blue' | 'green' | 'amber' | 'red' | 'orange'
+  highlight?: boolean
 }) {
   const colorMap = {
     grass: 'bg-grass-50 text-grass-600',
     blue: 'bg-blue-50 text-blue-600',
     green: 'bg-emerald-50 text-emerald-600',
     amber: 'bg-amber-50 text-amber-600',
+    red: 'bg-red-50 text-red-600',
+    orange: 'bg-orange-50 text-orange-600',
   }
   const iconBgMap = {
     grass: 'bg-grass-100 text-grass-600',
     blue: 'bg-blue-100 text-blue-600',
     green: 'bg-emerald-100 text-emerald-600',
     amber: 'bg-amber-100 text-amber-600',
+    red: 'bg-red-100 text-red-600',
+    orange: 'bg-orange-100 text-orange-600',
   }
   return (
-    <div className="bg-white rounded-xl shadow-wood border border-wood-100 p-4">
+    <div className={`bg-white rounded-xl shadow-wood border p-4 ${highlight ? 'border-red-200 ring-1 ring-red-100' : 'border-wood-100'}`}>
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${iconBgMap[color]}`}>
         <Icon size={16} />
       </div>
-      <div className="text-lg font-bold text-wood-800">{value}</div>
+      <div className={`text-lg font-bold ${highlight ? 'text-red-600' : 'text-wood-800'}`}>{value}</div>
       <div className="text-xs text-wood-400">{label}</div>
     </div>
   )
