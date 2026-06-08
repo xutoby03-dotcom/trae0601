@@ -5,7 +5,7 @@ import { useGameStore, useHistoryStore } from "@/store";
 import RankingPanel from "@/components/RankingPanel";
 import ActionBar from "@/components/ActionBar";
 import { SCORING_RULES } from "@/types";
-import type { Game } from "@/types";
+import { Lock } from "lucide-react";
 
 export default function ScoreTable() {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +14,6 @@ export default function ScoreTable() {
   const undoStack = useGameStore((s) => s.undoStack);
   const redoStack = useGameStore((s) => s.redoStack);
   const setScore = useGameStore((s) => s.setScore);
-  const setBonus = useGameStore((s) => s.setBonus);
   const lockRound = useGameStore((s) => s.lockRound);
   const unlockRound = useGameStore((s) => s.unlockRound);
   const advanceRound = useGameStore((s) => s.advanceRound);
@@ -44,16 +43,6 @@ export default function ScoreTable() {
       setScore(roundNumber, playerId, score);
     },
     [setScore, getPlayerRanking]
-  );
-
-  const handleSetBonus = useCallback(
-    (roundNumber: number, playerId: string, bonus: number) => {
-      const oldRanking = getPlayerRanking();
-      const oldMap = new Map(oldRanking.map((r) => [r.playerId, r.rank]));
-      setPrevRanking(oldMap);
-      setBonus(roundNumber, playerId, bonus);
-    },
-    [setBonus, getPlayerRanking]
   );
 
   const handleFinish = () => {
@@ -110,6 +99,9 @@ export default function ScoreTable() {
               <h1 className="text-xl font-serif font-bold text-[#D4A537]">{game.name}</h1>
               <p className="text-xs text-[#8a6e4a]">
                 {SCORING_RULES.find((r) => r.value === game.scoringRule)?.label}
+                {game.scoringRule === "bonus_per_round" && game.bonusPointsAmount > 0 && (
+                  <span className="text-[#2ECC71] ml-1">· 每回合领先者+{game.bonusPointsAmount}分</span>
+                )}
                 {game.isFinished && <span className="text-[#2ECC71] ml-2">已结束</span>}
               </p>
             </div>
@@ -156,11 +148,6 @@ export default function ScoreTable() {
                           </div>
                         </th>
                       ))}
-                      {game.scoringRule === "bonus_per_round" && (
-                        <th className="px-3 py-3 text-center text-xs font-serif font-bold text-[#D4A537] border-l border-[#5a3a1e] min-w-[80px]">
-                          奖励分
-                        </th>
-                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -184,7 +171,7 @@ export default function ScoreTable() {
                               <span className={`text-sm font-serif font-bold ${isViewing ? "text-[#D4A537]" : "text-[#8a6e4a]"}`}>
                                 R{round.roundNumber}
                               </span>
-                              {isLocked && <span className="text-[#2ECC71]"><Lock size={10} /></span>}
+                              {isLocked && <Lock size={10} className="text-[#2ECC71]" />}
                             </div>
                           </td>
                           {round.scores.map((entry) => {
@@ -211,54 +198,28 @@ export default function ScoreTable() {
                                     )}
                                   </motion.span>
                                 ) : (
-                                  <input
-                                    type="number"
-                                    value={entry.score || ""}
-                                    onChange={(e) => {
-                                      const val = parseFloat(e.target.value);
-                                      if (!isNaN(val)) handleSetScore(round.roundNumber, entry.playerId, val);
-                                    }}
-                                    onFocus={() => setViewRound(round.roundNumber)}
-                                    className="w-16 text-center bg-[#1a0f07] border border-[#3a2415] rounded px-2 py-1.5 text-sm text-[#e8d5b5] focus:outline-none focus:border-[#D4A537] focus:ring-1 focus:ring-[#D4A537] transition-colors"
-                                    placeholder="0"
-                                  />
+                                  <div className="flex flex-col items-center gap-0.5">
+                                    <input
+                                      type="number"
+                                      value={entry.score || ""}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        if (!isNaN(val)) handleSetScore(round.roundNumber, entry.playerId, val);
+                                      }}
+                                      onFocus={() => setViewRound(round.roundNumber)}
+                                      className="w-16 text-center bg-[#1a0f07] border border-[#3a2415] rounded px-2 py-1.5 text-sm text-[#e8d5b5] focus:outline-none focus:border-[#D4A537] focus:ring-1 focus:ring-[#D4A537] transition-colors"
+                                      placeholder="0"
+                                    />
+                                    {game.scoringRule === "bonus_per_round" && game.bonusPointsAmount > 0 && entry.score > 0 && (
+                                      <span className="text-[8px] text-[#5a3a1e]">
+                                        锁定后领先者+{game.bonusPointsAmount}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
                             );
                           })}
-                          {game.scoringRule === "bonus_per_round" && (
-                            <td className="px-2 py-2 text-center border-l border-[#5a3a1e]">
-                              {!isLocked && !game.isFinished ? (
-                                <div className="flex flex-col gap-1">
-                                  {round.scores.map((entry) => {
-                                    const player = game.players.find((p) => p.id === entry.playerId);
-                                    return (
-                                      <input
-                                        key={entry.playerId}
-                                        type="number"
-                                        value={entry.bonusPoints || ""}
-                                        onChange={(e) => {
-                                          const val = parseFloat(e.target.value);
-                                          if (!isNaN(val)) handleSetBonus(round.roundNumber, entry.playerId, val);
-                                        }}
-                                        className="w-12 text-center bg-[#1a0f07] border border-[#3a2415] rounded px-1 py-0.5 text-xs text-[#2ECC71] focus:outline-none focus:border-[#2ECC71]"
-                                        placeholder="0"
-                                        title={`${player?.name}的奖励分`}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div className="flex flex-col gap-1">
-                                  {round.scores.map((entry) => (
-                                    <span key={entry.playerId} className="text-xs text-[#2ECC71]">
-                                      {entry.bonusPoints > 0 ? `+${entry.bonusPoints}` : "-"}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                          )}
                         </motion.tr>
                       );
                     })}
@@ -289,7 +250,6 @@ export default function ScoreTable() {
                           </td>
                         );
                       })}
-                      {game.scoringRule === "bonus_per_round" && <td className="border-l border-[#5a3a1e]" />}
                     </tr>
                   </tbody>
                 </table>
@@ -362,14 +322,5 @@ export default function ScoreTable() {
         </div>
       )}
     </div>
-  );
-}
-
-function Lock({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
   );
 }
