@@ -131,26 +131,29 @@ export const useGameStore = create<GameState>()(
         const previousBonuses = round.scores.map((s) => ({ playerId: s.playerId, bonusPoints: s.bonusPoints }));
         let calculatedBonuses = previousBonuses;
 
-        let updatedGame = {
-          ...game,
-          rounds: game.rounds.map((r) => (r.roundNumber === roundNumber ? { ...r, isLocked: true } : r)),
-        };
-
         if (game.scoringRule === "bonus_per_round" && game.bonusPointsAmount > 0) {
-          const freshRound = updatedGame.rounds.find((r) => r.roundNumber === roundNumber)!;
-          calculatedBonuses = applyBonusToRound(freshRound, game.bonusPointsAmount);
-          updatedGame = updateRoundScores(updatedGame, roundNumber, (scores) =>
-            scores.map((s) => {
-              const bonus = calculatedBonuses.find((b) => b.playerId === s.playerId);
-              return { ...s, bonusPoints: bonus ? bonus.bonusPoints : 0 };
-            })
-          );
+          calculatedBonuses = applyBonusToRound(round, game.bonusPointsAmount);
         }
 
+        const finalCalculatedBonuses = calculatedBonuses;
         set({
-          undoStack: [...undoStack, { type: "LOCK_ROUND", payload: { roundNumber, previousBonuses, calculatedBonuses } }],
+          undoStack: [...undoStack, { type: "LOCK_ROUND", payload: { roundNumber, previousBonuses, calculatedBonuses: finalCalculatedBonuses } }],
           redoStack: [],
-          game: updatedGame,
+          game: {
+            ...game,
+            rounds: game.rounds.map((r) =>
+              r.roundNumber === roundNumber
+                ? {
+                    ...r,
+                    isLocked: true,
+                    scores: r.scores.map((s) => {
+                      const bonus = finalCalculatedBonuses.find((b) => b.playerId === s.playerId);
+                      return { ...s, bonusPoints: bonus ? bonus.bonusPoints : s.bonusPoints };
+                    }),
+                  }
+                : r
+            ),
+          },
         });
       },
 
@@ -161,22 +164,25 @@ export const useGameStore = create<GameState>()(
         if (!round || !round.isLocked) return;
 
         const previousBonuses = round.scores.map((s) => ({ playerId: s.playerId, bonusPoints: s.bonusPoints }));
-
-        let updatedGame = {
-          ...game,
-          rounds: game.rounds.map((r) => (r.roundNumber === roundNumber ? { ...r, isLocked: false } : r)),
-        };
-
-        if (game.scoringRule === "bonus_per_round") {
-          updatedGame = updateRoundScores(updatedGame, roundNumber, (scores) =>
-            scores.map((s) => ({ ...s, bonusPoints: 0 }))
-          );
-        }
+        const shouldClearBonus = game.scoringRule === "bonus_per_round";
 
         set({
           undoStack: [...undoStack, { type: "UNLOCK_ROUND", payload: { roundNumber, previousBonuses } }],
           redoStack: [],
-          game: updatedGame,
+          game: {
+            ...game,
+            rounds: game.rounds.map((r) =>
+              r.roundNumber === roundNumber
+                ? {
+                    ...r,
+                    isLocked: false,
+                    scores: shouldClearBonus
+                      ? r.scores.map((s) => ({ ...s, bonusPoints: 0 }))
+                      : r.scores,
+                  }
+                : r
+            ),
+          },
         });
       },
 
@@ -239,14 +245,18 @@ export const useGameStore = create<GameState>()(
             undoStack: newUndoStack,
             redoStack: newRedoStack,
             game: {
-              ...updateRoundScores(game, roundNumber, (scores) =>
-                scores.map((s) => {
-                  const prev = previousBonuses.find((b) => b.playerId === s.playerId);
-                  return { ...s, bonusPoints: prev ? prev.bonusPoints : 0 };
-                })
-              ),
+              ...game,
               rounds: game.rounds.map((r) =>
-                r.roundNumber === roundNumber ? { ...r, isLocked: false } : r
+                r.roundNumber === roundNumber
+                  ? {
+                      ...r,
+                      isLocked: false,
+                      scores: r.scores.map((s) => {
+                        const prev = previousBonuses.find((b) => b.playerId === s.playerId);
+                        return { ...s, bonusPoints: prev ? prev.bonusPoints : 0 };
+                      }),
+                    }
+                  : r
               ),
             },
           });
@@ -256,14 +266,18 @@ export const useGameStore = create<GameState>()(
             undoStack: newUndoStack,
             redoStack: newRedoStack,
             game: {
-              ...updateRoundScores(game, roundNumber, (scores) =>
-                scores.map((s) => {
-                  const prev = previousBonuses.find((b) => b.playerId === s.playerId);
-                  return { ...s, bonusPoints: prev ? prev.bonusPoints : 0 };
-                })
-              ),
+              ...game,
               rounds: game.rounds.map((r) =>
-                r.roundNumber === roundNumber ? { ...r, isLocked: true } : r
+                r.roundNumber === roundNumber
+                  ? {
+                      ...r,
+                      isLocked: true,
+                      scores: r.scores.map((s) => {
+                        const prev = previousBonuses.find((b) => b.playerId === s.playerId);
+                        return { ...s, bonusPoints: prev ? prev.bonusPoints : 0 };
+                      }),
+                    }
+                  : r
               ),
             },
           });
@@ -302,14 +316,18 @@ export const useGameStore = create<GameState>()(
             undoStack: newUndoStack,
             redoStack: newRedoStack,
             game: {
-              ...updateRoundScores(game, roundNumber, (scores) =>
-                scores.map((s) => {
-                  const bonus = calculatedBonuses.find((b) => b.playerId === s.playerId);
-                  return { ...s, bonusPoints: bonus ? bonus.bonusPoints : 0 };
-                })
-              ),
+              ...game,
               rounds: game.rounds.map((r) =>
-                r.roundNumber === roundNumber ? { ...r, isLocked: true } : r
+                r.roundNumber === roundNumber
+                  ? {
+                      ...r,
+                      isLocked: true,
+                      scores: r.scores.map((s) => {
+                        const bonus = calculatedBonuses.find((b) => b.playerId === s.playerId);
+                        return { ...s, bonusPoints: bonus ? bonus.bonusPoints : 0 };
+                      }),
+                    }
+                  : r
               ),
             },
           });
@@ -319,11 +337,15 @@ export const useGameStore = create<GameState>()(
             undoStack: newUndoStack,
             redoStack: newRedoStack,
             game: {
-              ...updateRoundScores(game, roundNumber, (scores) =>
-                scores.map((s) => ({ ...s, bonusPoints: 0 }))
-              ),
+              ...game,
               rounds: game.rounds.map((r) =>
-                r.roundNumber === roundNumber ? { ...r, isLocked: false } : r
+                r.roundNumber === roundNumber
+                  ? {
+                      ...r,
+                      isLocked: false,
+                      scores: r.scores.map((s) => ({ ...s, bonusPoints: 0 })),
+                    }
+                  : r
               ),
             },
           });
