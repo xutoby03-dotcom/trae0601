@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useCineQuoteStore } from '@/store'
 import { useImageUrl } from '@/hooks/useImage'
-import { ArrowLeft, Crop as CropIcon, Sun, Subtitles, Share2, Download, RotateCcw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Crop as CropIcon, Sun, Subtitles, Share2, Download, RotateCcw, Trash2, Film } from 'lucide-react'
 import { EMOTION_COLORS } from '@/types'
 import ReactCrop, { type Crop } from 'react-image-crop'
 import 'react-image-crop/dist/ReactCrop.css'
@@ -13,9 +13,6 @@ export default function QuoteDetail() {
   const { quoteId } = useParams<{ quoteId: string }>()
   const navigate = useNavigate()
   const store = useCineQuoteStore()
-  const quote = store.quotes.find((q) => q.id === quoteId)
-  const movie = store.movies.find((m) => m.id === quote?.movieId)
-  const imageUrl = useImageUrl(quote?.imageId ?? null)
 
   const [cropMode, setCropMode] = useState(false)
   const [crop, setCrop] = useState<Crop>()
@@ -31,7 +28,20 @@ export default function QuoteDetail() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    if (quote) {
+    if (!store.initialized) {
+      store.init()
+    }
+  }, [store])
+
+  const quote = store.quotes.find((q) => q.id === quoteId)
+  const movie = store.movies.find((m) => m.id === quote?.movieId)
+  const imageUrl = useImageUrl(quote?.imageId ?? null)
+
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    if (quote && !initializedRef.current) {
+      initializedRef.current = true
       setBrightness(quote.brightness ?? 100)
       setShowSubtitle(quote.showSubtitle ?? false)
       setSubtitleText(quote.subtitleText ?? quote.text)
@@ -90,49 +100,59 @@ export default function QuoteDetail() {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const naturalW = completedCrop
-      ? (completedCrop.width / 100) * img.naturalWidth
-      : img.naturalWidth
-    const naturalH = completedCrop
-      ? (completedCrop.height / 100) * img.naturalHeight
-      : img.naturalHeight
-    const sx = completedCrop
-      ? (completedCrop.x / 100) * img.naturalWidth
-      : 0
-    const sy = completedCrop
-      ? (completedCrop.y / 100) * img.naturalHeight
-      : 0
+    let sx: number, sy: number, sw: number, sh: number
 
-    canvas.width = naturalW
-    canvas.height = naturalH
+    if (completedCrop) {
+      if (completedCrop.unit === 'px') {
+        const scaleX = img.naturalWidth / img.width
+        const scaleY = img.naturalHeight / img.height
+        sx = completedCrop.x * scaleX
+        sy = completedCrop.y * scaleY
+        sw = completedCrop.width * scaleX
+        sh = completedCrop.height * scaleY
+      } else {
+        sx = (completedCrop.x / 100) * img.naturalWidth
+        sy = (completedCrop.y / 100) * img.naturalHeight
+        sw = (completedCrop.width / 100) * img.naturalWidth
+        sh = (completedCrop.height / 100) * img.naturalHeight
+      }
+    } else {
+      sx = 0
+      sy = 0
+      sw = img.naturalWidth
+      sh = img.naturalHeight
+    }
+
+    canvas.width = sw
+    canvas.height = sh
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     ctx.filter = `brightness(${brightness / 100})`
-    ctx.drawImage(img, sx, sy, naturalW, naturalH, 0, 0, naturalW, naturalH)
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh)
     ctx.filter = 'none'
 
     if (showSubtitle && subtitleText) {
-      const barHeight = naturalH * 0.12
+      const barHeight = sh * 0.12
       ctx.fillStyle = 'rgba(0,0,0,0.7)'
-      ctx.fillRect(0, naturalH - barHeight, naturalW, barHeight)
+      ctx.fillRect(0, sh - barHeight, sw, barHeight)
 
       const fontSize = Math.max(16, Math.floor(barHeight * 0.4))
       ctx.font = `${fontSize}px "Noto Serif SC", serif`
       ctx.fillStyle = '#ffffff'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(subtitleText, naturalW / 2, naturalH - barHeight / 2, naturalW - 40)
+      ctx.fillText(subtitleText, sw / 2, sh - barHeight / 2, sw - 40)
     }
 
     if (movie) {
-      const watermarkSize = Math.max(12, Math.floor(naturalH * 0.03))
+      const watermarkSize = Math.max(12, Math.floor(sh * 0.03))
       ctx.font = `${watermarkSize}px "DM Sans", sans-serif`
       ctx.fillStyle = 'rgba(255,255,255,0.5)'
       ctx.textAlign = 'right'
       ctx.textBaseline = 'bottom'
       const label = `${movie.name} (${movie.year}) · ${quote?.character ?? ''}`
-      ctx.fillText(label, naturalW - 20, naturalH - (showSubtitle ? naturalH * 0.12 + 10 : 20))
+      ctx.fillText(label, sw - 20, sh - (showSubtitle ? sh * 0.12 + 10 : 20))
     }
 
     const blob = await new Promise<Blob | null>((resolve) =>
@@ -153,6 +173,14 @@ export default function QuoteDetail() {
     a.download = `quote-${quoteId}.png`
     a.click()
   }, [sharePreviewUrl, quoteId])
+
+  if (!store.initialized) {
+    return (
+      <div className="min-h-screen bg-cinema-900 flex items-center justify-center">
+        <Film className="w-12 h-12 text-amber-primary animate-spin" />
+      </div>
+    )
+  }
 
   if (!quote) {
     return (
