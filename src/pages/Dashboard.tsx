@@ -204,9 +204,9 @@ export default function Dashboard() {
             <button
               onClick={() => {
                 CATEGORIES.forEach((cat) => {
-                  const val = Number(editValues[cat])
-                  if (val > 0) {
-                    updateBudget(cat, val)
+                  const raw = editValues[cat]
+                  if (raw !== undefined && raw !== '') {
+                    updateBudget(cat, Number(raw))
                   }
                 })
                 setShowBudgetEditor(false)
