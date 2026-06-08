@@ -186,6 +186,12 @@ export default function QuoteDetail() {
     }
   }, [imageUrl, completedCrop, brightness, showSubtitle, subtitleText, movie, quote, sharePreviewUrl, shareSize])
 
+  useEffect(() => {
+    if (shareModalOpen && !sharePreviewUrl) {
+      generateShareCard()
+    }
+  }, [shareSize, shareModalOpen, sharePreviewUrl, generateShareCard])
+
   const handleDownload = useCallback(() => {
     if (!sharePreviewUrl) return
     const a = document.createElement('a')
@@ -428,7 +434,11 @@ export default function QuoteDetail() {
 
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => setShareSize('square')}
+                onClick={() => {
+                  if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl)
+                  setSharePreviewUrl(null)
+                  setShareSize('square')
+                }}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-medium transition',
                   shareSize === 'square'
@@ -439,7 +449,11 @@ export default function QuoteDetail() {
                 方图 1:1
               </button>
               <button
-                onClick={() => setShareSize('portrait')}
+                onClick={() => {
+                  if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl)
+                  setSharePreviewUrl(null)
+                  setShareSize('portrait')
+                }}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-medium transition',
                   shareSize === 'portrait'
