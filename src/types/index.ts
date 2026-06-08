@@ -36,6 +36,7 @@ export interface FrequentRoute {
   departure: string
   destination: string
   count: number
+  avgCost: number
   lastUsed: string
 }
 

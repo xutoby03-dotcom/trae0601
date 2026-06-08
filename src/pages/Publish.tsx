@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCarpoolStore } from '@/store/useCarpoolStore'
 import { ArrowLeft, MapPin, Navigation, Clock, Users, DollarSign, Luggage, Phone, Eye } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
@@ -9,14 +9,15 @@ import { formatCurrency, calculateCostPerPerson } from '@/utils/cost'
 
 export default function Publish() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { addCarpool, currentUserId, currentUserName } = useCarpoolStore()
 
   const [form, setForm] = useState({
-    departure: '',
-    destination: '',
+    departure: searchParams.get('departure') || '',
+    destination: searchParams.get('destination') || '',
     departureTime: '',
     totalSeats: 4,
-    totalCost: 100,
+    totalCost: Number(searchParams.get('totalCost')) || 100,
     allowLuggage: true,
     contact: '',
   })

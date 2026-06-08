@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Carpool, CarpoolStatus, Passenger, Message, FrequentRoute } from '@/types'
+import type { Carpool, CarpoolStatus, Message } from '@/types'
 import { MOCK_CARPOOLS } from '@/data/mock'
 import { isDeparted } from '@/utils/time'
 
@@ -17,8 +17,6 @@ interface CarpoolStore {
   getCarpool: (carpoolId: string) => Carpool | undefined
   getActiveCarpools: () => Carpool[]
   getHistoricalCarpools: () => Carpool[]
-  getFrequentRoutes: () => FrequentRoute[]
-  republishRoute: (departure: string, destination: string, cost: number) => string
   initMockData: () => void
 }
 
@@ -106,45 +104,6 @@ export const useCarpoolStore = create<CarpoolStore>()(
 
       getHistoricalCarpools: () => {
         return get().carpools.filter((c) => c.status === 'departed' || c.status === 'cancelled')
-      },
-
-      getFrequentRoutes: () => {
-        const all = get().carpools
-        const routeMap = new Map<string, FrequentRoute>()
-        all.forEach((c) => {
-          const key = `${c.departure}→${c.destination}`
-          const existing = routeMap.get(key)
-          if (existing) {
-            existing.count++
-            if (c.createdAt > existing.lastUsed) existing.lastUsed = c.createdAt
-          } else {
-            routeMap.set(key, {
-              id: generateId(),
-              departure: c.departure,
-              destination: c.destination,
-              count: 1,
-              lastUsed: c.createdAt,
-            })
-          }
-        })
-        return Array.from(routeMap.values())
-          .filter((r) => r.count >= 2)
-          .sort((a, b) => b.count - a.count)
-      },
-
-      republishRoute: (departure, destination, cost) => {
-        const state = get()
-        return state.addCarpool({
-          departure,
-          destination,
-          departureTime: new Date(Date.now() + 3600000).toISOString(),
-          totalSeats: 4,
-          totalCost: cost,
-          allowLuggage: true,
-          contact: '',
-          publisherId: state.currentUserId,
-          publisherName: state.currentUserName,
-        })
       },
 
       initMockData: () => {

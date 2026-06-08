@@ -15,7 +15,6 @@ function generateId() {
 export default function History() {
   const navigate = useNavigate()
   const carpools = useCarpoolStore((s) => s.carpools)
-  const republishRoute = useCarpoolStore((s) => s.republishRoute)
 
   const sortedHistorical = useMemo(() => {
     return carpools
@@ -24,12 +23,14 @@ export default function History() {
   }, [carpools])
 
   const frequentRoutes = useMemo(() => {
-    const routeMap = new Map<string, FrequentRoute>()
-    carpools.forEach((c) => {
+    const departed = carpools.filter((c) => c.status === 'departed')
+    const routeMap = new Map<string, FrequentRoute & { totalCostSum: number }>()
+    departed.forEach((c) => {
       const key = `${c.departure}→${c.destination}`
       const existing = routeMap.get(key)
       if (existing) {
         existing.count++
+        existing.totalCostSum += c.totalCost
         if (c.createdAt > existing.lastUsed) existing.lastUsed = c.createdAt
       } else {
         routeMap.set(key, {
@@ -37,18 +38,21 @@ export default function History() {
           departure: c.departure,
           destination: c.destination,
           count: 1,
+          avgCost: c.totalCost,
+          totalCostSum: c.totalCost,
           lastUsed: c.createdAt,
         })
       }
     })
     return Array.from(routeMap.values())
+      .map(({ totalCostSum, ...rest }) => ({ ...rest, avgCost: Math.round(totalCostSum / rest.count) }))
       .filter((r) => r.count >= 2)
       .sort((a, b) => b.count - a.count)
   }, [carpools])
 
-  const handleRepublish = (departure: string, destination: string) => {
-    const id = republishRoute(departure, destination, 100)
-    navigate(`/carpool/${id}`)
+  const handleRepublish = (departure: string, destination: string, avgCost: number) => {
+    const params = new URLSearchParams({ departure, destination, totalCost: String(avgCost) })
+    navigate(`/publish?${params.toString()}`)
   }
 
   return (
