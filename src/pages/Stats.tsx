@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useFridgeStore } from "@/store/useFridgeStore";
 import { CATEGORY_LABELS, type FoodCategory } from "@/types";
-import { CATEGORY_ICONS } from "@/data/foodIcons";
+import { CATEGORY_ICONS, FOOD_ICONS } from "@/data/foodIcons";
 import { TrendingDown, TrendingUp, AlertCircle, Award } from "lucide-react";
+import { getIconForName } from "@/utils/recipeMatcher";
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as FoodCategory[];
 
@@ -29,6 +30,24 @@ export default function Stats() {
       map[r.category] = (map[r.category] || 0) + r.quantity;
     }
     return map;
+  }, [currentMonthWaste]);
+
+  const wasteItemsByName = useMemo(() => {
+    const map: Record<string, { name: string; category: FoodCategory; quantity: number; unit: string; reason: string }> = {};
+    for (const r of currentMonthWaste) {
+      if (map[r.name]) {
+        map[r.name].quantity += r.quantity;
+      } else {
+        map[r.name] = {
+          name: r.name,
+          category: r.category as FoodCategory,
+          quantity: r.quantity,
+          unit: r.unit,
+          reason: r.reason,
+        };
+      }
+    }
+    return Object.values(map).sort((a, b) => b.quantity - a.quantity);
   }, [currentMonthWaste]);
 
   const totalWasteCount = useMemo(
@@ -77,9 +96,7 @@ export default function Stats() {
 
   const buyLessCategories = useMemo(
     () =>
-      ALL_CATEGORIES.filter(
-        (cat) => (wasteByCategory[cat] || 0) > 0
-      ),
+      ALL_CATEGORIES.filter((cat) => (wasteByCategory[cat] || 0) > 0),
     [wasteByCategory]
   );
 
@@ -103,11 +120,21 @@ export default function Stats() {
     [wasteByCategory]
   );
 
+  const wasteNamesByCategory = useMemo(() => {
+    const map: Partial<Record<FoodCategory, string[]>> = {};
+    for (const item of wasteItemsByName) {
+      if (!map[item.category]) map[item.category] = [];
+      if (!map[item.category]!.includes(item.name)) {
+        map[item.category]!.push(item.name);
+      }
+    }
+    return map;
+  }, [wasteItemsByName]);
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">📊 本月统计</h1>
 
-      {/* Waste Stats */}
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-500" />
@@ -125,33 +152,73 @@ export default function Stats() {
             <p className="text-lg font-semibold text-green-600">本月零浪费！太棒了 🎉</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sortedWasteCategories.map((cat) => {
               const count = wasteByCategory[cat] || 0;
               const widthPercent = (count / maxWasteCount) * 100;
+              const names = wasteNamesByCategory[cat] || [];
               return (
-                <div key={cat} className="flex items-center gap-3">
-                  <div className="flex w-20 shrink-0 items-center gap-1.5">
-                    <span className="text-base">{CATEGORY_ICONS[cat]}</span>
-                    <span className="text-sm text-gray-600">{CATEGORY_LABELS[cat]}</span>
+                <div key={cat}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex w-20 shrink-0 items-center gap-1.5">
+                      <span className="text-base">{CATEGORY_ICONS[cat]}</span>
+                      <span className="text-sm text-gray-600">{CATEGORY_LABELS[cat]}</span>
+                    </div>
+                    <div className="relative h-7 flex-1 overflow-hidden rounded-full bg-red-50">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-red-400 to-red-500 transition-all duration-500"
+                        style={{ width: `${widthPercent}%` }}
+                      />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-sm font-semibold text-red-600">
+                      {count}份
+                    </span>
                   </div>
-                  <div className="relative h-7 flex-1 overflow-hidden rounded-full bg-red-50">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-red-400 to-red-500 transition-all duration-500"
-                      style={{ width: `${widthPercent}%` }}
-                    />
+                  <div className="mt-1.5 ml-20 flex flex-wrap gap-1.5">
+                    {names.map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-600"
+                      >
+                        <span>{getIconForName(name)}</span>
+                        {name}
+                      </span>
+                    ))}
                   </div>
-                  <span className="w-10 shrink-0 text-right text-sm font-semibold text-red-600">
-                    {count}份
-                  </span>
                 </div>
               );
             })}
+
+            <div className="mt-3 border-t border-gray-100 pt-3">
+              <p className="mb-2 text-xs font-medium text-gray-400">浪费明细</p>
+              <div className="space-y-2">
+                {wasteItemsByName.map((w) => (
+                  <div
+                    key={w.name}
+                    className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2"
+                  >
+                    <span className="text-base">{getIconForName(w.name)}</span>
+                    <span className="flex-1 text-sm text-gray-700">{w.name}</span>
+                    <span className="text-xs text-gray-400">
+                      {w.quantity}{w.unit}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        w.reason === "expired"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-orange-100 text-orange-600"
+                      }`}
+                    >
+                      {w.reason === "expired" ? "过期" : "变质"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Buying Suggestions */}
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <TrendingDown className="h-5 w-5 text-orange-500" />
@@ -164,6 +231,7 @@ export default function Stats() {
           <div className="grid grid-cols-2 gap-3">
             {buyLessCategories.map((cat) => {
               const wasteCount = wasteByCategory[cat] || 0;
+              const names = wasteNamesByCategory[cat] || [];
               return (
                 <div
                   key={`less-${cat}`}
@@ -172,13 +240,25 @@ export default function Stats() {
                   <div className="mb-2 flex items-center gap-2">
                     <span className="text-lg">{CATEGORY_ICONS[cat]}</span>
                     <span className="text-sm font-semibold text-red-700">
-                      下次少买{CATEGORY_LABELS[cat]}
+                      少买{CATEGORY_LABELS[cat]}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 mb-1.5">
                     <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                    <span className="text-xs text-red-500">本月浪费了{wasteCount}份</span>
+                    <span className="text-xs text-red-500">浪费了{wasteCount}份</span>
                   </div>
+                  {names.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {names.map((name) => (
+                        <span
+                          key={name}
+                          className="inline-flex items-center gap-0.5 rounded bg-white/60 px-1.5 py-0.5 text-[10px] text-red-500"
+                        >
+                          {getIconForName(name)} {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -192,7 +272,7 @@ export default function Stats() {
                   <div className="mb-2 flex items-center gap-2">
                     <span className="text-lg">{CATEGORY_ICONS[cat]}</span>
                     <span className="text-sm font-semibold text-green-700">
-                      建议常备{CATEGORY_LABELS[cat]}
+                      常备{CATEGORY_LABELS[cat]}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -206,7 +286,6 @@ export default function Stats() {
         )}
       </div>
 
-      {/* Consumption Overview */}
       <div className="rounded-xl bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-gray-800">消费概览</h2>
         <div className="grid grid-cols-3 gap-3">

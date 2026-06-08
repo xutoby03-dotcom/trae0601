@@ -92,9 +92,34 @@ export const useFridgeStore = create<FridgeState>()(
       },
 
       removeFoodItem: (id) => {
-        set((state) => ({
-          foodItems: state.foodItems.filter((f) => f.id !== id),
-        }));
+        set((state) => {
+          const item = state.foodItems.find((f) => f.id === id);
+          if (!item) return state;
+
+          const status = getExpiryStatus(item.purchaseDate, item.shelfLifeDays);
+          const isExpired = status === "expired" || status === "expiring";
+
+          const newWasteRecords = isExpired
+            ? [
+                ...state.wasteRecords,
+                {
+                  id: generateId(),
+                  foodItemId: item.id,
+                  name: item.name,
+                  category: item.category,
+                  quantity: item.quantity,
+                  unit: item.unit,
+                  wasteDate: new Date().toISOString().split("T")[0],
+                  reason: (status === "expired" ? "expired" : "spoiled") as WasteRecord["reason"],
+                },
+              ]
+            : state.wasteRecords;
+
+          return {
+            foodItems: state.foodItems.filter((f) => f.id !== id),
+            wasteRecords: newWasteRecords,
+          };
+        });
       },
 
       updateFoodItem: (id, updates) => {
