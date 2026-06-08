@@ -132,7 +132,7 @@ export const MOCK_CARPOOLS: Carpool[] = [
   {
     id: '7',
     departure: '阳光花园3号门',
-    destination: '浦东国际机场T2',
+    destination: '浦东国际机场T1',
     departureTime: futureDate(-48),
     totalSeats: 4,
     passengers: [
