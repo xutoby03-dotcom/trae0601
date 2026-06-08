@@ -65,7 +65,7 @@ export default function CompleteTaskModal({ task, onClose }: CompleteTaskModalPr
           <div className="mb-4 bg-white/40 rounded-lg p-3">
             <div className="font-handwritten text-xl font-bold text-gray-800 mb-1">{task.name}</div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              {member && (
+              {member ? (
                 <>
                   <span
                     className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
@@ -74,6 +74,11 @@ export default function CompleteTaskModal({ task, onClose }: CompleteTaskModalPr
                     {member.avatar}
                   </span>
                   <span>{member.name}</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-gray-200 border-2 border-gray-400">🤖</span>
+                  <span>待分配</span>
                 </>
               )}
               <span className="text-gray-400">·</span>

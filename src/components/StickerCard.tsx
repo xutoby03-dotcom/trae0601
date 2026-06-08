@@ -96,7 +96,7 @@ export default function StickerCard({ task, member, rotation, onClick, onComplet
           </button>
         </div>
 
-        {member && (
+        {member ? (
           <div className="flex items-center gap-1.5 mb-2">
             <span
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
@@ -105,6 +105,13 @@ export default function StickerCard({ task, member, rotation, onClick, onComplet
               {member.avatar}
             </span>
             <span className="text-xs text-gray-600 font-medium">{member.name}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs bg-gray-200 border-2 border-gray-400">
+              🤖
+            </span>
+            <span className="text-xs text-gray-500 font-medium">待分配</span>
           </div>
         )}
 

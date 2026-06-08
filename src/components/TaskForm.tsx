@@ -29,9 +29,18 @@ export default function TaskForm({ task, onClose }: TaskFormProps) {
   const [estimatedMinutes, setEstimatedMinutes] = useState(task?.estimatedMinutes || 15)
   const [difficulty, setDifficulty] = useState<Task['difficulty']>(task?.difficulty || 2)
   const [rotationType, setRotationType] = useState<Task['rotationType']>(task?.rotationType || 'rotate')
-  const [assignedMemberId, setAssignedMemberId] = useState(task?.assignedMemberId || members[0]?.id || '')
+  const [assignedMemberId, setAssignedMemberId] = useState(task?.assignedMemberId || (task?.rotationType === 'auto-assign' ? '' : members[0]?.id || ''))
   const [rotationOrder, setRotationOrder] = useState<string[]>(task?.rotationOrder || members.map((m) => m.id))
   const [nextDueDate, setNextDueDate] = useState(task?.nextDueDate || new Date().toISOString().split('T')[0])
+
+  const handleRotationTypeChange = (type: Task['rotationType']) => {
+    setRotationType(type)
+    if (type === 'auto-assign') {
+      setAssignedMemberId('')
+    } else if (!assignedMemberId) {
+      setAssignedMemberId(members[0]?.id || '')
+    }
+  }
 
   useEffect(() => {
     if (rotationType === 'rotate' && rotationOrder.length === 0) {
@@ -179,7 +188,7 @@ export default function TaskForm({ task, onClose }: TaskFormProps) {
                 {ROTATION_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setRotationType(opt.value)}
+                    onClick={() => handleRotationTypeChange(opt.value)}
                     className={clsx(
                       'w-full text-left px-3 py-2 rounded-lg transition-all',
                       rotationType === opt.value
@@ -198,6 +207,15 @@ export default function TaskForm({ task, onClose }: TaskFormProps) {
               <label className="font-handwritten text-lg text-gray-700 block mb-1">
                 {rotationType === 'fixed' ? '负责人' : rotationType === 'rotate' ? '轮班顺序（点击调整）' : '参与成员'}
               </label>
+              {rotationType === 'auto-assign' ? (
+                <div className="flex items-center gap-2 bg-white/40 border border-dashed border-amber-400 rounded-lg px-3 py-2.5">
+                  <span className="text-xl">🤖</span>
+                  <div>
+                    <div className="text-sm font-medium text-gray-700">无人认领</div>
+                    <div className="text-xs text-gray-400">保存后自动分配给完成次数最少的人</div>
+                  </div>
+                </div>
+              ) : (
               <div className="flex gap-2 flex-wrap">
                 {members.map((m) => {
                   const isSelected = rotationType === 'rotate'
@@ -232,6 +250,7 @@ export default function TaskForm({ task, onClose }: TaskFormProps) {
                   )
                 })}
               </div>
+              )}
             </div>
           </div>
 

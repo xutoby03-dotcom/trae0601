@@ -209,7 +209,7 @@ const DEFAULT_TASKS: Task[] = [
     estimatedMinutes: 20,
     difficulty: 3,
     rotationType: 'auto-assign',
-    assignedMemberId: 'm1',
+    assignedMemberId: '',
     nextDueDate: getDaysFromNow(3),
     isCompleted: false,
     stickerColor: 'sticker-orange',
@@ -263,8 +263,23 @@ export const useKitchenStore = create<KitchenStore>()(
       },
 
       addTask: (taskData) => {
+        const state = get()
+        let assignedId = taskData.assignedMemberId
+
+        if (taskData.rotationType === 'auto-assign' && !assignedId) {
+          const memberStats = state.completionRecords.reduce<Record<string, number>>((acc, r) => {
+            acc[r.memberId] = (acc[r.memberId] || 0) + 1
+            return acc
+          }, {})
+          const sorted = [...state.members].sort(
+            (a, b) => (memberStats[a.id] || 0) - (memberStats[b.id] || 0)
+          )
+          assignedId = sorted[0]?.id || ''
+        }
+
         const task: Task = {
           ...taskData,
+          assignedMemberId: assignedId,
           id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
           isCompleted: false,
           createdAt: new Date().toISOString(),
@@ -309,7 +324,8 @@ export const useKitchenStore = create<KitchenStore>()(
           updatedTask.nextDueDate = getNextDueDate(task.frequency)
           updatedTask.isCompleted = false
         } else if (task.rotationType === 'auto-assign') {
-          const memberStats = state.completionRecords.reduce<Record<string, number>>((acc, r) => {
+          const newRecords = [...state.completionRecords, completionRecord]
+          const memberStats = newRecords.reduce<Record<string, number>>((acc, r) => {
             acc[r.memberId] = (acc[r.memberId] || 0) + 1
             return acc
           }, {})

@@ -146,13 +146,15 @@ export default function Export() {
                               : 'bg-sticker-yellow/60 text-gray-700'
                           }`}
                         >
-                          {member && (
+                          {member ? (
                             <span
                               className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] flex-shrink-0"
                               style={{ backgroundColor: member.color + '30', border: `1.5px solid ${member.color}` }}
                             >
                               {member.avatar}
                             </span>
+                          ) : (
+                            <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] flex-shrink-0 bg-gray-200 border-1.5 border-gray-400">🤖</span>
                           )}
                           <span className="truncate">{task.name}</span>
                           <span className="text-gray-400 ml-auto flex-shrink-0">{task.estimatedMinutes}m</span>
@@ -192,7 +194,7 @@ export default function Export() {
                     {task.name}
                   </span>
                   <span className="text-gray-400 text-xs">{FREQUENCY_LABEL[task.frequency]}</span>
-                  {member && (
+                  {member ? (
                     <span className="flex items-center gap-1 text-gray-500">
                       <span
                         className="w-4 h-4 rounded-full flex items-center justify-center text-[8px]"
@@ -201,6 +203,11 @@ export default function Export() {
                         {member.avatar}
                       </span>
                       <span className="text-xs">{member.name}</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-gray-400">
+                      <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] bg-gray-200 border border-gray-400">🤖</span>
+                      <span className="text-xs">待分配</span>
                     </span>
                   )}
                 </div>
