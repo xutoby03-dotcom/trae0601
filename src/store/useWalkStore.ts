@@ -52,8 +52,10 @@ function computeStats(routePlaces: Place[], startTime: string): RouteStats {
     const place = routePlaces[i]
 
     if (i > 0) {
+      const walkMinutes = Math.round(place.walkDistance * 15)
+      totalMinutes += walkMinutes
       totalDistance += place.walkDistance
-      currentTime += 12
+      currentTime += walkMinutes
     }
 
     totalMinutes += place.stayMinutes
@@ -76,8 +78,7 @@ function computeStats(routePlaces: Place[], startTime: string): RouteStats {
     }
 
     if (departureTime > effectiveClose) {
-      const closeDisplay = place.closeTime
-      warnings.push(`${place.name} 会在 ${closeDisplay} 关门，可能赶不上`)
+      warnings.push(`${place.name} 会在 ${place.closeTime} 关门，可能赶不上`)
     }
   }
 
