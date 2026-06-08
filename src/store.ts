@@ -315,21 +315,27 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
             severity: 'warning',
           })
         }
-        for (const preferredId of g.preferSitWith) {
-          const preferred = guestMap.get(preferredId)
-          if (preferred && preferred.tableId !== null && preferred.tableId !== g.tableId) {
-            const key = [g.id, preferredId].sort().join('-')
-            if (!conflicts.some((c) => c.type === 'prefer_not_together' && [c.guestIds[0], c.guestIds[1]].sort().join('-') === key)) {
-              conflicts.push({
-                type: 'prefer_not_together',
-                guestIds: [g.id, preferredId],
-                tableId: g.tableId!,
-                message: `${g.name}希望和${preferred.name}同桌，但未安排在一起`,
-                severity: 'warning',
-              })
-            }
-          }
-        }
+      }
+    }
+
+    const preferSeen = new Set<string>()
+    for (const g of guests) {
+      if (!g.tableId) continue
+      for (const preferredId of g.preferSitWith) {
+        const preferred = guestMap.get(preferredId)
+        if (!preferred) continue
+        if (preferred.tableId === g.tableId) continue
+        const key = [g.id, preferredId].sort().join('-')
+        if (preferSeen.has(key)) continue
+        preferSeen.add(key)
+        const reason = preferred.tableId === null ? '尚未安排座位' : `被安排在别桌`
+        conflicts.push({
+          type: 'prefer_not_together',
+          guestIds: [g.id, preferredId],
+          tableId: g.tableId,
+          message: `${g.name}希望和${preferred.name}同桌，但${preferred.name}${reason}`,
+          severity: 'warning',
+        })
       }
     }
 
