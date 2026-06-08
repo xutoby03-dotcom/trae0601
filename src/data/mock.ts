@@ -1,0 +1,132 @@
+import type { Carpool } from '@/types'
+
+function futureDate(hoursFromNow: number): string {
+  const d = new Date()
+  d.setHours(d.getHours() + hoursFromNow)
+  return d.toISOString()
+}
+
+export const MOCK_CARPOOLS: Carpool[] = [
+  {
+    id: '1',
+    departure: '阳光花园3号门',
+    destination: '浦东国际机场T2',
+    departureTime: futureDate(2),
+    totalSeats: 4,
+    passengers: [
+      { id: 'u1', name: '张明', joinedAt: futureDate(-5) },
+      { id: 'u2', name: '李华', joinedAt: futureDate(-3) },
+    ],
+    totalCost: 160,
+    allowLuggage: true,
+    contact: '微信: zhangming123',
+    status: 'recruiting',
+    messages: [
+      { id: 'm1', authorId: 'u1', authorName: '张明', content: '我有两个大行李箱，后备箱放得下吗？', createdAt: futureDate(-4) },
+      { id: 'm2', authorId: 'u0', authorName: '王芳', content: '没问题，我的车后备箱空间很大', createdAt: futureDate(-3.5) },
+    ],
+    createdAt: futureDate(-6),
+    publisherId: 'u0',
+    publisherName: '王芳',
+  },
+  {
+    id: '2',
+    departure: '阳光花园3号门',
+    destination: '复旦大学',
+    departureTime: futureDate(5),
+    totalSeats: 3,
+    passengers: [
+      { id: 'u3', name: '赵静', joinedAt: futureDate(-2) },
+    ],
+    totalCost: 45,
+    allowLuggage: false,
+    contact: '电话: 138****5678',
+    status: 'recruiting',
+    messages: [],
+    createdAt: futureDate(-3),
+    publisherId: 'u3',
+    publisherName: '赵静',
+  },
+  {
+    id: '3',
+    departure: '阳光花园东门',
+    destination: '万达广场',
+    departureTime: futureDate(26),
+    totalSeats: 5,
+    passengers: [
+      { id: 'u4', name: '刘洋', joinedAt: futureDate(-8) },
+      { id: 'u5', name: '陈雪', joinedAt: futureDate(-7) },
+      { id: 'u6', name: '周磊', joinedAt: futureDate(-6) },
+      { id: 'u7', name: '吴婷', joinedAt: futureDate(-5) },
+    ],
+    totalCost: 80,
+    allowLuggage: true,
+    contact: '微信: liuyang_car',
+    status: 'full',
+    messages: [
+      { id: 'm3', authorId: 'u4', authorName: '刘洋', content: '明天下午3点在东门集合', createdAt: futureDate(-7) },
+      { id: 'm4', authorId: 'u5', authorName: '陈雪', content: '好的，我准时到', createdAt: futureDate(-6.5) },
+    ],
+    createdAt: futureDate(-10),
+    publisherId: 'u4',
+    publisherName: '刘洋',
+  },
+  {
+    id: '4',
+    departure: '阳光花园3号门',
+    destination: '虹桥火车站',
+    departureTime: futureDate(50),
+    totalSeats: 4,
+    passengers: [
+      { id: 'u8', name: '孙伟', joinedAt: futureDate(-12) },
+    ],
+    totalCost: 120,
+    allowLuggage: true,
+    contact: '微信: sunwei2024',
+    status: 'recruiting',
+    messages: [
+      { id: 'm5', authorId: 'u8', authorName: '孙伟', content: '周三早上出发，时间可以微调', createdAt: futureDate(-11) },
+    ],
+    createdAt: futureDate(-15),
+    publisherId: 'u8',
+    publisherName: '孙伟',
+  },
+  {
+    id: '5',
+    departure: '阳光花园3号门',
+    destination: '浦东国际机场T1',
+    departureTime: futureDate(-24),
+    totalSeats: 4,
+    passengers: [
+      { id: 'u9', name: '黄丽', joinedAt: futureDate(-30) },
+      { id: 'u10', name: '郑刚', joinedAt: futureDate(-28) },
+      { id: 'u11', name: '林小红', joinedAt: futureDate(-27) },
+    ],
+    totalCost: 150,
+    allowLuggage: true,
+    contact: '微信: huangli_ok',
+    status: 'departed',
+    messages: [
+      { id: 'm6', authorId: 'u9', authorName: '黄丽', content: '已经安全到达机场，感谢拼车！', createdAt: futureDate(-23) },
+    ],
+    createdAt: futureDate(-32),
+    publisherId: 'u9',
+    publisherName: '黄丽',
+  },
+  {
+    id: '6',
+    departure: '阳光花园东门',
+    destination: '世纪公园',
+    departureTime: futureDate(8),
+    totalSeats: 4,
+    passengers: [],
+    totalCost: 60,
+    allowLuggage: false,
+    contact: '微信: weekend_fun',
+    status: 'cancelled',
+    messages: [],
+    createdAt: futureDate(-4),
+    publisherId: 'u12',
+    publisherName: '周末活动群',
+  },
+]
