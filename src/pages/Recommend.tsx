@@ -7,6 +7,7 @@ import FavoriteRescueCard from '@/components/FavoriteRescueCard'
 import { useIngredientStore } from '@/store/useIngredientStore'
 import { useFavoriteStore } from '@/store/useFavoriteStore'
 import { matchRecipes, matchFavoriteRescues } from '@/utils/recommend'
+import { recipes } from '@/data/recipes'
 import type { Preference } from '@/types'
 
 export default function Recommend() {
@@ -18,6 +19,7 @@ export default function Recommend() {
   const activeIngredients = ingredients.filter((i) => !i.excluded)
   const matches = matchRecipes(activeIngredients, preference || undefined, favorites)
   const rescues = matchFavoriteRescues(ingredients, favorites)
+    .filter((r) => recipes.some((rp) => rp.id === r.recipeId))
 
   if (activeIngredients.length === 0) {
     return (
