@@ -25,6 +25,7 @@ export default function AddCollection() {
   const [currentValue, setCurrentValue] = useState(existingCollection?.currentValue?.toString() || '')
   const [newSeriesName, setNewSeriesName] = useState('')
   const [newSeriesTotalItems, setNewSeriesTotalItems] = useState('')
+  const [newSeriesItemNames, setNewSeriesItemNames] = useState('')
   const [showNewSeries, setShowNewSeries] = useState(false)
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,15 +40,21 @@ export default function AddCollection() {
 
   const handleCreateSeries = () => {
     if (!newSeriesName.trim()) return
+    const parsedItems = newSeriesItemNames
+      .split(/[,，\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
     const newId = addSeries({
       name: newSeriesName.trim(),
       description: '',
-      totalItems: parseInt(newSeriesTotalItems) || 1,
+      totalItems: parseInt(newSeriesTotalItems) || parsedItems.length || 1,
+      itemNames: parsedItems,
       coverImage: '',
     })
     setSeriesId(newId)
     setNewSeriesName('')
     setNewSeriesTotalItems('')
+    setNewSeriesItemNames('')
     setShowNewSeries(false)
   }
 
@@ -113,10 +120,20 @@ export default function AddCollection() {
                     type="number"
                     value={newSeriesTotalItems}
                     onChange={(e) => setNewSeriesTotalItems(e.target.value)}
-                    placeholder="总款式数"
+                    placeholder="总款式数（选填，留空自动根据款名计算）"
                     min="1"
                     className="input-field w-full"
                   />
+                  <div>
+                    <label className="block text-sm font-semibold text-amber-primary/70 mb-1.5">款名清单</label>
+                    <textarea
+                      value={newSeriesItemNames}
+                      onChange={(e) => setNewSeriesItemNames(e.target.value)}
+                      placeholder="输入角色名，用逗号或换行分隔&#10;如：小熊, 小兔, 小猫"
+                      rows={3}
+                      className="input-field w-full resize-none"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleCreateSeries} className="btn-primary text-sm py-2 px-4">
                       创建

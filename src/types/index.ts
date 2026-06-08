@@ -22,6 +22,7 @@ export interface Series {
   name: string
   description: string
   totalItems: number
+  itemNames: string[]
   coverImage: string
   createdAt: string
 }

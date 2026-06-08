@@ -247,13 +247,15 @@ export function useSeriesProgress() {
     const seriesCollections = collections.filter((c) => c.seriesId === s.id)
     const uniqueCharacters = new Set(seriesCollections.map((c) => c.characterName))
     const collectedCount = uniqueCharacters.size
-    const totalItems = s.totalItems || 1
+    const totalItems = s.totalItems || s.itemNames?.length || 1
     const progress = (collectedCount / totalItems) * 100
 
     const rarityBreakdown: Record<Rarity, number> = { common: 0, rare: 0, hidden: 0 }
     seriesCollections.forEach((c) => {
       rarityBreakdown[c.rarity]++
     })
+
+    const missingNames = (s.itemNames || []).filter((name) => !uniqueCharacters.has(name))
 
     return {
       ...s,
@@ -264,6 +266,7 @@ export function useSeriesProgress() {
       isComplete: collectedCount >= totalItems,
       rarityBreakdown,
       missingCount: totalItems - collectedCount,
+      missingNames,
     }
   })
 }

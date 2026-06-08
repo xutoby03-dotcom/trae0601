@@ -8,16 +8,16 @@ import { Star, Copy, ArrowRightLeft, Filter, Package, ChevronDown, ChevronUp } f
 function CollectionCard({ collection, duplicateCount }: { collection: Collection; duplicateCount: number }) {
   const navigate = useNavigate()
   const rarityConfig = RARITY_CONFIG[collection.rarity]
-  const isDuplicate = duplicateCount > 1
+  const showDuplicateBadge = collection.isDuplicate || duplicateCount > 1
 
   return (
     <div
       onClick={() => navigate(`/detail/${collection.id}`)}
       className="card-collectible rounded-2xl overflow-hidden cursor-pointer relative group"
     >
-      {isDuplicate && (
+      {showDuplicateBadge && (
         <div className="absolute top-2 right-2 z-10 badge-duplicate text-xs font-bold px-2 py-0.5 rounded-full">
-          ×{duplicateCount}
+          {duplicateCount > 1 ? `×${duplicateCount}` : '重复款'}
         </div>
       )}
       {collection.willingToExchange && (

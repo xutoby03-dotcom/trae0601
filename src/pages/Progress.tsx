@@ -1,7 +1,66 @@
-import React from 'react'
-import { useSeriesProgress } from '@/store/useCollectionStore'
+import React, { useState } from 'react'
+import { useSeriesProgress, useCollectionStore } from '@/store/useCollectionStore'
 import { RARITY_CONFIG } from '@/types'
-import { CheckCircle, Circle, Trophy, Package, Star } from 'lucide-react'
+import { CheckCircle, Circle, Trophy, Package, Star, Edit3, X, Plus, Check } from 'lucide-react'
+
+function SeriesItemNamesEditor({ seriesId, currentNames }: { seriesId: string; currentNames: string[] }) {
+  const updateSeries = useCollectionStore((s) => s.updateSeries)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(currentNames.join('，'))
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => {
+          setDraft(currentNames.join('，'))
+          setEditing(true)
+        }}
+        className="text-xs text-amber-primary/50 hover:text-amber-primary flex items-center gap-1 transition-colors"
+      >
+        <Edit3 size={12} />
+        {currentNames.length > 0 ? '编辑款名清单' : '添加款名清单'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="输入角色名，用逗号或换行分隔&#10;如：小熊, 小兔, 小猫"
+        rows={3}
+        className="input-field w-full resize-none text-sm"
+        autoFocus
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            const parsed = draft
+              .split(/[,，\n]/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+            updateSeries(seriesId, {
+              itemNames: parsed,
+              totalItems: parsed.length || 1,
+            })
+            setEditing(false)
+          }}
+          className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1"
+        >
+          <Check size={12} />
+          保存
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="btn-secondary text-xs py-1.5 px-3"
+        >
+          取消
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function Progress() {
   const seriesProgress = useSeriesProgress()
@@ -93,17 +152,43 @@ export default function Progress() {
           </div>
 
           {series.collections.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {series.collections.map((c) => (
-                <span
-                  key={c.id}
-                  className={`text-xs px-2 py-0.5 rounded-md font-semibold badge-rarity-${c.rarity}`}
-                >
-                  {c.characterName}
-                </span>
-              ))}
+            <div className="mb-4">
+              <p className="text-xs font-bold text-amber-primary/60 mb-2">已收集</p>
+              <div className="flex flex-wrap gap-1.5">
+                {series.collections.map((c) => (
+                  <span
+                    key={c.id}
+                    className={`text-xs px-2 py-0.5 rounded-md font-semibold badge-rarity-${c.rarity}`}
+                  >
+                    {c.characterName}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
+
+          {series.missingNames.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-bold text-coral/70 mb-2 flex items-center gap-1">
+                <X size={12} />
+                还没收到
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {series.missingNames.map((name) => (
+                  <span
+                    key={name}
+                    className="text-xs px-2 py-0.5 rounded-md font-semibold bg-white/5 text-amber-light/30 border border-white/10"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-amber-primary/10">
+            <SeriesItemNamesEditor seriesId={series.id} currentNames={series.itemNames || []} />
+          </div>
         </div>
       ))}
     </div>
