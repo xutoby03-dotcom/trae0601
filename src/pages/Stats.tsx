@@ -16,10 +16,17 @@ export default function Stats() {
   const { plants, observations, harvests } = useGardenStore()
 
   const varietyStats = useMemo(() => {
-    const map = new Map<string, { count: number; harvests: number; totalWeight: number; issues: number; emoji: string }>()
+    const map = new Map<string, {
+      count: number
+      harvests: number
+      totalWeight: number
+      issueCount: number
+      plantsWithIssues: number
+      emoji: string
+    }>()
 
     plants.forEach((p) => {
-      const existing = map.get(p.variety) || { count: 0, harvests: 0, totalWeight: 0, issues: 0, emoji: '🌱' }
+      const existing = map.get(p.variety) || { count: 0, harvests: 0, totalWeight: 0, issueCount: 0, plantsWithIssues: 0, emoji: '🌱' }
       existing.count++
       const preset = VARIETY_PRESETS.find((v) => v.name === p.variety)
       if (preset) existing.emoji = preset.emoji
@@ -29,7 +36,9 @@ export default function Stats() {
       existing.totalWeight += plantHarvests.reduce((s, h) => s + h.weightGrams, 0)
 
       const plantObs = observations.filter((o) => o.plantId === p.id)
-      existing.issues += plantObs.filter((o) => ['pest', 'yellowing'].includes(o.type)).length
+      const issues = plantObs.filter((o) => ['pest', 'yellowing'].includes(o.type))
+      existing.issueCount += issues.length
+      if (issues.length > 0) existing.plantsWithIssues++
 
       map.set(p.variety, existing)
     })
@@ -37,7 +46,9 @@ export default function Stats() {
     return Array.from(map.entries()).map(([variety, stats]) => ({
       variety,
       ...stats,
-      survivalRate: stats.count > 0 ? Math.round(((stats.count - stats.issues / Math.max(1, stats.count)) / stats.count) * 100) : 0,
+      healthyRate: stats.count > 0
+        ? Math.round(((stats.count - stats.plantsWithIssues) / stats.count) * 100)
+        : 100,
       avgHarvest: stats.count > 0 ? Math.round(stats.totalWeight / stats.count) : 0,
     }))
   }, [plants, observations, harvests])
@@ -155,15 +166,17 @@ export default function Stats() {
                         <div className="flex-1">
                           <div className="h-2 rounded-full bg-earth-200 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-leaf-400 transition-all duration-500"
-                              style={{ width: `${Math.max(vs.survivalRate, 5)}%` }}
+                              className={`h-full rounded-full transition-all duration-500 ${vs.healthyRate >= 80 ? 'bg-leaf-400' : vs.healthyRate >= 50 ? 'bg-earth-400' : 'bg-tomato-400'}`}
+                              style={{ width: `${Math.max(vs.healthyRate, 5)}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-serif text-earth-500">存活率 {vs.survivalRate}%</span>
+                          <span className="text-[10px] font-serif text-earth-500">
+                            好养率 {vs.healthyRate}% · {vs.count - vs.plantsWithIssues}/{vs.count}盆无异常
+                          </span>
                         </div>
-                        {vs.issues > 0 && (
+                        {vs.issueCount > 0 && (
                           <span className="tag bg-tomato-50 text-tomato-600 border border-tomato-200">
-                            ⚠️ {vs.issues}次异常
+                            ⚠️ {vs.issueCount}次异常
                           </span>
                         )}
                       </div>
