@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { loadCareTasks, completeTask, loadPlants } from '../utils/storage'
 import { CareTask } from '../types'
-import { format, startOfWeek, endOfWeek, addDays, isSameDay, parseISO, isAfter, isWithinInterval } from 'date-fns'
+import { format, startOfDay, startOfWeek, endOfWeek, addDays, isSameDay, parseISO, isAfter, isWithinInterval } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 
 type CareType = 'water' | 'fertilize' | 'repot'
@@ -80,25 +80,26 @@ export default function CalendarView() {
     })
   }, [tasks, filterPlant, filterType])
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
-  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
+  const todayStart = startOfDay(new Date())
+  const naturalWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const naturalWeekEnd = endOfWeek(new Date(), { weekStartsOn: 1 })
 
   const weekDays = (() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+    return Array.from({ length: 7 }, (_, i) => addDays(todayStart, i))
   })()
 
   const pendingTasks = useMemo(() => {
     return filtered
-      .filter(t => !t.completed && !isAfter(parseISO(t.scheduledDate), addDays(weekStart, 7)))
+      .filter(t => !t.completed && !isAfter(parseISO(t.scheduledDate), addDays(todayStart, 7)))
       .sort((a, b) => parseISO(a.scheduledDate).getTime() - parseISO(b.scheduledDate).getTime())
-  }, [filtered, weekStart])
+  }, [filtered, todayStart])
 
   const completedTasks = useMemo(() => {
     let list = filtered.filter(t => t.completed)
     if (onlyThisWeek) {
       list = list.filter(t => {
         if (!t.completedDate) return false
-        return isWithinInterval(parseISO(t.completedDate), { start: weekStart, end: weekEnd })
+        return isWithinInterval(parseISO(t.completedDate), { start: naturalWeekStart, end: naturalWeekEnd })
       })
     }
     return list
@@ -108,7 +109,7 @@ export default function CalendarView() {
         return db - da
       })
       .slice(0, 20)
-  }, [filtered, onlyThisWeek, weekStart, weekEnd])
+  }, [filtered, onlyThisWeek, naturalWeekStart, naturalWeekEnd])
 
   const activeFilterCount = (filterPlant ? 1 : 0) + (filterType ? 1 : 0)
 
