@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
-import { DISEASE_TYPE_LABELS, TASK_TYPE_LABELS } from '@/types'
-import type { DiseaseType } from '@/types'
+import { DISEASE_TYPE_LABELS, TASK_TYPE_LABELS, TASK_STATUS_LABELS } from '@/types'
+import type { DiseaseType, TaskStatus } from '@/types'
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   addMonths, subMonths, isSameDay, isToday, parseISO, isBefore,
@@ -9,7 +10,7 @@ import {
 } from 'date-fns'
 import {
   ChevronLeft, ChevronRight, AlertTriangle, Stethoscope,
-  TestTube2, Pill, Syringe, Activity,
+  TestTube2, Pill, Syringe, Activity, Users,
 } from 'lucide-react'
 
 const DOT_COLORS = { followUp: '#E8725A', check: '#D69E2E', task: '#718096' }
@@ -21,12 +22,20 @@ const HEALTH_REMINDERS: Record<DiseaseType, { label: string; Icon: typeof Activi
   other: { label: '健康检查', Icon: Activity },
 }
 
+const TASK_STATUS_STYLES: Record<TaskStatus, { bg: string; text: string; label: string }> = {
+  pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: TASK_STATUS_LABELS.pending },
+  inProgress: { bg: 'bg-sky-100', text: 'text-sky-700', label: TASK_STATUS_LABELS.inProgress },
+  completed: { bg: 'bg-green-100', text: 'text-green-700', label: TASK_STATUS_LABELS.completed },
+}
+
 interface TaskItem {
   type: 'followUp' | 'check' | 'task' | 'health'
   label: string
   sub: string
   color: string
   Icon: typeof Activity
+  taskStatus?: TaskStatus
+  linkTo?: string
 }
 
 function WarningBanner({ warnings }: { warnings: { elderName: string; name: string; dates: string[] }[] }) {
@@ -138,6 +147,8 @@ function CalendarGrid({
 }
 
 function TaskList({ tasks, date }: { tasks: TaskItem[]; date: Date }) {
+  const navigate = useNavigate()
+
   return (
     <div className="bg-[#FDF6EC] rounded-2xl p-5 shadow-sm border border-stone-100">
       <h2 className="text-lg font-semibold text-[#2D3748] mb-4">
@@ -147,19 +158,34 @@ function TaskList({ tasks, date }: { tasks: TaskItem[]; date: Date }) {
         <p className="text-sm text-stone-400 text-center py-6">暂无任务</p>
       ) : (
         <div className="space-y-3">
-          {tasks.map((t, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 border-l-[3px]"
-              style={{ borderLeftColor: t.color }}
-            >
-              <t.Icon className="w-4 h-4 shrink-0" style={{ color: t.color }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#2D3748] truncate">{t.label}</p>
-                <p className="text-xs text-stone-500 truncate">{t.sub}</p>
+          {tasks.map((t, i) => {
+            const statusStyle = t.taskStatus ? TASK_STATUS_STYLES[t.taskStatus] : null
+            const clickable = !!t.linkTo
+            return (
+              <div
+                key={i}
+                onClick={() => clickable && navigate(t.linkTo!)}
+                className={`flex items-center gap-3 bg-white rounded-xl px-4 py-3 border-l-[3px] ${
+                  clickable ? 'cursor-pointer hover:shadow-md active:scale-[0.99] transition-all' : ''
+                }`}
+                style={{ borderLeftColor: t.color }}
+              >
+                <t.Icon className="w-4 h-4 shrink-0" style={{ color: t.color }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#2D3748] truncate">{t.label}</p>
+                  <p className="text-xs text-stone-500 truncate">{t.sub}</p>
+                </div>
+                {statusStyle && (
+                  <span className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusStyle.bg} ${statusStyle.text}`}>
+                    {statusStyle.label}
+                  </span>
+                )}
+                {clickable && (
+                  <ChevronRight className="w-3.5 h-3.5 shrink-0 text-stone-300" />
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -167,15 +193,46 @@ function TaskList({ tasks, date }: { tasks: TaskItem[]; date: Date }) {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
   const { elders, chronicDiseases, checkItems, followUpRecords, healthIndicators, familyTasks } =
     useStore()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [filterElderId, setFilterElderId] = useState<string>('')
+
+  const filteredDiseaseIds = useMemo(() => {
+    if (!filterElderId) return null
+    return new Set(chronicDiseases.filter((d) => d.elderId === filterElderId).map((d) => d.id))
+  }, [filterElderId, chronicDiseases])
+
+  const filteredFollowUps = useMemo(() => {
+    if (!filteredDiseaseIds) return followUpRecords
+    return followUpRecords.filter((r) => filteredDiseaseIds.has(r.diseaseId))
+  }, [followUpRecords, filteredDiseaseIds])
+
+  const filteredFamilyTasks = useMemo(() => {
+    if (!filterElderId) return familyTasks
+    return familyTasks.filter((t) => t.elderId === filterElderId)
+  }, [familyTasks, filterElderId])
+
+  const filteredCheckItems = useMemo(() => {
+    if (!filteredDiseaseIds) return checkItems
+    return checkItems.filter((c) => filteredDiseaseIds.has(c.diseaseId))
+  }, [checkItems, filteredDiseaseIds])
+
+  const filteredDiseases = useMemo(() => {
+    if (!filterElderId) return chronicDiseases
+    return chronicDiseases.filter((d) => d.elderId === filterElderId)
+  }, [chronicDiseases, filterElderId])
 
   const warnings = useMemo(() => {
     const result: { elderName: string; name: string; dates: string[] }[] = []
-    const groups: Record<string, typeof healthIndicators> = {}
-    for (const ind of healthIndicators.filter((h) => h.isAbnormal)) {
+    let indicators = healthIndicators.filter((h) => h.isAbnormal)
+    if (filteredDiseaseIds) {
+      indicators = indicators.filter((h) => filteredDiseaseIds.has(h.diseaseId))
+    }
+    const groups: Record<string, typeof indicators> = {}
+    for (const ind of indicators) {
       const key = `${ind.diseaseId}-${ind.name}`
       ;(groups[key] ??= []).push(ind)
     }
@@ -203,24 +260,24 @@ export default function Home() {
       }
     }
     return result
-  }, [healthIndicators, chronicDiseases, elders])
+  }, [healthIndicators, chronicDiseases, elders, filteredDiseaseIds])
 
   const dayEvents = useMemo(() => {
     const map = new Map<string, { followUp: boolean; check: boolean; task: boolean }>()
-    for (const r of followUpRecords) {
+    for (const r of filteredFollowUps) {
       if (!r.nextDate) continue
       const e = map.get(r.nextDate) ?? { followUp: false, check: false, task: false }
       e.followUp = true
       map.set(r.nextDate, e)
     }
-    for (const t of familyTasks) {
+    for (const t of filteredFamilyTasks) {
       const e = map.get(t.dueDate) ?? { followUp: false, check: false, task: false }
       e.task = true
       map.set(t.dueDate, e)
     }
-    for (const item of checkItems) {
+    for (const item of filteredCheckItems) {
       const cycleDays = parseInt(item.cycle) || 30
-      const records = followUpRecords.filter((r) => r.diseaseId === item.diseaseId)
+      const records = filteredFollowUps.filter((r) => r.diseaseId === item.diseaseId)
       if (records.length === 0) continue
       const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0]
       const baseDate = latest.nextDate ? parseISO(latest.nextDate) : parseISO(latest.date)
@@ -231,13 +288,13 @@ export default function Home() {
       map.set(key, e)
     }
     return map
-  }, [followUpRecords, familyTasks, checkItems])
+  }, [filteredFollowUps, filteredFamilyTasks, filteredCheckItems])
 
   const selectedTasks = useMemo(() => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
     const tasks: TaskItem[] = []
 
-    for (const r of followUpRecords.filter((r) => r.nextDate === dateStr)) {
+    for (const r of filteredFollowUps.filter((r) => r.nextDate === dateStr)) {
       const disease = chronicDiseases.find((d) => d.id === r.diseaseId)
       const elder = elders.find((e) => e.id === disease?.elderId)
       tasks.push({
@@ -246,12 +303,13 @@ export default function Home() {
         sub: `${elder?.name ?? ''} - ${disease ? DISEASE_TYPE_LABELS[disease.type] : ''}复诊`,
         color: '#E8725A',
         Icon: Stethoscope,
+        linkTo: elder ? `/followup/${elder.id}` : undefined,
       })
     }
 
-    for (const item of checkItems) {
+    for (const item of filteredCheckItems) {
       const cycleDays = parseInt(item.cycle) || 30
-      const records = followUpRecords.filter((r) => r.diseaseId === item.diseaseId)
+      const records = filteredFollowUps.filter((r) => r.diseaseId === item.diseaseId)
       if (records.length === 0) continue
       const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0]
       const baseDate = latest.nextDate ? parseISO(latest.nextDate) : parseISO(latest.date)
@@ -270,7 +328,7 @@ export default function Home() {
       }
     }
 
-    for (const t of familyTasks.filter((t) => t.dueDate === dateStr)) {
+    for (const t of filteredFamilyTasks.filter((t) => t.dueDate === dateStr)) {
       const elder = elders.find((e) => e.id === t.elderId)
       tasks.push({
         type: 'task',
@@ -278,11 +336,12 @@ export default function Home() {
         sub: `${elder?.name ?? ''} - ${t.description}（${t.assignee}）`,
         color: '#718096',
         Icon: Pill,
+        taskStatus: t.status,
       })
     }
 
     const seen = new Set<string>()
-    for (const disease of chronicDiseases) {
+    for (const disease of filteredDiseases) {
       const key = `${disease.elderId}-${disease.type}`
       if (seen.has(key)) continue
       seen.add(key)
@@ -298,11 +357,41 @@ export default function Home() {
     }
 
     return tasks
-  }, [selectedDate, followUpRecords, checkItems, familyTasks, chronicDiseases, elders])
+  }, [selectedDate, filteredFollowUps, filteredCheckItems, filteredFamilyTasks, filteredDiseases, chronicDiseases, elders])
 
   return (
     <div className="space-y-6">
       <WarningBanner warnings={warnings} />
+
+      {elders.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Users className="w-4 h-4 text-stone-400 shrink-0" />
+          <button
+            onClick={() => setFilterElderId('')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+              filterElderId === ''
+                ? 'bg-[#E8725A] text-white shadow-sm'
+                : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200'
+            }`}
+          >
+            全部老人
+          </button>
+          {elders.map((elder) => (
+            <button
+              key={elder.id}
+              onClick={() => setFilterElderId(elder.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                filterElderId === elder.id
+                  ? 'bg-[#E8725A] text-white shadow-sm'
+                  : 'bg-white text-stone-500 hover:bg-stone-50 border border-stone-200'
+              }`}
+            >
+              {elder.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <CalendarGrid
         currentMonth={currentMonth}
         selectedDate={selectedDate}
