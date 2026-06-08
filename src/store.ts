@@ -13,6 +13,7 @@ interface WeddingStore {
   updateGuest: (id: string, data: Partial<Guest>) => void
   removeGuest: (id: string) => void
   importGuests: (guests: Omit<Guest, 'id' | 'tableId'>[]) => void
+  importGuestsWithNames: (rawData: { name: string; relationship: RelationshipGroup; partySize: number; isChild: boolean; isElderly: boolean; dietaryRestrictions: string; cannotSitWithNames: string[]; preferSitWithNames: string[] }[]) => void
   setSelectedGuestId: (id: string | null) => void
 
   addTable: () => void
@@ -28,29 +29,37 @@ interface WeddingStore {
 }
 
 function createDemoGuests(): Guest[] {
-  const guests: Omit<Guest, 'id' | 'tableId'>[] = [
-    { name: '张爷爷', relationship: '亲戚', partySize: 2, isChild: false, isElderly: true, dietaryRestrictions: '清淡', cannotSitWith: [], preferSitWith: ['张奶奶'] },
-    { name: '张奶奶', relationship: '亲戚', partySize: 1, isChild: false, isElderly: true, dietaryRestrictions: '无糖', cannotSitWith: [], preferSitWith: ['张爷爷'] },
-    { name: '王叔叔', relationship: '亲戚', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: ['李阿姨'], preferSitWith: [] },
-    { name: '李阿姨', relationship: '亲戚', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '海鲜过敏', cannotSitWith: ['王叔叔'], preferSitWith: [] },
-    { name: '赵表哥', relationship: '亲戚', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '小明', relationship: '亲戚', partySize: 1, isChild: true, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '刘同学', relationship: '同学', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: ['陈同学'] },
-    { name: '陈同学', relationship: '同学', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '素食', cannotSitWith: [], preferSitWith: ['刘同学'] },
-    { name: '周同学', relationship: '同学', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '吴同学', relationship: '同学', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '孙经理', relationship: '同事', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '钱主管', relationship: '同事', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '辣', cannotSitWith: [], preferSitWith: [] },
-    { name: '郑同事', relationship: '同事', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '何同事', relationship: '同事', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '林好友', relationship: '朋友', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '黄好友', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '杨好友', relationship: '朋友', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '花生过敏', cannotSitWith: [], preferSitWith: [] },
-    { name: '徐闺蜜', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '马伴郎', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
-    { name: '小豆', relationship: '朋友', partySize: 1, isChild: true, isElderly: false, dietaryRestrictions: '', cannotSitWith: [], preferSitWith: [] },
+  const raw: Omit<Guest, 'id' | 'tableId' | 'cannotSitWith' | 'preferSitWith'>[] = [
+    { name: '张爷爷', relationship: '亲戚', partySize: 2, isChild: false, isElderly: true, dietaryRestrictions: '清淡' },
+    { name: '张奶奶', relationship: '亲戚', partySize: 1, isChild: false, isElderly: true, dietaryRestrictions: '无糖' },
+    { name: '王叔叔', relationship: '亲戚', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '李阿姨', relationship: '亲戚', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '海鲜过敏' },
+    { name: '赵表哥', relationship: '亲戚', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '小明', relationship: '亲戚', partySize: 1, isChild: true, isElderly: false, dietaryRestrictions: '' },
+    { name: '刘同学', relationship: '同学', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '陈同学', relationship: '同学', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '素食' },
+    { name: '周同学', relationship: '同学', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '吴同学', relationship: '同学', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '孙经理', relationship: '同事', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '钱主管', relationship: '同事', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '辣' },
+    { name: '郑同事', relationship: '同事', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '何同事', relationship: '同事', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '林好友', relationship: '朋友', partySize: 2, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '黄好友', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '杨好友', relationship: '朋友', partySize: 3, isChild: false, isElderly: false, dietaryRestrictions: '花生过敏' },
+    { name: '徐闺蜜', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '马伴郎', relationship: '朋友', partySize: 1, isChild: false, isElderly: false, dietaryRestrictions: '' },
+    { name: '小豆', relationship: '朋友', partySize: 1, isChild: true, isElderly: false, dietaryRestrictions: '' },
   ]
-  return guests.map((g) => ({ ...g, id: generateId(), tableId: null }))
+  const result: Guest[] = raw.map((g) => ({ ...g, id: generateId(), tableId: null, cannotSitWith: [], preferSitWith: [] }))
+  const byName = (name: string) => result.find((g) => g.name === name)?.id || ''
+  result.find((g) => g.name === '张爷爷')!.preferSitWith = [byName('张奶奶')]
+  result.find((g) => g.name === '张奶奶')!.preferSitWith = [byName('张爷爷')]
+  result.find((g) => g.name === '王叔叔')!.cannotSitWith = [byName('李阿姨')]
+  result.find((g) => g.name === '李阿姨')!.cannotSitWith = [byName('王叔叔')]
+  result.find((g) => g.name === '刘同学')!.preferSitWith = [byName('陈同学')]
+  result.find((g) => g.name === '陈同学')!.preferSitWith = [byName('刘同学')]
+  return result
 }
 
 export const useWeddingStore = create<WeddingStore>((set, get) => ({
@@ -76,7 +85,13 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
 
   removeGuest: (id) => {
     set((s) => ({
-      guests: s.guests.filter((g) => g.id !== id),
+      guests: s.guests
+        .filter((g) => g.id !== id)
+        .map((g) => ({
+          ...g,
+          cannotSitWith: g.cannotSitWith.filter((rid) => rid !== id),
+          preferSitWith: g.preferSitWith.filter((rid) => rid !== id),
+        })),
       selectedGuestId: s.selectedGuestId === id ? null : s.selectedGuestId,
     }))
     get().checkConflicts()
@@ -84,6 +99,32 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
 
   importGuests: (guestsData) => {
     const newGuests: Guest[] = guestsData.map((g) => ({ ...g, id: generateId(), tableId: null }))
+    set((s) => ({ guests: [...s.guests, ...newGuests] }))
+    get().checkConflicts()
+  },
+
+  importGuestsWithNames: (rawData: { name: string; relationship: RelationshipGroup; partySize: number; isChild: boolean; isElderly: boolean; dietaryRestrictions: string; cannotSitWithNames: string[]; preferSitWithNames: string[] }[]) => {
+    const existing = get().guests
+    const newGuests: Guest[] = rawData.map((g) => ({
+      name: g.name,
+      relationship: g.relationship,
+      partySize: g.partySize,
+      isChild: g.isChild,
+      isElderly: g.isElderly,
+      dietaryRestrictions: g.dietaryRestrictions,
+      cannotSitWith: [] as string[],
+      preferSitWith: [] as string[],
+      id: generateId(),
+      tableId: null,
+    }))
+    const allGuests = [...existing, ...newGuests]
+    const resolve = (names: string[]) =>
+      names.map((n) => allGuests.find((g) => g.name === n)?.id || '').filter(Boolean)
+    newGuests.forEach((ng, i) => {
+      const raw = rawData[i]
+      ng.cannotSitWith = resolve(raw.cannotSitWithNames)
+      ng.preferSitWith = resolve(raw.preferSitWithNames)
+    })
     set((s) => ({ guests: [...s.guests, ...newGuests] }))
     get().checkConflicts()
   },
@@ -223,6 +264,7 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
   checkConflicts: () => {
     const { guests, tables } = get()
     const conflicts: Conflict[] = []
+    const guestMap = new Map(guests.map((g) => [g.id, g]))
 
     for (const table of tables) {
       const tableGuests = guests.filter((g) => g.tableId === table.id)
@@ -242,7 +284,7 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
         for (let j = i + 1; j < tableGuests.length; j++) {
           const a = tableGuests[i]
           const b = tableGuests[j]
-          if (a.cannotSitWith.includes(b.name) || b.cannotSitWith.includes(a.name)) {
+          if (a.cannotSitWith.includes(b.id) || b.cannotSitWith.includes(a.id)) {
             conflicts.push({
               type: 'cannot_sit_together',
               guestIds: [a.id, b.id],
@@ -272,6 +314,21 @@ export const useWeddingStore = create<WeddingStore>((set, get) => ({
             message: `${g.name}是儿童，${table.name}没有成人陪同`,
             severity: 'warning',
           })
+        }
+        for (const preferredId of g.preferSitWith) {
+          const preferred = guestMap.get(preferredId)
+          if (preferred && preferred.tableId !== null && preferred.tableId !== g.tableId) {
+            const key = [g.id, preferredId].sort().join('-')
+            if (!conflicts.some((c) => c.type === 'prefer_not_together' && [c.guestIds[0], c.guestIds[1]].sort().join('-') === key)) {
+              conflicts.push({
+                type: 'prefer_not_together',
+                guestIds: [g.id, preferredId],
+                tableId: g.tableId!,
+                message: `${g.name}希望和${preferred.name}同桌，但未安排在一起`,
+                severity: 'warning',
+              })
+            }
+          }
         }
       }
     }

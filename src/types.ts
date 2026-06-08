@@ -24,7 +24,7 @@ export interface Table {
 }
 
 export interface Conflict {
-  type: 'cannot_sit_together' | 'elderly_near_speaker' | 'no_child_seat' | 'over_capacity'
+  type: 'cannot_sit_together' | 'prefer_not_together' | 'elderly_near_speaker' | 'no_child_seat' | 'over_capacity'
   guestIds: string[]
   tableId: string
   message: string

@@ -6,22 +6,100 @@ import { UserPlus, Upload, Trash2, Edit3, Check, X, ChevronDown, ChevronRight } 
 
 const RELATIONSHIPS: RelationshipGroup[] = ['亲戚', '同学', '同事', '朋友', '其他']
 
-const emptyForm = {
+interface FormState {
+  name: string
+  relationship: RelationshipGroup
+  partySize: number
+  isChild: boolean
+  isElderly: boolean
+  dietaryRestrictions: string
+  cannotSitWith: string[]
+  preferSitWith: string[]
+}
+
+const emptyForm: FormState = {
   name: '',
-  relationship: '朋友' as RelationshipGroup,
+  relationship: '朋友',
   partySize: 1,
   isChild: false,
   isElderly: false,
   dietaryRestrictions: '',
-  cannotSitWith: '',
-  preferSitWith: '',
+  cannotSitWith: [],
+  preferSitWith: [],
+}
+
+function GuestMultiSelect({
+  label,
+  selectedIds,
+  onChange,
+  excludeId,
+}: {
+  label: string
+  selectedIds: string[]
+  onChange: (ids: string[]) => void
+  excludeId?: string
+}) {
+  const guests = useWeddingStore((s) => s.guests)
+  const [open, setOpen] = useState(false)
+
+  const toggle = (id: string) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((x) => x !== id))
+    } else {
+      onChange([...selectedIds, id])
+    }
+  }
+
+  const selectedNames = selectedIds
+    .map((id) => guests.find((g) => g.id === id)?.name)
+    .filter(Boolean)
+
+  return (
+    <div className="guest-multi-select">
+      <div className="multi-select-trigger" onClick={() => setOpen(!open)}>
+        <span className="multi-select-label">
+          {selectedNames.length > 0 ? selectedNames.join('、') : label}
+        </span>
+        <ChevronDown size={12} />
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="multi-select-dropdown"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+          >
+            {guests
+              .filter((g) => g.id !== excludeId)
+              .map((g) => (
+                <label key={g.id} className="multi-select-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(g.id)}
+                    onChange={() => toggle(g.id)}
+                  />
+                  <span className="option-dot" style={{ background: RELATIONSHIP_COLORS[g.relationship] }} />
+                  <span>{g.name}</span>
+                </label>
+              ))}
+            {guests.filter((g) => g.id !== excludeId).length === 0 && (
+              <div className="multi-select-empty">暂无其他宾客</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {open && <div className="multi-select-overlay" onClick={() => setOpen(false)} />}
+    </div>
+  )
 }
 
 export default function GuestListPanel() {
-  const { guests, addGuest, updateGuest, removeGuest, importGuests, assignGuestToTable, tables } = useWeddingStore()
-  const [form, setForm] = useState(emptyForm)
+  const { guests, addGuest, updateGuest, removeGuest, importGuestsWithNames } = useWeddingStore()
+  const [form, setForm] = useState<FormState>(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<Partial<typeof emptyForm>>({})
+  const [editForm, setEditForm] = useState<FormState>(emptyForm)
   const [showForm, setShowForm] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState<Set<RelationshipGroup>>(new Set(RELATIONSHIPS))
   const [dragGuestId, setDragGuestId] = useState<string | null>(null)
@@ -36,8 +114,8 @@ export default function GuestListPanel() {
       isChild: form.isChild,
       isElderly: form.isElderly,
       dietaryRestrictions: form.dietaryRestrictions.trim(),
-      cannotSitWith: form.cannotSitWith.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-      preferSitWith: form.preferSitWith.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+      cannotSitWith: form.cannotSitWith,
+      preferSitWith: form.preferSitWith,
     })
     setForm(emptyForm)
     setShowForm(false)
@@ -51,7 +129,7 @@ export default function GuestListPanel() {
       try {
         const text = ev.target?.result as string
         const lines = text.split('\n').filter((l) => l.trim())
-        const imported = lines.slice(1).map((line) => {
+        const rawData = lines.slice(1).map((line) => {
           const cols = line.split(',').map((c) => c.trim())
           return {
             name: cols[0] || '',
@@ -60,11 +138,11 @@ export default function GuestListPanel() {
             isChild: cols[3] === '是',
             isElderly: cols[4] === '是',
             dietaryRestrictions: cols[5] || '',
-            cannotSitWith: (cols[6] || '').split(/[/]/).map((s) => s.trim()).filter(Boolean),
-            preferSitWith: (cols[7] || '').split(/[/]/).map((s) => s.trim()).filter(Boolean),
+            cannotSitWithNames: (cols[6] || '').split(/[/]/).map((s) => s.trim()).filter(Boolean),
+            preferSitWithNames: (cols[7] || '').split(/[/]/).map((s) => s.trim()).filter(Boolean),
           }
         }).filter((g) => g.name)
-        importGuests(imported)
+        importGuestsWithNames(rawData)
       } catch {
         alert('导入失败，请检查CSV格式')
       }
@@ -84,25 +162,24 @@ export default function GuestListPanel() {
       isChild: g.isChild,
       isElderly: g.isElderly,
       dietaryRestrictions: g.dietaryRestrictions,
-      cannotSitWith: g.cannotSitWith.join('，'),
-      preferSitWith: g.preferSitWith.join('，'),
+      cannotSitWith: [...g.cannotSitWith],
+      preferSitWith: [...g.preferSitWith],
     })
   }
 
   const saveEdit = (guestId: string) => {
-    const ef = editForm
     updateGuest(guestId, {
-      name: ef.name,
-      relationship: ef.relationship,
-      partySize: ef.partySize,
-      isChild: ef.isChild,
-      isElderly: ef.isElderly,
-      dietaryRestrictions: ef.dietaryRestrictions,
-      cannotSitWith: (ef.cannotSitWith || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-      preferSitWith: (ef.preferSitWith || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean),
+      name: editForm.name,
+      relationship: editForm.relationship,
+      partySize: editForm.partySize,
+      isChild: editForm.isChild,
+      isElderly: editForm.isElderly,
+      dietaryRestrictions: editForm.dietaryRestrictions,
+      cannotSitWith: editForm.cannotSitWith,
+      preferSitWith: editForm.preferSitWith,
     })
     setEditingId(null)
-    setEditForm({})
+    setEditForm(emptyForm)
   }
 
   const handleDragStart = (e: React.DragEvent, guestId: string) => {
@@ -123,6 +200,9 @@ export default function GuestListPanel() {
       return next
     })
   }
+
+  const resolveNames = (ids: string[]) =>
+    ids.map((id) => guests.find((g) => g.id === id)?.name).filter(Boolean)
 
   const grouped = RELATIONSHIPS.reduce((acc, r) => {
     acc[r] = guests.filter((g) => g.relationship === r)
@@ -169,8 +249,16 @@ export default function GuestListPanel() {
               <label className="checkbox-label"><input type="checkbox" checked={form.isElderly} onChange={(e) => setForm({ ...form, isElderly: e.target.checked })} /> 长辈</label>
             </div>
             <input placeholder="饮食忌口（如：海鲜过敏）" value={form.dietaryRestrictions} onChange={(e) => setForm({ ...form, dietaryRestrictions: e.target.value })} />
-            <input placeholder="不能同桌的人（逗号分隔）" value={form.cannotSitWith} onChange={(e) => setForm({ ...form, cannotSitWith: e.target.value })} />
-            <input placeholder="希望同桌的人（逗号分隔）" value={form.preferSitWith} onChange={(e) => setForm({ ...form, preferSitWith: e.target.value })} />
+            <GuestMultiSelect
+              label="不能同桌的人"
+              selectedIds={form.cannotSitWith}
+              onChange={(ids) => setForm({ ...form, cannotSitWith: ids })}
+            />
+            <GuestMultiSelect
+              label="希望同桌的人"
+              selectedIds={form.preferSitWith}
+              onChange={(ids) => setForm({ ...form, preferSitWith: ids })}
+            />
             <div className="form-actions">
               <button className="btn btn-primary" onClick={handleSubmit}>确认添加</button>
               <button className="btn btn-ghost" onClick={() => { setShowForm(false); setForm(emptyForm) }}>取消</button>
@@ -205,7 +293,7 @@ export default function GuestListPanel() {
                       >
                         {editingId === guest.id ? (
                           <div className="guest-edit-inline">
-                            <input value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+                            <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
                             <div className="form-row compact">
                               <select value={editForm.relationship} onChange={(e) => setEditForm({ ...editForm, relationship: e.target.value as RelationshipGroup })}>
                                 {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -213,6 +301,18 @@ export default function GuestListPanel() {
                               <label className="checkbox-label"><input type="checkbox" checked={editForm.isChild} onChange={(e) => setEditForm({ ...editForm, isChild: e.target.checked })} /> 儿童</label>
                               <label className="checkbox-label"><input type="checkbox" checked={editForm.isElderly} onChange={(e) => setEditForm({ ...editForm, isElderly: e.target.checked })} /> 长辈</label>
                             </div>
+                            <GuestMultiSelect
+                              label="不能同桌"
+                              selectedIds={editForm.cannotSitWith}
+                              onChange={(ids) => setEditForm({ ...editForm, cannotSitWith: ids })}
+                              excludeId={guest.id}
+                            />
+                            <GuestMultiSelect
+                              label="希望同桌"
+                              selectedIds={editForm.preferSitWith}
+                              onChange={(ids) => setEditForm({ ...editForm, preferSitWith: ids })}
+                              excludeId={guest.id}
+                            />
                             <div className="form-actions compact">
                               <button className="btn-icon" onClick={() => saveEdit(guest.id)}><Check size={14} /></button>
                               <button className="btn-icon" onClick={() => setEditingId(null)}><X size={14} /></button>
@@ -229,6 +329,8 @@ export default function GuestListPanel() {
                                 {guest.isChild && <span className="tag tag-child">儿童</span>}
                                 {guest.isElderly && <span className="tag tag-elderly">长辈</span>}
                                 {guest.dietaryRestrictions && <span className="tag tag-diet">忌口</span>}
+                                {guest.cannotSitWith.length > 0 && <span className="tag tag-cannot">不同桌:{resolveNames(guest.cannotSitWith).join(',')}</span>}
+                                {guest.preferSitWith.length > 0 && <span className="tag tag-prefer">想同桌:{resolveNames(guest.preferSitWith).join(',')}</span>}
                                 {guest.tableId && <span className="tag tag-assigned">已安排</span>}
                               </div>
                             </div>
