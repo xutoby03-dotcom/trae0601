@@ -1,4 +1,4 @@
-import type { Ingredient, RecipeMatch, Recipe, Favorite } from '@/types'
+import type { Ingredient, RecipeMatch, Recipe, Favorite, FavoriteRescue } from '@/types'
 import { recipes } from '@/data/recipes'
 
 const STANDARD_QUANTITIES: Record<string, number> = {
@@ -210,4 +210,34 @@ function computeMatch(
     shortIngredients,
     ingredientRemainders,
   }
+}
+
+export function matchFavoriteRescues(
+  userIngredients: Ingredient[],
+  favorites: Favorite[]
+): FavoriteRescue[] {
+  const activeIngredients = userIngredients.filter((i) => !i.excluded)
+  if (activeIngredients.length === 0 || favorites.length === 0) return []
+
+  const currentNames = new Set(activeIngredients.map((i) => normalizeIngredientName(i.name)))
+
+  return favorites
+    .map((fav) => {
+      const normalizedSnapshot = fav.ingredientSnapshot.map((n) => normalizeIngredientName(n))
+      const stillHave = normalizedSnapshot.filter((n) => currentNames.has(n))
+      const missingNow = normalizedSnapshot.filter((n) => !currentNames.has(n))
+      const similarity = Math.round(
+        (stillHave.length / Math.max(normalizedSnapshot.length, 1)) * 100
+      )
+      return {
+        recipeId: fav.recipeId,
+        savedAt: fav.savedAt,
+        similarity,
+        snapshotIngredients: fav.ingredientSnapshot,
+        stillHave,
+        missingNow,
+      }
+    })
+    .filter((r) => r.similarity >= 30)
+    .sort((a, b) => b.similarity - a.similarity)
 }

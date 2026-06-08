@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ChefHat } from 'lucide-react'
+import { ArrowLeft, ChefHat, Heart } from 'lucide-react'
 import PreferenceSelector from '@/components/PreferenceSelector'
 import RecipeCard from '@/components/RecipeCard'
+import FavoriteRescueCard from '@/components/FavoriteRescueCard'
 import { useIngredientStore } from '@/store/useIngredientStore'
 import { useFavoriteStore } from '@/store/useFavoriteStore'
-import { matchRecipes } from '@/utils/recommend'
+import { matchRecipes, matchFavoriteRescues } from '@/utils/recommend'
 import type { Preference } from '@/types'
 
 export default function Recommend() {
@@ -16,6 +17,7 @@ export default function Recommend() {
 
   const activeIngredients = ingredients.filter((i) => !i.excluded)
   const matches = matchRecipes(activeIngredients, preference || undefined, favorites)
+  const rescues = matchFavoriteRescues(ingredients, favorites)
 
   if (activeIngredients.length === 0) {
     return (
@@ -52,6 +54,22 @@ export default function Recommend() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {rescues.length > 0 && (
+          <section>
+            <h2 className="text-stone-300 font-serif mb-3 flex items-center gap-2">
+              <span className="w-1 h-5 bg-red-400 rounded-full" />
+              <Heart size={16} className="text-red-400" fill="currentColor" />
+              救场收藏
+              <span className="text-sm text-stone-500">({rescues.length}道)</span>
+            </h2>
+            <div className="space-y-2">
+              {rescues.map((rescue) => (
+                <FavoriteRescueCard key={rescue.recipeId} rescue={rescue} />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="text-stone-300 font-serif mb-3 flex items-center gap-2">
             <span className="w-1 h-5 bg-orange-500 rounded-full" />

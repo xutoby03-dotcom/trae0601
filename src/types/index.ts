@@ -45,6 +45,15 @@ export interface Favorite {
   ingredientSnapshot: string[]
 }
 
+export interface FavoriteRescue {
+  recipeId: string
+  savedAt: string
+  similarity: number
+  snapshotIngredients: string[]
+  stillHave: string[]
+  missingNow: string[]
+}
+
 export interface ShortIngredient {
   ingredientName: string
   have: number
