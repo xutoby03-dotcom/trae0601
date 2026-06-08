@@ -165,26 +165,24 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
             还没有习惯，去管理页添加吧
           </p>
         ) : (
-          <div className="overflow-x-auto -mx-4 px-4">
-            <div className="min-w-[480px]">
-              <div className="flex mb-2">
-                <div className="w-20 shrink-0" />
-                {dates.map((date) => (
-                  <div
-                    key={date}
-                    className={`flex-1 text-center text-[10px] leading-tight ${
-                      isToday(date) ? 'text-indigo-500 font-bold' : 'text-gray-400'
-                    }`}
-                  >
-                    <div>{formatShortDate(date)}</div>
-                    <div>{getDayOfWeek(date)}</div>
-                  </div>
-                ))}
-              </div>
+          <div style={{ touchAction: 'pan-y' }}>
+            <div className="grid" style={{ gridTemplateColumns: `80px repeat(${dates.length}, 1fr)`, gap: '2px' }}>
+              <div />
+              {dates.map((date) => (
+                <div
+                  key={date}
+                  className={`text-center text-[10px] leading-tight pb-1 ${
+                    isToday(date) ? 'text-indigo-500 font-bold' : 'text-gray-400'
+                  }`}
+                >
+                  <div>{formatShortDate(date)}</div>
+                  <div>{getDayOfWeek(date)}</div>
+                </div>
+              ))}
 
               {activeHabits.map((habit) => (
-                <div key={habit.id} className="flex items-center mb-1.5">
-                  <div className="w-20 shrink-0 flex items-center gap-1.5 pr-2">
+                <React.Fragment key={habit.id}>
+                  <div className="flex items-center gap-1 pr-1">
                     <span className="text-sm">{habit.icon}</span>
                     <span className="text-xs text-gray-600 truncate">
                       {habit.name}
@@ -198,80 +196,76 @@ export const EnergyMapPage: React.FC<{ onNavigateToRecord?: (date: string) => vo
                     const isSelected =
                       detail?.date === date && detail?.habitId === habit.id
                     return (
-                      <div
+                      <button
                         key={date}
-                        className="flex-1 px-0.5"
-                      >
-                        <button
-                          onClick={() => {
-                            if (isSelected) {
-                              setDetail(null)
-                            } else {
-                              setDetail({ date, habitId: habit.id, habitName: habit.name, habitIcon: habit.icon })
-                            }
-                          }}
-                          className={`w-full aspect-square rounded-md transition-all ${getCellColor(
-                            completed,
-                            energy,
-                            hasRecord
-                          )} ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : 'hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'}`}
-                          style={{
-                            opacity: getCellOpacity(completed),
-                          }}
-                        />
-                      </div>
+                        onClick={() => {
+                          if (isSelected) {
+                            setDetail(null)
+                          } else {
+                            setDetail({ date, habitId: habit.id, habitName: habit.name, habitIcon: habit.icon })
+                          }
+                        }}
+                        className={`aspect-square rounded-md transition-all cursor-pointer ${getCellColor(
+                          completed,
+                          energy,
+                          hasRecord
+                        )} ${isSelected ? 'ring-2 ring-indigo-500 ring-offset-1' : 'hover:ring-2 hover:ring-indigo-300 hover:ring-offset-1'}`}
+                        style={{
+                          opacity: getCellOpacity(completed),
+                          touchAction: 'manipulation',
+                          minHeight: 20,
+                          minWidth: 20,
+                        }}
+                      />
                     )
                   })}
-                </div>
+                </React.Fragment>
               ))}
 
-              <div className="flex items-center mt-3 pt-3 border-t border-gray-100">
-                <div className="w-20 shrink-0 text-xs text-gray-500 pr-2">
-                  精力
-                </div>
-                {dates.map((date) => {
-                  const r = records[date]
-                  const e = r?.energy
-                  return (
-                    <div key={date} className="flex-1 px-0.5">
-                      <div
-                        className={`aspect-square rounded-md ${
-                          e
-                            ? e >= 5
-                              ? 'bg-emerald-500'
-                              : e >= 4
-                              ? 'bg-emerald-300'
-                              : e >= 3
-                              ? 'bg-amber-300'
-                              : e >= 2
-                              ? 'bg-orange-300'
-                              : 'bg-red-300'
-                            : 'bg-gray-50'
-                        }`}
-                        title={`精力: ${e || '未记录'}`}
-                      />
-                    </div>
-                  )
-                })}
+              <div className="flex items-center text-xs text-gray-500 pr-1">
+                精力
               </div>
+              {dates.map((date) => {
+                const r = records[date]
+                const e = r?.energy
+                return (
+                  <div
+                    key={date}
+                    className={`aspect-square rounded-md ${
+                      e
+                        ? e >= 5
+                          ? 'bg-emerald-500'
+                          : e >= 4
+                          ? 'bg-emerald-300'
+                          : e >= 3
+                          ? 'bg-amber-300'
+                          : e >= 2
+                          ? 'bg-orange-300'
+                          : 'bg-red-300'
+                        : 'bg-gray-50'
+                    }`}
+                    style={{ minHeight: 20 }}
+                  />
+                )
+              })}
+            </div>
 
-              <div className="flex items-center gap-4 mt-4 text-[10px] text-gray-400">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-sm bg-emerald-400" />
-                  <span>高精力+完成</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-sm bg-amber-300" />
-                  <span>中精力+完成</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-sm bg-red-300" />
-                  <span>低精力+完成</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-sm bg-gray-100 opacity-40" />
-                  <span>未完成</span>
-                </div>
+            <div className="flex items-center gap-4 mt-4 text-[10px] text-gray-400">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-emerald-400" />
+                <span>高精力+完成</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-amber-300" />
+                <span>中精力+完成</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-red-300" />
+                <span>低精力+完成</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-sm bg-gray-100 opacity-40" />
+                <span>未完成</span>
               </div>
             </div>
           </div>

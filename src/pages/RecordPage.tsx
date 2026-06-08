@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useHabitStore } from '../store/useHabitStore'
 import {
   ENERGY_LABELS,
@@ -45,6 +45,13 @@ export const RecordPage: React.FC<{ initialDate?: string; onDateChange?: () => v
   const [selectedDate, setSelectedDate] = useState(
     initialDate || formatDate(new Date())
   )
+
+  useEffect(() => {
+    if (initialDate) {
+      setSelectedDate(initialDate)
+      onDateChange?.()
+    }
+  }, [initialDate])
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date)

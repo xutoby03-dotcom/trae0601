@@ -301,7 +301,7 @@ export const StatsPage: React.FC = () => {
               完成某习惯后，第二天的精力是否更稳？
             </p>
             <div className="space-y-3">
-              {(selectedHabitId ? displayStats : habitStats)
+              {displayStats
                 .filter((s) => s.nextDayCount >= 2)
                 .map((stat) => {
                   const diff = stat.avgNextDayEnergy - stat.overallNextDayAvg
@@ -373,7 +373,7 @@ export const StatsPage: React.FC = () => {
                     </div>
                   )
                 })}
-              {(selectedHabitId ? displayStats : habitStats).filter((s) => s.nextDayCount >= 2).length === 0 && (
+              {displayStats.filter((s) => s.nextDayCount >= 2).length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">
                   需要更多数据才能分析次日精力变化
                 </p>
@@ -389,7 +389,7 @@ export const StatsPage: React.FC = () => {
               完成 vs 未完成时的平均精力
             </p>
             <div className="space-y-4">
-              {(selectedHabitId ? displayStats : habitStats).map((stat) => {
+              {displayStats.map((stat) => {
                 return (
                   <div key={stat.habit.id}>
                     <div className="flex items-center gap-2 mb-1">
