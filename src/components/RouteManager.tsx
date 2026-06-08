@@ -3,6 +3,13 @@ import { useWalkStore } from '@/store/useWalkStore'
 import { Save, FolderOpen, Download, Trash2, X } from 'lucide-react'
 import html2canvas from 'html2canvas'
 
+function formatMinutes(m: number): string {
+  if (m < 60) return `${m}分钟`
+  const h = Math.floor(m / 60)
+  const min = m % 60
+  return min > 0 ? `${h}h${min}m` : `${h}h`
+}
+
 export default function RouteManager() {
   const routePlaces = useWalkStore((s) => s.routePlaces)
   const routeName = useWalkStore((s) => s.routeName)
@@ -26,7 +33,7 @@ export default function RouteManager() {
     `
 
     const stats = getStats()
-    const name = routeName || '今日散步计划'
+    const name = routeName.trim() || '今日散步计划'
 
     el.innerHTML = `
       <div style="text-align:center;margin-bottom:24px;">
@@ -141,7 +148,7 @@ export default function RouteManager() {
             disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-emerald-100"
         >
           <Download size={12} />
-          导出图片
+          {routePlaces.length === 0 ? '拼好再导' : '导出计划图'}
         </button>
       </div>
 
@@ -168,6 +175,17 @@ export default function RouteManager() {
                 <div className="text-xs font-medium text-[#3D2C2E]">{route.name}</div>
                 <div className="text-[10px] text-[#8B7073]">
                   {route.placeIds.length} 个地点 · {route.createdAt}
+                </div>
+                <div className="flex gap-2 mt-1">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-50 text-[#F97316]">
+                    ⏱ {formatMinutes(route.totalMinutes ?? 0)}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-500">
+                    🚶 {(route.totalDistance ?? 0).toFixed(1)}km
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-500">
+                    💰 ¥{route.totalBudget ?? 0}
+                  </span>
                 </div>
               </button>
               <button

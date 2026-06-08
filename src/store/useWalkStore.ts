@@ -149,15 +149,19 @@ export const useWalkStore = create<WalkStore>((set, get) => ({
   clearRoute: () => set({ routePlaces: [], activeMoodId: null }),
 
   saveRoute: () => {
-    const { routePlaces, routeName, savedRoutes } = get()
+    const { routePlaces, routeName, savedRoutes, startTime } = get()
     if (routePlaces.length === 0) return
 
     const name = routeName.trim() || `散步路线 ${savedRoutes.length + 1}`
+    const stats = computeStats(routePlaces, startTime)
     const newRoute: WalkRoute = {
       id: `route-${Date.now()}`,
       name,
       placeIds: routePlaces.map((p) => p.id),
       createdAt: new Date().toLocaleString('zh-CN'),
+      totalMinutes: stats.totalMinutes,
+      totalDistance: stats.totalDistance,
+      totalBudget: stats.totalBudget,
     }
 
     const updated = [...savedRoutes, newRoute]

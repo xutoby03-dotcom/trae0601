@@ -20,6 +20,9 @@ export interface WalkRoute {
   name: string
   placeIds: string[]
   createdAt: string
+  totalMinutes: number
+  totalDistance: number
+  totalBudget: number
 }
 
 export interface MoodMode {
