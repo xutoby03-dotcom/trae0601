@@ -3,10 +3,21 @@ import { ClothingItem, Outfit } from './types'
 const CLOTHES_KEY = 'wardrobe_clothes'
 const OUTFITS_KEY = 'wardrobe_outfits'
 
+function migrateItem(item: any): ClothingItem {
+  if ('wearCount' in item && !('currentWearCount' in item)) {
+    item.currentWearCount = item.wearCount
+    item.totalWearCount = item.wearCount
+    delete item.wearCount
+  }
+  return item as ClothingItem
+}
+
 function readClothes(): ClothingItem[] {
   try {
     const data = localStorage.getItem(CLOTHES_KEY)
-    return data ? JSON.parse(data) : []
+    if (!data) return []
+    const items: ClothingItem[] = JSON.parse(data).map(migrateItem)
+    return items
   } catch {
     return []
   }
@@ -85,12 +96,13 @@ export const db = {
     clothingIds.forEach(id => {
       const item = items.find(c => c.id === id)
       if (item) {
-        item.wearCount++
-        if (item.wearCount === 1 && item.washStatus === 'clean') {
+        item.currentWearCount++
+        item.totalWearCount++
+        if (item.currentWearCount === 1 && item.washStatus === 'clean') {
           item.washStatus = 'worn_once'
-        } else if (item.wearCount === 2) {
+        } else if (item.currentWearCount === 2) {
           item.washStatus = 'worn_twice'
-        } else if (item.wearCount >= 3) {
+        } else if (item.currentWearCount >= 3) {
           item.washStatus = 'needs_wash'
         }
       }
@@ -103,7 +115,7 @@ export const db = {
     const item = items.find(c => c.id === id)
     if (item) {
       item.washStatus = 'clean'
-      item.wearCount = 0
+      item.currentWearCount = 0
       writeClothes(items)
     }
   },

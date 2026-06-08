@@ -10,11 +10,11 @@ export default function StatisticsPage() {
 
   const totalClothes = clothes.length
   const totalOutfits = outfits.length
-  const avgWear = totalClothes > 0 ? (clothes.reduce((s, c) => s + c.wearCount, 0) / totalClothes).toFixed(1) : '0'
+  const avgWear = totalClothes > 0 ? (clothes.reduce((s, c) => s + c.totalWearCount, 0) / totalClothes).toFixed(1) : '0'
   const totalValue = clothes.reduce((s, c) => s + (c.price || 0), 0)
 
   const leastWorn = useMemo(() => {
-    return [...clothes].sort((a, b) => a.wearCount - b.wearCount).slice(0, 10)
+    return [...clothes].sort((a, b) => a.totalWearCount - b.totalWearCount).slice(0, 10)
   }, [clothes])
 
   const colorDist = useMemo(() => {
@@ -85,15 +85,15 @@ export default function StatisticsPage() {
             <div key={item.id} style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '10px 14px', borderRadius: 10, background: '#fff',
-              border: item.wearCount === 0 ? '1px solid #e53935' : '1px solid #f0f0f0',
+              border: item.totalWearCount === 0 ? '1px solid #e53935' : '1px solid #f0f0f0',
             }}>
               <img src={item.photo} alt={item.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
               <span style={{ flex: 1, fontSize: 14 }}>{item.name}</span>
               <span style={{
                 fontSize: 13, fontWeight: 600,
-                color: item.wearCount === 0 ? '#e53935' : '#666',
+                color: item.totalWearCount === 0 ? '#e53935' : '#666',
               }}>
-                {item.wearCount} 次
+                {item.totalWearCount} 次
               </span>
             </div>
           ))}

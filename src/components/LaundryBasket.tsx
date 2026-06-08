@@ -130,7 +130,7 @@ function ClothingCard({ item, onMarkClean, onMarkWashing, showMarkWashing }: Car
             }}
           />
         )}
-        <div style={styles.wearBadge}>穿过 {item.wearCount} 次</div>
+        <div style={styles.wearBadge}>本轮穿过 {item.currentWearCount} 次</div>
       </div>
       <div style={styles.cardBody}>
         <div style={styles.cardName}>{item.name}</div>

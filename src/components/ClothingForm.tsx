@@ -58,7 +58,8 @@ export default function ClothingForm({ item, onSave, onCancel }: ClothingFormPro
       occasion: occasions,
       price,
       washStatus,
-      wearCount: editingItem?.wearCount ?? 0,
+      currentWearCount: editingItem?.currentWearCount ?? 0,
+      totalWearCount: editingItem?.totalWearCount ?? 0,
       createdAt: editingItem?.createdAt ?? new Date().toISOString(),
     }
     if (editingItem) {

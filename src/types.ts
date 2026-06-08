@@ -16,7 +16,8 @@ export interface ClothingItem {
   occasion: Occasion[]
   price: number
   washStatus: WashStatus
-  wearCount: number
+  currentWearCount: number
+  totalWearCount: number
   createdAt: string
 }
 
