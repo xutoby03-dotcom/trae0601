@@ -224,7 +224,7 @@ export const useCampStore = create<CampStore>()(
           add('cloud', '关注天气预报', '天气可能变化，携带轻便雨具', 'comfort');
         }
         if (!camp.fireAllowed) {
-          add('flame', '带气炉代替明火', '禁止生火，携带气炉代替，不携带明火设备', 'essential');
+          add('flame', '带气炉代替明火', '禁火区域，携带气炉代替，不携带明火设备', 'essential');
         }
         if (camp.altitude > 3000) {
           add('mountain-snow', '防高反药物', '高海拔地区，携带防高反药物、注意保暖、避免剧烈运动', 'safety');

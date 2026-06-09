@@ -285,7 +285,7 @@ export default function AddCamp() {
                       : 'bg-emerald-900/20 text-emerald-600 border border-emerald-800/30 hover:bg-emerald-900/40'
                   }`}
                 >
-                  禁止生火
+                  禁火
                 </button>
               </div>
             </div>
