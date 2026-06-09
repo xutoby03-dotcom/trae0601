@@ -328,13 +328,13 @@ export default function Review() {
                 <div className="text-xs text-warm-500 mt-0.5">返工项数</div>
               </div>
               <div className="bg-white rounded-lg p-3 border border-coral-100">
-                <div className="text-2xl font-bold text-coral-600">¥{reworkItems.reduce((s, ri) => s + ri.deductionAmount, 0).toFixed(0)}</div>
+                <div className="text-2xl font-bold text-coral-600">¥{reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0).toFixed(2).replace(/\.?0+$/, '')}</div>
                 <div className="text-xs text-warm-500 mt-0.5">扣费合计</div>
               </div>
             </div>
             {(() => {
               const reasonMap = new Map<string, number>()
-              reworkItems.forEach((ri) => reasonMap.set(ri.deductionReason, (reasonMap.get(ri.deductionReason) || 0) + 1))
+              reworkItems.forEach((ri) => { if (ri.deductionReason) reasonMap.set(ri.deductionReason, (reasonMap.get(ri.deductionReason) || 0) + 1) })
               return (
                 <div className="flex flex-wrap gap-2">
                   {[...reasonMap.entries()].map(([reason, count]) => (

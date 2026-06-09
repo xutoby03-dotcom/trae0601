@@ -178,8 +178,8 @@ export default function InspectionDetail() {
                         <div className="text-sm text-warm-800 font-medium">{ci.name}</div>
                         {ri.reason && <div className="text-xs text-warm-500 mt-0.5">原因：{ri.reason}</div>}
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-coral-600">{ri.deductionReason}</span>
-                          {ri.deductionAmount > 0 && <span className="text-xs font-bold text-coral-600">-¥{ri.deductionAmount}</span>}
+                          {ri.deductionReason && <span className="text-xs text-coral-600">{ri.deductionReason}</span>}
+                          {(ri.deductionAmount || 0) > 0 && <span className="text-xs font-bold text-coral-600">-¥{(ri.deductionAmount || 0).toFixed(2).replace(/\.?0+$/, '')}</span>}
                         </div>
                       </div>
                     </div>
@@ -190,7 +190,7 @@ export default function InspectionDetail() {
                 <div className="flex flex-wrap gap-1.5">
                   {(() => {
                     const rm = new Map<string, number>()
-                    inspection.reworkItems.forEach((ri) => rm.set(ri.deductionReason, (rm.get(ri.deductionReason) || 0) + 1))
+                    inspection.reworkItems.forEach((ri) => { if (ri.deductionReason) rm.set(ri.deductionReason, (rm.get(ri.deductionReason) || 0) + 1) })
                     return [...rm.entries()].map(([r, c]) => (
                       <span key={r} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-coral-100 rounded-full text-[11px] text-coral-600">
                         <FileWarning className="w-2.5 h-2.5" />{r} ×{c}
@@ -200,7 +200,7 @@ export default function InspectionDetail() {
                 </div>
                 <div className="flex items-center gap-1.5 text-coral-700">
                   <Wallet className="w-3.5 h-3.5" />
-                  <span className="font-bold text-sm">¥{inspection.reworkItems.reduce((s, ri) => s + ri.deductionAmount, 0).toFixed(0)}</span>
+                  <span className="font-bold text-sm">¥{inspection.reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0).toFixed(2).replace(/\.?0+$/, '')}</span>
                   <span className="text-xs text-coral-500">扣费合计</span>
                 </div>
               </div>
