@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { NotebookPen, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useLoanStore } from '@/store/loanStore'
-import GroupSection, { ExpiringSoonIcon, OverdueIcon, PausedIcon, SettledIcon } from '@/components/GroupSection'
+import GroupSection, { ExpiringSoonIcon, OverdueIcon, InstallmentIcon, SettledIcon } from '@/components/GroupSection'
 
 export default function Home() {
   const { getLoansByGroup, loans } = useLoanStore()
@@ -20,7 +20,7 @@ export default function Home() {
         )
       : list
 
-  const totalActive = groups.expiringSoon.length + groups.overdue.length + groups.paused.length
+  const totalActive = groups.expiringSoon.length + groups.overdue.length + groups.installment.length
 
   return (
     <div className="fade-in">
@@ -75,7 +75,7 @@ export default function Home() {
             accentColor="bg-coral-100"
           />
           <GroupSection
-            title="即将到期"
+            title="快到期"
             icon={<ExpiringSoonIcon />}
             loans={filtered(groups.expiringSoon)}
             variant="expiring"
@@ -83,12 +83,12 @@ export default function Home() {
             accentColor="bg-sage-100"
           />
           <GroupSection
-            title="已搁置"
-            icon={<PausedIcon />}
-            loans={filtered(groups.paused)}
-            variant="paused"
-            defaultOpen={false}
-            accentColor="bg-parchment-200"
+            title="分期还款"
+            icon={<InstallmentIcon />}
+            loans={filtered(groups.installment)}
+            variant="installment"
+            defaultOpen={groups.overdue.length === 0 && groups.expiringSoon.length === 0}
+            accentColor="bg-apricot-100"
           />
           <GroupSection
             title="已结清"

@@ -136,10 +136,17 @@ export const useLoanStore = create<LoanStore>()(
 
       getLoansByGroup: () => {
         const loans = get().loans
-        const expiringSoon: Loan[] = []
+        const repayments = get().repayments
         const overdue: Loan[] = []
-        const paused: Loan[] = []
+        const expiringSoon: Loan[] = []
+        const installment: Loan[] = []
         const settled: Loan[] = []
+
+        const hasPartialRepayment = (loanId: string) => {
+          const loan = loans.find((l) => l.id === loanId)
+          if (!loan) return false
+          return loan.remainingAmount < loan.totalAmount && loan.remainingAmount > 0
+        }
 
         const activeLoans = loans
           .filter((l) => l.status !== 'settled')
@@ -147,18 +154,15 @@ export const useLoanStore = create<LoanStore>()(
 
         for (const loan of activeLoans) {
           if (loan.isPaused) {
-            paused.push(loan)
+            installment.push(loan)
           } else if (isOverdue(loan)) {
             overdue.push(loan)
+          } else if (hasPartialRepayment(loan.id)) {
+            installment.push(loan)
           } else if (isExpiringSoon(loan)) {
             expiringSoon.push(loan)
           } else {
-            overdue.length === 0 && expiringSoon.length === 0
-            if (overdue.length > 0 || expiringSoon.length > 0) {
-              expiringSoon.push(loan)
-            } else {
-              expiringSoon.push(loan)
-            }
+            expiringSoon.push(loan)
           }
         }
 
@@ -168,7 +172,7 @@ export const useLoanStore = create<LoanStore>()(
 
         settled.push(...settledLoans)
 
-        return { expiringSoon, overdue, paused, settled }
+        return { overdue, expiringSoon, installment, settled }
       },
 
       getStats: () => {

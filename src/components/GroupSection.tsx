@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Clock, AlertTriangle, Pause, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Clock, AlertTriangle, Layers, CheckCircle2 } from 'lucide-react'
 import type { Loan } from '@/types'
 import LoanCard from './LoanCard'
 
@@ -7,7 +7,7 @@ interface GroupSectionProps {
   title: string
   icon: React.ReactNode
   loans: Loan[]
-  variant: 'expiring' | 'overdue' | 'paused' | 'settled'
+  variant: 'overdue' | 'expiring' | 'installment' | 'settled'
   defaultOpen?: boolean
   accentColor: string
 }
@@ -56,8 +56,8 @@ export function ExpiringSoonIcon() {
 export function OverdueIcon() {
   return <AlertTriangle size={14} className="text-coral-500" />
 }
-export function PausedIcon() {
-  return <Pause size={14} className="text-parchment-600" />
+export function InstallmentIcon() {
+  return <Layers size={14} className="text-apricot-600" />
 }
 export function SettledIcon() {
   return <CheckCircle2 size={14} className="text-sage-600" />

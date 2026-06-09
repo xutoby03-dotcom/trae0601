@@ -29,9 +29,9 @@ export interface Repayment {
 }
 
 export interface LoanGroup {
-  expiringSoon: Loan[]
   overdue: Loan[]
-  paused: Loan[]
+  expiringSoon: Loan[]
+  installment: Loan[]
   settled: Loan[]
 }
 
