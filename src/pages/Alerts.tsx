@@ -68,7 +68,7 @@ export default function Alerts() {
     }))
   }, [unresolved])
 
-  const getDesk = (plantId: string) => plants.find((p) => p.id === plantId)?.desk ?? ''
+  const getDesk = (plantId: string) => plants.find((p) => p.id === plantId)?.desk || '未知'
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -115,30 +115,33 @@ export default function Alerts() {
                   return (
                     <div
                       key={alert.id}
-                      className="bg-white rounded-xl border border-stone-200 p-4 flex items-start gap-4"
+                      className="bg-white rounded-xl border border-stone-200 p-5"
                     >
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-stone-800">{alert.plantName}</span>
-                          {desk && (
-                            <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
-                              📍 {desk}
-                            </span>
-                          )}
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-medium ${meta.color} ${meta.bg}`}
-                          >
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+                        <span className="text-stone-400 font-medium shrink-0">植物名</span>
+                        <span className="font-semibold text-stone-800">{alert.plantName}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">工位</span>
+                        <span className="text-stone-600">📍 {desk}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">文案</span>
+                        <span className="text-stone-600">{alert.message}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">日期</span>
+                        <span className="text-stone-600">{alert.createdAt}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">状态</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${meta.color} ${meta.bg}`}>
                             {ALERT_LABELS[alert.type]}
                           </span>
                           <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
                             未处理
                           </span>
                         </div>
-                        <p className="text-sm text-stone-600">{alert.message}</p>
-                        <p className="text-xs text-stone-400">{alert.createdAt}</p>
                       </div>
 
-                      <div className="flex flex-col gap-2 shrink-0">
+                      <div className="flex gap-2 mt-4 pt-3 border-t border-stone-100">
                         <button
                           onClick={() => navigate(`/plant/${alert.plantId}`)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-stone-50 hover:bg-stone-100 text-stone-600 rounded-lg text-xs font-medium transition cursor-pointer border border-stone-200"
@@ -168,7 +171,7 @@ export default function Alerts() {
               <CheckCircle className="w-5 h-5" />
               已解决（{resolved.length}）
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {resolved
                 .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
                 .map((alert) => {
@@ -177,17 +180,23 @@ export default function Alerts() {
                   return (
                     <div
                       key={alert.id}
-                      className="bg-white rounded-xl border border-stone-100 p-4 flex items-start gap-3 opacity-50"
+                      className="bg-white rounded-xl border border-stone-100 p-5 opacity-50"
                     >
-                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm text-stone-600 font-medium">{alert.plantName}</span>
-                          {desk && (
-                            <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
-                              📍 {desk}
-                            </span>
-                          )}
+                      <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
+                        <span className="text-stone-400 font-medium shrink-0">植物名</span>
+                        <span className="font-medium text-stone-600">{alert.plantName}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">工位</span>
+                        <span className="text-stone-500">📍 {desk}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">文案</span>
+                        <span className="text-stone-500">{alert.message}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">日期</span>
+                        <span className="text-stone-500">{alert.createdAt}</span>
+
+                        <span className="text-stone-400 font-medium shrink-0">状态</span>
+                        <div className="flex items-center gap-2">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${resolvedMeta.color} ${resolvedMeta.bg}`}>
                             {ALERT_LABELS[alert.type]}
                           </span>
@@ -195,8 +204,6 @@ export default function Alerts() {
                             已解决
                           </span>
                         </div>
-                        <p className="text-sm text-stone-500">{alert.message}</p>
-                        <p className="text-xs text-stone-400">{alert.createdAt}</p>
                       </div>
                     </div>
                   )
