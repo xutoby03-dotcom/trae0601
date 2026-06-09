@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Procurement, ProcurementStatus } from '@/types'
 import { mockProcurements } from '@/data/mockData'
 import { useConsumableStore } from '@/stores/consumableStore'
-import { setPrinterStatusIfHigher, findPrintersByConsumableName, recalculatePrinterStatus } from '@/utils/statusSync'
+import { setPrinterStatusIfHigher, findPrintersByConsumableName } from '@/utils/statusSync'
 
 interface ProcurementStore {
   procurements: Procurement[]
@@ -44,15 +44,8 @@ export const useProcurementStore = create<ProcurementStore>()(
               (c) => c.id === procurement.consumableId
             )
             if (consumable) {
-              if (status === 'installed') {
-                const printerIds = findPrintersByConsumableName(consumable.name)
-                printerIds.forEach((pid) => {
-                  setTimeout(() => recalculatePrinterStatus(pid), 0)
-                })
-              } else {
-                const printerIds = findPrintersByConsumableName(consumable.name)
-                printerIds.forEach((pid) => setPrinterStatusIfHigher(pid, 'procurement'))
-              }
+              const printerIds = findPrintersByConsumableName(consumable.name)
+              printerIds.forEach((pid) => setPrinterStatusIfHigher(pid, 'procurement'))
             }
           }
           return { procurements: updated }
