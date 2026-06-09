@@ -137,11 +137,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .toast { position:fixed; top:80px; left:50%; transform:translateX(-50%); background:var(--gray-800); color:#fff; padding:10px 20px; border-radius:var(--radius-xs); font-size:13px; z-index:300; animation: fadeInOut 2s; pointer-events:none; }
 @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 85%{opacity:1} 100%{opacity:0} }
 
-.efficiency-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--gray-100); }
+.efficiency-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--gray-100); cursor:pointer; }
+.efficiency-row:hover { background:var(--gray-50); }
 .efficiency-row:last-child { border-bottom:none; }
 .efficiency-med { font-weight:600; font-size:14px; flex:1; }
-.efficiency-rate { font-size:13px; font-weight:700; }
 .efficiency-count { font-size:11px; color:var(--gray-400); }
+.efficiency-rate { font-size:13px; font-weight:700; }
+.med-expand { display:none; padding:8px 0 12px 0; border-bottom:1px solid var(--gray-100); }
+.med-expand.show { display:block; }
+.med-expand-item { display:flex; align-items:baseline; gap:8px; padding:4px 0; font-size:12px; color:var(--gray-600); }
+.med-expand-item .med-plant { font-weight:600; color:var(--gray-700); }
+.med-expand-item .med-score { font-weight:700; min-width:30px; }
+.med-filter-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:12px; }
+.med-filter-tab { padding:5px 12px; border-radius:14px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--gray-200); background:#fff; color:var(--gray-500); transition:all .2s; font-family:inherit; }
+.med-filter-tab.active { border-color:var(--green-400); background:var(--green-50); color:var(--green-700); }
+.med-filter-tab .tab-count { margin-left:2px; font-weight:400; opacity:.7; }
 </style>
 </head>
 <body>
@@ -803,28 +813,68 @@ function renderStats(db) {
   html += `<div class="section-title">💊 处理效果排名</div>`;
   const medStats = {};
   for (const tx of db.treatments) {
-    if (!medStats[tx.medication]) medStats[tx.medication] = { total: 0, scoreSum: 0, count: 0 };
+    if (!medStats[tx.medication]) medStats[tx.medication] = { total: 0, scoreSum: 0, count: 0, records: [] };
     medStats[tx.medication].total++;
     if (tx.effectiveness > 0) { medStats[tx.medication].scoreSum += tx.effectiveness; medStats[tx.medication].count++; }
+    const prob = db.problems.find(p => p.id === tx.problemId);
+    const plant = prob ? db.plants.find(p => p.id === prob.plantId) : null;
+    medStats[tx.medication].records.push({
+      appliedAt: tx.appliedAt,
+      effectiveness: tx.effectiveness,
+      dilutionRatio: tx.dilutionRatio,
+      plantName: plant ? plant.name : '未知',
+      symptoms: prob ? prob.symptoms.map(sid => { const s = SYMPTOMS.find(x=>x.id===sid); return s ? s.name : ''; }).filter(Boolean) : [],
+    });
   }
   const medList = Object.entries(medStats).map(([med, s]) => ({
     med, total: s.total, avgScore: s.count ? (s.scoreSum / s.count).toFixed(1) : '-',
     rate: s.count >= 1 && s.scoreSum / s.count >= 4 ? 'good' : s.count >= 1 && s.scoreSum / s.count >= 2 ? 'ok' : s.count >= 1 ? 'bad' : 'none',
+    records: s.records,
   })).sort((a,b) => {
     const scoreA = a.avgScore === '-' ? -1 : parseFloat(a.avgScore);
     const scoreB = b.avgScore === '-' ? -1 : parseFloat(b.avgScore);
     return scoreB - scoreA;
   });
 
+  const rateCounts = { all: medList.length, good: 0, ok: 0, bad: 0, none: 0 };
+  for (const m of medList) rateCounts[m.rate]++;
+
   if (medList.length) {
+    const filterId = 'med-filter-' + Date.now();
+    html += `<div class="med-filter-tabs">`;
+    const filterOpts = [
+      { key: 'all', label: '全部', color: '' },
+      { key: 'good', label: '推荐', color: 'var(--green-600)' },
+      { key: 'ok', label: '一般', color: 'var(--amber-600)' },
+      { key: 'bad', label: '不佳', color: 'var(--red-600)' },
+      { key: 'none', label: '数据不足', color: 'var(--gray-400)' },
+    ];
+    for (const fo of filterOpts) {
+      html += `<button class="med-filter-tab${fo.key==='all'?' active':''}" data-filter="${fo.key}" onclick="filterMedStats('${filterId}',this)"${fo.color?' style="color:'+fo.color+'"':''}>${fo.label}<span class="tab-count">${rateCounts[fo.key]}</span></button>`;
+    }
+    html += `</div>`;
+
     for (const m of medList) {
       const rateColor = m.rate === 'good' ? 'var(--green-600)' : m.rate === 'ok' ? 'var(--amber-600)' : m.rate === 'bad' ? 'var(--red-600)' : 'var(--gray-400)';
       const rateLabel = m.rate === 'good' ? '推荐' : m.rate === 'ok' ? '一般' : m.rate === 'bad' ? '不佳' : '数据不足';
-      html += `<div class="efficiency-row">
-        <div class="efficiency-med">${m.med}</div>
+      const expandId = `${filterId}-expand-${m.med.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_')}`;
+      html += `<div class="efficiency-row" data-rate="${m.rate}" data-filter-group="${filterId}" onclick="toggleMedExpand('${expandId}')">
+        <div class="efficiency-med">${m.med} <span style="font-size:11px;color:var(--gray-400)">▸</span></div>
         <div class="efficiency-count">使用${m.total}次 · 均分${m.avgScore}</div>
         <div class="efficiency-rate" style="color:${rateColor}">${rateLabel}</div>
       </div>`;
+      html += `<div class="med-expand" id="${expandId}" data-rate="${m.rate}" data-filter-group="${filterId}">`;
+      for (const r of m.records) {
+        const scoreColor = r.effectiveness >= 4 ? 'var(--green-600)' : r.effectiveness >= 2 ? 'var(--amber-600)' : r.effectiveness > 0 ? 'var(--red-600)' : 'var(--gray-400)';
+        const scoreStr = r.effectiveness > 0 ? `${r.effectiveness}/5` : '未评';
+        html += `<div class="med-expand-item">
+          <span class="med-plant">${r.plantName}</span>
+          <span>${r.symptoms.length ? r.symptoms.join('、') : '-'}</span>
+          <span>${formatDate(r.appliedAt)}</span>
+          <span class="med-score" style="color:${scoreColor}">${scoreStr}</span>
+        </div>`;
+      }
+      html += `</div>`;
     }
   } else {
     html += `<div style="color:var(--gray-400);font-size:13px;padding:8px 0">暂无处理记录</div>`;
@@ -895,6 +945,22 @@ function clearAllData() {
   if (!confirm('确定清除所有数据？此操作不可恢复！')) return;
   localStorage.removeItem(DB_KEY);
   showToast('数据已清除'); renderPage(currentPage);
+}
+
+function filterMedStats(filterId, btn) {
+  const tabs = btn.parentElement.querySelectorAll('.med-filter-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const filter = btn.dataset.filter;
+  document.querySelectorAll(`[data-filter-group="${filterId}"]`).forEach(el => {
+    if (filter === 'all') { el.style.display = ''; }
+    else { el.style.display = el.dataset.rate === filter ? '' : 'none'; }
+  });
+}
+
+function toggleMedExpand(expandId) {
+  const el = document.getElementById(expandId);
+  if (el) el.classList.toggle('show');
 }
 
 renderPage('home');
