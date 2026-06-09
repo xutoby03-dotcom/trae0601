@@ -7,7 +7,7 @@ import { useRouteStore } from '@/stores/useRouteStore'
 import { useRunnerStore } from '@/stores/useRunnerStore'
 import type { Participation, SafetyAlert } from '@/types'
 import { formatPace, formatTime, formatDate, paceDiff, generateId, isLateNight } from '@/utils/helpers'
-import { ArrowLeft, MapPin, Gauge, Ruler, Clock, Users, AlertTriangle, Check, Lightbulb, UserPlus } from 'lucide-react'
+import { ArrowLeft, MapPin, Gauge, Ruler, Clock, Users, AlertTriangle, Check, Lightbulb, UserPlus, UserX } from 'lucide-react'
 
 const statusLabels: Record<string, string> = {
   upcoming: '即将开始',
@@ -63,6 +63,8 @@ export default function ActivityDetail() {
   const isOrganizer = currentRunner?.id === activity?.organizerId
   const alreadyJoined = participations.some(p => p.runnerId === currentRunner?.id)
 
+  const effectiveTargetDistance = activity?.expectedDistance ?? targetDistance
+
   const safetyAlerts = useMemo<SafetyAlert[]>(() => {
     if (!activity || !route) return []
     const alerts: SafetyAlert[] = []
@@ -83,8 +85,17 @@ export default function ActivityDetail() {
         timestamp: new Date().toISOString(),
       })
     }
+    const participantCount = getActivityParticipations(activity.id).length
+    if (participantCount <= 1) {
+      alerts.push({
+        id: `solo-return-${activity.id}`,
+        type: 'solo_return',
+        message: '目前仅一人参加，独自返回风险较高，建议等更多人报名或邀请同伴',
+        timestamp: new Date().toISOString(),
+      })
+    }
     return alerts
-  }, [activity, route])
+  }, [activity, route, getActivityParticipations, participations])
 
   const paceDifference = activity ? paceDiff(paceValue, activity.expectedPace) : 0
   const paceExceedsThreshold = paceDifference > 30
@@ -356,7 +367,7 @@ export default function ActivityDetail() {
                       <input
                         type="range"
                         min={1}
-                        max={route.distance}
+                        max={activity.expectedDistance}
                         step={0.5}
                         value={targetDistance}
                         onChange={e => setTargetDistance(Number(e.target.value))}
@@ -364,7 +375,7 @@ export default function ActivityDetail() {
                       />
                       <div className="mt-1 flex justify-between text-[10px] text-gray-600">
                         <span>1km</span>
-                        <span>{route.distance}km</span>
+                        <span>{activity.expectedDistance}km</span>
                       </div>
                     </div>
                     <button
@@ -397,8 +408,13 @@ export default function ActivityDetail() {
               <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-orange-400/80">安全提醒</h3>
               <div className="space-y-2.5">
                 {safetyAlerts.map(alert => {
-                  const isLateNightAlert = alert.type === 'late_night'
-                  const Icon = isLateNightAlert ? AlertTriangle : Lightbulb
+                  const alertIconMap: Record<string, typeof AlertTriangle> = {
+                    late_night: AlertTriangle,
+                    poor_lighting: Lightbulb,
+                    solo_return: UserX,
+                    rain: AlertTriangle,
+                  }
+                  const Icon = alertIconMap[alert.type] ?? AlertTriangle
                   return (
                     <div key={alert.id} className="flex items-start gap-2.5 text-sm">
                       <Icon size={16} className="mt-0.5 shrink-0 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]" />

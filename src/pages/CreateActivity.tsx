@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'
 import { useActivityStore } from '@/stores/useActivityStore'
 import { useRouteStore } from '@/stores/useRouteStore'
 import { useRunnerStore } from '@/stores/useRunnerStore'
-import type { Activity } from '@/types'
+import type { Activity, Participation } from '@/types'
 import { formatPace, generateId, getRouteTypeLabel } from '@/utils/helpers'
 import { ArrowLeft, MapPin, Gauge, Ruler, Clock, MessageSquare, Check, Sun, Moon } from 'lucide-react'
 
@@ -18,7 +18,7 @@ const routeTypeColors: Record<string, string> = {
 export default function CreateActivity() {
   const navigate = useNavigate()
   const { routes } = useRouteStore()
-  const { addActivity } = useActivityStore()
+  const { addActivity, joinActivity } = useActivityStore()
   const { currentRunner } = useRunnerStore()
 
   const [selectedRouteId, setSelectedRouteId] = useState<string>('')
@@ -42,8 +42,9 @@ export default function CreateActivity() {
   const handleSubmit = () => {
     if (!selectedRouteId || !startPoint || !startTime || !currentRunner) return
 
+    const activityId = generateId()
     const activity: Activity = {
-      id: generateId(),
+      id: activityId,
       routeId: selectedRouteId,
       organizerId: currentRunner.id,
       startPoint,
@@ -56,7 +57,20 @@ export default function CreateActivity() {
       createdAt: new Date().toISOString(),
     }
 
+    const organizerParticipation: Participation = {
+      id: generateId(),
+      activityId,
+      runnerId: currentRunner.id,
+      pace: expectedPace,
+      targetDistance: expectedDistance,
+      completed: false,
+      noShow: false,
+      actualDistance: 0,
+      actualDuration: 0,
+    }
+
     addActivity(activity)
+    joinActivity(organizerParticipation)
     navigate('/')
   }
 
