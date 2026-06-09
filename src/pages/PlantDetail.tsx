@@ -16,7 +16,7 @@ import {
   Clock,
   Leaf,
 } from 'lucide-react'
-import { usePlantStore } from '@/store/plantStore'
+import { usePlantStore, getActiveAdoption, getOriginalAdoption } from '@/store/plantStore'
 import { CURRENT_USER } from '@/data/mockData'
 import type { ObservationType, AlertType } from '@/types'
 import {
@@ -55,7 +55,8 @@ export default function PlantDetail() {
   const navigate = useNavigate()
   const plant = usePlantStore((s) => s.plants.find((p) => p.id === id))
   const adoptions = usePlantStore((s) => s.adoptions)
-  const adoption = id ? adoptions.find((a) => a.plantId === id && !a.endDate) : undefined
+  const activeAdoption = id ? getActiveAdoption(adoptions, id) : undefined
+  const originalAdoption = id ? getOriginalAdoption(adoptions, id) : undefined
   const allObservations = usePlantStore((s) => s.observations)
   const observations = id
     ? allObservations
@@ -123,15 +124,16 @@ export default function PlantDetail() {
 
   const handleFoster = () => {
     if (!fosterStart || !fosterEnd) return
+    const baseAdoption = activeAdoption || originalAdoption
     requestTempCare({
       plantId: plant.id,
       userId: CURRENT_USER.id,
       userName: CURRENT_USER.name,
-      wateringDays: adoption?.wateringDays ?? [1, 3, 5],
+      wateringDays: baseAdoption?.wateringDays ?? [1, 3, 5],
       startDate: fosterStart,
       endDate: fosterEnd,
       isTemporary: true,
-      originalAdoptionId: adoption?.id ?? null,
+      originalAdoptionId: baseAdoption?.id ?? null,
     })
     setShowFosterModal(false)
     setFosterStart('')
@@ -213,23 +215,46 @@ export default function PlantDetail() {
             <h2 className="text-lg font-semibold text-stone-800">领养信息</h2>
           </div>
 
-          {adoption ? (
+          {activeAdoption ? (
             <div className="space-y-2">
-              <p className="text-stone-700">
-                <span className="font-medium">{adoption.userName}</span> 正在负责
-              </p>
-              <p className="text-sm text-stone-500">
-                浇水日：周{adoption.wateringDays.map((d) => DAY_LABELS[d]).join('、')}
-              </p>
-              <p className="text-sm text-stone-500">
-                开始日期：{adoption.startDate}
-                {adoption.isTemporary && ` → ${adoption.endDate}`}
-                {adoption.isTemporary && (
-                  <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">
-                    临时代养
-                  </span>
-                )}
-              </p>
+              {activeAdoption.isTemporary ? (
+                <>
+                  <p className="text-stone-700">
+                    <span className="font-medium">{activeAdoption.userName}</span>{' '}
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">临时代养</span>
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    浇水日：周{activeAdoption.wateringDays.map((d) => DAY_LABELS[d]).join('、')}
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    代养期：{activeAdoption.startDate} → {activeAdoption.endDate}
+                  </p>
+                  {originalAdoption && (
+                    <div className="mt-2 p-3 bg-stone-50 rounded-lg border border-stone-100">
+                      <p className="text-xs text-stone-400 mb-1">原领养人</p>
+                      <p className="text-sm text-stone-600">
+                        <span className="font-medium">{originalAdoption.userName}</span>{' '}
+                        <span className="text-stone-400">（代养结束后恢复负责）</span>
+                      </p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        浇水日：周{originalAdoption.wateringDays.map((d) => DAY_LABELS[d]).join('、')}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-stone-700">
+                    <span className="font-medium">{activeAdoption.userName}</span> 正在负责
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    浇水日：周{activeAdoption.wateringDays.map((d) => DAY_LABELS[d]).join('、')}
+                  </p>
+                  <p className="text-sm text-stone-500">
+                    开始日期：{activeAdoption.startDate}
+                  </p>
+                </>
+              )}
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={() => setShowFosterModal(true)}

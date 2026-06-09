@@ -1,7 +1,43 @@
 import { create } from 'zustand'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, parseISO, isWithinInterval } from 'date-fns'
 import type { Plant, Adoption, ObservationLog, PlantAlert, PlantStatus } from '@/types'
 import { MOCK_PLANTS, MOCK_ADOPTIONS, MOCK_OBSERVATIONS, MOCK_ALERTS } from '@/data/mockData'
+
+export function getActiveAdoption(adoptions: Adoption[], plantId: string): Adoption | undefined {
+  const plantAdoptions = adoptions.filter((a) => a.plantId === plantId)
+  const today = new Date()
+  const activeTemp = plantAdoptions.find((a) => {
+    if (!a.isTemporary || !a.endDate) return false
+    try {
+      return isWithinInterval(today, { start: parseISO(a.startDate), end: parseISO(a.endDate) })
+    } catch {
+      return false
+    }
+  })
+  if (activeTemp) return activeTemp
+  return plantAdoptions.find((a) => !a.isTemporary && !a.endDate)
+}
+
+export function getOriginalAdoption(adoptions: Adoption[], plantId: string): Adoption | undefined {
+  return adoptions.find((a) => a.plantId === plantId && !a.isTemporary && !a.endDate)
+}
+
+export function isActiveAdoptionForUser(adoptions: Adoption[], userId: string, a: Adoption): boolean {
+  if (a.userId !== userId) return false
+  if (!a.isTemporary && !a.endDate) return true
+  if (a.isTemporary && a.endDate) {
+    try {
+      return isWithinInterval(new Date(), { start: parseISO(a.startDate), end: parseISO(a.endDate) })
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
+export function hasActiveAdoption(adoptions: Adoption[], plantId: string): boolean {
+  return getActiveAdoption(adoptions, plantId) !== undefined
+}
 
 interface PlantStore {
   plants: Plant[]
@@ -188,8 +224,8 @@ export const usePlantStore = create<PlantStore>((set, get) => ({
         }
       }
 
-      const adoption = adoptions.find((a) => a.plantId === plant.id && !a.endDate)
-      if (!adoption) {
+      const active = getActiveAdoption(adoptions, plant.id)
+      if (!active) {
         const existing = alerts.find(
           (a) => a.plantId === plant.id && a.type === 'neglected' && !a.resolved
         )
@@ -213,7 +249,7 @@ export const usePlantStore = create<PlantStore>((set, get) => ({
   },
 
   getPlantAdoption: (plantId) => {
-    return get().adoptions.find((a) => a.plantId === plantId && !a.endDate)
+    return getActiveAdoption(get().adoptions, plantId)
   },
 
   getPlantObservations: (plantId) => {
@@ -227,18 +263,20 @@ export const usePlantStore = create<PlantStore>((set, get) => ({
   },
 
   getMyPlants: (userId) => {
-    const myAdoptions = get().adoptions.filter(
-      (a) => a.userId === userId && !a.endDate
-    )
-    return get().plants.filter((p) =>
-      myAdoptions.some((a) => a.plantId === p.id)
-    )
+    const { adoptions, plants } = get()
+    const myPlantIds = adoptions
+      .filter((a) => isActiveAdoptionForUser(adoptions, userId, a))
+      .map((a) => a.plantId)
+    return plants.filter((p) => myPlantIds.includes(p.id))
   },
 
   getOrphanPlants: () => {
+    const { adoptions, plants } = get()
     const adoptedIds = new Set(
-      get().adoptions.filter((a) => !a.endDate).map((a) => a.plantId)
+      adoptions
+        .filter((a) => hasActiveAdoption(adoptions, a.plantId))
+        .map((a) => a.plantId)
     )
-    return get().plants.filter((p) => !adoptedIds.has(p.id) && !p.isDead)
+    return plants.filter((p) => !adoptedIds.has(p.id) && !p.isDead)
   },
 }))

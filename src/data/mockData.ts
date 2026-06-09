@@ -206,6 +206,7 @@ export const MOCK_ADOPTIONS: Adoption[] = [
   { id: 'a8', plantId: 'p9', userId: 'u2', userName: '李花草', wateringDays: [0, 2, 4, 6], startDate: '2026-01-25', endDate: null, isTemporary: false, originalAdoptionId: null },
   { id: 'a9', plantId: 'p10', userId: 'u4', userName: '赵青竹', wateringDays: [1, 4], startDate: '2026-05-20', endDate: null, isTemporary: false, originalAdoptionId: null },
   { id: 'a10', plantId: 'p12', userId: 'u1', userName: '张小明', wateringDays: [0, 2, 4, 6], startDate: '2026-03-15', endDate: null, isTemporary: false, originalAdoptionId: null },
+  { id: 'a11', plantId: 'p1', userId: 'u1', userName: '张小明', wateringDays: [1, 4], startDate: '2026-06-09', endDate: '2026-06-16', isTemporary: true, originalAdoptionId: 'a1' },
 ]
 
 export const MOCK_OBSERVATIONS: ObservationLog[] = [

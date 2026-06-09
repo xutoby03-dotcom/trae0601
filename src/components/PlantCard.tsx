@@ -3,6 +3,7 @@ import { differenceInDays } from 'date-fns'
 import { Droplets, Sun } from 'lucide-react'
 import type { Plant } from '@/types'
 import { usePlantStore } from '@/store/plantStore'
+import { getActiveAdoption } from '@/store/plantStore'
 
 const EMOJI_MAP: Record<string, string> = {
   发财树: '🌳',
@@ -46,7 +47,7 @@ interface PlantCardProps {
 export default function PlantCard({ plant }: PlantCardProps) {
   const navigate = useNavigate()
   const adoptions = usePlantStore((s) => s.adoptions)
-  const adoption = adoptions.find((a) => a.plantId === plant.id && !a.endDate)
+  const adoption = getActiveAdoption(adoptions, plant.id)
   const daysSinceWater = differenceInDays(new Date(), new Date(plant.lastWateredAt))
 
   return (
@@ -104,6 +105,9 @@ export default function PlantCard({ plant }: PlantCardProps) {
         {adoption ? (
           <p className="text-xs text-emerald-600 font-medium truncate">
             👤 {adoption.userName}
+            {adoption.isTemporary && (
+              <span className="ml-1 text-amber-500">代养中</span>
+            )}
           </p>
         ) : (
           <span className="inline-block text-xs text-red-400 font-medium bg-red-50 px-1.5 py-0.5 rounded">

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { differenceInDays } from 'date-fns'
 import { Heart, HandHeart } from 'lucide-react'
-import { usePlantStore } from '@/store/plantStore'
+import { usePlantStore, getActiveAdoption, isActiveAdoptionForUser, hasActiveAdoption } from '@/store/plantStore'
 import { CURRENT_USER } from '@/data/mockData'
 import { DAY_LABELS } from '@/types'
 import PlantCard from '@/components/PlantCard'
@@ -17,10 +17,13 @@ export default function MyPlants() {
   const [tab, setTab] = useState<Tab>('mine')
 
   const myAdoptionPlantIds = adoptions
-    .filter((a) => a.userId === CURRENT_USER.id && !a.endDate)
+    .filter((a) => isActiveAdoptionForUser(adoptions, CURRENT_USER.id, a))
     .map((a) => a.plantId)
-  const myPlants = plants.filter((p) => myAdoptionPlantIds.includes(p.id))
-  const adoptedPlantIds = new Set(adoptions.filter((a) => !a.endDate).map((a) => a.plantId))
+  const myPlantIdsSet = new Set(myAdoptionPlantIds)
+  const myPlants = plants.filter((p) => myPlantIdsSet.has(p.id))
+  const adoptedPlantIds = new Set(
+    plants.filter((p) => hasActiveAdoption(adoptions, p.id)).map((p) => p.id)
+  )
   const orphanPlants = plants.filter((p) => !adoptedPlantIds.has(p.id) && !p.isDead)
 
   return (
@@ -69,7 +72,7 @@ export default function MyPlants() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {myPlants.map((plant) => {
-                const adoption = adoptions.find((a) => a.plantId === plant.id && !a.endDate)
+                const adoption = getActiveAdoption(adoptions, plant.id)
                 const daysSinceWater = differenceInDays(new Date(), new Date(plant.lastWateredAt))
                 return (
                   <div key={plant.id} className="space-y-1">
@@ -78,6 +81,9 @@ export default function MyPlants() {
                       <div className="bg-white rounded-xl p-3 shadow-sm space-y-1 text-xs">
                         <p className="text-emerald-600 font-medium">
                           💧 浇水日：{adoption.wateringDays.map((d: number) => `周${DAY_LABELS[d]}`).join('、')}
+                          {adoption.isTemporary && (
+                            <span className="ml-1 text-amber-500">代养中</span>
+                          )}
                         </p>
                         <p className="text-gray-500">
                           已 {daysSinceWater} 天未浇水
