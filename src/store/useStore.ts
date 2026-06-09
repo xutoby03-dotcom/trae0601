@@ -154,11 +154,20 @@ export function getDaysSince(dateStr: string): number {
 export type ACStatus = 'overdue' | 'due-soon' | 'clean'
 
 export function getACStatus(ac: AirConditioner): ACStatus {
+  const currentYear = new Date().getFullYear()
+  const lastCleanYear = ac.lastCleanDate ? new Date(ac.lastCleanDate).getFullYear() : -1
+  if (lastCleanYear === currentYear) return 'clean'
   const days = getDaysSince(ac.lastCleanDate)
   if (days > 90) return 'overdue'
-  if (days >= 60) return 'due-soon'
-  return 'clean'
+  return 'due-soon'
 }
+
+export const ALL_CHECK_TYPES: SeasonCheckItem['checkType'][] = [
+  'remote_battery',
+  'drain_pipe',
+  'outdoor_obstacle',
+  'filter_status',
+]
 
 export const FILTER_TYPE_LABELS: Record<AirConditioner['filterType'], string> = {
   normal: '普通过滤网',

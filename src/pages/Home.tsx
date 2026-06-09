@@ -10,7 +10,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useStore, getACStatus, getDaysSince, CHECK_TYPE_LABELS } from '@/store/useStore'
+import { useStore, getACStatus, getDaysSince, CHECK_TYPE_LABELS, ALL_CHECK_TYPES } from '@/store/useStore'
 import ACCard from '@/components/ACCard'
 import BottomNav from '@/components/BottomNav'
 
@@ -54,8 +54,13 @@ export default function Home() {
     items: acUnits.filter((ac) => getACStatus(ac) === group.status),
   }))
 
-  const uncheckedSeasonItems = seasonChecks.filter((s) => !s.checked)
-  const hasUncheckedSeason = uncheckedSeasonItems.length > 0
+  const uncheckedReminders = acUnits.flatMap((ac) =>
+    ALL_CHECK_TYPES.filter((ct) => {
+      const existing = seasonChecks.find((s) => s.acId === ac.id && s.checkType === ct)
+      return !existing || !existing.checked
+    }).map((ct) => ({ acId: ac.id, checkType: ct, room: ac.room }))
+  )
+  const hasReminders = uncheckedReminders.length > 0
 
   if (acUnits.length === 0) {
     return (
@@ -94,7 +99,7 @@ export default function Home() {
         </p>
       </header>
 
-      {hasUncheckedSeason && (
+      {hasReminders && (
         <div
           className="mb-6 rounded-2xl p-5 text-white shadow-lg"
           style={{
@@ -105,21 +110,20 @@ export default function Home() {
             <Calendar className="h-5 w-5" />
             <span className="text-lg font-bold">换季提醒</span>
             <span className="ml-auto rounded-full bg-white/20 px-3 py-0.5 text-sm font-medium">
-              {uncheckedSeasonItems.length} 项待检查
+              {uncheckedReminders.length} 项待检查
             </span>
           </div>
           <div className="space-y-2">
-            {uncheckedSeasonItems.map((item) => {
-              const ac = acUnits.find((a) => a.id === item.acId)
+            {uncheckedReminders.map((item) => {
               const Icon = SEASON_ICONS[item.checkType] || Wind
               return (
                 <div
-                  key={item.id}
+                  key={`${item.acId}-${item.checkType}`}
                   className="flex items-center gap-2 rounded-lg bg-white/15 px-3 py-2"
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   <span className="text-sm">
-                    {ac?.room ?? '未知'} · {CHECK_TYPE_LABELS[item.checkType]}
+                    {item.room} · {CHECK_TYPE_LABELS[item.checkType]}
                   </span>
                 </div>
               )
