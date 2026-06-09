@@ -47,7 +47,7 @@ export default function Books() {
               >
                 <div
                   className="cursor-pointer"
-                  onClick={() => navigate(`/books/${book.id}/edit`)}
+                  onClick={() => navigate(`/books/${book.id}`)}
                 >
                   <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-warm-50">
                     {book.coverUrl ? (
