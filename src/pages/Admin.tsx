@@ -160,19 +160,14 @@ export default function Admin() {
     }
   }
 
-  const batchUpdateStatus = (status: ReservationStatus) => {
-    selectedPassengers.forEach((resId) => {
-      updateStatus(resId, status)
+  const batchUpdateStatus = (status: ReservationStatus, confirmed: Reservation[]) => {
+    const actionable = confirmed.filter((r) => isActionable(r) && selectedPassengers.has(r.id))
+    actionable.forEach((res) => {
+      updateStatus(res.id, status)
+      if (status === 'no_show') {
+        addCreditRecord(res.employeeId, 'no_show', res.routeId, '爽约未上车', 3)
+      }
     })
-    if (status === 'no_show') {
-      const allReservations = todayRoutes.flatMap((r) => getReservationsByRoute(r.id))
-      selectedPassengers.forEach((resId) => {
-        const res = allReservations.find((r) => r.id === resId)
-        if (res) {
-          addCreditRecord(res.employeeId, 'no_show', res.routeId, '爽约未上车', 3)
-        }
-      })
-    }
     setSelectedPassengers(new Set())
   }
 
@@ -411,31 +406,34 @@ export default function Admin() {
                       </div>
                     )}
 
-                    {selectedPassengers.size > 0 && (
+                    {(() => {
+                      const actionableSelected = confirmed.filter((r) => isActionable(r) && selectedPassengers.has(r.id))
+                      return actionableSelected.length > 0 && (
                       <div className="flex gap-2 pt-1">
                         <button
-                          onClick={() => batchUpdateStatus('boarded')}
+                          onClick={() => batchUpdateStatus('boarded', confirmed)}
                           className="flex items-center gap-1 px-3 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs font-medium transition-colors"
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
-                          标记已上车 ({selectedPassengers.size})
+                          标记已上车 ({actionableSelected.length})
                         </button>
                         <button
-                          onClick={() => batchUpdateStatus('late_no_show')}
+                          onClick={() => batchUpdateStatus('late_no_show', confirmed)}
                           className="flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-medium transition-colors"
                         >
                           <Clock className="w-3.5 h-3.5" />
-                          迟到未上车 ({selectedPassengers.size})
+                          迟到未上车 ({actionableSelected.length})
                         </button>
                         <button
-                          onClick={() => batchUpdateStatus('no_show')}
+                          onClick={() => batchUpdateStatus('no_show', confirmed)}
                           className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium transition-colors"
                         >
                           <AlertTriangle className="w-3.5 h-3.5" />
-                          爽约 ({selectedPassengers.size})
+                          爽约 ({actionableSelected.length})
                         </button>
                       </div>
-                    )}
+                      )
+                    })()}
                   </div>
                 )}
               </div>
