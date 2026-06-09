@@ -37,15 +37,9 @@ export default function Requests() {
   const [genderFilter, setGenderFilter] = useState<string>(paramsGender && GENDERS.includes(paramsGender as any) ? paramsGender : 'all')
 
   useEffect(() => {
-    if (paramsSize && SIZES.includes(paramsSize as any)) {
-      setSizeFilter(paramsSize)
-    }
-    if (paramsSeason && SEASONS.includes(paramsSeason as any)) {
-      setSeasonFilter(paramsSeason)
-    }
-    if (paramsGender && GENDERS.includes(paramsGender as any)) {
-      setGenderFilter(paramsGender)
-    }
+    setSizeFilter(paramsSize && SIZES.includes(paramsSize as any) ? paramsSize : 'all')
+    setSeasonFilter(paramsSeason && SEASONS.includes(paramsSeason as any) ? paramsSeason : 'all')
+    setGenderFilter(paramsGender && GENDERS.includes(paramsGender as any) ? paramsGender : 'all')
   }, [paramsSize, paramsSeason, paramsGender])
 
   const filtered = purchaseRequests.filter((r) => {
