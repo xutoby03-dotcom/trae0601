@@ -43,8 +43,8 @@ function getAgeMultiplier(purchaseYear: number): number {
 export function calculateValuation(phone: Partial<Phone>): ValuationResult {
   const brand = phone.brand || '其他'
   const [rawMin, rawMax] = BRAND_BASE_PRICES[brand] || BRAND_BASE_PRICES['其他']
-  const capMul = CAPACITY_MULTIPLIER[phone.capacity || '128GB'] || 1.0
-  const ageMul = getAgeMultiplier(phone.purchaseYear || 2020)
+  const capMul = CAPACITY_MULTIPLIER[phone.capacity ?? ''] || 1.0
+  const ageMul = phone.purchaseYear != null ? getAgeMultiplier(phone.purchaseYear) : 0.12
 
   let baseMin = Math.round(rawMin * capMul * ageMul)
   let baseMax = Math.round(rawMax * capMul * ageMul)
@@ -59,7 +59,7 @@ export function calculateValuation(phone: Partial<Phone>): ValuationResult {
     deductions.push({ label: '屏幕碎裂', percentage: pct, amount: Math.round(baseMax * pct) })
   }
 
-  if (phone.batteryHealth !== undefined && phone.batteryHealth < 80) {
+  if (phone.batteryHealth != null && phone.batteryHealth < 80) {
     const pct = phone.batteryHealth < 60 ? 0.28 : 0.15
     const label = phone.batteryHealth < 60 ? '电池严重衰减' : '电池健康度低'
     deductions.push({ label, percentage: pct, amount: Math.round(baseMax * pct) })

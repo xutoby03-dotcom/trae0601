@@ -41,7 +41,7 @@ export default function PhoneCard({ phone }: PhoneCardProps) {
         </div>
 
         <p className="mt-0.5 text-sm text-gray-500 truncate">
-          {phone.capacity} · {phone.color}
+          {phone.capacity ?? '容量未知'} · {phone.color}
         </p>
 
         <p className="mt-1 text-sm font-semibold text-[#F77F00]">

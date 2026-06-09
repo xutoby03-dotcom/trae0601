@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Camera, X, TrendingDown, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Camera, X, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react'
 import { BRANDS, CAPACITIES, COLORS, SCREEN_CONDITIONS, ACCESSORIES, type ScreenCondition } from '@/types'
 import { usePhoneStore } from '@/store'
 import { calculateValuation } from '@/utils/valuation'
@@ -11,11 +11,11 @@ const PURCHASE_YEARS = Array.from({ length: currentYear - 2015 + 1 }, (_, i) => 
 const defaultForm = {
   brand: 'Apple',
   model: '',
-  capacity: '128GB',
+  capacity: null as string | null,
   color: '黑色',
-  purchaseYear: currentYear - 1,
+  purchaseYear: null as number | null,
   screenCondition: 'intact' as ScreenCondition,
-  batteryHealth: 85,
+  batteryHealth: null as number | null,
   waterDamage: false,
   accountLocked: false,
   accessories: [] as string[],
@@ -29,6 +29,8 @@ export default function AddPhone() {
   const { addPhone, updatePhone, phones } = usePhoneStore()
 
   const [form, setForm] = useState(defaultForm)
+  const [showModelError, setShowModelError] = useState(false)
+  const [batteryTouched, setBatteryTouched] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function AddPhone() {
           accessories: phone.accessories,
           photos: phone.photos,
         })
+        setBatteryTouched(phone.batteryHealth !== null)
       }
     }
   }, [id, isEdit, phones])
@@ -80,7 +83,10 @@ export default function AddPhone() {
     setForm((f) => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }))
 
   const handleSave = () => {
-    if (!form.model.trim()) return
+    if (!form.model.trim()) {
+      setShowModelError(true)
+      return
+    }
     if (isEdit) {
       updatePhone(id!, form)
       navigate(-1)
@@ -90,7 +96,9 @@ export default function AddPhone() {
     }
   }
 
-  const batteryColor = form.batteryHealth > 80 ? '#52B788' : form.batteryHealth >= 60 ? '#F77F00' : '#E63946'
+  const bh = form.batteryHealth
+  const batteryColor = bh === null ? '#9ca3af' : bh > 80 ? '#52B788' : bh >= 60 ? '#F77F00' : '#E63946'
+  const batteryDisplay = bh !== null ? `${bh}%` : '未填写'
 
   return (
     <div className="min-h-screen bg-gray-50 pb-36">
@@ -106,10 +114,29 @@ export default function AddPhone() {
           </select>
         </Field>
         <Field label="型号">
-          <input className="input-base" placeholder="如 iPhone 14 Pro" value={form.model} onChange={(e) => set('model', e.target.value)} />
+          <div>
+            <input
+              className={`input-base ${showModelError && !form.model.trim() ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
+              placeholder="如 iPhone 14 Pro"
+              value={form.model}
+              onChange={(e) => { set('model', e.target.value); if (e.target.value.trim()) setShowModelError(false) }}
+              onBlur={() => { if (!form.model.trim()) setShowModelError(true) }}
+            />
+            {showModelError && !form.model.trim() && (
+              <div className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                <AlertCircle size={12} />
+                <span>请填写手机型号</span>
+              </div>
+            )}
+          </div>
         </Field>
         <Field label="容量">
-          <select className="input-base" value={form.capacity} onChange={(e) => set('capacity', e.target.value)}>
+          <select
+            className="input-base"
+            value={form.capacity ?? ''}
+            onChange={(e) => set('capacity', e.target.value || null)}
+          >
+            <option value="">请选择容量</option>
             {CAPACITIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </Field>
@@ -119,7 +146,12 @@ export default function AddPhone() {
           </select>
         </Field>
         <Field label="购买年份">
-          <select className="input-base" value={form.purchaseYear} onChange={(e) => set('purchaseYear', +e.target.value)}>
+          <select
+            className="input-base"
+            value={form.purchaseYear ?? ''}
+            onChange={(e) => set('purchaseYear', e.target.value ? +e.target.value : null)}
+          >
+            <option value="">请选择年份</option>
             {PURCHASE_YEARS.map((y) => <option key={y}>{y}</option>)}
           </select>
         </Field>
@@ -141,15 +173,34 @@ export default function AddPhone() {
             ))}
           </div>
         </Field>
-        <Field label={`电池健康度 ${form.batteryHealth}%`}>
+        <Field label={`电池健康度 ${batteryDisplay}`}>
           <div className="flex items-center gap-3">
-            <input
-              type="range" min={0} max={100} value={form.batteryHealth}
-              onChange={(e) => set('batteryHealth', +e.target.value)}
-              className="h-2 flex-1 appearance-none rounded-full accent-[#52B788]"
-              style={{ background: `linear-gradient(to right, ${batteryColor} ${form.batteryHealth}%, #e5e7eb ${form.batteryHealth}%)` }}
-            />
-            <span className="w-10 text-right text-sm font-medium" style={{ color: batteryColor }}>{form.batteryHealth}%</span>
+            {bh !== null ? (
+              <>
+                <input
+                  type="range" min={0} max={100} value={bh}
+                  onChange={(e) => set('batteryHealth', +e.target.value)}
+                  className="h-2 flex-1 appearance-none rounded-full accent-[#52B788]"
+                  style={{ background: `linear-gradient(to right, ${batteryColor} ${bh}%, #e5e7eb ${bh}%)` }}
+                />
+                <span className="w-10 text-right text-sm font-medium" style={{ color: batteryColor }}>{bh}%</span>
+              </>
+            ) : (
+              <button
+                onClick={() => { set('batteryHealth', 85); setBatteryTouched(true) }}
+                className="rounded-lg border border-dashed border-gray-300 px-4 py-1.5 text-sm text-gray-400 transition hover:border-[#52B788] hover:text-[#52B788]"
+              >
+                点击填写电池健康度
+              </button>
+            )}
+            {batteryTouched && bh !== null && (
+              <button
+                onClick={() => { set('batteryHealth', null); setBatteryTouched(false) }}
+                className="text-xs text-gray-400 underline"
+              >
+                清除
+              </button>
+            )}
           </div>
         </Field>
         <Field label="进水损坏">

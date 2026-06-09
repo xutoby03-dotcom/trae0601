@@ -7,11 +7,11 @@ export interface Phone {
   id: string
   brand: string
   model: string
-  capacity: string
+  capacity: string | null
   color: string
-  purchaseYear: number
+  purchaseYear: number | null
   screenCondition: ScreenCondition
-  batteryHealth: number
+  batteryHealth: number | null
   waterDamage: boolean
   accountLocked: boolean
   accessories: string[]

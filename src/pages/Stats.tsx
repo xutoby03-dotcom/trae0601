@@ -17,7 +17,7 @@ function getMissingFields(phone: Phone): string[] {
   if (!phone.model) missing.push('型号')
   if (!phone.capacity) missing.push('容量')
   if (!phone.purchaseYear) missing.push('购入年份')
-  if (phone.batteryHealth === 100) missing.push('电池健康度(默认值)')
+  if (phone.batteryHealth === null) missing.push('电池健康度')
   return missing
 }
 
