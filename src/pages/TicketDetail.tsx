@@ -16,6 +16,8 @@ import {
   Timer,
   Send,
   Truck,
+  X,
+  ZoomIn,
 } from 'lucide-react'
 
 const statusIcons = {
@@ -47,6 +49,7 @@ export default function TicketDetail() {
   const [solution, setSolution] = useState(ticket?.solution || '')
   const [needVendor, setNeedVendor] = useState(ticket?.needVendor || false)
   const [estimatedRecovery, setEstimatedRecovery] = useState(ticket?.estimatedRecovery || '')
+  const [lightboxIdx, setLightboxIdx] = useState(-1)
 
   if (!ticket) {
     return (
@@ -146,10 +149,75 @@ export default function TicketDetail() {
           )}
         </div>
 
-        {ticket.photos.length === 0 && (
+        {ticket.photos.length > 0 ? (
+          <div className="mt-4">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <Camera className="h-3.5 w-3.5" />
+              故障照片 ({ticket.photos.length})
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ticket.photos.map((src, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setLightboxIdx(idx)}
+                  className="group relative h-20 w-20 overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md"
+                >
+                  <img
+                    src={src}
+                    alt={`照片 ${idx + 1}`}
+                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                    <ZoomIn className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
           <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
             <Camera className="h-3.5 w-3.5" />
             暂无故障照片
+          </div>
+        )}
+
+        {lightboxIdx >= 0 && ticket.photos.length > 0 && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={() => setLightboxIdx(-1)}
+          >
+            <button
+              onClick={() => setLightboxIdx(-1)}
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="relative max-h-[85vh] max-w-[85vw]" onClick={(e) => e.stopPropagation()}>
+              <img
+                src={ticket.photos[lightboxIdx]}
+                alt={`照片 ${lightboxIdx + 1}`}
+                className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
+              />
+            </div>
+            {ticket.photos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + ticket.photos.length) % ticket.photos.length) }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % ticket.photos.length) }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                >
+                  ›
+                </button>
+              </>
+            )}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+              {lightboxIdx + 1} / {ticket.photos.length}
+            </div>
           </div>
         )}
 

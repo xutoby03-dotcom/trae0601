@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
 import type { Urgency } from '@/types'
@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   ChevronRight,
   MapPin,
+  Plus,
+  X,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 export default function Report() {
@@ -25,6 +28,8 @@ export default function Report() {
   const [affectedMeetingTime, setAffectedMeetingTime] = useState('')
   const [reporter, setReporter] = useState('')
   const [customFault, setCustomFault] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectedRoom = rooms.find((r) => r.id === roomId)
   const availableEquip = selectedRoom?.equipment || EQUIPMENT_OPTIONS
@@ -46,7 +51,7 @@ export default function Report() {
       equipmentType,
       faultDescription: faultDescription.trim(),
       urgency,
-      photos: [] as string[],
+      photos,
       affectedMeetingTime,
       status: 'pending' as const,
       createdAt: new Date().toISOString(),
@@ -216,12 +221,57 @@ export default function Report() {
             <div className="mt-6">
               <label className="mb-2 block text-xs font-medium text-slate-500">
                 <Camera className="mr-1 inline h-3.5 w-3.5" />
-                故障照片（示意）
+                故障照片
               </label>
-              <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-200 py-8 text-sm text-slate-400">
-                <Camera className="mr-2 h-5 w-5" />
-                点击或拖拽上传照片
+              <div className="flex flex-wrap gap-3">
+                {photos.map((src, idx) => (
+                  <div key={idx} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
+                    <img
+                      src={src}
+                      alt={`照片 ${idx + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                    <button
+                      onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent p-1">
+                      <span className="text-[10px] text-white/80">照片 {idx + 1}</span>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex h-24 w-24 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 text-slate-400 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-500"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span className="text-[11px]">添加照片</span>
+                </button>
               </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || [])
+                  files.forEach((file) => {
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                      const result = ev.target?.result as string
+                      if (result) {
+                        setPhotos((prev) => [...prev, result])
+                      }
+                    }
+                    reader.readAsDataURL(file)
+                  })
+                  e.target.value = ''
+                }}
+              />
+              <p className="mt-2 text-[11px] text-slate-400">支持 JPG、PNG 格式，可添加多张</p>
             </div>
 
             <div className="mt-6">
@@ -277,6 +327,18 @@ export default function Report() {
                     <p className="mt-0.5 text-sm font-medium text-red-600">
                       {new Date(affectedMeetingTime).toLocaleString('zh-CN')}
                     </p>
+                  </div>
+                )}
+                {photos.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-sm text-slate-400">故障照片</span>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {photos.map((src, idx) => (
+                        <div key={idx} className="h-14 w-14 overflow-hidden rounded-lg border border-slate-200">
+                          <img src={src} alt={`照片 ${idx + 1}`} className="h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
