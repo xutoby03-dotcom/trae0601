@@ -215,7 +215,15 @@ function ItemCard({ item, variant }: { item: DryingItem; variant?: 'critical' | 
       )}
 
       {isRetrieved && (
-        <div className="item-card__retrieved-tag">✅ 已收回</div>
+        <div className="item-card__retrieved-tag">
+          ✅ 已收回
+          {(item.wasWet || item.wasMoved) && (
+            <span className="item-card__retrieved-incidents">
+              {item.wasWet && <span className="incident-chip incident-chip--wet">💧 被淋湿</span>}
+              {item.wasMoved && <span className="incident-chip incident-chip--moved">👆 被挪动</span>}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
