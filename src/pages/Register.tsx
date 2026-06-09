@@ -367,19 +367,19 @@ export default function Register() {
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100">
-                      <div className="flex items-center gap-2 min-w-[88px]">
+                      <div className="flex items-center gap-2 w-[100px] shrink-0">
                         <button
                           type="button"
                           onClick={() => updatePendingQuantity(item.tempId, -1)}
-                          className="w-7 h-7 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:bg-stone-100 transition"
+                          className="w-7 h-7 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:bg-stone-100 transition shrink-0"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="text-sm font-bold text-stone-700 inline-block w-5 text-center tabular-nums">{item.quantity}</span>
+                        <span className="text-sm font-bold text-stone-700 inline-block w-10 text-center tabular-nums shrink-0">{item.quantity}</span>
                         <button
                           type="button"
                           onClick={() => updatePendingQuantity(item.tempId, 1)}
-                          className="w-7 h-7 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:bg-stone-100 transition"
+                          className="w-7 h-7 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:bg-stone-100 transition shrink-0"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
