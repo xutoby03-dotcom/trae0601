@@ -64,17 +64,21 @@ export const useJournalStore = create<JournalStore>()(
       addUsageRecord: (record, items) =>
         set((state) => {
           const recordId = generateId();
-          const newUsageItems: UsageItem[] = items.map((item) => ({
-            id: generateId(),
-            usageRecordId: recordId,
-            materialId: item.materialId,
-            quantityUsed: item.quantityUsed,
-          }));
+          const newUsageItems: UsageItem[] = items.map((item) => {
+            const material = state.materials.find((m) => m.id === item.materialId);
+            const capped = material ? Math.min(item.quantityUsed, material.quantity) : item.quantityUsed;
+            return {
+              id: generateId(),
+              usageRecordId: recordId,
+              materialId: item.materialId,
+              quantityUsed: capped,
+            };
+          });
 
           const updatedMaterials = state.materials.map((m) => {
             const usageItem = newUsageItems.find((ui) => ui.materialId === m.id);
-            if (usageItem) {
-              return { ...m, quantity: Math.max(0, m.quantity - usageItem.quantityUsed), updatedAt: new Date().toISOString() };
+            if (usageItem && usageItem.quantityUsed > 0) {
+              return { ...m, quantity: m.quantity - usageItem.quantityUsed, updatedAt: new Date().toISOString() };
             }
             return m;
           });

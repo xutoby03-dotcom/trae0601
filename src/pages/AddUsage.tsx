@@ -19,8 +19,20 @@ export default function AddUsage() {
   const [quantity, setQuantity] = useState(1);
   const [addedMaterials, setAddedMaterials] = useState<AddedMaterial[]>([]);
 
+  const selectedMaterial = selectedMaterialId
+    ? materials.find((m) => m.id === selectedMaterialId)
+    : null;
+  const selectedStock = selectedMaterial?.quantity ?? 0;
+  const isOverQuantity = selectedMaterialId && quantity > selectedStock;
+
+  const hasOverQuantity = addedMaterials.some((am) => {
+    const stock = materials.find((m) => m.id === am.materialId)?.quantity ?? 0;
+    return am.quantityUsed > stock;
+  });
+
   const handleAddMaterial = () => {
     if (!selectedMaterialId || quantity < 1) return;
+    if (isOverQuantity) return;
     if (addedMaterials.some((m) => m.materialId === selectedMaterialId)) return;
 
     setAddedMaterials((prev) => [...prev, { materialId: selectedMaterialId, quantityUsed: quantity }]);
@@ -118,22 +130,29 @@ export default function AddUsage() {
               <input
                 type="number"
                 min={1}
+                max={selectedMaterialId ? selectedStock : undefined}
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-                className="input-field text-center"
+                className={`input-field text-center ${isOverQuantity ? 'border-coral ring-1 ring-coral/30' : ''}`}
               />
             </div>
 
             <button
               type="button"
               onClick={handleAddMaterial}
-              disabled={!selectedMaterialId}
+              disabled={!selectedMaterialId || !!isOverQuantity}
               className="btn-primary flex items-center gap-1 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
               添加
             </button>
           </div>
+
+          {isOverQuantity && (
+            <p className="text-coral text-xs mt-1 mb-2">
+              ⚠️ 库存仅剩 {selectedStock}，使用数量不能超过库存
+            </p>
+          )}
 
           {addedMaterials.length > 0 ? (
             <div className="space-y-2">
@@ -143,14 +162,21 @@ export default function AddUsage() {
               </div>
               {addedMaterials.map((am) => {
                 const type = getMaterialType(am.materialId);
+                const stock = materials.find((m) => m.id === am.materialId)?.quantity ?? 0;
+                const isOver = am.quantityUsed > stock;
                 return (
                   <div
                     key={am.materialId}
-                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-cream-dark/25"
+                    className={`flex items-center justify-between px-3 py-2 rounded-lg ${isOver ? 'bg-coral/8 border border-coral/30' : 'bg-cream-dark/25'}`}
                   >
                     <div className="flex items-center gap-2">
                       <span className={badgeClass[type]}>{getMaterialName(am.materialId)}</span>
-                      <span className="text-brown-muted text-sm font-medium">×{am.quantityUsed}</span>
+                      <span className={`text-sm font-medium ${isOver ? 'text-coral' : 'text-brown-muted'}`}>
+                        ×{am.quantityUsed}
+                      </span>
+                      {isOver && (
+                        <span className="text-coral text-xs">超出库存（剩余{stock}）</span>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -189,7 +215,7 @@ export default function AddUsage() {
           </button>
           <button
             type="submit"
-            disabled={!journalName.trim() || !date || addedMaterials.length === 0}
+            disabled={!journalName.trim() || !date || addedMaterials.length === 0 || hasOverQuantity}
             className="btn-primary flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             保存记录
