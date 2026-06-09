@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #F5E6D3;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(139, 111, 71, 0.015) 2px,
+    rgba(139, 111, 71, 0.015) 4px
+  );
+  min-height: 100vh;
+}
+
+@layer components {
+  .tape-decoration {
+    position: relative;
+  }
+  .tape-decoration::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 12px;
+    width: 48px;
+    height: 16px;
+    background: rgba(232, 180, 184, 0.55);
+    transform: rotate(-3deg);
+    border-radius: 1px;
+    z-index: 10;
+  }
+
+  .tape-decoration-alt::before {
+    background: rgba(168, 213, 186, 0.55);
+    transform: rotate(2deg);
+    left: auto;
+    right: 12px;
+  }
+
+  .tape-decoration-brown::before {
+    background: rgba(196, 173, 140, 0.6);
+    transform: rotate(-1deg);
+  }
+
+  .stitch-line {
+    border-top: 2px dashed rgba(139, 111, 71, 0.25);
+  }
+
+  .card-paper {
+    background: #FFFDF9;
+    border: 1px solid rgba(139, 111, 71, 0.12);
+    box-shadow: 0 2px 8px rgba(139, 111, 71, 0.08), 0 1px 3px rgba(139, 111, 71, 0.06);
+  }
+
+  .card-paper:hover {
+    box-shadow: 0 4px 16px rgba(139, 111, 71, 0.12), 0 2px 6px rgba(139, 111, 71, 0.08);
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 rounded-lg border border-brown-muted/40 bg-white/80 text-brown-dark placeholder:text-brown-muted/60 focus:outline-none focus:ring-2 focus:ring-brown-light/40 focus:border-brown-light transition-all;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg bg-brown text-cream-light font-medium hover:bg-brown-dark transition-all hover:shadow-md active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 rounded-lg bg-cream text-brown border border-brown-muted/30 font-medium hover:bg-cream-dark transition-all active:scale-[0.98];
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-sticker {
+    @apply badge bg-pink-soft/30 text-pink-deep;
+  }
+  .badge-tape {
+    @apply badge bg-mint/30 text-mint-deep;
+  }
+  .badge-memo {
+    @apply badge bg-cream-dark/60 text-brown;
+  }
+  .badge-stamp {
+    @apply badge bg-coral/25 text-coral-deep;
+  }
+
+  .page-container {
+    @apply max-w-5xl mx-auto px-4 py-6;
+  }
+
+  .page-title {
+    @apply font-serif text-2xl font-semibold text-brown-dark mb-6;
+  }
+
+  .section-title {
+    @apply font-serif text-lg font-semibold text-brown-dark mb-3;
+  }
+}
+
+input[type="file"]::file-selector-button {
+  background: rgba(139, 111, 71, 0.1);
+  border: 1px solid rgba(139, 111, 71, 0.2);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  color: #8B6F47;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: rgba(139, 111, 71, 0.18);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 111, 71, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 111, 71, 0.35);
+}
