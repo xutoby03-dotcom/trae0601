@@ -205,10 +205,19 @@ export default function Home() {
         {hovered && (
           <div
             className="card-glass px-3 py-2 text-xs fixed pointer-events-none z-50"
-            style={{ left: hovered.x + 12, top: hovered.y + 12 }}
+            style={{ left: hovered.x + 12, top: hovered.y + 12, minWidth: 140 }}
           >
-            <div className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-              {hovered.device.name}
+            <div className="flex items-center gap-2 mb-1">
+              {hovered.device.photoUrl ? (
+                <img src={hovered.device.photoUrl} alt={hovered.device.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                  <DeviceIcon type={hovered.device.type} size={16} />
+                </div>
+              )}
+              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {hovered.device.name}
+              </span>
             </div>
             <div style={{ color: 'var(--text-secondary)' }}>
               类型：{deviceTypeLabels[hovered.device.type]}

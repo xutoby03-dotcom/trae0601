@@ -97,8 +97,12 @@ export default function DeviceDetail() {
 
       <div className="card-glass mx-4 mt-4 p-5">
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-            <DeviceIcon type={device.type} size={32} className="text-white" />
+          <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+            {device.photoUrl ? (
+              <img src={device.photoUrl} alt={device.name} className="w-full h-full object-cover" />
+            ) : (
+              <DeviceIcon type={device.type} size={32} className="text-white" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold text-white truncate">{device.name}</h2>

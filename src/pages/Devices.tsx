@@ -88,8 +88,12 @@ export default function Devices() {
               onClick={() => navigate(`/devices/${device.id}`)}
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 text-white/60">
-                  <DeviceIcon type={device.type} size={24} />
+                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 text-white/60 overflow-hidden">
+                  {device.photoUrl ? (
+                    <img src={device.photoUrl} alt={device.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <DeviceIcon type={device.type} size={24} />
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
