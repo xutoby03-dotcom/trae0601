@@ -25,7 +25,8 @@ export default function Reserve() {
   const currentEmployee = getCurrentEmployee()
   const banned = currentEmployee ? isEmployeeBanned(currentEmployee.id) : false
   const remainingSeats = route ? getRemainingSeats(id!, route.totalSeats) : 0
-  const isFull = remainingSeats <= 0
+  const needed = 1 + companions
+  const isFull = remainingSeats < needed
 
   if (!route || !currentEmployee) {
     return (
@@ -49,7 +50,7 @@ export default function Reserve() {
       companions,
       isWaitlisted: isFull,
       waitlistPosition: 0,
-    })
+    }, route.totalSeats)
 
     navigate(`/route/${id}`)
   }
@@ -211,7 +212,7 @@ export default function Reserve() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">同行人数</span>
-                <span className="text-gray-800">{companions}人</span>
+                <span className="text-gray-800">{companions}人（共占{1 + companions}座）</span>
               </div>
               {isFull && (
                 <div className="flex justify-between text-sm">

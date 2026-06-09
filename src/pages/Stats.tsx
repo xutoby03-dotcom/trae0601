@@ -28,7 +28,7 @@ function getHeatColor(count: number, max: number) {
 
 export default function Stats() {
   const { routes, getTodayRoutes } = useRouteStore()
-  const { reservations, getConfirmedByRoute } = useReservationStore()
+  const { reservations, getConfirmedByRoute, getOccupiedSeats } = useReservationStore()
   const { employees, getMonthlyNoShows, getMonthlyLateCancels } = useEmployeeStore()
   const { selectedDate } = useAppStore()
 
@@ -42,8 +42,9 @@ export default function Stats() {
 
   const routeOccupancy = todayRoutes.map((route) => {
     const confirmed = getConfirmedByRoute(route.id)
-    const occupancyRate = route.totalSeats > 0 ? (confirmed.length / route.totalSeats) * 100 : 0
-    return { route, confirmedCount: confirmed.length, occupancyRate }
+    const occupied = getOccupiedSeats(route.id)
+    const occupancyRate = route.totalSeats > 0 ? (occupied / route.totalSeats) * 100 : 0
+    return { route, confirmedCount: confirmed.length, occupiedSeats: occupied, occupancyRate }
   }).sort((a, b) => b.occupancyRate - a.occupancyRate)
 
   const stopWaitlist: Record<string, { name: string; count: number }> = {}
@@ -69,8 +70,8 @@ export default function Stats() {
     .sort((a, b) => b.count - a.count)
   const maxWaitlistCount = stopWaitlistSorted.length > 0 ? stopWaitlistSorted[0].count : 1
 
-  const todayReservations = reservations.filter(
-    (r) => !r.isWaitlisted && r.status !== 'cancelled' && routeOccupancy.some((ro) => ro.route.id === r.routeId)
+  const todayOccupiedSeats = todayRoutes.reduce(
+    (sum, route) => sum + getOccupiedSeats(route.id), 0
   )
 
   const avgOccupancy =
@@ -109,9 +110,9 @@ export default function Stats() {
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-4 h-4 text-[#ff6b35]" />
-              <span className="text-xs text-slate-500">今日预约</span>
+              <span className="text-xs text-slate-500">已占座位</span>
             </div>
-            <p className="text-2xl font-bold text-[#1e3a5f]">{todayReservations.length}</p>
+            <p className="text-2xl font-bold text-[#1e3a5f]">{todayOccupiedSeats}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
             <div className="flex items-center gap-2 mb-1">
@@ -135,7 +136,7 @@ export default function Stats() {
             线路拥挤度排名
           </h2>
           <div className="space-y-3">
-            {routeOccupancy.map(({ route, confirmedCount, occupancyRate }) => (
+            {routeOccupancy.map(({ route, occupiedSeats, occupancyRate }) => (
               <div key={route.id}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
@@ -154,7 +155,7 @@ export default function Stats() {
                     />
                   </div>
                   <span className="text-xs text-slate-400 w-16 text-right">
-                    {confirmedCount}/{route.totalSeats}
+                    {occupiedSeats}/{route.totalSeats}
                   </span>
                 </div>
               </div>

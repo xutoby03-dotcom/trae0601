@@ -5,14 +5,16 @@ import { mockReservations } from '@/utils/mockData'
 
 interface ReservationStore {
   reservations: Reservation[]
-  addReservation: (data: Omit<Reservation, 'id' | 'createdAt' | 'status'>) => string
-  cancelReservation: (id: string, minutesBeforeDeparture: number) => { creditCost: number; type: 'free' | 'late' | 'no_show' }
+  addReservation: (data: Omit<Reservation, 'id' | 'createdAt' | 'status'>, totalSeats: number) => string
+  cancelReservation: (id: string, minutesBeforeDeparture: number, totalSeats: number) => { creditCost: number; type: 'free' | 'late' | 'no_show' }
   updateStatus: (id: string, status: ReservationStatus) => void
   getReservationsByRoute: (routeId: string) => Reservation[]
   getWaitlistByRoute: (routeId: string) => Reservation[]
   getConfirmedByRoute: (routeId: string) => Reservation[]
   getReservationsByEmployee: (employeeId: string) => Reservation[]
+  getOccupiedSeats: (routeId: string) => number
   getRemainingSeats: (routeId: string, totalSeats: number) => number
+  renumberWaitlist: (routeId: string) => void
 }
 
 let resCounter = 20
@@ -22,9 +24,12 @@ export const useReservationStore = create<ReservationStore>()(
     (set, get) => ({
       reservations: mockReservations,
 
-      addReservation: (data) => {
+      addReservation: (data, totalSeats) => {
         const id = `res${++resCounter}_${Date.now()}`
-        const isWaitlisted = data.isWaitlisted
+        const occupied = get().getOccupiedSeats(data.routeId)
+        const needed = 1 + data.companions
+        const isWaitlisted = data.isWaitlisted || (occupied + needed > totalSeats)
+
         const waitlistPosition = isWaitlisted
           ? get().getWaitlistByRoute(data.routeId).length + 1
           : 0
@@ -41,7 +46,7 @@ export const useReservationStore = create<ReservationStore>()(
         return id
       },
 
-      cancelReservation: (id, minutesBeforeDeparture) => {
+      cancelReservation: (id, minutesBeforeDeparture, totalSeats) => {
         let creditCost = 0
         let type: 'free' | 'late' | 'no_show' = 'free'
 
@@ -56,6 +61,12 @@ export const useReservationStore = create<ReservationStore>()(
           type = 'no_show'
         }
 
+        const target = get().reservations.find((r) => r.id === id)
+        if (!target) return { creditCost, type }
+
+        const wasWaitlisted = target.isWaitlisted
+        const routeId = target.routeId
+
         set((s) => ({
           reservations: s.reservations.map((r) =>
             r.id === id
@@ -64,20 +75,34 @@ export const useReservationStore = create<ReservationStore>()(
           ),
         }))
 
-        const cancelled = get().reservations.find((r) => r.id === id)
-        if (cancelled && cancelled.isWaitlisted) {
-          const waitlist = get()
-            .getWaitlistByRoute(cancelled.routeId)
-            .filter((r) => r.id !== id)
-          if (waitlist.length > 0) {
-            const promoted = waitlist[0]
+        if (wasWaitlisted) {
+          get().renumberWaitlist(routeId)
+        } else {
+          const occupied = get().getOccupiedSeats(routeId)
+          const waitlist = get().getWaitlistByRoute(routeId)
+          let seatsAvailable = totalSeats - occupied
+
+          const toPromote: string[] = []
+          for (const wl of waitlist) {
+            const needed = 1 + wl.companions
+            if (seatsAvailable >= needed) {
+              toPromote.push(wl.id)
+              seatsAvailable -= needed
+            } else {
+              break
+            }
+          }
+
+          if (toPromote.length > 0) {
             set((s) => ({
-              reservations: s.reservations.map((r) =>
-                r.id === promoted.id
-                  ? { ...r, isWaitlisted: false, waitlistPosition: 0 }
-                  : r
-              ),
+              reservations: s.reservations.map((r) => {
+                if (toPromote.includes(r.id)) {
+                  return { ...r, isWaitlisted: false, waitlistPosition: 0 }
+                }
+                return r
+              }),
             }))
+            get().renumberWaitlist(routeId)
           }
         }
 
@@ -108,9 +133,34 @@ export const useReservationStore = create<ReservationStore>()(
       getReservationsByEmployee: (employeeId) =>
         get().reservations.filter((r) => r.employeeId === employeeId),
 
-      getRemainingSeats: (routeId, totalSeats) => {
+      getOccupiedSeats: (routeId) => {
         const confirmed = get().getConfirmedByRoute(routeId)
-        return Math.max(0, totalSeats - confirmed.length)
+        return confirmed.reduce((sum, r) => sum + 1 + r.companions, 0)
+      },
+
+      getRemainingSeats: (routeId, totalSeats) => {
+        const occupied = get().getOccupiedSeats(routeId)
+        return Math.max(0, totalSeats - occupied)
+      },
+
+      renumberWaitlist: (routeId) => {
+        const waitlist = get()
+          .reservations.filter((r) => r.routeId === routeId && r.isWaitlisted && r.status !== 'cancelled')
+          .sort((a, b) => a.waitlistPosition - b.waitlistPosition)
+
+        if (waitlist.length === 0) return
+
+        const positionMap = new Map<string, number>()
+        waitlist.forEach((r, i) => positionMap.set(r.id, i + 1))
+
+        set((s) => ({
+          reservations: s.reservations.map((r) => {
+            if (positionMap.has(r.id)) {
+              return { ...r, waitlistPosition: positionMap.get(r.id)! }
+            }
+            return r
+          }),
+        }))
       },
     }),
     { name: 'shuttle-reservations' }

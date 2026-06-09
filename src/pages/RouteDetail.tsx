@@ -14,6 +14,7 @@ export default function RouteDetail() {
   const getWaitlistByRoute = useReservationStore((s) => s.getWaitlistByRoute)
   const getConfirmedByRoute = useReservationStore((s) => s.getConfirmedByRoute)
   const getRemainingSeats = useReservationStore((s) => s.getRemainingSeats)
+  const getOccupiedSeats = useReservationStore((s) => s.getOccupiedSeats)
   const cancelReservation = useReservationStore((s) => s.cancelReservation)
   const getCurrentEmployee = useEmployeeStore((s) => s.getCurrentEmployee)
   const addCreditRecord = useEmployeeStore((s) => s.addCreditRecord)
@@ -39,7 +40,7 @@ export default function RouteDetail() {
     )
   }
 
-  const occupancyRate = route.totalSeats > 0 ? confirmed.length / route.totalSeats : 0
+  const occupancyRate = route.totalSeats > 0 ? getOccupiedSeats(route.id) / route.totalSeats : 0
 
   function getMinutesBeforeDeparture(): number {
     const today = new Date()
@@ -52,7 +53,7 @@ export default function RouteDetail() {
   function handleCancel() {
     if (!myReservation) return
     const minutes = getMinutesBeforeDeparture()
-    const result = cancelReservation(myReservation.id, minutes)
+    const result = cancelReservation(myReservation.id, minutes, route.totalSeats)
     if (result.creditCost > 0) {
       const type = result.type === 'no_show' ? 'no_show' : 'late_cancel'
       const reason = result.type === 'no_show' ? '爽约未上车' : '发车前30分钟内取消'
