@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { usePhoneStore } from '@/store'
 import type { Phone } from '@/types'
 import { calculateValuation } from '@/utils/valuation'
@@ -28,6 +29,7 @@ function getBarColor(pct: number): string {
 }
 
 export default function Stats() {
+  const navigate = useNavigate()
   const { phones, transactions } = usePhoneStore()
 
   const totalRecycled = transactions.reduce((sum, t) => sum + t.finalPrice, 0)
@@ -103,9 +105,18 @@ export default function Stats() {
           ) : (
             <div className="space-y-2">
               {incompletePhones.map(({ phone, missing }) => (
-                <div key={phone.id} className="bg-white rounded-lg p-2.5 text-sm">
-                  <span className="font-medium text-gray-800">{phone.brand} {phone.model || '未知型号'}</span>
-                  <span className="text-amber-600 ml-2">缺少: {missing.join('、')}</span>
+                <div key={phone.id} className="flex items-center justify-between bg-white rounded-lg p-2.5 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-medium text-gray-800">{phone.brand} {phone.model || '未知型号'}</span>
+                    <span className="text-amber-600 ml-2">缺少: {missing.join('、')}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/phone/${phone.id}/edit`)}
+                    className="shrink-0 ml-2 rounded-lg px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors"
+                    style={{ background: 'rgba(245,158,11,0.15)' }}
+                  >
+                    去补充
+                  </button>
                 </div>
               ))}
             </div>

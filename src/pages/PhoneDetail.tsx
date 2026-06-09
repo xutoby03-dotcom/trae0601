@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Pencil, Plus, Trash2, Star, TrendingDown, TrendingUp, X } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, Trash2, Star, TrendingDown, TrendingUp, X, AlertTriangle } from 'lucide-react'
 import type { ChannelType, DisposalMethod } from '@/types'
 import { CHANNEL_TYPES, DISPOSAL_METHODS } from '@/types'
 import { usePhoneStore } from '@/store'
 import { calculateValuation, GROUP_LABELS, GROUP_COLORS } from '@/utils/valuation'
+
+function getMissingFields(phone: { model: string; capacity: string | null; purchaseYear: number | null; batteryHealth: number | null }): string[] {
+  const missing: string[] = []
+  if (!phone.model) missing.push('型号')
+  if (!phone.capacity) missing.push('容量')
+  if (!phone.purchaseYear) missing.push('购入年份')
+  if (phone.batteryHealth === null) missing.push('电池健康度')
+  return missing
+}
 
 export default function PhoneDetail() {
   const { id } = useParams<{ id: string }>()
@@ -32,6 +41,7 @@ export default function PhoneDetail() {
   }
 
   const valuation = calculateValuation(phone)
+  const missingFields = getMissingFields(phone)
 
   const groupedQuotes = CHANNEL_TYPES.map((ct) => ({
     ...ct,
@@ -105,6 +115,20 @@ export default function PhoneDetail() {
             </div>
           )}
         </section>
+
+        {missingFields.length > 0 && (
+          <button
+            onClick={() => navigate(`/phone/${id}/edit`)}
+            className="flex w-full items-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-left"
+            style={{ borderLeft: '4px solid #F59E0B' }}
+          >
+            <AlertTriangle size={16} className="shrink-0 text-amber-500" />
+            <span className="flex-1 text-sm text-amber-800">
+              缺少 <span className="font-medium">{missingFields.join('、')}</span>，补充后估价更准确
+            </span>
+            <span className="shrink-0 text-xs font-medium text-amber-600 underline">去补充</span>
+          </button>
+        )}
 
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
