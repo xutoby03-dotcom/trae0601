@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Quicksand", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --color-warm-50: #FFF8F0;
+  --color-warm-100: #FFECD2;
+  --color-warm-200: #FFD9A5;
+}
+
+body {
+  background-color: var(--color-warm-50);
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-200 active:scale-95;
+  }
+  .btn-secondary {
+    @apply bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-200 active:scale-95;
+  }
+  .btn-outline {
+    @apply border-2 border-orange-400 text-orange-500 font-semibold py-2 px-5 rounded-full hover:bg-orange-50 transition-all duration-200;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-orange-50;
+  }
+  .tag {
+    @apply text-xs font-semibold px-2.5 py-0.5 rounded-full;
+  }
+  .tag-orange {
+    @apply tag bg-orange-100 text-orange-600;
+  }
+  .tag-green {
+    @apply tag bg-emerald-100 text-emerald-600;
+  }
+  .tag-blue {
+    @apply tag bg-sky-100 text-sky-600;
+  }
+  .tag-red {
+    @apply tag bg-red-100 text-red-600;
+  }
+  .tag-purple {
+    @apply tag bg-violet-100 text-violet-600;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all duration-200 bg-white;
+  }
+  .select-field {
+    @apply w-full px-4 py-2.5 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all duration-200 bg-white appearance-none;
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: count-up 0.6s ease-out forwards;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #fed7aa;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fdba74;
+}
