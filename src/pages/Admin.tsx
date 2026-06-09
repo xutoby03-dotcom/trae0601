@@ -10,17 +10,114 @@ import {
   ChevronDown,
   ChevronUp,
   Bus,
+  X,
+  MapPin,
+  Luggage as LuggageIcon,
+  Users,
+  User,
+  Armchair,
 } from 'lucide-react'
 import { useRouteStore } from '@/stores/useRouteStore'
 import { useReservationStore } from '@/stores/useReservationStore'
 import { useEmployeeStore } from '@/stores/useEmployeeStore'
 import { useAppStore } from '@/stores/useAppStore'
-import type { ReservationStatus } from '@/types'
+import type { Reservation, ReservationStatus } from '@/types'
+
+const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
+  reserved: { label: '已预约', bg: 'bg-white/10', text: 'text-white/50' },
+  boarded: { label: '已上车', bg: 'bg-green-500/20', text: 'text-green-400' },
+  late_no_show: { label: '迟到未上车', bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  no_show: { label: '爽约', bg: 'bg-red-500/20', text: 'text-red-400' },
+}
+
+function PassengerDrawer({
+  reservation,
+  onClose,
+}: {
+  reservation: Reservation
+  onClose: () => void
+}) {
+  const occupied = 1 + reservation.companions
+  const sc = statusConfig[reservation.status] ?? statusConfig.reserved
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-full max-w-lg bg-[#162d4a] rounded-t-2xl p-5 pb-8 animate-in slide-in-from-bottom"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">乘客详情</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 transition-colors">
+            <X className="w-5 h-5 text-white/60" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
+            <div className="w-10 h-10 rounded-full bg-[#ff6b35]/20 flex items-center justify-center">
+              <User className="w-5 h-5 text-[#ff6b35]" />
+            </div>
+            <div>
+              <div className="text-white font-semibold">{reservation.employeeName}</div>
+              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${sc.bg} ${sc.text}`}>
+                {sc.label}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/5 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <MapPin className="w-3.5 h-3.5 text-[#ff6b35]" />
+                <span className="text-white/50 text-xs">上车站</span>
+              </div>
+              <span className="text-white text-sm font-medium">{reservation.boardingStop}</span>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Armchair className="w-3.5 h-3.5 text-[#ff6b35]" />
+                <span className="text-white/50 text-xs">占座数</span>
+              </div>
+              <span className="text-white text-sm font-medium">{occupied} 座</span>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <LuggageIcon className="w-3.5 h-3.5 text-[#ff6b35]" />
+                <span className="text-white/50 text-xs">行李</span>
+              </div>
+              <span className="text-white text-sm font-medium">{reservation.hasLuggage ? '有' : '无'}</span>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Users className="w-3.5 h-3.5 text-[#ff6b35]" />
+                <span className="text-white/50 text-xs">同行人</span>
+              </div>
+              <span className="text-white text-sm font-medium">
+                {reservation.companions > 0 ? `${reservation.companions} 人` : '无'}
+              </span>
+            </div>
+          </div>
+
+          {reservation.isWaitlisted && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <span className="text-yellow-300 text-sm">
+                候补第 {reservation.waitlistPosition} 位，占 {occupied} 座
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Admin() {
   const navigate = useNavigate()
   const { routes, deleteRoute, toggleDelay, getTodayRoutes } = useRouteStore()
-  const { getReservationsByRoute, updateStatus, getRemainingSeats } = useReservationStore()
+  const { getReservationsByRoute, getConfirmedByRoute, getWaitlistByRoute, updateStatus, getRemainingSeats, getOccupiedSeats } = useReservationStore()
   const { addCreditRecord } = useEmployeeStore()
   const { selectedDate } = useAppStore()
 
@@ -29,6 +126,7 @@ export default function Admin() {
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null)
   const [selectedPassengers, setSelectedPassengers] = useState<Set<string>>(new Set())
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [drawerReservation, setDrawerReservation] = useState<Reservation | null>(null)
 
   const toggleExpand = (routeId: string) => {
     setExpandedRoute(expandedRoute === routeId ? null : routeId)
@@ -45,11 +143,17 @@ export default function Admin() {
     setSelectedPassengers(next)
   }
 
-  const toggleAllPassengers = (reservations: { id: string }[]) => {
-    if (selectedPassengers.size === reservations.length) {
-      setSelectedPassengers(new Set())
+  const toggleAllConfirmed = (confirmed: Reservation[]) => {
+    const confirmedIds = new Set(confirmed.map((r) => r.id))
+    const allConfirmedSelected = confirmed.every((r) => selectedPassengers.has(r.id))
+    if (allConfirmedSelected) {
+      const next = new Set(selectedPassengers)
+      confirmedIds.forEach((id) => next.delete(id))
+      setSelectedPassengers(next)
     } else {
-      setSelectedPassengers(new Set(reservations.map((r) => r.id)))
+      const next = new Set(selectedPassengers)
+      confirmedIds.forEach((id) => next.add(id))
+      setSelectedPassengers(next)
     }
   }
 
@@ -111,8 +215,10 @@ export default function Admin() {
 
         <div className="space-y-4">
           {todayRoutes.map((route) => {
-            const reservations = getReservationsByRoute(route.id)
+            const confirmed = getConfirmedByRoute(route.id)
+            const waitlist = getWaitlistByRoute(route.id)
             const remaining = getRemainingSeats(route.id, route.totalSeats)
+            const occupied = getOccupiedSeats(route.id)
             const isExpanded = expandedRoute === route.id
 
             return (
@@ -149,7 +255,7 @@ export default function Admin() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-white/60 text-xs">
-                        {route.totalSeats - remaining}/{route.totalSeats}
+                        {occupied}/{route.totalSeats}
                       </span>
                       {isExpanded ? (
                         <ChevronUp className="w-5 h-5 text-white/40" />
@@ -161,7 +267,7 @@ export default function Admin() {
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t border-white/10 px-4 pb-4 pt-3 space-y-3">
+                  <div className="border-t border-white/10 px-4 pb-4 pt-3 space-y-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => toggleDelay(route.id)}
@@ -196,18 +302,19 @@ export default function Admin() {
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-white/60 text-xs font-medium">
-                          乘客列表 ({reservations.length})
+                        <span className="text-white/70 text-xs font-semibold flex items-center gap-1.5">
+                          <Armchair className="w-3.5 h-3.5 text-[#ff6b35]" />
+                          正式座位 ({confirmed.length}人·{occupied}座)
                         </span>
-                        {reservations.length > 0 && (
+                        {confirmed.length > 0 && (
                           <label className="flex items-center gap-1.5 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={
-                                reservations.length > 0 &&
-                                selectedPassengers.size === reservations.length
-                              }
-                              onChange={() => toggleAllPassengers(reservations)}
+                              confirmed.length > 0 &&
+                              confirmed.every((r) => selectedPassengers.has(r.id))
+                            }
+                              onChange={() => toggleAllConfirmed(confirmed)}
                               className="accent-[#ff6b35] w-3.5 h-3.5 rounded"
                             />
                             <span className="text-white/40 text-xs">全选</span>
@@ -215,53 +322,85 @@ export default function Admin() {
                         )}
                       </div>
 
-                      {reservations.length === 0 && (
-                        <p className="text-white/30 text-xs text-center py-3">暂无乘客</p>
+                      {confirmed.length === 0 && (
+                        <p className="text-white/30 text-xs text-center py-3">暂无正式乘客</p>
                       )}
 
                       <div className="space-y-1.5">
-                        {reservations.map((res) => (
-                          <div
-                            key={res.id}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedPassengers.has(res.id)}
-                              onChange={() => togglePassenger(res.id)}
-                              className="accent-[#ff6b35] w-3.5 h-3.5 rounded flex-shrink-0"
-                            />
-                            <span className="text-white text-sm flex-1 truncate">
-                              {res.employeeName}
-                            </span>
-                            <span className="text-white/40 text-xs truncate max-w-[80px]">
-                              {res.boardingStop}
-                            </span>
-                            <span
-                              className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${
-                                res.status === 'boarded'
-                                  ? 'bg-green-500/20 text-green-400'
-                                  : res.status === 'late_no_show'
-                                  ? 'bg-yellow-500/20 text-yellow-400'
-                                  : res.status === 'no_show'
-                                  ? 'bg-red-500/20 text-red-400'
-                                  : 'bg-white/10 text-white/50'
-                              }`}
+                        {confirmed.map((res) => {
+                          const sc = statusConfig[res.status] ?? statusConfig.reserved
+                          return (
+                            <div
+                              key={res.id}
+                              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/8 transition-colors cursor-pointer"
+                              onClick={() => setDrawerReservation(res)}
                             >
-                              {res.status === 'reserved'
-                                ? '已预约'
-                                : res.status === 'boarded'
-                                ? '已上车'
-                                : res.status === 'late_no_show'
-                                ? '迟到未上车'
-                                : res.status === 'no_show'
-                                ? '爽约'
-                                : res.status}
-                            </span>
-                          </div>
-                        ))}
+                              <div
+                                className="flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedPassengers.has(res.id)}
+                                  onChange={() => togglePassenger(res.id)}
+                                  className="accent-[#ff6b35] w-3.5 h-3.5 rounded"
+                                />
+                              </div>
+                              <span className="text-white text-sm flex-1 truncate">
+                                {res.employeeName}
+                              </span>
+                              {res.companions > 0 && (
+                                <span className="text-[#ff6b35] text-[10px] font-bold bg-[#ff6b35]/15 px-1.5 py-0.5 rounded">
+                                  +{res.companions}人·{1 + res.companions}座
+                                </span>
+                              )}
+                              <span className="text-white/40 text-xs truncate max-w-[72px]">
+                                {res.boardingStop}
+                              </span>
+                              <span
+                                className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${sc.bg} ${sc.text}`}
+                              >
+                                {sc.label}
+                              </span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
+
+                    {waitlist.length > 0 && (
+                      <div>
+                        <span className="text-white/70 text-xs font-semibold flex items-center gap-1.5 mb-2">
+                          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+                          候补排队 ({waitlist.length}人)
+                        </span>
+                        <div className="space-y-1.5">
+                          {waitlist.map((wl) => {
+                            const wlSeats = 1 + wl.companions
+                            return (
+                              <div
+                                key={wl.id}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/5 border border-yellow-500/10 hover:bg-yellow-500/10 transition-colors cursor-pointer"
+                                onClick={() => setDrawerReservation(wl)}
+                              >
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-bold flex items-center justify-center">
+                                  {wl.waitlistPosition}
+                                </span>
+                                <span className="text-white text-sm flex-1 truncate">
+                                  {wl.employeeName}
+                                </span>
+                                <span className="text-yellow-400/70 text-[10px] font-medium">
+                                  占{wlSeats}座
+                                </span>
+                                <span className="text-white/40 text-xs truncate max-w-[72px]">
+                                  {wl.boardingStop}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {selectedPassengers.size > 0 && (
                       <div className="flex gap-2 pt-1">
@@ -295,6 +434,13 @@ export default function Admin() {
           })}
         </div>
       </div>
+
+      {drawerReservation && (
+        <PassengerDrawer
+          reservation={drawerReservation}
+          onClose={() => setDrawerReservation(null)}
+        />
+      )}
     </div>
   )
 }
