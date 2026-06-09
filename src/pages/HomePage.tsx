@@ -67,7 +67,7 @@ function classifyItems(items: DryingItem[], rules: CommunityRules): ClassifiedIt
 
 const REMIND_TEMPLATES = [
   { key: 'wind', icon: '💨', label: '风大快掉了' },
-  { key: 'block', icon: '🚫', label: '挡住位置了' },
+  { key: 'block', icon: '🚫', label: '挡住别人位置了' },
 ];
 
 function ItemCard({ item, variant }: { item: DryingItem; variant?: 'critical' | 'overtime' | 'overstay' | 'normal' }) {
