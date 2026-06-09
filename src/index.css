@@ -582,6 +582,17 @@ body {
   object-fit: cover;
 }
 
+.photo-hint {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-xs);
+  background: var(--warning-light);
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px dashed var(--warning-border);
+}
+
 .toggle-group {
   display: flex;
   gap: 10px;

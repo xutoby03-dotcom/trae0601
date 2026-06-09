@@ -20,6 +20,7 @@ export default function NewReport() {
   const [blocksPassage, setBlocksPassage] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [reportId, setReportId] = useState('')
+  const [photoHint, setPhotoHint] = useState(false)
 
   const fireRisk = calculateFireRisk(itemType, occupyLocation, blocksPassage)
   const groupKey = generateGroupKey(building, floor, occupyLocation)
@@ -31,6 +32,7 @@ export default function NewReport() {
       const reader = new FileReader()
       reader.onload = (ev) => {
         setPhoto(ev.target?.result as string)
+        setPhotoHint(false)
       }
       reader.readAsDataURL(file)
     }
@@ -39,6 +41,11 @@ export default function NewReport() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!building || !floor) return
+    if (!photo) {
+      setPhotoHint(true)
+      return
+    }
+    setPhotoHint(false)
     const id = addReport({
       building,
       floor,
@@ -169,6 +176,11 @@ export default function NewReport() {
               hidden
             />
           </div>
+          {photoHint && (
+            <div className="photo-hint">
+              📸 上传一张现场照片，方便物业定位和及时处理哦～
+            </div>
+          )}
         </div>
 
         <div className="form-section">
@@ -212,7 +224,7 @@ export default function NewReport() {
           )}
         </div>
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={!building || !floor}>
+        <button type="submit" className="btn btn-primary btn-block" disabled={!building || !floor || !photo}>
           提交提醒
         </button>
       </form>
