@@ -48,10 +48,10 @@ export default function CheckIn() {
   }
 
   const issuedToday = visitors.filter(
-    (v) => v.badgeNumber && v.status !== 'expected'
+    (v) => v.badgeNumber
   ).length
   const returnedToday = visitors.filter(
-    (v) => v.status === 'departed' && v.badgeNumber
+    (v) => v.badgeReturned
   ).length
   const outstanding = issuedToday - returnedToday
 

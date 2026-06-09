@@ -14,6 +14,7 @@ export interface Visitor {
   purpose: string
   status: VisitorStatus
   badgeNumber: string | null
+  badgeReturned: boolean
   hostId: string
   meetingRoomId: string
   appointmentId: string

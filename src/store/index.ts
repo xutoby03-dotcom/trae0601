@@ -64,28 +64,33 @@ function createMockData() {
   const visitors: Visitor[] = [
     {
       id: 'vis-001', name: '赵雪', company: '字节跳动', phone: '13900001004', licensePlate: '',
-      purpose: '面试', status: 'departed', badgeNumber: 'V-1001', hostId: 'emp-010', meetingRoomId: 'room-005',
+      purpose: '面试', status: 'departed', badgeNumber: 'V-1001', badgeReturned: true, hostId: 'emp-010', meetingRoomId: 'room-005',
       appointmentId: 'apt-004', expectedArrival: today9, actualArrival: today930, actualDeparture: today1030, createdAt: today730,
     },
     {
       id: 'vis-002', name: '刘强', company: '华为科技', phone: '13900001001', licensePlate: '京A12345',
-      purpose: '商务洽谈', status: 'checked-in', badgeNumber: 'V-1002', hostId: 'emp-001', meetingRoomId: 'room-001',
+      purpose: '商务洽谈', status: 'checked-in', badgeNumber: 'V-1002', badgeReturned: false, hostId: 'emp-001', meetingRoomId: 'room-001',
       appointmentId: 'apt-001', expectedArrival: today10, actualArrival: today930, actualDeparture: null, createdAt: today9,
     },
     {
       id: 'vis-003', name: '陈丽', company: '阿里巴巴', phone: '13900001002', licensePlate: '',
-      purpose: '面试', status: 'expected', badgeNumber: null, hostId: 'emp-004', meetingRoomId: 'room-003',
+      purpose: '面试', status: 'expected', badgeNumber: null, badgeReturned: false, hostId: 'emp-004', meetingRoomId: 'room-003',
       appointmentId: 'apt-002', expectedArrival: today14, actualArrival: null, actualDeparture: null, createdAt: today9,
     },
     {
       id: 'vis-004', name: '孙鹏', company: '京东集团', phone: '13900001005', licensePlate: '京C11111',
-      purpose: '供应商拜访', status: 'expected', badgeNumber: null, hostId: 'emp-006', meetingRoomId: 'room-002',
+      purpose: '供应商拜访', status: 'expected', badgeNumber: null, badgeReturned: false, hostId: 'emp-006', meetingRoomId: 'room-002',
       appointmentId: 'apt-005', expectedArrival: today15, actualArrival: null, actualDeparture: null, createdAt: today10,
     },
     {
       id: 'vis-005', name: '林芳', company: '美团', phone: '13900001006', licensePlate: '',
-      purpose: '合作洽谈', status: 'no-show', badgeNumber: null, hostId: 'emp-002', meetingRoomId: 'room-004',
+      purpose: '合作洽谈', status: 'no-show', badgeNumber: null, badgeReturned: false, hostId: 'emp-002', meetingRoomId: 'room-004',
       appointmentId: 'apt-006', expectedArrival: today930, actualArrival: null, actualDeparture: null, createdAt: today830,
+    },
+    {
+      id: 'vis-006', name: '王伟', company: '腾讯科技', phone: '13900001003', licensePlate: '京B67890',
+      purpose: '技术对接', status: 'expected', badgeNumber: null, badgeReturned: false, hostId: 'emp-005', meetingRoomId: 'room-001',
+      appointmentId: 'apt-003', expectedArrival: today10, actualArrival: null, actualDeparture: null, createdAt: today830,
     },
   ]
 
@@ -175,13 +180,38 @@ export const useStore = create<VisitorStore>()(
 
       addAppointment: (apt) => {
         const id = `apt-${generateId()}`
+        const now = new Date().toISOString()
         const newApt: Appointment = {
           ...apt,
           id,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
+          status: apt.hostConfirmed ? 'confirmed' : 'pending',
+          createdAt: now,
         }
-        set((s) => ({ appointments: [...s.appointments, newApt] }))
+
+        const visitorId = `vis-${generateId()}`
+        const newVisitor: Visitor = {
+          id: visitorId,
+          name: apt.visitorName,
+          company: apt.visitorCompany,
+          phone: apt.visitorPhone,
+          licensePlate: apt.visitorLicensePlate,
+          purpose: apt.purpose,
+          status: 'expected',
+          badgeNumber: null,
+          badgeReturned: false,
+          hostId: apt.hostId,
+          meetingRoomId: apt.meetingRoomId,
+          appointmentId: id,
+          expectedArrival: apt.expectedArrival,
+          actualArrival: null,
+          actualDeparture: null,
+          createdAt: now,
+        }
+
+        set((s) => ({
+          appointments: [...s.appointments, newApt],
+          visitors: [...s.visitors, newVisitor],
+        }))
 
         if (!apt.hostConfirmed) {
           const host = get().getEmployee(apt.hostId)
@@ -190,7 +220,7 @@ export const useStore = create<VisitorStore>()(
             'high',
             `${apt.visitorName}（${apt.visitorCompany}）的预约尚未获得接待人${host?.name ?? ''}确认`,
             id,
-            null
+            visitorId
           )
         }
 
@@ -208,7 +238,7 @@ export const useStore = create<VisitorStore>()(
             'medium',
             `${room?.name ?? '会议室'}在${new Date(apt.expectedArrival).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}时间段存在预约冲突`,
             id,
-            null
+            visitorId
           )
         }
 
@@ -237,60 +267,56 @@ export const useStore = create<VisitorStore>()(
       },
 
       checkIn: (appointmentId) => {
-        const apt = get().appointments.find((a) => a.id === appointmentId)
-        if (!apt) return null
+        const existingVisitor = get().visitors.find(
+          (v) => v.appointmentId === appointmentId && v.status === 'expected'
+        )
+        if (!existingVisitor) return null
 
         const badgeNumber = generateBadgeNumber()
-        const visitorId = `vis-${generateId()}`
         const now = new Date().toISOString()
 
-        const newVisitor: Visitor = {
-          id: visitorId,
-          name: apt.visitorName,
-          company: apt.visitorCompany,
-          phone: apt.visitorPhone,
-          licensePlate: apt.visitorLicensePlate,
-          purpose: apt.purpose,
-          status: 'checked-in',
-          badgeNumber,
-          hostId: apt.hostId,
-          meetingRoomId: apt.meetingRoomId,
-          appointmentId,
-          expectedArrival: apt.expectedArrival,
-          actualArrival: now,
-          actualDeparture: null,
-          createdAt: now,
-        }
-
         set((s) => ({
-          visitors: [...s.visitors, newVisitor],
+          visitors: s.visitors.map((v) =>
+            v.id === existingVisitor.id
+              ? { ...v, status: 'checked-in' as VisitorStatus, badgeNumber, actualArrival: now }
+              : v
+          ),
           appointments: s.appointments.map((a) =>
-            a.id === appointmentId ? { ...a, status: 'confirmed' } : a
+            a.id === appointmentId ? { ...a, status: 'confirmed' as AppointmentStatus } : a
           ),
         }))
 
-        return newVisitor
+        return { ...existingVisitor, status: 'checked-in' as VisitorStatus, badgeNumber, actualArrival: now }
       },
 
       checkOut: (visitorId, badgeReturned) => {
         const now = new Date().toISOString()
+        const visitor = get().visitors.find((v) => v.id === visitorId)
+
         set((s) => ({
           visitors: s.visitors.map((v) =>
-            v.id === visitorId ? { ...v, status: 'departed' as VisitorStatus, actualDeparture: now } : v
+            v.id === visitorId
+              ? { ...v, status: 'departed' as VisitorStatus, actualDeparture: now, badgeReturned }
+              : v
           ),
         }))
 
-        if (!badgeReturned) {
-          const visitor = get().visitors.find((v) => v.id === visitorId)
-          if (visitor) {
-            get().addRiskAlert(
-              'badge-not-returned',
-              'high',
-              `访客${visitor.name}已签退但访客牌 ${visitor.badgeNumber} 尚未归还`,
-              visitor.appointmentId,
-              visitorId
-            )
-          }
+        if (visitor && !badgeReturned) {
+          get().addRiskAlert(
+            'badge-not-returned',
+            'high',
+            `访客${visitor.name}已签退但访客牌 ${visitor.badgeNumber} 尚未归还`,
+            visitor.appointmentId,
+            visitorId
+          )
+        }
+
+        if (visitor) {
+          set((s) => ({
+            appointments: s.appointments.map((a) =>
+              a.id === visitor.appointmentId ? { ...a, status: 'completed' as AppointmentStatus } : a
+            ),
+          }))
         }
 
         set((s) => ({
@@ -303,11 +329,19 @@ export const useStore = create<VisitorStore>()(
       },
 
       markNoShow: (visitorId) => {
+        const visitor = get().visitors.find((v) => v.id === visitorId)
         set((s) => ({
           visitors: s.visitors.map((v) =>
             v.id === visitorId ? { ...v, status: 'no-show' as VisitorStatus } : v
           ),
         }))
+        if (visitor) {
+          set((s) => ({
+            appointments: s.appointments.map((a) =>
+              a.id === visitor.appointmentId ? { ...a, status: 'cancelled' as AppointmentStatus } : a
+            ),
+          }))
+        }
       },
 
       addRiskAlert: (type, severity, message, aptId, visitorId) => {
@@ -411,7 +445,7 @@ export const useStore = create<VisitorStore>()(
       },
     }),
     {
-      name: 'visitor-desk-storage',
+      name: 'visitor-desk-v2',
     }
   )
 )
