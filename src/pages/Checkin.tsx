@@ -23,6 +23,7 @@ export default function Checkin() {
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
   const timelineRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [appetite, setAppetite] = useState<Appetite>('normal')
   const [stool, setStool] = useState<Stool>('normal')
@@ -65,8 +66,6 @@ export default function Checkin() {
     if (c.abnormalNote || c.appetite === 'poor' || c.stool === 'abnormal' || c.mood === 'lethargic') return 'abnormal'
     return 'completed'
   }
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleAddPhoto = () => {
     fileInputRef.current?.click()
