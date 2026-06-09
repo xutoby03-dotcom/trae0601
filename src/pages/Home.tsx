@@ -206,16 +206,12 @@ export default function Home() {
                       {complaint.affectsRest && (
                         <span className="text-xs text-rose-500 font-medium">影响休息</span>
                       )}
-                      {complaint.photoUrls.length > 0 && (
-                        <span className="flex items-center gap-0.5 text-xs text-slate-400">
-                          <Image className="w-3 h-3" />{complaint.photoUrls.length}
-                        </span>
-                      )}
-                      {complaint.audioUrls.length > 0 && (
-                        <span className="flex items-center gap-0.5 text-xs text-slate-400">
-                          <Music className="w-3 h-3" />{complaint.audioUrls.length}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                        <Image className="w-3 h-3" />{complaint.photoUrls.length}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-xs text-slate-400">
+                        <Music className="w-3 h-3" />{complaint.audioUrls.length}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <p
