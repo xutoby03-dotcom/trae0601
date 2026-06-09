@@ -231,17 +231,21 @@ export default function VersionCompare() {
                         </div>
                       )}
 
-                      {v.recipe && (
-                        <div className="pt-1 border-t border-bake-border">
+                      <div className="pt-1 border-t border-bake-border">
                           <p className="text-[10px] text-bake-brown/50 font-medium flex items-center gap-1 mb-1">
                             <BookOpen className="w-3 h-3" />
                             配方
                           </p>
-                          <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap text-left max-h-36 overflow-y-auto">
-                            {v.recipe}
-                          </div>
+                          {v.recipe ? (
+                            <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap text-left max-h-36 overflow-y-auto">
+                              {v.recipe}
+                            </div>
+                          ) : (
+                            <div className="bg-bake-light rounded-lg p-2 text-[11px] text-bake-brown/30 text-center italic">
+                              未记录配方
+                            </div>
+                          )}
                         </div>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -316,13 +320,17 @@ export default function VersionCompare() {
                         <p className="text-[11px] text-bake-brown/40 text-center py-2">无调整项</p>
                       )}
 
-                      {v.recipe && (
-                        <div className="mt-2 pt-2 border-t border-bake-border">
-                          <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
-                            {v.recipe}
-                          </div>
+                      <div className="mt-2 pt-2 border-t border-bake-border">
+                          {v.recipe ? (
+                            <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
+                              {v.recipe}
+                            </div>
+                          ) : (
+                            <div className="bg-bake-light rounded-lg p-2 text-[11px] text-bake-brown/30 text-center italic">
+                              未记录配方
+                            </div>
+                          )}
                         </div>
-                      )}
                     </div>
                   </div>
                 ))}
