@@ -4,15 +4,17 @@ import { Clock, TrendingUp, Users, AlertTriangle, BarChart3, ArrowRight } from '
 
 export default function Stats() {
   const navigate = useNavigate()
-  const { spots, applications, getTotalUsedHours, getSpotUtilizationRate, getTopBorrowers, getOvertimeCount, getOvertimeRecords } = useParkingStore()
+  const { spots, applications, getSpotsByOwner, getTotalUsedHours, getSpotUtilizationRate, getTopBorrowers, getOvertimeCount, getOvertimeRecords, currentUserId } = useParkingStore()
 
   const totalUsedHours = getTotalUsedHours()
   const overtimeCount = getOvertimeCount()
   const topBorrowers = getTopBorrowers()
   const overtimeRecords = getOvertimeRecords()
 
+  const mySpotIds = new Set(getSpotsByOwner(currentUserId).map((s) => s.id))
+
   const expiredActiveApps = applications.filter((a) => {
-    if (a.status !== 'active' || !a.startTime) return false
+    if (a.status !== 'active' || !a.startTime || !mySpotIds.has(a.spotId)) return false
     const deadline = new Date(a.startTime).getTime() + a.estimatedHours * 3600000
     return Date.now() > deadline
   })
