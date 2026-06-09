@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '@/components/Navbar'
 import PaceAlert from '@/components/PaceAlert'
@@ -63,7 +63,11 @@ export default function ActivityDetail() {
   const isOrganizer = currentRunner?.id === activity?.organizerId
   const alreadyJoined = participations.some(p => p.runnerId === currentRunner?.id)
 
-  const effectiveTargetDistance = activity?.expectedDistance ?? targetDistance
+  useEffect(() => {
+    if (activity) {
+      setTargetDistance(activity.expectedDistance)
+    }
+  }, [activity?.id, activity?.expectedDistance])
 
   const safetyAlerts = useMemo<SafetyAlert[]>(() => {
     if (!activity || !route) return []
@@ -118,12 +122,13 @@ export default function ActivityDetail() {
 
   const submitJoin = () => {
     if (!currentRunner || !activity) return
+    const clampedDistance = Math.min(targetDistance, activity.expectedDistance)
     const participation: Participation = {
       id: generateId(),
       activityId: activity.id,
       runnerId: currentRunner.id,
       pace: paceValue,
-      targetDistance,
+      targetDistance: clampedDistance,
       completed: false,
       noShow: false,
       actualDistance: 0,
