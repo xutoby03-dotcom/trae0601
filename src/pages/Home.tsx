@@ -207,10 +207,10 @@ export default function Home() {
                         <span className="text-xs text-rose-500 font-medium">影响休息</span>
                       )}
                       <span className="flex items-center gap-0.5 text-xs text-slate-400">
-                        <Image className="w-3 h-3" />{complaint.photoUrls.length}
+                        <Image className="w-3 h-3" />{(complaint.photoUrls ?? []).length}
                       </span>
                       <span className="flex items-center gap-0.5 text-xs text-slate-400">
-                        <Music className="w-3 h-3" />{complaint.audioUrls.length}
+                        <Music className="w-3 h-3" />{(complaint.audioUrls ?? []).length}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 mb-1">
