@@ -37,9 +37,10 @@ export default function BookDetail() {
   const independentCount = allCheckIns.filter((c) => c.readingType === 'independent').length
 
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr)
+    const [y, m, d] = dateStr.split('-').map(Number)
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-    return `${d.getMonth() + 1}月${d.getDate()}日 星期${weekDays[d.getDay()]}`
+    const local = new Date(y, m - 1, d)
+    return `${m}月${d}日 星期${weekDays[local.getDay()]}`
   }
 
   const formatDuration = (mins: number) => {
