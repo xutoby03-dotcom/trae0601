@@ -1,13 +1,21 @@
+import { useNavigate } from 'react-router-dom'
 import { useParkingStore, formatDaySlots } from '@/store/useParkingStore'
-import { Clock, TrendingUp, Users, AlertTriangle, BarChart3 } from 'lucide-react'
+import { Clock, TrendingUp, Users, AlertTriangle, BarChart3, ArrowRight } from 'lucide-react'
 
 export default function Stats() {
-  const { spots, getTotalUsedHours, getSpotUtilizationRate, getTopBorrowers, getOvertimeCount, getOvertimeRecords } = useParkingStore()
+  const navigate = useNavigate()
+  const { spots, applications, getTotalUsedHours, getSpotUtilizationRate, getTopBorrowers, getOvertimeCount, getOvertimeRecords } = useParkingStore()
 
   const totalUsedHours = getTotalUsedHours()
   const overtimeCount = getOvertimeCount()
   const topBorrowers = getTopBorrowers()
   const overtimeRecords = getOvertimeRecords()
+
+  const expiredActiveApps = applications.filter((a) => {
+    if (a.status !== 'active' || !a.startTime) return false
+    const deadline = new Date(a.startTime).getTime() + a.estimatedHours * 3600000
+    return Date.now() > deadline
+  })
 
   return (
     <div className="min-h-screen pb-24">
@@ -27,13 +35,23 @@ export default function Stats() {
             <p className="text-xs text-amber-100 mt-1">小时</p>
           </div>
 
-          <div className="bg-gradient-to-br from-red-500 to-rose-500 rounded-2xl p-4 text-white shadow-lg shadow-red-200">
+          <div className="bg-gradient-to-br from-red-500 to-rose-500 rounded-2xl p-4 text-white shadow-lg shadow-red-200 relative">
             <div className="flex items-center gap-1.5 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-200" />
               <span className="text-xs text-red-100">超时次数</span>
             </div>
             <p className="text-3xl font-bold">{overtimeCount}</p>
             <p className="text-xs text-red-100 mt-1">次</p>
+            {expiredActiveApps.length > 0 && (
+              <button
+                onClick={() => navigate(`/my-spots?highlight=${expiredActiveApps[0].id}`)}
+                className="absolute top-3 right-3 flex items-center gap-1 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                {expiredActiveApps.length}条待处理
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
       </div>

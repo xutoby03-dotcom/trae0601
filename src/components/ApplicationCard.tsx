@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, X, Car, Battery, Package, Clock, User } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, X, Car, Battery, Package, Clock, User, AlertTriangle, Timer } from 'lucide-react'
 import type { ParkingApplication } from '@/types'
 import { STATUS_LABELS } from '@/store/useParkingStore'
 
@@ -10,6 +10,29 @@ interface ApplicationCardProps {
   onReject?: (id: string) => void
   onComplete?: (id: string, isOvertime: boolean, isWrongSpot: boolean) => void
   showActions?: boolean
+  highlighted?: boolean
+}
+
+function useRemainingTime(startTime: string, estimatedHours: number) {
+  const [remaining, setRemaining] = useState<number>(() => {
+    if (!startTime) return Number.MAX_SAFE_INTEGER
+    const deadline = new Date(startTime).getTime() + estimatedHours * 3600000
+    return Math.ceil((deadline - Date.now()) / 60000)
+  })
+
+  useEffect(() => {
+    if (!startTime) return
+    const deadline = new Date(startTime).getTime() + estimatedHours * 3600000
+
+    function calc() {
+      setRemaining(Math.ceil((deadline - Date.now()) / 60000))
+    }
+    calc()
+    const timer = setInterval(calc, 15000)
+    return () => clearInterval(timer)
+  }, [startTime, estimatedHours])
+
+  return remaining
 }
 
 export default function ApplicationCard({
@@ -19,10 +42,20 @@ export default function ApplicationCard({
   onReject,
   onComplete,
   showActions = false,
+  highlighted = false,
 }: ApplicationCardProps) {
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [isOvertime, setIsOvertime] = useState(false)
   const [isWrongSpot, setIsWrongSpot] = useState(false)
+
+  const remaining = useRemainingTime(
+    application.status === 'active' && application.startTime ? application.startTime : '',
+    application.estimatedHours
+  )
+
+  const isActiveWithTimer = application.status === 'active' && !!application.startTime
+  const isExpired = remaining <= 0 && isActiveWithTimer
+  const isNearExpiry = remaining > 0 && remaining <= 30 && isActiveWithTimer
 
   const statusColor: Record<string, string> = {
     pending: 'bg-blue-100 text-blue-700',
@@ -39,9 +72,27 @@ export default function ApplicationCard({
     setShowCompleteModal(false)
   }
 
+  const formatRemaining = (mins: number) => {
+    if (mins <= 0) return '已超时'
+    if (mins < 60) return `剩余 ${mins} 分钟`
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return `剩余 ${h}小时${m > 0 ? m + '分钟' : ''}`
+  }
+
   return (
     <>
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+      <div
+        className={`bg-white rounded-2xl p-4 shadow-sm border transition-all duration-300 ${
+          highlighted
+            ? 'border-amber-400 ring-2 ring-amber-200'
+            : isExpired
+              ? 'border-red-200'
+              : isNearExpiry
+                ? 'border-orange-200'
+                : 'border-gray-100'
+        }`}
+      >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
@@ -80,6 +131,25 @@ export default function ApplicationCard({
           )}
         </div>
 
+        {application.status === 'active' && application.startTime && (
+          <div className={`mb-3 flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${
+            isExpired
+              ? 'bg-red-50 text-red-600 animate-pulse'
+              : isNearExpiry
+                ? 'bg-orange-50 text-orange-600'
+                : 'bg-emerald-50 text-emerald-600'
+          }`}>
+            {isExpired ? (
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <Timer className="w-4 h-4 flex-shrink-0" />
+            )}
+            <span>{formatRemaining(remaining)}</span>
+            {isExpired && <span className="ml-auto text-xs">请尽快处理</span>}
+            {isNearExpiry && <span className="ml-auto text-xs">即将到期</span>}
+          </div>
+        )}
+
         {showActions && application.status === 'pending' && (
           <div className="flex gap-2">
             <button
@@ -102,7 +172,13 @@ export default function ApplicationCard({
         {showActions && application.status === 'active' && (
           <button
             onClick={() => setShowCompleteModal(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+            className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+              isExpired
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : isNearExpiry
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+            }`}
           >
             标记已离开
           </button>

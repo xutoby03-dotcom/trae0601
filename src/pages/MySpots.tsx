@@ -1,9 +1,14 @@
+import { useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useParkingStore, formatDaySlots, SPOT_STATUS_LABELS } from '@/store/useParkingStore'
 import ApplicationCard from '@/components/ApplicationCard'
 import { MapPin, Car, Inbox } from 'lucide-react'
 
 export default function MySpots() {
   const { getSpotsByOwner, getApplicationsBySpotId, approveApplication, rejectApplication, completeParking, currentUserId } = useParkingStore()
+  const [searchParams] = useSearchParams()
+  const highlightId = searchParams.get('highlight')
+  const highlightRef = useRef<HTMLDivElement>(null)
 
   const mySpots = getSpotsByOwner(currentUserId)
   const allApplications = mySpots.flatMap((spot) =>
@@ -13,6 +18,12 @@ export default function MySpots() {
   const pendingApps = allApplications.filter((a) => a.status === 'pending')
   const activeApps = allApplications.filter((a) => a.status === 'active')
   const otherApps = allApplications.filter((a) => a.status !== 'pending' && a.status !== 'active')
+
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightId])
 
   const statusColor: Record<string, string> = {
     available: 'bg-emerald-100 text-emerald-700',
@@ -80,6 +91,7 @@ export default function MySpots() {
                 showActions
                 onApprove={approveApplication}
                 onReject={rejectApplication}
+                highlighted={highlightId === app.id}
               />
             ))}
           </div>
@@ -94,13 +106,15 @@ export default function MySpots() {
           </h2>
           <div className="space-y-3">
             {activeApps.map((app) => (
-              <ApplicationCard
-                key={app.id}
-                application={app}
-                spotLabel={app.spotLabel}
-                showActions
-                onComplete={(id, isOvertime, isWrongSpot) => completeParking(id, isOvertime, isWrongSpot)}
-              />
+              <div key={app.id} ref={highlightId === app.id ? highlightRef : undefined}>
+                <ApplicationCard
+                  application={app}
+                  spotLabel={app.spotLabel}
+                  showActions
+                  onComplete={(id, isOvertime, isWrongSpot) => completeParking(id, isOvertime, isWrongSpot)}
+                  highlighted={highlightId === app.id}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -115,6 +129,7 @@ export default function MySpots() {
                 key={app.id}
                 application={app}
                 spotLabel={app.spotLabel}
+                highlighted={highlightId === app.id}
               />
             ))}
           </div>
