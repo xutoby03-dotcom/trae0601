@@ -80,14 +80,16 @@ export default function Dashboard() {
   }, [vehicles, maintenanceRecords])
 
   const groups: ReminderGroup[] = useMemo(() => {
+    const isTimeType = (r: ReminderItem) => r.type === 'insurance' || r.type === 'inspection'
+
     const overdue = reminders.filter(r => r.isOverdue)
-    const urgent = reminders.filter(r => r.isUrgent && !r.isOverdue)
-    const upcoming = reminders.filter(r => !r.isUrgent && !r.isOverdue)
+    const expiringSoon = reminders.filter(r => !r.isOverdue && r.isUrgent && isTimeType(r))
+    const mileageSoon = reminders.filter(r => !r.isOverdue && r.isUrgent && !isTimeType(r))
 
     const result: ReminderGroup[] = []
     if (overdue.length > 0) result.push({ title: '已逾期', items: overdue })
-    if (urgent.length > 0) result.push({ title: '即将到期', items: urgent })
-    if (upcoming.length > 0) result.push({ title: '后续提醒', items: upcoming })
+    if (expiringSoon.length > 0) result.push({ title: '快到期', items: expiringSoon })
+    if (mileageSoon.length > 0) result.push({ title: '快到里程', items: mileageSoon })
 
     return result
   }, [reminders])
@@ -106,20 +108,37 @@ export default function Dashboard() {
 
   const groupIcon = (title: string) => {
     if (title === '已逾期') return <AlertTriangle className="w-5 h-5 text-red-500" />
-    if (title === '即将到期') return <Clock className="w-5 h-5 text-amber-500" />
+    if (title === '快到期') return <Clock className="w-5 h-5 text-amber-500" />
+    if (title === '快到里程') return <Gauge className="w-5 h-5 text-violet-500" />
     return <Bell className="w-5 h-5 text-blue-500" />
   }
 
   const groupBg = (title: string) => {
     if (title === '已逾期') return 'border-red-200 bg-red-50/50'
-    if (title === '即将到期') return 'border-amber-200 bg-amber-50/50'
+    if (title === '快到期') return 'border-amber-200 bg-amber-50/50'
+    if (title === '快到里程') return 'border-violet-200 bg-violet-50/50'
     return 'border-blue-200 bg-blue-50/50'
   }
 
-  const itemBg = (item: ReminderItem) => {
-    if (item.isOverdue) return 'bg-red-50 border-red-100'
-    if (item.isUrgent) return 'bg-amber-50 border-amber-100'
+  const itemStyle = (item: ReminderItem, groupTitle: string) => {
+    if (groupTitle === '已逾期') return 'bg-red-50 border-red-100'
+    if (groupTitle === '快到期') return 'bg-amber-50 border-amber-100'
+    if (groupTitle === '快到里程') return 'bg-violet-50 border-violet-100'
     return 'bg-white border-gray-100'
+  }
+
+  const iconBg = (groupTitle: string) => {
+    if (groupTitle === '已逾期') return 'bg-red-100 text-red-600'
+    if (groupTitle === '快到期') return 'bg-amber-100 text-amber-600'
+    if (groupTitle === '快到里程') return 'bg-violet-100 text-violet-600'
+    return 'bg-blue-50 text-blue-500'
+  }
+
+  const remainingColor = (groupTitle: string) => {
+    if (groupTitle === '已逾期') return 'text-red-600 font-medium'
+    if (groupTitle === '快到期') return 'text-amber-600'
+    if (groupTitle === '快到里程') return 'text-violet-600'
+    return 'text-gray-500'
   }
 
   return (
@@ -189,13 +208,9 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     {group.items.map(item => (
-                      <div key={item.id} className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${itemBg(item)}`}>
+                      <div key={item.id} className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${itemStyle(item, group.title)}`}>
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            item.isOverdue ? 'bg-red-100 text-red-600' :
-                            item.isUrgent ? 'bg-amber-100 text-amber-600' :
-                            'bg-blue-50 text-blue-500'
-                          }`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg(group.title)}`}>
                             {iconForType(item.type)}
                           </div>
                           <div>
@@ -203,11 +218,7 @@ export default function Dashboard() {
                               <span className="text-xs font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{item.vehiclePlate}</span>
                               <span className="text-sm font-medium text-gray-800">{item.label}</span>
                             </div>
-                            <p className={`text-xs mt-0.5 ${
-                              item.isOverdue ? 'text-red-600 font-medium' :
-                              item.isUrgent ? 'text-amber-600' :
-                              'text-gray-500'
-                            }`}>
+                            <p className={`text-xs mt-0.5 ${remainingColor(group.title)}`}>
                               {item.remaining}
                             </p>
                           </div>
