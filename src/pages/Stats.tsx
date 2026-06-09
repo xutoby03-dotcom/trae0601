@@ -1,9 +1,17 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { usePlansStore } from '@/store/plansStore'
-import { formatCurrency, formatDate, formatShortDate } from '@/utils/format'
-import { BarChart3, Gift, Calendar, TrendingUp, Users, Heart, Cake, ArrowLeft, ChevronRight, Award } from 'lucide-react'
+import { formatCurrency, formatDate, getStatusLabel, getPackagingStatusLabel } from '@/utils/format'
+import { BarChart3, Gift, Calendar, TrendingUp, Users, Cake, ArrowLeft, ChevronRight, Award, Truck, Package, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+interface SpendingEntry {
+  name: string
+  paid: number
+  advanced: number
+  refunded: number
+  net: number
+}
 
 export default function Stats() {
   const plans = usePlansStore((s) => s.plans)
@@ -15,15 +23,26 @@ export default function Stats() {
 
     const totalSpent = completedPlans.reduce((sum, p) => sum + p.totalBudget, 0)
 
-    const spendingMap = new Map<string, number>()
+    const spendingMap = new Map<string, SpendingEntry>()
     yearPlans.forEach((plan) => {
       plan.participants.forEach((pt) => {
-        spendingMap.set(pt.name, (spendingMap.get(pt.name) ?? 0) + pt.pledgedAmount)
+        const existing = spendingMap.get(pt.name) ?? { name: pt.name, paid: 0, advanced: 0, refunded: 0, net: 0 }
+        if (pt.hasPaid) {
+          existing.paid += pt.pledgedAmount
+        }
+        existing.advanced += pt.advancedAmount
+        spendingMap.set(pt.name, existing)
+      })
+      plan.refundRecords.forEach((r) => {
+        const existing = spendingMap.get(r.refundTo) ?? { name: r.refundTo, paid: 0, advanced: 0, refunded: 0, net: 0 }
+        existing.refunded += r.amount
+        spendingMap.set(r.refundTo, existing)
       })
     })
-    const participantSpending = Array.from(spendingMap.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
+    const participantSpending = Array.from(spendingMap.values())
+      .map((entry) => ({ ...entry, net: entry.paid + entry.advanced - entry.refunded }))
+      .filter((e) => e.net !== 0 || e.paid !== 0 || e.advanced !== 0 || e.refunded !== 0)
+      .sort((a, b) => b.net - a.net)
 
     const allCandidates = yearPlans.flatMap((plan) =>
       plan.giftCandidates.map((c) => ({
@@ -38,7 +57,7 @@ export default function Stats() {
     return { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts }
   }, [plans])
 
-  const maxSpending = participantSpending.length > 0 ? participantSpending[0].amount : 0
+  const maxNet = participantSpending.length > 0 ? Math.max(...participantSpending.map((s) => s.net)) : 0
   const uniqueParticipants = new Set(yearPlans.flatMap((p) => p.participants.map((pt) => pt.name))).size
 
   if (yearPlans.length === 0) {
@@ -120,6 +139,7 @@ export default function Stats() {
                   const topCandidate = plan.giftCandidates.length > 0
                     ? [...plan.giftCandidates].sort((a, b) => b.votes.length - a.votes.length)[0]
                     : null
+                  const orderInfo = plan.orderInfo
                   return (
                     <div key={plan.id} className="relative flex items-start gap-4">
                       <div className="absolute -left-6 top-1.5 w-3.5 h-3.5 rounded-full bg-warm-500 border-2 border-white shadow-sm z-10" />
@@ -128,11 +148,44 @@ export default function Stats() {
                         <div className="font-semibold text-bark-800">{plan.birthdayPerson}</div>
                         {topCandidate && (
                           <div className="flex items-center gap-1.5 mt-1 text-sm text-bark-500">
-                            <Gift className="w-3.5 h-3.5" />
+                            <Gift className="w-3.5 h-3.5 text-warm-500" />
                             <span>{topCandidate.name}</span>
+                            <span className="text-bark-300 mx-0.5">·</span>
+                            <span className="text-warm-600">{formatCurrency(topCandidate.price)}</span>
                           </div>
                         )}
-                        <div className="text-sm text-warm-600 mt-1">{formatCurrency(plan.totalBudget)}</div>
+                        {orderInfo && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            {orderInfo.orderNumber && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bark-50 text-bark-600">
+                                <Truck className="w-3 h-3" />{orderInfo.courier || '快递'} {orderInfo.orderNumber}
+                              </span>
+                            )}
+                            {orderInfo.actualArrival ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-mint-50 text-mint-700">
+                                <Package className="w-3 h-3" />已到货 {orderInfo.actualArrival}
+                              </span>
+                            ) : orderInfo.estimatedArrival ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warm-50 text-warm-600">
+                                <Package className="w-3 h-3" />预计 {orderInfo.estimatedArrival}
+                              </span>
+                            ) : null}
+                            {orderInfo.packagingStatus !== 'none' && (
+                              <span className={cn('px-2 py-0.5 rounded-full',
+                                orderInfo.packagingStatus === 'packed' ? 'bg-mint-50 text-mint-700' : 'bg-warm-50 text-warm-600')}>
+                                {getPackagingStatusLabel(orderInfo.packagingStatus)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {!orderInfo && plan.status !== 'completed' && (
+                          <div className="mt-2 text-xs text-bark-400">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bark-50 text-bark-500">
+                              {getStatusLabel(plan.status)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-sm text-warm-600 mt-1.5">{formatCurrency(plan.totalBudget)}</div>
                       </div>
                     </div>
                   )
@@ -149,19 +202,41 @@ export default function Stats() {
               <p className="text-bark-400 text-sm">暂无花费数据</p>
             </div>
           ) : (
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-warm-100 space-y-3">
-              {participantSpending.map(({ name, amount }) => (
-                <div key={name} className="flex items-center gap-3">
-                  <div className="w-16 text-sm text-bark-700 truncate shrink-0">{name}</div>
-                  <div className="flex-1 h-6 bg-warm-50 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-warm-500 rounded-full transition-all duration-500"
-                      style={{ width: maxSpending > 0 ? `${(amount / maxSpending) * 100}%` : '0%' }}
-                    />
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-warm-100 space-y-4">
+              <div className="flex items-center gap-4 text-xs text-bark-400 mb-1">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-warm-500 inline-block" />已付分摊</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-mint-400 inline-block" />垫付</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-rose-300 inline-block" />已退款</span>
+              </div>
+              {participantSpending.map((entry) => {
+                const paidWidth = maxNet > 0 ? (entry.paid / maxNet) * 100 : 0
+                const advWidth = maxNet > 0 ? (entry.advanced / maxNet) * 100 : 0
+                return (
+                  <div key={entry.name} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-bark-700 font-medium truncate max-w-[6rem]">{entry.name}</span>
+                      <span className="text-sm font-semibold text-bark-800">{formatCurrency(entry.net)}</span>
+                    </div>
+                    <div className="flex h-5 rounded-full overflow-hidden bg-warm-50 gap-px">
+                      <div
+                        className="h-full bg-warm-500 rounded-l-full transition-all duration-500"
+                        style={{ width: `${paidWidth}%` }}
+                      />
+                      <div
+                        className="h-full bg-mint-400 transition-all duration-500"
+                        style={{ width: `${advWidth}%` }}
+                      />
+                    </div>
+                    <div className="flex gap-3 text-xs text-bark-400">
+                      <span>分摊 <span className="text-warm-600 font-medium">{formatCurrency(entry.paid)}</span></span>
+                      <span>垫付 <span className="text-mint-600 font-medium">{formatCurrency(entry.advanced)}</span></span>
+                      {entry.refunded > 0 && (
+                        <span>退款 <span className="text-rose-500 font-medium">-{formatCurrency(entry.refunded)}</span></span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm font-medium text-bark-700 shrink-0 w-20 text-right">{formatCurrency(amount)}</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </section>
@@ -177,7 +252,11 @@ export default function Stats() {
               {popularGifts.map((gift, index) => {
                 const rankColors = ['text-yellow-500', 'text-gray-400', 'text-amber-700']
                 return (
-                  <div key={`${gift.planId}-${gift.name}-${index}`} className="flex items-center gap-3 px-4 py-3">
+                  <Link
+                    key={`${gift.planId}-${gift.name}-${index}`}
+                    to={`/plan/${gift.planId}`}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-warm-50 transition-colors"
+                  >
                     <div className="w-6 shrink-0 text-center">
                       {index < 3 ? (
                         <Award className={cn('w-5 h-5', rankColors[index])} />
@@ -192,7 +271,8 @@ export default function Stats() {
                     <div className="shrink-0 px-2 py-0.5 rounded-full bg-mint-50 text-mint-400 text-xs font-semibold">
                       {gift.votes} 票
                     </div>
-                  </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-bark-300 shrink-0" />
+                  </Link>
                 )
               })}
             </div>
