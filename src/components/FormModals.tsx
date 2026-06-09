@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FilterType, OdorLevel } from '@/types'
 import { FILTER_TYPE_OPTIONS } from '@/types'
 import { useStore } from '@/store'
-import { X } from 'lucide-react'
+import { X, AlertCircle } from 'lucide-react'
 
 interface ReplacementFormProps {
   open: boolean
@@ -10,20 +10,38 @@ interface ReplacementFormProps {
 }
 
 export function ReplacementFormModal({ open, onClose }: ReplacementFormProps) {
-  const { purifiers, addReplacement } = useStore()
+  const { purifiers, filterConfigs, addReplacement } = useStore()
   const [purifierId, setPurifierId] = useState('')
   const [filterType, setFilterType] = useState<FilterType>('PP棉')
   const [replaceDate, setReplaceDate] = useState(new Date().toISOString().split('T')[0])
   const [cost, setCost] = useState('')
+  const [error, setError] = useState('')
 
   if (!open) return null
 
+  const availableFilters = purifierId
+    ? filterConfigs.filter((f) => f.purifierId === purifierId)
+    : []
+  const availableFilterTypes = availableFilters.map((f) => f.filterType)
+  const noFilters = purifierId && availableFilters.length === 0
+
+  const handlePurifierChange = (id: string) => {
+    setPurifierId(id)
+    setError('')
+    const first = filterConfigs.find((f) => f.purifierId === id)
+    setFilterType(first ? first.filterType : 'PP棉')
+  }
+
   const handleSubmit = () => {
+    setError('')
     if (!purifierId) return
-    const fc = useStore.getState().filterConfigs.find(
+    const fc = filterConfigs.find(
       (f) => f.purifierId === purifierId && f.filterType === filterType
     )
-    if (!fc) return
+    if (!fc) {
+      setError('找不到对应的滤芯配置，请先在净水器管理中添加该滤芯')
+      return
+    }
     addReplacement({
       filterConfigId: fc.id,
       purifierId,
@@ -35,11 +53,8 @@ export function ReplacementFormModal({ open, onClose }: ReplacementFormProps) {
     setFilterType('PP棉')
     setReplaceDate(new Date().toISOString().split('T')[0])
     setCost('')
+    setError('')
   }
-
-  const availableFilterTypes = purifierId
-    ? useStore.getState().filterConfigs.filter((f) => f.purifierId === purifierId).map((f) => f.filterType)
-    : []
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -56,7 +71,7 @@ export function ReplacementFormModal({ open, onClose }: ReplacementFormProps) {
             <label className="block text-xs font-medium text-slate-500 mb-1">选择净水器</label>
             <select
               value={purifierId}
-              onChange={(e) => { setPurifierId(e.target.value); setFilterType('PP棉') }}
+              onChange={(e) => handlePurifierChange(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             >
               <option value="">请选择</option>
@@ -65,19 +80,26 @@ export function ReplacementFormModal({ open, onClose }: ReplacementFormProps) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">滤芯类型</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as FilterType)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-            >
-              {availableFilterTypes.length > 0
-                ? availableFilterTypes.map((t) => <option key={t} value={t}>{t}</option>)
-                : FILTER_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)
-              }
-            </select>
-          </div>
+          {noFilters ? (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <span className="text-xs text-amber-700">该净水器还没有配置滤芯，请先前往净水器管理添加</span>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">滤芯类型</label>
+              <select
+                value={filterType}
+                onChange={(e) => { setFilterType(e.target.value as FilterType); setError('') }}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+              >
+                {availableFilterTypes.length > 0
+                  ? availableFilterTypes.map((t) => <option key={t} value={t}>{t}</option>)
+                  : FILTER_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)
+                }
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">更换日期</label>
             <input
@@ -99,12 +121,18 @@ export function ReplacementFormModal({ open, onClose }: ReplacementFormProps) {
               className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
             />
           </div>
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-xs text-red-700">{error}</span>
+            </div>
+          )}
         </div>
         <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">取消</button>
           <button
             onClick={handleSubmit}
-            disabled={!purifierId || !cost}
+            disabled={!purifierId || !cost || noFilters}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-cyan-600 hover:from-brand-700 hover:to-cyan-700 shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
             记录
