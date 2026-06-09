@@ -420,6 +420,99 @@ body {
   font-size: 12px;
 }
 
+.item-card__main {
+  cursor: pointer;
+}
+
+.item-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 0;
+  margin-top: 10px;
+  border-top: 1px dashed var(--gray-200);
+}
+
+.card-remind {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.card-action-btn--remind {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.card-action-btn--remind:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.card-action-btn--retrieve {
+  background: var(--success-light);
+  color: #16a34a;
+}
+
+.card-action-btn--retrieve:hover {
+  background: var(--success);
+  color: #fff;
+}
+
+.card-retrieve-panel {
+  padding: 10px 0 0;
+  margin-top: 8px;
+  border-top: 1px dashed var(--gray-200);
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 120px; }
+}
+
+.card-retrieve-panel__checks {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.card-retrieve-panel__btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn--sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.item-card__retrieved-tag {
+  text-align: center;
+  padding: 6px 0 0;
+  margin-top: 8px;
+  border-top: 1px dashed var(--gray-200);
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .form {
   display: flex;
   flex-direction: column;

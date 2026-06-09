@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAppState } from '../store/AppContext';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -64,14 +65,25 @@ function classifyItems(items: DryingItem[], rules: CommunityRules): ClassifiedIt
   return { criticalOvertime, overtime, expiringSoon, overstay, rainRisk };
 }
 
+const REMIND_TEMPLATES = [
+  { key: 'wind', icon: '💨', label: '风大快掉了' },
+  { key: 'block', icon: '🚫', label: '挡住位置了' },
+];
+
 function ItemCard({ item, variant }: { item: DryingItem; variant?: 'critical' | 'overtime' | 'overstay' | 'normal' }) {
   const navigate = useNavigate();
+  const { dispatch } = useAppState();
+  const [showRetrieve, setShowRetrieve] = useState(false);
+  const [wasWet, setWasWet] = useState(false);
+  const [wasMoved, setWasMoved] = useState(false);
+
   const now = dayjs();
   const end = dayjs(item.expectedEndTime);
   const start = dayjs(item.startTime);
   const diff = end.diff(now, 'minute');
   const occupiedHours = now.diff(start, 'minute') / 60;
   const isOvertime = diff < 0;
+  const isRetrieved = item.status === 'retrieved';
 
   const cardClass = [
     'item-card',
@@ -80,51 +92,131 @@ function ItemCard({ item, variant }: { item: DryingItem; variant?: 'critical' | 
     variant === 'overstay' ? 'item-card--overstay' : '',
   ].filter(Boolean).join(' ');
 
+  function handleCardClick() {
+    navigate(`/detail/${item.id}`);
+  }
+
+  function handleRemind(templateKey: string) {
+    const t = REMIND_TEMPLATES.find((r) => r.key === templateKey);
+    if (t) {
+      navigate(`/detail/${item.id}?template=${encodeURIComponent(t.label)}`);
+    }
+  }
+
+  function handleRetrieveConfirm() {
+    dispatch({
+      type: 'RETRIEVE_ITEM',
+      payload: { id: item.id, wasWet, wasMoved },
+    });
+    setShowRetrieve(false);
+    setWasWet(false);
+    setWasMoved(false);
+  }
+
   return (
-    <div className={cardClass} onClick={() => navigate(`/detail/${item.id}`)}>
-      <div className="item-card__header">
-        <span className="item-card__icon">{TYPE_ICONS[item.type]}</span>
-        <span className="item-card__type">{TYPE_LABELS[item.type]}</span>
-        <span className="item-card__position">{POSITION_LABELS[item.position]}</span>
-        {variant === 'critical' && <span className="item-card__badge item-card__badge--critical">严重超时</span>}
-        {variant === 'overtime' && <span className="item-card__badge item-card__badge--danger">已超时</span>}
-        {variant === 'overstay' && <span className="item-card__badge item-card__badge--overstay">占用过久</span>}
-        {item.fearRain && <span className="item-card__badge item-card__badge--rain">怕雨</span>}
-      </div>
-      <div className="item-card__body">
-        <div className="item-card__owner">
-          <span className="item-card__label">晾晒人</span>
-          <span>{item.owner}</span>
+    <div className={cardClass}>
+      <div className="item-card__main" onClick={handleCardClick}>
+        <div className="item-card__header">
+          <span className="item-card__icon">{TYPE_ICONS[item.type]}</span>
+          <span className="item-card__type">{TYPE_LABELS[item.type]}</span>
+          <span className="item-card__position">{POSITION_LABELS[item.position]}</span>
+          {variant === 'critical' && <span className="item-card__badge item-card__badge--critical">严重超时</span>}
+          {variant === 'overtime' && <span className="item-card__badge item-card__badge--danger">已超时</span>}
+          {variant === 'overstay' && <span className="item-card__badge item-card__badge--overstay">占用过久</span>}
+          {item.fearRain && <span className="item-card__badge item-card__badge--rain">怕雨</span>}
         </div>
-        <div className="item-card__time">
-          <span className="item-card__label">预计收回</span>
-          <span>{dayjs(item.expectedEndTime).format('HH:mm')}</span>
-          {variant === 'critical' ? (
-            <span className="item-card__critical-text">
-              严重超时 {Math.abs(Math.ceil(diff / 60))} 小时
-            </span>
-          ) : isOvertime ? (
-            <span className="item-card__overtime-text">
-              已超时 {Math.abs(Math.ceil(diff / 60))} 小时
-            </span>
-          ) : (
-            <span className="item-card__countdown">还剩 {diff} 分钟</span>
+        <div className="item-card__body">
+          <div className="item-card__owner">
+            <span className="item-card__label">晾晒人</span>
+            <span>{item.owner}</span>
+          </div>
+          <div className="item-card__time">
+            <span className="item-card__label">预计收回</span>
+            <span>{dayjs(item.expectedEndTime).format('HH:mm')}</span>
+            {variant === 'critical' ? (
+              <span className="item-card__critical-text">
+                严重超时 {Math.abs(Math.ceil(diff / 60))} 小时
+              </span>
+            ) : isOvertime ? (
+              <span className="item-card__overtime-text">
+                已超时 {Math.abs(Math.ceil(diff / 60))} 小时
+              </span>
+            ) : (
+              <span className="item-card__countdown">还剩 {diff} 分钟</span>
+            )}
+          </div>
+          {occupiedHours > 4 && (
+            <div className="item-card__occupancy">
+              <span className="item-card__label">已占用</span>
+              <span className={variant === 'overstay' ? 'item-card__overstay-text' : ''}>
+                {Math.floor(occupiedHours)} 小时 {Math.round((occupiedHours % 1) * 60)} 分钟
+              </span>
+            </div>
+          )}
+          {item.messages.length > 0 && (
+            <div className="item-card__messages">
+              💬 {item.messages.length} 条留言
+            </div>
           )}
         </div>
-        {occupiedHours > 4 && (
-          <div className="item-card__occupancy">
-            <span className="item-card__label">已占用</span>
-            <span className={variant === 'overstay' ? 'item-card__overstay-text' : ''}>
-              {Math.floor(occupiedHours)} 小时 {Math.round((occupiedHours % 1) * 60)} 分钟
-            </span>
-          </div>
-        )}
-        {item.messages.length > 0 && (
-          <div className="item-card__messages">
-            💬 {item.messages.length} 条留言
-          </div>
-        )}
       </div>
+
+      {!isRetrieved && (
+        <div className="item-card__actions">
+          <div className="card-remind">
+            {REMIND_TEMPLATES.map((t) => (
+              <button
+                key={t.key}
+                className="card-action-btn card-action-btn--remind"
+                onClick={() => handleRemind(t.key)}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+          <button
+            className="card-action-btn card-action-btn--retrieve"
+            onClick={() => setShowRetrieve((v) => !v)}
+          >
+            ✅ 收回
+          </button>
+        </div>
+      )}
+
+      {showRetrieve && !isRetrieved && (
+        <div className="card-retrieve-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="card-retrieve-panel__checks">
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={wasWet}
+                onChange={(e) => setWasWet(e.target.checked)}
+              />
+              <span>被淋湿了</span>
+            </label>
+            <label className="form-checkbox">
+              <input
+                type="checkbox"
+                checked={wasMoved}
+                onChange={(e) => setWasMoved(e.target.checked)}
+              />
+              <span>被别人挪动了</span>
+            </label>
+          </div>
+          <div className="card-retrieve-panel__btns">
+            <button className="btn btn--ghost btn--sm" onClick={() => setShowRetrieve(false)}>
+              取消
+            </button>
+            <button className="btn btn--success btn--sm" onClick={handleRetrieveConfirm}>
+              确认收回
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isRetrieved && (
+        <div className="item-card__retrieved-tag">✅ 已收回</div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppState } from '../store/AppContext';
 import { POSITION_LABELS, TYPE_LABELS, TYPE_ICONS } from '../types';
 import dayjs from 'dayjs';
@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { state, dispatch } = useAppState();
 
   const item = state.items.find((i) => i.id === id);
@@ -17,6 +18,13 @@ export default function DetailPage() {
   const [msgAuthor, setMsgAuthor] = useState('');
   const [msgContent, setMsgContent] = useState('');
   const [msgError, setMsgError] = useState('');
+
+  useEffect(() => {
+    const template = searchParams.get('template');
+    if (template) {
+      setMsgContent(decodeURIComponent(template));
+    }
+  }, [searchParams]);
 
   if (!item) {
     return (
