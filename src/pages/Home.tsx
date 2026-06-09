@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useCampStore, getRiskLevelLabel } from '@/store/campStore';
-import { RISK_ITEM_LABELS, RISK_ITEM_KEYS } from '@/types';
 import type { RiskLevel } from '@/types';
 import { Plus, Mountain, BarChart3, AlertTriangle, ChevronRight, Tent } from 'lucide-react';
 import { useState } from 'react';
@@ -40,7 +39,7 @@ const filterLabels: Record<FilterType, string> = {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { getSortedCamps, getHighRiskReasons, getAssessmentByCampId } = useCampStore();
+  const { getSortedCamps, getHighRiskReasons } = useCampStore();
   const [filter, setFilter] = useState<FilterType>('all');
 
   const camps = getSortedCamps().filter((camp) => {
@@ -130,10 +129,7 @@ export default function Home() {
                 const level = getRiskLevelLabel(camp.overallRiskLevel);
                 const colors = riskColors[level];
                 const reasons = getHighRiskReasons(camp.id);
-                const assessment = getAssessmentByCampId(camp.id);
-                const highRiskItems = assessment
-                  ? RISK_ITEM_KEYS.filter((k) => assessment[k] === 'high').map((k) => RISK_ITEM_LABELS[k])
-                  : [];
+                const allReasons = [...new Set(reasons)];
 
                 return (
                   <div
@@ -157,29 +153,19 @@ export default function Home() {
 
                         <p className="text-sm text-emerald-500 mb-2">{camp.location}</p>
 
-                        {highRiskItems.length > 0 && (
+                        {allReasons.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
-                            {highRiskItems.slice(0, 4).map((item) => (
+                            {allReasons.slice(0, 4).map((item) => (
                               <span key={item} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/15 text-red-300 border border-red-500/20">
                                 <AlertTriangle className="w-3 h-3" />
                                 {item}
                               </span>
                             ))}
-                            {highRiskItems.length > 4 && (
+                            {allReasons.length > 4 && (
                               <span className="px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-400">
-                                +{highRiskItems.length - 4}
+                                +{allReasons.length - 4}
                               </span>
                             )}
-                          </div>
-                        )}
-
-                        {reasons.length > 0 && highRiskItems.length === 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-2">
-                            {reasons.slice(0, 3).map((r) => (
-                              <span key={r} className="px-2 py-0.5 rounded text-xs bg-amber-500/15 text-amber-300 border border-amber-500/20">
-                                {r}
-                              </span>
-                            ))}
                           </div>
                         )}
 
