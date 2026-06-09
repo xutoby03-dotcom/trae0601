@@ -111,6 +111,8 @@ interface AppState {
   addSupplyRecord: (inspectionId: string, itemName: string, quantity: number) => void
   removeSupplyRecord: (inspectionId: string, recordId: string) => void
   addReworkItem: (inspectionId: string, checkItemId: string, reason: string, deductionReason: string, deductionAmount: number) => void
+  updateReworkItem: (inspectionId: string, reworkItemId: string, updates: Partial<ReworkItem>) => void
+  removeReworkItem: (inspectionId: string, reworkItemId: string) => void
 
   getProperty: (id: string) => Property | undefined
   getInspection: (id: string) => Inspection | undefined
@@ -178,8 +180,12 @@ export const useStore = create<AppState>()(
       completeCleaning: (id) => {
         set((s) => ({
           inspections: s.inspections.map((insp) =>
-            insp.id === id ? { ...insp, status: 'completed' as const, completedAt: new Date().toISOString() } : insp
+            insp.id === id ? { ...insp, status: 'reviewing' as const, completedAt: new Date().toISOString() } : insp
           ),
+          properties: s.properties.map((p) => {
+            const insp = s.inspections.find((i) => i.id === id)
+            return insp && p.id === insp.propertyId ? { ...p, status: 'reviewing' as const } : p
+          }),
         }))
       },
 
@@ -260,12 +266,30 @@ export const useStore = create<AppState>()(
         }))
       },
 
+      updateReworkItem: (inspectionId, reworkItemId, updates) => {
+        set((s) => ({
+          inspections: s.inspections.map((insp) =>
+            insp.id === inspectionId
+              ? { ...insp, reworkItems: insp.reworkItems.map((ri) => (ri.id === reworkItemId ? { ...ri, ...updates } : ri)) }
+              : insp
+          ),
+        }))
+      },
+
+      removeReworkItem: (inspectionId, reworkItemId) => {
+        set((s) => ({
+          inspections: s.inspections.map((insp) =>
+            insp.id === inspectionId ? { ...insp, reworkItems: insp.reworkItems.filter((ri) => ri.id !== reworkItemId) } : insp
+          ),
+        }))
+      },
+
       getProperty: (id) => get().properties.find((p) => p.id === id),
       getInspection: (id) => get().inspections.find((i) => i.id === id),
       getStaff: (id) => get().staff.find((s) => s.id === id),
       getInspectionsByProperty: (propertyId) => get().inspections.filter((i) => i.propertyId === propertyId),
       getCleaners: () => get().staff.filter((s) => s.role === 'cleaner'),
     }),
-    { name: 'minsu-clean-store' }
+    { name: 'minsu-clean-v2' }
   )
 )
