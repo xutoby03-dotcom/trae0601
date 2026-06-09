@@ -21,11 +21,12 @@ export default function Statistics() {
   const settlements = useMemo(() => trip ? calculateSettlements(trip) : [], [trip])
   const personExpenses = useMemo(() => {
     if (!trip) return []
-    const active = trip.participants.filter(p => p.isActive)
-    return active.map(p => ({
-      participant: p,
-      ...calculatePersonExpenses(trip, p.id),
-    }))
+    return trip.participants
+      .map(p => ({
+        participant: p,
+        ...calculatePersonExpenses(trip, p.id),
+      }))
+      .filter(ps => Math.abs(ps.netBalance) > 0.01 || ps.totalPaid > 0.01 || ps.totalShare > 0.01)
   }, [trip])
 
   if (!trip || !budgetUsage) {
@@ -187,6 +188,9 @@ export default function Statistics() {
                         style={{ backgroundColor: participant.color }}
                       />
                       <span className="text-sm font-semibold text-gray-800">{participant.name}</span>
+                      {!participant.isActive && (
+                        <span className="text-[10px] bg-gray-200 text-gray-400 px-1.5 py-0.5 rounded-full font-medium">已退团</span>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 mb-3">

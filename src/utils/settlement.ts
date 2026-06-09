@@ -1,25 +1,34 @@
 import type { Settlement, Trip, Expense, Participant } from '../types'
 
+function wasActiveAtDate(participant: Participant, date: string): boolean {
+  if (participant.isActive) return true
+  if (!participant.leftDate) return false
+  return date <= participant.leftDate
+}
+
+function getEffectiveSplitMembers(expense: Expense, participants: Participant[]): string[] {
+  return expense.splitAmong.filter(id => {
+    const p = participants.find(pp => pp.id === id)
+    return p && wasActiveAtDate(p, expense.date)
+  })
+}
+
 export function calculateSettlements(trip: Trip): Settlement[] {
-  const activeParticipants = trip.participants.filter(p => p.isActive)
-  if (activeParticipants.length === 0) return []
+  if (trip.participants.length === 0) return []
 
   const confirmedExpenses = trip.expenses.filter(e => e.status === 'confirmed')
   const balances: Record<string, number> = {}
-  activeParticipants.forEach(p => { balances[p.id] = 0 })
+  trip.participants.forEach(p => { balances[p.id] = 0 })
 
   for (const expense of confirmedExpenses) {
     const payer = trip.participants.find(p => p.id === expense.payerId)
-    if (!payer || !payer.isActive) continue
+    if (!payer || !wasActiveAtDate(payer, expense.date)) continue
 
     if (expense.useSharedFund) {
       continue
     }
 
-    const splitMembers = expense.splitAmong.filter(id => {
-      const p = trip.participants.find(pp => pp.id === id)
-      return p && p.isActive
-    })
+    const splitMembers = getEffectiveSplitMembers(expense, trip.participants)
 
     if (splitMembers.length === 0) continue
 
@@ -32,7 +41,7 @@ export function calculateSettlements(trip: Trip): Settlement[] {
   }
 
   const sharedFundBalance = calculateSharedFundBalance(trip)
-  for (const p of activeParticipants) {
+  for (const p of trip.participants) {
     balances[p.id] = (balances[p.id] || 0) + (sharedFundBalance.netContributions[p.id] || 0)
   }
 
@@ -103,10 +112,7 @@ export function calculateSharedFundBalance(trip: Trip): SharedFundBalance & { ne
 
   const sharedFundExpenses = trip.expenses.filter(e => e.useSharedFund && e.status === 'confirmed')
   for (const expense of sharedFundExpenses) {
-    const splitMembers = expense.splitAmong.filter(id => {
-      const p = trip.participants.find(pp => pp.id === id)
-      return p && p.isActive
-    })
+    const splitMembers = getEffectiveSplitMembers(expense, trip.participants)
     if (splitMembers.length === 0) continue
 
     totalUsed += expense.amount
@@ -137,10 +143,7 @@ export function calculatePersonExpenses(trip: Trip, participantId: string) {
   const categoryBreakdown: Record<string, { paid: number; share: number }> = {}
 
   for (const expense of confirmedExpenses) {
-    const splitMembers = expense.splitAmong.filter(id => {
-      const p = trip.participants.find(pp => pp.id === id)
-      return p && p.isActive
-    })
+    const splitMembers = getEffectiveSplitMembers(expense, trip.participants)
 
     if (expense.payerId === participantId && !expense.useSharedFund) {
       totalPaid += expense.amount
@@ -180,7 +183,7 @@ export function calculatePersonExpenses(trip: Trip, participantId: string) {
 export function getActiveParticipantsForExpense(trip: Trip, expense: Expense): Participant[] {
   return expense.splitAmong
     .map(id => trip.participants.find(p => p.id === id))
-    .filter((p): p is Participant => p !== undefined && p.isActive)
+    .filter((p): p is Participant => p !== undefined && wasActiveAtDate(p, expense.date))
 }
 
 export function calculateBudgetUsage(trip: Trip) {

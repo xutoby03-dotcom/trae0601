@@ -42,11 +42,11 @@ export default function Settlement() {
   const personSummaries = useMemo((): PersonSummary[] => {
     if (!trip) return []
     return trip.participants
-      .filter((p: Participant) => p.isActive)
       .map((p: Participant) => ({
         participant: p,
         ...calculatePersonExpenses(trip, p.id),
       }))
+      .filter((ps: PersonSummary) => Math.abs(ps.netBalance) > 0.01 || ps.totalPaid > 0.01 || ps.totalShare > 0.01)
   }, [trip])
 
   if (!trip) {
@@ -164,7 +164,10 @@ export default function Settlement() {
                 <div className="flex items-center gap-3 mb-3">
                   <AvatarCircle name={participant.name} color={participant.color} />
                   <span className="font-medium text-gray-800">{participant.name}</span>
-                  {isSettled && (
+                  {!participant.isActive && (
+                    <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full font-medium">已退团</span>
+                  )}
+                  {participant.isActive && isSettled && (
                     <span className="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">已结清</span>
                   )}
                   {isPositive && (
