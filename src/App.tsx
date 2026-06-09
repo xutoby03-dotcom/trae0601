@@ -5,6 +5,7 @@ import RegisterPlant from '@/pages/RegisterPlant'
 import PlantDetail from '@/pages/PlantDetail'
 import MyPlants from '@/pages/MyPlants'
 import Stats from '@/pages/Stats'
+import Alerts from '@/pages/Alerts'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/plant/:id" element={<PlantDetail />} />
           <Route path="/my-plants" element={<MyPlants />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/alerts" element={<Alerts />} />
         </Routes>
       </Layout>
     </BrowserRouter>

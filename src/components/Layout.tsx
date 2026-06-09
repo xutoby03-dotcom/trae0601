@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PlusCircle, Leaf, BarChart3, AlertTriangle, X } from 'lucide-react'
 import { usePlantStore } from '@/store/plantStore'
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const alerts = usePlantStore((s) => s.alerts)
   const unresolvedCount = alerts.filter((a) => !a.resolved).length
   const [alertDismissed, setAlertDismissed] = useState(false)
@@ -52,15 +53,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {showBanner && (
         <div className="bg-amber-50 border-b border-amber-200">
           <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-2.5">
-            <div className="flex items-center gap-2 text-amber-800 text-sm">
+            <button
+              onClick={() => navigate('/alerts')}
+              className="flex items-center gap-2 text-amber-800 text-sm hover:text-amber-900 transition-colors cursor-pointer text-left"
+            >
               <AlertTriangle size={16} className="shrink-0" />
               <span>
-                当前有 <strong>{unresolvedCount}</strong> 条未处理预警，请及时关注！
+                当前有 <strong>{unresolvedCount}</strong> 条未处理预警，点击查看详情 →
               </span>
-            </div>
+            </button>
             <button
               onClick={() => setAlertDismissed(true)}
-              className="text-amber-600 hover:text-amber-800 transition-colors p-0.5"
+              className="text-amber-600 hover:text-amber-800 transition-colors p-0.5 cursor-pointer"
             >
               <X size={16} />
             </button>
