@@ -95,8 +95,9 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredPlans.map((plan) => {
-              const totalPledged = plan.participants.reduce((sum, p) => sum + p.pledgedAmount, 0)
-              const progress = plan.totalBudget > 0 ? Math.min(100, (totalPledged / plan.totalBudget) * 100) : 0
+              const totalReceived = plan.participants.filter((p) => p.hasPaid).reduce((sum, p) => sum + p.pledgedAmount, 0)
+              const totalAdvanced = plan.participants.reduce((sum, p) => sum + p.advancedAmount, 0)
+              const progress = plan.totalBudget > 0 ? Math.min(100, ((totalReceived + totalAdvanced) / plan.totalBudget) * 100) : 0
               const initial = plan.birthdayPerson.charAt(0)
 
               return (
@@ -124,7 +125,7 @@ export default function Home() {
                   <div className="mb-3">
                     <div className="flex items-center justify-between text-xs text-bark-500 mb-1">
                       <span>筹款进度</span>
-                      <span>{formatCurrency(totalPledged)} / {formatCurrency(plan.totalBudget)}</span>
+                      <span>{formatCurrency(totalReceived + totalAdvanced)} / {formatCurrency(plan.totalBudget)}</span>
                     </div>
                     <div className="w-full h-2 bg-warm-100 rounded-full overflow-hidden">
                       <div

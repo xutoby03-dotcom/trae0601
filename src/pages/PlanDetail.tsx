@@ -37,9 +37,11 @@ export default function PlanDetail() {
   }
 
   const totalPledged = plan.participants.reduce((s, p) => s + p.pledgedAmount, 0)
+  const totalReceived = plan.participants.filter((p) => p.hasPaid).reduce((s, p) => s + p.pledgedAmount, 0)
   const totalAdvanced = plan.participants.reduce((s, p) => s + p.advancedAmount, 0)
-  const budgetGap = plan.totalBudget - totalPledged - totalAdvanced
-  const progressPercent = Math.min(100, ((totalPledged + totalAdvanced) / plan.totalBudget) * 100)
+  const budgetGap = plan.totalBudget - totalReceived - totalAdvanced
+  const progressPercent = plan.totalBudget > 0 ? Math.min(100, ((totalReceived + totalAdvanced) / plan.totalBudget) * 100) : 0
+  const unpaidParticipants = plan.participants.filter((p) => !p.hasPaid)
   const maxVotes = Math.max(1, ...plan.giftCandidates.map((c) => c.votes.length))
 
   const handleAddNote = () => {
@@ -142,23 +144,23 @@ export default function PlanDetail() {
                 className="text-2xl font-bold fill-bark-800">{Math.round(progressPercent)}%</text>
             </svg>
             <div className="flex gap-6 text-center text-sm">
-              <div><p className="text-mint-600 font-bold">{formatCurrency(totalPledged)}</p><p className="text-bark-400 text-xs">已筹集</p></div>
+              <div><p className="text-mint-600 font-bold">{formatCurrency(totalReceived)}</p><p className="text-bark-400 text-xs">已到账</p></div>
               {budgetGap > 0 && <div><p className="text-rose-500 font-bold">{formatCurrency(budgetGap)}</p><p className="text-bark-400 text-xs">预算缺口</p></div>}
               <div><p className="text-warm-600 font-bold">{formatCurrency(totalAdvanced)}</p><p className="text-bark-400 text-xs">垫付总额</p></div>
             </div>
           </div>
           <div className="glass rounded-2xl divide-y divide-bark-100">
             {plan.participants.map((p) => (
-              <div key={p.id} className="p-3 flex items-center gap-2">
+              <div key={p.id} className={cn('p-3 flex items-center gap-2', !p.hasPaid && 'bg-rose-50/50')}>
                 <span className="text-sm text-bark-700 w-16 truncate">{p.name}</span>
                 <input type="number" value={p.pledgedAmount || ''} min={0}
                   onChange={(e) => updatePledge(plan.id, p.id, Number(e.target.value) || 0)}
                   className="w-20 rounded-lg border border-bark-200 px-2 py-1 text-sm text-center" placeholder="认缴" />
                 <button onClick={() => togglePaid(plan.id, p.id)}
-                  className={cn('p-1 rounded-lg transition', p.hasPaid ? 'bg-mint-100' : 'bg-bark-100')}>
-                  {p.hasPaid ? <Check className="w-4 h-4 text-mint-600" /> : <X className="w-4 h-4 text-bark-400" />}
+                  className={cn('p-1 rounded-lg transition', p.hasPaid ? 'bg-mint-100' : 'bg-rose-100')}>
+                  {p.hasPaid ? <Check className="w-4 h-4 text-mint-600" /> : <X className="w-4 h-4 text-rose-400" />}
                 </button>
-                <span className={cn('text-xs px-2 py-0.5 rounded-full', p.hasPaid ? 'bg-mint-50 text-mint-700' : 'bg-bark-50 text-bark-500')}>
+                <span className={cn('text-xs px-2 py-0.5 rounded-full', p.hasPaid ? 'bg-mint-50 text-mint-700' : 'bg-rose-100 text-rose-600 font-medium')}>
                   {p.hasPaid ? '已付' : '未付'}
                 </span>
                 <input type="number" value={p.advancedAmount || ''} min={0}
@@ -167,10 +169,23 @@ export default function PlanDetail() {
               </div>
             ))}
           </div>
+          {unpaidParticipants.length > 0 && (
+            <div className="rounded-2xl p-4 bg-rose-50 border border-rose-200">
+              <p className="text-sm font-medium text-rose-700 mb-2">未交款 ({unpaidParticipants.length}人)</p>
+              <div className="flex flex-wrap gap-2">
+                {unpaidParticipants.map((p) => (
+                  <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-rose-600 text-xs font-medium shadow-sm">
+                    <X className="w-3 h-3" />{p.name} {p.pledgedAmount > 0 ? formatCurrency(p.pledgedAmount) : '未填写'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="glass rounded-2xl p-3 flex justify-between text-sm">
             <span className="text-bark-500">合计</span>
             <div className="flex gap-4">
-              <span className="text-mint-600">认缴 {formatCurrency(totalPledged)}</span>
+              <span className="text-mint-600">到账 {formatCurrency(totalReceived)}</span>
+              <span className="text-bark-400">认缴 {formatCurrency(totalPledged)}</span>
               <span className="text-warm-600">垫付 {formatCurrency(totalAdvanced)}</span>
             </div>
           </div>
