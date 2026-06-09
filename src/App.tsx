@@ -5,6 +5,7 @@ import Register from '@/pages/Register'
 import Borrow from '@/pages/Borrow'
 import Return from '@/pages/Return'
 import Stats from '@/pages/Stats'
+import UmbrellaDetail from '@/pages/UmbrellaDetail'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/borrow/:id" element={<Borrow />} />
           <Route path="/return/:id" element={<Return />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/umbrella/:id" element={<UmbrellaDetail />} />
         </Route>
       </Routes>
     </Router>

@@ -67,14 +67,20 @@ export default function Home() {
                 <p className="text-sm text-slate-400">暂无该状态的雨伞</p>
               </div>
             ) : (
-              filteredUmbrellas.map((umbrella) => (
-                <UmbrellaCard
-                  key={umbrella.id}
-                  umbrella={umbrella}
-                  isRainy={weather.isRainy}
-                  onRepair={handleRepair}
-                />
-              ))
+              filteredUmbrellas.map((umbrella) => {
+                const latestRecord = store.borrowRecords
+                  .filter((r) => r.umbrellaId === umbrella.id && r.status === 'returned')
+                  .sort((a, b) => new Date(b.actualReturnTime || 0).getTime() - new Date(a.actualReturnTime || 0).getTime())[0]
+                return (
+                  <UmbrellaCard
+                    key={umbrella.id}
+                    umbrella={umbrella}
+                    latestRecord={latestRecord}
+                    isRainy={weather.isRainy}
+                    onRepair={handleRepair}
+                  />
+                )
+              })
             )}
           </motion.div>
         </AnimatePresence>

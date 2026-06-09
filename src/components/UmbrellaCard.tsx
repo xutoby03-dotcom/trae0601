@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Shield, Droplets, ArrowRight, Wrench, Eye } from 'lucide-react'
-import type { Umbrella } from '@/types'
-import { STATUS_LABELS, SIZE_LABELS } from '@/types'
+import { MapPin, Shield, Droplets, ArrowRight, Wrench, Eye, Clock, Camera } from 'lucide-react'
+import type { Umbrella, BorrowRecord } from '@/types'
+import { STATUS_LABELS, SIZE_LABELS, DAMAGE_TYPE_LABELS } from '@/types'
 import { cn } from '@/lib/utils'
+import { formatDateTime } from '@/utils/helpers'
 
 const STATUS_STYLES: Record<string, { border: string; badge: string; badgeText: string }> = {
   available: { border: 'border-emerald-200', badge: 'bg-emerald-100', badgeText: 'text-emerald-700' },
@@ -13,13 +14,15 @@ const STATUS_STYLES: Record<string, { border: string; badge: string; badgeText: 
 
 interface Props {
   umbrella: Umbrella
+  latestRecord?: BorrowRecord
   isRainy?: boolean
   onRepair?: (id: string) => void
 }
 
-export default function UmbrellaCard({ umbrella, isRainy, onRepair }: Props) {
+export default function UmbrellaCard({ umbrella, latestRecord, isRainy, onRepair }: Props) {
   const navigate = useNavigate()
   const styles = STATUS_STYLES[umbrella.status]
+  const showRecord = (umbrella.status === 'damaged' || umbrella.status === 'lost') && latestRecord
 
   return (
     <div
@@ -70,6 +73,53 @@ export default function UmbrellaCard({ umbrella, isRainy, onRepair }: Props) {
             </span>
           </div>
 
+          {showRecord && latestRecord && (
+            <div
+              onClick={() => navigate(`/umbrella/${umbrella.id}`)}
+              className="mb-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200/50 cursor-pointer hover:bg-slate-100/80 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                {latestRecord.returnPhotoUrl && (
+                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200/60">
+                    <img src={latestRecord.returnPhotoUrl} alt="归还照片" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      归还至 {latestRecord.returnLocation}
+                    </span>
+                    {latestRecord.actualReturnTime && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDateTime(latestRecord.actualReturnTime)}
+                      </span>
+                    )}
+                  </div>
+                  {latestRecord.damageTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {latestRecord.damageTypes.map((dt) => (
+                        <span
+                          key={dt}
+                          className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium"
+                        >
+                          {DAMAGE_TYPE_LABELS[dt]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {latestRecord.conditionOnReturn === 'lost' && (
+                    <p className="text-[11px] text-red-500 mt-1">借用者报告丢失</p>
+                  )}
+                </div>
+                {!latestRecord.returnPhotoUrl && (
+                  <Camera className="w-4 h-4 text-slate-300 flex-shrink-0 mt-0.5" />
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             {umbrella.status === 'available' && (
               <button
@@ -103,6 +153,15 @@ export default function UmbrellaCard({ umbrella, isRainy, onRepair }: Props) {
                 <Eye className="w-3.5 h-3.5" />
                 待找回
               </span>
+            )}
+            {showRecord && (
+              <button
+                onClick={() => navigate(`/umbrella/${umbrella.id}`)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors"
+              >
+                详情
+                <ArrowRight className="w-3 h-3" />
+              </button>
             )}
           </div>
         </div>
