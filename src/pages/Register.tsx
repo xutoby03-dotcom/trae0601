@@ -326,7 +326,7 @@ export default function Register() {
                 {pendingList.map((item) => (
                   <div
                     key={item.tempId}
-                    className="bg-stone-50 rounded-xl p-3 border border-stone-100 group"
+                    className="bg-stone-50 rounded-xl p-3 border border-stone-100"
                   >
                     <div className="flex items-start gap-2.5">
                       {item.photoUrl ? (
@@ -361,13 +361,13 @@ export default function Register() {
                       <button
                         type="button"
                         onClick={() => removePendingItem(item.tempId)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center text-stone-300 hover:text-red-500 hover:bg-red-50 transition shrink-0 opacity-0 group-hover:opacity-100"
+                        className="w-6 h-6 rounded-lg flex items-center justify-center text-stone-300 hover:text-red-500 hover:bg-red-50 transition shrink-0"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-[88px]">
                         <button
                           type="button"
                           onClick={() => updatePendingQuantity(item.tempId, -1)}
@@ -375,7 +375,7 @@ export default function Register() {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="text-sm font-bold text-stone-700 w-6 text-center">{item.quantity}</span>
+                        <span className="text-sm font-bold text-stone-700 inline-block w-5 text-center tabular-nums">{item.quantity}</span>
                         <button
                           type="button"
                           onClick={() => updatePendingQuantity(item.tempId, 1)}
