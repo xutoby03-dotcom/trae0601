@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useCampStore, getRiskLevelLabel } from '@/store/campStore';
 import type { RiskLevel } from '@/types';
-import { Plus, Mountain, BarChart3, AlertTriangle, ChevronRight, Tent } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Mountain, BarChart3, AlertTriangle, ChevronRight, Tent, Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 type FilterType = 'all' | RiskLevel;
+
+const REASON_FILTERS = ['强风', '涨水', '落石风险', '蚊虫多', '野狗出没', '夜间照明不足', '逃生路线不清', '天气多变', '无厕所', '无水源', '无手机信号', '禁止生火'] as const;
+type ReasonFilter = (typeof REASON_FILTERS)[number];
 
 const riskColors: Record<RiskLevel, { bg: string; border: string; text: string; badge: string; pulse: string }> = {
   high: {
@@ -41,11 +44,28 @@ export default function Home() {
   const navigate = useNavigate();
   const { getSortedCamps, getHighRiskReasons } = useCampStore();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [reasonFilter, setReasonFilter] = useState<ReasonFilter | null>(null);
 
-  const camps = getSortedCamps().filter((camp) => {
-    if (filter === 'all') return true;
-    return getRiskLevelLabel(camp.overallRiskLevel) === filter;
+  const allCamps = getSortedCamps();
+
+  const activeReasons = useMemo(() => {
+    const set = new Set<string>();
+    allCamps.forEach((camp) => {
+      getHighRiskReasons(camp.id).forEach((r) => set.add(r));
+    });
+    return REASON_FILTERS.filter((r) => set.has(r));
+  }, [allCamps, getHighRiskReasons]);
+
+  const camps = allCamps.filter((camp) => {
+    if (filter !== 'all' && getRiskLevelLabel(camp.overallRiskLevel) !== filter) return false;
+    if (reasonFilter) {
+      const reasons = getHighRiskReasons(camp.id);
+      return reasons.includes(reasonFilter);
+    }
+    return true;
   });
+
+  const isFiltering = filter !== 'all' || reasonFilter !== null;
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #0a1a12 0%, #0f2318 40%, #162e20 100%)' }}>
@@ -86,13 +106,13 @@ export default function Home() {
         </header>
 
         <div className="max-w-5xl mx-auto px-4 pt-6">
-          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
             {(['all', 'high', 'medium', 'low'] as FilterType[]).map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); setReasonFilter(null); }}
                 className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap transition-all ${
-                  filter === f
+                  filter === f && !reasonFilter
                     ? f === 'high'
                       ? 'bg-red-500/20 text-red-300 border border-red-500/40'
                       : f === 'medium'
@@ -108,7 +128,32 @@ export default function Home() {
             ))}
           </div>
 
+          {activeReasons.length > 0 && (
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+              <Search className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              {activeReasons.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setReasonFilter(reasonFilter === r ? null : r)}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-all ${
+                    reasonFilter === r
+                      ? 'bg-amber-400/25 text-amber-200 border border-amber-400/50 shadow-sm shadow-amber-400/10'
+                      : 'bg-white/5 text-emerald-600 border border-transparent hover:bg-white/10'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
+
           {camps.length === 0 ? (
+            isFiltering ? (
+              <div className="text-center py-20">
+                <Search className="w-8 h-8 text-emerald-700 mx-auto mb-3" />
+                <p className="text-sm text-emerald-500">没有找到符合条件的营地</p>
+              </div>
+            ) : (
             <div className="text-center py-24">
               <div className="w-20 h-20 rounded-2xl bg-emerald-900/30 border border-emerald-800/30 flex items-center justify-center mx-auto mb-5">
                 <Tent className="w-9 h-9 text-emerald-600" />
@@ -123,6 +168,7 @@ export default function Home() {
                 添加营地
               </button>
             </div>
+            )
           ) : (
             <div className="space-y-3 pb-8">
               {camps.map((camp, index) => {
@@ -155,12 +201,19 @@ export default function Home() {
 
                         {allReasons.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mb-2">
-                            {allReasons.slice(0, 4).map((item) => (
-                              <span key={item} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-red-500/15 text-red-300 border border-red-500/20">
-                                <AlertTriangle className="w-3 h-3" />
-                                {item}
-                              </span>
-                            ))}
+                            {allReasons.slice(0, 4).map((item) => {
+                              const isHit = reasonFilter === item;
+                              return (
+                                <span key={item} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-all ${
+                                  isHit
+                                    ? 'bg-amber-400/30 text-amber-100 border border-amber-400/60 shadow-sm shadow-amber-400/20'
+                                    : 'bg-red-500/15 text-red-300 border border-red-500/20'
+                                }`}>
+                                  <AlertTriangle className="w-3 h-3" />
+                                  {item}
+                                </span>
+                              );
+                            })}
                             {allReasons.length > 4 && (
                               <span className="px-2 py-0.5 rounded text-xs bg-red-500/10 text-red-400">
                                 +{allReasons.length - 4}
