@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
-import { Battery, AlertTriangle, Zap, Plus, Bell, ChevronRight } from 'lucide-react'
+import { Battery, AlertTriangle, Zap, Plus, Bell, ChevronRight, ChevronDown, Calendar } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { SIDE_LABELS, BATTERY_TYPE_LABELS, REMINDER_TYPE_LABELS } from '@/types'
 import type { HearingAid, DailyRecord } from '@/types'
@@ -26,7 +26,7 @@ export default function Home() {
   const { needCharge, needReplace, abnormalAids } = useMemo(() => {
     const charge: (HearingAid & { batteryLevel: number })[] = []
     const replace: (HearingAid & { batteryLevel: number })[] = []
-    const abnormal: (HearingAid & { issues: string[] })[] = []
+    const abnormal: (HearingAid & { issues: string[]; lastAbnormalDate: string; abnormalRecords: DailyRecord[] })[] = []
 
     hearingAids.forEach((aid) => {
       const latest = getLatestRecord(dailyRecords, aid.id)
@@ -43,12 +43,17 @@ export default function Home() {
         (r) => r.aidId === aid.id && isRecent(r.date, 7)
       )
       const issueSet = new Set<string>()
+      const abRecords: DailyRecord[] = []
       recentRecords.forEach((r) => {
-        if (r.hasWhistling) issueSet.add('啸叫')
-        if (r.hasHearingIssue) issueSet.add('听不清')
+        if (r.hasWhistling || r.hasHearingIssue) {
+          if (r.hasWhistling) issueSet.add('啸叫')
+          if (r.hasHearingIssue) issueSet.add('听不清')
+          abRecords.push(r)
+        }
       })
       if (issueSet.size > 0) {
-        abnormal.push({ ...aid, issues: Array.from(issueSet) })
+        abRecords.sort((a, b) => b.date.localeCompare(a.date))
+        abnormal.push({ ...aid, issues: Array.from(issueSet), lastAbnormalDate: abRecords[0].date, abnormalRecords: abRecords })
       }
     })
 
@@ -56,6 +61,7 @@ export default function Home() {
   }, [hearingAids, dailyRecords])
 
   const activeReminders = reminders.filter((r) => r.enabled)
+  const [expandedAidId, setExpandedAidId] = useState<string | null>(null)
 
   const now = new Date()
 
@@ -156,24 +162,68 @@ export default function Home() {
           <p className="rounded-xl bg-green-50 px-4 py-3 text-base text-indigo-light">近期无异常</p>
         ) : (
           <div className="space-y-3">
-            {abnormalAids.map((aid) => (
-              <div
-                key={aid.id}
-                className="rounded-xl border border-yellow-300 bg-yellow-50 p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-7 w-7 shrink-0 text-yellow-600" />
-                  <div>
-                    <p className="text-lg font-semibold text-indigo">
-                      {SIDE_LABELS[aid.side]} · {aid.model}
-                    </p>
-                    <p className="text-sm text-yellow-700">
-                      {aid.issues.join(' · ')}
-                    </p>
-                  </div>
+            {abnormalAids.map((aid) => {
+              const isExpanded = expandedAidId === aid.id
+              return (
+                <div
+                  key={aid.id}
+                  className="rounded-xl border border-yellow-300 bg-yellow-50 shadow-sm overflow-hidden"
+                >
+                  <button
+                    type="button"
+                    className="w-full p-4 text-left"
+                    onClick={() => setExpandedAidId(isExpanded ? null : aid.id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="h-7 w-7 shrink-0 text-yellow-600" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-lg font-semibold text-indigo">
+                          {SIDE_LABELS[aid.side]} · {aid.model}
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-yellow-700">
+                          <span>{aid.issues.join(' · ')}</span>
+                          <span className="text-yellow-500">|</span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            最近异常 {format(new Date(aid.lastAbnormalDate), 'M月d日')}
+                          </span>
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 shrink-0 text-yellow-600" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 shrink-0 text-yellow-600" />
+                      )}
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-yellow-200 bg-yellow-50/50 px-4 py-3 space-y-2">
+                      <p className="text-xs font-medium text-yellow-600 mb-2">近7天异常明细</p>
+                      {aid.abnormalRecords.map((r) => (
+                        <div
+                          key={r.id}
+                          className="rounded-lg bg-white/80 px-3 py-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-indigo">
+                              {format(new Date(r.date), 'M月d日')}
+                            </span>
+                            <span className="text-xs text-yellow-700">
+                              {r.hasWhistling && '啸叫'}
+                              {r.hasWhistling && r.hasHearingIssue && ' · '}
+                              {r.hasHearingIssue && '听不清'}
+                            </span>
+                          </div>
+                          {r.notes && (
+                            <p className="mt-1 text-xs text-indigo-light">{r.notes}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
