@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Star, Users, User, Clock, BookOpen, CheckCircle } from 'lucide-react'
 import { useReadingStore } from '@/store'
+import { getLocalDateString } from '@/lib/utils'
 
 export default function CheckIn() {
   const [searchParams] = useSearchParams()
@@ -23,7 +24,7 @@ export default function CheckIn() {
     return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
   }, [])
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const todayStr = useMemo(() => getLocalDateString(), [])
 
   const selectedBook = useMemo(
     () => books.find((b) => b.id === selectedBookId) || null,

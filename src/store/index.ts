@@ -1,13 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Book, CheckInRecord, RewardRule, RewardAchievement } from '@/types'
+import { getLocalDateString, getYesterdayDateString, getDaysBetween } from '@/lib/utils'
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8)
-}
-
-function getToday(): string {
-  return new Date().toISOString().split('T')[0]
 }
 
 interface ReadingStore {
@@ -101,7 +98,7 @@ export const useReadingStore = create<ReadingStore>()(
       },
 
       getTodayCheckIns: () => {
-        const today = getToday()
+        const today = getLocalDateString()
         return get().checkIns.filter((c) => c.date === today)
       },
 
@@ -161,18 +158,15 @@ export const useReadingStore = create<ReadingStore>()(
 
         const uniqueDates = [...new Set(checkIns)]
         let streak = 1
-        const today = getToday()
+        const today = getLocalDateString()
 
         if (uniqueDates[0] !== today) {
-          const yesterday = new Date()
-          yesterday.setDate(yesterday.getDate() - 1)
-          if (uniqueDates[0] !== yesterday.toISOString().split('T')[0]) return 0
+          const yesterday = getYesterdayDateString()
+          if (uniqueDates[0] !== yesterday) return 0
         }
 
         for (let i = 1; i < uniqueDates.length; i++) {
-          const prev = new Date(uniqueDates[i - 1])
-          const curr = new Date(uniqueDates[i])
-          const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24)
+          const diff = getDaysBetween(uniqueDates[i - 1], uniqueDates[i])
           if (diff === 1) {
             streak++
           } else {
@@ -189,18 +183,15 @@ export const useReadingStore = create<ReadingStore>()(
         if (allDates.length === 0) return 0
 
         let streak = 1
-        const today = getToday()
+        const today = getLocalDateString()
 
         if (allDates[0] !== today) {
-          const yesterday = new Date()
-          yesterday.setDate(yesterday.getDate() - 1)
-          if (allDates[0] !== yesterday.toISOString().split('T')[0]) return 0
+          const yesterday = getYesterdayDateString()
+          if (allDates[0] !== yesterday) return 0
         }
 
         for (let i = 1; i < allDates.length; i++) {
-          const prev = new Date(allDates[i - 1])
-          const curr = new Date(allDates[i])
-          const diff = (prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24)
+          const diff = getDaysBetween(allDates[i - 1], allDates[i])
           if (diff === 1) {
             streak++
           } else {
@@ -220,9 +211,7 @@ export const useReadingStore = create<ReadingStore>()(
         let current = 1
 
         for (let i = 1; i < allDates.length; i++) {
-          const prev = new Date(allDates[i - 1])
-          const curr = new Date(allDates[i])
-          const diff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24)
+          const diff = getDaysBetween(allDates[i], allDates[i - 1])
           if (diff === 1) {
             current++
             longest = Math.max(longest, current)
@@ -277,7 +266,7 @@ export const useReadingStore = create<ReadingStore>()(
 
       getStuckBooks: () => {
         const state = get()
-        const today = getToday()
+        const today = getLocalDateString()
         const result: { bookId: string; lastReadDate: string; daysSinceLastRead: number; progress: number }[] = []
 
         for (const book of state.books) {
@@ -288,9 +277,7 @@ export const useReadingStore = create<ReadingStore>()(
           if (progress >= 1) continue
 
           const lastDate = bookCheckIns.sort((a, b) => b.date.localeCompare(a.date))[0].date
-          const daysSince = Math.floor(
-            (new Date(today).getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24)
-          )
+          const daysSince = getDaysBetween(today, lastDate)
 
           if (daysSince >= 3) {
             result.push({ bookId: book.id, lastReadDate: lastDate, daysSinceLastRead: daysSince, progress })
