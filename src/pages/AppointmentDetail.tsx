@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useGroomingStore } from '@/store/useGroomingStore'
 import { SERVICE_LABELS, PICKUP_METHOD_LABELS, STATUS_LABELS } from '@/types'
 import type { AppointmentStatus, GroomingRecord, Reminder } from '@/types'
 import { formatDateTime } from '@/utils/helpers'
 import { addDays } from 'date-fns'
-import { ArrowLeft, Clock, MapPin, Truck, DollarSign, MessageSquare, CheckCircle, Star, Camera, AlertCircle, PawPrint } from 'lucide-react'
+import { ArrowLeft, Clock, MapPin, Truck, DollarSign, MessageSquare, CheckCircle, Star, Camera, AlertCircle, PawPrint, X, ImagePlus } from 'lucide-react'
 
 const STATUS_FLOW: AppointmentStatus[] = ['pending', 'today', 'pickup', 'completed']
 
@@ -28,6 +28,8 @@ export default function AppointmentDetail() {
   const [satisfactionScore, setSatisfactionScore] = useState(record?.satisfactionScore ?? 4)
   const [hadStress, setHadStress] = useState(record?.hadStress ?? false)
   const [stressNote, setStressNote] = useState(record?.stressNote ?? '')
+  const [photos, setPhotos] = useState<string[]>(record?.photos ?? [])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!appointment) {
     return (
@@ -46,12 +48,32 @@ export default function AppointmentDetail() {
     updateAppointment(appointment.id, { status: nextStatus })
   }
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string
+        if (dataUrl) {
+          setPhotos((prev) => [...prev, dataUrl])
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const handleCompleteWithRecord = () => {
     const groomRecord: GroomingRecord = {
       id: crypto.randomUUID(),
       appointmentId: appointment.id,
       actualCost,
-      photos: [],
+      photos,
       satisfactionScore,
       hadStress,
       stressNote,
@@ -219,6 +241,18 @@ export default function AppointmentDetail() {
               ⚠ 有应激反应 {record.stressNote && `：${record.stressNote}`}
             </div>
           )}
+          {record.photos.length > 0 && (
+            <div>
+              <div className="text-xs text-[#8B7E74] mb-2">美容照片</div>
+              <div className="flex flex-wrap gap-2">
+                {record.photos.map((src, i) => (
+                  <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border border-[#E8A87C]/20 shadow-sm">
+                    <img src={src} alt={`照片${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -282,6 +316,38 @@ export default function AppointmentDetail() {
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#3D2B1F]">美容照片</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <div className="flex flex-wrap gap-2">
+              {photos.map((src, i) => (
+                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#E8A87C]/20 shadow-sm group">
+                  <img src={src} alt={`预览${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => handleRemovePhoto(i)}
+                    className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-20 h-20 rounded-xl border-2 border-dashed border-[#E8A87C]/40 flex flex-col items-center justify-center gap-1 text-[#8B7E74] hover:border-[#E8A87C] hover:text-[#E8A87C] transition-colors"
+              >
+                <ImagePlus size={20} />
+                <span className="text-[10px]">添加</span>
+              </button>
+            </div>
+          </div>
 
           <button
             onClick={handleCompleteWithRecord}
