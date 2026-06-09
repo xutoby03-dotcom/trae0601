@@ -215,6 +215,25 @@ body {
   color: #fff;
 }
 
+.home-section--critical .home-section__title {
+  color: #991b1b;
+}
+
+.home-section--critical .section-count {
+  background: #991b1b;
+  color: #fff;
+  animation: badgeBlink 1s step-end infinite;
+}
+
+.home-section--overstay .home-section__title {
+  color: #b45309;
+}
+
+.home-section--overstay .section-count {
+  background: #d97706;
+  color: #fff;
+}
+
 .home-section--warning .home-section__title {
   color: var(--warning);
 }
@@ -260,13 +279,31 @@ body {
   animation: overtimePulse 2s ease-in-out infinite;
 }
 
-.item-card--urgent {
-  border-width: 2px;
+.item-card--critical {
+  border: 2px solid var(--danger-bg);
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  animation: criticalPulse 1s ease-in-out infinite;
+}
+
+.item-card--overstay {
+  border-color: #d97706;
+  background: #fffbeb;
+  animation: overstayPulse 3s ease-in-out infinite;
 }
 
 @keyframes overtimePulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
   50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.05); }
+}
+
+@keyframes criticalPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.08); }
+}
+
+@keyframes overstayPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.15); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.04); }
 }
 
 .item-card__header {
@@ -306,9 +343,25 @@ body {
   color: #fff;
 }
 
+.item-card__badge--critical {
+  background: #991b1b;
+  color: #fff;
+  animation: badgeBlink 1s step-end infinite;
+}
+
+.item-card__badge--overstay {
+  background: #d97706;
+  color: #fff;
+}
+
 .item-card__badge--rain {
   background: var(--rain);
   color: #fff;
+}
+
+@keyframes badgeBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .item-card__body {
@@ -333,6 +386,26 @@ body {
   color: var(--danger);
   font-weight: 700;
   font-size: 12px;
+}
+
+.item-card__critical-text {
+  color: #991b1b;
+  font-weight: 800;
+  font-size: 12px;
+  animation: badgeBlink 1s step-end infinite;
+}
+
+.item-card__overstay-text {
+  color: #b45309;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.item-card__occupancy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
 }
 
 .item-card__countdown {
