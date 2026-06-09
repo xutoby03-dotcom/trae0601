@@ -205,7 +205,11 @@ export default function Home() {
         {hovered && (
           <div
             className="card-glass px-3 py-2 text-xs fixed pointer-events-none z-50"
-            style={{ left: hovered.x + 12, top: hovered.y + 12, minWidth: 140 }}
+            style={{
+              left: Math.min(hovered.x + 12, window.innerWidth - 220),
+              top: Math.min(hovered.y + 12, window.innerHeight - 120),
+              width: 200,
+            }}
           >
             <div className="flex items-center gap-2 mb-1">
               {hovered.device.photoUrl ? (
@@ -215,7 +219,7 @@ export default function Home() {
                   <DeviceIcon type={hovered.device.type} size={16} />
                 </div>
               )}
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+              <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
                 {hovered.device.name}
               </span>
             </div>
@@ -226,7 +230,7 @@ export default function Home() {
               状态：{statusLabel[hovered.device.status]}
             </div>
             {hovered.device.remoteLocation && (
-              <div style={{ color: 'var(--text-muted)' }}>
+              <div className="truncate" style={{ color: 'var(--text-muted)' }}>
                 遥控器位置：{hovered.device.remoteLocation}
               </div>
             )}
