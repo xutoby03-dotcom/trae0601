@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useInsuranceStore } from '@/stores/insuranceStore'
+import { PERSON_ROLE_CONFIG } from '@/types/insurance'
 import { User, ShieldCheck, AlertTriangle, ChevronRight } from 'lucide-react'
 
 function formatCoverage(amount: number): string {
@@ -16,6 +17,7 @@ export default function MemberList() {
     getPersonOverlaps,
     getPersonCoverageAmount,
     getPolicyStatus,
+    getPersonRole,
   } = useInsuranceStore()
 
   const persons = getInsuredPersons()
@@ -42,6 +44,8 @@ export default function MemberList() {
             const coverageAmount = getPersonCoverageAmount(name)
             const gaps = getPersonGaps(name)
             const overlaps = getPersonOverlaps(name)
+            const role = getPersonRole(name)
+            const roleCfg = PERSON_ROLE_CONFIG[role]
 
             return (
               <Link
@@ -56,7 +60,12 @@ export default function MemberList() {
                       <User className="w-6 h-6 text-[var(--navy-500)]" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-[var(--navy-900)]">{name}</h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-[var(--navy-900)]">{name}</h2>
+                        <span className={`badge ${roleCfg.bg} ${roleCfg.color} border`}>
+                          {roleCfg.label}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="flex items-center gap-1 text-sm text-gray-500">
                           <ShieldCheck className="w-4 h-4 text-emerald-500" />

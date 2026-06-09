@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useInsuranceStore } from '@/stores/insuranceStore'
-import { INSURANCE_TYPES } from '@/types/insurance'
-import type { InsuranceType } from '@/types/insurance'
+import { INSURANCE_TYPES, PERSON_ROLES } from '@/types/insurance'
+import type { InsuranceType, PersonRole } from '@/types/insurance'
 import { Save, ArrowLeft, Upload, X } from 'lucide-react'
 
 export default function PolicyForm() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
-  const { policies, addPolicy, updatePolicy, getInsuredPersons } = useInsuranceStore()
+  const { policies, addPolicy, updatePolicy, getInsuredPersons, getPersonRole, setPersonRole } = useInsuranceStore()
 
   const existingPolicy = useMemo(
     () => (isEdit ? policies.find((p) => p.id === id) : undefined),
@@ -20,6 +20,7 @@ export default function PolicyForm() {
 
   const [form, setForm] = useState({
     insuredPerson: '',
+    personRole: '' as PersonRole | '',
     insuranceType: '' as InsuranceType | '',
     company: '',
     coverageAmount: '',
@@ -37,6 +38,7 @@ export default function PolicyForm() {
     if (existingPolicy) {
       setForm({
         insuredPerson: existingPolicy.insuredPerson,
+        personRole: getPersonRole(existingPolicy.insuredPerson),
         insuranceType: existingPolicy.insuranceType,
         company: existingPolicy.company,
         coverageAmount: String(existingPolicy.coverageAmount),
@@ -50,7 +52,16 @@ export default function PolicyForm() {
   }, [existingPolicy])
 
   const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [field]: value }
+      if (field === 'insuredPerson' && value) {
+        const existingRole = getPersonRole(value)
+        if (existingRole) {
+          next.personRole = existingRole
+        }
+      }
+      return next
+    })
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: false }))
     }
@@ -72,7 +83,7 @@ export default function PolicyForm() {
   }
 
   const validate = () => {
-    const required = ['insuredPerson', 'insuranceType', 'company', 'coverageAmount', 'premium', 'paymentDate', 'expiryDate', 'agent', 'photo']
+    const required = ['insuredPerson', 'personRole', 'insuranceType', 'company', 'coverageAmount', 'premium', 'paymentDate', 'expiryDate', 'agent', 'photo']
     const newErrors: Record<string, boolean> = {}
     for (const field of required) {
       if (!form[field as keyof typeof form]) {
@@ -99,6 +110,8 @@ export default function PolicyForm() {
       photo: form.photo,
     }
 
+    setPersonRole(form.insuredPerson, form.personRole as PersonRole)
+
     const policyId = isEdit && id
       ? (updatePolicy(id, data), id)
       : addPolicy(data)
@@ -118,21 +131,36 @@ export default function PolicyForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="form-label">投保人 *</label>
-          <input
-            type="text"
-            list="person-suggestions"
-            value={form.insuredPerson}
-            onChange={(e) => handleChange('insuredPerson', e.target.value)}
-            className={`form-input ${errors.insuredPerson ? 'border-red-400 focus:ring-red-400' : ''}`}
-            placeholder="输入投保人姓名"
-          />
-          <datalist id="person-suggestions">
-            {persons.map((p) => (
-              <option key={p} value={p} />
-            ))}
-          </datalist>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="form-label">被保人 *</label>
+            <input
+              type="text"
+              list="person-suggestions"
+              value={form.insuredPerson}
+              onChange={(e) => handleChange('insuredPerson', e.target.value)}
+              className={`form-input ${errors.insuredPerson ? 'border-red-400 focus:ring-red-400' : ''}`}
+              placeholder="输入被保人姓名"
+            />
+            <datalist id="person-suggestions">
+              {persons.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+          </div>
+          <div>
+            <label className="form-label">身份 *</label>
+            <select
+              value={form.personRole}
+              onChange={(e) => handleChange('personRole', e.target.value)}
+              className={`form-input ${errors.personRole ? 'border-red-400 focus:ring-red-400' : ''}`}
+            >
+              <option value="">请选择身份</option>
+              {PERSON_ROLES.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>

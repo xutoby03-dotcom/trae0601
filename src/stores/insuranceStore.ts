@@ -7,12 +7,14 @@ import type {
   ClaimRecord,
   PolicyStatus,
   InsuranceType,
+  PersonRole,
 } from '@/types/insurance'
 
 interface InsuranceStore {
   policies: InsurancePolicy[]
   renewals: RenewalRecord[]
   claims: ClaimRecord[]
+  personRoles: Record<string, PersonRole>
 
   addPolicy: (policy: Omit<InsurancePolicy, 'id' | 'createdAt' | 'updatedAt'>) => string
   updatePolicy: (id: string, policy: Partial<InsurancePolicy>) => void
@@ -25,6 +27,8 @@ interface InsuranceStore {
   updateClaim: (id: string, claim: Partial<ClaimRecord>) => void
   deleteClaim: (id: string) => void
 
+  setPersonRole: (name: string, role: PersonRole) => void
+  getPersonRole: (name: string) => PersonRole
   getPolicyStatus: (policy: InsurancePolicy) => PolicyStatus
   getGroupedPolicies: () => Record<PolicyStatus, InsurancePolicy[]>
   getInsuredPersons: () => string[]
@@ -46,6 +50,7 @@ export const useInsuranceStore = create<InsuranceStore>()(
       policies: [],
       renewals: [],
       claims: [],
+      personRoles: {},
 
       addPolicy: (policyData) => {
         const id = genId()
@@ -112,6 +117,16 @@ export const useInsuranceStore = create<InsuranceStore>()(
         set((state) => ({ claims: state.claims.filter((c) => c.id !== id) }))
       },
 
+      setPersonRole: (name, role) => {
+        set((state) => ({
+          personRoles: { ...state.personRoles, [name]: role },
+        }))
+      },
+
+      getPersonRole: (name): PersonRole => {
+        return get().personRoles[name] || '成人'
+      },
+
       getPolicyStatus: (policy: InsurancePolicy): PolicyStatus => {
         const today = startOfDay(new Date())
         const expiry = parseISO(policy.expiryDate)
@@ -158,7 +173,8 @@ export const useInsuranceStore = create<InsuranceStore>()(
             .filter((p) => get().getPolicyStatus(p) !== '已失效')
             .map((p) => p.insuranceType)
         )
-        const coreTypes: InsuranceType[] = ['车险', '重疾险', '医疗险', '意外险']
+        const role = get().getPersonRole(name)
+        const coreTypes: InsuranceType[] = ['重疾险', '医疗险', '意外险']
         return coreTypes.filter((t) => !coveredTypes.has(t))
       },
 

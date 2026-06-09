@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useInsuranceStore } from '@/stores/insuranceStore'
-import { INSURANCE_TYPES, INSURANCE_TYPE_COLORS, STATUS_CONFIG } from '@/types/insurance'
-import type { InsuranceType, InsurancePolicy } from '@/types/insurance'
-import { ArrowLeft, AlertTriangle, ShieldCheck, ShieldOff, Copy } from 'lucide-react'
+import { INSURANCE_TYPES, INSURANCE_TYPE_COLORS, STATUS_CONFIG, PERSON_ROLE_CONFIG } from '@/types/insurance'
+import type { InsuranceType, InsurancePolicy, PersonRole } from '@/types/insurance'
+import { ArrowLeft, AlertTriangle, ShieldCheck, ShieldOff, Copy, Heart } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns'
 
 function formatMoney(amount: number, unit: '元' | '万元' = '元'): string {
@@ -88,6 +88,7 @@ export default function MemberDetail() {
     getPersonOverlaps,
     getPersonCoverageAmount,
     getPolicyStatus,
+    getPersonRole,
   } = useInsuranceStore()
 
   if (!name) return null
@@ -97,6 +98,8 @@ export default function MemberDetail() {
   const gaps = getPersonGaps(decodedName)
   const overlaps = getPersonOverlaps(decodedName)
   const coverageAmount = getPersonCoverageAmount(decodedName)
+  const role = getPersonRole(decodedName)
+  const roleCfg = PERSON_ROLE_CONFIG[role]
 
   const activePolicies = policies.filter((p) => getPolicyStatus(p) !== '已失效')
   const expiredPolicies = policies.filter((p) => getPolicyStatus(p) === '已失效')
@@ -111,11 +114,22 @@ export default function MemberDetail() {
     return 'inactive'
   }
 
-  const GAP_SUGGESTIONS: Record<string, string> = {
-    '车险': '车辆上路必备保障，建议补充交强险与商业险',
-    '重疾险': '重大疾病保障缺失，确诊即赔可减轻经济负担',
-    '医疗险': '建议补充医疗险，覆盖日常住院及门诊费用',
-    '意外险': '意外风险不可预测，保费低保障高建议补充',
+  function getGapSuggestion(type: InsuranceType): { text: string; urgent: boolean } {
+    if (role === '孩子') {
+      if (type === '意外险') return { text: '孩子活泼好动，意外风险高，意外险保费低保障高，强烈建议补充', urgent: true }
+      if (type === '重疾险') return { text: '少儿重疾发病率逐年上升，确诊即赔可减轻家庭负担', urgent: false }
+      if (type === '医疗险') return { text: '建议补充医疗险，覆盖日常住院及门诊费用', urgent: false }
+    }
+    if (role === '老人') {
+      if (type === '医疗险') return { text: '老人就医频率高，医疗险是刚需保障，强烈建议补充', urgent: true }
+      if (type === '重疾险') return { text: '老年人重疾风险显著升高，建议补充重疾保障', urgent: false }
+      if (type === '意外险') return { text: '老年人骨折等意外风险较高，建议补充意外保障', urgent: false }
+    }
+    return {
+      '重疾险': { text: '重大疾病保障缺失，确诊即赔可减轻经济负担', urgent: false },
+      '医疗险': { text: '建议补充医疗险，覆盖日常住院及门诊费用', urgent: false },
+      '意外险': { text: '意外风险不可预测，保费低保障高建议补充', urgent: false },
+    }[type] || { text: '建议补充该类型保障', urgent: false }
   }
 
   return (
@@ -136,8 +150,13 @@ export default function MemberDetail() {
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-[var(--navy-900)]">{decodedName}</h1>
-              <p className="text-sm text-gray-500">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-[var(--navy-900)]">{decodedName}</h1>
+                <span className={`badge ${roleCfg.bg} ${roleCfg.color} border`}>
+                  {roleCfg.label}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
                 {activePolicies.length} 份有效保单 · 总保额 {formatMoney(coverageAmount, '万元')}
               </p>
             </div>
@@ -192,25 +211,70 @@ export default function MemberDetail() {
             保障缺口
           </h2>
           <div className="space-y-3">
-            {gaps.map((type) => (
-              <div
-                key={type}
-                className="card p-4 border-red-200 bg-red-50/50"
-              >
-                <div className="flex items-center gap-3">
-                  <ShieldOff className="w-5 h-5 text-red-400 shrink-0" />
-                  <div>
-                    <p className="font-medium text-red-700">缺少{type}</p>
-                    <p className="text-sm text-red-500/80 mt-0.5">
-                      {GAP_SUGGESTIONS[type] || '建议补充该类型保障'}
-                    </p>
+            {gaps.map((type) => {
+              const suggestion = getGapSuggestion(type)
+              return (
+                <div
+                  key={type}
+                  className={`card p-4 ${suggestion.urgent ? 'border-red-300 bg-red-50/70' : 'border-red-200 bg-red-50/50'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldOff className={`w-5 h-5 shrink-0 ${suggestion.urgent ? 'text-red-500' : 'text-red-400'}`} />
+                    <div>
+                      <p className={`font-medium ${suggestion.urgent ? 'text-red-800' : 'text-red-700'}`}>
+                        缺少{type}
+                        {suggestion.urgent && (
+                          <span className="ml-2 badge bg-red-100 text-red-700 border border-red-300 text-xs">重点关注</span>
+                        )}
+                      </p>
+                      <p className="text-sm text-red-500/80 mt-0.5">
+                        {suggestion.text}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </section>
       )}
+
+      {role === '老人' && activePolicies.some((p) => p.insuranceType === '医疗险') && (() => {
+        const medicalExpiring = activePolicies.filter((p) => {
+          if (p.insuranceType !== '医疗险') return false
+          const days = differenceInDays(parseISO(p.expiryDate), new Date())
+          return days >= 0 && days <= 90
+        })
+        if (medicalExpiring.length === 0) return null
+        return (
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: '180ms' }}>
+            <h2 className="section-title mb-4 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-purple-500" />
+              医疗险到期提醒
+            </h2>
+            <div className="space-y-3">
+              {medicalExpiring.map((p) => {
+                const days = differenceInDays(parseISO(p.expiryDate), new Date())
+                return (
+                  <div key={p.id} className="card p-4 border-purple-200 bg-purple-50/50">
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-5 h-5 text-purple-500 shrink-0" />
+                      <div>
+                        <p className="font-medium text-purple-700">
+                          {p.company}医疗险将于 {days} 天后到期
+                        </p>
+                        <p className="text-sm text-purple-500/80 mt-0.5">
+                          老人医疗险到期影响大，请务必及时续费
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })()}
 
       {overlaps.length > 0 && (
         <section className="mb-8 animate-fade-in" style={{ animationDelay: '200ms' }}>

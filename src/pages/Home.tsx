@@ -1,8 +1,8 @@
 import { useInsuranceStore } from '@/stores/insuranceStore'
-import { STATUS_CONFIG, INSURANCE_TYPE_COLORS } from '@/types/insurance'
-import type { InsurancePolicy, PolicyStatus } from '@/types/insurance'
+import { STATUS_CONFIG, INSURANCE_TYPE_COLORS, PERSON_ROLE_CONFIG } from '@/types/insurance'
+import type { InsurancePolicy, PolicyStatus, PersonRole } from '@/types/insurance'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertTriangle, Clock, ShieldCheck, ShieldOff, Plus, BarChart3, ChevronRight, Shield } from 'lucide-react'
+import { AlertTriangle, Clock, ShieldCheck, ShieldOff, Plus, BarChart3, ChevronRight, Shield, Heart } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns'
 
 const STATUS_ICONS: Record<PolicyStatus, React.ReactNode> = {
@@ -107,6 +107,7 @@ export default function Home() {
   const getPersonOverlaps = useInsuranceStore((s) => s.getPersonOverlaps)
   const getExpiringPolicies = useInsuranceStore((s) => s.getExpiringPolicies)
   const getTotalAnnualPremium = useInsuranceStore((s) => s.getTotalAnnualPremium)
+  const getPersonRole = useInsuranceStore((s) => s.getPersonRole)
   const policies = useInsuranceStore((s) => s.policies)
 
   const grouped = getGroupedPolicies()
@@ -115,14 +116,28 @@ export default function Home() {
   const totalPremium = getTotalAnnualPremium()
 
   const gapsList = persons
-    .map((name) => ({ name, gaps: getPersonGaps(name) }))
+    .map((name) => ({ name, role: getPersonRole(name), gaps: getPersonGaps(name) }))
     .filter((item) => item.gaps.length > 0)
 
   const overlapsList = persons
     .map((name) => ({ name, overlaps: getPersonOverlaps(name) }))
     .filter((item) => item.overlaps.length > 0)
 
-  const hasAlerts = expiring.length > 0 || gapsList.length > 0 || overlapsList.length > 0
+  const elderlyExpiringMedical = persons
+    .filter((name) => getPersonRole(name) === '老人')
+    .flatMap((name) =>
+      useInsuranceStore.getState().getPersonPolicies(name)
+        .filter((p) => {
+          if (p.insuranceType !== '医疗险') return false
+          const status = useInsuranceStore.getState().getPolicyStatus(p)
+          if (status === '已失效') return false
+          const days = differenceInDays(parseISO(p.expiryDate), new Date())
+          return days >= 0 && days <= 90
+        })
+        .map((p) => ({ policy: p, days: differenceInDays(parseISO(p.expiryDate), new Date()) }))
+    )
+
+  const hasAlerts = expiring.length > 0 || gapsList.length > 0 || overlapsList.length > 0 || elderlyExpiringMedical.length > 0
 
   return (
     <div className="space-y-6">
@@ -170,9 +185,35 @@ export default function Home() {
               <Shield className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-red-800">存在保障缺口</p>
-                {gapsList.map((item) => (
-                  <p key={item.name} className="text-xs text-red-600 mt-1">
-                    {item.name} 缺少：{item.gaps.join('、')}
+                {gapsList.map((item) => {
+                  const roleCfg = PERSON_ROLE_CONFIG[item.role]
+                  const priorityGap = item.role === '孩子' ? '意外险' : item.role === '老人' ? '医疗险' : null
+                  return (
+                    <p key={item.name} className="text-xs text-red-600 mt-1">
+                      <span className={`badge ${roleCfg.bg} ${roleCfg.color} border text-xs mr-1`}>
+                        {roleCfg.label}
+                      </span>
+                      {item.name} 缺少：{item.gaps.map((g) => (
+                        <span key={g} className={g === priorityGap ? 'font-bold' : ''}>{g}</span>
+                      )).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, '、', el], [])}
+                      {priorityGap && item.gaps.includes(priorityGap as any) && (
+                        <span className="text-red-800 font-medium">（重点关注）</span>
+                      )}
+                    </p>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {elderlyExpiringMedical.length > 0 && (
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-purple-50 border border-purple-200">
+              <Heart className="w-5 h-5 text-purple-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-purple-800">老人医疗险即将到期</p>
+                {elderlyExpiringMedical.map(({ policy, days }) => (
+                  <p key={policy.id} className="text-xs text-purple-600 mt-1">
+                    {policy.insuredPerson} 的{policy.company}医疗险，剩余 {days} 天到期，请及时续费
                   </p>
                 ))}
               </div>

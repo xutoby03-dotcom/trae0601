@@ -1,6 +1,7 @@
 export type InsuranceType = '车险' | '重疾险' | '医疗险' | '意外险' | '其他'
 export type PolicyStatus = '快缴费' | '快到期' | '保障中' | '已失效'
 export type ClaimStatus = '处理中' | '已赔付' | '已拒赔'
+export type PersonRole = '成人' | '孩子' | '老人'
 
 export interface InsurancePolicy {
   id: string
@@ -38,6 +39,13 @@ export interface ClaimRecord {
 
 export const INSURANCE_TYPES: InsuranceType[] = ['车险', '重疾险', '医疗险', '意外险', '其他']
 export const CLAIM_STATUSES: ClaimStatus[] = ['处理中', '已赔付', '已拒赔']
+export const PERSON_ROLES: PersonRole[] = ['成人', '孩子', '老人']
+
+export const PERSON_ROLE_CONFIG: Record<PersonRole, { label: string; color: string; bg: string }> = {
+  '成人': { label: '成人', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200' },
+  '孩子': { label: '孩子', color: 'text-pink-700', bg: 'bg-pink-50 border-pink-200' },
+  '老人': { label: '老人', color: 'text-purple-700', bg: 'bg-purple-50 border-purple-200' },
+}
 
 export const INSURANCE_TYPE_COLORS: Record<InsuranceType, string> = {
   '车险': '#3b82f6',
