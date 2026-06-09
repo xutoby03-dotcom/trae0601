@@ -2,6 +2,19 @@ export type TicketStatus = 'pending' | 'repairing' | 'resolved' | 'procurement'
 export type Urgency = 'urgent' | 'high' | 'normal'
 export type RoomStatus = 'active' | 'maintenance'
 
+export interface PhotoItem {
+  url: string
+  caption: string
+}
+
+export function normalizePhotos(raw: PhotoItem[] | string[]): PhotoItem[] {
+  if (!raw || raw.length === 0) return []
+  if (typeof raw[0] === 'string') {
+    return (raw as string[]).map((url) => ({ url, caption: '' }))
+  }
+  return raw as PhotoItem[]
+}
+
 export interface MeetingRoom {
   id: string
   name: string
@@ -18,7 +31,7 @@ export interface Ticket {
   equipmentType: string
   faultDescription: string
   urgency: Urgency
-  photos: string[]
+  photos: PhotoItem[]
   affectedMeetingTime: string
   status: TicketStatus
   createdAt: string

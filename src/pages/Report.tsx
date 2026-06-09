@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
-import type { Urgency } from '@/types'
+import type { Urgency, PhotoItem } from '@/types'
 import { EQUIPMENT_OPTIONS, FAULT_PRESETS, URGENCY_LABELS } from '@/types'
 import {
   AlertTriangle,
@@ -12,7 +12,6 @@ import {
   MapPin,
   Plus,
   X,
-  Image as ImageIcon,
 } from 'lucide-react'
 
 export default function Report() {
@@ -28,8 +27,12 @@ export default function Report() {
   const [affectedMeetingTime, setAffectedMeetingTime] = useState('')
   const [reporter, setReporter] = useState('')
   const [customFault, setCustomFault] = useState('')
-  const [photos, setPhotos] = useState<string[]>([])
+  const [photos, setPhotos] = useState<PhotoItem[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const updateCaption = (idx: number, caption: string) => {
+    setPhotos((prev) => prev.map((p, i) => (i === idx ? { ...p, caption } : p)))
+  }
 
   const selectedRoom = rooms.find((r) => r.id === roomId)
   const availableEquip = selectedRoom?.equipment || EQUIPMENT_OPTIONS
@@ -224,22 +227,27 @@ export default function Report() {
                 故障照片
               </label>
               <div className="flex flex-wrap gap-3">
-                {photos.map((src, idx) => (
-                  <div key={idx} className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
-                    <img
-                      src={src}
-                      alt={`照片 ${idx + 1}`}
-                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                    />
-                    <button
-                      onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent p-1">
-                      <span className="text-[10px] text-white/80">照片 {idx + 1}</span>
+                {photos.map((photo, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-1.5">
+                    <div className="group relative h-24 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 shadow-sm">
+                      <img
+                        src={photo.url}
+                        alt={photo.caption || `照片 ${idx + 1}`}
+                        className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      />
+                      <button
+                        onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition-opacity hover:bg-black/70 group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
+                    <input
+                      value={photo.caption}
+                      onChange={(e) => updateCaption(idx, e.target.value)}
+                      placeholder="添加备注..."
+                      className="w-24 rounded-md border border-slate-200 px-1.5 py-1 text-[11px] text-slate-700 placeholder:text-slate-300 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-200"
+                    />
                   </div>
                 ))}
                 <button
@@ -263,7 +271,7 @@ export default function Report() {
                     reader.onload = (ev) => {
                       const result = ev.target?.result as string
                       if (result) {
-                        setPhotos((prev) => [...prev, result])
+                        setPhotos((prev) => [...prev, { url: result, caption: '' }])
                       }
                     }
                     reader.readAsDataURL(file)
@@ -271,7 +279,7 @@ export default function Report() {
                   e.target.value = ''
                 }}
               />
-              <p className="mt-2 text-[11px] text-slate-400">支持 JPG、PNG 格式，可添加多张</p>
+              <p className="mt-2 text-[11px] text-slate-400">支持 JPG、PNG 格式，可添加多张，每张可写备注</p>
             </div>
 
             <div className="mt-6">
@@ -333,9 +341,12 @@ export default function Report() {
                   <div className="mt-3">
                     <span className="text-sm text-slate-400">故障照片</span>
                     <div className="mt-1.5 flex flex-wrap gap-2">
-                      {photos.map((src, idx) => (
-                        <div key={idx} className="h-14 w-14 overflow-hidden rounded-lg border border-slate-200">
-                          <img src={src} alt={`照片 ${idx + 1}`} className="h-full w-full object-cover" />
+                      {photos.map((photo, idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-1">
+                          <div className="h-14 w-14 overflow-hidden rounded-lg border border-slate-200">
+                            <img src={photo.url} alt={photo.caption || `照片 ${idx + 1}`} className="h-full w-full object-cover" />
+                          </div>
+                          {photo.caption && <span className="w-14 truncate text-center text-[10px] text-slate-500">{photo.caption}</span>}
                         </div>
                       ))}
                     </div>

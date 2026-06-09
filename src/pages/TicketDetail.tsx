@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useStore } from '@/store'
-import { STATUS_LABELS, URGENCY_LABELS } from '@/types'
+import { STATUS_LABELS, URGENCY_LABELS, normalizePhotos } from '@/types'
+import type { PhotoItem } from '@/types'
 import {
   ArrowLeft,
   Clock,
@@ -62,6 +63,8 @@ export default function TicketDetail() {
       </div>
     )
   }
+
+  const normalizedPhotos = normalizePhotos(ticket.photos as PhotoItem[] | string[])
 
   const StatusIcon = statusIcons[ticket.status]
   const statusClass = statusColors[ticket.status]
@@ -149,27 +152,34 @@ export default function TicketDetail() {
           )}
         </div>
 
-        {ticket.photos.length > 0 ? (
+        {normalizedPhotos.length > 0 ? (
           <div className="mt-4">
             <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-slate-500">
               <Camera className="h-3.5 w-3.5" />
-              故障照片 ({ticket.photos.length})
+              故障照片 ({normalizedPhotos.length})
             </div>
-            <div className="flex flex-wrap gap-2">
-              {ticket.photos.map((src, idx) => (
+            <div className="flex flex-wrap gap-3">
+              {normalizedPhotos.map((photo, idx) => (
                 <button
                   key={idx}
                   onClick={() => setLightboxIdx(idx)}
-                  className="group relative h-20 w-20 overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md"
+                  className="group flex flex-col items-center gap-1.5"
                 >
-                  <img
-                    src={src}
-                    alt={`照片 ${idx + 1}`}
-                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                    <ZoomIn className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                    <img
+                      src={photo.url}
+                      alt={photo.caption || `照片 ${idx + 1}`}
+                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                      <ZoomIn className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                    </div>
                   </div>
+                  {photo.caption ? (
+                    <span className="w-20 truncate text-center text-[11px] text-slate-500">{photo.caption}</span>
+                  ) : (
+                    <span className="w-20 text-center text-[11px] text-slate-300">照片 {idx + 1}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -181,7 +191,7 @@ export default function TicketDetail() {
           </div>
         )}
 
-        {lightboxIdx >= 0 && ticket.photos.length > 0 && (
+        {lightboxIdx >= 0 && normalizedPhotos.length > 0 && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={() => setLightboxIdx(-1)}
@@ -192,23 +202,28 @@ export default function TicketDetail() {
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="relative max-h-[85vh] max-w-[85vw]" onClick={(e) => e.stopPropagation()}>
+            <div className="relative flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <img
-                src={ticket.photos[lightboxIdx]}
-                alt={`照片 ${lightboxIdx + 1}`}
-                className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
+                src={normalizedPhotos[lightboxIdx].url}
+                alt={normalizedPhotos[lightboxIdx].caption || `照片 ${lightboxIdx + 1}`}
+                className="max-h-[75vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
               />
+              {normalizedPhotos[lightboxIdx].caption && (
+                <p className="rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white">
+                  {normalizedPhotos[lightboxIdx].caption}
+                </p>
+              )}
             </div>
-            {ticket.photos.length > 1 && (
+            {normalizedPhotos.length > 1 && (
               <>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + ticket.photos.length) % ticket.photos.length) }}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + normalizedPhotos.length) % normalizedPhotos.length) }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                 >
                   ‹
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % ticket.photos.length) }}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % normalizedPhotos.length) }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                 >
                   ›
@@ -216,7 +231,7 @@ export default function TicketDetail() {
               </>
             )}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
-              {lightboxIdx + 1} / {ticket.photos.length}
+              {lightboxIdx + 1} / {normalizedPhotos.length}
             </div>
           </div>
         )}

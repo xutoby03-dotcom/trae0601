@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { MeetingRoom, Ticket, TicketStatus, Urgency } from '@/types'
+import type { MeetingRoom, Ticket, TicketStatus, Urgency, PhotoItem } from '@/types'
+import { normalizePhotos } from '@/types'
 
 interface AppState {
   rooms: MeetingRoom[]
@@ -351,6 +352,16 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'meeting-room-repair-storage',
+      merge: (persisted, current) => {
+        const p = persisted as Partial<AppState>
+        if (p.tickets) {
+          p.tickets = p.tickets.map((t) => ({
+            ...t,
+            photos: normalizePhotos(t.photos as PhotoItem[] | string[]),
+          }))
+        }
+        return { ...current, ...p }
+      },
     }
   )
 )
