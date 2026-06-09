@@ -19,6 +19,7 @@ export default function App() {
           <Route path="/devices" element={<Devices />} />
           <Route path="/devices/new" element={<DeviceForm />} />
           <Route path="/devices/:id" element={<DeviceDetail />} />
+          <Route path="/devices/:id/edit" element={<DeviceForm />} />
           <Route path="/scenes" element={<Scenes />} />
           <Route path="/scenes/new" element={<SceneForm />} />
           <Route path="/scenes/:id" element={<SceneDetail />} />

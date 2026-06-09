@@ -61,7 +61,7 @@ export default function DeviceDetail() {
         <h1 className="text-lg font-semibold text-white truncate mx-4">{device.name}</h1>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => navigate(`/devices/${device.id}`)}
+            onClick={() => navigate(`/devices/${device.id}/edit`)}
             className="p-2 rounded-lg hover:bg-white/10 text-white transition"
           >
             <Edit3 size={18} />
