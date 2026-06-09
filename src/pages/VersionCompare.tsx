@@ -52,6 +52,10 @@ function deriveDimensions(score: number) {
 
 const VERSION_COLORS = ['#D4A574', '#8B5E3C', '#27AE60', '#F39C12']
 
+function hasRecipe(recipe: string | undefined): recipe is string {
+  return !!recipe && recipe.trim().length > 0
+}
+
 function AdjustmentBadge({ item, before, after, unit }: { item: AdjustmentItem; before: number; after: number; unit: string }) {
   const diff = after - before
   const Icon = diff > 0 ? TrendingUp : diff < 0 ? TrendingDown : Minus
@@ -236,7 +240,7 @@ export default function VersionCompare() {
                             <BookOpen className="w-3 h-3" />
                             配方
                           </p>
-                          {v.recipe ? (
+                          {hasRecipe(v.recipe) ? (
                             <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap text-left max-h-36 overflow-y-auto">
                               {v.recipe}
                             </div>
@@ -321,7 +325,7 @@ export default function VersionCompare() {
                       )}
 
                       <div className="mt-2 pt-2 border-t border-bake-border">
-                          {v.recipe ? (
+                          {hasRecipe(v.recipe) ? (
                             <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
                               {v.recipe}
                             </div>
