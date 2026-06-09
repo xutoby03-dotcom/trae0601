@@ -224,7 +224,7 @@ export default function NewReport() {
           )}
         </div>
 
-        <button type="submit" className="btn btn-primary btn-block" disabled={!building || !floor || !photo}>
+        <button type="submit" className="btn btn-primary btn-block" disabled={!building || !floor}>
           提交提醒
         </button>
       </form>
