@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Upload, Clock, Package, Sparkles, Shirt, ChevronRight } from 'lucide-react'
-import type { ClothingType, FabricType, DamageLocation, Difficulty, UpcycleIdea } from '@/types'
+import type { ClothingType, FabricType, DamageLocation, Difficulty } from '@/types'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
 
@@ -41,7 +41,11 @@ const difficultyConfig: Record<Difficulty, { color: string; bg: string }> = {
 
 export default function Register() {
   const navigate = useNavigate()
-  const { addClothing, createProject, toggleFavorite, getIdeasByClothing, materials } = useStore()
+  const addClothing = useStore((s) => s.addClothing)
+  const createProject = useStore((s) => s.createProject)
+  const toggleFavorite = useStore((s) => s.toggleFavorite)
+  const storeIdeas = useStore((s) => s.ideas)
+  const materials = useStore((s) => s.materials)
 
   const [type, setType] = useState<ClothingType | ''>('')
   const [fabric, setFabric] = useState<FabricType | ''>('')
@@ -52,7 +56,11 @@ export default function Register() {
   const [reason, setReason] = useState('')
   const [typeError, setTypeError] = useState(false)
   const [submittedClothingId, setSubmittedClothingId] = useState<string | null>(null)
-  const [ideas, setIdeas] = useState<UpcycleIdea[]>([])
+
+  const ideas = useMemo(
+    () => submittedClothingId ? storeIdeas.filter(i => i.clothingId === submittedClothingId) : [],
+    [storeIdeas, submittedClothingId]
+  )
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -82,9 +90,7 @@ export default function Register() {
       photo,
       reason,
     )
-    const newIdeas = getIdeasByClothing(clothing.id)
     setSubmittedClothingId(clothing.id)
-    setIdeas(newIdeas)
   }
 
   const handleStartProject = (ideaId: string) => {
@@ -102,7 +108,6 @@ export default function Register() {
     setPhoto('')
     setReason('')
     setSubmittedClothingId(null)
-    setIdeas([])
     setTypeError(false)
   }
 
