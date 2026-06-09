@@ -235,6 +235,13 @@ export default function Stats() {
 
           <section className="mt-6">
             <h2 className="text-sm font-semibold text-stone-500 mb-3">{monthLabel}概览</h2>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 text-white mb-3">
+              <div className="flex items-center gap-1.5 mb-1 opacity-80">
+                <DollarSign size={14} />
+                <span className="text-[11px] font-medium">总收入</span>
+              </div>
+              <p className="text-2xl font-bold tracking-tight">{formatMoney(totalIncome)}</p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-orange-50 rounded-xl p-4">
                 <div className="flex items-center gap-1.5 text-orange-500 mb-1">
