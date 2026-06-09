@@ -49,9 +49,12 @@ export function exportSettlementReport(trip: Trip): string {
   report += `───────────────────────────────────────\n`
   report += `  👤 个人花费明细\n`
   report += `───────────────────────────────────────\n`
-  for (const participant of trip.participants.filter(p => p.isActive)) {
+  for (const participant of trip.participants) {
     const personExpenses = calculatePersonExpenses(trip, participant.id)
-    report += `  ${participant.name}：\n`
+    if (Math.abs(personExpenses.netBalance) < 0.01 && personExpenses.totalPaid < 0.01 && personExpenses.totalShare < 0.01) continue
+
+    const tag = !participant.isActive ? '（已退团）' : ''
+    report += `  ${participant.name}${tag}：\n`
     report += `    垫付总额：¥${personExpenses.totalPaid.toFixed(2)}\n`
     report += `    分摊总额：¥${personExpenses.totalShare.toFixed(2)}\n`
     report += `    净余额：¥${personExpenses.netBalance.toFixed(2)}`
@@ -87,7 +90,9 @@ export function exportSettlementReport(trip: Trip): string {
     report += `  🚪 已退团成员\n`
     report += `───────────────────────────────────────\n`
     for (const p of trip.participants.filter(p => !p.isActive)) {
-      report += `  ${p.name}${p.leftDate ? `（退团日期：${p.leftDate}）` : ''}\n`
+      const pe = calculatePersonExpenses(trip, p.id)
+      const hasBalance = Math.abs(pe.netBalance) >= 0.01
+      report += `  ${p.name}${p.leftDate ? `（退团日期：${p.leftDate}）` : ''}${hasBalance ? ` — 净余额：¥${pe.netBalance.toFixed(2)}` : ''}\n`
     }
     report += `\n`
   }
