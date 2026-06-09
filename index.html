@@ -809,8 +809,12 @@ function renderStats(db) {
   }
   const medList = Object.entries(medStats).map(([med, s]) => ({
     med, total: s.total, avgScore: s.count ? (s.scoreSum / s.count).toFixed(1) : '-',
-    rate: s.count >= 2 && s.scoreSum / s.count >= 3.5 ? 'good' : s.count >= 2 && s.scoreSum / s.count >= 2 ? 'ok' : s.count >= 2 ? 'bad' : 'none',
-  })).sort((a,b) => b.total - a.total);
+    rate: s.count >= 1 && s.scoreSum / s.count >= 4 ? 'good' : s.count >= 1 && s.scoreSum / s.count >= 2 ? 'ok' : s.count >= 1 ? 'bad' : 'none',
+  })).sort((a,b) => {
+    const scoreA = a.avgScore === '-' ? -1 : parseFloat(a.avgScore);
+    const scoreB = b.avgScore === '-' ? -1 : parseFloat(b.avgScore);
+    return scoreB - scoreA;
+  });
 
   if (medList.length) {
     for (const m of medList) {
