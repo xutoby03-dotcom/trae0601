@@ -13,7 +13,7 @@ const alertConfig = {
 export default function Home() {
   const { relatives, gifts, visits, visitGifts, getAlerts } = useStore()
 
-  const todayVisits = visits.filter((v) => v.visitDate === today)
+  const todayVisits = visits.filter((v) => v.visitDate === today && v.status === 'pending')
   const upcomingVisits = visits
     .filter((v) => v.visitDate >= today && v.status === 'pending')
     .sort((a, b) => a.visitDate.localeCompare(b.visitDate))
