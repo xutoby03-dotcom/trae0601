@@ -162,6 +162,7 @@ export default function Visits() {
                   <div className="flex items-center gap-1 mt-1 text-stone-500 text-sm"><CalendarCheck className="w-3.5 h-3.5" />{v.visitDate}</div>
                 </div>
                 <div className="flex gap-1">
+                  <button onClick={() => updateVisit({ ...v, status: 'pending' })} className="px-2 py-1 rounded-lg text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 font-medium transition-colors">撤回</button>
                   <button onClick={() => setEditVisit({ ...v })} className="p-2 rounded-lg hover:bg-stone-100 text-stone-400"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => setDeleteId(v.id)} className="p-2 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
