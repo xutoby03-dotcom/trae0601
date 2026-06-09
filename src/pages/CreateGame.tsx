@@ -110,7 +110,7 @@ export default function CreateGame() {
             <label className="block text-zinc-400 text-sm mb-2">赛制</label>
             <div className="flex gap-3">
               <button
-                onClick={() => { setGameType('half'); setMaxPlayers(8) }}
+                onClick={() => setGameType('half')}
                 className={`flex-1 py-3 rounded-xl font-medium ${
                   gameType === 'half'
                     ? 'bg-orange-500 text-white'
@@ -120,7 +120,7 @@ export default function CreateGame() {
                 半场
               </button>
               <button
-                onClick={() => { setGameType('full'); setMaxPlayers(10) }}
+                onClick={() => setGameType('full')}
                 className={`flex-1 py-3 rounded-xl font-medium ${
                   gameType === 'full'
                     ? 'bg-orange-500 text-white'
@@ -152,7 +152,7 @@ export default function CreateGame() {
                 +
               </button>
             </div>
-            <p className="text-zinc-500 text-xs mt-1.5">半场默认8人，全场默认10人，可自行调整</p>
+            <p className="text-zinc-500 text-xs mt-1.5">参考：半场一般8人，全场一般10人</p>
           </div>
 
           <div>
