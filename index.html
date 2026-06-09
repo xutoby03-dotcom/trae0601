@@ -854,12 +854,13 @@ function renderStats(db) {
     }
     html += `</div>`;
 
-    for (const m of medList) {
+    for (let mi = 0; mi < medList.length; mi++) {
+      const m = medList[mi];
       const rateColor = m.rate === 'good' ? 'var(--green-600)' : m.rate === 'ok' ? 'var(--amber-600)' : m.rate === 'bad' ? 'var(--red-600)' : 'var(--gray-400)';
       const rateLabel = m.rate === 'good' ? '推荐' : m.rate === 'ok' ? '一般' : m.rate === 'bad' ? '不佳' : '数据不足';
-      const expandId = `${filterId}-expand-${m.med.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g,'_')}`;
-      html += `<div class="efficiency-row" data-rate="${m.rate}" data-filter-group="${filterId}" onclick="toggleMedExpand('${expandId}')">
-        <div class="efficiency-med">${m.med} <span style="font-size:11px;color:var(--gray-400)">▸</span></div>
+      const expandId = `${filterId}-expand-${mi}`;
+      html += `<div class="efficiency-row" data-rate="${m.rate}" data-filter-group="${filterId}" onclick="toggleMedExpand('${expandId}',this)">
+        <div class="efficiency-med">${m.med} <span class="expand-arrow" style="font-size:11px;color:var(--gray-400)">▸</span></div>
         <div class="efficiency-count">使用${m.total}次 · 均分${m.avgScore}</div>
         <div class="efficiency-rate" style="color:${rateColor}">${rateLabel}</div>
       </div>`;
@@ -958,9 +959,12 @@ function filterMedStats(filterId, btn) {
   });
 }
 
-function toggleMedExpand(expandId) {
+function toggleMedExpand(expandId, row) {
   const el = document.getElementById(expandId);
-  if (el) el.classList.toggle('show');
+  if (!el) return;
+  const isOpen = el.classList.toggle('show');
+  const arrow = row.querySelector('.expand-arrow');
+  if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
 }
 
 renderPage('home');
