@@ -13,7 +13,7 @@ export default function Home() {
   const [formCleaner, setFormCleaner] = useState('')
   const [tooltipContent, setTooltipContent] = useState<{ x: number; y: number; items: string[] } | null>(null)
 
-  const { members, recipes, dayPlans, setDayPlan, removeDayPlan, getMissingIngredients, getWeekStats } = useStore()
+  const { members, recipes, ingredients, dayPlans, setDayPlan, removeDayPlan, getMissingIngredients, isRecipeAvailable, getWeekStats } = useStore()
 
   const weekDates = getWeekDates(weekOffset)
   const stats = getWeekStats(weekDates[0])
@@ -38,13 +38,15 @@ export default function Home() {
 
   const handleSave = useCallback(() => {
     if (!modalDate) return
-    setDayPlan({ date: modalDate, recipeIds: formRecipes, shopperId: formShopper, cookId: formCook, cleanerId: formCleaner })
+    const filtered = formRecipes.filter((rid) => isRecipeAvailable(rid))
+    setDayPlan({ date: modalDate, recipeIds: filtered, shopperId: formShopper, cookId: formCook, cleanerId: formCleaner })
     closeModal()
-  }, [modalDate, formRecipes, formShopper, formCook, formCleaner, setDayPlan, closeModal])
+  }, [modalDate, formRecipes, formShopper, formCook, formCleaner, setDayPlan, isRecipeAvailable, closeModal])
 
   const toggleRecipe = useCallback((id: string) => {
+    if (!isRecipeAvailable(id)) return
     setFormRecipes((prev) => prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id])
-  }, [])
+  }, [isRecipeAvailable])
 
   const handleMissingHover = useCallback((e: React.MouseEvent, recipeId: string) => {
     const missing = getMissingIngredients(recipeId)
@@ -193,14 +195,44 @@ export default function Home() {
             <div className="mb-4">
               <p className="text-xs font-semibold text-orange-500 mb-2">选择菜谱</p>
               <div className="space-y-1.5">
-                {recipes.map((r) => (
-                  <label key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-orange-50 cursor-pointer transition-colors">
-                    <input type="checkbox" checked={formRecipes.includes(r.id)} onChange={() => toggleRecipe(r.id)} className="accent-orange-500" />
-                    <span>{r.icon}</span>
-                    <span className="text-sm text-orange-800">{r.name}</span>
-                    <span className="ml-auto text-xs text-orange-300 font-['DM_Sans',system-ui]">¥{r.costPerServing}</span>
-                  </label>
-                ))}
+                {recipes.map((r) => {
+                  const available = isRecipeAvailable(r.id)
+                  const missing = getMissingIngredients(r.id)
+                  const selected = formRecipes.includes(r.id)
+                  return (
+                    <div key={r.id}>
+                      <label className={cn(
+                        'flex items-center gap-2 px-3 py-2 rounded-xl transition-colors',
+                        available ? 'hover:bg-orange-50 cursor-pointer' : 'bg-red-50/60 cursor-not-allowed opacity-60'
+                      )}>
+                        <input
+                          type="checkbox"
+                          checked={selected && available}
+                          onChange={() => toggleRecipe(r.id)}
+                          disabled={!available}
+                          className={available ? 'accent-orange-500' : 'accent-red-300'}
+                        />
+                        <span>{r.icon}</span>
+                        <span className={cn('text-sm', available ? 'text-orange-800' : 'text-red-400')}>{r.name}</span>
+                        <span className={cn('ml-auto text-xs font-["DM_Sans",system-ui]', available ? 'text-orange-300' : 'text-red-300')}>
+                          ¥{r.costPerServing}
+                        </span>
+                        {!available && (
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                        )}
+                      </label>
+                      {!available && (
+                        <div className="flex flex-wrap gap-1 px-3 pb-1.5">
+                          {missing.map((ing) => (
+                            <span key={ing.id} className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-500 leading-tight">
+                              {ing.name}缺{ing.threshold - ing.stock}{ing.unit}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

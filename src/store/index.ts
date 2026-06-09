@@ -119,13 +119,22 @@ export const useStore = create<BreakfastStore>()(
       })),
 
       setDayPlan: (plan) => set((s) => {
+        const filtered = plan.recipeIds.filter((rid) => {
+          const recipe = s.recipes.find((r) => r.id === rid)
+          if (!recipe) return false
+          return recipe.ingredientIds.every((iid) => {
+            const ing = s.ingredients.find((i) => i.id === iid)
+            return ing ? ing.stock >= ing.threshold : false
+          })
+        })
+        const validated = { ...plan, recipeIds: filtered }
         const existing = s.dayPlans.findIndex((p) => p.date === plan.date)
         if (existing >= 0) {
           const updated = [...s.dayPlans]
-          updated[existing] = plan
+          updated[existing] = validated
           return { dayPlans: updated }
         }
-        return { dayPlans: [...s.dayPlans, plan] }
+        return { dayPlans: [...s.dayPlans, validated] }
       }),
       removeDayPlan: (date) => set((s) => ({
         dayPlans: s.dayPlans.filter((p) => p.date !== date)
