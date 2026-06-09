@@ -67,19 +67,24 @@ export default function AddMaterial() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const duplicateMaterials = useMemo(() => {
-    const trimmedBrand = form.brand.trim().toLowerCase();
-    const trimmedTheme = form.theme.trim().toLowerCase();
-    if (!trimmedBrand && !trimmedTheme) return [];
+  const sameBrandMaterials = useMemo(() => {
+    const trimmed = form.brand.trim().toLowerCase();
+    if (!trimmed) return [];
     return materials.filter((m) => {
       if (editId && m.id === editId) return false;
-      const brandMatch = trimmedBrand && m.brand.toLowerCase() === trimmedBrand;
-      const themeMatch = trimmedTheme && m.theme.toLowerCase() === trimmedTheme;
-      return brandMatch || themeMatch;
+      return m.brand.toLowerCase() === trimmed;
     });
-  }, [materials, form.brand, form.theme, editId]);
+  }, [materials, form.brand, editId]);
 
-  const overstockInDupes = duplicateMaterials.filter((m) => m.quantity >= OVERSTOCK_THRESHOLD);
+  const sameThemeMaterials = useMemo(() => {
+    const trimmed = form.theme.trim().toLowerCase();
+    if (!trimmed) return [];
+    return materials.filter((m) => {
+      if (editId && m.id === editId) return false;
+      return m.theme.toLowerCase() === trimmed;
+    });
+  }, [materials, form.theme, editId]);
+
   const wouldOverstock = form.quantity >= OVERSTOCK_THRESHOLD;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -175,6 +180,30 @@ export default function AddMaterial() {
             placeholder="输入品牌名称"
             className="input-field mt-1"
           />
+          {sameBrandMaterials.length > 0 && (
+            <div className="mt-3 rounded-lg border border-coral/30 bg-coral/5 p-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <AlertTriangle size={14} className="text-coral" />
+                <span className="text-coral text-xs font-semibold">同品牌已有 {sameBrandMaterials.length} 件素材</span>
+              </div>
+              <div className="space-y-1.5">
+                {sameBrandMaterials.map((m) => {
+                  const isOver = m.quantity >= OVERSTOCK_THRESHOLD;
+                  return (
+                    <div
+                      key={m.id}
+                      className={`grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 px-2.5 py-1.5 rounded-md text-xs ${isOver ? 'bg-coral/10 border border-coral/25' : 'bg-cream-dark/40'}`}
+                    >
+                      <span className={`font-medium truncate ${isOver ? 'text-coral-deep' : 'text-brown-dark'}`}>{m.name}</span>
+                      <span className={`badge-${m.type}`}>{MATERIAL_TYPE_LABELS[m.type]}</span>
+                      <span className={`${isOver ? 'text-coral font-semibold' : 'text-brown-muted'}`}>库存 {m.quantity}{isOver ? ' 囤太多！' : ''}</span>
+                      {m.storageLocation && <span className="text-brown-muted/60">{m.storageLocation}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mb-5">
@@ -186,37 +215,32 @@ export default function AddMaterial() {
             placeholder="如：秋日、复古、森林"
             className="input-field mt-1"
           />
-          {duplicateMaterials.length > 0 && (
+          {sameThemeMaterials.length > 0 && (
             <div className="mt-3 rounded-lg border border-coral/30 bg-coral/5 p-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <AlertTriangle size={14} className="text-coral" />
-                <span className="text-coral text-xs font-semibold">发现同类素材，别重复囤啦！</span>
+                <span className="text-coral text-xs font-semibold">同主题已有 {sameThemeMaterials.length} 件素材</span>
               </div>
-              <div className="space-y-2">
-                {duplicateMaterials.map((m) => {
+              <div className="space-y-1.5">
+                {sameThemeMaterials.map((m) => {
                   const isOver = m.quantity >= OVERSTOCK_THRESHOLD;
                   return (
                     <div
                       key={m.id}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs ${isOver ? 'bg-coral/10 border border-coral/25' : 'bg-cream-dark/40'}`}
+                      className={`grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 px-2.5 py-1.5 rounded-md text-xs ${isOver ? 'bg-coral/10 border border-coral/25' : 'bg-cream-dark/40'}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`font-medium truncate ${isOver ? 'text-coral-deep' : 'text-brown-dark'}`}>{m.name}</span>
-                        <span className={`badge-${m.type}`}>{MATERIAL_TYPE_LABELS[m.type]}</span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-2">
-                        <span className="text-brown-muted">库存 {m.quantity}</span>
-                        {isOver && <span className="text-coral font-semibold">囤太多！</span>}
-                        {m.storageLocation && <span className="text-brown-muted/60">{m.storageLocation}</span>}
-                      </div>
+                      <span className={`font-medium truncate ${isOver ? 'text-coral-deep' : 'text-brown-dark'}`}>{m.name}</span>
+                      <span className={`badge-${m.type}`}>{MATERIAL_TYPE_LABELS[m.type]}</span>
+                      <span className={`${isOver ? 'text-coral font-semibold' : 'text-brown-muted'}`}>库存 {m.quantity}{isOver ? ' 囤太多！' : ''}</span>
+                      {m.storageLocation && <span className="text-brown-muted/60">{m.storageLocation}</span>}
                     </div>
                   );
                 })}
               </div>
-              {overstockInDupes.length > 0 && (
+              {sameThemeMaterials.filter((m) => m.quantity >= OVERSTOCK_THRESHOLD).length > 0 && (
                 <p className="text-coral text-xs mt-2 flex items-center gap-1">
                   <AlertTriangle size={11} />
-                  已有 {overstockInDupes.length} 件同类素材库存 ≥ {OVERSTOCK_THRESHOLD}，真的还要买吗？
+                  已有 {sameThemeMaterials.filter((m) => m.quantity >= OVERSTOCK_THRESHOLD).length} 件同主题素材库存 ≥ {OVERSTOCK_THRESHOLD}，真的还要买吗？
                 </p>
               )}
             </div>
