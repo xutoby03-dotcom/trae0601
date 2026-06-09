@@ -21,6 +21,7 @@ import {
   checkConflict,
   checkInReservation,
   cancelReservation,
+  computeSpotStatus,
 } from '../store'
 
 export default function Reserve() {
@@ -49,15 +50,10 @@ export default function Reserve() {
   useEffect(() => { refresh() }, [selectedDate])
 
   const availableSpots = spots.filter(spot => {
-    if (spot.status === 'cleaning') return false
-    const spotReservations = reservations.filter(
-      r => r.spotId === spot.id && (r.status === 'confirmed' || r.status === 'checked_in')
-    )
-    if (spotReservations.length === 0) return true
-    if (spot.capacity > 1) {
-      return spotReservations.length < spot.capacity
-    }
-    return false
+    const statusInfo = computeSpotStatus(spot.id, selectedDate, form.startTime, form.endTime)
+    if (statusInfo.status === 'cleaning') return false
+    if (statusInfo.isFull) return false
+    return true
   })
 
   const filteredSpots = form.needQuiet
@@ -82,9 +78,9 @@ export default function Reserve() {
       return
     }
 
-    const conflict = checkConflict(selectedSpot.id, selectedDate, form.startTime, form.endTime)
-    if (conflict) {
-      setError(`时间冲突：该座位 ${conflict.startTime}-${conflict.endTime} 已被 ${conflict.employeeName} 预约`)
+    const conflict = checkConflict(selectedSpot.id, selectedDate, form.startTime, form.endTime, form.acceptNearby)
+    if (conflict.conflict) {
+      setError(conflict.message)
       return
     }
 
@@ -196,10 +192,7 @@ export default function Reserve() {
           <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredSpots.map(spot => {
-                const spotReservations = reservations.filter(
-                  r => r.spotId === spot.id && (r.status === 'confirmed' || r.status === 'checked_in')
-                )
-                const remaining = spot.capacity - spotReservations.length
+                const statusInfo = computeSpotStatus(spot.id, selectedDate, form.startTime, form.endTime)
 
                 return (
                   <motion.div
@@ -214,7 +207,7 @@ export default function Reserve() {
                         <span className="font-semibold text-sm text-white">{spot.name}</span>
                       </div>
                       <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                        {remaining > 0 ? `剩余${remaining}位` : '已满'}
+                        {statusInfo.remainingCapacity > 0 ? `剩余${statusInfo.remainingCapacity}位` : '已满'}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-3">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import {
@@ -15,8 +15,8 @@ import {
   XCircle,
   RotateCcw,
 } from 'lucide-react'
-import { NapSpot, SEAT_TYPE_LABELS, SeatType } from '../types'
-import { getSpots, getReservationsByDate, markNoShow, releaseNoShowsForDate, cancelReservation, completeReservation } from '../store'
+import { NapSpot, SEAT_TYPE_LABELS, SeatType, TIME_SLOTS } from '../types'
+import { getSpots, computeSpotStatus, markNoShow, releaseNoShowsForDate, cancelReservation, completeReservation, SpotStatusInfo } from '../store'
 import { Reservation } from '../types'
 
 const STATUS_CONFIG = {
@@ -33,21 +33,22 @@ const TYPE_ICONS: Record<SeatType, React.ReactNode> = {
 
 function SpotCard({
   spot,
-  reservation,
+  statusInfo,
   onNoShow,
   onCancel,
   onComplete,
 }: {
   spot: NapSpot
-  reservation?: Reservation
+  statusInfo: SpotStatusInfo
   onNoShow: (id: string) => void
   onCancel: (id: string) => void
   onComplete: (id: string, feedback: { cleanedUp: boolean; hasLeftItems: boolean; leftItemsDesc?: string }) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackTarget, setFeedbackTarget] = useState<Reservation | null>(null)
   const [feedback, setFeedback] = useState({ cleanedUp: true, hasLeftItems: false, leftItemsDesc: '' })
-  const cfg = STATUS_CONFIG[spot.status]
+  const cfg = STATUS_CONFIG[statusInfo.status]
 
   return (
     <motion.div
@@ -88,7 +89,14 @@ function SpotCard({
         </span>
       </div>
 
-      <p className="text-xs text-slate-400">{spot.area} · {SEAT_TYPE_LABELS[spot.seatType]}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-400">{spot.area} · {SEAT_TYPE_LABELS[spot.seatType]}</p>
+        {spot.capacity > 1 && statusInfo.status === 'reserved' && (
+          <span className="text-xs text-amber-300/80">
+            {statusInfo.remainingCapacity > 0 ? `余${statusInfo.remainingCapacity}位` : '已满'}
+          </span>
+        )}
+      </div>
 
       <AnimatePresence>
         {expanded && (
@@ -107,17 +115,22 @@ function SpotCard({
                 </div>
               )}
 
-              {reservation && (
-                <div className="bg-white/5 rounded-lg p-3 space-y-1">
+              {statusInfo.activeReservations.map(reservation => (
+                <div key={reservation.id} className="bg-white/5 rounded-lg p-3 space-y-1">
                   <p className="text-xs font-medium text-slate-300">
                     预约人：{reservation.employeeName}
                   </p>
                   <p className="text-xs text-slate-400">
                     时段：{reservation.startTime} - {reservation.endTime}
                   </p>
-                  {reservation.needQuiet && (
-                    <p className="text-xs text-indigo-300">需要安静环境</p>
-                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {reservation.needQuiet && (
+                      <span className="text-xs text-indigo-300">需要安静</span>
+                    )}
+                    {reservation.acceptNearby && (
+                      <span className="text-xs text-cyan-300">接受临近</span>
+                    )}
+                  </div>
                   <div className="flex gap-2 mt-2">
                     {reservation.status === 'confirmed' && (
                       <>
@@ -137,7 +150,7 @@ function SpotCard({
                     )}
                     {reservation.status === 'checked_in' && (
                       <button
-                        onClick={e => { e.stopPropagation(); setShowFeedback(true) }}
+                        onClick={e => { e.stopPropagation(); setFeedbackTarget(reservation); setShowFeedback(true) }}
                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs hover:bg-emerald-500/30 transition"
                       >
                         <CheckCircle2 className="w-3 h-3" />结束使用
@@ -145,6 +158,10 @@ function SpotCard({
                     )}
                   </div>
                 </div>
+              ))}
+
+              {statusInfo.activeReservations.length === 0 && statusInfo.status !== 'cleaning' && (
+                <p className="text-xs text-slate-500 text-center py-2">当前时段暂无预约</p>
               )}
             </div>
           </motion.div>
@@ -152,7 +169,7 @@ function SpotCard({
       </AnimatePresence>
 
       <AnimatePresence>
-        {showFeedback && (
+        {showFeedback && feedbackTarget && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -206,8 +223,9 @@ function SpotCard({
                 </button>
                 <button
                   onClick={() => {
-                    onComplete(reservation!.id, feedback)
+                    onComplete(feedbackTarget.id, feedback)
                     setShowFeedback(false)
+                    setFeedbackTarget(null)
                     setFeedback({ cleanedUp: true, hasLeftItems: false, leftItemsDesc: '' })
                   }}
                   className="flex-1 px-4 py-2 rounded-lg bg-indigo-500 text-sm text-white hover:bg-indigo-600 transition"
@@ -226,18 +244,22 @@ function SpotCard({
 export default function Home() {
   const [spots, setSpots] = useState<NapSpot[]>([])
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  const [selectedStartTime, setSelectedStartTime] = useState<string>('12:00')
+  const [selectedEndTime, setSelectedEndTime] = useState<string>('14:00')
   const [filterArea, setFilterArea] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
 
-  const refresh = () => {
-    setSpots(getSpots())
-    setReservations(getReservationsByDate(selectedDate))
-  }
+  const refresh = () => setSpots(getSpots())
 
-  useEffect(() => {
-    refresh()
-  }, [selectedDate])
+  useEffect(() => { refresh() }, [selectedDate])
+
+  const spotStatusMap = useMemo(() => {
+    const map = new Map<string, SpotStatusInfo>()
+    spots.forEach(s => {
+      map.set(s.id, computeSpotStatus(s.id, selectedDate, selectedStartTime, selectedEndTime))
+    })
+    return map
+  }, [spots, selectedDate, selectedStartTime, selectedEndTime])
 
   const handleReleaseNoShows = () => {
     const now = format(new Date(), 'HH:mm')
@@ -273,9 +295,9 @@ export default function Home() {
   }, {})
 
   const statusCounts = {
-    available: filteredSpots.filter(s => s.status === 'available').length,
-    reserved: filteredSpots.filter(s => s.status === 'reserved').length,
-    cleaning: filteredSpots.filter(s => s.status === 'cleaning').length,
+    available: filteredSpots.filter(s => spotStatusMap.get(s.id)?.status === 'available').length,
+    reserved: filteredSpots.filter(s => spotStatusMap.get(s.id)?.status === 'reserved').length,
+    cleaning: filteredSpots.filter(s => spotStatusMap.get(s.id)?.status === 'cleaning').length,
   }
 
   return (
@@ -317,6 +339,24 @@ export default function Home() {
           onChange={e => setSelectedDate(e.target.value)}
           className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
         />
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-slate-400" />
+          <select
+            value={selectedStartTime}
+            onChange={e => setSelectedStartTime(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          >
+            {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <span className="text-slate-500 text-sm">至</span>
+          <select
+            value={selectedEndTime}
+            onChange={e => setSelectedEndTime(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          >
+            {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </div>
         <select
           value={filterArea}
           onChange={e => setFilterArea(e.target.value)}
@@ -345,12 +385,12 @@ export default function Home() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {areaSpots.map(spot => {
-              const reservation = reservations.find(r => r.spotId === spot.id)
+              const statusInfo = spotStatusMap.get(spot.id)!
               return (
                 <SpotCard
                   key={spot.id}
                   spot={spot}
-                  reservation={reservation}
+                  statusInfo={statusInfo}
                   onNoShow={handleNoShow}
                   onCancel={handleCancel}
                   onComplete={handleComplete}

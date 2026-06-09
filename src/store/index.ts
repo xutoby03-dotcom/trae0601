@@ -136,21 +136,50 @@ export function getReservationsBySpot(spotId: string, date: string): Reservation
   )
 }
 
-export function checkConflict(
+export function getOverlappingReservations(
   spotId: string, date: string, startTime: string, endTime: string, excludeId?: string
-): Reservation | undefined {
+): Reservation[] {
   const existing = getReservationsBySpot(spotId, date)
-  return existing.find(r => {
+  return existing.filter(r => {
     if (excludeId && r.id === excludeId) return false
     if (r.status === 'cancelled' || r.status === 'no_show') return false
     return startTime < r.endTime && endTime > r.startTime
   })
 }
 
+export function checkConflict(
+  spotId: string, date: string, startTime: string, endTime: string, acceptNearby: boolean, excludeId?: string
+): { conflict: true; message: string } | { conflict: false } {
+  const spot = getSpotById(spotId)
+  if (!spot) return { conflict: true, message: '座位不存在' }
+
+  const overlapping = getOverlappingReservations(spotId, date, startTime, endTime, excludeId)
+
+  if (overlapping.length === 0) return { conflict: false }
+
+  if (!acceptNearby) {
+    const names = overlapping.map(r => r.employeeName).join('、')
+    return {
+      conflict: true,
+      message: `该座位 ${startTime}-${endTime} 已被 ${names} 预约，未勾选"接受临近同事"时需独占`,
+    }
+  }
+
+  if (overlapping.length >= spot.capacity) {
+    const names = overlapping.map(r => r.employeeName).join('、')
+    return {
+      conflict: true,
+      message: `该座位 ${startTime}-${endTime} 已满（${names}），容量 ${spot.capacity} 人`,
+    }
+  }
+
+  return { conflict: false }
+}
+
 export function addReservation(res: Omit<Reservation, 'id' | 'createdAt' | 'status'>): Reservation | { error: string } {
-  const conflict = checkConflict(res.spotId, res.date, res.startTime, res.endTime)
-  if (conflict) {
-    return { error: `时间冲突：该座位 ${conflict.startTime}-${conflict.endTime} 已被 ${conflict.employeeName} 预约` }
+  const conflict = checkConflict(res.spotId, res.date, res.startTime, res.endTime, res.acceptNearby)
+  if (conflict.conflict) {
+    return { error: conflict.message }
   }
   const reservations = getReservations()
   const newRes: Reservation = {
@@ -158,13 +187,6 @@ export function addReservation(res: Omit<Reservation, 'id' | 'createdAt' | 'stat
   }
   reservations.push(newRes)
   saveToStorage(RESERVATIONS_KEY, reservations)
-
-  const spots = getSpots()
-  const idx = spots.findIndex(s => s.id === res.spotId)
-  if (idx !== -1) {
-    spots[idx].status = 'reserved'
-    saveToStorage(SPOTS_KEY, spots)
-  }
 
   return newRes
 }
@@ -193,31 +215,11 @@ export function completeReservation(id: string, feedback: { cleanedUp: boolean; 
 }
 
 export function markNoShow(id: string): Reservation | undefined {
-  const result = updateReservation(id, { status: 'no_show' })
-  if (result) {
-    const spotReservations = getReservationsBySpot(result.spotId, result.date)
-    const activeReservations = spotReservations.filter(
-      r => r.status === 'confirmed' || r.status === 'checked_in'
-    )
-    if (activeReservations.length === 0) {
-      updateSpot(result.spotId, { status: 'available' })
-    }
-  }
-  return result
+  return updateReservation(id, { status: 'no_show' })
 }
 
 export function cancelReservation(id: string): Reservation | undefined {
-  const result = updateReservation(id, { status: 'cancelled' })
-  if (result) {
-    const spotReservations = getReservationsBySpot(result.spotId, result.date)
-    const activeReservations = spotReservations.filter(
-      r => r.status === 'confirmed' || r.status === 'checked_in'
-    )
-    if (activeReservations.length === 0) {
-      updateSpot(result.spotId, { status: 'available' })
-    }
-  }
-  return result
+  return updateReservation(id, { status: 'cancelled' })
 }
 
 export function releaseNoShowsForDate(date: string, currentTime: string): number {
@@ -237,22 +239,49 @@ export function releaseNoShowsForDate(date: string, currentTime: string): number
   })
   if (count > 0) {
     saveToStorage(RESERVATIONS_KEY, updated)
-    const spots = getSpots()
-    const updatedSpots = spots.map(spot => {
-      const spotActive = updated.some(
-        r => r.spotId === spot.id && r.date === date &&
-          (r.status === 'confirmed' || r.status === 'checked_in')
-      )
-      const spotCleaning = updated.some(
-        r => r.spotId === spot.id && r.date === date && r.status === 'completed' && !r.cleanedUp
-      )
-      if (spotCleaning) return { ...spot, status: 'cleaning' as const }
-      if (spotActive) return { ...spot, status: 'reserved' as const }
-      return { ...spot, status: 'available' as const }
-    })
-    saveToStorage(SPOTS_KEY, updatedSpots)
   }
   return count
+}
+
+export type SpotStatusInfo = {
+  status: 'available' | 'reserved' | 'cleaning'
+  activeReservations: Reservation[]
+  remainingCapacity: number
+  isFull: boolean
+}
+
+export function computeSpotStatus(
+  spotId: string, date: string, startTime?: string, endTime?: string
+): SpotStatusInfo {
+  const spot = getSpotById(spotId)
+  if (!spot) {
+    return { status: 'available', activeReservations: [], remainingCapacity: 0, isFull: true }
+  }
+
+  let dateReservations = getReservationsBySpot(spotId, date)
+
+  if (startTime && endTime) {
+    dateReservations = dateReservations.filter(
+      r => startTime < r.endTime && endTime > r.startTime
+    )
+  }
+
+  const activeReservations = dateReservations.filter(
+    r => r.status === 'confirmed' || r.status === 'checked_in'
+  )
+  const hasCleaning = dateReservations.some(
+    r => r.status === 'completed' && !r.cleanedUp
+  )
+
+  const occupied = activeReservations.length
+  const remainingCapacity = Math.max(0, spot.capacity - occupied)
+  const isFull = occupied >= spot.capacity
+
+  let status: SpotStatusInfo['status'] = 'available'
+  if (hasCleaning) status = 'cleaning'
+  else if (occupied > 0) status = 'reserved'
+
+  return { status, activeReservations, remainingCapacity, isFull }
 }
 
 export function getStats() {
