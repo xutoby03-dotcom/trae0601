@@ -98,7 +98,7 @@ export default function GarbageCard({ record, onMarkDisposed, onCorrect }: Garba
         </div>
 
         <div className="flex gap-1 flex-shrink-0">
-          {!record.correctedBinType && (
+          {!record.isCorrect && !record.correctedBinType && (
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => onCorrect(record.id)}

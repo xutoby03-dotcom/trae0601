@@ -30,7 +30,7 @@ export const useGarbageStore = create<GarbageState>()(
             r.id === id
               ? {
                   ...r,
-                  isCorrect: false,
+                  isCorrect: r.category === correctedBinType,
                   correctedCategory: correctedBinType,
                   correctedBinType,
                   correctedBy,
