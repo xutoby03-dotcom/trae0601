@@ -16,6 +16,7 @@ interface FridgeStore {
   cleaningRecords: CleaningRecord[]
 
   addFoodItem: (item: Omit<FoodItem, 'id' | 'status' | 'createdAt'>) => void
+  addFoodItems: (items: Omit<FoodItem, 'id' | 'status' | 'createdAt'>[]) => void
   claimFood: (foodItemId: string, quantity: number, claimerName: string, notes: string) => boolean
   checkExpiry: () => void
   addCleaningRecord: (record: Omit<CleaningRecord, 'id' | 'recordedAt'>) => void
@@ -176,6 +177,16 @@ export const useFridgeStore = create<FridgeStore>()(
           createdAt: new Date().toISOString(),
         }
         set((state) => ({ foodItems: [...state.foodItems, newItem] }))
+      },
+
+      addFoodItems: (items) => {
+        const newItems: FoodItem[] = items.map((item) => ({
+          ...item,
+          id: generateId(),
+          status: 'available',
+          createdAt: new Date().toISOString(),
+        }))
+        set((state) => ({ foodItems: [...state.foodItems, ...newItems] }))
       },
 
       claimFood: (foodItemId, quantity, claimerName, notes) => {
