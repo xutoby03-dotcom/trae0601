@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, AlertTriangle, User, Ruler, Clock, MapPin, Check, X } from 'lucide-react'
+import { ArrowLeft, AlertTriangle, User, Ruler, Clock, MapPin, Check, X, Bell } from 'lucide-react'
 import { useStore } from '@/store/useStore'
-import { STATUS_LABELS, RESERVATION_STATUS_LABELS } from '@/types'
+import { STATUS_LABELS, RESERVATION_STATUS_LABELS, SIZE_LABELS } from '@/types'
 import type { Reservation, Handover } from '@/types'
 
 export default function Detail() {
@@ -20,6 +20,7 @@ export default function Detail() {
     getReservationsByUniform,
     getHandoverByReservation,
     getUserById,
+    purchaseRequests,
   } = useStore()
 
   const uniform = uniforms.find((u) => u.id === id)
@@ -176,6 +177,34 @@ export default function Detail() {
           </div>
         )}
       </div>
+
+      {uniform && (() => {
+        const matched = purchaseRequests.filter(
+          (r) => r.status === 'open' && r.size === uniform.size && r.season === uniform.season && r.gender === uniform.gender
+        )
+        if (matched.length === 0) return null
+        return (
+          <div
+            className="card p-4 mb-4 cursor-pointer border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 hover:shadow-md transition-all"
+            onClick={() => navigate(`/requests?size=${uniform.size}&season=${uniform.season}&gender=${uniform.gender}`)}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <Bell size={16} className="text-amber-500" />
+              <span className="text-sm font-bold text-amber-700">求购提醒</span>
+              <span className="tag-orange text-[10px]">{matched.length}条匹配</span>
+            </div>
+            <p className="text-xs text-amber-600">
+              有 {matched.length} 位家长正在求购
+              <span className="font-semibold"> {SIZE_LABELS[uniform.size]} {uniform.season} {uniform.gender} </span>
+              的校服，点击查看详情
+            </p>
+            <div className="flex items-center gap-1 mt-1.5 text-[10px] text-amber-400">
+              <span>查看求购列表</span>
+              <span>→</span>
+            </div>
+          </div>
+        )
+      })()}
 
       {isPublisher && reservations.length > 0 && (
         <div className="card p-5 mb-4">

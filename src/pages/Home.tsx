@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Droplets, Flame, ChevronDown, ChevronRight } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { SIZES, SEASONS, GENDERS, SIZE_LABELS, STATUS_LABELS } from '@/types'
@@ -171,11 +171,28 @@ function SizeGroupSection({ group, navigate }: { group: SizeGroup; navigate: (pa
 export default function Home() {
   const navigate = useNavigate()
   const { getUniformsByFilter } = useStore()
+  const [searchParams] = useSearchParams()
+
+  const paramsSize = searchParams.get('size')
+  const paramsSeason = searchParams.get('season')
+  const paramsGender = searchParams.get('gender')
 
   const [search, setSearch] = useState('')
-  const [sizeFilter, setSizeFilter] = useState('全部')
-  const [genderFilter, setGenderFilter] = useState('全部')
-  const [seasonFilter, setSeasonFilter] = useState('全部')
+  const [sizeFilter, setSizeFilter] = useState<string>(
+    paramsSize && SIZES.includes(paramsSize as any) ? paramsSize : '全部'
+  )
+  const [genderFilter, setGenderFilter] = useState<string>(
+    paramsGender && GENDERS.includes(paramsGender as any) ? paramsGender : '全部'
+  )
+  const [seasonFilter, setSeasonFilter] = useState<string>(
+    paramsSeason && SEASONS.includes(paramsSeason as any) ? paramsSeason : '全部'
+  )
+
+  useEffect(() => {
+    if (paramsSize && SIZES.includes(paramsSize as any)) setSizeFilter(paramsSize)
+    if (paramsGender && GENDERS.includes(paramsGender as any)) setGenderFilter(paramsGender)
+    if (paramsSeason && SEASONS.includes(paramsSeason as any)) setSeasonFilter(paramsSeason)
+  }, [paramsSize, paramsGender, paramsSeason])
 
   const filteredUniforms = useMemo(
     () =>

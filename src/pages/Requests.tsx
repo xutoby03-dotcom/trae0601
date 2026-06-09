@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Plus, Search } from 'lucide-react'
 import { useStore } from '@/store/useStore'
-import { SIZES, SEASONS, SIZE_LABELS } from '@/types'
+import { SIZES, SEASONS, GENDERS, SIZE_LABELS } from '@/types'
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -25,8 +25,24 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 
 export default function Requests() {
   const { purchaseRequests, getUserById } = useStore()
-  const [sizeFilter, setSizeFilter] = useState<string>('all')
-  const [seasonFilter, setSeasonFilter] = useState<string>('all')
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  const paramsSize = searchParams.get('size')
+  const paramsSeason = searchParams.get('season')
+  const paramsGender = searchParams.get('gender')
+
+  const [sizeFilter, setSizeFilter] = useState<string>(paramsSize && SIZES.includes(paramsSize as any) ? paramsSize : 'all')
+  const [seasonFilter, setSeasonFilter] = useState<string>(paramsSeason && SEASONS.includes(paramsSeason as any) ? paramsSeason : 'all')
+
+  useEffect(() => {
+    if (paramsSize && SIZES.includes(paramsSize as any)) {
+      setSizeFilter(paramsSize)
+    }
+    if (paramsSeason && SEASONS.includes(paramsSeason as any)) {
+      setSeasonFilter(paramsSeason)
+    }
+  }, [paramsSize, paramsSeason])
 
   const filtered = purchaseRequests.filter((r) => {
     if (sizeFilter !== 'all' && r.size !== sizeFilter) return false
@@ -123,9 +139,23 @@ export default function Requests() {
 
               <p className="text-sm text-gray-700 mb-3 line-clamp-2">{req.description}</p>
 
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>{user?.name || '未知用户'}</span>
-                <span>{timeAgo(req.createdAt)}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>{user?.name || '未知用户'}</span>
+                  <span>{timeAgo(req.createdAt)}</span>
+                </div>
+                {req.status === 'open' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/?size=${req.size}&season=${req.season}&gender=${req.gender}`)
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-semibold text-orange-500 bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-full transition-all duration-200"
+                  >
+                    <Search size={10} />
+                    找同款校服
+                  </button>
+                )}
               </div>
             </div>
           )
