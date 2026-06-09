@@ -214,8 +214,10 @@ export default function Home() {
                               {r.hasHearingIssue && '听不清'}
                             </span>
                           </div>
-                          {r.notes && (
+                          {r.notes ? (
                             <p className="mt-1 text-xs text-indigo-light">{r.notes}</p>
+                          ) : (
+                            <p className="mt-1 text-xs text-indigo-light/40">未填写备注</p>
                           )}
                         </div>
                       ))}
