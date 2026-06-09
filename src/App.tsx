@@ -5,6 +5,7 @@ import Register from "@/pages/Register";
 import Project from "@/pages/Project";
 import Materials from "@/pages/Materials";
 import Stats from "@/pages/Stats";
+import Favorites from "@/pages/Favorites";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/project/:id" element={<Project />} />
           <Route path="/materials" element={<Materials />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route path="/stats" element={<Stats />} />
         </Routes>
       </main>

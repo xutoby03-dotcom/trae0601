@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus, Star, Filter, ChevronDown, Sparkles, PackageOpen, Lightbulb } from 'lucide-react'
+import { Plus, Star, Filter, ChevronDown, Sparkles, PackageOpen, Lightbulb, Heart } from 'lucide-react'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
 import type { ClothingGroup, ClothingType, FabricType, Clothing } from '@/types'
@@ -39,6 +39,7 @@ const groupEmptyMessages: Record<ClothingGroup, { title: string; description: st
 export default function Home() {
   const clothing = useStore((s) => s.clothing)
   const getIdeasByClothing = useStore((s) => s.getIdeasByClothing)
+  const favoriteCount = useStore((s) => s.ideas.filter(i => i.favorited).length)
   const [activeGroup, setActiveGroup] = useState<ClothingGroup>('easy')
   const [typeFilter, setTypeFilter] = useState<ClothingType | ''>('')
   const [fabricFilter, setFabricFilter] = useState<FabricType | ''>('')
@@ -73,6 +74,24 @@ export default function Home() {
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-terra-200/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-sage-200/30 rounded-full blur-3xl" />
       </section>
+
+      {favoriteCount > 0 && (
+        <section className="container mx-auto px-6 mt-4">
+          <Link
+            to="/favorites"
+            className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/70 backdrop-blur-sm border border-cream-300/40 shadow-soft hover:shadow-card hover:border-terra-200 transition-all"
+          >
+            <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+              <Heart className="w-4.5 h-4.5 text-red-400 fill-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-sage-700">收藏灵感</span>
+              <span className="text-xs text-sage-400 ml-2">{favoriteCount} 个方案</span>
+            </div>
+            <span className="text-xs text-terra-500 font-medium">查看全部 →</span>
+          </Link>
+        </section>
+      )}
 
       <section className="container mx-auto px-6 -mt-6">
         <div className="flex justify-center">
