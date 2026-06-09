@@ -130,6 +130,9 @@ export default function Alerts() {
                           >
                             {ALERT_LABELS[alert.type]}
                           </span>
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
+                            未处理
+                          </span>
                         </div>
                         <p className="text-sm text-stone-600">{alert.message}</p>
                         <p className="text-xs text-stone-400">{alert.createdAt}</p>
@@ -170,18 +173,31 @@ export default function Alerts() {
                 .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
                 .map((alert) => {
                   const desk = getDesk(alert.plantId)
+                  const resolvedMeta = GROUP_META[alert.type]
                   return (
                     <div
                       key={alert.id}
-                      className="bg-white rounded-xl border border-stone-100 p-3 flex items-center gap-3 opacity-50"
+                      className="bg-white rounded-xl border border-stone-100 p-4 flex items-start gap-3 opacity-50"
                     >
-                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm text-stone-500 font-medium">{alert.plantName}</span>
-                        {desk && <span className="text-xs text-stone-400 ml-2">📍 {desk}</span>}
-                        <span className="text-xs text-stone-400 ml-2">{ALERT_LABELS[alert.type]}</span>
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-stone-600 font-medium">{alert.plantName}</span>
+                          {desk && (
+                            <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
+                              📍 {desk}
+                            </span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${resolvedMeta.color} ${resolvedMeta.bg}`}>
+                            {ALERT_LABELS[alert.type]}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
+                            已解决
+                          </span>
+                        </div>
+                        <p className="text-sm text-stone-500">{alert.message}</p>
+                        <p className="text-xs text-stone-400">{alert.createdAt}</p>
                       </div>
-                      <span className="text-xs text-stone-400">{alert.createdAt}</span>
                     </div>
                   )
                 })}
