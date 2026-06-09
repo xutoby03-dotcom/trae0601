@@ -247,8 +247,8 @@ export default function Stats() {
                 </button>
                 {expandedMember === d.id && (
                   <div className="ml-8 mr-2 mb-1 space-y-1">
-                    {d.details.map((detail, i) => (
-                      <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-orange-50/60">
+                    {d.details.map((detail) => (
+                      <div key={`${d.id}-${detail.date}-${detail.status}`} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-orange-50/60">
                         <span className="text-[10px] text-amber-500 w-14 shrink-0">{formatDate(detail.date)} {getDayName(detail.date)}</span>
                         <span className={cn(
                           'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
@@ -256,9 +256,9 @@ export default function Stats() {
                         )}>
                           {detail.status === 'skipped' ? '没吃' : '迟到'}
                         </span>
-                        {detail.notes && (
-                          <span className="text-[10px] text-amber-600/60 truncate">{detail.notes}</span>
-                        )}
+                        <span className={cn('text-[10px] truncate', detail.notes ? 'text-amber-600/60' : 'text-amber-300/50')}>
+                          {detail.notes || '无备注'}
+                        </span>
                       </div>
                     ))}
                   </div>
