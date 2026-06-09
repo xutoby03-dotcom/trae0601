@@ -72,7 +72,7 @@ export default function PolicyForm() {
   }
 
   const validate = () => {
-    const required = ['insuredPerson', 'insuranceType', 'company', 'coverageAmount', 'premium', 'paymentDate', 'expiryDate']
+    const required = ['insuredPerson', 'insuranceType', 'company', 'coverageAmount', 'premium', 'paymentDate', 'expiryDate', 'agent', 'photo']
     const newErrors: Record<string, boolean> = {}
     for (const field of required) {
       if (!form[field as keyof typeof form]) {
@@ -209,18 +209,21 @@ export default function PolicyForm() {
         </div>
 
         <div>
-          <label className="form-label">代理人</label>
+          <label className="form-label">代理人 *</label>
           <input
             type="text"
             value={form.agent}
             onChange={(e) => handleChange('agent', e.target.value)}
-            className="form-input"
+            className={`form-input ${errors.agent ? 'border-red-400 focus:ring-red-400' : ''}`}
             placeholder="输入代理人姓名"
           />
+          {errors.agent && (
+            <p className="text-xs text-red-500 mt-1">请填写代理人姓名</p>
+          )}
         </div>
 
         <div>
-          <label className="form-label">保单照片</label>
+          <label className="form-label">保单照片 *</label>
           <input
             ref={fileInputRef}
             type="file"
@@ -247,11 +250,18 @@ export default function PolicyForm() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-gray-500 hover:border-gray-400 transition-colors"
+              className={`w-32 h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 transition-colors ${
+                errors.photo
+                  ? 'border-red-400 text-red-400 hover:border-red-500 hover:text-red-500'
+                  : 'border-gray-300 text-gray-400 hover:text-gray-500 hover:border-gray-400'
+              }`}
             >
               <Upload size={24} />
               <span className="text-xs">点击上传</span>
             </button>
+          )}
+          {errors.photo && !form.photo && (
+            <p className="text-xs text-red-500 mt-1">请上传保单照片</p>
           )}
         </div>
 

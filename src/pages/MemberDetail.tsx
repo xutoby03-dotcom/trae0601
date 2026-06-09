@@ -66,7 +66,7 @@ function PolicyCard({ policy, status, muted }: { policy: InsurancePolicy; status
         </div>
         <div>
           <span className="text-gray-400">代理人</span>
-          <p className="font-medium text-gray-700">{policy.agent}</p>
+          <p className={`font-medium ${policy.agent ? 'text-gray-700' : 'text-gray-400 italic'}`}>{policy.agent || '未填写'}</p>
         </div>
       </div>
       {!muted && daysToExpiry >= 0 && daysToExpiry <= 30 && (

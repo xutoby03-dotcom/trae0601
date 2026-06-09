@@ -290,7 +290,9 @@ export default function PolicyDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">代理人</p>
-                  <p className="font-medium text-gray-900">{policy.agent}</p>
+                  <p className={`font-medium ${policy.agent ? 'text-gray-900' : 'text-gray-400 italic'}`}>
+                    {policy.agent || '未填写'}
+                  </p>
                 </div>
               </div>
             </div>
