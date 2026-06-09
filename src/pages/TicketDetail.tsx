@@ -210,11 +210,9 @@ export default function TicketDetail() {
                 alt={normalizedPhotos[lightboxIdx].caption || `照片 ${lightboxIdx + 1}`}
                 className="max-h-[75vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
               />
-              {normalizedPhotos[lightboxIdx].caption && (
-                <p className="rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white">
-                  {normalizedPhotos[lightboxIdx].caption}
-                </p>
-              )}
+              <p className="rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white">
+                {normalizedPhotos[lightboxIdx].caption || `照片 ${lightboxIdx + 1}`}
+              </p>
             </div>
             {normalizedPhotos.length > 1 && (
               <>
