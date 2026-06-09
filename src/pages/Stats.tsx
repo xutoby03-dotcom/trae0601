@@ -3,7 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BarChart3, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store'
-import { formatDate, getDaysBetween } from '@/utils/helpers'
+import { formatDate, getDaysBetween, appetiteLabels, stoolLabels, moodLabels } from '@/utils/helpers'
+import type { DailyCheckin } from '@/types'
+
+type AbnormalItem = {
+  label: string
+  color: string
+}
+
+function getAbnormalItems(c: DailyCheckin): AbnormalItem[] {
+  const items: AbnormalItem[] = []
+  if (c.appetite === 'poor') items.push({ label: `食欲：${appetiteLabels.poor}`, color: 'bg-coral-100 text-coral-500' })
+  if (c.stool === 'abnormal') items.push({ label: `排便：${stoolLabels.abnormal}`, color: 'bg-red-100 text-red-500' })
+  if (c.stool === 'soft') items.push({ label: `排便：${stoolLabels.soft}`, color: 'bg-coral-100 text-coral-500' })
+  if (c.mood === 'lethargic') items.push({ label: `精神：${moodLabels.lethargic}`, color: 'bg-coral-100 text-coral-500' })
+  return items
+}
+
+function isAbnormalDay(c: DailyCheckin): boolean {
+  return !!(c.abnormalNote?.trim()) || c.appetite === 'poor' || c.stool === 'abnormal' || c.stool === 'soft' || c.mood === 'lethargic'
+}
 
 export default function Stats() {
   const { id } = useParams<{ id: string }>()
@@ -29,12 +48,10 @@ export default function Stats() {
         ? 'stroke-warm-400'
         : 'stroke-coral-300'
 
-  const abnormalDays = fosterCheckins.filter(
-    (c) => c.abnormalNote && c.abnormalNote.trim() !== ''
-  )
+  const abnormalDays = fosterCheckins.filter(isAbnormalDay)
 
   const hasAbnormal = abnormalDays.length > 0
-  const normalDays = fosterCheckins.filter((c) => !c.abnormalNote?.trim())
+  const normalDays = fosterCheckins.filter((c) => !isAbnormalDay(c))
 
   return (
     <div className="p-4 pb-24">
@@ -125,8 +142,8 @@ function AbnormalTimeline({
   normalDays,
   hasAbnormal,
 }: {
-  abnormalDays: { date: string; abnormalNote: string }[]
-  normalDays: { date: string }[]
+  abnormalDays: DailyCheckin[]
+  normalDays: DailyCheckin[]
   hasAbnormal: boolean
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -135,8 +152,10 @@ function AbnormalTimeline({
     setExpanded((prev) => ({ ...prev, [date]: !prev[date] }))
   }
 
-  const allDays = [...abnormalDays.map((d) => ({ ...d, isAbnormal: true })), ...normalDays.map((d) => ({ ...d, abnormalNote: '', isAbnormal: false }))]
-    .sort((a, b) => a.date.localeCompare(b.date))
+  const allDays = [
+    ...abnormalDays.map((d) => ({ checkin: d, isAbnormal: true })),
+    ...normalDays.map((d) => ({ checkin: d, isAbnormal: false })),
+  ].sort((a, b) => a.checkin.date.localeCompare(b.checkin.date))
 
   return (
     <div className="section-card bg-white mb-4">
@@ -148,38 +167,54 @@ function AbnormalTimeline({
         <p className="text-sm text-warm-300 text-center py-4">暂无打卡记录</p>
       )}
       <div className="space-y-0">
-        {allDays.map((day) => (
-          <div key={day.date} className="flex gap-3 relative">
-            <div className="flex flex-col items-center">
-              <div
-                className={cn(
-                  'w-3 h-3 rounded-full flex-shrink-0 mt-1.5',
-                  day.isAbnormal ? 'bg-coral-300' : 'bg-leaf-300'
-                )}
-              />
-              {day !== allDays[allDays.length - 1] && (
-                <div className="w-0.5 flex-1 bg-warm-100 my-1" />
-              )}
-            </div>
-            <div className="flex-1 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-warm-500">{formatDate(day.date)}</span>
-                {day.isAbnormal && (
-                  <button onClick={() => toggle(day.date)} className="text-warm-300 hover:text-warm-500">
-                    {expanded[day.date] ? (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    )}
-                  </button>
+        {allDays.map((day) => {
+          const items = day.isAbnormal ? getAbnormalItems(day.checkin) : []
+          return (
+            <div key={day.checkin.date} className="flex gap-3 relative">
+              <div className="flex flex-col items-center">
+                <div
+                  className={cn(
+                    'w-3 h-3 rounded-full flex-shrink-0 mt-1.5',
+                    day.isAbnormal ? 'bg-coral-300' : 'bg-leaf-300'
+                  )}
+                />
+                {day !== allDays[allDays.length - 1] && (
+                  <div className="w-0.5 flex-1 bg-warm-100 my-1" />
                 )}
               </div>
-              {day.isAbnormal && expanded[day.date] && (
-                <p className="text-sm text-coral-400 mt-1 animate-fade-in">{day.abnormalNote}</p>
-              )}
+              <div className="flex-1 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-warm-500">{formatDate(day.checkin.date)}</span>
+                  {day.isAbnormal && (
+                    <button onClick={() => toggle(day.checkin.date)} className="text-warm-300 hover:text-warm-500">
+                      {expanded[day.checkin.date] ? (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  )}
+                </div>
+                {day.isAbnormal && expanded[day.checkin.date] && (
+                  <div className="mt-2 space-y-1.5 animate-fade-in">
+                    {items.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {items.map((item, i) => (
+                          <span key={i} className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', item.color)}>
+                            {item.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {day.checkin.abnormalNote?.trim() && (
+                      <p className="text-sm text-warm-600 bg-warm-50 rounded-lg px-3 py-2">{day.checkin.abnormalNote}</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

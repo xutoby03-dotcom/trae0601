@@ -66,8 +66,26 @@ export default function Checkin() {
     return 'completed'
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const handleAddPhoto = () => {
-    setPhotos((prev) => [...prev, 'photo_' + Date.now()])
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const file = files[0]
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      if (dataUrl) {
+        setPhotos((prev) => [...prev, dataUrl])
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
   }
 
   const handleRemovePhoto = (index: number) => {
@@ -230,23 +248,28 @@ export default function Checkin() {
 
         <div className="mb-4">
           <p className="text-sm text-warm-500 mb-2">照片</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
           <div className="flex flex-wrap gap-2">
             {photos.map((photo, i) => (
-              <div key={photo} className="relative w-16 h-16 rounded-lg bg-warm-100 overflow-hidden">
-                <div className="w-full h-full flex items-center justify-center text-warm-400 text-xs">
-                  照片
-                </div>
+              <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-warm-200">
+                <img src={photo} alt={`照片 ${i + 1}`} className="w-full h-full object-cover" />
                 <button
                   onClick={() => handleRemovePhoto(i)}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 bg-coral-300 text-white rounded-full flex items-center justify-center"
+                  className="absolute top-0.5 right-0.5 w-5 h-5 bg-coral-300 text-white rounded-full flex items-center justify-center shadow-sm"
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             ))}
             <button
               onClick={handleAddPhoto}
-              className="w-16 h-16 rounded-lg border-2 border-dashed border-warm-200 flex items-center justify-center text-warm-300 hover:border-warm-400 hover:text-warm-400 transition-colors"
+              className="w-20 h-20 rounded-lg border-2 border-dashed border-warm-200 flex items-center justify-center text-warm-300 hover:border-warm-400 hover:text-warm-400 transition-colors"
             >
               <Camera className="w-5 h-5" />
             </button>
