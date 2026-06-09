@@ -91,11 +91,15 @@ function SpotCard({
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-slate-400">{spot.area} · {SEAT_TYPE_LABELS[spot.seatType]}</p>
-        {spot.capacity > 1 && statusInfo.status === 'reserved' && (
+        {statusInfo.hasExclusiveOccupant ? (
+          <span className="text-xs text-red-300/90">
+            {statusInfo.exclusiveOccupantNames.join('、')}独享
+          </span>
+        ) : spot.capacity > 1 && statusInfo.status === 'reserved' ? (
           <span className="text-xs text-amber-300/80">
             {statusInfo.remainingCapacity > 0 ? `余${statusInfo.remainingCapacity}位` : '已满'}
           </span>
-        )}
+        ) : null}
       </div>
 
       <AnimatePresence>

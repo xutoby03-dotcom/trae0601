@@ -157,6 +157,15 @@ export function checkConflict(
 
   if (overlapping.length === 0) return { conflict: false }
 
+  const exclusiveOccupants = overlapping.filter(r => !r.acceptNearby)
+  if (exclusiveOccupants.length > 0) {
+    const names = exclusiveOccupants.map(r => r.employeeName).join('、')
+    return {
+      conflict: true,
+      message: `${names} 已占独享位，该时段不可再预约`,
+    }
+  }
+
   if (!acceptNearby) {
     const names = overlapping.map(r => r.employeeName).join('、')
     return {
@@ -248,6 +257,8 @@ export type SpotStatusInfo = {
   activeReservations: Reservation[]
   remainingCapacity: number
   isFull: boolean
+  hasExclusiveOccupant: boolean
+  exclusiveOccupantNames: string[]
 }
 
 export function computeSpotStatus(
@@ -276,12 +287,15 @@ export function computeSpotStatus(
   const occupied = activeReservations.length
   const remainingCapacity = Math.max(0, spot.capacity - occupied)
   const isFull = occupied >= spot.capacity
+  const exclusiveOccupants = activeReservations.filter(r => !r.acceptNearby)
+  const hasExclusiveOccupant = exclusiveOccupants.length > 0
+  const exclusiveOccupantNames = exclusiveOccupants.map(r => r.employeeName)
 
   let status: SpotStatusInfo['status'] = 'available'
   if (hasCleaning) status = 'cleaning'
   else if (occupied > 0) status = 'reserved'
 
-  return { status, activeReservations, remainingCapacity, isFull }
+  return { status, activeReservations, remainingCapacity, isFull, hasExclusiveOccupant, exclusiveOccupantNames }
 }
 
 export function getStats() {

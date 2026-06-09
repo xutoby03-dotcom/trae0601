@@ -53,6 +53,7 @@ export default function Reserve() {
     const statusInfo = computeSpotStatus(spot.id, selectedDate, form.startTime, form.endTime)
     if (statusInfo.status === 'cleaning') return false
     if (statusInfo.isFull) return false
+    if (statusInfo.hasExclusiveOccupant) return false
     return true
   })
 
