@@ -91,7 +91,7 @@ export default function Home() {
         </Link>
       </section>
 
-      <section className="container mx-auto px-6 -mt-6">
+      <section className="container mx-auto px-6 mt-6">
         <div className="flex justify-center">
           <div className="inline-flex bg-white/60 backdrop-blur-sm rounded-full p-1 shadow-soft border border-cream-300/50">
             {groupTabs.map(({ key, label, icon: Icon }) => (
