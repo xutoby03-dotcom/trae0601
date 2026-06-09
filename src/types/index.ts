@@ -49,6 +49,7 @@ export interface BakingRecord {
   createdAt: string
   adjustments: RecipeAdjustment[]
   materialCost: number
+  recipe: string
 }
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {

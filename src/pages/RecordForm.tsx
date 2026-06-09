@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useBakingStore, generateId } from '@/store/bakingStore'
 import type { ProductType, BakingResult, BakingRecord } from '@/types'
 import { PRODUCT_TYPE_LABELS, RESULT_LABELS, FLOUR_TYPES } from '@/types'
-import { ArrowLeft, Camera, Star, Save, X, Upload } from 'lucide-react'
+import { ArrowLeft, Camera, Star, Save, X, Upload, BookOpen } from 'lucide-react'
 
 export default function RecordForm() {
   const navigate = useNavigate()
@@ -24,6 +24,7 @@ export default function RecordForm() {
   const [result, setResult] = useState<BakingResult>(existingRecord?.result ?? 'success')
   const [tasteScore, setTasteScore] = useState(existingRecord?.tasteScore ?? 0)
   const [notes, setNotes] = useState(existingRecord?.notes ?? '')
+  const [recipe, setRecipe] = useState(existingRecord?.recipe ?? '')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -90,6 +91,7 @@ export default function RecordForm() {
         result,
         tasteScore,
         notes,
+        recipe,
       })
       if (result === 'failure' || result === 'partial') {
         navigate(`/record/${existingRecord.id}/analysis`)
@@ -122,6 +124,7 @@ export default function RecordForm() {
       productId: generateId(),
       createdAt: new Date().toISOString(),
       adjustments: [],
+      recipe,
     }
     addRecord(record)
 
@@ -253,6 +256,21 @@ export default function RecordForm() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="mb-5 rounded-bake bg-bake-card p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-bake-brown flex items-center gap-2">
+            <BookOpen size={18} className="text-bake-caramel" />
+            配方内容
+          </h2>
+          <textarea
+            value={recipe}
+            onChange={(e) => setRecipe(e.target.value)}
+            placeholder={"低筋面粉 100g\n鸡蛋 5个\n细砂糖 80g\n牛奶 60ml\n玉米油 40ml\n柠檬汁 几滴"}
+            rows={6}
+            className="w-full resize-none rounded-bake border border-bake-border bg-bake-light px-3 py-2 text-bake-dark outline-none transition focus:border-bake-caramel font-mono text-sm leading-relaxed"
+          />
+          <p className="mt-1.5 text-xs text-bake-brown/40">逐行写每种材料的名称和用量，方便版本对比时追踪调整</p>
         </section>
 
         {/* Photo Upload */}

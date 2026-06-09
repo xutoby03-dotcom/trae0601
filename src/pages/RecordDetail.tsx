@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Camera,
   CheckCircle2,
+  BookOpen,
 } from 'lucide-react'
 
 export default function RecordDetail() {
@@ -167,6 +168,18 @@ export default function RecordDetail() {
             </div>
           </div>
         </section>
+
+        {record.recipe && (
+          <section className="rounded-bake bg-bake-card p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-bake-brown mb-3 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-bake-caramel" />
+              配方内容
+            </h2>
+            <div className="bg-bake-warm/40 rounded-lg p-4 font-mono text-sm text-bake-dark/80 leading-relaxed whitespace-pre-wrap">
+              {record.recipe}
+            </div>
+          </section>
+        )}
 
         <section className="rounded-bake bg-bake-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold text-bake-brown mb-3">口感评分</h2>
