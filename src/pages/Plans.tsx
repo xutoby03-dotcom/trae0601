@@ -4,7 +4,7 @@ import { DogProfile, WalkPlan, TimeSlot } from '../types'
 import { ConflictAlert } from '../types'
 
 interface Props {
-  onNavigate: (tab: 'home' | 'records') => void
+  onNavigate: (tab: 'home' | 'dogs' | 'records') => void
 }
 
 const TIME_SLOTS: { value: TimeSlot; label: string; icon: string }[] = [
@@ -163,7 +163,7 @@ export default function Plans({ onNavigate }: Props) {
                 <div className="conflict-banner-title">{c.reason}</div>
                 <div className="conflict-banner-desc">
                   {c.owner1Name} 的 {c.dog1Name} 和 {c.owner2Name} 的 {c.dog2Name}
-                  都选了 {c.date} {c.timeSlot} 的 {c.route}
+                  都选了 {c.date} {c.timeSlot} {c.specificTime} 的 {c.route}
                 </div>
               </div>
               <button
@@ -185,7 +185,7 @@ export default function Plans({ onNavigate }: Props) {
         <div className="empty-state">
           <div className="empty-state-icon">🐶</div>
           <div className="empty-state-text">请先添加狗狗档案</div>
-          <button className="btn btn-primary" onClick={() => onNavigate('home')}>
+          <button className="btn btn-primary" onClick={() => onNavigate('dogs')}>
             去添加狗狗
           </button>
         </div>

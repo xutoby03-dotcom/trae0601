@@ -64,6 +64,7 @@ export interface ConflictAlert {
   route: string
   date: string
   timeSlot: TimeSlot
+  specificTime: string
   resolved: boolean
   createdAt: string
 }
@@ -72,6 +73,7 @@ export interface MergedRoute {
   route: string
   date: string
   timeSlot: TimeSlot
+  specificTime: string
   plans: WalkPlan[]
   hasConflict: boolean
   conflicts: ConflictAlert[]

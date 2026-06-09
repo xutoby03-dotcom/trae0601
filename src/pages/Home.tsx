@@ -61,7 +61,7 @@ export default function Home({ onNavigate }: Props) {
   function mergePlans(plans: WalkPlan[]): MergedRoute[] {
     const grouped = new Map<string, WalkPlan[]>()
     for (const p of plans) {
-      const key = `${p.date}-${p.route}-${p.timeSlot}`
+      const key = `${p.date}-${p.route}-${p.timeSlot}-${p.specificTime}`
       if (!grouped.has(key)) grouped.set(key, [])
       grouped.get(key)!.push(p)
     }
@@ -73,12 +73,14 @@ export default function Home({ onNavigate }: Props) {
         (c) =>
           c.route === first.route &&
           c.date === first.date &&
-          c.timeSlot === first.timeSlot
+          c.timeSlot === first.timeSlot &&
+          c.specificTime === first.specificTime
       )
       merged.push({
         route: first.route,
         date: first.date,
         timeSlot: first.timeSlot,
+        specificTime: first.specificTime,
         plans: groupPlans,
         hasConflict: routeConflicts.length > 0,
         conflicts: routeConflicts,
@@ -140,7 +142,7 @@ export default function Home({ onNavigate }: Props) {
         </div>
         {merged.map((m) => (
           <div
-            key={`${m.route}-${m.date}-${m.timeSlot}`}
+            key={`${m.route}-${m.date}-${m.timeSlot}-${m.specificTime}`}
             className={`merged-card ${m.hasConflict ? 'has-conflict' : ''}`}
           >
             <div className="card-header">
@@ -166,7 +168,7 @@ export default function Home({ onNavigate }: Props) {
                     <div className="conflict-banner-title">{c.reason}</div>
                     <div className="conflict-banner-desc">
                       {c.owner1Name} 的 {c.dog1Name} vs {c.owner2Name} 的{' '}
-                      {c.dog2Name} · {c.route} · {c.date}
+                      {c.dog2Name} · {c.route} · {c.date} {c.specificTime}
                     </div>
                   </div>
                   <button

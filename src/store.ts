@@ -117,7 +117,8 @@ export function checkAndCreateConflicts(newPlan: WalkPlan): ConflictAlert[] {
       p.id !== newPlan.id &&
       p.date === newPlan.date &&
       p.timeSlot === newPlan.timeSlot &&
-      p.route === newPlan.route
+      p.route === newPlan.route &&
+      p.specificTime === newPlan.specificTime
   )
 
   for (const existing of sameSlotPlans) {
@@ -157,6 +158,7 @@ export function checkAndCreateConflicts(newPlan: WalkPlan): ConflictAlert[] {
         route: newPlan.route,
         date: newPlan.date,
         timeSlot: newPlan.timeSlot,
+        specificTime: newPlan.specificTime,
         resolved: false,
         createdAt: new Date().toISOString(),
       }
