@@ -163,7 +163,7 @@ export const useCampStore = create<CampStore>()(
           if (camp.phoneSignal === 'none') reasons.push('无手机信号');
           if (camp.toilet === 'none') reasons.push('无厕所');
           if (camp.waterSource === 'none') reasons.push('无水源');
-          if (!camp.fireAllowed) reasons.push('禁止生火');
+          if (!camp.fireAllowed) reasons.push('禁火');
         }
         return reasons;
       },

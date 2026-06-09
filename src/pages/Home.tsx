@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 
 type FilterType = 'all' | RiskLevel;
 
-const REASON_FILTERS = ['强风', '涨水', '落石风险', '蚊虫多', '野狗出没', '夜间照明不足', '逃生路线不清', '天气多变', '无厕所', '无水源', '无手机信号', '禁止生火'] as const;
+const REASON_FILTERS = ['强风', '涨水', '落石风险', '蚊虫多', '野狗出没', '夜间照明不足', '逃生路线不清', '天气多变', '无厕所', '无水源', '无手机信号', '禁火'] as const;
 type ReasonFilter = (typeof REASON_FILTERS)[number];
 
 const riskColors: Record<RiskLevel, { bg: string; border: string; text: string; badge: string; pulse: string }> = {
