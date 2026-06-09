@@ -34,6 +34,7 @@ export default function Requests() {
 
   const [sizeFilter, setSizeFilter] = useState<string>(paramsSize && SIZES.includes(paramsSize as any) ? paramsSize : 'all')
   const [seasonFilter, setSeasonFilter] = useState<string>(paramsSeason && SEASONS.includes(paramsSeason as any) ? paramsSeason : 'all')
+  const [genderFilter, setGenderFilter] = useState<string>(paramsGender && GENDERS.includes(paramsGender as any) ? paramsGender : 'all')
 
   useEffect(() => {
     if (paramsSize && SIZES.includes(paramsSize as any)) {
@@ -42,11 +43,15 @@ export default function Requests() {
     if (paramsSeason && SEASONS.includes(paramsSeason as any)) {
       setSeasonFilter(paramsSeason)
     }
-  }, [paramsSize, paramsSeason])
+    if (paramsGender && GENDERS.includes(paramsGender as any)) {
+      setGenderFilter(paramsGender)
+    }
+  }, [paramsSize, paramsSeason, paramsGender])
 
   const filtered = purchaseRequests.filter((r) => {
     if (sizeFilter !== 'all' && r.size !== sizeFilter) return false
     if (seasonFilter !== 'all' && r.season !== seasonFilter) return false
+    if (genderFilter !== 'all' && r.gender !== genderFilter) return false
     return true
   })
 
@@ -106,6 +111,32 @@ export default function Requests() {
               }`}
             >
               {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setGenderFilter('all')}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+              genderFilter === 'all'
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'bg-orange-50 text-orange-500 hover:bg-orange-100'
+            }`}
+          >
+            全部
+          </button>
+          {GENDERS.map((g) => (
+            <button
+              key={g}
+              onClick={() => setGenderFilter(g)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                genderFilter === g
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'bg-orange-50 text-orange-500 hover:bg-orange-100'
+              }`}
+            >
+              {g}
             </button>
           ))}
         </div>
