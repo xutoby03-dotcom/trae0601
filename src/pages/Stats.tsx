@@ -16,7 +16,7 @@ interface SpendingEntry {
 export default function Stats() {
   const plans = usePlansStore((s) => s.plans)
 
-  const { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts } = useMemo(() => {
+  const { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts, refundRecords } = useMemo(() => {
     const currentYear = new Date().getFullYear()
     const yearPlans = plans.filter((p) => new Date(p.createdAt).getFullYear() === currentYear)
     const completedPlans = yearPlans.filter((p) => p.status === 'completed')
@@ -54,7 +54,19 @@ export default function Stats() {
     )
     const popularGifts = allCandidates.sort((a, b) => b.votes - a.votes).slice(0, 10)
 
-    return { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts }
+    const refundRecords = yearPlans.flatMap((plan) =>
+      plan.refundRecords.map((r) => ({
+        id: r.id,
+        amount: r.amount,
+        reason: r.reason,
+        refundTo: r.refundTo,
+        createdAt: r.createdAt,
+        planName: plan.birthdayPerson,
+        planId: plan.id,
+      }))
+    )
+
+    return { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts, refundRecords }
   }, [plans])
 
   const maxGross = participantSpending.length > 0 ? Math.max(...participantSpending.map((s) => s.paid + s.advanced)) : 0
@@ -237,6 +249,42 @@ export default function Stats() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-bark-500 uppercase tracking-wider mb-3">退款明细</h2>
+          {refundRecords.length === 0 ? (
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 border border-warm-100 text-center">
+              <p className="text-bark-400 text-sm">暂无退款记录</p>
+            </div>
+          ) : (
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-rose-100 divide-y divide-rose-50">
+              {refundRecords.map((r) => (
+                <div key={r.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <X className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span className="text-sm font-medium text-rose-600">-{formatCurrency(r.amount)}</span>
+                      <span className="text-xs text-bark-400">→ {r.refundTo}</span>
+                    </div>
+                    <Link to={`/plan/${r.planId}`} className="text-xs text-bark-400 hover:text-warm-500 transition-colors">
+                      {r.planName}
+                    </Link>
+                  </div>
+                  {r.reason && (
+                    <p className="text-xs text-bark-400 mt-1 pl-5.5 truncate">{r.reason}</p>
+                  )}
+                  <p className="text-xs text-bark-300 mt-0.5 pl-5.5">{new Date(r.createdAt).toLocaleDateString('zh-CN')}</p>
+                </div>
+              ))}
+              <div className="px-4 py-2.5 flex items-center justify-between bg-rose-50/50 rounded-b-2xl">
+                <span className="text-xs text-bark-500">退款合计</span>
+                <span className="text-sm font-semibold text-rose-600">
+                  -{formatCurrency(refundRecords.reduce((s, r) => s + r.amount, 0))}
+                </span>
+              </div>
             </div>
           )}
         </section>
