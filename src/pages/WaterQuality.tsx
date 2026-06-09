@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '@/store'
-import { Plus, Trash2, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, TrendingDown, TrendingUp, CheckCircle } from 'lucide-react'
 import { WaterQualityFormModal } from '@/components/FormModals'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
@@ -58,16 +58,37 @@ export default function WaterQuality() {
         </button>
       </div>
 
-      {visibleAlerts.length > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl overflow-hidden animate-fade-in">
-          <div className="px-4 py-3 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center animate-pulse-slow flex-shrink-0">
+      {purifiers.length > 0 && (
+        <div className="mb-4">
+          <select
+            value={selectedPurifier}
+            onChange={(e) => setSelectedPurifier(e.target.value)}
+            className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+          >
+            <option value="all">全部净水器</option>
+            {purifiers.map((p) => (
+              <option key={p.id} value={p.id}>{p.brand} {p.model}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className={`mb-6 rounded-xl overflow-hidden ${visibleAlerts.length > 0 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200' : 'bg-gradient-to-r from-emerald-50 to-brand-50 border border-emerald-200'}`}>
+        <div className="px-4 py-3 flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${visibleAlerts.length > 0 ? 'bg-amber-100 animate-pulse-slow' : 'bg-emerald-100'}`}>
+            {visibleAlerts.length > 0 ? (
               <AlertTriangle className="w-4 h-4 text-amber-600" />
-            </div>
-            <p className="text-sm font-semibold text-amber-800">水质异常预警</p>
+            ) : (
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+            )}
           </div>
-          <div className="px-4 pb-3 space-y-2">
-            {visibleAlerts.map((a) => (
+          <p className={`text-sm font-semibold ${visibleAlerts.length > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+            {visibleAlerts.length > 0 ? '水质异常预警' : '水质状态正常'}
+          </p>
+        </div>
+        <div className="px-4 pb-3 space-y-2">
+          {visibleAlerts.length > 0 ? (
+            visibleAlerts.map((a) => (
               <div key={a.purifierId} className="bg-white/60 rounded-lg p-2.5">
                 <p className="text-xs font-semibold text-amber-800 mb-1">{a.purifierName}</p>
                 <div className="flex flex-wrap gap-2">
@@ -88,25 +109,16 @@ export default function WaterQuality() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          ) : (
+            <p className="text-xs text-emerald-700">
+              {selectedPurifier === 'all'
+                ? '所有净水器出水速度和 TDS 都稳着'
+                : `${getPurifier(selectedPurifier)?.brand || ''} ${getPurifier(selectedPurifier)?.model || ''} 出水速度和 TDS 正常`}
+            </p>
+          )}
         </div>
-      )}
-
-      {purifiers.length > 1 && (
-        <div className="mb-4">
-          <select
-            value={selectedPurifier}
-            onChange={(e) => setSelectedPurifier(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-          >
-            <option value="all">全部净水器</option>
-            {purifiers.map((p) => (
-              <option key={p.id} value={p.id}>{p.brand} {p.model}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      </div>
 
       {sorted.length === 0 ? (
         <div className="text-center py-16">
