@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useStoreContext } from '../store/context'
 import { BarChart3, TrendingUp, Car, Wrench, DollarSign } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
 
 export default function Statistics() {
   const { vehicles, maintenanceRecords, faultRecords } = useStoreContext()
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear().toString())
+  const [selectedVehicle, setSelectedVehicle] = useState('all')
 
   const years = useMemo(() => {
     const set = new Set<string>()
@@ -16,10 +17,11 @@ export default function Statistics() {
     return Array.from(set).sort().reverse()
   }, [maintenanceRecords])
 
-  const yearRecords = useMemo(() =>
-    maintenanceRecords.filter(r => r.date.startsWith(selectedYear)),
-    [maintenanceRecords, selectedYear]
-  )
+  const yearRecords = useMemo(() => {
+    const base = maintenanceRecords.filter(r => r.date.startsWith(selectedYear))
+    if (selectedVehicle === 'all') return base
+    return base.filter(r => r.vehicleId === selectedVehicle)
+  }, [maintenanceRecords, selectedYear, selectedVehicle])
 
   const totalCost = useMemo(() =>
     yearRecords.reduce((sum, r) => sum + r.cost, 0),
@@ -57,7 +59,8 @@ export default function Statistics() {
   }, [yearRecords])
 
   const vehicleStats = useMemo(() => {
-    return vehicles.map(v => {
+    const targetVehicles = selectedVehicle === 'all' ? vehicles : vehicles.filter(v => v.id === selectedVehicle)
+    return targetVehicles.map(v => {
       const vRecords = yearRecords.filter(r => r.vehicleId === v.id)
       const totalCost = vRecords.reduce((sum, r) => sum + r.cost, 0)
       const faults = faultRecords.filter(f => f.vehicleId === v.id && f.date.startsWith(selectedYear))
@@ -73,7 +76,7 @@ export default function Statistics() {
         costPerKm,
       }
     })
-  }, [vehicles, yearRecords, faultRecords, selectedYear])
+  }, [vehicles, yearRecords, faultRecords, selectedYear, selectedVehicle])
 
   const vehicleCostChart = useMemo(() =>
     vehicleStats.map(v => ({ name: v.plate, cost: Math.round(v.totalCost * 100) / 100 })),
@@ -94,10 +97,17 @@ export default function Statistics() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900">养车统计</h2>
-        <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
-          {years.map(y => <option key={y} value={y}>{y}年</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            <option value="all">全部车辆</option>
+            {vehicles.map(v => <option key={v.id} value={v.id}>{v.plateNumber}</option>)}
+          </select>
+          <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+            {years.map(y => <option key={y} value={y}>{y}年</option>)}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
@@ -143,7 +153,9 @@ export default function Statistics() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Car className="w-4 h-4 text-blue-500" />
-            <span className="text-sm font-medium text-gray-700">每辆车平均每公里花费</span>
+            <span className="text-sm font-medium text-gray-700">
+              {selectedVehicle === 'all' ? '每辆车平均每公里花费' : '每公里花费'}
+            </span>
           </div>
           <div className="space-y-3">
             {vehicleStats.map(v => (
@@ -162,7 +174,7 @@ export default function Statistics() {
         </div>
       )}
 
-      {vehicleCostChart.length > 0 && (
+      {vehicleCostChart.length > 0 && selectedVehicle === 'all' && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <h3 className="text-sm font-medium text-gray-700 mb-4">各车辆年度花费</h3>
           <ResponsiveContainer width="100%" height={220}>
