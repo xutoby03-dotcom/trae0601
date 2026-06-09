@@ -219,7 +219,7 @@ export default function Home() {
                   <DeviceIcon type={hovered.device.type} size={16} />
                 </div>
               )}
-              <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              <span className="font-medium truncate min-w-0 block" style={{ color: 'var(--text-primary)' }}>
                 {hovered.device.name}
               </span>
             </div>
