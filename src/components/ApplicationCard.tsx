@@ -93,6 +93,16 @@ export default function ApplicationCard({
                 : 'border-gray-100'
         }`}
       >
+        {highlighted && isExpired && showActions && (
+          <div className="flex items-center gap-1.5 mb-3 -mt-1">
+            <span className="flex items-center gap-1 text-xs font-semibold bg-red-500 text-white px-2.5 py-1 rounded-lg">
+              <AlertTriangle className="w-3 h-3" />
+              待处理
+            </span>
+            <span className="text-xs text-red-400">已超时，请尽快处理离场</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
@@ -171,7 +181,10 @@ export default function ApplicationCard({
 
         {showActions && application.status === 'active' && (
           <button
-            onClick={() => setShowCompleteModal(true)}
+            onClick={() => {
+              if (isExpired) setIsOvertime(true)
+              setShowCompleteModal(true)
+            }}
             className={`w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-colors ${
               isExpired
                 ? 'bg-red-500 text-white hover:bg-red-600'
@@ -180,7 +193,7 @@ export default function ApplicationCard({
                   : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
             }`}
           >
-            标记已离开
+            {isExpired ? '处理超时离场' : '标记已离开'}
           </button>
         )}
 
