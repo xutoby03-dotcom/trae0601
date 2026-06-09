@@ -1,15 +1,16 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useStore } from '@/store'
-import { getWeekDates, formatDate } from '@/utils'
+import { getWeekDates, formatDate, getDayName } from '@/utils'
 import { cn } from '@/lib/utils'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Line } from 'recharts'
-import { BarChart3, PieChart as PieChartIcon, TrendingUp, AlertTriangle, Coffee } from 'lucide-react'
+import { BarChart3, PieChart as PieChartIcon, TrendingUp, AlertTriangle, Coffee, Clock, ChevronDown, ChevronRight } from 'lucide-react'
 
 const CHART_COLORS = ['#F97316', '#FB923C', '#FDBA74', '#FED7AA', '#F59E0B', '#D97706', '#B45309', '#92400E']
 const WARM_COLORS = ['#F97316', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#14B8A6', '#F97316', '#F59E0B']
 
 export default function Stats() {
   const { members, recipes, mealRecords, dayPlans, getWeekStats } = useStore()
+  const [expandedMember, setExpandedMember] = useState<string | null>(null)
 
   const completionData = useMemo(() => {
     const counts: Record<string, { name: string; icon: string; count: number }> = {}
@@ -65,6 +66,25 @@ export default function Stats() {
   }, [mealRecords, dayPlans, recipes])
 
   const maxWaste = useMemo(() => Math.max(...wasteData.map((d) => d.count), 1), [wasteData])
+
+  const busyData = useMemo(() => {
+    return members.map((m) => {
+      const memberRecords = mealRecords.filter((r) => r.memberId === m.id && (r.status === 'skipped' || r.status === 'late'))
+      const skipped = mealRecords.filter((r) => r.memberId === m.id && r.status === 'skipped').length
+      const late = mealRecords.filter((r) => r.memberId === m.id && r.status === 'late').length
+      const details = memberRecords
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 5)
+        .map((r) => ({
+          date: r.date,
+          status: r.status,
+          notes: r.notes,
+        }))
+      return { id: m.id, name: m.name, avatar: m.avatar, skipped, late, total: skipped + late, details }
+    }).filter((d) => d.total > 0).sort((a, b) => b.total - a.total)
+  }, [members, mealRecords])
+
+  const maxBusy = useMemo(() => Math.max(...busyData.map((d) => d.total), 1), [busyData])
 
   if (mealRecords.length === 0) {
     return (
@@ -192,6 +212,61 @@ export default function Stats() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-3 bg-white rounded-2xl shadow-sm p-3">
+        <div className="flex items-center gap-1.5 mb-3">
+          <Clock className="w-4 h-4 text-orange-500" />
+          <span className="text-xs font-medium text-amber-900">没时间吃排行</span>
+        </div>
+        {busyData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <span className="text-2xl mb-2">😊</span>
+            <span className="text-xs text-green-600 font-medium">大家都按时吃了早餐</span>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {busyData.map((d) => (
+              <div key={d.id}>
+                <button
+                  onClick={() => setExpandedMember(expandedMember === d.id ? null : d.id)}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-xl hover:bg-orange-50 transition-colors text-left"
+                >
+                  <span className="text-lg">{d.avatar}</span>
+                  <span className="text-xs font-medium text-amber-900 flex-1">{d.name}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-500 font-medium">{d.skipped}次没吃</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-50 text-yellow-600 font-medium">{d.late}次迟到</span>
+                  <div className="w-16 h-1.5 bg-orange-50 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-red-400" style={{ width: `${(d.total / maxBusy) * 100}%` }} />
+                  </div>
+                  {expandedMember === d.id ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                  )}
+                </button>
+                {expandedMember === d.id && (
+                  <div className="ml-8 mr-2 mb-1 space-y-1">
+                    {d.details.map((detail, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-orange-50/60">
+                        <span className="text-[10px] text-amber-500 w-14 shrink-0">{formatDate(detail.date)} {getDayName(detail.date)}</span>
+                        <span className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                          detail.status === 'skipped' ? 'bg-red-100 text-red-500' : 'bg-yellow-100 text-yellow-600'
+                        )}>
+                          {detail.status === 'skipped' ? '没吃' : '迟到'}
+                        </span>
+                        {detail.notes && (
+                          <span className="text-[10px] text-amber-600/60 truncate">{detail.notes}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
