@@ -75,23 +75,21 @@ export default function Home() {
         <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-sage-200/30 rounded-full blur-3xl" />
       </section>
 
-      {favoriteCount > 0 && (
-        <section className="container mx-auto px-6 mt-4">
-          <Link
-            to="/favorites"
-            className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/70 backdrop-blur-sm border border-cream-300/40 shadow-soft hover:shadow-card hover:border-terra-200 transition-all"
-          >
-            <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-              <Heart className="w-4.5 h-4.5 text-red-400 fill-red-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-sage-700">收藏灵感</span>
-              <span className="text-xs text-sage-400 ml-2">{favoriteCount} 个方案</span>
-            </div>
-            <span className="text-xs text-terra-500 font-medium">查看全部 →</span>
-          </Link>
-        </section>
-      )}
+      <section className="container mx-auto px-6 mt-4">
+        <Link
+          to="/favorites"
+          className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/70 backdrop-blur-sm border border-cream-300/40 shadow-soft hover:shadow-card hover:border-terra-200 transition-all"
+        >
+          <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+            <Heart className={cn('w-4 h-4 transition-colors', favoriteCount > 0 ? 'text-red-400 fill-red-400' : 'text-sage-300')} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium text-sage-700">收藏灵感</span>
+            <span className="text-xs text-sage-400 ml-2">{favoriteCount} 个方案</span>
+          </div>
+          <span className="text-xs text-terra-500 font-medium">查看全部 →</span>
+        </Link>
+      </section>
 
       <section className="container mx-auto px-6 -mt-6">
         <div className="flex justify-center">
