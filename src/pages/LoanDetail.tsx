@@ -189,12 +189,14 @@ export default function LoanDetail() {
           >
             <HandCoins size={18} /> 记录还款
           </button>
-          <button
-            onClick={() => setShowReminder(!showReminder)}
-            className="flex items-center justify-center gap-1.5 py-3 px-4 bg-apricot-100 hover:bg-apricot-200 text-apricot-700 font-display font-bold rounded-xl transition-all active:scale-[0.98]"
-          >
-            <MessageCircle size={16} /> 提醒
-          </button>
+          {!loan.isPaused && (
+            <button
+              onClick={() => setShowReminder(!showReminder)}
+              className="flex items-center justify-center gap-1.5 py-3 px-4 bg-apricot-100 hover:bg-apricot-200 text-apricot-700 font-display font-bold rounded-xl transition-all active:scale-[0.98]"
+            >
+              <MessageCircle size={16} /> 提醒
+            </button>
+          )}
           <button
             onClick={() => updateLoan(loan.id, { isPaused: !loan.isPaused })}
             className={`flex items-center justify-center p-3 rounded-xl transition-all active:scale-[0.98] ${
@@ -209,7 +211,7 @@ export default function LoanDetail() {
         </div>
       )}
 
-      {showReminder && !isSettled && (
+      {showReminder && !isSettled && !loan.isPaused && (
         <div className="bg-apricot-50 border border-apricot-200 rounded-2xl p-4 mb-4 card-enter">
           <div className="text-xs font-medium text-apricot-600 mb-2 flex items-center gap-1">
             <MessageCircle size={12} /> 温和提醒文案

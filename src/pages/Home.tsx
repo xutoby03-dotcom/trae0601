@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { NotebookPen, Search } from 'lucide-react'
 import { useState } from 'react'
 import { useLoanStore } from '@/store/loanStore'
-import GroupSection, { ExpiringSoonIcon, OverdueIcon, InstallmentIcon, SettledIcon } from '@/components/GroupSection'
+import GroupSection, { ExpiringSoonIcon, OverdueIcon, InstallmentIcon, ActiveIcon, SettledIcon } from '@/components/GroupSection'
 
 export default function Home() {
   const { getLoansByGroup, loans } = useLoanStore()
@@ -20,7 +20,7 @@ export default function Home() {
         )
       : list
 
-  const totalActive = groups.expiringSoon.length + groups.overdue.length + groups.installment.length
+  const totalActive = groups.overdue.length + groups.expiringSoon.length + groups.installment.length + groups.active.length
 
   return (
     <div className="fade-in">
@@ -89,6 +89,14 @@ export default function Home() {
             variant="installment"
             defaultOpen={groups.overdue.length === 0 && groups.expiringSoon.length === 0}
             accentColor="bg-apricot-100"
+          />
+          <GroupSection
+            title="进行中"
+            icon={<ActiveIcon />}
+            loans={filtered(groups.active)}
+            variant="active"
+            defaultOpen={false}
+            accentColor="bg-parchment-200"
           />
           <GroupSection
             title="已结清"

@@ -32,6 +32,7 @@ export interface LoanGroup {
   overdue: Loan[]
   expiringSoon: Loan[]
   installment: Loan[]
+  active: Loan[]
   settled: Loan[]
 }
 

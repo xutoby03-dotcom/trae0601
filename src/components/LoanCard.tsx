@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { Clock, AlertTriangle, Layers, Pause, CheckCircle2 } from 'lucide-react'
+import { Clock, AlertTriangle, Layers, Minus, CheckCircle2 } from 'lucide-react'
 import type { Loan } from '@/types'
-import { formatMoney, daysUntil, daysOverdue, getSentimentEmoji } from '@/utils/helpers'
+import { formatMoney, daysUntil, getSentimentEmoji } from '@/utils/helpers'
 
 interface LoanCardProps {
   loan: Loan
-  variant: 'overdue' | 'expiring' | 'installment' | 'settled'
+  variant: 'overdue' | 'expiring' | 'installment' | 'active' | 'settled'
 }
 
 export default function LoanCard({ loan, variant }: LoanCardProps) {
@@ -15,13 +15,16 @@ export default function LoanCard({ loan, variant }: LoanCardProps) {
     overdue: 'border-l-coral-300 bg-coral-50/30',
     expiring: 'border-l-sage-300 bg-white',
     installment: 'border-l-apricot-400 bg-apricot-50/20',
+    active: 'border-l-parchment-400 bg-white',
     settled: 'border-l-sage-400 bg-sage-50/30',
   }
 
   const daysInfo = () => {
     if (variant === 'settled') return null
     if (variant === 'overdue') {
-      const d = daysOverdue(loan.dueDate)
+      const dueDate = new Date(loan.dueDate)
+      const now = new Date()
+      const d = Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
       return (
         <span className="inline-flex items-center gap-1 text-coral-400 text-xs font-medium">
           <AlertTriangle size={12} />
@@ -33,17 +36,20 @@ export default function LoanCard({ loan, variant }: LoanCardProps) {
       if (loan.isPaused) {
         return (
           <span className="inline-flex items-center gap-1 text-parchment-500 text-xs font-medium">
-            <Pause size={12} />
+            <Minus size={12} />
             已搁置
           </span>
         )
       }
       const d = daysUntil(loan.dueDate)
       if (d < 0) {
+        const dueDate = new Date(loan.dueDate)
+        const now = new Date()
+        const od = Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
         return (
           <span className="inline-flex items-center gap-1 text-coral-400 text-xs font-medium">
             <AlertTriangle size={12} />
-            逾期 {daysOverdue(loan.dueDate)} 天
+            逾期 {od} 天
           </span>
         )
       }
@@ -51,6 +57,15 @@ export default function LoanCard({ loan, variant }: LoanCardProps) {
         <span className="inline-flex items-center gap-1 text-apricot-500 text-xs font-medium">
           <Layers size={12} />
           还款中 · {d <= 0 ? '今天到期' : `${d} 天后到期`}
+        </span>
+      )
+    }
+    if (variant === 'active') {
+      const d = daysUntil(loan.dueDate)
+      return (
+        <span className="inline-flex items-center gap-1 text-parchment-500 text-xs font-medium">
+          <Minus size={12} />
+          进行中 · {d <= 0 ? '今天到期' : `${d} 天后到期`}
         </span>
       )
     }
@@ -78,7 +93,7 @@ export default function LoanCard({ loan, variant }: LoanCardProps) {
           <span className="font-display font-bold text-apricot-900 text-base">
             {loan.borrowerName}
           </span>
-          {loan.isPaused && variant === 'installment' && (
+          {loan.isPaused && (variant === 'installment' || variant === 'active') && (
             <span className="text-[10px] bg-parchment-200 text-parchment-600 px-1.5 py-0.5 rounded-full">搁置</span>
           )}
         </div>
