@@ -73,7 +73,7 @@ const MOCK_COMPLAINTS: Complaint[] = [
     ],
     actions: [
       { id: 'a003', complaintId: 'c003', type: 'contacted', actionTime: '2026-06-09T07:30:00', note: '已联系广场舞组织者，要求降低音量', operatorId: 'admin' },
-      { id: 'a004', complaintId: 'c003', type: 'rectification', actionTime: '2026-06-09T08:00:00', note: '约定8点后降低音量，不再使用大音响', operatorId: 'admin' },
+      { id: 'a004', complaintId: 'c003', type: 'rectification', actionTime: '2026-06-09T08:00:00', note: '约定8点后降低音量，不再使用大音响', operatorId: 'admin', rectificationDeadline: '2026-06-16T08:00:00' },
     ],
   },
   {
@@ -180,7 +180,7 @@ const MOCK_COMPLAINTS: Complaint[] = [
     ],
     actions: [
       { id: 'a010', complaintId: 'c008', type: 'police', actionTime: '2026-06-05T01:30:00', note: '报警处理，民警上门劝止', operatorId: 'admin' },
-      { id: 'a011', complaintId: 'c008', type: 'rectification', actionTime: '2026-06-05T02:00:00', note: '住户承诺不再深夜K歌', operatorId: 'admin' },
+      { id: 'a011', complaintId: 'c008', type: 'rectification', actionTime: '2026-06-05T02:00:00', note: '住户承诺不再深夜K歌', operatorId: 'admin', rectificationDeadline: '2026-06-12T22:00:00' },
     ],
   },
   {
@@ -220,7 +220,7 @@ const MOCK_COMPLAINTS: Complaint[] = [
     ],
     actions: [
       { id: 'a012', complaintId: 'c010', type: 'visited', actionTime: '2026-06-06T10:00:00', note: '上门查看，确认周末违规施工', operatorId: 'admin' },
-      { id: 'a013', complaintId: 'c010', type: 'rectification', actionTime: '2026-06-06T11:00:00', note: '约定工作日施工，周末停工', operatorId: 'admin' },
+      { id: 'a013', complaintId: 'c010', type: 'rectification', actionTime: '2026-06-06T11:00:00', note: '约定工作日施工，周末停工', operatorId: 'admin', rectificationDeadline: '2026-06-30T18:00:00' },
     ],
   },
 ];
@@ -230,7 +230,7 @@ interface ComplaintStore {
   currentUserId: string;
   addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'seconds' | 'actions' | 'reporterId'>) => void;
   secondComplaint: (complaintId: string) => void;
-  addAction: (complaintId: string, type: ActionType, note: string) => void;
+  addAction: (complaintId: string, type: ActionType, note: string, rectificationDeadline?: string) => void;
   updateStatus: (complaintId: string, status: ComplaintStatus) => void;
   getComplaintsByStatus: (status: ComplaintStatus) => Complaint[];
   getComplaintById: (id: string) => Complaint | undefined;
@@ -273,7 +273,7 @@ export const useComplaintStore = create<ComplaintStore>()(
         }));
       },
 
-      addAction: (complaintId, type, note) => {
+      addAction: (complaintId, type, note, rectificationDeadline) => {
         set((state) => ({
           complaints: state.complaints.map((c) => {
             if (c.id !== complaintId) return c;
@@ -288,6 +288,7 @@ export const useComplaintStore = create<ComplaintStore>()(
                   actionTime: new Date().toISOString(),
                   note,
                   operatorId: 'admin',
+                  ...(rectificationDeadline ? { rectificationDeadline } : {}),
                 },
               ],
             };

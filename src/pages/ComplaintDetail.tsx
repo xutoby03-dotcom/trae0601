@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Volume2, Users, AlertTriangle, Plus, Check, Phone, Shield, Wrench } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Volume2, Users, AlertTriangle, Plus, Check, Phone, Shield, Wrench, Image, Music, CalendarClock } from 'lucide-react';
 import { useComplaintStore } from '@/store/useComplaintStore';
 import { NOISE_TYPE_LABELS, DECIBEL_LABELS, STATUS_LABELS, STATUS_COLORS, DECIBEL_COLORS, ACTION_LABELS, ComplaintStatus, ActionType } from '@/types';
 
@@ -18,6 +18,7 @@ export default function ComplaintDetail() {
 
   const [actionType, setActionType] = useState<ActionType>('contacted');
   const [actionNote, setActionNote] = useState('');
+  const [rectificationDeadline, setRectificationDeadline] = useState('');
 
   const complaint = id ? getComplaintById(id) : undefined;
 
@@ -37,13 +38,20 @@ export default function ComplaintDetail() {
 
   const handleAddAction = () => {
     if (!actionNote.trim()) return;
-    addAction(complaint.id, actionType, actionNote.trim());
+    addAction(complaint.id, actionType, actionNote.trim(), actionType === 'rectification' ? rectificationDeadline : undefined);
     setActionNote('');
+    setRectificationDeadline('');
   };
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
     return `${d.getMonth() + 1}月${d.getDate()}日 ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const formatDateTime = (iso: string) => {
+    const d = new Date(iso);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
   };
 
   const statusList: ComplaintStatus[] = ['ongoing', 'pending', 'resolved', 'recurring'];
@@ -105,6 +113,46 @@ export default function ComplaintDetail() {
         )}
       </div>
 
+      {(complaint.photoUrls.length > 0 || complaint.audioUrls.length > 0) && (
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">附件</h2>
+          {complaint.photoUrls.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2">
+                <Image className="w-3.5 h-3.5" />照片
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {complaint.photoUrls.map((url, idx) => (
+                  <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                    <img
+                      src={url}
+                      alt={`照片${idx + 1}`}
+                      className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {complaint.audioUrls.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2">
+                <Music className="w-3.5 h-3.5" />录音
+              </div>
+              <div className="space-y-2">
+                {complaint.audioUrls.map((url, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+                    <Music className="w-4 h-4 text-teal-500 shrink-0" />
+                    <span className="text-sm text-slate-600">录音 {idx + 1}</span>
+                    <audio controls className="h-8 flex-1" src={url} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-700">
@@ -147,6 +195,12 @@ export default function ComplaintDetail() {
                         <span className="text-xs text-slate-400 ml-auto">{formatTime(action.actionTime)}</span>
                       </div>
                       {action.note && <p className="text-xs text-slate-500 mt-1">{action.note}</p>}
+                      {action.type === 'rectification' && action.rectificationDeadline && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600">
+                          <CalendarClock className="w-3.5 h-3.5" />
+                          <span>整改截止：{formatTime(action.rectificationDeadline)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -168,6 +222,21 @@ export default function ComplaintDetail() {
               <option key={t} value={t}>{ACTION_LABELS[t]}</option>
             ))}
           </select>
+
+          {actionType === 'rectification' && (
+            <div>
+              <label className="flex items-center gap-1.5 text-xs text-slate-500 mb-1">
+                <CalendarClock className="w-3.5 h-3.5" />整改截止时间
+              </label>
+              <input
+                type="datetime-local"
+                value={rectificationDeadline}
+                onChange={(e) => setRectificationDeadline(e.target.value)}
+                className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50"
+              />
+            </div>
+          )}
+
           <textarea
             value={actionNote}
             onChange={(e) => setActionNote(e.target.value)}

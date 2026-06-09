@@ -17,6 +17,7 @@ export interface Action {
   actionTime: string;
   note: string;
   operatorId: string;
+  rectificationDeadline?: string;
 }
 
 export interface Complaint {

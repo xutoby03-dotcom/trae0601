@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, MapPin, Volume2, FileText, Camera, Mic, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, Volume2, FileText, Camera, Mic, X, Image, Music } from 'lucide-react';
 import { useComplaintStore } from '@/store/useComplaintStore';
 import type { NoiseType, DecibelLevel } from '@/types';
 import { NOISE_TYPE_LABELS, DECIBEL_LABELS, DECIBEL_COLORS } from '@/types';
@@ -14,6 +14,20 @@ const now = () => {
 const NOISE_TYPES: NoiseType[] = ['renovation', 'singing', 'speaker', 'pet', 'other'];
 const DECIBEL_LEVELS: DecibelLevel[] = ['quiet', 'moderate', 'loud', 'extreme'];
 
+interface AttachedFile {
+  name: string;
+  url: string;
+}
+
+const readFileAsDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function NewComplaint() {
   const navigate = useNavigate();
   const addComplaint = useComplaintStore((s) => s.addComplaint);
@@ -25,8 +39,45 @@ export default function NewComplaint() {
   const [decibelLevel, setDecibelLevel] = useState<DecibelLevel>('moderate');
   const [affectsRest, setAffectsRest] = useState(false);
   const [notes, setNotes] = useState('');
+  const [photos, setPhotos] = useState<AttachedFile[]>([]);
+  const [audios, setAudios] = useState<AttachedFile[]>([]);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit = location.trim() !== '' && noiseType !== '';
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newPhotos: AttachedFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const url = await readFileAsDataUrl(files[i]);
+      newPhotos.push({ name: files[i].name, url });
+    }
+    setPhotos((prev) => [...prev, ...newPhotos]);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
+  const handleAudioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newAudios: AttachedFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const url = await readFileAsDataUrl(files[i]);
+      newAudios.push({ name: files[i].name, url });
+    }
+    setAudios((prev) => [...prev, ...newAudios]);
+    if (audioInputRef.current) audioInputRef.current.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeAudio = (index: number) => {
+    setAudios((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -38,8 +89,8 @@ export default function NewComplaint() {
       decibelLevel,
       affectsRest,
       notes,
-      photoUrls: [],
-      audioUrls: [],
+      photoUrls: photos.map((p) => p.url),
+      audioUrls: audios.map((a) => a.url),
       status: 'ongoing',
     });
     navigate('/');
@@ -162,21 +213,80 @@ export default function NewComplaint() {
         <div>
           <label className="text-sm text-gray-500 mb-1.5 block">照片/录音</label>
           <div className="flex gap-3">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
             <button
               type="button"
-              disabled
-              className="flex items-center gap-1.5 px-4 py-2 border rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed"
+              onClick={() => photoInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-4 py-2 border border-teal-200 rounded-lg text-teal-600 bg-teal-50 hover:bg-teal-100 transition"
             >
               <Camera className="w-4 h-4" />拍照
             </button>
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              multiple
+              onChange={handleAudioChange}
+              className="hidden"
+            />
             <button
               type="button"
-              disabled
-              className="flex items-center gap-1.5 px-4 py-2 border rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed"
+              onClick={() => audioInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-4 py-2 border border-teal-200 rounded-lg text-teal-600 bg-teal-50 hover:bg-teal-100 transition"
             >
               <Mic className="w-4 h-4" />录音
             </button>
           </div>
+
+          {photos.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {photos.map((photo, index) => (
+                <div key={index} className="relative group">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={photo.url}
+                      alt={photo.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <p className="text-[10px] text-gray-400 mt-0.5 w-20 truncate">{photo.name}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {audios.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {audios.map((audio, index) => (
+                <div key={index} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <Music className="w-4 h-4 text-teal-500 shrink-0" />
+                  <span className="text-sm text-gray-600 truncate flex-1">{audio.name}</span>
+                  <audio controls className="h-8 max-w-[140px]" src={audio.url} />
+                  <button
+                    type="button"
+                    onClick={() => removeAudio(index)}
+                    className="shrink-0 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-500 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
