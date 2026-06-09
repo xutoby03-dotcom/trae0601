@@ -143,16 +143,19 @@ export default function Admin() {
     setSelectedPassengers(next)
   }
 
+  const isActionable = (r: Reservation) => r.status === 'reserved'
+
   const toggleAllConfirmed = (confirmed: Reservation[]) => {
-    const confirmedIds = new Set(confirmed.map((r) => r.id))
-    const allConfirmedSelected = confirmed.every((r) => selectedPassengers.has(r.id))
-    if (allConfirmedSelected) {
+    const actionable = confirmed.filter(isActionable)
+    const actionableIds = new Set(actionable.map((r) => r.id))
+    const allActionableSelected = actionable.length > 0 && actionable.every((r) => selectedPassengers.has(r.id))
+    if (allActionableSelected) {
       const next = new Set(selectedPassengers)
-      confirmedIds.forEach((id) => next.delete(id))
+      actionableIds.forEach((id) => next.delete(id))
       setSelectedPassengers(next)
     } else {
       const next = new Set(selectedPassengers)
-      confirmedIds.forEach((id) => next.add(id))
+      actionableIds.forEach((id) => next.add(id))
       setSelectedPassengers(next)
     }
   }
@@ -304,20 +307,20 @@ export default function Admin() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-white/70 text-xs font-semibold flex items-center gap-1.5">
                           <Armchair className="w-3.5 h-3.5 text-[#ff6b35]" />
-                          正式座位 ({confirmed.length}人·{occupied}座)
+                          正式座位 ({confirmed.length}人·{occupied}座{confirmed.filter(isActionable).length > 0 ? `，${confirmed.filter(isActionable).length}人待处理` : ''})
                         </span>
                         {confirmed.length > 0 && (
                           <label className="flex items-center gap-1.5 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={
-                              confirmed.length > 0 &&
-                              confirmed.every((r) => selectedPassengers.has(r.id))
+                              confirmed.filter(isActionable).length > 0 &&
+                              confirmed.filter(isActionable).every((r) => selectedPassengers.has(r.id))
                             }
                               onChange={() => toggleAllConfirmed(confirmed)}
                               className="accent-[#ff6b35] w-3.5 h-3.5 rounded"
                             />
-                            <span className="text-white/40 text-xs">全选</span>
+                            <span className="text-white/40 text-xs">全选待处理</span>
                           </label>
                         )}
                       </div>
@@ -329,10 +332,13 @@ export default function Admin() {
                       <div className="space-y-1.5">
                         {confirmed.map((res) => {
                           const sc = statusConfig[res.status] ?? statusConfig.reserved
+                          const actionable = isActionable(res)
                           return (
                             <div
                               key={res.id}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/8 transition-colors cursor-pointer"
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                                actionable ? 'bg-white/5 hover:bg-white/8' : 'bg-white/[0.03]'
+                              }`}
                               onClick={() => setDrawerReservation(res)}
                             >
                               <div
@@ -343,10 +349,13 @@ export default function Admin() {
                                   type="checkbox"
                                   checked={selectedPassengers.has(res.id)}
                                   onChange={() => togglePassenger(res.id)}
-                                  className="accent-[#ff6b35] w-3.5 h-3.5 rounded"
+                                  disabled={!actionable}
+                                  className={`w-3.5 h-3.5 rounded ${
+                                    actionable ? 'accent-[#ff6b35]' : 'opacity-30 cursor-not-allowed'
+                                  }`}
                                 />
                               </div>
-                              <span className="text-white text-sm flex-1 truncate">
+                              <span className={`text-sm flex-1 truncate ${actionable ? 'text-white' : 'text-white/40'}`}>
                                 {res.employeeName}
                               </span>
                               {res.companions > 0 && (
