@@ -38,6 +38,7 @@ interface InsuranceStore {
   getPolicyRenewals: (policyId: string) => RenewalRecord[]
   getPolicyClaims: (policyId: string) => ClaimRecord[]
   getExpiringPolicies: (days?: number) => InsurancePolicy[]
+  getElderlyExpiringMedical: (days?: number) => { policy: InsurancePolicy; days: number }[]
   getTotalAnnualPremium: () => number
   getPersonCoverageAmount: (name: string) => number
 }
@@ -212,6 +213,25 @@ export const useInsuranceStore = create<InsuranceStore>()(
           const diff = differenceInDays(expiry, today)
           return diff >= 0 && diff <= days
         })
+      },
+
+      getElderlyExpiringMedical: (days = 90) => {
+        const today = startOfDay(new Date())
+        const result: { policy: InsurancePolicy; days: number }[] = []
+        const persons = get().getInsuredPersons()
+        for (const name of persons) {
+          if (get().getPersonRole(name) !== '老人') continue
+          const policies = get().getPersonPolicies(name)
+          for (const p of policies) {
+            if (p.insuranceType !== '医疗险') continue
+            if (get().getPolicyStatus(p) === '已失效') continue
+            const diff = differenceInDays(parseISO(p.expiryDate), today)
+            if (diff >= 0 && diff <= days) {
+              result.push({ policy: p, days: diff })
+            }
+          }
+        }
+        return result
       },
 
       getTotalAnnualPremium: () => {

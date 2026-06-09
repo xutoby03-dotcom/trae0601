@@ -89,6 +89,7 @@ export default function MemberDetail() {
     getPersonCoverageAmount,
     getPolicyStatus,
     getPersonRole,
+    getElderlyExpiringMedical,
   } = useInsuranceStore()
 
   if (!name) return null
@@ -229,13 +230,11 @@ export default function MemberDetail() {
         </section>
       )}
 
-      {role === '老人' && activePolicies.some((p) => p.insuranceType === '医疗险') && (() => {
-        const medicalExpiring = activePolicies.filter((p) => {
-          if (p.insuranceType !== '医疗险') return false
-          const days = differenceInDays(parseISO(p.expiryDate), new Date())
-          return days >= 0 && days <= 90
-        })
-        if (medicalExpiring.length === 0) return null
+      {role === '老人' && (() => {
+        const elderlyMedical = getElderlyExpiringMedical(90).filter(
+          (e) => e.policy.insuredPerson === decodedName
+        )
+        if (elderlyMedical.length === 0) return null
         return (
           <section className="mb-8 animate-fade-in" style={{ animationDelay: '180ms' }}>
             <h2 className="section-title mb-4 flex items-center gap-2">
@@ -243,24 +242,21 @@ export default function MemberDetail() {
               医疗险到期提醒
             </h2>
             <div className="space-y-3">
-              {medicalExpiring.map((p) => {
-                const days = differenceInDays(parseISO(p.expiryDate), new Date())
-                return (
-                  <div key={p.id} className="card p-4 border-purple-200 bg-purple-50/50">
-                    <div className="flex items-center gap-3">
-                      <Heart className="w-5 h-5 text-purple-500 shrink-0" />
-                      <div>
-                        <p className="font-medium text-purple-700">
-                          {p.company}医疗险将于 {days} 天后到期
-                        </p>
-                        <p className="text-sm text-purple-500/80 mt-0.5">
-                          老人医疗险到期影响大，请务必及时续费
-                        </p>
-                      </div>
+              {elderlyMedical.map(({ policy, days }) => (
+                <div key={policy.id} className="card p-4 border-purple-200 bg-purple-50/50">
+                  <div className="flex items-center gap-3">
+                    <Heart className="w-5 h-5 text-purple-500 shrink-0" />
+                    <div>
+                      <p className="font-medium text-purple-700">
+                        {policy.company}医疗险将于 {days} 天后到期
+                      </p>
+                      <p className="text-sm text-purple-500/80 mt-0.5">
+                        老人医疗险到期影响大，请务必及时续费
+                      </p>
                     </div>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </section>
         )

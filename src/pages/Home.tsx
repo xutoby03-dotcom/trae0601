@@ -1,6 +1,6 @@
 import { useInsuranceStore } from '@/stores/insuranceStore'
 import { STATUS_CONFIG, INSURANCE_TYPE_COLORS, PERSON_ROLE_CONFIG } from '@/types/insurance'
-import type { InsurancePolicy, PolicyStatus, PersonRole } from '@/types/insurance'
+import type { InsurancePolicy, PolicyStatus } from '@/types/insurance'
 import { Link, useNavigate } from 'react-router-dom'
 import { AlertTriangle, Clock, ShieldCheck, ShieldOff, Plus, BarChart3, ChevronRight, Shield, Heart } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns'
@@ -106,6 +106,7 @@ export default function Home() {
   const getPersonGaps = useInsuranceStore((s) => s.getPersonGaps)
   const getPersonOverlaps = useInsuranceStore((s) => s.getPersonOverlaps)
   const getExpiringPolicies = useInsuranceStore((s) => s.getExpiringPolicies)
+  const getElderlyExpiringMedical = useInsuranceStore((s) => s.getElderlyExpiringMedical)
   const getTotalAnnualPremium = useInsuranceStore((s) => s.getTotalAnnualPremium)
   const getPersonRole = useInsuranceStore((s) => s.getPersonRole)
   const policies = useInsuranceStore((s) => s.policies)
@@ -114,6 +115,7 @@ export default function Home() {
   const persons = getInsuredPersons()
   const expiring = getExpiringPolicies(30)
   const totalPremium = getTotalAnnualPremium()
+  const elderlyExpiringMedical = getElderlyExpiringMedical(90)
 
   const gapsList = persons
     .map((name) => ({ name, role: getPersonRole(name), gaps: getPersonGaps(name) }))
@@ -122,20 +124,6 @@ export default function Home() {
   const overlapsList = persons
     .map((name) => ({ name, overlaps: getPersonOverlaps(name) }))
     .filter((item) => item.overlaps.length > 0)
-
-  const elderlyExpiringMedical = persons
-    .filter((name) => getPersonRole(name) === '老人')
-    .flatMap((name) =>
-      useInsuranceStore.getState().getPersonPolicies(name)
-        .filter((p) => {
-          if (p.insuranceType !== '医疗险') return false
-          const status = useInsuranceStore.getState().getPolicyStatus(p)
-          if (status === '已失效') return false
-          const days = differenceInDays(parseISO(p.expiryDate), new Date())
-          return days >= 0 && days <= 90
-        })
-        .map((p) => ({ policy: p, days: differenceInDays(parseISO(p.expiryDate), new Date()) }))
-    )
 
   const hasAlerts = expiring.length > 0 || gapsList.length > 0 || overlapsList.length > 0 || elderlyExpiringMedical.length > 0
 
