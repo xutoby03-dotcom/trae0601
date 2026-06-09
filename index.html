@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绿植管家 - 家庭园艺病虫诊断</title>
+<style>
+:root {
+  --green-50: #f0fdf4; --green-100: #dcfce7; --green-200: #bbf7d0;
+  --green-300: #86efac; --green-400: #4ade80; --green-500: #22c55e;
+  --green-600: #16a34a; --green-700: #15803d; --green-800: #166534;
+  --amber-50: #fffbeb; --amber-100: #fef3c7; --amber-400: #fbbf24; --amber-500: #f59e0b; --amber-600: #d97706;
+  --red-50: #fef2f2; --red-100: #fee2e2; --red-400: #f87171; --red-500: #ef4444; --red-600: #dc2626;
+  --blue-50: #eff6ff; --blue-100: #dbeafe; --blue-400: #60a5fa; --blue-500: #3b82f6;
+  --purple-50: #faf5ff; --purple-100: #f3e8ff; --purple-400: #c084fc; --purple-500: #a855f7;
+  --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb; --gray-300: #d1d5db;
+  --gray-400: #9ca3af; --gray-500: #6b7280; --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937; --gray-900: #111827;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05); --shadow: 0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06); --shadow-lg: 0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+  --radius: 12px; --radius-sm: 8px; --radius-xs: 6px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--gray-800); min-height: 100vh; }
+
+.app-header { background: linear-gradient(135deg, var(--green-600), var(--green-700)); color: #fff; padding: 16px 20px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-md); }
+.app-header h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.app-header h1 span { font-size: 24px; }
+
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--gray-200); display: flex; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,.05); }
+.bottom-nav button { flex:1; border:none; background:none; padding: 8px 0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--gray-400); font-size:11px; transition: color .2s; }
+.bottom-nav button.active { color: var(--green-600); }
+.bottom-nav button svg { width:24px; height:24px; }
+
+.page { display:none; padding: 16px 16px 80px; max-width: 600px; margin: 0 auto; }
+.page.active { display:block; }
+
+.card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:12px; transition: transform .15s; }
+.card:active { transform: scale(.98); }
+
+.section-title { font-size:15px; font-weight:700; color:var(--gray-700); margin: 16px 0 10px; display:flex; align-items:center; gap:6px; }
+.section-title .badge { font-size:11px; background:var(--gray-200); color:var(--gray-600); border-radius:10px; padding:1px 8px; font-weight:500; }
+
+.group-pest { border-left: 3px solid var(--red-400); }
+.group-drought { border-left: 3px solid var(--amber-400); }
+.group-fertilizer { border-left: 3px solid var(--purple-400); }
+.group-recovered { border-left: 3px solid var(--green-400); }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display:block; font-size:13px; font-weight:600; color:var(--gray-600); margin-bottom:4px; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:10px 12px; border:1.5px solid var(--gray-200); border-radius:var(--radius-xs); font-size:14px; background:#fff; transition:border-color .2s; outline:none; font-family:inherit; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--green-400); }
+.form-group textarea { resize:vertical; min-height:60px; }
+
+.photo-upload { border:2px dashed var(--gray-300); border-radius:var(--radius-sm); padding:24px; text-align:center; cursor:pointer; transition: all .2s; color:var(--gray-400); }
+.photo-upload:hover { border-color:var(--green-400); color:var(--green-600); background:var(--green-50); }
+.photo-upload.has-photo { padding:8px; }
+.photo-upload img { max-width:100%; max-height:200px; border-radius:var(--radius-xs); }
+.photo-upload svg { width:32px; height:32px; margin-bottom:4px; }
+
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 20px; border:none; border-radius:var(--radius-xs); font-size:14px; font-weight:600; cursor:pointer; transition: all .15s; font-family:inherit; }
+.btn-primary { background:var(--green-600); color:#fff; }
+.btn-primary:hover { background:var(--green-700); }
+.btn-secondary { background:var(--gray-100); color:var(--gray-700); }
+.btn-secondary:hover { background:var(--gray-200); }
+.btn-danger { background:var(--red-50); color:var(--red-600); }
+.btn-danger:hover { background:var(--red-100); }
+.btn-block { width:100%; }
+.btn-sm { padding:6px 12px; font-size:12px; }
+
+.symptom-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; }
+.symptom-chip { padding:10px 6px; border:1.5px solid var(--gray-200); border-radius:var(--radius-xs); text-align:center; font-size:12px; font-weight:500; cursor:pointer; transition:all .2s; background:#fff; }
+.symptom-chip:hover { border-color:var(--green-400); }
+.symptom-chip.selected { border-color:var(--green-500); background:var(--green-50); color:var(--green-700); }
+.symptom-chip .icon { font-size:22px; display:block; margin-bottom:2px; }
+
+.diagnosis-result { background:var(--green-50); border:1px solid var(--green-200); border-radius:var(--radius-sm); padding:14px; margin-bottom:10px; }
+.diagnosis-result .cause { font-weight:700; font-size:15px; color:var(--green-800); margin-bottom:4px; }
+.diagnosis-result .confidence { font-size:12px; color:var(--green-600); margin-bottom:6px; }
+.diagnosis-result .advice { font-size:13px; color:var(--gray-700); line-height:1.6; }
+.diagnosis-result .advice li { margin-left:16px; margin-bottom:2px; }
+
+.plant-photo { width:48px; height:48px; border-radius:var(--radius-xs); object-fit:cover; background:var(--green-100); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+.plant-card-content { flex:1; min-width:0; }
+.plant-card-top { display:flex; gap:12px; align-items:center; }
+.plant-name { font-size:15px; font-weight:700; color:var(--gray-800); }
+.plant-meta { font-size:12px; color:var(--gray-500); margin-top:2px; }
+.problem-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600; margin-top:4px; }
+.badge-pest { background:var(--red-50); color:var(--red-600); }
+.badge-drought { background:var(--amber-50); color:var(--amber-600); }
+.badge-fertilizer { background:var(--purple-50); color:var(--purple-600); }
+.badge-recovered { background:var(--green-50); color:var(--green-600); }
+
+.empty-state { text-align:center; padding:40px 20px; color:var(--gray-400); }
+.empty-state .icon { font-size:48px; margin-bottom:12px; }
+.empty-state p { font-size:14px; line-height:1.6; }
+
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:flex-end; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; border-radius:var(--radius) var(--radius) 0 0; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; padding:20px; animation: slideUp .25s; }
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-handle { width:36px; height:4px; background:var(--gray-300); border-radius:2px; margin:0 auto 16px; }
+.modal h2 { font-size:18px; font-weight:700; margin-bottom:16px; color:var(--gray-800); }
+
+.treatment-timeline { position:relative; padding-left:20px; }
+.treatment-timeline::before { content:''; position:absolute; left:6px; top:8px; bottom:8px; width:2px; background:var(--gray-200); }
+.treatment-item { position:relative; margin-bottom:14px; padding-left:14px; }
+.treatment-item::before { content:''; position:absolute; left:-16px; top:6px; width:10px; height:10px; border-radius:50%; background:var(--green-400); border:2px solid #fff; box-shadow: var(--shadow-sm); }
+.treatment-date { font-size:11px; color:var(--gray-400); }
+.treatment-med { font-size:14px; font-weight:600; color:var(--gray-800); }
+.treatment-detail { font-size:12px; color:var(--gray-500); margin-top:2px; }
+.treatment-effect { margin-top:4px; font-size:12px; }
+.effect-good { color:var(--green-600); }
+.effect-ok { color:var(--amber-600); }
+.effect-bad { color:var(--red-600); }
+
+.stat-card { text-align:center; padding:20px; }
+.stat-number { font-size:32px; font-weight:800; line-height:1; }
+.stat-label { font-size:12px; color:var(--gray-500); margin-top:4px; }
+.stat-green { color:var(--green-600); }
+.stat-red { color:var(--red-500); }
+.stat-amber { color:var(--amber-500); }
+.stat-blue { color:var(--blue-500); }
+
+.stat-bar-container { margin-bottom:12px; }
+.stat-bar-label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; }
+.stat-bar-label span:first-child { font-weight:600; color:var(--gray-700); }
+.stat-bar-label span:last-child { color:var(--gray-400); }
+.stat-bar { height:8px; background:var(--gray-100); border-radius:4px; overflow:hidden; }
+.stat-bar-fill { height:100%; border-radius:4px; transition:width .6s ease; }
+
+.back-btn { background:none; border:none; cursor:pointer; color:#fff; font-size:14px; display:flex; align-items:center; gap:4px; padding:4px 0; margin-bottom:8px; font-family:inherit; }
+
+.tabs { display:flex; gap:4px; background:var(--gray-100); border-radius:var(--radius-xs); padding:3px; margin-bottom:16px; }
+.tab { flex:1; text-align:center; padding:7px 12px; border-radius:var(--radius-xs); font-size:13px; font-weight:600; cursor:pointer; color:var(--gray-500); border:none; background:none; transition:all .2s; font-family:inherit; }
+.tab.active { background:#fff; color:var(--green-700); box-shadow:var(--shadow-sm); }
+
+.toast { position:fixed; top:80px; left:50%; transform:translateX(-50%); background:var(--gray-800); color:#fff; padding:10px 20px; border-radius:var(--radius-xs); font-size:13px; z-index:300; animation: fadeInOut 2s; pointer-events:none; }
+@keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 85%{opacity:1} 100%{opacity:0} }
+
+.efficiency-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--gray-100); }
+.efficiency-row:last-child { border-bottom:none; }
+.efficiency-med { font-weight:600; font-size:14px; flex:1; }
+.efficiency-rate { font-size:13px; font-weight:700; }
+.efficiency-count { font-size:11px; color:var(--gray-400); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1 id="headerTitle"><span>🌿</span> 绿植管家</h1>
+</header>
+
+<div id="page-home" class="page active"></div>
+<div id="page-plants" class="page"></div>
+<div id="page-stats" class="page"></div>
+
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal" id="modal-content">
+    <div class="modal-handle"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="active" onclick="navigate('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+    首页
+  </button>
+  <button onclick="navigate('plants')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    我的植物
+  </button>
+  <button onclick="navigate('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    统计
+  </button>
+</nav>
+
+<script>
+const DB_KEY = 'greenkeeper_db';
+
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || { plants: [], problems: [], treatments: [] }; }
+  catch { return { plants: [], problems: [], treatments: [] }; }
+}
+function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
+function formatDate(ts) { if (!ts) return '-'; const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+
+function showToast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2000);
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+function openModal(html) {
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+const SYMPTOMS = [
+  { id: 'leaf_tip_dry', name: '叶尖干枯', icon: '🥀' },
+  { id: 'leaf_yellow', name: '叶片发黄', icon: '💛' },
+  { id: 'black_spots', name: '黑斑', icon: '⚫' },
+  { id: 'leaf_curl', name: '卷叶', icon: '🌀' },
+  { id: 'soil_bugs', name: '土里有虫', icon: '🐛' },
+  { id: 'white_powder', name: '白粉病', icon: '🤍' },
+  { id: 'sticky_leaves', name: '叶片粘腻', icon: '🍯' },
+  { id: 'root_rot', name: '烂根', icon: '💀' },
+  { id: 'leaf_drop', name: '大量落叶', icon: '🍂' },
+  { id: 'slow_growth', name: '生长停滞', icon: '🛑' },
+  { id: 'webbing', name: '蛛网丝', icon: '🕸️' },
+  { id: 'brown_edges', name: '叶缘焦枯', icon: '🔥' },
+];
+
+const DIAGNOSIS_RULES = [
+  {
+    symptoms: ['soil_bugs'],
+    category: 'pest',
+    cause: '小黑飞（真菌蚊蚋）',
+    confidence: 85,
+    advice: ['减少浇水频率，保持表土干燥', '在土表铺一层细沙或珍珠岩阻断产卵', '使用黄色粘虫板诱杀成虫', '严重时可使用吡虫啉灌根'],
+  },
+  {
+    symptoms: ['white_powder'],
+    category: 'pest',
+    cause: '白粉病（真菌感染）',
+    confidence: 90,
+    advice: ['加强通风，避免叶片长时间潮湿', '剪除严重感染的叶片并销毁', '喷洒小苏打水（1升水+1茶匙小苏打+几滴洗洁精）', '严重时使用三唑酮或腈菌唑'],
+  },
+  {
+    symptoms: ['sticky_leaves', 'leaf_curl'],
+    category: 'pest',
+    cause: '蚜虫/蚧壳虫侵害',
+    confidence: 80,
+    advice: ['用棉签蘸酒精擦拭虫体', '清水冲洗或用肥皂水喷洒', '隔离受害植物防止扩散', '严重时使用吡虫啉或噻虫嗪'],
+  },
+  {
+    symptoms: ['webbing'],
+    category: 'pest',
+    cause: '红蜘蛛（螨类）',
+    confidence: 85,
+    advice: ['增加空气湿度，红蜘蛛喜干燥环境', '用清水冲洗叶片正反面', '喷洒阿维菌素或螺螨酯', '隔离受害植物'],
+  },
+  {
+    symptoms: ['leaf_tip_dry', 'brown_edges'],
+    category: 'drought',
+    cause: '缺水/空气过于干燥',
+    confidence: 75,
+    advice: ['检查土壤湿度，适时浇水', '避免等到土壤完全干透再浇', '在植物周围放水盘增加湿度', '避免空调/暖气直吹'],
+  },
+  {
+    symptoms: ['leaf_yellow'],
+    category: 'drought',
+    cause: '浇水不当/营养缺乏',
+    confidence: 60,
+    advice: ['检查浇水频率是否合理', '老叶发黄可能是缺氮，可施薄肥', '新叶发黄可能是缺铁，可施螯合铁', '确保花盆有排水孔，避免积水'],
+  },
+  {
+    symptoms: ['leaf_yellow', 'root_rot'],
+    category: 'drought',
+    cause: '浇水过多导致烂根',
+    confidence: 80,
+    advice: ['立即停止浇水，检查根系', '剪除发黑发软的烂根', '换用透气性好的新土重新栽种', '浇水遵循"见干见湿"原则'],
+  },
+  {
+    symptoms: ['black_spots'],
+    category: 'pest',
+    cause: '黑斑病/真菌感染',
+    confidence: 75,
+    advice: ['摘除病叶并销毁，不要堆肥', '避免从上方浇水，改用沿盆边浇', '加强通风和光照', '喷洒多菌灵或百菌清防治'],
+  },
+  {
+    symptoms: ['leaf_curl'],
+    category: 'pest',
+    cause: '虫害或环境胁迫',
+    confidence: 55,
+    advice: ['检查叶片背面是否有虫卵或虫体', '排除温度骤变或强光直射原因', '如是虫害，用肥皂水或相应杀虫剂处理', '保持环境稳定，避免剧烈变化'],
+  },
+  {
+    symptoms: ['leaf_drop'],
+    category: 'drought',
+    cause: '环境应激/根系问题',
+    confidence: 50,
+    advice: ['排查近期是否换盆、移动或温度骤变', '检查土壤是否过干或过湿', '避免频繁移动植物位置', '给植物时间适应，减少干扰'],
+  },
+  {
+    symptoms: ['slow_growth', 'leaf_yellow'],
+    category: 'fertilizer',
+    cause: '营养不足',
+    confidence: 55,
+    advice: ['生长季每月施一次稀薄液肥', '根据植物品种选择合适肥料', '薄肥勤施，避免浓肥烧根', '适当补充微量元素'],
+  },
+  {
+    symptoms: ['brown_edges', 'leaf_yellow'],
+    category: 'fertilizer',
+    cause: '肥害/盐分积累',
+    confidence: 65,
+    advice: ['大量清水淋洗盆土，冲走多余盐分', '暂停施肥至少一个月', '考虑换土重新栽种', '以后施肥遵循"薄肥勤施"原则'],
+  },
+  {
+    symptoms: ['root_rot', 'leaf_yellow', 'slow_growth'],
+    category: 'fertilizer',
+    cause: '过度浇水+肥害综合',
+    confidence: 70,
+    advice: ['脱盆检查根系，修剪烂根', '更换全新透气土壤', '控水停肥，等待恢复', '恢复后减少施肥浓度和频率'],
+  },
+];
+
+function diagnose(symptomIds) {
+  if (!symptomIds.length) return [];
+  const results = [];
+  for (const rule of DIAGNOSIS_RULES) {
+    const matchCount = rule.symptoms.filter(s => symptomIds.includes(s)).length;
+    if (matchCount === 0) continue;
+    const score = (matchCount / rule.symptoms.length) * rule.confidence;
+    results.push({ ...rule, score: Math.round(score), matchCount });
+  }
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, 3);
+}
+
+function getCategoryLabel(cat) {
+  return { pest: '疑似虫害', drought: '缺水/养护', fertilizer: '肥害/营养', recovered: '已恢复' }[cat] || cat;
+}
+function getCategoryBadgeClass(cat) {
+  return { pest: 'badge-pest', drought: 'badge-drought', fertilizer: 'badge-fertilizer', recovered: 'badge-recovered' }[cat] || '';
+}
+function getCategoryGroupClass(cat) {
+  return { pest: 'group-pest', drought: 'group-drought', fertilizer: 'group-fertilizer', recovered: 'group-recovered' }[cat] || '';
+}
+
+const LIGHT_OPTIONS = [
+  { value: 'full_sun', label: '全日照' },
+  { value: 'partial_sun', label: '半日照' },
+  { value: 'bright_indirect', label: '明亮散射光' },
+  { value: 'low_light', label: '耐阴' },
+];
+
+function getPlantPhoto(plant) {
+  if (plant.photo) return `<img src="${plant.photo}" class="plant-photo" style="padding:0">`;
+  return `<div class="plant-photo">🌱</div>`;
+}
+
+let currentPage = 'home';
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelectorAll('.bottom-nav button')[['home','plants','stats'].indexOf(page)].classList.add('active');
+  document.getElementById('headerTitle').innerHTML = {
+    home: '<span>🌿</span> 绿植管家',
+    plants: '<span>🌻</span> 我的植物',
+    stats: '<span>📊</span> 诊断统计',
+  }[page];
+  renderPage(page);
+}
+
+function renderPage(page) {
+  const db = loadDB();
+  if (page === 'home') renderHome(db);
+  else if (page === 'plants') renderPlants(db);
+  else if (page === 'stats') renderStats(db);
+}
+
+function getProblemCategory(problem) {
+  if (problem.status === 'recovered') return 'recovered';
+  if (problem.diagnoses && problem.diagnoses.length) return problem.diagnoses[0].category;
+  return 'pest';
+}
+
+function renderHome(db) {
+  const el = document.getElementById('page-home');
+  const activeProblems = db.problems.filter(p => p.status !== 'recovered');
+  const recoveredProblems = db.problems.filter(p => p.status === 'recovered');
+
+  const groups = { pest: [], drought: [], fertilizer: [], recovered: [] };
+  for (const prob of db.problems) {
+    const cat = getProblemCategory(prob);
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(prob);
+  }
+
+  let html = '';
+
+  html += `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;">
+    <div class="card stat-card"><div class="stat-number stat-green">${db.plants.length}</div><div class="stat-label">我的植物</div></div>
+    <div class="card stat-card"><div class="stat-number stat-red">${activeProblems.length}</div><div class="stat-label">待处理问题</div></div>
+  </div>`;
+
+  const catOrder = [
+    { key: 'pest', label: '🛡️ 疑似虫害', cls: 'group-pest' },
+    { key: 'drought', label: '💧 缺水/养护', cls: 'group-drought' },
+    { key: 'fertilizer', label: '🧪 肥害/营养', cls: 'group-fertilizer' },
+    { key: 'recovered', label: '✅ 已恢复', cls: 'group-recovered' },
+  ];
+
+  for (const { key, label, cls } of catOrder) {
+    const items = groups[key] || [];
+    if (!items.length) continue;
+    html += `<div class="section-title">${label} <span class="badge">${items.length}</span></div>`;
+    for (const prob of items) {
+      const plant = db.plants.find(p => p.id === prob.plantId);
+      if (!plant) continue;
+      const diagStr = prob.diagnoses && prob.diagnoses.length
+        ? prob.diagnoses.map(d => d.cause).join('、')
+        : '待诊断';
+      html += `<div class="card ${cls}" onclick="showProblemDetail('${prob.id}')">
+        <div class="plant-card-top">
+          ${getPlantPhoto(plant)}
+          <div class="plant-card-content">
+            <div class="plant-name">${plant.name}</div>
+            <div class="plant-meta">${diagStr}</div>
+            <span class="problem-badge ${getCategoryBadgeClass(key)}">${getCategoryLabel(key)}</span>
+          </div>
+        </div>
+      </div>`;
+    }
+  }
+
+  if (!db.problems.length) {
+    html += `<div class="empty-state"><div class="icon">🌿</div><p>暂无诊断记录<br>添加植物后发现问题时可开始诊断</p></div>`;
+  }
+
+  html += `<button class="btn btn-primary btn-block" style="margin-top:16px" onclick="openAddPlantModal()">+ 添加植物</button>`;
+
+  el.innerHTML = html;
+}
+
+function renderPlants(db) {
+  const el = document.getElementById('page-plants');
+  let html = `<button class="btn btn-primary btn-block" style="margin-bottom:16px" onclick="openAddPlantModal()">+ 添加新植物</button>`;
+
+  if (!db.plants.length) {
+    html += `<div class="empty-state"><div class="icon">🌱</div><p>还没有添加植物<br>点击上方按钮开始记录</p></div>`;
+  }
+
+  for (const plant of db.plants) {
+    const problemCount = db.problems.filter(p => p.plantId === plant.id && p.status !== 'recovered').length;
+    html += `<div class="card" onclick="showPlantDetail('${plant.id}')">
+      <div class="plant-card-top">
+        ${getPlantPhoto(plant)}
+        <div class="plant-card-content">
+          <div class="plant-name">${plant.name} ${problemCount ? `<span style="color:var(--red-500);font-size:12px">⚠ ${problemCount}个问题</span>` : '<span style="color:var(--green-500);font-size:12px">✓ 健康</span>'}</div>
+          <div class="plant-meta">${plant.variety || ''} · ${plant.location || ''}</div>
+          <div class="plant-meta">💧 ${plant.wateringFreq || '未设置'} · ☀️ ${LIGHT_OPTIONS.find(l=>l.value===plant.light)?.label || '未设置'}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function openAddPlantModal(editPlant) {
+  const plant = editPlant || { name:'', variety:'', location:'', wateringFreq:'', light:'' };
+  const title = editPlant ? '编辑植物' : '添加新植物';
+  openModal(`
+    <h2>${title}</h2>
+    <div class="form-group"><label>植物名称 *</label><input id="inp-name" placeholder="如：阳台绿萝" value="${plant.name}"></div>
+    <div class="form-group"><label>品种</label><input id="inp-variety" placeholder="如：绿萝、龟背竹、多肉" value="${plant.variety || ''}"></div>
+    <div class="form-group"><label>摆放位置</label><input id="inp-location" placeholder="如：南阳台、客厅、卧室" value="${plant.location || ''}"></div>
+    <div class="form-group"><label>浇水频率</label><select id="inp-watering">
+      <option value="">请选择</option>
+      <option value="每天" ${plant.wateringFreq==='每天'?'selected':''}>每天</option>
+      <option value="每2-3天" ${plant.wateringFreq==='每2-3天'?'selected':''}>每2-3天</option>
+      <option value="每周" ${plant.wateringFreq==='每周'?'selected':''}>每周</option>
+      <option value="每两周" ${plant.wateringFreq==='每两周'?'selected':''}>每两周</option>
+      <option value="每月" ${plant.wateringFreq==='每月'?'selected':''}>每月</option>
+      <option value="见干见湿" ${plant.wateringFreq==='见干见湿'?'selected':''}>见干见湿</option>
+    </select></div>
+    <div class="form-group"><label>光照条件</label><select id="inp-light">
+      <option value="">请选择</option>
+      ${LIGHT_OPTIONS.map(o => `<option value="${o.value}" ${plant.light===o.value?'selected':''}>${o.label}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>最近照片</label>
+      <div class="photo-upload" id="plant-photo-upload" onclick="document.getElementById('plant-photo-input').click()">
+        ${plant.photo ? `<img src="${plant.photo}">` : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16v-8m-4 4h8"/><circle cx="12" cy="12" r="10"/></svg><div>点击上传照片</div>'}
+      </div>
+      <input type="file" id="plant-photo-input" accept="image/*" style="display:none" onchange="handlePlantPhoto(this)">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="savePlant('${plant.id || ''}')">${editPlant ? '保存修改' : '添加植物'}</button>
+    ${editPlant ? `<button class="btn btn-danger btn-block" style="margin-top:8px" onclick="deletePlant('${plant.id}')">删除植物</button>` : ''}
+  `);
+  window._tempPlantPhoto = plant.photo || null;
+}
+
+function handlePlantPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._tempPlantPhoto = e.target.result;
+    const upload = document.getElementById('plant-photo-upload');
+    upload.classList.add('has-photo');
+    upload.innerHTML = `<img src="${e.target.result}">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function savePlant(editId) {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { showToast('请输入植物名称'); return; }
+  const db = loadDB();
+  const data = {
+    name,
+    variety: document.getElementById('inp-variety').value.trim(),
+    location: document.getElementById('inp-location').value.trim(),
+    wateringFreq: document.getElementById('inp-watering').value,
+    light: document.getElementById('inp-light').value,
+    photo: window._tempPlantPhoto || null,
+  };
+  if (editId) {
+    const idx = db.plants.findIndex(p => p.id === editId);
+    if (idx >= 0) db.plants[idx] = { ...db.plants[idx], ...data };
+  } else {
+    db.plants.push({ id: genId(), ...data, createdAt: Date.now() });
+  }
+  saveDB(db); closeModal(); showToast(editId ? '已保存修改' : '植物已添加'); renderPage(currentPage);
+}
+
+function deletePlant(id) {
+  if (!confirm('确定删除这盆植物及其所有记录？')) return;
+  const db = loadDB();
+  const problemIds = db.problems.filter(p => p.plantId === id).map(p => p.id);
+  db.problems = db.problems.filter(p => p.plantId !== id);
+  db.treatments = db.treatments.filter(t => !problemIds.includes(t.problemId));
+  db.plants = db.plants.filter(p => p.id !== id);
+  saveDB(db); closeModal(); showToast('已删除'); renderPage(currentPage);
+}
+
+function showPlantDetail(plantId) {
+  const db = loadDB();
+  const plant = db.plants.find(p => p.id === plantId); if (!plant) return;
+  const problems = db.problems.filter(p => p.plantId === plantId);
+  let html = `
+    <div style="text-align:center;margin-bottom:16px">
+      ${plant.photo ? `<img src="${plant.photo}" style="max-width:200px;max-height:200px;border-radius:var(--radius)">` : '<div style="font-size:64px">🌱</div>'}
+    </div>
+    <h2 style="margin-bottom:4px">${plant.name}</h2>
+    <div style="color:var(--gray-500);font-size:13px;margin-bottom:16px">
+      ${[plant.variety, plant.location, plant.wateringFreq ? '💧 '+plant.wateringFreq : '', plant.light ? '☀️ '+(LIGHT_OPTIONS.find(l=>l.value===plant.light)?.label||'') : ''].filter(Boolean).join(' · ')}
+    </div>
+    <button class="btn btn-secondary btn-block" style="margin-bottom:8px" onclick="openAddPlantModal(db().plants.find(p=>p.id==='${plantId}'))">编辑植物</button>
+    <button class="btn btn-primary btn-block" style="margin-bottom:16px" onclick="openDiagnoseModal('${plantId}')">🔍 新建诊断</button>
+  `;
+  if (problems.length) {
+    html += `<div class="section-title">诊断记录</div>`;
+    for (const prob of [...problems].sort((a,b) => b.createdAt - a.createdAt)) {
+      const cat = getProblemCategory(prob);
+      const diagStr = prob.diagnoses && prob.diagnoses.length ? prob.diagnoses[0].cause : '待诊断';
+      const txCount = db.treatments.filter(t => t.problemId === prob.id).length;
+      html += `<div class="card ${getCategoryGroupClass(cat)}" onclick="showProblemDetail('${prob.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-weight:600;font-size:14px">${diagStr}</div>
+            <div style="font-size:12px;color:var(--gray-400);margin-top:2px">${formatDate(prob.createdAt)} · ${txCount}次处理</div>
+          </div>
+          <span class="problem-badge ${getCategoryBadgeClass(cat)}">${getCategoryLabel(cat)}</span>
+        </div>
+      </div>`;
+    }
+  }
+  openModal(html);
+  window.db = loadDB;
+}
+
+function openDiagnoseModal(plantId) {
+  window._selectedSymptoms = [];
+  window._diagPhoto = null;
+  openModal(`
+    <h2>🔍 症状诊断</h2>
+    <div class="form-group"><label>选择症状（可多选）</label>
+      <div class="symptom-grid">
+        ${SYMPTOMS.map(s => `<div class="symptom-chip" data-sid="${s.id}" onclick="toggleSymptom('${s.id}',this)"><span class="icon">${s.icon}</span>${s.name}</div>`).join('')}
+      </div>
+    </div>
+    <div class="form-group"><label>问题照片</label>
+      <div class="photo-upload" id="diag-photo-upload" onclick="document.getElementById('diag-photo-input').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16v-8m-4 4h8"/><circle cx="12" cy="12" r="10"/></svg><div>点击上传问题照片</div>
+      </div>
+      <input type="file" id="diag-photo-input" accept="image/*" style="display:none" onchange="handleDiagPhoto(this)">
+    </div>
+    <div class="form-group"><label>症状出现时间</label><input type="date" id="inp-appeared" value="${new Date().toISOString().split('T')[0]}"></div>
+    <button class="btn btn-primary btn-block" onclick="runDiagnosis('${plantId}')">开始诊断</button>
+  `);
+}
+
+function toggleSymptom(id, el) {
+  const idx = window._selectedSymptoms.indexOf(id);
+  if (idx >= 0) { window._selectedSymptoms.splice(idx, 1); el.classList.remove('selected'); }
+  else { window._selectedSymptoms.push(id); el.classList.add('selected'); }
+}
+
+function handleDiagPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._diagPhoto = e.target.result;
+    const upload = document.getElementById('diag-photo-upload');
+    upload.classList.add('has-photo');
+    upload.innerHTML = `<img src="${e.target.result}">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function runDiagnosis(plantId) {
+  if (!window._selectedSymptoms.length) { showToast('请至少选择一个症状'); return; }
+  const results = diagnose(window._selectedSymptoms);
+  const db = loadDB();
+  const problem = {
+    id: genId(),
+    plantId,
+    symptoms: window._selectedSymptoms,
+    photo: window._diagPhoto || null,
+    appearedAt: document.getElementById('inp-appeared').value ? new Date(document.getElementById('inp-appeared').value).getTime() : Date.now(),
+    diagnoses: results,
+    status: results.length ? results[0].category : 'pest',
+    createdAt: Date.now(),
+  };
+  db.problems.push(problem);
+  saveDB(db);
+
+  let html = `<h2>📋 诊断结果</h2>`;
+  if (results.length) {
+    for (const r of results) {
+      html += `<div class="diagnosis-result">
+        <div class="cause">${r.cause}</div>
+        <div class="confidence">匹配度 ${r.score}% · ${getCategoryLabel(r.category)}</div>
+        <div class="advice"><ul>${r.advice.map(a => `<li>${a}</li>`).join('')}</ul></div>
+      </div>`;
+    }
+  } else {
+    html += `<div class="diagnosis-result"><div class="cause">未能明确诊断</div><div class="advice"><ul><li>建议持续观察症状变化</li><li>可补充更多症状后重新诊断</li><li>如持续恶化建议咨询专业园艺师</li></ul></div></div>`;
+  }
+  html += `
+    <button class="btn btn-secondary btn-block" style="margin-top:12px" onclick="showProblemDetail('${problem.id}')">查看问题详情</button>
+    <button class="btn btn-primary btn-block" style="margin-top:8px" onclick="openAddTreatmentModal('${problem.id}')">记录处理措施</button>
+  `;
+  document.getElementById('modal-body').innerHTML = `<div class="modal-handle"></div>` + html;
+}
+
+function showProblemDetail(problemId) {
+  const db = loadDB();
+  const prob = db.problems.find(p => p.id === problemId); if (!prob) return;
+  const plant = db.plants.find(p => p.id === prob.plantId);
+  const treatments = db.treatments.filter(t => t.problemId === problemId).sort((a,b) => b.appliedAt - a.appliedAt);
+  const cat = getProblemCategory(prob);
+
+  let html = `
+    <h2>问题详情</h2>
+    <div style="margin-bottom:12px">
+      <div style="font-size:13px;color:var(--gray-500)">${plant ? plant.name : '未知植物'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+        ${prob.symptoms.map(sid => { const s = SYMPTOMS.find(x=>x.id===sid); return s ? `<span style="font-size:12px;background:var(--gray-100);padding:2px 8px;border-radius:10px">${s.icon} ${s.name}</span>` : ''; }).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--gray-400);margin-top:6px">出现时间: ${formatDate(prob.appearedAt)}</div>
+    </div>
+    ${prob.photo ? `<img src="${prob.photo}" style="max-width:100%;border-radius:var(--radius-sm);margin-bottom:12px">` : ''}
+  `;
+
+  if (prob.diagnoses && prob.diagnoses.length) {
+    html += `<div class="section-title">诊断结果</div>`;
+    for (const d of prob.diagnoses) {
+      html += `<div class="diagnosis-result">
+        <div class="cause">${d.cause}</div>
+        <div class="confidence">匹配度 ${d.score}%</div>
+        <div class="advice"><ul>${d.advice.map(a => `<li>${a}</li>`).join('')}</ul></div>
+      </div>`;
+    }
+  }
+
+  html += `<div class="section-title">处理记录 <span class="badge">${treatments.length}</span></div>`;
+  if (treatments.length) {
+    html += `<div class="treatment-timeline">`;
+    for (const tx of treatments) {
+      const effectClass = tx.effectiveness >= 4 ? 'effect-good' : tx.effectiveness >= 2 ? 'effect-ok' : 'effect-bad';
+      const effectLabel = tx.effectiveness >= 4 ? '效果显著' : tx.effectiveness >= 2 ? '有一定效果' : '效果不明显';
+      html += `<div class="treatment-item">
+        <div class="treatment-date">${formatDate(tx.appliedAt)}</div>
+        <div class="treatment-med">${tx.medication}</div>
+        <div class="treatment-detail">稀释比例: ${tx.dilutionRatio || '未记录'}</div>
+        ${tx.effectAfterDays ? `<div class="treatment-detail">${tx.effectAfterDays}天后观察</div>` : ''}
+        ${tx.effectiveness ? `<div class="treatment-effect ${effectClass}">${effectLabel} (${tx.effectiveness}/5)</div>` : ''}
+        ${tx.effectDescription ? `<div style="font-size:12px;color:var(--gray-500);margin-top:2px">${tx.effectDescription}</div>` : ''}
+      </div>`;
+    }
+    html += `</div>`;
+  } else {
+    html += `<div style="color:var(--gray-400);font-size:13px;padding:10px 0">暂无处理记录</div>`;
+  }
+
+  html += `
+    <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="openAddTreatmentModal('${problemId}')">+ 记录处理</button>
+    ${prob.status !== 'recovered' ? `<button class="btn btn-secondary btn-block" style="margin-top:8px" onclick="markRecovered('${problemId}')">标记已恢复</button>` : ''}
+    <button class="btn btn-danger btn-block" style="margin-top:8px" onclick="deleteProblem('${problemId}')">删除此问题</button>
+  `;
+  openModal(html);
+}
+
+function openAddTreatmentModal(problemId) {
+  openModal(`
+    <h2>📝 记录处理措施</h2>
+    <div class="form-group"><label>用药/措施 *</label><input id="inp-medication" placeholder="如：多菌灵、换土、隔离"></div>
+    <div class="form-group"><label>稀释比例</label><input id="inp-ratio" placeholder="如：1:500、原液直接使用"></div>
+    <div class="form-group"><label>处理日期</label><input type="date" id="inp-applied" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="form-group"><label>几天后观察效果</label><input type="number" id="inp-effect-days" placeholder="如：7" min="0"></div>
+    <div class="form-group"><label>效果评分</label>
+      <select id="inp-effectiveness">
+        <option value="0">暂不评价</option>
+        <option value="5">5 - 效果显著，问题基本解决</option>
+        <option value="4">4 - 效果很好，明显改善</option>
+        <option value="3">3 - 有一定效果</option>
+        <option value="2">2 - 效果不明显</option>
+        <option value="1">1 - 无效果或恶化</option>
+      </select>
+    </div>
+    <div class="form-group"><label>效果描述</label><textarea id="inp-effect-desc" placeholder="描述处理后的变化"></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="saveTreatment('${problemId}')">保存记录</button>
+  `);
+}
+
+function saveTreatment(problemId) {
+  const med = document.getElementById('inp-medication').value.trim();
+  if (!med) { showToast('请输入用药或措施'); return; }
+  const db = loadDB();
+  db.treatments.push({
+    id: genId(),
+    problemId,
+    medication: med,
+    dilutionRatio: document.getElementById('inp-ratio').value.trim(),
+    appliedAt: document.getElementById('inp-applied').value ? new Date(document.getElementById('inp-applied').value).getTime() : Date.now(),
+    effectAfterDays: parseInt(document.getElementById('inp-effect-days').value) || 0,
+    effectiveness: parseInt(document.getElementById('inp-effectiveness').value) || 0,
+    effectDescription: document.getElementById('inp-effect-desc').value.trim(),
+    createdAt: Date.now(),
+  });
+  saveDB(db); closeModal(); showToast('处理记录已保存'); renderPage(currentPage);
+}
+
+function markRecovered(problemId) {
+  const db = loadDB();
+  const prob = db.problems.find(p => p.id === problemId);
+  if (prob) { prob.status = 'recovered'; saveDB(db); }
+  closeModal(); showToast('已标记为恢复'); renderPage(currentPage);
+}
+
+function deleteProblem(problemId) {
+  if (!confirm('确定删除此问题及所有处理记录？')) return;
+  const db = loadDB();
+  db.treatments = db.treatments.filter(t => t.problemId !== problemId);
+  db.problems = db.problems.filter(p => p.id !== problemId);
+  saveDB(db); closeModal(); showToast('已删除'); renderPage(currentPage);
+}
+
+function renderStats(db) {
+  const el = document.getElementById('page-stats');
+
+  const totalPlants = db.plants.length;
+  const totalProblems = db.problems.length;
+  const totalTreatments = db.treatments.length;
+  const recoveredCount = db.problems.filter(p => p.status === 'recovered').length;
+  const activeCount = totalProblems - recoveredCount;
+  const recurrentCount = countRecurrence(db);
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
+      <div class="card stat-card"><div class="stat-number stat-green">${totalPlants}</div><div class="stat-label">植物总数</div></div>
+      <div class="card stat-card"><div class="stat-number stat-red">${activeCount}</div><div class="stat-label">待处理问题</div></div>
+      <div class="card stat-card"><div class="stat-number stat-blue">${totalTreatments}</div><div class="stat-label">处理次数</div></div>
+      <div class="card stat-card"><div class="stat-number stat-amber">${recurrentCount}</div><div class="stat-label">复发次数</div></div>
+    </div>
+  `;
+
+  if (totalPlants === 0) {
+    html += `<div class="empty-state"><div class="icon">📊</div><p>添加植物并记录问题后<br>这里将展示统计数据</p></div>`;
+    el.innerHTML = html; return;
+  }
+
+  html += `<div class="section-title">🌿 问题最多的植物</div>`;
+  const plantProblemCounts = db.plants.map(p => ({
+    name: p.name,
+    count: db.problems.filter(prob => prob.plantId === p.id).length,
+    active: db.problems.filter(prob => prob.plantId === p.id && prob.status !== 'recovered').length,
+  })).filter(p => p.count > 0).sort((a,b) => b.count - a.count);
+
+  if (plantProblemCounts.length) {
+    const maxCount = Math.max(...plantProblemCounts.map(p => p.count), 1);
+    for (const pp of plantProblemCounts.slice(0, 5)) {
+      const pct = (pp.count / maxCount * 100);
+      html += `<div class="stat-bar-container">
+        <div class="stat-bar-label"><span>${pp.name}</span><span>${pp.count}次问题 (活跃${pp.active})</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${pp.active > 0 ? 'var(--red-400)' : 'var(--green-400)'}"></div></div>
+      </div>`;
+    }
+  } else {
+    html += `<div style="color:var(--gray-400);font-size:13px;padding:8px 0">暂无问题记录</div>`;
+  }
+
+  html += `<div class="section-title">💊 处理效果排名</div>`;
+  const medStats = {};
+  for (const tx of db.treatments) {
+    if (!medStats[tx.medication]) medStats[tx.medication] = { total: 0, scoreSum: 0, count: 0 };
+    medStats[tx.medication].total++;
+    if (tx.effectiveness > 0) { medStats[tx.medication].scoreSum += tx.effectiveness; medStats[tx.medication].count++; }
+  }
+  const medList = Object.entries(medStats).map(([med, s]) => ({
+    med, total: s.total, avgScore: s.count ? (s.scoreSum / s.count).toFixed(1) : '-',
+    rate: s.count >= 2 && s.scoreSum / s.count >= 3.5 ? 'good' : s.count >= 2 && s.scoreSum / s.count >= 2 ? 'ok' : s.count >= 2 ? 'bad' : 'none',
+  })).sort((a,b) => b.total - a.total);
+
+  if (medList.length) {
+    for (const m of medList) {
+      const rateColor = m.rate === 'good' ? 'var(--green-600)' : m.rate === 'ok' ? 'var(--amber-600)' : m.rate === 'bad' ? 'var(--red-600)' : 'var(--gray-400)';
+      const rateLabel = m.rate === 'good' ? '推荐' : m.rate === 'ok' ? '一般' : m.rate === 'bad' ? '不佳' : '数据不足';
+      html += `<div class="efficiency-row">
+        <div class="efficiency-med">${m.med}</div>
+        <div class="efficiency-count">使用${m.total}次 · 均分${m.avgScore}</div>
+        <div class="efficiency-rate" style="color:${rateColor}">${rateLabel}</div>
+      </div>`;
+    }
+  } else {
+    html += `<div style="color:var(--gray-400);font-size:13px;padding:8px 0">暂无处理记录</div>`;
+  }
+
+  html += `<div class="section-title">📋 症状分布</div>`;
+  const symptomCounts = {};
+  for (const prob of db.problems) {
+    for (const sid of prob.symptoms) {
+      const s = SYMPTOMS.find(x => x.id === sid);
+      if (s) symptomCounts[s.name] = (symptomCounts[s.name] || 0) + 1;
+    }
+  }
+  const symptomList = Object.entries(symptomCounts).sort((a,b) => b[1] - a[1]);
+  if (symptomList.length) {
+    const maxS = Math.max(...symptomList.map(x => x[1]), 1);
+    for (const [name, count] of symptomList) {
+      html += `<div class="stat-bar-container">
+        <div class="stat-bar-label"><span>${name}</span><span>${count}次</span></div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${count/maxS*100}%;background:var(--amber-400)"></div></div>
+      </div>`;
+    }
+  } else {
+    html += `<div style="color:var(--gray-400);font-size:13px;padding:8px 0">暂无数据</div>`;
+  }
+
+  html += `<div class="section-title">📈 恢复率</div>`;
+  const recoveryRate = totalProblems ? Math.round(recoveredCount / totalProblems * 100) : 0;
+  html += `<div class="card">
+    <div style="text-align:center;margin-bottom:12px">
+      <div class="stat-number stat-green">${recoveryRate}%</div>
+      <div class="stat-label">问题恢复率 (${recoveredCount}/${totalProblems})</div>
+    </div>
+    <div class="stat-bar" style="height:12px"><div class="stat-bar-fill" style="width:${recoveryRate}%;background:var(--green-400)"></div></div>
+  </div>`;
+
+  html += `<button class="btn btn-danger btn-block" style="margin-top:20px" onclick="clearAllData()">清除所有数据</button>`;
+
+  el.innerHTML = html;
+}
+
+function countRecurrence(db) {
+  let count = 0;
+  const plantProblems = {};
+  for (const prob of db.problems) {
+    if (!plantProblems[prob.plantId]) plantProblems[prob.plantId] = [];
+    plantProblems[prob.plantId].push(prob);
+  }
+  for (const [plantId, probs] of Object.entries(plantProblems)) {
+    if (probs.length <= 1) continue;
+    const symptomSets = probs.map(p => p.symptoms.sort().join(','));
+    for (let i = 1; i < symptomSets.length; i++) {
+      if (symptomSets[i] === symptomSets[i-1] || overlapRatio(symptomSets[i], symptomSets[i-1]) > 0.5) count++;
+    }
+  }
+  return count;
+}
+
+function overlapRatio(a, b) {
+  const setA = new Set(a.split(','));
+  const setB = new Set(b.split(','));
+  let overlap = 0;
+  for (const s of setA) { if (setB.has(s)) overlap++; }
+  return overlap / Math.max(setA.size, setB.size);
+}
+
+function clearAllData() {
+  if (!confirm('确定清除所有数据？此操作不可恢复！')) return;
+  localStorage.removeItem(DB_KEY);
+  showToast('数据已清除'); renderPage(currentPage);
+}
+
+renderPage('home');
+</script>
+</body>
+</html>
