@@ -10,7 +10,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useStore, getACStatus, getDaysSince, CHECK_TYPE_LABELS, ALL_CHECK_TYPES } from '@/store/useStore'
+import { useStore, getACStatus, getDaysSince, CHECK_TYPE_LABELS, SEASON_REMINDER_TYPES } from '@/store/useStore'
 import ACCard from '@/components/ACCard'
 import BottomNav from '@/components/BottomNav'
 
@@ -55,7 +55,7 @@ export default function Home() {
   }))
 
   const uncheckedReminders = acUnits.flatMap((ac) =>
-    ALL_CHECK_TYPES.filter((ct) => {
+    SEASON_REMINDER_TYPES.filter((ct) => {
       const existing = seasonChecks.find((s) => s.acId === ac.id && s.checkType === ct)
       return !existing || !existing.checked
     }).map((ct) => ({ acId: ac.id, checkType: ct, room: ac.room }))

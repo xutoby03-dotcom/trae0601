@@ -169,6 +169,12 @@ export const ALL_CHECK_TYPES: SeasonCheckItem['checkType'][] = [
   'filter_status',
 ]
 
+export const SEASON_REMINDER_TYPES: SeasonCheckItem['checkType'][] = [
+  'remote_battery',
+  'drain_pipe',
+  'outdoor_obstacle',
+]
+
 export const FILTER_TYPE_LABELS: Record<AirConditioner['filterType'], string> = {
   normal: '普通过滤网',
   hepa: 'HEPA滤网',
