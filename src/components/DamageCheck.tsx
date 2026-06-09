@@ -32,6 +32,7 @@ export default function DamageCheck({ selected, onChange }: Props) {
         return (
           <button
             key={type}
+            type="button"
             onClick={() => toggle(type)}
             className={cn(
               'flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all duration-200',

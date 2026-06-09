@@ -36,7 +36,7 @@ export default function Return() {
     e.preventDefault()
     if (!borrowRecord) return
 
-    store.returnUmbrella(borrowRecord.id, condition, damageTypes, damageNote)
+    store.returnUmbrella(borrowRecord.id, condition, damageTypes, damageNote, returnLocation, photoPreview)
     setSubmitted(true)
   }
 

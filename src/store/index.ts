@@ -33,7 +33,7 @@ interface UmbrellaStore {
   borrowRecords: BorrowRecord[]
   addUmbrella: (umbrella: Omit<Umbrella, 'id' | 'createdAt'>) => string
   borrowUmbrella: (umbrellaId: string, borrowerName: string, expectedReturnTime: string, returnLocation: string) => void
-  returnUmbrella: (recordId: string, condition: ReturnCondition, damageTypes: DamageType[], damageNote: string) => void
+  returnUmbrella: (recordId: string, condition: ReturnCondition, damageTypes: DamageType[], damageNote: string, returnLocation: string, returnPhotoUrl: string | null) => void
   repairUmbrella: (umbrellaId: string) => void
   reportLost: (umbrellaId: string) => void
   getUmbrellasByStatus: (status: UmbrellaStatus) => Umbrella[]
@@ -86,7 +86,7 @@ export const useUmbrellaStore = create<UmbrellaStore>()(
         }))
       },
 
-      returnUmbrella: (recordId, condition, damageTypes, damageNote) => {
+      returnUmbrella: (recordId, condition, damageTypes, damageNote, returnLocation, returnPhotoUrl) => {
         set((state) => {
           const record = state.borrowRecords.find((r) => r.id === recordId)
           if (!record) return state
@@ -97,16 +97,24 @@ export const useUmbrellaStore = create<UmbrellaStore>()(
 
           return {
             umbrellas: state.umbrellas.map((u) =>
-              u.id === record.umbrellaId ? { ...u, status: newStatus } : u
+              u.id === record.umbrellaId
+                ? {
+                    ...u,
+                    status: newStatus,
+                    ...(newStatus === 'available' ? { location: returnLocation } : {}),
+                  }
+                : u
             ),
             borrowRecords: state.borrowRecords.map((r) =>
               r.id === recordId
                 ? {
                     ...r,
                     actualReturnTime: new Date().toISOString(),
+                    returnLocation,
                     conditionOnReturn: condition,
                     damageTypes,
                     damageNote,
+                    returnPhotoUrl,
                     status: 'returned' as BorrowStatus,
                   }
                 : r
