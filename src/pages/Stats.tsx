@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 import { Line, Bar } from 'react-chartjs-2'
 import { useStore } from '@/store'
-import { formatTime } from '@/utils/helpers'
+import { formatTime, isToday } from '@/utils/helpers'
 import { Users, UserX, Clock, Package, Monitor } from 'lucide-react'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
@@ -21,8 +21,9 @@ export default function Stats() {
 
   const totalVisitors = dailyCounts.reduce((sum, d) => sum + d.count, 0)
 
-  const todayParcelCount = itemRecords.filter((r) => r.itemType === 'parcel').length
-  const todayEquipmentInCount = itemRecords.filter((r) => r.itemType === 'equipment' && r.direction === 'in').length
+  const todayItems = itemRecords.filter((r) => isToday(r.timestamp))
+  const todayParcelCount = todayItems.filter((r) => r.itemType === 'parcel').length
+  const todayEquipmentInCount = todayItems.filter((r) => r.itemType === 'equipment' && r.direction === 'in').length
 
   const lineData = {
     labels: dailyCounts.map((d) => {
