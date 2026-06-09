@@ -1,17 +1,23 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { GarbageCategory } from '../types'
+import type { GarbageCategory, GarbageRecord } from '../types'
 import { categoryConfig, categoryList } from '../utils/category'
+import { ArrowRight } from 'lucide-react'
 
 interface CorrectModalProps {
   isOpen: boolean
   onClose: () => void
-  onCorrect: (correctedCategory: GarbageCategory) => void
-  currentCategory: GarbageCategory
+  onCorrect: (correctedBinType: GarbageCategory) => void
+  record: GarbageRecord | undefined
 }
 
-export default function CorrectModal({ isOpen, onClose, onCorrect, currentCategory }: CorrectModalProps) {
+export default function CorrectModal({ isOpen, onClose, onCorrect, record }: CorrectModalProps) {
   const [selected, setSelected] = useState<GarbageCategory | null>(null)
+
+  if (!record) return null
+
+  const catConfig = categoryConfig[record.category]
+  const binConfig = categoryConfig[record.binType]
 
   return (
     <AnimatePresence>
@@ -32,10 +38,19 @@ export default function CorrectModal({ isOpen, onClose, onCorrect, currentCatego
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-1 bg-stone-200 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-stone-800 mb-1">纠正分类</h3>
-            <p className="text-sm text-stone-400 mb-4">
-              当前分类：{categoryConfig[currentCategory].emoji} {categoryConfig[currentCategory].label}
-            </p>
+            <h3 className="text-lg font-bold text-stone-800 mb-2">纠正桶类型</h3>
+            <div className="flex items-center gap-2 mb-4 bg-stone-50 rounded-xl p-3">
+              <span className="text-sm font-medium text-stone-600">{record.name}</span>
+              <span className="text-stone-300">|</span>
+              <span className={`text-xs font-medium ${catConfig.color}`}>
+                {catConfig.emoji}{catConfig.label}
+              </span>
+              <ArrowRight className="w-3 h-3 text-stone-300" />
+              <span className={`text-xs font-medium ${binConfig.color}`}>
+                {binConfig.emoji}{binConfig.label}桶
+              </span>
+            </div>
+            <p className="text-sm text-stone-400 mb-4">选择正确的桶类型：</p>
             <div className="grid grid-cols-4 gap-3 mb-6">
               {categoryList.map((cat) => {
                 const config = categoryConfig[cat]

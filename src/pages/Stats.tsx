@@ -22,7 +22,7 @@ export default function Stats() {
   )
 
   const weekMistakes = useMemo(
-    () => weekRecords.filter((r) => !r.isCorrect && r.correctedCategory),
+    () => weekRecords.filter((r) => !r.isCorrect),
     [weekRecords]
   )
 
@@ -44,31 +44,24 @@ export default function Stats() {
 
   const correctRate = useMemo(() => {
     if (weekRecords.length === 0) return 100
-    const correct = weekRecords.filter((r) => r.isCorrect || r.correctedCategory).length
+    const correct = weekRecords.filter((r) => r.isCorrect).length
     return Math.round((correct / weekRecords.length) * 100)
   }, [weekRecords])
 
   const memberStats = useMemo(() => {
-    const stats: Record<string, { total: number; correct: number; kitchenMissed: number }> = {}
+    const stats: Record<string, { total: number; correct: number; kitchenMissed: number; mistakes: number }> = {}
     members.forEach((m) => {
-      stats[m.id] = { total: 0, correct: 0, kitchenMissed: 0 }
+      stats[m.id] = { total: 0, correct: 0, kitchenMissed: 0, mistakes: 0 }
     })
     weekRecords.forEach((r) => {
       if (!stats[r.memberId]) {
-        stats[r.memberId] = { total: 0, correct: 0, kitchenMissed: 0 }
+        stats[r.memberId] = { total: 0, correct: 0, kitchenMissed: 0, mistakes: 0 }
       }
       stats[r.memberId].total++
       if (r.isCorrect) stats[r.memberId].correct++
-      if (r.category !== 'kitchen' && r.binType === 'kitchen') {
+      if (!r.isCorrect) stats[r.memberId].mistakes++
+      if (r.category === 'kitchen' && r.binType !== 'kitchen') {
         stats[r.memberId].kitchenMissed++
-      }
-    })
-
-    const kitchenRecords = weekRecords.filter((r) => r.category === 'kitchen' && r.disposed)
-    members.forEach((m) => {
-      const memberKitchen = kitchenRecords.filter((r) => r.memberId === m.id).length
-      if (memberKitchen === 0 && stats[m.id].total > 0) {
-        stats[m.id].kitchenMissed = Math.max(stats[m.id].kitchenMissed, 1)
       }
     })
 

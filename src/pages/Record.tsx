@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft, Check, Camera, ImagePlus, X } from 'lucide-react'
 import { useGarbageStore } from '../stores/useGarbageStore'
 import { useFamilyStore } from '../stores/useFamilyStore'
 import CategoryPicker from '../components/CategoryPicker'
 import MemberPicker from '../components/MemberPicker'
 import type { GarbageCategory } from '../types'
+import { categoryConfig, categoryList } from '../utils/category'
 import { format } from 'date-fns'
 
 const quickItems = [
@@ -26,12 +27,27 @@ export default function Record() {
   const navigate = useNavigate()
   const { addRecord } = useGarbageStore()
   const { members } = useFamilyStore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<GarbageCategory>('kitchen')
+  const [binType, setBinType] = useState<GarbageCategory>('kitchen')
   const [memberId, setMemberId] = useState(members[0]?.id || '')
   const [disposalTime, setDisposalTime] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"))
   const [notes, setNotes] = useState('')
+  const [photoUrl, setPhotoUrl] = useState('')
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setPhotoUrl(ev.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   const handleSubmit = () => {
     if (!name.trim()) return
@@ -40,11 +56,12 @@ export default function Record() {
       id: Date.now().toString(),
       name: name.trim(),
       category,
-      binType: category,
+      binType,
       memberId,
       disposalTime,
       notes,
-      isCorrect: true,
+      photoUrl,
+      isCorrect: category === binType,
       createdAt: new Date().toISOString(),
       disposed: false,
     })
@@ -55,6 +72,7 @@ export default function Record() {
   const handleQuickItem = (item: typeof quickItems[number]) => {
     setName(item.name)
     setCategory(item.category)
+    setBinType(item.category)
   }
 
   return (
@@ -72,6 +90,64 @@ export default function Record() {
             <ArrowLeft className="w-5 h-5 text-stone-600" />
           </button>
           <h1 className="text-xl font-bold text-stone-800">添加垃圾记录</h1>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-6"
+        >
+          <label className="block text-sm font-semibold text-stone-600 mb-2">拍照记录</label>
+          <div className="flex items-center gap-3">
+            {photoUrl ? (
+              <div className="relative">
+                <img
+                  src={photoUrl}
+                  alt="垃圾照片"
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-emerald-300"
+                />
+                <button
+                  onClick={() => setPhotoUrl('')}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                >
+                  <Camera className="w-5 h-5 text-stone-400" />
+                  <span className="text-xs text-stone-400">拍照</span>
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-20 h-20 rounded-2xl border-2 border-dashed border-stone-300 bg-white flex flex-col items-center justify-center gap-1 hover:border-emerald-400 hover:bg-emerald-50 transition-colors"
+                >
+                  <ImagePlus className="w-5 h-5 text-stone-400" />
+                  <span className="text-xs text-stone-400">相册</span>
+                </button>
+              </>
+            )}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+          </div>
         </motion.div>
 
         <motion.div
@@ -116,7 +192,7 @@ export default function Record() {
           transition={{ delay: 0.2 }}
           className="mb-6"
         >
-          <label className="block text-sm font-semibold text-stone-600 mb-3">分类</label>
+          <label className="block text-sm font-semibold text-stone-600 mb-3">垃圾分类</label>
           <CategoryPicker value={category} onChange={setCategory} />
         </motion.div>
 
@@ -126,6 +202,56 @@ export default function Record() {
           transition={{ delay: 0.25 }}
           className="mb-6"
         >
+          <label className="block text-sm font-semibold text-stone-600 mb-3">扔进哪个桶？</label>
+          <div className="grid grid-cols-4 gap-3">
+            {categoryList.map((cat) => {
+              const config = categoryConfig[cat]
+              const isSelected = binType === cat
+              return (
+                <motion.button
+                  key={cat}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setBinType(cat)}
+                  className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                    isSelected
+                      ? `${config.bgColor} ${config.borderColor} shadow-lg scale-105`
+                      : 'bg-white border-stone-200 hover:border-stone-300'
+                  }`}
+                >
+                  <span className="text-3xl">{config.emoji}</span>
+                  <span className={`text-xs font-semibold ${isSelected ? config.color : 'text-stone-500'}`}>
+                    {config.label}
+                  </span>
+                  {isSelected && (
+                    <motion.div
+                      layoutId="binIndicator"
+                      className={`absolute -top-1 -right-1 w-5 h-5 ${config.bgColor} ${config.borderColor} border-2 rounded-full flex items-center justify-center`}
+                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                    >
+                      <span className="text-xs">✓</span>
+                    </motion.div>
+                  )}
+                </motion.button>
+              )
+            })}
+          </div>
+          {category !== binType && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"
+            >
+              ⚠️ 分类和桶类型不一致，保存后将标记为"分错"，可在首页纠正
+            </motion.p>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
           <label className="block text-sm font-semibold text-stone-600 mb-3">谁扔的？</label>
           <MemberPicker members={members} value={memberId} onChange={setMemberId} />
         </motion.div>
@@ -133,7 +259,7 @@ export default function Record() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.35 }}
           className="mb-6"
         >
           <label className="block text-sm font-semibold text-stone-600 mb-2">投放时间</label>
@@ -148,7 +274,7 @@ export default function Record() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.4 }}
           className="mb-8"
         >
           <label className="block text-sm font-semibold text-stone-600 mb-2">注意事项</label>
@@ -164,7 +290,7 @@ export default function Record() {
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.45 }}
           whileTap={{ scale: 0.97 }}
           onClick={handleSubmit}
           disabled={!name.trim()}

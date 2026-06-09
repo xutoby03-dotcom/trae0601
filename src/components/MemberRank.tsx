@@ -4,22 +4,22 @@ import { Trophy } from 'lucide-react'
 
 interface MemberRankProps {
   members: FamilyMember[]
-  stats: Record<string, { total: number; correct: number; kitchenMissed: number }>
+  stats: Record<string, { total: number; correct: number; kitchenMissed: number; mistakes: number }>
 }
 
 export default function MemberRank({ members, stats }: MemberRankProps) {
   const sorted = [...members].sort((a, b) => {
     const sa = stats[a.id] || { total: 0, correct: 0 }
     const sb = stats[b.id] || { total: 0, correct: 0 }
-    const rateA = sa.total > 0 ? sa.correct / sa.total : 0
-    const rateB = sb.total > 0 ? sb.correct / sb.total : 0
+    const rateA = sa.total > 0 ? sa.correct / sa.total : 1
+    const rateB = sb.total > 0 ? sb.correct / sb.total : 1
     return rateB - rateA
   })
 
   return (
     <div className="space-y-3">
       {sorted.map((member, index) => {
-        const s = stats[member.id] || { total: 0, correct: 0, kitchenMissed: 0 }
+        const s = stats[member.id] || { total: 0, correct: 0, kitchenMissed: 0, mistakes: 0 }
         const rate = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 100
         return (
           <motion.div
@@ -52,7 +52,7 @@ export default function MemberRank({ members, stats }: MemberRankProps) {
               </div>
               <div className="flex gap-3 mt-1">
                 <span className="text-xs text-stone-400">投放 {s.total} 次</span>
-                <span className="text-xs text-red-400">忘扔厨余 {s.kitchenMissed} 次</span>
+                <span className="text-xs text-red-400">分错 {s.mistakes} 次</span>
               </div>
             </div>
           </motion.div>

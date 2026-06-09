@@ -15,8 +15,10 @@ export interface GarbageRecord {
   memberId: string
   disposalTime: string
   notes: string
+  photoUrl: string
   isCorrect: boolean
   correctedCategory?: GarbageCategory
+  correctedBinType?: GarbageCategory
   correctedBy?: string
   createdAt: string
   disposed: boolean

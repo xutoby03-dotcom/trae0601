@@ -39,7 +39,7 @@ export default function Home() {
   const weekMistakes = useMemo(
     () =>
       records.filter(
-        (r) => !r.isCorrect && r.correctedCategory && isCurrentWeek(r.createdAt)
+        (r) => !r.isCorrect && isCurrentWeek(r.createdAt)
       ),
     [records]
   )
@@ -59,17 +59,14 @@ export default function Home() {
     [recyclableRecords]
   )
 
-  const handleCorrect = (correctedCategory: GarbageCategory) => {
+  const handleCorrect = (correctedBinType: GarbageCategory) => {
     if (correctingId) {
-      correctRecord(correctingId, correctedCategory, '1')
+      correctRecord(correctingId, correctedBinType, '1')
       setCorrectingId(null)
     }
   }
 
-  const correctingRecord = useMemo(
-    () => records.find((r) => r.id === correctingId),
-    [records, correctingId]
-  )
+  const correctingRecord = records.find((r) => r.id === correctingId)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-stone-50 pb-24">
@@ -261,7 +258,7 @@ export default function Home() {
         isOpen={!!correctingId}
         onClose={() => setCorrectingId(null)}
         onCorrect={handleCorrect}
-        currentCategory={correctingRecord?.category || 'other'}
+        record={correctingRecord}
       />
     </div>
   )

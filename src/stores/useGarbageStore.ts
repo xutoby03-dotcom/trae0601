@@ -7,7 +7,7 @@ interface GarbageState {
   addRecord: (record: GarbageRecord) => void
   removeRecord: (id: string) => void
   markDisposed: (id: string) => void
-  correctRecord: (id: string, correctedCategory: GarbageCategory, correctedBy: string) => void
+  correctRecord: (id: string, correctedBinType: GarbageCategory, correctedBy: string) => void
 }
 
 export const useGarbageStore = create<GarbageState>()(
@@ -24,11 +24,17 @@ export const useGarbageStore = create<GarbageState>()(
             r.id === id ? { ...r, disposed: true } : r
           ),
         })),
-      correctRecord: (id, correctedCategory, correctedBy) =>
+      correctRecord: (id, correctedBinType, correctedBy) =>
         set((state) => ({
           records: state.records.map((r) =>
             r.id === id
-              ? { ...r, isCorrect: false, correctedCategory, correctedBy }
+              ? {
+                  ...r,
+                  isCorrect: false,
+                  correctedCategory: correctedBinType,
+                  correctedBinType,
+                  correctedBy,
+                }
               : r
           ),
         })),
