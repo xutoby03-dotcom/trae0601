@@ -58,7 +58,7 @@ export default function WaterQuality() {
         </button>
       </div>
 
-      {purifiers.length > 0 && (
+      {purifiers.length > 1 && (
         <div className="mb-4">
           <select
             value={selectedPurifier}
@@ -90,7 +90,9 @@ export default function WaterQuality() {
           {visibleAlerts.length > 0 ? (
             visibleAlerts.map((a) => (
               <div key={a.purifierId} className="bg-white/60 rounded-lg p-2.5">
-                <p className="text-xs font-semibold text-amber-800 mb-1">{a.purifierName}</p>
+                {purifiers.length > 1 && (
+                  <p className="text-xs font-semibold text-amber-800 mb-1">{a.purifierName}</p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {a.flowDecreasing && (
                     <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
@@ -112,9 +114,11 @@ export default function WaterQuality() {
             ))
           ) : (
             <p className="text-xs text-emerald-700">
-              {selectedPurifier === 'all'
-                ? '所有净水器出水速度和 TDS 都稳着'
-                : `${getPurifier(selectedPurifier)?.brand || ''} ${getPurifier(selectedPurifier)?.model || ''} 出水速度和 TDS 正常`}
+              {purifiers.length === 1
+                ? `${purifiers[0].brand} ${purifiers[0].model} 出水速度和 TDS 正常`
+                : selectedPurifier === 'all'
+                  ? '所有净水器出水速度和 TDS 都稳着'
+                  : `${getPurifier(selectedPurifier)?.brand || ''} ${getPurifier(selectedPurifier)?.model || ''} 出水速度和 TDS 正常`}
             </p>
           )}
         </div>
