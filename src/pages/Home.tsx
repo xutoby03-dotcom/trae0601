@@ -187,18 +187,12 @@ export default function Home() {
                 <p className="text-sm font-semibold text-red-800">存在保障缺口</p>
                 {gapsList.map((item) => {
                   const roleCfg = PERSON_ROLE_CONFIG[item.role]
-                  const priorityGap = item.role === '孩子' ? '意外险' : item.role === '老人' ? '医疗险' : null
                   return (
                     <p key={item.name} className="text-xs text-red-600 mt-1">
                       <span className={`badge ${roleCfg.bg} ${roleCfg.color} border text-xs mr-1`}>
                         {roleCfg.label}
                       </span>
-                      {item.name} 缺少：{item.gaps.map((g) => (
-                        <span key={g} className={g === priorityGap ? 'font-bold' : ''}>{g}</span>
-                      )).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, '、', el], [])}
-                      {priorityGap && item.gaps.includes(priorityGap as any) && (
-                        <span className="text-red-800 font-medium">（重点关注）</span>
-                      )}
+                      {item.name} 缺少：{item.gaps.join('、')}
                     </p>
                   )
                 })}

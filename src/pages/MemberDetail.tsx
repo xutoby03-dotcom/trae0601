@@ -114,22 +114,18 @@ export default function MemberDetail() {
     return 'inactive'
   }
 
-  function getGapSuggestion(type: InsuranceType): { text: string; urgent: boolean } {
+  function getGapSuggestion(type: InsuranceType): string {
     if (role === '孩子') {
-      if (type === '意外险') return { text: '孩子活泼好动，意外风险高，意外险保费低保障高，强烈建议补充', urgent: true }
-      if (type === '重疾险') return { text: '少儿重疾发病率逐年上升，确诊即赔可减轻家庭负担', urgent: false }
-      if (type === '医疗险') return { text: '建议补充医疗险，覆盖日常住院及门诊费用', urgent: false }
+      return '孩子活泼好动，意外风险高，意外险保费低保障高，强烈建议补充'
     }
     if (role === '老人') {
-      if (type === '医疗险') return { text: '老人就医频率高，医疗险是刚需保障，强烈建议补充', urgent: true }
-      if (type === '重疾险') return { text: '老年人重疾风险显著升高，建议补充重疾保障', urgent: false }
-      if (type === '意外险') return { text: '老年人骨折等意外风险较高，建议补充意外保障', urgent: false }
+      return '老人就医频率高，医疗险是刚需保障，强烈建议补充'
     }
     return {
-      '重疾险': { text: '重大疾病保障缺失，确诊即赔可减轻经济负担', urgent: false },
-      '医疗险': { text: '建议补充医疗险，覆盖日常住院及门诊费用', urgent: false },
-      '意外险': { text: '意外风险不可预测，保费低保障高建议补充', urgent: false },
-    }[type] || { text: '建议补充该类型保障', urgent: false }
+      '重疾险': '重大疾病保障缺失，确诊即赔可减轻经济负担',
+      '医疗险': '建议补充医疗险，覆盖日常住院及门诊费用',
+      '意外险': '意外风险不可预测，保费低保障高建议补充',
+    }[type] || '建议补充该类型保障'
   }
 
   return (
@@ -211,30 +207,24 @@ export default function MemberDetail() {
             保障缺口
           </h2>
           <div className="space-y-3">
-            {gaps.map((type) => {
-              const suggestion = getGapSuggestion(type)
-              return (
-                <div
-                  key={type}
-                  className={`card p-4 ${suggestion.urgent ? 'border-red-300 bg-red-50/70' : 'border-red-200 bg-red-50/50'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ShieldOff className={`w-5 h-5 shrink-0 ${suggestion.urgent ? 'text-red-500' : 'text-red-400'}`} />
-                    <div>
-                      <p className={`font-medium ${suggestion.urgent ? 'text-red-800' : 'text-red-700'}`}>
-                        缺少{type}
-                        {suggestion.urgent && (
-                          <span className="ml-2 badge bg-red-100 text-red-700 border border-red-300 text-xs">重点关注</span>
-                        )}
-                      </p>
-                      <p className="text-sm text-red-500/80 mt-0.5">
-                        {suggestion.text}
-                      </p>
-                    </div>
+            {gaps.map((type) => (
+              <div
+                key={type}
+                className="card p-4 border-red-200 bg-red-50/50"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldOff className="w-5 h-5 text-red-400 shrink-0" />
+                  <div>
+                    <p className="font-medium text-red-700">
+                      缺少{type}
+                    </p>
+                    <p className="text-sm text-red-500/80 mt-0.5">
+                      {getGapSuggestion(type)}
+                    </p>
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </section>
       )}

@@ -174,7 +174,10 @@ export const useInsuranceStore = create<InsuranceStore>()(
             .map((p) => p.insuranceType)
         )
         const role = get().getPersonRole(name)
-        const coreTypes: InsuranceType[] = ['重疾险', '医疗险', '意外险']
+        const coreTypes: InsuranceType[] =
+          role === '孩子' ? ['意外险']
+          : role === '老人' ? ['医疗险']
+          : ['重疾险', '医疗险', '意外险']
         return coreTypes.filter((t) => !coveredTypes.has(t))
       },
 
