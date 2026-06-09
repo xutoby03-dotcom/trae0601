@@ -266,7 +266,7 @@ export function computeSpotStatus(
 ): SpotStatusInfo {
   const spot = getSpotById(spotId)
   if (!spot) {
-    return { status: 'available', activeReservations: [], remainingCapacity: 0, isFull: true }
+    return { status: 'available', activeReservations: [], remainingCapacity: 0, isFull: true, hasExclusiveOccupant: false, exclusiveOccupantNames: [] }
   }
 
   let dateReservations = getReservationsBySpot(spotId, date)
