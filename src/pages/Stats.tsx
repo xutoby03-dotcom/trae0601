@@ -3,7 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line, Bar } from 'react-chartjs-2'
 import { useStore } from '@/store'
 import { formatTime } from '@/utils/helpers'
-import { Users, UserX, Clock } from 'lucide-react'
+import { Users, UserX, Clock, Package, Monitor } from 'lucide-react'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
 
@@ -14,11 +14,15 @@ const ORANGE = '#F97316'
 export default function Stats() {
   const getStatsData = useStore((s) => s.getStatsData)
   const getEmployee = useStore((s) => s.getEmployee)
+  const itemRecords = useStore((s) => s.itemRecords)
 
   const stats = useMemo(() => getStatsData(), [getStatsData])
   const { dailyCounts, departmentStats, noShowRate, overtimeVisitors } = stats
 
   const totalVisitors = dailyCounts.reduce((sum, d) => sum + d.count, 0)
+
+  const todayParcelCount = itemRecords.filter((r) => r.itemType === 'parcel').length
+  const todayEquipmentInCount = itemRecords.filter((r) => r.itemType === 'equipment' && r.direction === 'in').length
 
   const lineData = {
     labels: dailyCounts.map((d) => {
@@ -78,7 +82,7 @@ export default function Stats() {
         <p className="text-sm text-gray-400 mt-1">近14天数据</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
             <Users size={20} className="text-teal-600" />
@@ -106,6 +110,26 @@ export default function Stats() {
           <div>
             <p className="text-xs text-gray-400">超时停留</p>
             <p className="text-2xl font-bold text-gray-900">{overtimeVisitors.length}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <Package size={20} className="text-blue-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">今日快递</p>
+            <p className="text-2xl font-bold text-gray-900">{todayParcelCount}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+            <Monitor size={20} className="text-purple-500" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">设备携入</p>
+            <p className="text-2xl font-bold text-gray-900">{todayEquipmentInCount}</p>
           </div>
         </div>
       </div>

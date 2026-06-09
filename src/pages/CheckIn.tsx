@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useStore } from '@/store'
 import { formatTime, formatDateTime } from '@/utils/helpers'
-import type { Visitor } from '@/types'
+import { Package } from 'lucide-react'
+import type { Visitor, ItemType, ItemDirection } from '@/types'
 
 type Tab = 'checkin' | 'checkout'
 
@@ -12,8 +13,12 @@ export default function CheckIn() {
   const [badgeModal, setBadgeModal] = useState<Visitor | null>(null)
   const [toast, setToast] = useState('')
   const [badgeReturneds, setBadgeReturneds] = useState<Record<string, boolean>>({})
+  const [itemModalVisitor, setItemModalVisitor] = useState<Visitor | null>(null)
+  const [itemType, setItemType] = useState<ItemType>('parcel')
+  const [itemDirection, setItemDirection] = useState<ItemDirection>('in')
+  const [itemDesc, setItemDesc] = useState('')
 
-  const { visitors, getEmployee, getMeetingRoom, checkIn, checkOut } = useStore()
+  const { visitors, getEmployee, getMeetingRoom, checkIn, checkOut, itemRecords, addItemRecord } = useStore()
 
   const expected = visitors.filter((v) => v.status === 'expected')
   const checkedIn = visitors.filter((v) => v.status === 'checked-in')
@@ -54,6 +59,25 @@ export default function CheckIn() {
     (v) => v.badgeReturned
   ).length
   const outstanding = issuedToday - returnedToday
+
+  const handleSubmitItem = () => {
+    if (!itemModalVisitor || !itemDesc.trim()) return
+    addItemRecord({
+      visitorId: itemModalVisitor.id,
+      appointmentId: itemModalVisitor.appointmentId,
+      itemType,
+      description: itemDesc.trim(),
+      direction: itemDirection,
+      operator: '前台',
+    })
+    setItemDesc('')
+    setItemType('parcel')
+    setItemDirection('in')
+    setItemModalVisitor(null)
+  }
+
+  const getVisitorItems = (visitorId: string) =>
+    itemRecords.filter((r) => r.visitorId === visitorId).slice(-3).reverse()
 
   return (
     <div className="p-6 space-y-6">
@@ -132,6 +156,7 @@ export default function CheckIn() {
             <div className="grid gap-4 md:grid-cols-2">
               {filteredCheckedIn.map((v) => {
                 const host = getEmployee(v.hostId)
+                const recentItems = getVisitorItems(v.id)
                 return (
                   <div key={v.id} className="bg-white rounded-lg shadow p-5 space-y-2">
                     <div className="flex justify-between items-start">
@@ -150,6 +175,34 @@ export default function CheckIn() {
                         <p>已停留：{getDuration(v.actualArrival)}</p>
                       )}
                     </div>
+                    {recentItems.length > 0 && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <div className="text-xs text-gray-400 mb-1.5 flex items-center gap-1">
+                          <Package size={12} />
+                          携物记录
+                        </div>
+                        <div className="space-y-1">
+                          {recentItems.map((r) => (
+                            <div key={r.id} className="flex items-center gap-2 text-xs">
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                r.itemType === 'parcel' ? 'bg-blue-50 text-blue-600' :
+                                r.itemType === 'equipment' ? 'bg-purple-50 text-purple-600' :
+                                'bg-gray-50 text-gray-600'
+                              }`}>
+                                {r.itemType === 'parcel' ? '快递' : r.itemType === 'equipment' ? '设备' : '其他'}
+                              </span>
+                              <span className={`px-1.5 py-0.5 rounded ${
+                                r.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                              }`}>
+                                {r.direction === 'in' ? '携入' : '携出'}
+                              </span>
+                              <span className="text-gray-600">{r.description}</span>
+                              <span className="text-gray-300 ml-auto">{formatDateTime(r.timestamp)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                         <input
@@ -165,12 +218,26 @@ export default function CheckIn() {
                         />
                         访客牌已归还
                       </label>
-                      <button
-                        onClick={() => handleCheckOut(v.id)}
-                        className="px-4 py-1.5 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors"
-                      >
-                        签退
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setItemType('parcel')
+                            setItemDirection('in')
+                            setItemDesc('')
+                            setItemModalVisitor(v)
+                          }}
+                          className="px-3 py-1.5 text-sm rounded-lg border border-teal-300 text-teal-600 hover:bg-teal-50 transition-colors flex items-center gap-1"
+                        >
+                          <Package size={14} />
+                          登记
+                        </button>
+                        <button
+                          onClick={() => handleCheckOut(v.id)}
+                          className="px-4 py-1.5 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 transition-colors"
+                        >
+                          签退
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
@@ -224,6 +291,61 @@ export default function CheckIn() {
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg animate-[fadeIn_0.2s_ease-out]">
           {toast}
+        </div>
+      )}
+
+      {itemModalVisitor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setItemModalVisitor(null)}>
+          <div
+            className="bg-white rounded-2xl shadow-xl p-6 min-w-[380px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-lg font-semibold text-gray-900 mb-1">物品登记</div>
+            <div className="text-sm text-gray-500 mb-4">{itemModalVisitor.name} · {itemModalVisitor.company}</div>
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value as ItemType)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="parcel">快递</option>
+                  <option value="equipment">设备</option>
+                  <option value="other">其他</option>
+                </select>
+                <select
+                  value={itemDirection}
+                  onChange={(e) => setItemDirection(e.target.value as ItemDirection)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="in">携入</option>
+                  <option value="out">携出</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="物品描述（名称、数量等）"
+                value={itemDesc}
+                onChange={(e) => setItemDesc(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+            <div className="flex gap-3 justify-end mt-5">
+              <button
+                onClick={() => setItemModalVisitor(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmitItem}
+                disabled={!itemDesc.trim()}
+                className="px-4 py-2 text-sm rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                登记
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -445,7 +445,7 @@ export const useStore = create<VisitorStore>()(
       },
     }),
     {
-      name: 'visitor-desk-v2',
+      name: 'visitor-desk-v3',
     }
   )
 )
