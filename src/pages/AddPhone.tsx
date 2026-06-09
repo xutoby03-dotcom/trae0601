@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Camera, X, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Camera, X, TrendingDown, TrendingUp, AlertCircle, AlertTriangle } from 'lucide-react'
 import { BRANDS, CAPACITIES, COLORS, SCREEN_CONDITIONS, ACCESSORIES, type ScreenCondition } from '@/types'
 import { usePhoneStore } from '@/store'
 import { calculateValuation } from '@/utils/valuation'
@@ -25,7 +25,9 @@ const defaultForm = {
 export default function AddPhone() {
   const navigate = useNavigate()
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const isEdit = !!id
+  const fromFill = searchParams.get('from') === 'detail' || searchParams.get('from') === 'stats'
   const { addPhone, updatePhone, phones } = usePhoneStore()
 
   const [form, setForm] = useState(defaultForm)
@@ -89,12 +91,24 @@ export default function AddPhone() {
     }
     if (isEdit) {
       updatePhone(id!, form)
-      navigate(-1)
+      if (fromFill) {
+        navigate(`/phone/${id}`)
+      } else {
+        navigate(-1)
+      }
     } else {
       const newId = addPhone(form)
       navigate(`/phone/${newId}`)
     }
   }
+
+  const fillMissingFields = (() => {
+    const fields: string[] = []
+    if (!form.capacity) fields.push('容量')
+    if (!form.purchaseYear) fields.push('购入年份')
+    if (form.batteryHealth === null) fields.push('电池健康度')
+    return fields
+  })()
 
   const bh = form.batteryHealth
   const batteryColor = bh === null ? '#9ca3af' : bh > 80 ? '#52B788' : bh >= 60 ? '#F77F00' : '#E63946'
@@ -106,6 +120,15 @@ export default function AddPhone() {
         <ArrowLeft className="cursor-pointer" size={22} onClick={() => navigate(-1)} />
         <h1 className="text-lg font-semibold">{isEdit ? '编辑手机' : '添加手机'}</h1>
       </header>
+
+      {fromFill && fillMissingFields.length > 0 && (
+        <div className="flex items-center gap-2 bg-amber-50 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(245,158,11,0.2)' }}>
+          <AlertTriangle size={14} className="shrink-0 text-amber-500" />
+          <span className="text-sm text-amber-800">
+            正在补充 <span className="font-medium">{fillMissingFields.join('、')}</span>
+          </span>
+        </div>
+      )}
 
       <Section title="基础信息">
         <Field label="品牌">

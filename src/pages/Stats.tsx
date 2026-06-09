@@ -110,7 +110,7 @@ export default function Stats() {
                     <span className="text-amber-600 ml-2">缺少: {missing.join('、')}</span>
                   </div>
                   <button
-                    onClick={() => navigate(`/phone/${phone.id}/edit`)}
+                    onClick={() => navigate(`/phone/${phone.id}/edit?from=stats`)}
                     className="shrink-0 ml-2 rounded-lg px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors"
                     style={{ background: 'rgba(245,158,11,0.15)' }}
                   >

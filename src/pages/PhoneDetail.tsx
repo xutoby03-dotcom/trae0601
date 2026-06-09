@@ -117,7 +117,7 @@ export default function PhoneDetail() {
 
         {missingFields.length > 0 && (
           <button
-            onClick={() => navigate(`/phone/${id}/edit`)}
+            onClick={() => navigate(`/phone/${id}/edit?from=detail`)}
             className="flex w-full items-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-left"
             style={{ borderLeft: '4px solid #F59E0B' }}
           >
