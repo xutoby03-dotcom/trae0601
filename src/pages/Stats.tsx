@@ -17,7 +17,12 @@ export default function Stats() {
   const { shifts, jobs, leaveSwaps } = useStore()
 
   const monthShifts = shifts.filter((s) => isThisMonth(s.startTime))
-  const monthLeaves = leaveSwaps.filter((l) => isThisMonth(l.createdAt))
+  const shiftMap = new Map(shifts.map((s) => [s.id, s]))
+  const monthLeaves = leaveSwaps.filter((l) => {
+    if (l.type !== 'leave') return false
+    const shift = shiftMap.get(l.shiftId)
+    return shift ? isThisMonth(shift.startTime) : false
+  })
 
   const jobStats: JobStats[] = jobs.map((job) => {
     const jobShifts = monthShifts.filter((s) => s.jobId === job.id)
@@ -35,7 +40,7 @@ export default function Stats() {
       shiftCount: jobShifts.length,
       absenceCount: jobLeaves.length,
     }
-  }).filter((j) => j.shiftCount > 0 || j.absenceCount > 0)
+  })
 
   const totalIncome = jobStats.reduce((s, j) => s + j.totalIncome, 0)
   const totalHours = jobStats.reduce((s, j) => s + j.totalHours, 0)
@@ -126,7 +131,7 @@ export default function Stats() {
           <div className="bg-red-50 rounded-xl p-4">
             <div className="flex items-center gap-1.5 text-red-500 mb-1">
               <CalendarX size={14} />
-              <span className="text-[11px] font-medium">总请假/换班</span>
+              <span className="text-[11px] font-medium">缺勤次数</span>
             </div>
             <p className="text-lg font-bold text-stone-900">{totalAbsences}</p>
           </div>
@@ -156,7 +161,7 @@ export default function Stats() {
                       <p className="text-sm font-bold text-stone-800">{avgCommute}分钟</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-stone-400">请假/换班</p>
+                      <p className="text-[10px] text-stone-400">缺勤次数</p>
                       <p className="text-sm font-bold text-stone-800">{job.absenceCount}次</p>
                     </div>
                   </div>
