@@ -69,8 +69,8 @@ export default function Home() {
             ) : (
               filteredUmbrellas.map((umbrella) => {
                 const latestRecord = store.borrowRecords
-                  .filter((r) => r.umbrellaId === umbrella.id && r.status === 'returned')
-                  .sort((a, b) => new Date(b.actualReturnTime || 0).getTime() - new Date(a.actualReturnTime || 0).getTime())[0]
+                  .filter((r) => r.umbrellaId === umbrella.id && (r.status === 'returned' || r.conditionOnReturn === 'lost'))
+                  .sort((a, b) => new Date(b.actualReturnTime || b.borrowTime).getTime() - new Date(a.actualReturnTime || a.borrowTime).getTime())[0]
                 return (
                   <UmbrellaCard
                     key={umbrella.id}

@@ -24,11 +24,15 @@ export default function UmbrellaCard({ umbrella, latestRecord, isRainy, onRepair
   const styles = STATUS_STYLES[umbrella.status]
   const showRecord = (umbrella.status === 'damaged' || umbrella.status === 'lost') && latestRecord
 
+  const isDetailable = umbrella.status === 'damaged' || umbrella.status === 'lost'
+
   return (
     <div
+      onClick={() => isDetailable && navigate(`/umbrella/${umbrella.id}`)}
       className={cn(
         'group relative bg-white rounded-2xl border overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/50 hover:-translate-y-0.5',
-        styles.border
+        styles.border,
+        isDetailable && 'cursor-pointer'
       )}
     >
       <div className="flex">
@@ -74,10 +78,7 @@ export default function UmbrellaCard({ umbrella, latestRecord, isRainy, onRepair
           </div>
 
           {showRecord && latestRecord && (
-            <div
-              onClick={() => navigate(`/umbrella/${umbrella.id}`)}
-              className="mb-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200/50 cursor-pointer hover:bg-slate-100/80 transition-colors"
-            >
+            <div className="mb-3 p-3 rounded-xl bg-slate-50/80 border border-slate-200/50">
               <div className="flex items-start gap-3">
                 {latestRecord.returnPhotoUrl && (
                   <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200/60">
@@ -141,7 +142,7 @@ export default function UmbrellaCard({ umbrella, latestRecord, isRainy, onRepair
             )}
             {umbrella.status === 'damaged' && onRepair && (
               <button
-                onClick={() => onRepair(umbrella.id)}
+                onClick={(e) => { e.stopPropagation(); onRepair(umbrella.id) }}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-all duration-200"
               >
                 <Wrench className="w-3.5 h-3.5" />
@@ -156,7 +157,7 @@ export default function UmbrellaCard({ umbrella, latestRecord, isRainy, onRepair
             )}
             {showRecord && (
               <button
-                onClick={() => navigate(`/umbrella/${umbrella.id}`)}
+                onClick={(e) => { e.stopPropagation(); navigate(`/umbrella/${umbrella.id}`) }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors"
               >
                 详情
