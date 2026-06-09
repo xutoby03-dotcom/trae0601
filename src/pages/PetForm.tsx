@@ -81,7 +81,7 @@ export default function PetForm() {
       id: crypto.randomUUID(),
       petId: id,
       type: reminderType,
-      dueDate: new Date(reminderDate).toISOString(),
+      dueDate: reminderDate,
       isCompleted: false,
       createdAt: new Date().toISOString(),
     })

@@ -4,7 +4,7 @@ import { STATUS_LABELS, SERVICE_LABELS, REMINDER_TYPE_LABELS } from '@/types'
 import type { AppointmentStatus } from '@/types'
 import { useNavigate } from 'react-router-dom'
 import { Clock, MapPin, AlertTriangle, Bell, ChevronRight, PawPrint, Check } from 'lucide-react'
-import { isPast, parseISO, format, differenceInDays } from 'date-fns'
+import { parse, startOfDay, differenceInDays, format } from 'date-fns'
 
 const STATUS_COLORS: Record<AppointmentStatus, string> = {
   pending: 'bg-amber-50 border-amber-200',
@@ -39,11 +39,15 @@ export default function Home() {
   const grouped = groupByStatus(appointments)
   const activeAppointments = appointments.filter((a) => a.status !== 'completed')
 
-  const overdueReminders = reminders.filter((r) => !r.isCompleted && isPast(parseISO(r.dueDate)))
+  const overdueReminders = reminders.filter((r) => {
+    if (r.isCompleted) return false
+    const due = parse(r.dueDate, 'yyyy-MM-dd', new Date())
+    return due < startOfDay(new Date())
+  })
   const upcomingReminders = reminders.filter((r) => {
     if (r.isCompleted) return false
-    const d = parseISO(r.dueDate)
-    const diff = differenceInDays(d, new Date())
+    const due = parse(r.dueDate, 'yyyy-MM-dd', new Date())
+    const diff = differenceInDays(due, startOfDay(new Date()))
     return diff >= 0 && diff <= 7
   })
 
@@ -63,7 +67,7 @@ export default function Home() {
               <div key={r.id} className="flex items-center gap-2 text-sm text-red-600 bg-white/60 rounded-lg px-3 py-2">
                 <Bell size={14} className="shrink-0" />
                 <span className="flex-1">{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
-                <span className="text-red-400 text-xs shrink-0">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+                <span className="text-red-400 text-xs shrink-0">({format(parse(r.dueDate, 'yyyy-MM-dd', new Date()), 'MM/dd')})</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); completeReminder(r.id) }}
                   className="shrink-0 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
@@ -88,7 +92,7 @@ export default function Home() {
               <div key={r.id} className="flex items-center gap-2 text-sm text-[#3D2B1F] bg-white/60 rounded-lg px-3 py-2">
                 <Bell size={14} className="shrink-0 text-[#E8A87C]" />
                 <span className="flex-1">{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
-                <span className="text-[#8B7E74] text-xs shrink-0">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+                <span className="text-[#8B7E74] text-xs shrink-0">({format(parse(r.dueDate, 'yyyy-MM-dd', new Date()), 'MM/dd')})</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); completeReminder(r.id) }}
                   className="shrink-0 w-6 h-6 rounded-full bg-[#E8A87C]/20 hover:bg-[#E8A87C]/40 flex items-center justify-center transition-colors"

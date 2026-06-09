@@ -4,7 +4,7 @@ import { useGroomingStore } from '@/store/useGroomingStore'
 import { SERVICE_LABELS, PICKUP_METHOD_LABELS, STATUS_LABELS } from '@/types'
 import type { AppointmentStatus, GroomingRecord, Reminder } from '@/types'
 import { formatDateTime } from '@/utils/helpers'
-import { addDays } from 'date-fns'
+import { addDays, format } from 'date-fns'
 import { ArrowLeft, Clock, MapPin, Truck, DollarSign, MessageSquare, CheckCircle, Star, Camera, AlertCircle, PawPrint, X, ImagePlus } from 'lucide-react'
 
 const STATUS_FLOW: AppointmentStatus[] = ['pending', 'today', 'pickup', 'completed']
@@ -86,7 +86,7 @@ export default function AppointmentDetail() {
       id: crypto.randomUUID(),
       petId: appointment.petId,
       type: 'bath',
-      dueDate: addDays(new Date(), 30).toISOString(),
+      dueDate: format(addDays(new Date(), 30), 'yyyy-MM-dd'),
       isCompleted: false,
       createdAt: new Date().toISOString(),
     }
@@ -98,7 +98,7 @@ export default function AppointmentDetail() {
         id: crypto.randomUUID(),
         petId: appointment.petId,
         type: 'deworming',
-        dueDate: addDays(new Date(), 90).toISOString(),
+        dueDate: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
         isCompleted: false,
         createdAt: new Date().toISOString(),
       }
