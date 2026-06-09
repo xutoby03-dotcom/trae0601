@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Check, X, Plus, Trash2, Camera, Clock, ArrowLeft, AlertTriangle, Wallet, FileWarning } from 'lucide-react'
 import { useStore } from '@/store'
-import { cn } from '@/lib/utils'
+import { cn, fmtMoney } from '@/lib/utils'
 import { CATEGORY_LABELS, CATEGORY_ICONS, SUPPLY_OPTIONS } from '@/types'
 import type { CheckCategory } from '@/types'
 
@@ -179,7 +179,7 @@ export default function InspectionDetail() {
                         {ri.reason && <div className="text-xs text-warm-500 mt-0.5">原因：{ri.reason}</div>}
                         <div className="flex items-center gap-2 mt-0.5">
                           {ri.deductionReason && <span className="text-xs text-coral-600">{ri.deductionReason}</span>}
-                          {(ri.deductionAmount || 0) > 0 && <span className="text-xs font-bold text-coral-600">-¥{(ri.deductionAmount || 0).toFixed(2).replace(/\.?0+$/, '')}</span>}
+                          {(ri.deductionAmount || 0) > 0 && <span className="text-xs font-bold text-coral-600">-¥{fmtMoney(ri.deductionAmount || 0)}</span>}
                         </div>
                       </div>
                     </div>
@@ -200,7 +200,7 @@ export default function InspectionDetail() {
                 </div>
                 <div className="flex items-center gap-1.5 text-coral-700">
                   <Wallet className="w-3.5 h-3.5" />
-                  <span className="font-bold text-sm">¥{inspection.reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0).toFixed(2).replace(/\.?0+$/, '')}</span>
+                  <span className="font-bold text-sm">¥{fmtMoney(inspection.reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0))}</span>
                   <span className="text-xs text-coral-500">扣费合计</span>
                 </div>
               </div>

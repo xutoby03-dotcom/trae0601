@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, X, AlertTriangle, RotateCcw, ChevronDown, ChevronRight, Camera, Package, Wallet, FileWarning } from 'lucide-react'
 import { useStore } from '@/store'
-import { cn } from '@/lib/utils'
+import { cn, fmtMoney } from '@/lib/utils'
 import { CATEGORY_LABELS, CATEGORY_ICONS } from '@/types'
 import type { CheckCategory } from '@/types'
 
@@ -302,8 +302,9 @@ export default function Review() {
                     <input
                       type="number"
                       min="0"
-                      value={ri.deductionAmount || ''}
-                      onChange={(e) => updateReworkItem(inspection.id, ri.id, { deductionAmount: parseFloat(e.target.value) || 0 })}
+                      step="any"
+                      value={ri.deductionAmount}
+                      onChange={(e) => updateReworkItem(inspection.id, ri.id, { deductionAmount: e.target.value === '' ? 0 : Number(e.target.value) || 0 })}
                       placeholder="0"
                       className="w-full px-3 py-2 text-sm rounded-lg border border-warm-200 bg-warm-50 focus:outline-none focus:border-coral-400 transition-colors"
                     />
@@ -328,7 +329,7 @@ export default function Review() {
                 <div className="text-xs text-warm-500 mt-0.5">返工项数</div>
               </div>
               <div className="bg-white rounded-lg p-3 border border-coral-100">
-                <div className="text-2xl font-bold text-coral-600">¥{reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0).toFixed(2).replace(/\.?0+$/, '')}</div>
+                <div className="text-2xl font-bold text-coral-600">¥{fmtMoney(reworkItems.reduce((s, ri) => s + (ri.deductionAmount || 0), 0))}</div>
                 <div className="text-xs text-warm-500 mt-0.5">扣费合计</div>
               </div>
             </div>
