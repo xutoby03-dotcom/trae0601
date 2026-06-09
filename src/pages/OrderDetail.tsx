@@ -286,10 +286,15 @@ export default function OrderDetail() {
                       <div className="participant-detail">
                         {p.items.length > 0 && (
                           <div className="participant-items">
-                            {p.items.map(item => (
-                              <div key={item.id} className="ordered-item">
+                            {p.items.map(item => {
+                                const itemSoldOut = soldOutIds.has(item.menuItemId);
+                                return (
+                              <div key={item.id} className={`ordered-item ${itemSoldOut ? 'ordered-item--soldout' : ''}`}>
                                 <div className="ordered-item-top">
-                                  <span className="ordered-item-name">{item.menuItemName}</span>
+                                  <span className="ordered-item-name">
+                                    {item.menuItemName}
+                                    {itemSoldOut && <span className="soldout-inline-badge">已售罄</span>}
+                                  </span>
                                   <span className="ordered-item-price">
                                     {formatMoney(item.price * item.quantity)}
                                   </span>
@@ -304,6 +309,18 @@ export default function OrderDetail() {
                                 {item.needInvoice && (
                                   <span className="note-tag note-tag--invoice">要发票</span>
                                 )}
+                                {itemSoldOut && (
+                                  <button
+                                    className="btn-ghost btn-sm btn-replace-item"
+                                    onClick={() => {
+                                      removeOrderItem(p.id, item.id);
+                                      setShowAddItem(p.id);
+                                    }}
+                                  >
+                                    🔄 换菜
+                                  </button>
+                                )}
+                                {!itemSoldOut && (
                                 <div className="ordered-item-status">
                                   <div className="status-btns">
                                     {ITEM_STATUS_FLOW.map(s => (
@@ -332,8 +349,10 @@ export default function OrderDetail() {
                                     <X size={12} />
                                   </button>
                                 </div>
+                                )}
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
 
