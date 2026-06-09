@@ -46,7 +46,7 @@ export default function GarbageCard({ record, onMarkDisposed, onCorrect }: Garba
             <h3 className={`font-bold text-stone-800 ${record.disposed ? 'line-through' : ''}`}>
               {record.name}
             </h3>
-            {!record.isCorrect && !record.correctedBinType && (
+            {record.category !== record.binType && !record.correctedBinType && (
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -98,7 +98,7 @@ export default function GarbageCard({ record, onMarkDisposed, onCorrect }: Garba
         </div>
 
         <div className="flex gap-1 flex-shrink-0">
-          {!record.isCorrect && !record.correctedBinType && (
+          {record.category !== record.binType && !record.correctedBinType && (
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => onCorrect(record.id)}
