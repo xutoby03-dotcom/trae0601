@@ -8,7 +8,7 @@ interface ApplicationCardProps {
   spotLabel: string
   onApprove?: (id: string) => void
   onReject?: (id: string) => void
-  onComplete?: (id: string) => void
+  onComplete?: (id: string, isOvertime: boolean, isWrongSpot: boolean) => void
   showActions?: boolean
 }
 
@@ -33,7 +33,9 @@ export default function ApplicationCard({
   }
 
   const handleComplete = () => {
-    onComplete?.(application.id)
+    onComplete?.(application.id, isOvertime, isWrongSpot)
+    setIsOvertime(false)
+    setIsWrongSpot(false)
     setShowCompleteModal(false)
   }
 

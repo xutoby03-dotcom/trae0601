@@ -99,7 +99,7 @@ export default function MySpots() {
                 application={app}
                 spotLabel={app.spotLabel}
                 showActions
-                onComplete={(id) => completeParking(id, false, false)}
+                onComplete={(id, isOvertime, isWrongSpot) => completeParking(id, isOvertime, isWrongSpot)}
               />
             ))}
           </div>
