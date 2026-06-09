@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { BarChart3, Clock, MapPin, CalendarX, TrendingUp, DollarSign, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { calcShiftEarning, formatMoney } from '@/utils/helpers'
@@ -19,14 +19,29 @@ function isSameMonth(ts: number, year: number, month: number): boolean {
   return d.getFullYear() === year && d.getMonth() === month
 }
 
+const MONTH_NAMES = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+
 export default function Stats() {
   const { shifts, jobs, leaveSwaps } = useStore()
 
   const now = new Date()
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth())
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerYear, setPickerYear] = useState(now.getFullYear())
+  const pickerRef = useRef<HTMLDivElement>(null)
 
   const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth()
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    if (pickerOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [pickerOpen])
 
   const goPrev = () => {
     if (selectedMonth === 0) {
@@ -49,6 +64,17 @@ export default function Stats() {
   const goToday = () => {
     setSelectedYear(now.getFullYear())
     setSelectedMonth(now.getMonth())
+  }
+
+  const pickMonth = (month: number) => {
+    setSelectedYear(pickerYear)
+    setSelectedMonth(month)
+    setPickerOpen(false)
+  }
+
+  const openPicker = () => {
+    setPickerYear(selectedYear)
+    setPickerOpen(true)
   }
 
   const monthShifts = shifts.filter((s) => isSameMonth(s.startTime, selectedYear, selectedMonth))
@@ -94,12 +120,21 @@ export default function Stats() {
     <div className="px-5 pt-14 pb-6">
       <h1 className="text-2xl font-bold text-stone-900">统计分析</h1>
 
-      <div className="mt-4 flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2.5">
+      <div className="mt-4 flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2.5 relative">
         <button onClick={goPrev} className="p-1.5 rounded-lg hover:bg-stone-200 transition-colors">
           <ChevronLeft size={20} className="text-stone-600" />
         </button>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-stone-800">{monthLabel}</span>
+        <div className="flex items-center gap-2 relative" ref={pickerRef}>
+          <button
+            onClick={openPicker}
+            className="text-sm font-semibold text-stone-800 hover:text-orange-500 transition-colors flex items-center gap-1"
+          >
+            {monthLabel}
+            <span className={`text-[10px] transition-transform ${pickerOpen ? 'rotate-180' : ''}`}>▾</span>
+          </button>
+          {isCurrentMonth && (
+            <span className="text-[10px] font-medium text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full leading-none">本月</span>
+          )}
           {!isCurrentMonth && (
             <button
               onClick={goToday}
@@ -108,6 +143,50 @@ export default function Stats() {
               <RotateCcw size={11} />
               回到本月
             </button>
+          )}
+
+          {pickerOpen && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-white rounded-xl shadow-lg border border-stone-200 p-4 z-50 w-[280px]">
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setPickerYear((y) => y - 1)}
+                  className="p-1 rounded-lg hover:bg-stone-100 transition-colors"
+                >
+                  <ChevronLeft size={18} className="text-stone-500" />
+                </button>
+                <span className="text-sm font-bold text-stone-800">{pickerYear}年</span>
+                <button
+                  onClick={() => setPickerYear((y) => y + 1)}
+                  className="p-1 rounded-lg hover:bg-stone-100 transition-colors"
+                >
+                  <ChevronRight size={18} className="text-stone-500" />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {MONTH_NAMES.map((name, i) => {
+                  const isSelected = pickerYear === selectedYear && i === selectedMonth
+                  const isCurrent = pickerYear === now.getFullYear() && i === now.getMonth()
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => pickMonth(i)}
+                      className={`relative py-2 text-xs font-medium rounded-lg transition-colors ${
+                        isSelected
+                          ? 'bg-orange-500 text-white'
+                          : isCurrent
+                          ? 'bg-orange-50 text-orange-600'
+                          : 'text-stone-600 hover:bg-stone-100'
+                      }`}
+                    >
+                      {name}
+                      {isCurrent && !isSelected && (
+                        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-orange-500" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
         <button onClick={goNext} className="p-1.5 rounded-lg hover:bg-stone-200 transition-colors">
