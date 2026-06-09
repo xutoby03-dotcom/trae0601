@@ -6,6 +6,7 @@ import {
   PRODUCT_TYPE_LABELS,
   RESULT_LABELS,
   ADJUSTMENT_ITEM_LABELS,
+  type AdjustmentItem,
 } from '@/types'
 import {
   ArrowLeft,
@@ -17,6 +18,10 @@ import {
   Clock,
   Thermometer,
   ImageOff,
+  BookOpen,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react'
 import {
   RadarChart,
@@ -46,6 +51,22 @@ function deriveDimensions(score: number) {
 }
 
 const VERSION_COLORS = ['#D4A574', '#8B5E3C', '#27AE60', '#F39C12']
+
+function AdjustmentBadge({ item, before, after, unit }: { item: AdjustmentItem; before: number; after: number; unit: string }) {
+  const diff = after - before
+  const Icon = diff > 0 ? TrendingUp : diff < 0 ? TrendingDown : Minus
+  const color = diff > 0 ? 'text-bake-red' : diff < 0 ? 'text-bake-green' : 'text-bake-brown/50'
+  const bg = diff > 0 ? 'bg-bake-red/10' : diff < 0 ? 'bg-bake-green/10' : 'bg-bake-light'
+  const sign = diff > 0 ? '+' : ''
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full ${bg} ${color} font-medium`}>
+      <Icon className="w-3 h-3" />
+      {ADJUSTMENT_ITEM_LABELS[item]}
+      <span className="font-mono">{sign}{diff}{unit}</span>
+    </span>
+  )
+}
 
 export default function VersionCompare() {
   const { productId } = useParams<{ productId: string }>()
@@ -149,6 +170,85 @@ export default function VersionCompare() {
         {selectedVersions.length >= 2 && (
           <>
             <section className="rounded-bake bg-bake-card p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-bake-brown mb-4">照片 · 评分 · 配方</h2>
+              <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${selectedVersions.length}, 1fr)` }}>
+                {selectedVersions.map((v, idx) => (
+                  <div key={v.id} className="text-center">
+                    <div
+                      className="h-3 rounded-t-bake"
+                      style={{ backgroundColor: VERSION_COLORS[idx % VERSION_COLORS.length] }}
+                    />
+                    <div className="border border-t-0 border-bake-border rounded-b-bake p-3 space-y-3">
+                      <p className="text-xs font-semibold text-bake-dark">
+                        {v.versionLabel} · {RESULT_LABELS[v.result]}
+                      </p>
+
+                      {v.photos.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {v.photos.slice(0, 2).map((photo, i) => (
+                            <img
+                              key={i}
+                              src={photo}
+                              alt={`${v.versionLabel} 照片 ${i + 1}`}
+                              className="w-full aspect-square object-cover rounded-lg"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-square rounded-lg bg-bake-light flex items-center justify-center">
+                          <ImageOff className="w-6 h-6 text-bake-border" />
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-3 h-3 ${
+                              star <= v.tasteScore
+                                ? 'fill-bake-caramel text-bake-caramel'
+                                : 'text-bake-border'
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-1 text-[10px] text-bake-brown/50">{v.tasteScore}/5</span>
+                      </div>
+
+                      {v.adjustments.length > 0 && (
+                        <div className="space-y-1.5 pt-1 border-t border-bake-border">
+                          <p className="text-[10px] text-bake-brown/50 font-medium">本版调整</p>
+                          <div className="flex flex-wrap gap-1">
+                            {v.adjustments.map((a) => (
+                              <AdjustmentBadge
+                                key={a.id}
+                                item={a.item}
+                                before={a.before}
+                                after={a.after}
+                                unit={a.unit}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {v.recipe && (
+                        <div className="pt-1 border-t border-bake-border">
+                          <p className="text-[10px] text-bake-brown/50 font-medium flex items-center gap-1 mb-1">
+                            <BookOpen className="w-3 h-3" />
+                            配方
+                          </p>
+                          <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap text-left max-h-36 overflow-y-auto">
+                            {v.recipe}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-bake bg-bake-card p-5 shadow-sm">
               <h2 className="text-sm font-semibold text-bake-brown mb-4">口感评分雷达图</h2>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -175,46 +275,54 @@ export default function VersionCompare() {
             </section>
 
             <section className="rounded-bake bg-bake-card p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-bake-brown mb-4">照片对比</h2>
+              <h2 className="text-sm font-semibold text-bake-brown mb-4">配方变化一览</h2>
               <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${selectedVersions.length}, 1fr)` }}>
                 {selectedVersions.map((v, idx) => (
-                  <div key={v.id} className="text-center">
+                  <div key={v.id}>
                     <div
-                      className="h-3 rounded-t-bake"
+                      className="text-xs font-semibold text-white text-center py-1.5 rounded-t-bake"
                       style={{ backgroundColor: VERSION_COLORS[idx % VERSION_COLORS.length] }}
-                    />
-                    <div className="border border-t-0 border-bake-border rounded-b-bake p-2">
-                      <p className="text-xs font-medium text-bake-dark mb-2">
-                        {v.versionLabel} · {RESULT_LABELS[v.result]}
-                      </p>
-                      {v.photos.length > 0 ? (
-                        <div className="space-y-2">
-                          {v.photos.slice(0, 2).map((photo, i) => (
-                            <img
-                              key={i}
-                              src={photo}
-                              alt={`${v.versionLabel} 照片 ${i + 1}`}
-                              className="w-full aspect-square object-cover rounded-lg"
-                            />
-                          ))}
+                    >
+                      {v.versionLabel}
+                    </div>
+                    <div className="border border-t-0 border-bake-border rounded-b-bake p-3 space-y-2">
+                      {v.adjustments.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {v.adjustments.map((a) => {
+                            const diff = a.after - a.before
+                            return (
+                              <div
+                                key={a.id}
+                                className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs ${
+                                  diff > 0 ? 'bg-bake-red/8' : diff < 0 ? 'bg-bake-green/8' : 'bg-bake-light'
+                                }`}
+                              >
+                                <span className="font-medium text-bake-dark">
+                                  {ADJUSTMENT_ITEM_LABELS[a.item]}
+                                </span>
+                                <div className="flex items-center gap-1 font-mono">
+                                  <span className="text-bake-brown/50">{a.before}</span>
+                                  <span className="text-bake-brown/30">→</span>
+                                  <span className={diff > 0 ? 'text-bake-red font-semibold' : diff < 0 ? 'text-bake-green font-semibold' : 'text-bake-dark'}>
+                                    {a.after}
+                                  </span>
+                                  <span className="text-bake-brown/40">{a.unit}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       ) : (
-                        <div className="w-full aspect-square rounded-lg bg-bake-light flex items-center justify-center">
-                          <ImageOff className="w-6 h-6 text-bake-border" />
+                        <p className="text-[11px] text-bake-brown/40 text-center py-2">无调整项</p>
+                      )}
+
+                      {v.recipe && (
+                        <div className="mt-2 pt-2 border-t border-bake-border">
+                          <div className="bg-bake-warm/30 rounded-lg p-2 font-mono text-[11px] text-bake-dark/70 leading-relaxed whitespace-pre-wrap max-h-28 overflow-y-auto">
+                            {v.recipe}
+                          </div>
                         </div>
                       )}
-                      <div className="mt-2 flex items-center justify-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`w-3 h-3 ${
-                              star <= v.tasteScore
-                                ? 'fill-bake-caramel text-bake-caramel'
-                                : 'text-bake-border'
-                            }`}
-                          />
-                        ))}
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -242,19 +350,27 @@ export default function VersionCompare() {
                   <tbody>
                     <tr className="border-b border-bake-border/50">
                       <td className="py-2 pr-3 text-bake-dark">烤箱温度</td>
-                      {selectedVersions.map((v) => (
-                        <td key={v.id} className="text-center py-2 px-2 text-bake-dark">
-                          {v.ovenTemp}℃
-                        </td>
-                      ))}
+                      {selectedVersions.map((v, i) => {
+                        const prev = i > 0 ? selectedVersions[i - 1] : null
+                        const changed = prev && v.ovenTemp !== prev.ovenTemp
+                        return (
+                          <td key={v.id} className={`text-center py-2 px-2 ${changed ? 'text-bake-red font-semibold' : 'text-bake-dark'}`}>
+                            {v.ovenTemp}℃
+                          </td>
+                        )
+                      })}
                     </tr>
                     <tr className="border-b border-bake-border/50">
                       <td className="py-2 pr-3 text-bake-dark">烘烤时间</td>
-                      {selectedVersions.map((v) => (
-                        <td key={v.id} className="text-center py-2 px-2 text-bake-dark">
-                          {v.bakeTime}分钟
-                        </td>
-                      ))}
+                      {selectedVersions.map((v, i) => {
+                        const prev = i > 0 ? selectedVersions[i - 1] : null
+                        const changed = prev && v.bakeTime !== prev.bakeTime
+                        return (
+                          <td key={v.id} className={`text-center py-2 px-2 ${changed ? 'text-bake-red font-semibold' : 'text-bake-dark'}`}>
+                            {v.bakeTime}分钟
+                          </td>
+                        )
+                      })}
                     </tr>
                     <tr className="border-b border-bake-border/50">
                       <td className="py-2 pr-3 text-bake-dark">面粉类型</td>
@@ -266,11 +382,16 @@ export default function VersionCompare() {
                     </tr>
                     <tr className="border-b border-bake-border/50">
                       <td className="py-2 pr-3 text-bake-dark">口感评分</td>
-                      {selectedVersions.map((v) => (
-                        <td key={v.id} className="text-center py-2 px-2 text-bake-dark">
-                          {v.tasteScore}/5
-                        </td>
-                      ))}
+                      {selectedVersions.map((v, i) => {
+                        const prev = i > 0 ? selectedVersions[i - 1] : null
+                        const changed = prev && v.tasteScore !== prev.tasteScore
+                        const improved = prev && v.tasteScore > prev.tasteScore
+                        return (
+                          <td key={v.id} className={`text-center py-2 px-2 ${improved ? 'text-bake-green font-semibold' : changed ? 'text-bake-red font-semibold' : 'text-bake-dark'}`}>
+                            {v.tasteScore}/5
+                          </td>
+                        )
+                      })}
                     </tr>
                     <tr className="border-b border-bake-border/50">
                       <td className="py-2 pr-3 text-bake-dark">问题</td>
@@ -285,12 +406,22 @@ export default function VersionCompare() {
                     <tr>
                       <td className="py-2 pr-3 text-bake-dark">调整</td>
                       {selectedVersions.map((v) => (
-                        <td key={v.id} className="text-center py-2 px-2 text-bake-dark">
+                        <td key={v.id} className="text-center py-2 px-2">
                           {v.adjustments.length > 0
-                            ? v.adjustments
-                                .map((a) => `${ADJUSTMENT_ITEM_LABELS[a.item]}${a.before}→${a.after}`)
-                                .join(' ')
-                            : '-'}
+                            ? v.adjustments.map((a) => (
+                                <span
+                                  key={a.id}
+                                  className="inline-flex items-center gap-0.5 text-[11px] mr-1"
+                                >
+                                  <span className="font-medium text-bake-dark">
+                                    {ADJUSTMENT_ITEM_LABELS[a.item]}
+                                  </span>
+                                  <span className="font-mono text-bake-brown/60">
+                                    {a.before}→{a.after}{a.unit}
+                                  </span>
+                                </span>
+                              ))
+                            : <span className="text-bake-brown/30">-</span>}
                         </td>
                       ))}
                     </tr>
