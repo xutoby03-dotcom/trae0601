@@ -6,9 +6,8 @@ import { CHANNEL_TYPES, DISPOSAL_METHODS } from '@/types'
 import { usePhoneStore } from '@/store'
 import { calculateValuation, GROUP_LABELS, GROUP_COLORS } from '@/utils/valuation'
 
-function getMissingFields(phone: { model: string; capacity: string | null; purchaseYear: number | null; batteryHealth: number | null }): string[] {
+function getMissingFields(phone: { capacity: string | null; purchaseYear: number | null; batteryHealth: number | null }): string[] {
   const missing: string[] = []
-  if (!phone.model) missing.push('型号')
   if (!phone.capacity) missing.push('容量')
   if (!phone.purchaseYear) missing.push('购入年份')
   if (phone.batteryHealth === null) missing.push('电池健康度')
