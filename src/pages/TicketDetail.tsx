@@ -158,28 +158,30 @@ export default function TicketDetail() {
               <Camera className="h-3.5 w-3.5" />
               故障照片 ({normalizedPhotos.length})
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3">
               {normalizedPhotos.map((photo, idx) => (
                 <button
                   key={idx}
                   onClick={() => setLightboxIdx(idx)}
-                  className="group flex flex-col items-center gap-1.5"
+                  className="group flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 text-left transition-all hover:border-slate-200 hover:bg-slate-50"
                 >
-                  <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-slate-200 shadow-sm transition-all group-hover:shadow-md">
                     <img
                       src={photo.url}
                       alt={photo.caption || `照片 ${idx + 1}`}
                       className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                      <ZoomIn className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+                      <ZoomIn className="h-3.5 w-3.5 text-white opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   </div>
-                  {photo.caption ? (
-                    <span className="w-20 truncate text-center text-[11px] text-slate-500">{photo.caption}</span>
-                  ) : (
-                    <span className="w-20 text-center text-[11px] text-slate-300">照片 {idx + 1}</span>
-                  )}
+                  <div className="min-w-0 flex-1 py-0.5">
+                    {photo.caption ? (
+                      <p className="text-sm text-slate-700 leading-relaxed break-words">{photo.caption}</p>
+                    ) : (
+                      <p className="text-xs text-slate-400">照片 {idx + 1}</p>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
