@@ -26,19 +26,29 @@ export default function Home() {
   const { needCharge, needReplace, abnormalAids } = useMemo(() => {
     const charge: (HearingAid & { batteryLevel: number })[] = []
     const replace: (HearingAid & { batteryLevel: number })[] = []
-    const abnormal: (HearingAid & { hasWhistling: boolean; hasHearingIssue: boolean })[] = []
+    const abnormal: (HearingAid & { issues: string[] })[] = []
 
     hearingAids.forEach((aid) => {
       const latest = getLatestRecord(dailyRecords, aid.id)
-      if (!latest) return
-      if (aid.batteryType === 'rechargeable' && latest.batteryLevel <= 30) {
-        charge.push({ ...aid, batteryLevel: latest.batteryLevel })
+      if (latest) {
+        if (aid.batteryType === 'rechargeable' && latest.batteryLevel <= 30) {
+          charge.push({ ...aid, batteryLevel: latest.batteryLevel })
+        }
+        if (aid.batteryType !== 'rechargeable' && latest.batteryLevel <= 20) {
+          replace.push({ ...aid, batteryLevel: latest.batteryLevel })
+        }
       }
-      if (aid.batteryType !== 'rechargeable' && latest.batteryLevel <= 20) {
-        replace.push({ ...aid, batteryLevel: latest.batteryLevel })
-      }
-      if (isRecent(latest.date, 7) && (latest.hasWhistling || latest.hasHearingIssue)) {
-        abnormal.push({ ...aid, hasWhistling: latest.hasWhistling, hasHearingIssue: latest.hasHearingIssue })
+
+      const recentRecords = dailyRecords.filter(
+        (r) => r.aidId === aid.id && isRecent(r.date, 7)
+      )
+      const issueSet = new Set<string>()
+      recentRecords.forEach((r) => {
+        if (r.hasWhistling) issueSet.add('啸叫')
+        if (r.hasHearingIssue) issueSet.add('听不清')
+      })
+      if (issueSet.size > 0) {
+        abnormal.push({ ...aid, issues: Array.from(issueSet) })
       }
     })
 
@@ -158,8 +168,7 @@ export default function Home() {
                       {SIDE_LABELS[aid.side]} · {aid.model}
                     </p>
                     <p className="text-sm text-yellow-700">
-                      {aid.hasWhistling && '啸叫 '}
-                      {aid.hasHearingIssue && '听力异常'}
+                      {aid.issues.join(' · ')}
                     </p>
                   </div>
                 </div>
