@@ -57,7 +57,7 @@ export default function Stats() {
     return { currentYear, yearPlans, completedPlans, totalSpent, participantSpending, popularGifts }
   }, [plans])
 
-  const maxNet = participantSpending.length > 0 ? Math.max(...participantSpending.map((s) => s.net)) : 0
+  const maxGross = participantSpending.length > 0 ? Math.max(...participantSpending.map((s) => s.paid + s.advanced)) : 0
   const uniqueParticipants = new Set(yearPlans.flatMap((p) => p.participants.map((pt) => pt.name))).size
 
   if (yearPlans.length === 0) {
@@ -209,8 +209,8 @@ export default function Stats() {
                 <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-rose-300 inline-block" />已退款</span>
               </div>
               {participantSpending.map((entry) => {
-                const paidWidth = maxNet > 0 ? (entry.paid / maxNet) * 100 : 0
-                const advWidth = maxNet > 0 ? (entry.advanced / maxNet) * 100 : 0
+                const paidWidth = maxGross > 0 ? (entry.paid / maxGross) * 100 : 0
+                const advWidth = maxGross > 0 ? (entry.advanced / maxGross) * 100 : 0
                 return (
                   <div key={entry.name} className="space-y-1">
                     <div className="flex items-center justify-between">
