@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Flame, Droplets } from 'lucide-react'
+import { Search, Droplets, Flame, ChevronDown, ChevronRight } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { SIZES, SEASONS, GENDERS, SIZE_LABELS, STATUS_LABELS } from '@/types'
 import type { Uniform } from '@/types'
@@ -9,55 +9,173 @@ const SIZE_OPTIONS = ['全部', ...SIZES]
 const GENDER_OPTIONS = ['全部', ...GENDERS]
 const SEASON_OPTIONS = ['全部', ...SEASONS]
 
-function UniformCard({ uniform, onClick }: { uniform: Uniform; onClick: () => void }) {
+function MiniCard({ uniform, onClick }: { uniform: Uniform; onClick: () => void }) {
   return (
-    <div className="card p-3 flex gap-3 cursor-pointer" onClick={onClick}>
+    <div
+      className="card p-2.5 flex gap-2.5 cursor-pointer"
+      onClick={onClick}
+    >
       <img
         src={uniform.photos[0]}
         alt={uniform.school}
-        className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+        className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
       />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-          <span className="tag-orange">{SIZE_LABELS[uniform.size] || uniform.size}</span>
-          <span className="tag-blue">{uniform.season}</span>
-          <span className="tag-purple">{uniform.gender}</span>
-        </div>
-        <p className="text-sm font-semibold text-gray-800 truncate">{uniform.school} · {uniform.grade}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-gray-500">{uniform.condition}</span>
-          {uniform.hasStain && (
-            <span className="flex items-center gap-0.5 text-xs text-amber-500">
-              <Droplets size={10} />
-              有污渍
-            </span>
-          )}
-        </div>
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center gap-1 flex-wrap mb-0.5">
+          <span className="tag-blue text-[10px]">{uniform.season}</span>
+          <span className="tag-purple text-[10px]">{uniform.gender}</span>
           {uniform.isFree ? (
-            <span className="tag-green text-xs">免费</span>
+            <span className="tag-green text-[10px]">免费</span>
           ) : (
-            <span className="text-sm font-bold text-orange-500">¥{uniform.price}</span>
+            <span className="text-xs font-bold text-orange-500">¥{uniform.price}</span>
           )}
-          <span className={`tag ${uniform.status === 'available' ? 'tag-green' : 'tag-orange'}`}>
+          <span className={`tag text-[10px] ${uniform.status === 'available' ? 'tag-green' : 'tag-orange'}`}>
             {STATUS_LABELS[uniform.status]}
           </span>
+        </div>
+        <p className="text-xs font-semibold text-gray-800 truncate">{uniform.school} · {uniform.grade}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[10px] text-gray-500">{uniform.condition}</span>
+          {uniform.hasStain && (
+            <span className="flex items-center gap-0.5 text-[10px] text-amber-500">
+              <Droplets size={9} />有污渍
+            </span>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
+interface SizeGroup {
+  size: string
+  label: string
+  urgentItems: Uniform[]
+  subGroups: {
+    key: string
+    gender: string
+    season: string
+    items: Uniform[]
+  }[]
+  totalCount: number
+}
+
+function buildGroups(uniforms: Uniform[]): SizeGroup[] {
+  const sizeMap = new Map<string, Uniform[]>()
+  for (const u of uniforms) {
+    const arr = sizeMap.get(u.size) || []
+    arr.push(u)
+    sizeMap.set(u.size, arr)
+  }
+
+  const orderedSizes = SIZES.filter((s) => sizeMap.has(s))
+
+  return orderedSizes.map((size) => {
+    const all = sizeMap.get(size) || []
+    const urgentItems = all.filter((u) => u.isUrgent && u.status === 'available')
+    const rest = all.filter((u) => !(u.isUrgent && u.status === 'available'))
+
+    const subMap = new Map<string, Uniform[]>()
+    for (const u of rest) {
+      const key = `${u.gender}|${u.season}`
+      const arr = subMap.get(key) || []
+      arr.push(u)
+      subMap.set(key, arr)
+    }
+
+    const genderOrder: string[] = [...GENDERS]
+    const seasonOrder: string[] = [...SEASONS]
+
+    const subGroups = Array.from(subMap.entries())
+      .map(([key, items]) => {
+        const parts = key.split('|')
+        return { key, gender: parts[0], season: parts[1], items }
+      })
+      .sort((a, b) => {
+        const gi = genderOrder.indexOf(a.gender) - genderOrder.indexOf(b.gender)
+        if (gi !== 0) return gi
+        return seasonOrder.indexOf(a.season) - seasonOrder.indexOf(b.season)
+      })
+
+    return {
+      size,
+      label: SIZE_LABELS[size] || size,
+      urgentItems,
+      subGroups,
+      totalCount: all.length,
+    }
+  })
+}
+
+function SizeGroupSection({ group, navigate }: { group: SizeGroup; navigate: (path: string) => void }) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  return (
+    <div className="animate-slide-up">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center gap-2 mb-2 group"
+      >
+        <span className="text-base font-bold text-gray-800">{group.label}</span>
+        <span className="text-xs text-gray-400 font-medium">({group.totalCount}件)</span>
+        {group.urgentItems.length > 0 && (
+          <span className="flex items-center gap-0.5 tag-red text-[10px] animate-pulse-soft">
+            <Flame size={10} />急需
+          </span>
+        )}
+        <span className="ml-auto text-gray-300 group-hover:text-gray-500 transition-colors">
+          {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+        </span>
+      </button>
+
+      {!collapsed && (
+        <div className="pl-1">
+          {group.urgentItems.length > 0 && (
+            <div className="mb-2 border-l-2 border-red-300 pl-3 py-1">
+              <div className="flex items-center gap-1 mb-1.5">
+                <Flame size={12} className="text-red-400" />
+                <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">急需</span>
+              </div>
+              <div className="space-y-2">
+                {group.urgentItems.map((u) => (
+                  <MiniCard key={u.id} uniform={u} onClick={() => navigate(`/uniform/${u.id}`)} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {group.subGroups.map((sub) => (
+            <div key={sub.key} className="mb-2 border-l-2 border-orange-200 pl-3 py-1">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+                  {sub.gender}
+                </span>
+                <span className="text-[11px] font-semibold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded">
+                  {sub.season}
+                </span>
+                <span className="text-[10px] text-gray-400">{sub.items.length}件</span>
+              </div>
+              <div className="space-y-2">
+                {sub.items.map((u) => (
+                  <MiniCard key={u.id} uniform={u} onClick={() => navigate(`/uniform/${u.id}`)} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Home() {
   const navigate = useNavigate()
-  const { getUniformsByFilter, getUrgentUniforms } = useStore()
+  const { getUniformsByFilter } = useStore()
 
   const [search, setSearch] = useState('')
   const [sizeFilter, setSizeFilter] = useState('全部')
   const [genderFilter, setGenderFilter] = useState('全部')
   const [seasonFilter, setSeasonFilter] = useState('全部')
-
-  const urgentUniforms = useMemo(() => getUrgentUniforms(), [getUrgentUniforms])
 
   const filteredUniforms = useMemo(
     () =>
@@ -69,6 +187,8 @@ export default function Home() {
       }),
     [getUniformsByFilter, sizeFilter, genderFilter, seasonFilter, search],
   )
+
+  const groups = useMemo(() => buildGroups(filteredUniforms), [filteredUniforms])
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -140,59 +260,15 @@ export default function Home() {
         </div>
       </div>
 
-      {urgentUniforms.length > 0 && (
-        <div className="px-4 mt-5">
-          <div className="bg-gradient-to-r from-orange-500 via-red-400 to-orange-400 rounded-2xl p-4 animate-pulse-soft shadow-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Flame className="text-white" size={20} />
-              <span className="text-white font-bold text-base">急需尺码</span>
-            </div>
-            <div className="space-y-2">
-              {urgentUniforms.map((u) => (
-                <div
-                  key={u.id}
-                  className="bg-white/90 backdrop-blur-sm rounded-xl p-2.5 flex items-center gap-2.5 cursor-pointer hover:bg-white transition-all"
-                  onClick={() => navigate(`/uniform/${u.id}`)}
-                >
-                  <img
-                    src={u.photos[0]}
-                    alt={u.school}
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">
-                      {SIZE_LABELS[u.size]} · {u.season} · {u.gender}
-                    </p>
-                    <p className="text-xs text-gray-500">{u.school} {u.grade}</p>
-                  </div>
-                  {u.isFree ? (
-                    <span className="tag-green text-xs">免费</span>
-                  ) : (
-                    <span className="text-sm font-bold text-orange-500">¥{u.price}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="px-4 mt-5 pb-6">
-        <h2 className="text-lg font-bold text-gray-800 mb-3">校服列表</h2>
-        {filteredUniforms.length === 0 ? (
+      <div className="px-4 mt-5 pb-6 space-y-5">
+        {groups.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 text-sm">暂无匹配的校服</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredUniforms.map((u) => (
-              <UniformCard
-                key={u.id}
-                uniform={u}
-                onClick={() => navigate(`/uniform/${u.id}`)}
-              />
-            ))}
-          </div>
+          groups.map((g) => (
+            <SizeGroupSection key={g.size} group={g} navigate={navigate} />
+          ))
         )}
       </div>
     </div>
