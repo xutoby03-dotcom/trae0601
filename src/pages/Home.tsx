@@ -39,6 +39,23 @@ function ExpiryBadge({ item }: { item: FoodItem }) {
   )
 }
 
+function FoodPhoto({ src, name, size = 'md' }: { src: string; name: string; size?: 'sm' | 'md' }) {
+  const dim = size === 'sm' ? 'w-9 h-9' : 'w-12 h-12'
+  const icon = size === 'sm' ? 14 : 18
+  if (src) {
+    return (
+      <img src={src} alt={name} className={`${dim} rounded-lg object-cover shrink-0`} />
+    )
+  }
+  return (
+    <div className={`${dim} rounded-lg bg-stone-100 flex items-center justify-center shrink-0`}>
+      <span className="text-stone-300" style={{ fontSize: icon }}>
+        {name.charAt(0)}
+      </span>
+    </div>
+  )
+}
+
 function FoodCard({ item }: { item: FoodItem }) {
   const isExpired = item.status === 'expired'
   const isDepleted = item.status === 'depleted'
@@ -53,7 +70,8 @@ function FoodCard({ item }: { item: FoodItem }) {
             : 'bg-white border-stone-200'
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3">
+        <FoodPhoto src={item.photoUrl} name={item.name} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-stone-800 truncate">{item.name}</h3>
@@ -77,8 +95,10 @@ function FoodCard({ item }: { item: FoodItem }) {
               ))}
             </div>
           )}
+          <div className="mt-1.5">
+            <ExpiryBadge item={item} />
+          </div>
         </div>
-        <ExpiryBadge item={item} />
       </div>
       {isExpired && (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -178,6 +198,7 @@ function StatusSection({
           {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between bg-white/80 rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 min-w-0">
+                <FoodPhoto src={item.photoUrl} name={item.name} size="sm" />
                 <span className="text-sm font-medium text-stone-700 truncate">{item.name}</span>
                 {item.coldChain && <Snowflake className="w-3 h-3 text-blue-400 shrink-0" />}
                 {item.allergens && (

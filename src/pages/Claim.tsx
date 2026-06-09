@@ -3,6 +3,17 @@ import { useFridgeStore } from '@/store/fridgeStore'
 import { getExpiryStatus, getDaysUntilExpiry } from '@/utils/fridge'
 import { HandCoins, Snowflake, Minus, Plus, Search, CheckCircle2 } from 'lucide-react'
 
+function ClaimPhoto({ src, name }: { src: string; name: string }) {
+  if (src) {
+    return <img src={src} alt={name} className="w-11 h-11 rounded-lg object-cover shrink-0" />
+  }
+  return (
+    <div className="w-11 h-11 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+      <span className="text-stone-300 text-sm font-medium">{name.charAt(0)}</span>
+    </div>
+  )
+}
+
 export default function Claim() {
   const { getAvailableItems, claimFood, checkExpiry } = useFridgeStore()
   useEffect(() => { checkExpiry() }, [checkExpiry])
@@ -108,8 +119,9 @@ export default function Claim() {
                         : 'bg-white border-stone-200 hover:border-stone-300 hover:shadow-sm'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
+                    <div className="flex items-start gap-3">
+                      <ClaimPhoto src={item.photoUrl} name={item.name} />
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-stone-800">{item.name}</span>
                           {item.coldChain && <Snowflake className="w-3.5 h-3.5 text-blue-500" />}
@@ -136,7 +148,7 @@ export default function Claim() {
                           )}
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="text-right shrink-0 self-center">
                         <span className="text-lg font-bold text-emerald-600">×{item.quantity}</span>
                         <p className="text-[10px] text-stone-400">可领取</p>
                       </div>
@@ -157,11 +169,14 @@ export default function Claim() {
 
             {selectedItem ? (
               <div className="space-y-4">
-                <div className="bg-emerald-50 rounded-lg p-3">
-                  <p className="text-sm font-bold text-emerald-700">{selectedItem.name}</p>
-                  <p className="text-xs text-emerald-600 mt-0.5">
-                    来源：{selectedItem.source} · 库存：{selectedItem.quantity}
-                  </p>
+                <div className="bg-emerald-50 rounded-lg p-3 flex items-center gap-3">
+                  <ClaimPhoto src={selectedItem.photoUrl} name={selectedItem.name} />
+                  <div>
+                    <p className="text-sm font-bold text-emerald-700">{selectedItem.name}</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">
+                      来源：{selectedItem.source} · 库存：{selectedItem.quantity}
+                    </p>
+                  </div>
                 </div>
 
                 <div>

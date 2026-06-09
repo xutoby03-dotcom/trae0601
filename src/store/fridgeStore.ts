@@ -270,9 +270,14 @@ export const useFridgeStore = create<FridgeStore>()(
 
       getMonthlyExpiredCount: () => {
         const now = new Date()
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        const targetYear = now.getFullYear()
+        const targetMonth = now.getMonth()
         return get().foodItems
-          .filter((f) => f.status === 'expired' && f.createdAt >= monthStart)
+          .filter((f) => {
+            if (f.status !== 'expired') return false
+            const d = new Date(f.expiryDate)
+            return d.getFullYear() === targetYear && d.getMonth() === targetMonth
+          })
           .reduce((sum, f) => sum + f.quantity, 0)
       },
 
@@ -289,6 +294,21 @@ export const useFridgeStore = create<FridgeStore>()(
     }),
     {
       name: 'community-fridge-store',
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        const today = getToday()
+        const needsUpdate = state.foodItems.some(
+          (f) => f.status === 'available' && f.expiryDate < today
+        )
+        if (needsUpdate) {
+          state.foodItems = state.foodItems.map((f) => {
+            if (f.status === 'available' && f.expiryDate < today) {
+              return { ...f, status: 'expired' as const }
+            }
+            return f
+          })
+        }
+      },
     }
   )
 )
