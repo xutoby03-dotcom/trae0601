@@ -24,7 +24,7 @@ interface AppState {
   deleteWaterQualityLog: (id: string) => void
 
   getFiltersWithStatus: () => FilterWithStatus[]
-  getWaterQualityAlert: () => { hasAlert: boolean; message: string }
+  getWaterQualityAlerts: () => { purifierId: string; purifierName: string; flowDecreasing: boolean; tdsIncreasing: boolean; odorWorsening: boolean; message: string }[]
 }
 
 let counter = 0
@@ -130,41 +130,53 @@ export const useStore = create<AppState>()(
         })
       },
 
-      getWaterQualityAlert: () => {
+      getWaterQualityAlerts: () => {
         const { waterQualityLogs, purifiers } = get()
-        if (purifiers.length === 0) return { hasAlert: false, message: '' }
+        if (purifiers.length === 0) return []
 
-        const recentLogs = [...waterQualityLogs]
-          .sort((a, b) => b.logDate.localeCompare(a.logDate))
-          .slice(0, 3)
+        return purifiers.map((p) => {
+          const logs = waterQualityLogs
+            .filter((l) => l.purifierId === p.id)
+            .sort((a, b) => a.logDate.localeCompare(b.logDate))
 
-        if (recentLogs.length < 3) return { hasAlert: false, message: '' }
+          const recentLogs = logs.slice(-3)
 
-        const flowDecreasing =
-          recentLogs[0].flowRate < recentLogs[1].flowRate &&
-          recentLogs[1].flowRate < recentLogs[2].flowRate
+          let flowDecreasing = false
+          let tdsIncreasing = false
+          let odorWorsening = false
 
-        const tdsIncreasing =
-          recentLogs[0].tdsValue > recentLogs[1].tdsValue &&
-          recentLogs[1].tdsValue > recentLogs[2].tdsValue
+          if (recentLogs.length >= 3) {
+            flowDecreasing =
+              recentLogs[2].flowRate < recentLogs[1].flowRate &&
+              recentLogs[1].flowRate < recentLogs[0].flowRate
 
-        const odorWorsening =
-          recentLogs[0].odorLevel === 'obvious' &&
-          (recentLogs[1].odorLevel === 'mild' || recentLogs[1].odorLevel === 'obvious')
+            tdsIncreasing =
+              recentLogs[2].tdsValue > recentLogs[1].tdsValue &&
+              recentLogs[1].tdsValue > recentLogs[0].tdsValue
 
-        if (flowDecreasing || tdsIncreasing || odorWorsening) {
+            odorWorsening =
+              recentLogs[2].odorLevel === 'obvious' &&
+              (recentLogs[1].odorLevel === 'mild' || recentLogs[1].odorLevel === 'obvious')
+          }
+
           const reasons: string[] = []
           if (flowDecreasing) reasons.push('出水速度连续下降')
           if (tdsIncreasing) reasons.push('TDS 数值连续上升')
           if (odorWorsening) reasons.push('异味反馈持续恶化')
 
-          return {
-            hasAlert: true,
-            message: `检测到${reasons.join('、')}，可能不仅仅是滤芯到期，建议检查净水器整体状况`,
-          }
-        }
+          const message = reasons.length > 0
+            ? `${p.brand} ${p.model} 检测到${reasons.join('、')}，可能不仅仅是滤芯到期，建议检查净水器整体状况`
+            : ''
 
-        return { hasAlert: false, message: '' }
+          return {
+            purifierId: p.id,
+            purifierName: `${p.brand} ${p.model}`,
+            flowDecreasing,
+            tdsIncreasing,
+            odorWorsening,
+            message,
+          }
+        }).filter((a) => a.flowDecreasing || a.tdsIncreasing || a.odorWorsening)
       },
     }),
     {

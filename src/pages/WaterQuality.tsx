@@ -4,7 +4,7 @@ import { Plus, Trash2, AlertTriangle, TrendingDown, TrendingUp } from 'lucide-re
 import { WaterQualityFormModal } from '@/components/FormModals'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const ODOR_LABELS: Record<string, string> = {
   none: '无异味',
@@ -19,10 +19,14 @@ const ODOR_COLORS: Record<string, string> = {
 }
 
 export default function WaterQuality() {
-  const { waterQualityLogs, purifiers, deleteWaterQualityLog, getWaterQualityAlert } = useStore()
+  const { waterQualityLogs, purifiers, deleteWaterQualityLog, getWaterQualityAlerts } = useStore()
   const [showModal, setShowModal] = useState(false)
   const [selectedPurifier, setSelectedPurifier] = useState<string>('all')
-  const alert = getWaterQualityAlert()
+  const allAlerts = getWaterQualityAlerts()
+
+  const visibleAlerts = selectedPurifier === 'all'
+    ? allAlerts
+    : allAlerts.filter((a) => a.purifierId === selectedPurifier)
 
   const filteredLogs = selectedPurifier === 'all'
     ? waterQualityLogs
@@ -36,14 +40,6 @@ export default function WaterQuality() {
     tdsValue: l.tdsValue,
     odor: l.odorLevel,
   }))
-
-  const flowDecreasing = sorted.length >= 3 &&
-    sorted[sorted.length - 1].flowRate < sorted[sorted.length - 2].flowRate &&
-    sorted[sorted.length - 2].flowRate < sorted[sorted.length - 3].flowRate
-
-  const tdsIncreasing = sorted.length >= 3 &&
-    sorted[sorted.length - 1].tdsValue > sorted[sorted.length - 2].tdsValue &&
-    sorted[sorted.length - 2].tdsValue > sorted[sorted.length - 3].tdsValue
 
   const getPurifier = (id: string) => purifiers.find((p) => p.id === id)
 
@@ -62,14 +58,37 @@ export default function WaterQuality() {
         </button>
       </div>
 
-      {alert.hasAlert && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl flex items-center gap-3 animate-fade-in">
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center animate-pulse-slow">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
+      {visibleAlerts.length > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl overflow-hidden animate-fade-in">
+          <div className="px-4 py-3 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center animate-pulse-slow flex-shrink-0">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+            </div>
             <p className="text-sm font-semibold text-amber-800">水质异常预警</p>
-            <p className="text-xs text-amber-600 mt-0.5">{alert.message}</p>
+          </div>
+          <div className="px-4 pb-3 space-y-2">
+            {visibleAlerts.map((a) => (
+              <div key={a.purifierId} className="bg-white/60 rounded-lg p-2.5">
+                <p className="text-xs font-semibold text-amber-800 mb-1">{a.purifierName}</p>
+                <div className="flex flex-wrap gap-2">
+                  {a.flowDecreasing && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                      <TrendingDown className="w-3 h-3" /> 出水速度连续下降
+                    </span>
+                  )}
+                  {a.tdsIncreasing && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                      <TrendingUp className="w-3 h-3" /> TDS 连续上升
+                    </span>
+                  )}
+                  {a.odorWorsening && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                      <AlertTriangle className="w-3 h-3" /> 异味持续恶化
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -116,23 +135,6 @@ export default function WaterQuality() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          )}
-
-          {(flowDecreasing || tdsIncreasing) && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
-              {flowDecreasing && (
-                <div className="flex items-center gap-1 text-xs text-amber-700">
-                  <TrendingDown className="w-3.5 h-3.5" />
-                  出水速度连续下降
-                </div>
-              )}
-              {tdsIncreasing && (
-                <div className="flex items-center gap-1 text-xs text-amber-700">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  TDS 连续上升
-                </div>
-              )}
             </div>
           )}
 

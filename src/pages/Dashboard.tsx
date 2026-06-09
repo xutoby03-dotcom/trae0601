@@ -85,9 +85,9 @@ function FilterCard({ filter }: { filter: FilterWithStatus }) {
 }
 
 export default function Dashboard() {
-  const { purifiers, getFiltersWithStatus, getWaterQualityAlert } = useStore()
+  const { purifiers, getFiltersWithStatus, getWaterQualityAlerts } = useStore()
   const filters = getFiltersWithStatus()
-  const alert = getWaterQualityAlert()
+  const alerts = getWaterQualityAlerts()
   const [showReplaceModal, setShowReplaceModal] = useState(false)
   const [showQualityModal, setShowQualityModal] = useState(false)
   const navigate = useNavigate()
@@ -115,19 +115,25 @@ export default function Dashboard() {
         <p className="text-sm text-slate-400 mt-1 ml-[52px]">实时掌握家中滤芯状态</p>
       </div>
 
-      {alert.hasAlert && (
+      {alerts.length > 0 && (
         <div
-          className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl flex items-center gap-3 cursor-pointer hover:shadow-md transition-all animate-fade-in"
+          className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl overflow-hidden cursor-pointer hover:shadow-md transition-all animate-fade-in"
           onClick={() => navigate('/water-quality')}
         >
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center animate-pulse-slow">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center animate-pulse-slow flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800">水质异常预警</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-amber-400 flex-shrink-0" />
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-800">水质异常预警</p>
-            <p className="text-xs text-amber-600 mt-0.5">{alert.message}</p>
+          <div className="px-4 pb-3 space-y-1.5">
+            {alerts.map((a) => (
+              <p key={a.purifierId} className="text-xs text-amber-700">{a.message}</p>
+            ))}
           </div>
-          <ArrowRight className="w-4 h-4 text-amber-400" />
         </div>
       )}
 
