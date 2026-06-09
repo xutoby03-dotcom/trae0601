@@ -116,7 +116,6 @@ export function checkAndCreateConflicts(newPlan: WalkPlan): ConflictAlert[] {
     (p) =>
       p.id !== newPlan.id &&
       p.date === newPlan.date &&
-      p.timeSlot === newPlan.timeSlot &&
       p.route === newPlan.route &&
       p.specificTime === newPlan.specificTime
   )

@@ -61,7 +61,7 @@ export default function Home({ onNavigate }: Props) {
   function mergePlans(plans: WalkPlan[]): MergedRoute[] {
     const grouped = new Map<string, WalkPlan[]>()
     for (const p of plans) {
-      const key = `${p.date}-${p.route}-${p.timeSlot}-${p.specificTime}`
+      const key = `${p.date}-${p.route}-${p.specificTime}`
       if (!grouped.has(key)) grouped.set(key, [])
       grouped.get(key)!.push(p)
     }
@@ -73,7 +73,6 @@ export default function Home({ onNavigate }: Props) {
         (c) =>
           c.route === first.route &&
           c.date === first.date &&
-          c.timeSlot === first.timeSlot &&
           c.specificTime === first.specificTime
       )
       merged.push({
@@ -142,7 +141,7 @@ export default function Home({ onNavigate }: Props) {
         </div>
         {merged.map((m) => (
           <div
-            key={`${m.route}-${m.date}-${m.timeSlot}-${m.specificTime}`}
+            key={`${m.route}-${m.date}-${m.specificTime}`}
             className={`merged-card ${m.hasConflict ? 'has-conflict' : ''}`}
           >
             <div className="card-header">
