@@ -15,12 +15,11 @@ export default function CreateGame() {
   const [endTime, setEndTime] = useState('')
   const [courtName, setCourtName] = useState('')
   const [gameType, setGameType] = useState<GameType>('half')
+  const [maxPlayers, setMaxPlayers] = useState(8)
   const [level, setLevel] = useState<Level>('casual')
   const [needTeamSplit, setNeedTeamSplit] = useState(false)
   const [contact, setContact] = useState('')
   const [conflictGame, setConflictGame] = useState<ReturnType<typeof checkConflict>>(null)
-
-  const maxPlayers = gameType === 'half' ? 8 : 10
 
   useEffect(() => {
     if (courtName && date && startTime && endTime) {
@@ -30,7 +29,7 @@ export default function CreateGame() {
     }
   }, [courtName, date, startTime, endTime, checkConflict])
 
-  const isDisabled = !date || !startTime || !endTime || !courtName || !contact || !!conflictGame
+  const isDisabled = !date || !startTime || !endTime || !courtName || !contact || maxPlayers < 2 || !!conflictGame
 
   const handleSubmit = () => {
     const result = createGame({
@@ -111,26 +110,49 @@ export default function CreateGame() {
             <label className="block text-zinc-400 text-sm mb-2">赛制</label>
             <div className="flex gap-3">
               <button
-                onClick={() => setGameType('half')}
+                onClick={() => { setGameType('half'); setMaxPlayers(8) }}
                 className={`flex-1 py-3 rounded-xl font-medium ${
                   gameType === 'half'
                     ? 'bg-orange-500 text-white'
                     : 'bg-zinc-800 text-zinc-400'
                 }`}
               >
-                半场(8人)
+                半场
               </button>
               <button
-                onClick={() => setGameType('full')}
+                onClick={() => { setGameType('full'); setMaxPlayers(10) }}
                 className={`flex-1 py-3 rounded-xl font-medium ${
                   gameType === 'full'
                     ? 'bg-orange-500 text-white'
                     : 'bg-zinc-800 text-zinc-400'
                 }`}
               >
-                全场(10人)
+                全场
               </button>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-zinc-400 text-sm mb-2">预计人数</label>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMaxPlayers(v => Math.max(2, v - 1))}
+                className="bg-zinc-800 rounded-lg w-10 h-10 text-white font-bold text-lg flex items-center justify-center hover:bg-zinc-700"
+              >
+                −
+              </button>
+              <div className="flex-1 text-center">
+                <span className="text-white text-2xl font-bold">{maxPlayers}</span>
+                <span className="text-zinc-500 text-sm ml-1">人</span>
+              </div>
+              <button
+                onClick={() => setMaxPlayers(v => Math.min(20, v + 1))}
+                className="bg-zinc-800 rounded-lg w-10 h-10 text-white font-bold text-lg flex items-center justify-center hover:bg-zinc-700"
+              >
+                +
+              </button>
+            </div>
+            <p className="text-zinc-500 text-xs mt-1.5">半场默认8人，全场默认10人，可自行调整</p>
           </div>
 
           <div>
