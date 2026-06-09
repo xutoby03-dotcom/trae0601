@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Check, X, Plus, Trash2, Camera, Clock, ArrowLeft } from 'lucide-react'
+import { ChevronDown, ChevronRight, Check, X, Plus, Trash2, Camera, Clock, ArrowLeft, AlertTriangle, Wallet, FileWarning } from 'lucide-react'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
 import { CATEGORY_LABELS, CATEGORY_ICONS, SUPPLY_OPTIONS } from '@/types'
@@ -157,6 +157,57 @@ export default function InspectionDetail() {
           </div>
         )}
       </header>
+
+      {inspection.status === 'rework' && inspection.reworkItems.length > 0 && (
+        <div className="px-4 pt-3">
+          <div className="bg-coral-50 border border-coral-300 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 bg-coral-100/60 flex items-center gap-2 border-b border-coral-200">
+              <AlertTriangle className="w-4 h-4 text-coral-600" />
+              <span className="font-serif font-bold text-coral-700 text-sm">房东返工通知</span>
+              <span className="ml-auto text-xs text-coral-500">{inspection.reworkItems.length}项需返工</span>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="space-y-2">
+                {inspection.reworkItems.map((ri) => {
+                  const ci = inspection.checkItems.find((c) => c.id === ri.checkItemId)
+                  if (!ci) return null
+                  return (
+                    <div key={ri.id} className="flex items-start gap-2">
+                      <span className="text-sm mt-px">{CATEGORY_ICONS[ci.category]}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-warm-800 font-medium">{ci.name}</div>
+                        {ri.reason && <div className="text-xs text-warm-500 mt-0.5">原因：{ri.reason}</div>}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-coral-600">{ri.deductionReason}</span>
+                          {ri.deductionAmount > 0 && <span className="text-xs font-bold text-coral-600">-¥{ri.deductionAmount}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-coral-200">
+                <div className="flex flex-wrap gap-1.5">
+                  {(() => {
+                    const rm = new Map<string, number>()
+                    inspection.reworkItems.forEach((ri) => rm.set(ri.deductionReason, (rm.get(ri.deductionReason) || 0) + 1))
+                    return [...rm.entries()].map(([r, c]) => (
+                      <span key={r} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-coral-100 rounded-full text-[11px] text-coral-600">
+                        <FileWarning className="w-2.5 h-2.5" />{r} ×{c}
+                      </span>
+                    ))
+                  })()}
+                </div>
+                <div className="flex items-center gap-1.5 text-coral-700">
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span className="font-bold text-sm">¥{inspection.reworkItems.reduce((s, ri) => s + ri.deductionAmount, 0).toFixed(0)}</span>
+                  <span className="text-xs text-coral-500">扣费合计</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="px-4 py-4 space-y-6">
         <section className="space-y-2">

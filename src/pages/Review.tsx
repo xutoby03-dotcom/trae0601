@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, X, AlertTriangle, RotateCcw, ChevronDown, ChevronRight, Camera, Package } from 'lucide-react'
+import { ArrowLeft, Check, X, AlertTriangle, RotateCcw, ChevronDown, ChevronRight, Camera, Package, Wallet, FileWarning } from 'lucide-react'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
 import { CATEGORY_LABELS, CATEGORY_ICONS } from '@/types'
@@ -312,6 +312,41 @@ export default function Review() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {reworkItems.length > 0 && (
+        <div className="px-4 mt-4">
+          <div className="bg-coral-50 border border-coral-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-coral-700 font-serif font-bold text-sm">
+              <Wallet className="w-4 h-4" />
+              扣费汇总
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-coral-100">
+                <div className="text-2xl font-bold text-coral-600">{reworkItems.length}</div>
+                <div className="text-xs text-warm-500 mt-0.5">返工项数</div>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-coral-100">
+                <div className="text-2xl font-bold text-coral-600">¥{reworkItems.reduce((s, ri) => s + ri.deductionAmount, 0).toFixed(0)}</div>
+                <div className="text-xs text-warm-500 mt-0.5">扣费合计</div>
+              </div>
+            </div>
+            {(() => {
+              const reasonMap = new Map<string, number>()
+              reworkItems.forEach((ri) => reasonMap.set(ri.deductionReason, (reasonMap.get(ri.deductionReason) || 0) + 1))
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {[...reasonMap.entries()].map(([reason, count]) => (
+                    <span key={reason} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-coral-100 rounded-full text-xs text-coral-700">
+                      <FileWarning className="w-3 h-3" />
+                      {reason} ×{count}
+                    </span>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
         </div>
       )}
 
