@@ -3,7 +3,7 @@ import { groupByStatus, useAutoStatusUpdate, formatDateTime } from '@/utils/help
 import { STATUS_LABELS, SERVICE_LABELS, REMINDER_TYPE_LABELS } from '@/types'
 import type { AppointmentStatus } from '@/types'
 import { useNavigate } from 'react-router-dom'
-import { Clock, MapPin, AlertTriangle, Bell, ChevronRight, PawPrint } from 'lucide-react'
+import { Clock, MapPin, AlertTriangle, Bell, ChevronRight, PawPrint, Check } from 'lucide-react'
 import { isPast, parseISO, format, differenceInDays } from 'date-fns'
 
 const STATUS_COLORS: Record<AppointmentStatus, string> = {
@@ -34,6 +34,7 @@ export default function Home() {
   const appointments = useGroomingStore((s) => s.appointments)
   const reminders = useGroomingStore((s) => s.reminders)
   const groomingRecords = useGroomingStore((s) => s.groomingRecords)
+  const completeReminder = useGroomingStore((s) => s.completeReminder)
 
   const grouped = groupByStatus(appointments)
   const activeAppointments = appointments.filter((a) => a.status !== 'completed')
@@ -57,12 +58,19 @@ export default function Home() {
             <AlertTriangle size={18} className="text-red-500" />
             <span className="font-semibold text-red-700 text-sm">已过期提醒</span>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {overdueReminders.map((r) => (
-              <div key={r.id} className="flex items-center gap-2 text-sm text-red-600">
-                <Bell size={14} />
-                <span>{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
-                <span className="text-red-400 text-xs">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+              <div key={r.id} className="flex items-center gap-2 text-sm text-red-600 bg-white/60 rounded-lg px-3 py-2">
+                <Bell size={14} className="shrink-0" />
+                <span className="flex-1">{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
+                <span className="text-red-400 text-xs shrink-0">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); completeReminder(r.id) }}
+                  className="shrink-0 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center transition-colors"
+                  title="标记完成"
+                >
+                  <Check size={12} className="text-red-500" />
+                </button>
               </div>
             ))}
           </div>
@@ -75,11 +83,19 @@ export default function Home() {
             <Bell size={18} className="text-[#E8A87C]" />
             <span className="font-semibold text-[#3D2B1F] text-sm">即将到期</span>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {upcomingReminders.map((r) => (
-              <div key={r.id} className="flex items-center gap-2 text-sm text-[#3D2B1F]">
-                <span>{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
-                <span className="text-[#8B7E74] text-xs">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+              <div key={r.id} className="flex items-center gap-2 text-sm text-[#3D2B1F] bg-white/60 rounded-lg px-3 py-2">
+                <Bell size={14} className="shrink-0 text-[#E8A87C]" />
+                <span className="flex-1">{getPetName(r.petId)} - {REMINDER_TYPE_LABELS[r.type]}</span>
+                <span className="text-[#8B7E74] text-xs shrink-0">({format(parseISO(r.dueDate), 'MM/dd')})</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); completeReminder(r.id) }}
+                  className="shrink-0 w-6 h-6 rounded-full bg-[#E8A87C]/20 hover:bg-[#E8A87C]/40 flex items-center justify-center transition-colors"
+                  title="标记完成"
+                >
+                  <Check size={12} className="text-[#E8A87C]" />
+                </button>
               </div>
             ))}
           </div>

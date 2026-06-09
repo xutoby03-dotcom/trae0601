@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGroomingStore } from '@/store/useGroomingStore'
-import type { Pet, CoatLength, Temperament, ServiceType } from '@/types'
-import { COAT_LENGTH_LABELS, TEMPERAMENT_LABELS, SERVICE_LABELS } from '@/types'
-import { ArrowLeft, Save } from 'lucide-react'
+import type { Pet, CoatLength, Temperament, ServiceType, ReminderType } from '@/types'
+import { COAT_LENGTH_LABELS, TEMPERAMENT_LABELS, SERVICE_LABELS, REMINDER_TYPE_LABELS } from '@/types'
+import { ArrowLeft, Save, BellPlus } from 'lucide-react'
 
 const AVATAR_OPTIONS = ['🐶', '🐱', '🐰', '🐹', '🦊', '🐻', '🐼', '🐨', '🦁', '🐯', '🐸', '🐧']
 
@@ -27,11 +27,14 @@ export default function PetForm() {
   const pets = useGroomingStore((s) => s.pets)
   const addPet = useGroomingStore((s) => s.addPet)
   const updatePet = useGroomingStore((s) => s.updatePet)
+  const addReminder = useGroomingStore((s) => s.addReminder)
 
   const isEdit = Boolean(id) && id !== 'new'
   const existingPet = isEdit ? pets.find((p) => p.id === id) : null
 
   const [form, setForm] = useState(emptyPet)
+  const [reminderType, setReminderType] = useState<ReminderType>('bath')
+  const [reminderDate, setReminderDate] = useState('')
 
   useEffect(() => {
     if (existingPet) {
@@ -70,6 +73,19 @@ export default function PetForm() {
         ? prev.defaultServices.filter((s) => s !== svc)
         : [...prev.defaultServices, svc],
     }))
+  }
+
+  const handleAddReminder = () => {
+    if (!isEdit || !id || !reminderDate) return
+    addReminder({
+      id: crypto.randomUUID(),
+      petId: id,
+      type: reminderType,
+      dueDate: new Date(reminderDate).toISOString(),
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+    })
+    setReminderDate('')
   }
 
   return (
@@ -211,6 +227,45 @@ export default function PetForm() {
             ))}
           </div>
         </div>
+
+        {isEdit && id && (
+          <div className="space-y-2 border-t border-[#E8A87C]/20 pt-5">
+            <div className="flex items-center gap-2">
+              <BellPlus size={16} className="text-[#E8A87C]" />
+              <label className="text-sm font-medium text-[#3D2B1F]">手动添加提醒</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-2">
+                {(Object.entries(REMINDER_TYPE_LABELS) as [ReminderType, string][]).map(([val, label]) => (
+                  <button
+                    key={val}
+                    onClick={() => setReminderType(val)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                      reminderType === val
+                        ? 'bg-[#A8D5BA] text-[#3D2B1F] shadow-md'
+                        : 'bg-[#FFF8F0] text-[#8B7E74] border border-[#A8D5BA]/30'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="date"
+                value={reminderDate}
+                onChange={(e) => setReminderDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-xl border border-[#E8A87C]/30 bg-[#FFF8F0] focus:border-[#E8A87C] focus:ring-2 focus:ring-[#E8A87C]/20 outline-none transition-all text-sm"
+              />
+              <button
+                onClick={handleAddReminder}
+                disabled={!reminderDate}
+                className="px-4 py-1.5 rounded-xl bg-[#A8D5BA] text-[#3D2B1F] text-xs font-medium hover:bg-[#96c9a8] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                添加
+              </button>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={handleSave}
