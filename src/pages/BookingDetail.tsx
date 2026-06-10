@@ -67,6 +67,7 @@ export default function BookingDetail({ onOpenFeedback }: Props) {
     cancelBooking,
     addEquipmentIssue,
     resolveEquipmentIssue,
+    updateBookingStatus,
     checkOverdueBookings,
   } = useStore(s => ({
     bookings: s.bookings,
@@ -80,6 +81,7 @@ export default function BookingDetail({ onOpenFeedback }: Props) {
     cancelBooking: s.cancelBooking,
     addEquipmentIssue: s.addEquipmentIssue,
     resolveEquipmentIssue: s.resolveEquipmentIssue,
+    updateBookingStatus: s.updateBookingStatus,
     checkOverdueBookings: s.checkOverdueBookings,
   }));
 
@@ -448,7 +450,7 @@ export default function BookingDetail({ onOpenFeedback }: Props) {
           )}
           {booking.status === 'needs_cleaning' && isAdmin && (
             <button
-              onClick={() => { onOpenFeedback(booking.id); }}
+              onClick={() => { updateBookingStatus(booking.id, 'completed'); onOpenFeedback(booking.id); }}
               className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
             >
               <Sparkles size={18} /> 打扫并完成
