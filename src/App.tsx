@@ -87,6 +87,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage onOpenFeedback={openFeedback} />} />
           <Route path="/booking" element={<BookingPage />} />
+          <Route path="/booking/:id" element={<BookingDetail onOpenFeedback={openFeedback} />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/admin" element={<AdminPage onOpenFeedback={openFeedback} />} />
         </Routes>

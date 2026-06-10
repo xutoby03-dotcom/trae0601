@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CalendarPlus, LogIn, LogOut, Sparkles, Clock, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useStore, practiceTypeLabels } from '../store';
 import RoomCard from '../components/RoomCard';
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export default function HomePage({ onOpenFeedback }: Props) {
+  const navigate = useNavigate();
   const {
     getBookingsGroupedByStatus,
     rooms,
@@ -149,6 +150,7 @@ export default function HomePage({ onOpenFeedback }: Props) {
               room={room}
               status="in_use"
               bookingInfo={<BookingInfo booking={booking} />}
+              onClick={() => navigate(`/booking/${booking.id}`)}
             />
           );
         })}
@@ -164,6 +166,7 @@ export default function HomePage({ onOpenFeedback }: Props) {
               room={room}
               status="upcoming"
               bookingInfo={<BookingInfo booking={booking} />}
+              onClick={() => navigate(`/booking/${booking.id}`)}
             />
           );
         })}
@@ -179,6 +182,7 @@ export default function HomePage({ onOpenFeedback }: Props) {
               room={room}
               status="needs_cleaning"
               bookingInfo={<BookingInfo booking={booking} />}
+              onClick={() => navigate(`/booking/${booking.id}`)}
             />
           );
         })}

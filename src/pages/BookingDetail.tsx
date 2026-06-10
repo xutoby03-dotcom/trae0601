@@ -25,6 +25,10 @@ import { zhCN } from 'date-fns/locale';
 type IssueCategory = EquipmentIssue['category'];
 type IssueSeverity = EquipmentIssue['severity'];
 
+interface Props {
+  onOpenFeedback: (bookingId: string) => void;
+}
+
 const categoryLabels: Record<IssueCategory, { label: string; icon: string }> = {
   keyboard: { label: '琴键/键盘', icon: '🎹' },
   drum: { label: '鼓具', icon: '🥁' },
@@ -47,7 +51,7 @@ const statusLabels: Record<string, { label: string; color: string; icon: string 
   needs_cleaning: { label: '待打扫', color: 'bg-orange-100 text-orange-700', icon: '🧹' },
 };
 
-export default function BookingDetail() {
+export default function BookingDetail({ onOpenFeedback }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -139,7 +143,7 @@ export default function BookingDetail() {
 
   const handleCheckOutWithFeedback = () => {
     checkOutBooking(booking.id);
-    setShowFeedback(true);
+    onOpenFeedback(booking.id);
   };
 
   const handleCancel = () => {
@@ -444,7 +448,7 @@ export default function BookingDetail() {
           )}
           {booking.status === 'needs_cleaning' && isAdmin && (
             <button
-              onClick={() => { setShowFeedback(true); }}
+              onClick={() => { onOpenFeedback(booking.id); }}
               className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
             >
               <Sparkles size={18} /> 打扫并完成
@@ -452,7 +456,7 @@ export default function BookingDetail() {
           )}
           {(booking.status === 'completed' || booking.status === 'needs_cleaning') && !feedback && (
             <button
-              onClick={() => setShowFeedback(true)}
+              onClick={() => onOpenFeedback(booking.id)}
               className="btn-primary flex-1 py-3 flex items-center justify-center gap-2"
             >
               <Sparkles size={18} /> 写评价

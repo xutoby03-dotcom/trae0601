@@ -1,4 +1,4 @@
-import { Music, Drum, Mic, Users, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { Music, Drum, Mic, Users, ChevronRight, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import type { Room } from '../types';
 import { roomTypeLabels, roomTypeColors, useStore } from '../store';
 
@@ -27,10 +27,12 @@ const statusLabels = {
 
 export default function RoomCard({ room, status = 'available', bookingInfo, action, onClick }: RoomCardProps) {
   const StatusIcon = statusLabels[status]?.icon;
+  const equipmentIssues = useStore(s => s.equipmentIssues);
+  const hasUnresolvedIssue = equipmentIssues.some(e => e.roomId === room.id && !e.resolved);
 
   return (
     <div
-      className={`card p-4 cursor-pointer transition-all hover:shadow-md ${onClick ? 'hover:border-indigo-300' : ''}`}
+      className={`card p-4 cursor-pointer transition-all hover:shadow-md ${onClick ? 'hover:border-indigo-300' : ''} ${hasUnresolvedIssue ? 'ring-2 ring-yellow-400 ring-offset-1' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-3">
@@ -39,16 +41,31 @@ export default function RoomCard({ room, status = 'available', bookingInfo, acti
             <RoomIcon type={room.type} />
           </div>
           <div>
-            <h4 className="font-semibold text-gray-800">{room.name}</h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-semibold text-gray-800">{room.name}</h4>
+              {hasUnresolvedIssue && (
+                <span className="text-yellow-600" title="有未解决的设备问题">
+                  <AlertTriangle size={14} />
+                </span>
+              )}
+            </div>
             <span className="text-xs text-gray-500">{roomTypeLabels[room.type]} · {room.floor}</span>
           </div>
         </div>
-        {status && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusLabels[status].color}`}>
-            {StatusIcon && <StatusIcon size={12} />}
-            {statusLabels[status].text}
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          {hasUnresolvedIssue && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+              <AlertTriangle size={12} />
+              设备异常
+            </span>
+          )}
+          {status && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusLabels[status].color}`}>
+              {StatusIcon && <StatusIcon size={12} />}
+              {statusLabels[status].text}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
