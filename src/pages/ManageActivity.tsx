@@ -9,6 +9,9 @@ import {
   AlertTriangle,
   QrCode,
   ListChecks,
+  Search,
+  XSquare,
+  UserX,
 } from 'lucide-react';
 import { useAppStore } from '../store/appStore.js';
 import type { Registration } from '../../shared/types.js';
@@ -16,10 +19,14 @@ import type { Registration } from '../../shared/types.js';
 export default function ManageActivity() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchActivity, fetchRegistrations, registrations, activities, cancelRegistration } = useAppStore();
+  const { fetchActivity, fetchRegistrations, registrations, activities, cancelRegistration, markAbsent } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'registered' | 'waitlist' | 'cancelled'>('registered');
   const [loading, setLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -44,6 +51,66 @@ export default function ManageActivity() {
       alert((err as Error).message);
     } finally {
       setLoading(null);
+    }
+  };
+
+  const handleBatchAbsent = async () => {
+    if (!id || selectedIds.size === 0) return;
+    if (!confirm(`确定将 ${selectedIds.size} 人标记为缺席吗？`)) return;
+    setBatchLoading(true);
+    setBatchError(null);
+    let failed = 0;
+    for (const regId of selectedIds) {
+      try {
+        await markAbsent(regId, id);
+      } catch {
+        failed++;
+      }
+    }
+    if (failed > 0) {
+      setBatchError(`${failed} 人标记缺席失败`);
+    }
+    setSelectedIds(new Set());
+    setBatchLoading(false);
+  };
+
+  const handleBatchCancel = async () => {
+    if (!id || selectedIds.size === 0) return;
+    if (!confirm(`确定取消 ${selectedIds.size} 人的报名吗？候补人员将自动转正。`)) return;
+    setBatchLoading(true);
+    setBatchError(null);
+    let failed = 0;
+    for (const regId of selectedIds) {
+      try {
+        await cancelRegistration(regId, id);
+      } catch {
+        failed++;
+      }
+    }
+    if (failed > 0) {
+      setBatchError(`${failed} 人取消报名失败`);
+    }
+    setSelectedIds(new Set());
+    setBatchLoading(false);
+  };
+
+  const toggleSelect = (regId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(regId)) {
+        next.delete(regId);
+      } else {
+        next.add(regId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (list: Registration[]) => {
+    if (selectedIds.size === list.length && list.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(list.map((r) => r.id)));
     }
   };
 
@@ -80,16 +147,28 @@ export default function ManageActivity() {
   ];
 
   const getCurrentList = (): Registration[] => {
+    let list: Registration[];
     switch (activeTab) {
       case 'registered':
-        return registeredList;
+        list = registeredList;
+        break;
       case 'waitlist':
-        return waitlistList;
+        list = waitlistList;
+        break;
       case 'cancelled':
-        return cancelledList;
+        list = cancelledList;
+        break;
       default:
-        return [];
+        list = [];
     }
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.college.toLowerCase().includes(q) ||
+        r.phone.includes(q),
+    );
   };
 
   if (!activity) {
@@ -99,6 +178,9 @@ export default function ManageActivity() {
       </div>
     );
   }
+
+  const filteredList = getCurrentList();
+  const allSelected = filteredList.length > 0 && filteredList.every((r) => selectedIds.has(r.id));
 
   return (
     <div className="min-h-screen bg-cream-100 pb-12">
@@ -144,13 +226,18 @@ export default function ManageActivity() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs + Search + Batch */}
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          {/* Tabs */}
           <div className="flex border-b border-gray-100">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSelectedIds(new Set());
+                  setSearchQuery('');
+                }}
                 className={`flex-1 py-4 font-medium text-sm transition-colors relative ${
                   activeTab === tab.id ? tab.color : 'text-gray-500 hover:bg-gray-50'
                 }`}
@@ -168,26 +255,127 @@ export default function ManageActivity() {
             ))}
           </div>
 
+          {/* Search */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-2 border-transparent rounded-xl focus:bg-white focus:border-primary-400 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-sm"
+                placeholder="搜索姓名、学院、手机号..."
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Batch Actions (only for registered tab) */}
+          {activeTab === 'registered' && selectedIds.size > 0 && (
+            <div className="px-4 py-3 bg-primary-50 border-b border-primary-100 flex items-center justify-between animate-fade-in">
+              <span className="text-sm font-medium text-primary-700">
+                已选 {selectedIds.size} 人
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBatchAbsent}
+                  disabled={batchLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  <UserX className="w-4 h-4" />
+                  {batchLoading ? '处理中...' : '批量缺席'}
+                </button>
+                <button
+                  onClick={handleBatchCancel}
+                  disabled={batchLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  <XSquare className="w-4 h-4" />
+                  {batchLoading ? '处理中...' : '批量取消'}
+                </button>
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+                >
+                  取消选择
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Batch Error */}
+          {batchError && (
+            <div className="px-4 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
+              <span className="text-sm text-red-600 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                {batchError}
+              </span>
+              <button
+                onClick={() => setBatchError(null)}
+                className="text-red-400 hover:text-red-600"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Select All (only for registered tab) */}
+          {activeTab === 'registered' && filteredList.length > 0 && (
+            <div className="px-4 py-2.5 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => toggleSelectAll(filteredList)}
+                className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-400"
+              />
+              <span className="text-xs text-gray-500">
+                {allSelected ? '取消全选' : '全选'}
+              </span>
+            </div>
+          )}
+
           {/* List */}
-          <div className="divide-y divide-gray-50 max-h-[60vh] overflow-y-auto">
-            {getCurrentList().length === 0 ? (
+          <div className="divide-y divide-gray-50 max-h-[50vh] overflow-y-auto">
+            {filteredList.length === 0 ? (
               <div className="py-12 text-center text-gray-400">
                 <ListChecks className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                暂无数据
+                {searchQuery ? '没有匹配的搜索结果' : '暂无数据'}
               </div>
             ) : (
-              getCurrentList().map((reg, index) => (
+              filteredList.map((reg) => (
                 <div
                   key={reg.id}
-                  className="p-4 hover:bg-gray-50 transition-colors"
-                  style={{ animationDelay: `${index * 0.05}s` }}
+                  className={`p-4 hover:bg-gray-50 transition-colors ${
+                    selectedIds.has(reg.id) ? 'bg-primary-50/50' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {activeTab === 'registered' && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(reg.id)}
+                        onChange={() => toggleSelect(reg.id)}
+                        className="w-4 h-4 text-primary-500 rounded border-gray-300 focus:ring-primary-400"
+                      />
+                    )}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      reg.checkInStatus === 'checked'
+                        ? 'bg-green-100 text-green-600'
+                        : reg.checkInStatus === 'absent'
+                        ? 'bg-red-100 text-red-600'
+                        : 'bg-gradient-to-br from-primary-400 to-primary-600 text-white'
+                    }`}>
                       {reg.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-gray-800">{reg.name}</span>
                         {activeTab === 'registered' && getCheckInBadge(reg.checkInStatus)}
                         {activeTab === 'waitlist' && (
