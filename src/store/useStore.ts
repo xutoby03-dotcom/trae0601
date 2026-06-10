@@ -100,6 +100,9 @@ export const useStore = create<AppState>()(
         
         set((state) => ({
           tickets: [...state.tickets, newTicket],
+          rooms: state.rooms.map((r) =>
+            r.id === ticketData.roomId ? { ...r, status: 'repairing' } : r
+          ),
         }));
         
         get().addTicketLog({
@@ -146,7 +149,15 @@ export const useStore = create<AppState>()(
         if (status === 'completed') {
           const updatedTicket = get().tickets.find((t) => t.id === ticketId);
           if (updatedTicket) {
-            get().updateRoom(updatedTicket.roomId, { status: 'normal' });
+            const hasUnfinishedTickets = get().tickets.some(
+              (t) =>
+                t.roomId === updatedTicket.roomId &&
+                t.id !== ticketId &&
+                ['pending', 'assigned', 'processing'].includes(t.status)
+            );
+            if (!hasUnfinishedTickets) {
+              get().updateRoom(updatedTicket.roomId, { status: 'normal' });
+            }
           }
         }
       },
