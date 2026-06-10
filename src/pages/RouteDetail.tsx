@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -15,6 +16,9 @@ import {
   AlertCircle,
   Plus,
   Image as ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from 'lucide-react';
 import RiskBadge from '@/components/RiskBadge';
 import { useStore } from '@/store/useStore';
@@ -35,6 +39,38 @@ export default function RouteDetail() {
   const route = getRouteById(id);
   const checkins = getCheckinsByRouteId(id);
   const events = getEventsByRouteId(id);
+
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const openLightbox = (idx: number) => setLightboxIndex(idx);
+  const closeLightbox = () => setLightboxIndex(null);
+
+  const prevPhoto = () => {
+    if (lightboxIndex === null || !route?.photos?.length) return;
+    const total = route.photos.length;
+    setLightboxIndex((lightboxIndex - 1 + total) % total);
+  };
+
+  const nextPhoto = () => {
+    if (lightboxIndex === null || !route?.photos?.length) return;
+    const total = route.photos.length;
+    setLightboxIndex((lightboxIndex + 1) % total);
+  };
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'ArrowRight') nextPhoto();
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [lightboxIndex, route?.photos?.length]);
 
   if (!route) {
     return (
@@ -252,20 +288,21 @@ export default function RouteDetail() {
                 <div>
                   <p className="text-sm text-slate-400 mb-3 flex items-center gap-1.5">
                     <ImageIcon className="h-3.5 w-3.5" />
-                    沿途照片 ({route.photos.length})
+                    沿途照片 ({route.photos.length}) · 点击查看大图
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {route.photos.map((src, idx) => (
-                      <div
+                      <button
                         key={idx}
-                        className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900 ring-1 ring-slate-700/50 hover:ring-emerald-500/40 transition-all group"
+                        onClick={() => openLightbox(idx)}
+                        className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900 ring-1 ring-slate-700/50 hover:ring-emerald-500/40 transition-all group text-left cursor-zoom-in"
                       >
                         <img
                           src={src}
                           alt={`沿途照片 ${idx + 1}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -467,6 +504,61 @@ export default function RouteDetail() {
             </div>
           )}
         </section>
+
+        {/* 照片灯箱 */}
+        {lightboxIndex !== null && route?.photos && route.photos.length > 0 && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+              className="absolute top-5 right-5 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              title="关闭 (Esc)"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prevPhoto();
+              }}
+              className="absolute left-4 md:left-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              title="上一张 (←)"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                nextPhoto();
+              }}
+              className="absolute right-4 md:right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              title="下一张 (→)"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+
+            <div
+              className="relative max-w-[92vw] max-h-[88vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={route.photos[lightboxIndex]}
+                alt={`沿途照片 ${lightboxIndex + 1}`}
+                className="max-w-full max-h-[88vh] object-contain rounded-xl shadow-2xl"
+              />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-black/60 text-white text-sm font-medium">
+                {lightboxIndex + 1} / {route.photos.length}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
