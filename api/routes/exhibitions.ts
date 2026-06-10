@@ -38,19 +38,39 @@ router.post('/', (req, res) => {
   const exId = info.lastInsertRowid as number
   const boothStmt = db.prepare(
     `INSERT INTO booths (exhibition_id, booth_number, row, col, type, zone, max_power_watts, status)
-     VALUES (?, ?, ?, ?, 'booth', ?, 2000, 'available')`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
   const tx = db.transaction(() => {
     let count = 0
+    const midRow = Math.floor(grid_rows / 2)
+    const midCol = Math.floor(grid_cols / 2)
     for (let r = 0; r < grid_rows; r++) {
       for (let c = 0; c < grid_cols; c++) {
-        if (r === Math.floor(grid_rows / 2) && (c === Math.floor(grid_cols / 2) || c === Math.floor(grid_cols / 2) - 1)) {
-          boothStmt.run(exId, `X-${r}-${c}`, r, c, 'aisle', 'X', 0, 'available')
+        if (r === midRow && (c === midCol || c === Math.max(0, midCol - 1))) {
+          boothStmt.run(
+            exId,
+            `通道-${r + 1}-${c + 1}`,
+            r,
+            c,
+            'aisle',
+            '通道',
+            0,
+            'available'
+          )
           continue
         }
         const num = String.fromCharCode(65 + r) + (c + 1).toString().padStart(2, '0')
         const zone = num[0]
-        boothStmt.run(exId, num, r, c, zone, 2000, 'available')
+        boothStmt.run(
+          exId,
+          num,
+          r,
+          c,
+          'booth',
+          zone,
+          2000,
+          'available'
+        )
         count++
       }
     }
