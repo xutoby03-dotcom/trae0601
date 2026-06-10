@@ -68,11 +68,13 @@ export default function ActivityDetail() {
       const result = await register(id, formData);
       setUserRegistration(result.registration);
       if (result.isWaitlist) {
-        setMessage({ type: 'waitlist', text: '报名成功，您已进入候补队列' });
+        setMessage({ type: 'waitlist', text: `已加入候补，当前排第 ${result.registration.waitlistPosition} 位` });
       } else {
         setMessage({ type: 'success', text: '报名成功！' });
       }
       setShowForm(false);
+      fetchRegistrations(id);
+      setFormData({ name: '', college: '', phone: '', isFirstTime: false, remark: '' });
     } catch (err) {
       setMessage({ type: 'error', text: (err as Error).message });
     } finally {
@@ -358,7 +360,7 @@ export default function ActivityDetail() {
                     </button>
                     <button
                       type="submit"
-                      disabled={loading || isFull}
+                      disabled={loading}
                       className="flex-1 btn-primary disabled:opacity-50"
                     >
                       {loading ? '提交中...' : isFull ? '加入候补' : '立即报名'}
