@@ -54,6 +54,12 @@ const sortActiveTickets = (a: Ticket, b: Ticket): number => {
   if (a.status === 'calling') return -1;
   if (b.status === 'calling') return 1;
 
+  const aOrder = a.manualOrder ?? new Date(a.createdAt).getTime();
+  const bOrder = b.manualOrder ?? new Date(b.createdAt).getTime();
+  if (aOrder !== bOrder) {
+    return aOrder - bOrder;
+  }
+
   const aIsWaiting = a.status === 'waiting';
   const bIsWaiting = b.status === 'waiting';
 

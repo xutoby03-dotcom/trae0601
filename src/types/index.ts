@@ -24,6 +24,7 @@ export interface Ticket {
   allowSkip: boolean;
   status: TicketStatus;
   passedCount: number;
+  manualOrder: number;
   createdAt: string;
   calledAt?: string;
   completedAt?: string;

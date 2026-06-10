@@ -16,6 +16,8 @@ import {
   Wrench,
   Store,
   AlertTriangle,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import NavHeader from '@/components/NavHeader';
 import TicketCard from '@/components/TicketCard';
@@ -49,6 +51,8 @@ export default function StaffPanel() {
     completeCurrent,
     passCurrent,
     callSpecificTicket,
+    moveTicketUp,
+    moveTicketDown,
     updateQueueSettings,
     resetQueue,
   } = useQueueStore();
@@ -242,8 +246,26 @@ export default function StaffPanel() {
               <h2 className="text-lg font-semibold">等待队列 ({waitingList.length})</h2>
             </div>
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              {waitingList.map((ticket) => (
-                <div key={ticket.id} className="flex gap-3">
+              {waitingList.map((ticket, idx) => (
+                <div key={ticket.id} className="flex gap-2">
+                  <div className="flex flex-col gap-1 self-start">
+                    <button
+                      onClick={() => moveTicketUp(ticket.id)}
+                      className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white/70 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                      disabled={idx === 0}
+                      title="上移"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => moveTicketDown(ticket.id)}
+                      className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white/70 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
+                      disabled={idx === waitingList.length - 1}
+                      title="下移"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="flex-1">
                     <TicketCard ticket={ticket} showDetails />
                   </div>

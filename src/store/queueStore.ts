@@ -19,6 +19,8 @@ interface QueueStore {
   completeCurrent: () => Ticket | null;
   passCurrent: () => Ticket | null;
   callSpecificTicket: (ticketId: string) => Ticket | null;
+  moveTicketUp: (ticketId: string) => void;
+  moveTicketDown: (ticketId: string) => void;
   getTicketById: (ticketId: string) => Ticket | undefined;
   resetQueue: () => void;
   clearOldTickets: () => void;
@@ -86,6 +88,7 @@ export const useQueueStore = create<QueueStore>()(
         }
 
         const newNumber = queue.currentNumber + 1;
+        const now = new Date();
         const newTicket: Ticket = {
           id: generateId(),
           queueId: queue.id,
@@ -97,14 +100,15 @@ export const useQueueStore = create<QueueStore>()(
           allowSkip: formData.allowSkip,
           status: 'waiting',
           passedCount: 0,
-          createdAt: new Date().toISOString(),
+          manualOrder: now.getTime(),
+          createdAt: now.toISOString(),
         };
 
         set({
           queue: {
             ...queue,
             currentNumber: newNumber,
-            updatedAt: new Date().toISOString(),
+            updatedAt: now.toISOString(),
           },
           tickets: [...tickets, newTicket],
         });
@@ -206,6 +210,46 @@ export const useQueueStore = create<QueueStore>()(
         });
 
         return ticket;
+      },
+
+      moveTicketUp: (ticketId) => {
+        const { tickets } = get();
+        const waiting = getWaitingList(tickets);
+        const idx = waiting.findIndex((t) => t.id === ticketId);
+        if (idx <= 0) return;
+
+        const current = waiting[idx];
+        const prev = waiting[idx - 1];
+        const currentOrder = current.manualOrder ?? new Date(current.createdAt).getTime();
+        const prevOrder = prev.manualOrder ?? new Date(prev.createdAt).getTime();
+
+        set({
+          tickets: tickets.map((t) => {
+            if (t.id === current.id) return { ...t, manualOrder: prevOrder };
+            if (t.id === prev.id) return { ...t, manualOrder: currentOrder };
+            return t;
+          }),
+        });
+      },
+
+      moveTicketDown: (ticketId) => {
+        const { tickets } = get();
+        const waiting = getWaitingList(tickets);
+        const idx = waiting.findIndex((t) => t.id === ticketId);
+        if (idx < 0 || idx >= waiting.length - 1) return;
+
+        const current = waiting[idx];
+        const next = waiting[idx + 1];
+        const currentOrder = current.manualOrder ?? new Date(current.createdAt).getTime();
+        const nextOrder = next.manualOrder ?? new Date(next.createdAt).getTime();
+
+        set({
+          tickets: tickets.map((t) => {
+            if (t.id === current.id) return { ...t, manualOrder: nextOrder };
+            if (t.id === next.id) return { ...t, manualOrder: currentOrder };
+            return t;
+          }),
+        });
       },
 
       getTicketById: (ticketId) => {
