@@ -126,7 +126,7 @@ export const Statistics = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <BarChart data={barData} title="� 类别热度榜 TOP" />
+        <BarChart data={barData} title="类别热度榜 TOP" />
         <RankingTable
           title="🏆 漂流达人"
           rows={activeUsersRank}

@@ -59,7 +59,7 @@ export const BarChart = ({ data, title }: { data: BarChartData[]; title: string 
                 {item.label}
               </span>
               <span className="text-xs text-wood-600 font-mono tabular-nums">
-                <span className="font-bold text-wood-800">{item.value}</span> 热度 · {item.percentage}%
+                <span className="font-bold text-wood-800">{Math.round(Number(item.value))}</span> 热度 · {item.percentage}%
               </span>
             </div>
             <div className="h-7 rounded-lg bg-paper-200 overflow-hidden relative shadow-inner">
