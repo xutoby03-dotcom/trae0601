@@ -46,10 +46,45 @@ interface AppState {
 
 function initTickets(): FaultTicket[] {
   const stored = loadFromStorage<FaultTicket[]>(STORAGE_KEYS.TICKETS, []);
-  if (stored.length > 0) return stored;
+  if (stored.length > 0) {
+    const fixed = recomputeRepeatedCounts(stored);
+    let changed = false;
+    for (let i = 0; i < fixed.length; i++) {
+      const o = stored[i];
+      const n = fixed[i];
+      if (!o || !n || o.repeatedCount !== n.repeatedCount || o.status !== n.status) {
+        changed = true;
+        break;
+      }
+    }
+    if (changed) {
+      saveToStorage(STORAGE_KEYS.TICKETS, fixed);
+    }
+    return fixed;
+  }
   const mock = generateMockTickets();
   saveToStorage(STORAGE_KEYS.TICKETS, mock);
   return mock;
+}
+
+function elevatorKey(e: { building: string; unit: string; elevatorNo: string }): string {
+  return `${e.building}-${e.unit}-${e.elevatorNo}`;
+}
+
+function recomputeRepeatedCounts(tickets: FaultTicket[]): FaultTicket[] {
+  const counter: Record<string, number> = {};
+  const sorted = [...tickets].sort((a, b) => a.occurredAt - b.occurredAt);
+  const updated = sorted.map((t) => {
+    const key = elevatorKey(t.elevator);
+    counter[key] = (counter[key] || 0) + 1;
+    const count = counter[key];
+    let status = t.status;
+    if (t.status === 'urgent' && count >= 3 && !t.hasTrapped) {
+      status = 'repeated';
+    }
+    return { ...t, repeatedCount: count, status };
+  });
+  return updated.sort((a, b) => b.occurredAt - a.occurredAt);
 }
 
 function pushNotificationForState(
@@ -82,14 +117,40 @@ export const useAppStore = create<AppState>((set, get) => ({
   addTicket: (data) => {
     const id = generateId();
     const now = Date.now();
-    const initialStatus: FaultStatus = data.hasTrapped ? 'urgent' : 'urgent';
+
+    const existingTickets = get().tickets.filter(
+      (t) =>
+        t.elevator.building === data.elevator.building &&
+        t.elevator.unit === data.elevator.unit &&
+        t.elevator.elevatorNo === data.elevator.elevatorNo,
+    );
+    const historyCount = existingTickets.length;
+    const newCount = historyCount + 1;
+    const REPEATED_THRESHOLD = 3;
+    const isRepeated = newCount >= REPEATED_THRESHOLD;
+
+    let initialStatus: FaultStatus;
+    if (data.hasTrapped) {
+      initialStatus = 'urgent';
+    } else if (isRepeated) {
+      initialStatus = 'repeated';
+    } else {
+      initialStatus = 'urgent';
+    }
+
     const ticket: FaultTicket = {
       ...data,
       id,
       reportedAt: now,
       status: initialStatus,
-      timeline: [{ status: initialStatus, timestamp: now, remark: '住户上报' }],
-      repeatedCount: 1,
+      timeline: [
+        {
+          status: initialStatus,
+          timestamp: now,
+          remark: isRepeated ? `住户上报（历史累计 ${newCount} 次，反复故障）` : '住户上报',
+        },
+      ],
+      repeatedCount: newCount,
     };
     set((s) => {
       const tickets = [ticket, ...s.tickets];
