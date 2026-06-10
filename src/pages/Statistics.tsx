@@ -58,12 +58,14 @@ export default function Statistics() {
     const holderDocs: Record<string, Document[]> = {};
     const typeCounts: Record<string, number> = {};
 
-    const missingCountByDoc: Record<string, { missing: number; total: number }> = {};
+    const missingCountByDoc: Record<string, { missing: number; total: number; names: string[] }> = {};
     documents.forEach(doc => {
       const docMaterials = materials.filter(m => m.documentId === doc.id);
+      const missingItems = docMaterials.filter(m => !m.isReady);
       missingCountByDoc[doc.id] = {
-        missing: docMaterials.filter(m => !m.isReady).length,
+        missing: missingItems.length,
         total: docMaterials.length,
+        names: missingItems.map(m => m.name),
       };
     });
 
@@ -332,11 +334,30 @@ export default function Statistics() {
                                     {doc.processStatus === 'not_started' ? '未开始办理' : progress}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Package className={`w-3.5 h-3.5 flex-shrink-0 ${!missingInfo || missingInfo.total === 0 ? 'text-slate-400' : missingCount > 0 ? 'text-amber-500' : 'text-green-500'}`} />
-                                  <span className={!missingInfo || missingInfo.total === 0 ? 'text-slate-500' : missingCount > 0 ? 'text-amber-700' : 'text-green-700'}>
-                                    {!missingInfo || missingInfo.total === 0 ? '暂无材料清单' : missingCount > 0 ? `缺 ${missingCount} 项材料` : '材料已备齐'}
-                                  </span>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Package className={`w-3.5 h-3.5 flex-shrink-0 ${!missingInfo || missingInfo.total === 0 ? 'text-slate-400' : missingCount > 0 ? 'text-amber-500' : 'text-green-500'}`} />
+                                    <span className={!missingInfo || missingInfo.total === 0 ? 'text-slate-500' : missingCount > 0 ? 'text-amber-700' : 'text-green-700'}>
+                                      {!missingInfo || missingInfo.total === 0 ? '暂无材料清单' : missingCount > 0 ? `缺 ${missingCount} 项` : '材料已备齐'}
+                                    </span>
+                                  </div>
+                                  {missingInfo && missingInfo.names.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 pl-5.5">
+                                      {missingInfo.names.slice(0, 3).map(name => (
+                                        <span
+                                          key={name}
+                                          className="px-1.5 py-0.5 text-[11px] bg-amber-100 text-amber-700 rounded-md border border-amber-200"
+                                        >
+                                          {name}
+                                        </span>
+                                      ))}
+                                      {missingInfo.names.length > 3 && (
+                                        <span className="px-1.5 py-0.5 text-[11px] bg-slate-100 text-slate-500 rounded-md">
+                                          +{missingInfo.names.length - 3} 项
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
