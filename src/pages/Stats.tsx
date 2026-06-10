@@ -1,20 +1,29 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useFamilyStore } from '@/stores/familyStore'
 import { getEffectiveWater, DRINK_TYPE_CONFIG } from '@/types'
 import type { DrinkType } from '@/types'
 import { getWeekDays, getDayLabel } from '@/utils/drinkUtils'
-import { BarChart3, Clock, Droplets, TrendingUp } from 'lucide-react'
+import { BarChart3, Clock, Droplets, TrendingUp, PieChart, ChevronDown } from 'lucide-react'
 
 export default function Stats() {
   const members = useFamilyStore((s) => s.members)
   const records = useFamilyStore((s) => s.records)
+  const [selectedMemberId, setSelectedMemberId] = useState<string | 'all'>('all')
 
   const weekDays = useMemo(() => getWeekDays(), [])
+
+  const weekRecords = useMemo(() => {
+    const startOfWeek = weekDays[0]
+    return records.filter((r) => {
+      const rd = new Date(r.timestamp)
+      return rd >= startOfWeek
+    })
+  }, [records, weekDays])
 
   const weeklyData = useMemo(() => {
     return members.map((member) => {
       const days = weekDays.map((day) => {
-        const dayRecords = records.filter((r) => {
+        const dayRecords = weekRecords.filter((r) => {
           const rd = new Date(r.timestamp)
           return r.memberId === member.id &&
             rd.getFullYear() === day.getFullYear() &&
@@ -38,16 +47,16 @@ export default function Stats() {
         avgDaily,
       }
     })
-  }, [members, records, weekDays])
+  }, [members, weekRecords, weekDays])
 
   const hourlyDist = useMemo(() => {
     const hours = new Array(24).fill(0)
-    records.forEach((r) => {
+    weekRecords.forEach((r) => {
       const h = new Date(r.timestamp).getHours()
       hours[h]++
     })
     return hours
-  }, [records])
+  }, [weekRecords])
 
   const maxHourly = useMemo(() => Math.max(...hourlyDist, 1), [hourlyDist])
 
@@ -70,19 +79,55 @@ export default function Stats() {
     return periodCounts.slice(0, 3)
   }, [hourlyDist])
 
-  const drinkTypeBreakdown = useMemo(() => {
-    const breakdown: Record<DrinkType, number> = { water: 0, coffee: 0, tea: 0, soda: 0, juice: 0, milk: 0 }
-    records.forEach((r) => {
-      breakdown[r.drinkType] += r.amount
+  const overallDrinkBreakdown = useMemo(() => {
+    const breakdown: Record<DrinkType, { raw: number; effective: number }> = {
+      water: { raw: 0, effective: 0 },
+      coffee: { raw: 0, effective: 0 },
+      tea: { raw: 0, effective: 0 },
+      soda: { raw: 0, effective: 0 },
+      juice: { raw: 0, effective: 0 },
+      milk: { raw: 0, effective: 0 },
+    }
+    weekRecords.forEach((r) => {
+      breakdown[r.drinkType].raw += r.amount
+      breakdown[r.drinkType].effective += getEffectiveWater(r.amount, r.drinkType)
     })
-    return Object.entries(breakdown)
-      .filter(([, v]) => v > 0)
-      .sort(([, a], [, b]) => b - a) as [DrinkType, number][]
-  }, [records])
+    return (Object.entries(breakdown) as [DrinkType, { raw: number; effective: number }][])
+      .filter(([, v]) => v.effective > 0 || v.raw > 0)
+      .sort(([, a], [, b]) => b.effective - a.effective)
+  }, [weekRecords])
 
-  const totalDrinkAmount = useMemo(() => {
-    return drinkTypeBreakdown.reduce((s, [, v]) => s + v, 0) || 1
-  }, [drinkTypeBreakdown])
+  const totalEffectiveDrink = useMemo(() => {
+    return overallDrinkBreakdown.reduce((s, [, v]) => s + v.effective, 0) || 1
+  }, [overallDrinkBreakdown])
+
+  const memberDrinkBreakdown = useMemo(() => {
+    const targetRecords = selectedMemberId === 'all'
+      ? weekRecords
+      : weekRecords.filter((r) => r.memberId === selectedMemberId)
+
+    const breakdown: Record<DrinkType, { raw: number; effective: number }> = {
+      water: { raw: 0, effective: 0 },
+      coffee: { raw: 0, effective: 0 },
+      tea: { raw: 0, effective: 0 },
+      soda: { raw: 0, effective: 0 },
+      juice: { raw: 0, effective: 0 },
+      milk: { raw: 0, effective: 0 },
+    }
+    targetRecords.forEach((r) => {
+      breakdown[r.drinkType].raw += r.amount
+      breakdown[r.drinkType].effective += getEffectiveWater(r.amount, r.drinkType)
+    })
+    return (Object.entries(breakdown) as [DrinkType, { raw: number; effective: number }][])
+  }, [weekRecords, selectedMemberId])
+
+  const selectedMember = selectedMemberId === 'all'
+    ? null
+    : members.find((m) => m.id === selectedMemberId)
+
+  const memberDrinkTotal = useMemo(() => {
+    return memberDrinkBreakdown.reduce((s, [, v]) => s + v.raw, 0) || 1
+  }, [memberDrinkBreakdown])
 
   return (
     <div className="min-h-screen pb-24">
@@ -229,37 +274,127 @@ export default function Stats() {
               </div>
             </div>
 
-            {drinkTypeBreakdown.length > 0 && (
+            {overallDrinkBreakdown.length > 0 && (
               <div className="glass-card rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 size={16} className="text-lavender-400" />
-                  <span className="text-sm font-display font-semibold text-gray-600">饮品类型分布</span>
+                  <span className="text-sm font-display font-semibold text-gray-600">全家饮品结构（按折算白水）</span>
                 </div>
                 <div className="flex gap-1 h-8 rounded-lg overflow-hidden mb-3">
-                  {drinkTypeBreakdown.map(([type, amount]) => (
+                  {overallDrinkBreakdown.map(([type, data]) => (
                     <div
                       key={type}
                       className="transition-all duration-500"
                       style={{
-                        width: `${(amount / totalDrinkAmount) * 100}%`,
+                        width: `${(data.effective / totalEffectiveDrink) * 100}%`,
                         background: DRINK_TYPE_CONFIG[type].color,
                       }}
-                      title={`${DRINK_TYPE_CONFIG[type].label}: ${amount}ml`}
+                      title={`${DRINK_TYPE_CONFIG[type].label}: ${data.effective}ml（原始 ${data.raw}ml）`}
                     />
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-3">
-                  {drinkTypeBreakdown.map(([type, amount]) => (
+                  {overallDrinkBreakdown.map(([type, data]) => (
                     <div key={type} className="flex items-center gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ background: DRINK_TYPE_CONFIG[type].color }} />
                       <span className="text-xs font-display text-gray-500">
-                        {DRINK_TYPE_CONFIG[type].label} {Math.round((amount / totalDrinkAmount) * 100)}%
+                        {DRINK_TYPE_CONFIG[type].label} {Math.round((data.effective / totalEffectiveDrink) * 100)}%
                       </span>
                     </div>
                   ))}
                 </div>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="text-[11px] text-gray-400 font-body">
+                    已按饮品类型折算白水当量（白水 100% / 茶 80% / 咖啡 60% / 果汁 50% / 碳酸 40%）
+                  </div>
+                </div>
               </div>
             )}
+
+            <div className="glass-card rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <PieChart size={16} className="text-ocean-400" />
+                  <span className="text-sm font-display font-semibold text-gray-600">个人饮品结构</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={selectedMemberId}
+                    onChange={(e) => setSelectedMemberId(e.target.value)}
+                    className="appearance-none bg-white/60 border border-gray-100 rounded-xl px-3 py-1.5 pr-8 text-sm font-display text-gray-600 focus:outline-none focus:ring-2 focus:ring-ocean-200"
+                  >
+                    <option value="all">👨‍👩‍👧 全家</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>{m.avatar} {m.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {selectedMember && (
+                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+                  <span className="text-2xl">{selectedMember.avatar}</span>
+                  <div>
+                    <div className="font-display font-semibold text-gray-700">{selectedMember.name} · 本周饮品</div>
+                    <div className="text-xs text-gray-400">
+                      原始总量 {memberDrinkBreakdown.reduce((s, [, v]) => s + v.raw, 0)}ml /
+                      折算白水 {memberDrinkBreakdown.reduce((s, [, v]) => s + v.effective, 0)}ml
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedMemberId === 'all' && (
+                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+                  <span className="text-2xl">👨‍👩‍👧</span>
+                  <div>
+                    <div className="font-display font-semibold text-gray-700">全家 · 本周饮品</div>
+                    <div className="text-xs text-gray-400">
+                      原始总量 {memberDrinkBreakdown.reduce((s, [, v]) => s + v.raw, 0)}ml /
+                      折算白水 {memberDrinkBreakdown.reduce((s, [, v]) => s + v.effective, 0)}ml
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {memberDrinkBreakdown.map(([type, data]) => (
+                  <div key={type} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ background: DRINK_TYPE_CONFIG[type].color }} />
+                        <span className="font-display font-medium text-gray-600">{DRINK_TYPE_CONFIG[type].label}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400 font-mono">原始 {data.raw}ml</span>
+                        <span className="text-sm font-display font-bold" style={{ color: DRINK_TYPE_CONFIG[type].color }}>
+                          折算 {data.effective}ml
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 h-4 rounded-md overflow-hidden bg-gray-50">
+                      <div
+                        className="h-full rounded-md transition-all duration-500"
+                        style={{
+                          width: `${(data.raw / memberDrinkTotal) * 100}%`,
+                          background: `linear-gradient(90deg, ${DRINK_TYPE_CONFIG[type].color}30, ${DRINK_TYPE_CONFIG[type].color}60)`,
+                        }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-gray-300 text-right font-mono">
+                      {DRINK_TYPE_CONFIG[type].label}折算率 {Math.round(DRINK_TYPE_CONFIG[type].ratio * 100)}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {memberDrinkBreakdown.reduce((s, [, v]) => s + v.raw, 0) === 0 && (
+                <div className="text-center py-6 text-gray-300 text-sm font-display">
+                  本周暂无记录
+                </div>
+              )}
+            </div>
 
             <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-3">
