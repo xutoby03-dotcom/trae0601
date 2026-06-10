@@ -42,14 +42,13 @@ export function Home() {
 
   const groupedPets = useMemo(() => getGroupedPets(), [getGroupedPets]);
 
-  const filteredPets = useMemo(() => {
-    const pets = groupedPets[currentGroup];
-    const query = searchQuery.trim().toLowerCase();
+  const hasActiveFilters = searchQuery.trim() !== '' || filterSpecies !== 'all' || filterSize !== 'all';
 
+  const applyFilters = (pets: typeof groupedPets.recent) => {
+    const query = searchQuery.trim().toLowerCase();
     return pets.filter((pet) => {
       if (filterSpecies !== 'all' && pet.species !== filterSpecies) return false;
       if (filterSize !== 'all' && pet.size !== filterSize) return false;
-
       if (query) {
         const matchName = pet.petName.toLowerCase().includes(query);
         const matchBreed = pet.breed.toLowerCase().includes(query);
@@ -57,14 +56,20 @@ export function Home() {
         const matchLocation = pet.lastLocation.toLowerCase().includes(query);
         if (!matchName && !matchBreed && !matchColor && !matchLocation) return false;
       }
-
       return true;
     });
-  }, [groupedPets, currentGroup, searchQuery, filterSpecies, filterSize]);
+  };
 
-  const hasActiveFilters = searchQuery.trim() !== '' || filterSpecies !== 'all' || filterSize !== 'all';
+  const filteredPets = useMemo(() => applyFilters(groupedPets[currentGroup]), [groupedPets, currentGroup, searchQuery, filterSpecies, filterSize]);
 
-  const groupCounts = {
+  const filteredGroupCounts = useMemo(() => ({
+    recent: applyFilters(groupedPets.recent).length,
+    seen: applyFilters(groupedPets.seen).length,
+    found: applyFilters(groupedPets.found).length,
+    urgent: applyFilters(groupedPets.urgent).length,
+  }), [groupedPets, searchQuery, filterSpecies, filterSize]);
+
+  const displayCounts = hasActiveFilters ? filteredGroupCounts : {
     recent: groupedPets.recent.length,
     seen: groupedPets.seen.length,
     found: groupedPets.found.length,
@@ -204,9 +209,9 @@ export function Home() {
               active={currentGroup === group}
               onClick={() => setCurrentGroup(group)}
             />
-            {groupCounts[group] > 0 && (
+            {displayCounts[group] > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {groupCounts[group]}
+                {displayCounts[group]}
               </span>
             )}
           </div>
