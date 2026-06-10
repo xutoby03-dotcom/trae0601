@@ -18,7 +18,12 @@ import {
   AlertTriangle,
   ChevronUp,
   ChevronDown,
+  Phone,
+  FileText,
+  Ticket as TicketIcon,
 } from 'lucide-react';
+import { Ticket } from '@/types';
+import { BusinessType, BUSINESS_TYPE_LABELS } from '@/types';
 import NavHeader from '@/components/NavHeader';
 import TicketCard from '@/components/TicketCard';
 import { useQueueStore } from '@/store/queueStore';
@@ -29,8 +34,9 @@ import {
   getPassedList,
   formatWaitTime,
   calculateWaitTime,
+  formatTime,
+  getQueuePosition,
 } from '@/utils/helpers';
-import { BusinessType, BUSINESS_TYPE_LABELS } from '@/types';
 
 const businessIcons: Record<BusinessType, React.ReactNode> = {
   haircut: <Scissors className="w-5 h-5" />,
@@ -59,12 +65,21 @@ export default function StaffPanel() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [businessName, setBusinessName] = useState(queue?.businessName || '');
   const [estimatedTime, setEstimatedTime] = useState(queue?.estimatedTimePerPerson || 30);
 
   const callingTicket = getCallingTicket(tickets);
   const waitingList = getWaitingList(tickets);
   const passedList = getPassedList(tickets);
+
+  const openTicketDrawer = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+  };
+
+  const closeTicketDrawer = () => {
+    setSelectedTicket(null);
+  };
 
   const handleCallNext = () => {
     if (!callingTicket) {
@@ -248,12 +263,12 @@ export default function StaffPanel() {
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {waitingList.map((ticket, idx) => (
                 <div key={ticket.id} className="flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 cursor-pointer" onClick={() => openTicketDrawer(ticket)}>
                     <TicketCard ticket={ticket} showDetails />
                   </div>
                   <div className="flex flex-col gap-1 self-start">
                     <button
-                      onClick={() => moveTicketUp(ticket.id)}
+                      onClick={(e) => { e.stopPropagation(); moveTicketUp(ticket.id); }}
                       className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white/70 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
                       disabled={idx === 0}
                       title="上移"
@@ -261,7 +276,7 @@ export default function StaffPanel() {
                       <ChevronUp className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => moveTicketDown(ticket.id)}
+                      onClick={(e) => { e.stopPropagation(); moveTicketDown(ticket.id); }}
                       className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white/70 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center"
                       disabled={idx === waitingList.length - 1}
                       title="下移"
@@ -269,7 +284,7 @@ export default function StaffPanel() {
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleCallSpecific(ticket.id)}
+                      onClick={(e) => { e.stopPropagation(); handleCallSpecific(ticket.id); }}
                       className="w-9 h-9 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
                       disabled={!!callingTicket}
                       title="叫号"
@@ -295,11 +310,11 @@ export default function StaffPanel() {
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {passedList.map((ticket) => (
                 <div key={ticket.id} className="flex gap-3">
-                  <div className="flex-1">
+                  <div className="flex-1 cursor-pointer" onClick={() => openTicketDrawer(ticket)}>
                     <TicketCard ticket={ticket} showDetails />
                   </div>
                   <button
-                    onClick={() => handleCallSpecific(ticket.id)}
+                    onClick={(e) => { e.stopPropagation(); handleCallSpecific(ticket.id); }}
                     className="btn-secondary px-4 self-start"
                     disabled={!!callingTicket}
                   >
@@ -413,6 +428,160 @@ export default function StaffPanel() {
           </div>
         </div>
       )}
+
+      {selectedTicket && (() => {
+        const drawerTicket = tickets.find(t => t.id === selectedTicket.id) ?? selectedTicket;
+        const drawerPosition = getQueuePosition(drawerTicket, tickets);
+        const drawerWaitTime = queue ? calculateWaitTime(drawerPosition, queue.estimatedTimePerPerson) : 0;
+
+        return (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-50 transition-opacity"
+              onClick={closeTicketDrawer}
+            />
+            <div className="fixed top-0 right-0 h-full w-full max-w-md bg-[#0B1120] border-l border-white/10 z-50 overflow-y-auto animate-slide-in-right">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold font-display">票号详情</h3>
+                  <button
+                    onClick={closeTicketDrawer}
+                    className="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className={`rounded-3xl p-6 mb-6 ${
+                  drawerTicket.status === 'passed'
+                    ? 'glass-yellow border border-amber-500/30'
+                    : 'glass border border-white/10'
+                }`}>
+                  <div className="text-center mb-4">
+                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-500/20 mb-3">
+                      <TicketIcon className="w-7 h-7 text-primary-400" />
+                    </div>
+                    <div className={`font-display font-bold text-5xl mb-1 ${
+                      drawerTicket.status === 'passed' ? 'text-gradient-yellow' : 'text-white'
+                    }`}>
+                      {formatTicketNumber(drawerTicket.number)}
+                    </div>
+                    <div className={`text-sm font-medium ${
+                      drawerTicket.status === 'passed' ? 'text-amber-400' : 'text-white/60'
+                    }`}>
+                      {drawerTicket.status === 'passed' ? '过号重排' : '等待中'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Users className="w-4 h-4" />
+                      <span>昵称</span>
+                    </div>
+                    <span className="font-semibold text-white">{drawerTicket.nickname}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Phone className="w-4 h-4" />
+                      <span>手机尾号</span>
+                    </div>
+                    <span className="font-semibold text-white">{drawerTicket.phoneLast4 || '-'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Users className="w-4 h-4" />
+                      <span>人数</span>
+                    </div>
+                    <span className="font-semibold text-white">{drawerTicket.peopleCount} 人</span>
+                  </div>
+
+                  {drawerTicket.note && (
+                    <div className="py-3 border-b border-white/10">
+                      <div className="flex items-center gap-3 text-white/60 mb-2">
+                        <FileText className="w-4 h-4" />
+                        <span>备注</span>
+                      </div>
+                      <div className="text-white pl-7">{drawerTicket.note}</div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>愿意过号</span>
+                    </div>
+                    <span className={`font-semibold ${drawerTicket.allowSkip ? 'text-amber-400' : 'text-white/50'}`}>
+                      {drawerTicket.allowSkip ? '是' : '否'}
+                    </span>
+                  </div>
+
+                  {drawerTicket.passedCount > 0 && (
+                    <div className="flex items-center justify-between py-3 border-b border-white/10">
+                      <div className="flex items-center gap-3 text-white/60">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>过号次数</span>
+                      </div>
+                      <span className="font-semibold text-amber-400">{drawerTicket.passedCount} 次</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Clock className="w-4 h-4" />
+                      <span>取号时间</span>
+                    </div>
+                    <span className="font-semibold text-white">{formatTime(drawerTicket.createdAt)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3 border-b border-white/10">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Users className="w-4 h-4" />
+                      <span>当前排位</span>
+                    </div>
+                    <span className="font-semibold text-white">
+                      {drawerPosition > 0 ? `前方 ${drawerPosition} 位` : '即将叫号'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3 text-white/60">
+                      <Clock className="w-4 h-4" />
+                      <span>预计等待</span>
+                    </div>
+                    <span className="font-semibold text-primary-400">
+                      {drawerPosition > 0 && queue ? formatWaitTime(drawerWaitTime) : '无需等待'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-8 pt-6 border-t border-white/10">
+                  <button
+                    onClick={closeTicketDrawer}
+                    className="btn-secondary flex-1"
+                  >
+                    关闭
+                  </button>
+                  <button
+                    onClick={() => {
+                      callSpecificTicket(drawerTicket.id);
+                      closeTicketDrawer();
+                    }}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    disabled={!!callingTicket}
+                  >
+                    <SkipForward className="w-4 h-4" />
+                    叫号
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }
