@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 const PlanDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPlanById, getItemById, completeStep, updateStepDate, deletePlan, simulateRainyDay } =
+  const { getPlanById, getItemById, completeStep, updateStepDate, deletePlan, isRainyDate } =
     useCleaningStore();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -66,7 +66,7 @@ const PlanDetail = () => {
   };
 
   const hasRainyWarning = plan.steps.some(
-    (s) => s.type === 'dry' && !s.isCompleted && simulateRainyDay
+    (s) => s.type === 'dry' && !s.isCompleted && isRainyDate(s.scheduledDate)
   );
 
   return (
@@ -233,7 +233,7 @@ const PlanDetail = () => {
                               <Edit2 className="w-4 h-4" />
                             </button>
                           )}
-                          {step.type === 'dry' && simulateRainyDay && !step.isCompleted && (
+                          {step.type === 'dry' && isRainyDate(step.scheduledDate) && !step.isCompleted && (
                             <span className="text-xs text-yellow-600 flex items-center gap-1">
                               <CloudRain className="w-3 h-3" />
                               有雨

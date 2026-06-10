@@ -273,7 +273,7 @@ export const useCleaningStore = create<CleaningStore>()(
       },
 
       isRainyDate: (date) => {
-        return get().simulateRainyDay && get().rainyDates.includes(date);
+        return get().rainyDates.includes(date);
       },
 
       addItem: (item) => {

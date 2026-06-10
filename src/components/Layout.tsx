@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Package, BarChart3, CloudRain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCleaningStore } from '@/store/cleaningStore';
+import { formatDate } from '@/utils/dateUtils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,7 +10,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { simulateRainyDay, setSimulateRainyDay } = useCleaningStore();
+  const { isRainyDate, setSimulateRainyDay } = useCleaningStore();
 
   const showTabBar = !location.pathname.includes('/items/') && 
                      !location.pathname.includes('/plans/') &&
@@ -19,9 +20,12 @@ const Layout = ({ children }: LayoutProps) => {
   const isItems = location.pathname === '/items';
   const isStats = location.pathname === '/statistics';
 
+  const today = formatDate(new Date());
+  const todayIsRainy = isRainyDate(today);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {simulateRainyDay && isHome && (
+      {todayIsRainy && isHome && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
           <div className="flex items-center gap-2 text-yellow-800">
             <CloudRain className="w-5 h-5" />

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 const PlanCreate = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  const { getItemById, addPlan, simulateRainyDay, isRainyDate } = useCleaningStore();
+  const { getItemById, addPlan, isRainyDate } = useCleaningStore();
 
   const item = itemId ? getItemById(itemId) : undefined;
 
@@ -61,17 +61,15 @@ const PlanCreate = () => {
 
   const dryStep = steps.find((s) => s.type === 'dry');
   const dryStepEnabled = enabledSteps.dry;
-  const dryDateIsRainy = dryStep && simulateRainyDay && isRainyDate(dryStep.scheduledDate);
+  const dryDateIsRainy = dryStep && dryStepEnabled && isRainyDate(dryStep.scheduledDate);
 
   const visibleSteps = steps.filter((step) => enabledSteps[step.type]);
   const rainyStepDates: { step: CleaningStep; date: string }[] = [];
-  if (simulateRainyDay) {
-    visibleSteps.forEach((step) => {
-      if (isRainyDate(step.scheduledDate) && step.type === 'dry') {
-        rainyStepDates.push({ step, date: step.scheduledDate });
-      }
-    });
-  }
+  visibleSteps.forEach((step) => {
+    if (isRainyDate(step.scheduledDate) && step.type === 'dry') {
+      rainyStepDates.push({ step, date: step.scheduledDate });
+    }
+  });
 
   const doSubmit = () => {
     if (!itemId) return;
@@ -102,7 +100,7 @@ const PlanCreate = () => {
     }
 
     const hasRainyDry = filteredSteps.some(
-      (s) => s.type === 'dry' && simulateRainyDay && isRainyDate(s.scheduledDate)
+      (s) => s.type === 'dry' && isRainyDate(s.scheduledDate)
     );
 
     if (hasRainyDry) {
@@ -134,7 +132,7 @@ const PlanCreate = () => {
         </div>
       </div>
 
-      {simulateRainyDay && dryStepEnabled && dryDateIsRainy && (
+      {dryDateIsRainy && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-3">
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -165,7 +163,7 @@ const PlanCreate = () => {
           <div className="divide-y divide-gray-100">
             {steps.map((step) => {
               const isRainy =
-                step.type === 'dry' && simulateRainyDay && isRainyDate(step.scheduledDate);
+                step.type === 'dry' && isRainyDate(step.scheduledDate);
 
               return (
                 <div
@@ -258,12 +256,12 @@ const PlanCreate = () => {
           type="submit"
           className={cn(
             'w-full py-3.5 rounded-xl font-medium transition-colors',
-            simulateRainyDay && dryStepEnabled && dryDateIsRainy
+            dryDateIsRainy
               ? 'bg-red-500 text-white hover:bg-red-600'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           )}
         >
-          {simulateRainyDay && dryStepEnabled && dryDateIsRainy
+          {dryDateIsRainy
             ? '仍要创建（晾晒遇阴雨天）'
             : '创建计划'}
         </button>

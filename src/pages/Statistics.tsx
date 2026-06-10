@@ -322,7 +322,7 @@ const Statistics = () => {
         >
           <div className="flex items-center gap-2">
             <CloudRain className={cn('w-5 h-5', simulateRainyDay ? 'text-blue-600' : 'text-gray-400')} />
-            <h3 className="text-sm font-medium text-gray-700">🔧 阴雨天模拟设置</h3>
+            <h3 className="text-sm font-medium text-gray-700">🔧 阴雨天设置</h3>
           </div>
           <button
             onClick={(e) => {
@@ -343,9 +343,8 @@ const Statistics = () => {
         {showRainCalendar && (
           <div className="px-4 pb-4">
             <p className="text-xs text-gray-500 mb-3">
-              {simulateRainyDay
-                ? '点击日期标记为阴雨天（红色），创建计划时会给出晾晒提醒'
-                : '请先开启阴雨天模拟'}
+              点击日期标记为阴雨天。创建计划时遇到晾晒日期有雨会自动提示并拦截。
+              <span className="text-yellow-600">（开关仅作调试标记，不影响实际功能）</span>
             </p>
             <div className="grid grid-cols-7 gap-1.5">
               {nextTwoWeeks.map((day) => {
@@ -353,21 +352,18 @@ const Statistics = () => {
                 return (
                   <button
                     key={day.date}
-                    disabled={!simulateRainyDay}
                     onClick={() => toggleRainyDate(day.date)}
                     className={cn(
                       'aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-colors',
-                      simulateRainyDay
-                        ? rainy
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white text-gray-700 hover:bg-gray-200'
-                        : 'bg-white/50 text-gray-400 cursor-not-allowed'
+                      rainy
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-200'
                     )}
                   >
                     <span className="text-[10px] opacity-70">周{day.weekday}</span>
                     <span className="font-medium">{day.day}</span>
                     {rainy && <CloudRain className="w-3 h-3 mt-0.5 opacity-80" />}
-                    {!rainy && simulateRainyDay && <Sun className="w-3 h-3 mt-0.5 opacity-50 text-yellow-500" />}
+                    {!rainy && <Sun className="w-3 h-3 mt-0.5 opacity-50 text-yellow-500" />}
                   </button>
                 );
               })}
