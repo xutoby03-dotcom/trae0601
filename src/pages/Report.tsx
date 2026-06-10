@@ -609,7 +609,13 @@ export default function Report() {
                       handleComplete();
                     }
                   }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                  disabled={selectedTicket.status === 'pending' && !assignee}
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors',
+                    selectedTicket.status === 'pending' &&
+                      !assignee &&
+                      'opacity-50 cursor-not-allowed hover:bg-emerald-600'
+                  )}
                 >
                   {getNextAction(selectedTicket.status)?.label}
                 </button>
