@@ -119,6 +119,8 @@ export default function Stats() {
       breakdown[r.drinkType].effective += getEffectiveWater(r.amount, r.drinkType)
     })
     return (Object.entries(breakdown) as [DrinkType, { raw: number; effective: number }][])
+      .filter(([, v]) => v.raw > 0)
+      .sort(([, a], [, b]) => b.effective - a.effective)
   }, [weekRecords, selectedMemberId])
 
   const selectedMember = selectedMemberId === 'all'
@@ -126,7 +128,7 @@ export default function Stats() {
     : members.find((m) => m.id === selectedMemberId)
 
   const memberDrinkTotal = useMemo(() => {
-    return memberDrinkBreakdown.reduce((s, [, v]) => s + v.raw, 0) || 1
+    return memberDrinkBreakdown.reduce((s, [, v]) => s + v.effective, 0) || 1
   }, [memberDrinkBreakdown])
 
   return (
@@ -377,8 +379,8 @@ export default function Stats() {
                       <div
                         className="h-full rounded-md transition-all duration-500"
                         style={{
-                          width: `${(data.raw / memberDrinkTotal) * 100}%`,
-                          background: `linear-gradient(90deg, ${DRINK_TYPE_CONFIG[type].color}30, ${DRINK_TYPE_CONFIG[type].color}60)`,
+                          width: `${(data.effective / memberDrinkTotal) * 100}%`,
+                          background: `linear-gradient(90deg, ${DRINK_TYPE_CONFIG[type].color}30, ${DRINK_TYPE_CONFIG[type].color}80)`,
                         }}
                       />
                     </div>
