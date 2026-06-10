@@ -34,13 +34,14 @@ export function Home() {
   const setCurrentGroup = usePetStore((state) => state.setCurrentGroup);
   const getGroupedPets = usePetStore((state) => state.getGroupedPets);
   const petMissing = usePetStore((state) => state.petMissing);
+  const clues = usePetStore((state) => state.clues);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSpecies, setFilterSpecies] = useState<PetSpecies | 'all'>('all');
   const [filterSize, setFilterSize] = useState<PetSize | 'all'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  const groupedPets = useMemo(() => getGroupedPets(), [getGroupedPets]);
+  const groupedPets = useMemo(() => getGroupedPets(), [getGroupedPets, petMissing, clues]);
 
   const hasActiveFilters = searchQuery.trim() !== '' || filterSpecies !== 'all' || filterSize !== 'all';
 
