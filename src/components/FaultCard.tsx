@@ -4,6 +4,7 @@ import { useAppStore } from '@/store';
 import type { FaultTicket } from '@/shared/types';
 import { STATUS_CONFIG, BUILDINGS } from '@/shared/constants';
 import StatusBadge from './StatusBadge';
+import ElevatorHistoryPopover from './ElevatorHistoryPopover';
 import { relativeTime } from '@/utils/time';
 import { PHENOMENON_OPTIONS } from '@/shared/constants';
 import { buildElevatorCountMap, elevatorKey } from '@/utils/statistics';
@@ -78,10 +79,16 @@ export default function FaultCard({ ticket, compact = false }: Props) {
               </span>
             )}
             {historyCount >= 2 && (
-              <span className="tag bg-yellow-50 text-yellow-700 border border-yellow-200">
-                <Repeat size={12} />
-                历史 {historyCount} 次
-              </span>
+              <ElevatorHistoryPopover
+                elevator={ticket.elevator}
+                align="right"
+                trigger={
+                  <span className="tag bg-yellow-50 text-yellow-700 border border-yellow-200 cursor-pointer hover:bg-yellow-100 hover:border-yellow-300 transition-colors">
+                    <Repeat size={12} />
+                    历史 {historyCount} 次
+                  </span>
+                }
+              />
             )}
             {subscribed && (
               <span className="tag bg-brand-50 text-brand-600 border border-brand-200">

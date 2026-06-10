@@ -4,6 +4,7 @@ import { useAppStore } from '@/store';
 import { BUILDINGS, PHENOMENON_OPTIONS, STATUS_CONFIG } from '@/shared/constants';
 import { formatDuration, formatDateTime, relativeTime } from '@/utils/time';
 import type { FaultStatus } from '@/shared/types';
+import ElevatorHistoryPopover from '@/components/ElevatorHistoryPopover';
 import {
   FileBarChart,
   TrendingUp,
@@ -266,9 +267,15 @@ export default function Statistics() {
                             <div className="text-[11px] text-slate-400">{row.floorCount}层</div>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${row.count >= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {row.count} 次
-                            </span>
+                            <ElevatorHistoryPopover
+                              elevator={{ building: row.building, unit: row.unit, elevatorNo: row.elevatorNo }}
+                              align="right"
+                              trigger={
+                                <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity ${row.count >= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {row.count} 次
+                                </span>
+                              }
+                            />
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
