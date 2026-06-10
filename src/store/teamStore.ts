@@ -4,6 +4,17 @@ import type { Team, Member, Review, CreateTeamForm, JoinTeamForm, TeamStatus } f
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+const normalizeTeamStatus = (team: Team): Team => {
+  if (team.status === 'completed') return team;
+  const isFull = team.members.length >= team.totalPeople;
+  return {
+    ...team,
+    status: isFull ? 'locked' : 'recruiting',
+  };
+};
+
+const normalizeTeams = (teams: Team[]): Team[] => teams.map(normalizeTeamStatus);
+
 const mockTeams: Team[] = [
   {
     id: 'team1',
@@ -35,7 +46,7 @@ const mockTeams: Team[] = [
     difficulty: 'medium',
     horrorLevel: 'mild',
     availableTimes: ['2026-06-12 18:00', '2026-06-12 19:30'],
-    status: 'recruiting',
+    status: 'locked',
     members: [
       { id: 'm4', name: '赵六', acceptHorror: true, motionSickness: false, skill: 'puzzle', budgetLimit: 150, joinedAt: '2026-06-10T12:00:00Z' },
       { id: 'm5', name: '钱七', acceptHorror: true, motionSickness: false, skill: 'puzzle', budgetLimit: 150, joinedAt: '2026-06-10T12:10:00Z' },
@@ -101,12 +112,13 @@ interface TeamState {
   addReview: (teamId: string, review: Omit<Review, 'id' | 'teamId' | 'createdAt'>) => void;
   markTeamCompleted: (teamId: string) => void;
   getTeam: (teamId: string) => Team | undefined;
+  normalizeAllTeams: () => void;
 }
 
 export const useTeamStore = create<TeamState>()(
   persist(
     (set, get) => ({
-      teams: mockTeams,
+      teams: normalizeTeams(mockTeams),
 
       createTeam: (form) => {
         const newTeam: Team = {
@@ -149,6 +161,7 @@ export const useTeamStore = create<TeamState>()(
         set((state) => {
           const teams = state.teams.map((team) => {
             if (team.id !== teamId) return team;
+            if (team.status === 'completed') return team;
             const updatedMembers = team.members.filter((m) => m.id !== memberId);
             return {
               ...team,
@@ -188,9 +201,20 @@ export const useTeamStore = create<TeamState>()(
       getTeam: (teamId) => {
         return get().teams.find((t) => t.id === teamId);
       },
+
+      normalizeAllTeams: () => {
+        set((state) => ({
+          teams: normalizeTeams(state.teams),
+        }));
+      },
     }),
     {
       name: 'escape-room-teams',
+      onRehydrateStorage: () => (state) => {
+        if (state?.teams) {
+          state.teams = normalizeTeams(state.teams);
+        }
+      },
     }
   )
 );

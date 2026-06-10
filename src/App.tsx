@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Home from "@/pages/Home";
@@ -5,8 +6,15 @@ import CreateTeam from "@/pages/CreateTeam";
 import TeamDetail from "@/pages/TeamDetail";
 import ReviewTeam from "@/pages/ReviewTeam";
 import Stats from "@/pages/Stats";
+import { useTeamStore } from "@/store/teamStore";
 
 export default function App() {
+  const normalizeAllTeams = useTeamStore((s) => s.normalizeAllTeams);
+
+  useEffect(() => {
+    normalizeAllTeams();
+  }, [normalizeAllTeams]);
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col">
