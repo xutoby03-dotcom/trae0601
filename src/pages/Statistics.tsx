@@ -43,32 +43,18 @@ export default function Statistics() {
     const totalItems = items.length;
 
     const expiredRecords = records.filter((r) => r.reason === 'expired');
-    const expiredLoss = expiredRecords.reduce((sum, r) => {
-      const matched = items.find((i) => false) || null;
-      return sum;
-    }, 0);
-
-    const approxExpiredLoss = (() => {
-      let loss = 0;
-      expiredRecords.forEach((r) => {
-        const origItem = records
-          .filter((x) => x.itemId === r.itemId && x.reason !== 'expired')
-          .sort((a, b) => new Date(a.consumedAt).getTime() - new Date(b.consumedAt).getTime())[0];
-        loss += 0;
-      });
-      const avgPrice = totalItems > 0 ? totalValue / totalItems : 30;
-      return Math.round(expiredRecords.length * avgPrice * 0.7);
-    })();
+    const expiredLoss = expiredRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
 
     const usedRecords = records.filter((r) => r.reason === 'used');
     const usedCount = usedRecords.length;
+    const usedValue = usedRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
 
     const expiringCount = items.filter((it) => {
       const s = getExpiryStatus(it.expiryDate);
       return s === 'urgent' || s === 'warning' || s === 'expired';
     }).length;
 
-    const expiredCount = items.filter((it) => getExpiryStatus(it.expiryDate) === 'expired').length;
+    const expiredInStock = items.filter((it) => getExpiryStatus(it.expiryDate) === 'expired').length;
 
     const storageDays =
       totalItems > 0
@@ -83,10 +69,11 @@ export default function Statistics() {
       totalQuantity,
       totalItems,
       expiredCount: expiredRecords.length,
-      expiredLoss: approxExpiredLoss,
+      expiredLoss,
       usedCount,
+      usedValue,
       expiringCount,
-      expiredInStock: expiredCount,
+      expiredInStock,
       storageDays,
     };
   }, [items, records]);
@@ -160,22 +147,22 @@ export default function Statistics() {
       const added = items
         .filter((it) => it.purchaseDate.startsWith(monthKey))
         .reduce((s, it) => s + (it.price || 0), 0);
-      const used = records
+      const usedValue = records
         .filter(
           (r) => r.reason === 'used' && format(new Date(r.consumedAt), 'yyyy-MM') === monthKey
         )
-        .length;
-      const expired = records
+        .reduce((s, r) => s + (r.amount || 0), 0);
+      const expiredLoss = records
         .filter(
           (r) =>
             r.reason === 'expired' && format(new Date(r.consumedAt), 'yyyy-MM') === monthKey
         )
-        .length;
+        .reduce((s, r) => s + (r.amount || 0), 0);
       return {
         name: format(m, 'M月'),
         新增价值: Math.round(added),
-        食用次数: used,
-        丢弃次数: expired,
+        食用金额: Math.round(usedValue),
+        丢弃损失: Math.round(expiredLoss),
       };
     });
   }, [items, records]);
@@ -327,7 +314,7 @@ export default function Statistics() {
               </div>
               <div>
                 <div className="font-bold text-gray-800">近6个月趋势</div>
-                <div className="text-xs text-gray-500">新增价值 / 食用 / 丢弃</div>
+                <div className="text-xs text-gray-500">新增价值 / 食用金额 / 丢弃损失</div>
               </div>
             </div>
           </div>
@@ -338,6 +325,7 @@ export default function Statistics() {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip
+                  formatter={(value: number) => [`¥${value}`, '']}
                   contentStyle={{
                     borderRadius: '12px',
                     border: 'none',
@@ -346,8 +334,8 @@ export default function Statistics() {
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar dataKey="新增价值" fill="#0284c7" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="食用次数" fill="#16a34a" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="丢弃次数" fill="#ef4444" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="食用金额" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="丢弃损失" fill="#ef4444" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

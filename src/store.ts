@@ -310,6 +310,7 @@ export const useFreezerStore = create<FreezerState>()(
             unit: item.unit,
             consumedAt: new Date().toISOString(),
             reason: reason === 'expired' ? 'expired' : 'used',
+            amount: item.price,
             note: reason,
           };
           set((state) => ({
@@ -324,6 +325,8 @@ export const useFreezerStore = create<FreezerState>()(
           if (!item || qty <= 0) return;
 
           const actualQty = Math.min(qty, item.quantity);
+          const unitPrice = item.price && item.quantity > 0 ? item.price / item.quantity : 0;
+          const amount = unitPrice > 0 ? Number((unitPrice * actualQty).toFixed(2)) : undefined;
           const record: ConsumedRecord = {
             id: generateId(),
             itemId: id,
@@ -332,6 +335,7 @@ export const useFreezerStore = create<FreezerState>()(
             unit: item.unit,
             consumedAt: new Date().toISOString(),
             reason: 'used',
+            amount,
             note,
           };
 
