@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Home, CalendarPlus, BarChart3, Settings, Bell, ShieldCheck, ShieldAlert } from 'lucide-react';
 import HomePage from './pages/Home';
 import BookingPage from './pages/Booking';
+import BookingDetail from './pages/BookingDetail';
 import StatisticsPage from './pages/Statistics';
 import AdminPage from './pages/Admin';
 import FeedbackModal from './components/FeedbackModal';
