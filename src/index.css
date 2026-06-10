@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: #f7f5f0;
+  color: #112d22;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-forest-700 px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-all duration-200 hover:bg-forest-800 hover:shadow-lift active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-copper-500 px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-all duration-200 hover:bg-copper-600 hover:shadow-copper active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-forest-200 bg-white px-5 py-2.5 text-sm font-medium text-forest-700 transition-all duration-200 hover:border-forest-300 hover:bg-forest-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-forest-600 transition-all duration-200 hover:bg-forest-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-all duration-200 hover:bg-red-600;
+  }
+  .card {
+    @apply rounded-2xl bg-white shadow-soft border border-forest-100/60;
+  }
+  .input-base {
+    @apply w-full rounded-xl border border-forest-200 bg-white px-4 py-2.5 text-sm text-forest-800 transition-all duration-200 placeholder:text-forest-300 focus:border-forest-500 focus:outline-none focus:ring-2 focus:ring-forest-200;
+  }
+  .label {
+    @apply block text-sm font-medium text-forest-700 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-forest-600 transition-all duration-200 hover:bg-forest-50 hover:text-forest-800;
+  }
+  .nav-link-active {
+    @apply bg-forest-700 text-white shadow-soft hover:bg-forest-800 hover:text-white;
+  }
+  .title-xl {
+    @apply font-serif text-2xl font-semibold text-forest-800 tracking-tight;
+  }
+  .title-lg {
+    @apply font-serif text-xl font-semibold text-forest-800 tracking-tight;
+  }
+  .title-md {
+    @apply font-serif text-lg font-semibold text-forest-800;
+  }
+  .section-title {
+    @apply font-serif text-base font-semibold text-forest-800 flex items-center gap-2;
+  }
+}
+
+.booth-cell {
+  transition: all 0.25s ease;
+}
+.booth-cell:hover {
+  transform: translateY(-2px);
+}
+
+.conflict-pulse {
+  animation: conflictPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes conflictPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+}
