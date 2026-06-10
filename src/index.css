@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+  background: #0F172A;
+  color: #E2E8F0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-medium text-white
+           bg-gradient-to-r from-emerald-600 to-emerald-500
+           shadow-lg shadow-emerald-900/40
+           hover:from-emerald-500 hover:to-emerald-400
+           hover:-translate-y-0.5 hover:shadow-emerald-800/50
+           active:translate-y-0
+           transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-medium text-slate-200
+           bg-slate-800 border border-slate-700
+           hover:bg-slate-700 hover:text-white hover:border-slate-600
+           active:scale-[0.98]
+           transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 font-medium text-slate-300
+           hover:bg-slate-800 hover:text-white
+           transition-all duration-200;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl bg-slate-900/60 border border-slate-700 px-4 py-3 text-slate-100
+           placeholder:text-slate-500
+           focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30
+           transition-all duration-200;
+  }
+
+  .label-base {
+    @apply block text-sm font-medium text-slate-300 mb-2;
+  }
+
+  .card-base {
+    @apply rounded-2xl bg-slate-800/60 border border-slate-700/60 backdrop-blur-sm
+           shadow-xl shadow-black/20;
+  }
+
+  .page-container {
+    @apply min-h-screen pt-24 pb-16;
+    animation: fadeInUp 0.4s ease-out both;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-emerald-400 via-teal-300 to-green-300 bg-clip-text text-transparent;
+    background-size: 200% 200%;
+    animation: gradientShift 6s ease infinite;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 6px;
+  border: 2px solid #0F172A;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
