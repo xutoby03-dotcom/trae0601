@@ -20,8 +20,7 @@ const StatsPage: React.FC = () => {
         const member = familyMembers.find((m) => m.id === stat.memberId);
         return { ...stat, member };
       })
-      .sort((a, b) => b.totalPickups - a.totalPickups)
-      .reverse();
+      .sort((a, b) => b.totalPickups - a.totalPickups);
   }, [getStatsByMember, familyMembers]);
 
   const lateStats = useMemo(() => {

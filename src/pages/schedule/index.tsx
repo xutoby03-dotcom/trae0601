@@ -11,7 +11,7 @@ import Avatar from '@/components/Avatar';
 import { generateWeekDates, getWeekDay, isToday, isTomorrow, isPast, formatDate } from '@/utils/dateUtils';
 
 const SchedulePage: React.FC = () => {
-  const { getWeekRecords, familyMembers, currentUserId, confirmSwap, rejectSwap } = usePickupStore();
+  const { getWeekRecords, familyMembers, currentUserId, confirmSwap, rejectSwap, claimPickup } = usePickupStore();
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 
   const baseDate = useMemo(() => {
@@ -66,7 +66,7 @@ const SchedulePage: React.FC = () => {
       content: '确认认领此接送任务？',
       success: (res) => {
         if (res.confirm) {
-          // 认领逻辑
+          claimPickup(recordId, currentUserId);
           Taro.showToast({ title: '认领成功', icon: 'success' });
         }
       },
@@ -145,6 +145,14 @@ const SchedulePage: React.FC = () => {
 
                   {record.swapStatus === 'none' && !isPast(day.date) && (
                     <View className={styles.actions}>
+                      {record.assignedTo !== currentUserId && (
+                        <View
+                          className={classnames(styles.actionBtn, styles.claimBtn)}
+                          onClick={() => handleClaim(record.id)}
+                        >
+                          <Text className={styles.claimBtnText}>认领</Text>
+                        </View>
+                      )}
                       <View className={styles.actionBtn} onClick={() => handleRequestSwap(record.id)}>
                         <Text className={styles.actionBtnText}>申请换班</Text>
                       </View>

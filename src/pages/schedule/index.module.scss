@@ -158,6 +158,17 @@
   color: $color-text-secondary;
 }
 
+.claimBtn {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-color: $color-primary;
+}
+
+.claimBtnText {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
 .swapActions {
   display: flex;
   gap: $spacing-sm;
