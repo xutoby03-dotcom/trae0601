@@ -60,6 +60,40 @@
   margin-top: -$spacing-md;
 }
 
+.rangeBar {
+  display: flex;
+  background-color: rgba($color-primary, 0.08);
+  border-radius: $radius-lg;
+  padding: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.rangeItem {
+  flex: 1;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  transition: all $transition-base;
+
+  &.active {
+    background-color: $color-bg-card;
+    box-shadow: $shadow-card;
+  }
+}
+
+.rangeText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+
+  .active & {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
 .tabBar {
   display: flex;
   background-color: $color-bg-card;

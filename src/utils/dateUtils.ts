@@ -61,3 +61,39 @@ export const generateWeekDates = (baseDate?: string): string[] => {
   }
   return dates;
 };
+
+export type DateRangeType = 'today' | 'tomorrow' | 'week' | 'month';
+
+export const getDateRange = (type: DateRangeType): [string, string] => {
+  const now = dayjs();
+  switch (type) {
+    case 'today': {
+      const d = now.format('YYYY-MM-DD');
+      return [d, d];
+    }
+    case 'tomorrow': {
+      const d = now.add(1, 'day').format('YYYY-MM-DD');
+      return [d, d];
+    }
+    case 'week': {
+      const start = now.startOf('week').format('YYYY-MM-DD');
+      const end = now.endOf('week').format('YYYY-MM-DD');
+      return [start, end];
+    }
+    case 'month': {
+      const start = now.startOf('month').format('YYYY-MM-DD');
+      const end = now.endOf('month').format('YYYY-MM-DD');
+      return [start, end];
+    }
+  }
+};
+
+export const getMonthDates = (): string[] => {
+  const dates: string[] = [];
+  const startOfMonth = dayjs().startOf('month');
+  const daysInMonth = dayjs().daysInMonth();
+  for (let i = 0; i < daysInMonth; i++) {
+    dates.push(startOfMonth.add(i, 'day').format('YYYY-MM-DD'));
+  }
+  return dates;
+};
