@@ -45,14 +45,16 @@ export default function RouteDetail() {
   const openLightbox = (idx: number) => setLightboxIndex(idx);
   const closeLightbox = () => setLightboxIndex(null);
 
+  const hasMultiplePhotos = (route?.photos?.length ?? 0) > 1;
+
   const prevPhoto = () => {
-    if (lightboxIndex === null || !route?.photos?.length) return;
+    if (lightboxIndex === null || !hasMultiplePhotos || !route?.photos?.length) return;
     const total = route.photos.length;
     setLightboxIndex((lightboxIndex - 1 + total) % total);
   };
 
   const nextPhoto = () => {
-    if (lightboxIndex === null || !route?.photos?.length) return;
+    if (lightboxIndex === null || !hasMultiplePhotos || !route?.photos?.length) return;
     const total = route.photos.length;
     setLightboxIndex((lightboxIndex + 1) % total);
   };
@@ -522,27 +524,31 @@ export default function RouteDetail() {
               <X className="h-5 w-5" />
             </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                prevPhoto();
-              }}
-              className="absolute left-4 md:left-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              title="上一张 (←)"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
+            {hasMultiplePhotos && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prevPhoto();
+                  }}
+                  className="absolute left-4 md:left-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  title="上一张 (←)"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                nextPhoto();
-              }}
-              className="absolute right-4 md:right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              title="下一张 (→)"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    nextPhoto();
+                  }}
+                  className="absolute right-4 md:right-8 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                  title="下一张 (→)"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
 
             <div
               className="relative max-w-[92vw] max-h-[88vh]"
