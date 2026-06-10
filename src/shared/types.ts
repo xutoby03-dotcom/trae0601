@@ -70,4 +70,14 @@ export interface StatisticsData {
   totalTickets: number;
   recoveredCount: number;
   activeCount: number;
+  repeatedElevatorRank: {
+    building: string;
+    unit: string;
+    elevatorNo: string;
+    floorCount?: number;
+    count: number;
+    latestStatus: FaultStatus;
+    latestOccurredAt: number;
+    latestTicketId: string;
+  }[];
 }

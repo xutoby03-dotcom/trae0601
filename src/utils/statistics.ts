@@ -68,6 +68,46 @@ export function computeStatistics(tickets: FaultTicket[]): StatisticsData {
     .sort((a, b) => a.month.localeCompare(b.month))
     .slice(-6);
 
+  const repeatedElevatorRank = (() => {
+    const buckets: Record<
+      string,
+      {
+        building: string;
+        unit: string;
+        elevatorNo: string;
+        floorCount?: number;
+        count: number;
+        latestStatus: FaultStatus;
+        latestOccurredAt: number;
+        latestTicketId: string;
+      }
+    > = {};
+    tickets.forEach((t) => {
+      const k = elevatorKey(t.elevator);
+      if (!buckets[k]) {
+        buckets[k] = {
+          building: t.elevator.building,
+          unit: t.elevator.unit,
+          elevatorNo: t.elevator.elevatorNo,
+          floorCount: t.elevator.floorCount,
+          count: 0,
+          latestStatus: t.status,
+          latestOccurredAt: t.occurredAt,
+          latestTicketId: t.id,
+        };
+      }
+      buckets[k].count += 1;
+      if (t.occurredAt > buckets[k].latestOccurredAt) {
+        buckets[k].latestOccurredAt = t.occurredAt;
+        buckets[k].latestStatus = t.status;
+        buckets[k].latestTicketId = t.id;
+      }
+    });
+    return Object.values(buckets)
+      .filter((b) => b.count >= 2)
+      .sort((a, b) => b.count - a.count || b.latestOccurredAt - a.latestOccurredAt);
+  })();
+
   return {
     topFaultElevators,
     avgRecoveryTime: recoveredCount > 0 ? totalRecovery / recoveredCount : 0,
@@ -78,6 +118,7 @@ export function computeStatistics(tickets: FaultTicket[]): StatisticsData {
     totalTickets: tickets.length,
     recoveredCount,
     activeCount,
+    repeatedElevatorRank,
   };
 }
 

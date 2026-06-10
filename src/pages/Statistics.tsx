@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { BUILDINGS, PHENOMENON_OPTIONS, STATUS_CONFIG } from '@/shared/constants';
-import { formatDuration } from '@/utils/time';
+import { formatDuration, formatDateTime, relativeTime } from '@/utils/time';
 import type { FaultStatus } from '@/shared/types';
 import {
   FileBarChart,
@@ -13,9 +14,12 @@ import {
   BarChart3,
   PieChart as PieIcon,
   ArrowRight,
+  ChevronRight,
+  ArrowUpRight,
 } from 'lucide-react';
 
 export default function Statistics() {
+  const navigate = useNavigate();
   const stats = useAppStore((s) => s.computeStatistics());
   const tickets = useAppStore((s) => s.tickets);
 
@@ -180,54 +184,139 @@ export default function Statistics() {
               <Repeat size={16} />
               重复故障分析
             </h2>
-            <span className="text-xs text-slate-400">按故障现象统计出现频次</span>
           </div>
 
-          <div className="space-y-3">
-            {stats.repeatedFaultTypes.map((row, i) => {
-              const label = PHENOMENON_OPTIONS.find((p) => p.value === row.phenomenon)?.label || row.phenomenon;
-              const pct = (row.count / maxPhenom) * 100;
-              return (
-                <div key={row.phenomenon}>
-                  <div className="flex items-center justify-between mb-1.5 text-sm">
-                    <span className="font-medium text-slate-700">#{i + 1} {label}</span>
-                    <span className="font-bold text-slate-800 tabular-nums">{row.count} 次</span>
+          <div className="mb-6">
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">按故障现象统计</div>
+            <div className="space-y-3">
+              {stats.repeatedFaultTypes.map((row, i) => {
+                const label = PHENOMENON_OPTIONS.find((p) => p.value === row.phenomenon)?.label || row.phenomenon;
+                const pct = (row.count / maxPhenom) * 100;
+                return (
+                  <div key={row.phenomenon}>
+                    <div className="flex items-center justify-between mb-1.5 text-sm">
+                      <span className="font-medium text-slate-700">#{i + 1} {label}</span>
+                      <span className="font-bold text-slate-800 tabular-nums">{row.count} 次</span>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-700"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          {stats.topFaultElevators.some((e) => e.count >= 3) && (
-            <div className="mt-5 p-4 rounded-xl bg-amber-50 border border-amber-200">
-              <div className="flex items-start gap-2 text-sm text-amber-800">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <div>
-                  <div className="font-bold mb-1">⚠️ 需要重点关注的电梯</div>
-                  <ul className="space-y-1">
-                    {stats.topFaultElevators
-                      .filter((e) => e.count >= 3)
-                      .map((e) => {
-                        const b = BUILDINGS.find((x) => x.code === e.elevator.building);
-                        return (
-                          <li key={`${e.elevator.building}-${e.elevator.unit}`}>
-                            <ArrowRight size={12} className="inline mr-1 -mt-0.5" />
-                            <strong>{b?.name || e.elevator.building} {e.elevator.unit} {e.elevator.elevatorNo}</strong>
-                            ，累计 <strong>{e.count}</strong> 次故障，建议安排全面检修。
-                          </li>
-                        );
-                      })}
-                  </ul>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <ArrowUpRight size={12} />
+                同梯反复榜
+              </div>
+              <span className="text-[11px] text-slate-400">同一台电梯历史故障 ≥ 2 次</span>
+            </div>
+
+            {stats.repeatedElevatorRank.length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-400">
+                暂无反复故障电梯，数据积累后将自动展示
+              </div>
+            ) : (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-xs text-slate-500">
+                      <th className="text-left px-4 py-2.5 font-semibold">排名</th>
+                      <th className="text-left px-4 py-2.5 font-semibold">电梯</th>
+                      <th className="text-center px-4 py-2.5 font-semibold">历史次数</th>
+                      <th className="text-center px-4 py-2.5 font-semibold">最新状态</th>
+                      <th className="text-left px-4 py-2.5 font-semibold">最近发生</th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.repeatedElevatorRank.map((row, i) => {
+                      const b = BUILDINGS.find((x) => x.code === row.building);
+                      const cfg = STATUS_CONFIG[row.latestStatus];
+                      const rankBadge =
+                        i === 0
+                          ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white'
+                          : i === 1
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white'
+                            : i === 2
+                              ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
+                              : 'bg-slate-100 text-slate-500';
+                      return (
+                        <tr
+                          key={`${row.building}-${row.unit}-${row.elevatorNo}`}
+                          onClick={() => navigate(`/fault/${row.latestTicketId}`)}
+                          className="border-t border-slate-100 cursor-pointer hover:bg-brand-50/50 transition-colors group"
+                        >
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md text-[11px] font-black ${rankBadge}`}>
+                              {i + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-slate-800">
+                              {b?.name || row.building} {row.unit} {row.elevatorNo}
+                            </div>
+                            <div className="text-[11px] text-slate-400">{row.floorCount}层</div>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${row.count >= 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {row.count} 次
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                              {cfg.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                            <span title={formatDateTime(row.latestOccurredAt)}>
+                              {relativeTime(row.latestOccurredAt)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <ChevronRight size={14} className="text-slate-300 group-hover:text-brand-500 transition-colors" />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {stats.repeatedElevatorRank.some((r) => r.count >= 3) && (
+              <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-2 text-sm text-amber-800">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <div>
+                    <div className="font-bold mb-1">⚠️ 建议安排全面检修</div>
+                    <ul className="space-y-0.5">
+                      {stats.repeatedElevatorRank
+                        .filter((r) => r.count >= 3)
+                        .map((r) => {
+                          const b = BUILDINGS.find((x) => x.code === r.building);
+                          return (
+                            <li key={`${r.building}-${r.unit}-${r.elevatorNo}`} className="text-xs">
+                              <ArrowRight size={10} className="inline mr-1 -mt-0.5" />
+                              <strong>{b?.name || r.building} {r.unit} {r.elevatorNo}</strong>
+                              累计 <strong>{r.count}</strong> 次
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
         <section className="card p-5 md:p-6">
