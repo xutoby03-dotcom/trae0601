@@ -30,7 +30,7 @@ export interface ConsumedRecord {
   quantity: number;
   unit: string;
   consumedAt: string;
-  reason: 'used' | 'expired' | 'moved';
+  reason: 'used' | 'expired' | 'moved' | 'removed_from_list';
   amount?: number;
   note?: string;
 }

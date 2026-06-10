@@ -500,10 +500,18 @@ export default function Statistics() {
                           ? 'bg-green-100'
                           : r.reason === 'expired'
                           ? 'bg-red-100'
+                          : r.reason === 'removed_from_list'
+                          ? 'bg-gray-100'
                           : 'bg-blue-100'
                       }`}
                     >
-                      {r.reason === 'used' ? '🍽️' : r.reason === 'expired' ? '🗑️' : '↔️'}
+                      {r.reason === 'used'
+                        ? '🍽️'
+                        : r.reason === 'expired'
+                        ? '🗑️'
+                        : r.reason === 'removed_from_list'
+                        ? '📋'
+                        : '↔️'}
                     </div>
                     <div>
                       <div className="text-sm font-medium text-gray-800">
@@ -511,6 +519,8 @@ export default function Statistics() {
                           ? `食用 ${r.itemName} × ${r.quantity}${r.unit}`
                           : r.reason === 'expired'
                           ? `丢弃过期：${r.itemName}`
+                          : r.reason === 'removed_from_list'
+                          ? `移出待吃：${r.itemName}`
                           : r.note || `移动：${r.itemName}`}
                       </div>
                       {r.reason === 'used' && r.note && (

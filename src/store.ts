@@ -391,8 +391,21 @@ export const useFreezerStore = create<FreezerState>()(
         },
 
         removeFromEatList: (itemId) => {
+          const item = get().items.find((i) => i.id === itemId);
+          if (!item) return;
+          const record: ConsumedRecord = {
+            id: generateId(),
+            itemId,
+            itemName: item.name,
+            quantity: 0,
+            unit: item.unit,
+            consumedAt: new Date().toISOString(),
+            reason: 'removed_from_list',
+            note: '从待吃清单移除',
+          };
           set((state) => ({
             toEatList: state.toEatList.filter((id) => id !== itemId),
+            records: [...state.records, record],
           }));
         },
 

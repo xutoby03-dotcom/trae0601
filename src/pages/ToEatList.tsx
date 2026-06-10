@@ -88,10 +88,10 @@ export default function ToEatList() {
     return result;
   }, [urgentItems, weekItems, twoWeekItems, expiredItems]);
 
-  const selectedItems = useMemo(
-    () => allExpiringItems.filter((it) => selectedIds.has(it.id)),
-    [allExpiringItems, selectedIds]
-  );
+  const selectedItems = useMemo(() => {
+    const pool = activeTab === 'expiring' ? allExpiringItems : toEatItems;
+    return pool.filter((it) => selectedIds.has(it.id));
+  }, [activeTab, allExpiringItems, toEatItems, selectedIds]);
 
   const showToast = (msg: string) => {
     setToast(msg);
