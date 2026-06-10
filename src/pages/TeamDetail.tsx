@@ -351,7 +351,7 @@ export default function TeamDetail() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-xs text-midnight-500 font-serif">¥{member.budgetLimit}</span>
-                  {!isLocked && !isCompleted && (
+                  {!isCompleted && (
                     <button
                       onClick={() => handleLeave(member.id)}
                       className="p-1.5 rounded-lg text-midnight-500 hover:text-wine-400 hover:bg-wine-900/30 transition-all"
