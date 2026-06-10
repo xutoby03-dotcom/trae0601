@@ -5,15 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function parseAgeRange(ageRange: string): { min: number; max: number } {
+export function parseAgeRange(ageRange: string): { min: number; max: number; isEmpty: boolean } {
+  if (!ageRange || ageRange.trim() === '') {
+    return { min: 999, max: 999, isEmpty: true };
+  }
   if (ageRange === '8岁以上') {
-    return { min: 8, max: 99 };
+    return { min: 8, max: 99, isEmpty: false };
   }
   const match = ageRange.match(/(\d+)-(\d+)岁/);
   if (match) {
-    return { min: parseInt(match[1]), max: parseInt(match[2]) };
+    return { min: parseInt(match[1]), max: parseInt(match[2]), isEmpty: false };
   }
-  return { min: 0, max: 99 };
+  return { min: 0, max: 99, isEmpty: false };
 }
 
 export function calculateAge(birthDate: string): number {
@@ -49,14 +52,16 @@ export function calculateAgeInMonths(birthDate: string): number {
 }
 
 export function isToyAgeAppropriate(toyAgeRange: string, childBirthDate: string): boolean {
-  const { min } = parseAgeRange(toyAgeRange);
+  const { min, isEmpty } = parseAgeRange(toyAgeRange);
+  if (isEmpty) return false;
   const childAge = calculateAgeInMonths(childBirthDate);
   const minMonths = min * 12;
   return childAge >= minMonths;
 }
 
 export function hasSmallPartsRisk(toyAgeRange: string, childBirthDate: string): boolean {
-  const { min } = parseAgeRange(toyAgeRange);
+  const { min, isEmpty } = parseAgeRange(toyAgeRange);
+  if (isEmpty) return true;
   const childAge = calculateAgeInMonths(childBirthDate);
   const minMonths = min * 12;
   return childAge < minMonths;

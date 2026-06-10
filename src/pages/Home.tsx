@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useToyStore } from '@/store/useToyStore';
 import { ToyCard } from '@/components/ToyCard';
-import { cn, formatAge, calculateAgeInMonths } from '@/lib/utils';
+import { cn, formatAge, calculateAgeInMonths, parseAgeRange } from '@/lib/utils';
 import type { ToyStatus, ToyTag, Child } from '@/types';
 import { STATUS_LABELS, TAG_LABELS } from '@/types';
 
@@ -123,6 +123,11 @@ export default function Home() {
   const getRiskChildrenNames = () => {
     const names = new Set<string>();
     riskToys.forEach((toy) => {
+      const { isEmpty } = parseAgeRange(toy.ageRange);
+      if (isEmpty) {
+        children.forEach((child) => names.add(child.name));
+        return;
+      }
       children.forEach((child) => {
         const toyMinAge = parseInt(toy.ageRange.match(/\d+/)?.[0] || '0');
         const childAgeMonths = calculateAgeInMonths(child.birthDate);
@@ -133,6 +138,10 @@ export default function Home() {
     });
     return Array.from(names);
   };
+
+  const hasUnsetAgeToys = riskToys.some((toy) => parseAgeRange(toy.ageRange).isEmpty);
+  const unsetAgeToys = riskToys.filter((toy) => parseAgeRange(toy.ageRange).isEmpty);
+  const normalRiskToys = riskToys.filter((toy) => !parseAgeRange(toy.ageRange).isEmpty);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-mint-50">
@@ -200,14 +209,29 @@ export default function Home() {
                   )}
                   请务必在成人看护下玩耍！
                 </p>
+                {hasUnsetAgeToys && (
+                  <p className="text-orange-600 text-xs mt-1 bg-orange-50 px-2 py-1 rounded">
+                    ⚠️ 有 <strong>{unsetAgeToys.length}</strong> 件玩具未填写适合年龄，暂按全部孩子有风险处理，
+                    请点击玩具卡片补充适龄信息。
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {riskToys.map((toy) => (
+                  {normalRiskToys.map((toy) => (
                     <Link
                       key={toy.id}
                       to={`/toy/${toy.id}`}
                       className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition-colors"
                     >
                       {toy.name}（{toy.ageRange}+）
+                    </Link>
+                  ))}
+                  {unsetAgeToys.map((toy) => (
+                    <Link
+                      key={toy.id}
+                      to={`/toy/${toy.id}`}
+                      className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full hover:bg-orange-200 transition-colors"
+                    >
+                      {toy.name}（未填适龄 ⚠️）
                     </Link>
                   ))}
                 </div>

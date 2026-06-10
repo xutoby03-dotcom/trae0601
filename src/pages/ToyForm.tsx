@@ -59,6 +59,11 @@ export default function ToyForm() {
       return;
     }
 
+    if (hasSmallParts && !ageRange) {
+      alert('含有小零件的玩具请务必选择适合年龄，以便系统进行安全风险评估');
+      return;
+    }
+
     if (isEdit && id) {
       updateToy(id, {
         name,
@@ -183,6 +188,12 @@ export default function ToyForm() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             适合年龄
+            {hasSmallParts && <span className="text-red-500 ml-1">*</span>}
+            {hasSmallParts && (
+              <span className="text-xs text-red-500 ml-2 font-normal">
+                （含小零件必须填写）
+              </span>
+            )}
           </label>
           <select
             value={ageRange}

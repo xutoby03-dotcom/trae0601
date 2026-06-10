@@ -53,6 +53,7 @@ export default function ToyDetail() {
   const playCount = toy ? getPlayCount(toy.id) : 0;
   const lastPlayTime = toy ? getLastPlayTime(toy.id) : null;
   const riskInfo = toy ? getRiskForToy(toy.id) : { hasRisk: false, riskChildren: [] };
+  const ageInfo = toy ? parseAgeRange(toy.ageRange) : { min: 0, max: 99, isEmpty: false };
 
   if (!toy) {
     return (
@@ -254,16 +255,74 @@ export default function ToyDetail() {
         {toy.hasSmallParts && (
           <div className={cn(
             'rounded-2xl shadow-sm p-5 mb-6',
-            riskInfo.hasRisk ? 'bg-red-50 border border-red-100' : 'bg-mint-50 border border-mint-100'
+            ageInfo.isEmpty
+              ? 'bg-orange-50 border border-orange-200'
+              : riskInfo.hasRisk
+              ? 'bg-red-50 border border-red-100'
+              : 'bg-mint-50 border border-mint-100'
           )}>
             <h3 className={cn(
               'font-bold mb-3 flex items-center gap-2',
-              riskInfo.hasRisk ? 'text-red-800' : 'text-mint-800'
+              ageInfo.isEmpty
+                ? 'text-orange-800'
+                : riskInfo.hasRisk
+                ? 'text-red-800'
+                : 'text-mint-800'
             )}>
               <ShieldAlert size={18} />
               安全评估
             </h3>
-            {children.length === 0 ? (
+            {ageInfo.isEmpty ? (
+              <div>
+                <div className="flex items-start gap-3 mb-3">
+                  <AlertCircle size={18} className="text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-orange-800">
+                      ⚠️ 未填写适合年龄
+                    </p>
+                    <p className="text-sm text-orange-700 mt-1">
+                      这件玩具含有小零件但未填写适合年龄，<strong>暂按全部孩子有风险处理</strong>。
+                      请补充适龄信息以便系统准确评估。
+                    </p>
+                  </div>
+                </div>
+                {children.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    <p className="text-xs text-orange-600">当前按风险对待的孩子：</p>
+                    {children.map((child) => {
+                      const childAge = calculateAgeInMonths(child.birthDate);
+                      return (
+                        <div key={child.id} className="flex items-center justify-between bg-white rounded-xl p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                              <Baby size={18} className="text-orange-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{child.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {formatAge(childAge)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                              待评估
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <Link
+                  to={`/edit/${toy.id}`}
+                  className="inline-flex items-center gap-1 text-sm text-orange-700 bg-orange-200 hover:bg-orange-300 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <Edit size={14} />
+                  补充适合年龄
+                </Link>
+              </div>
+            ) : children.length === 0 ? (
               <div className="flex items-start gap-3">
                 <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-yellow-700">
@@ -278,7 +337,7 @@ export default function ToyDetail() {
                 <div className="space-y-2">
                   {riskInfo.riskChildren.map((child) => {
                     const childAge = calculateAgeInMonths(child.birthDate);
-                    const toyMinAge = parseAgeRange(toy.ageRange).min * 12;
+                    const toyMinAge = ageInfo.min * 12;
                     return (
                       <div key={child.id} className="flex items-center justify-between bg-white rounded-xl p-3">
                         <div className="flex items-center gap-3">
