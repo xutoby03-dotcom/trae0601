@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Toy, ToyStatus, ToyTag, RotationRecord, RotationAction } from '@/types';
+import type { Toy, ToyStatus, ToyTag, RotationRecord, RotationAction, Child } from '@/types';
+import { hasSmallPartsRisk } from '@/lib/utils';
 
 interface ToyStore {
   toys: Toy[];
   records: RotationRecord[];
+  children: Child[];
   addToy: (toy: Omit<Toy, 'id' | 'createdAt'>) => void;
   updateToy: (id: string, data: Partial<Toy>) => void;
   deleteToy: (id: string) => void;
@@ -16,6 +18,11 @@ interface ToyStore {
   getPlayCount: (toyId: string) => number;
   getLastPlayTime: (toyId: string) => string | null;
   changeToyStatus: (id: string, status: ToyStatus) => void;
+  addChild: (child: Omit<Child, 'id'>) => void;
+  updateChild: (id: string, data: Partial<Child>) => void;
+  deleteChild: (id: string) => void;
+  getSmallPartsRiskToys: () => Toy[];
+  getRiskForToy: (toyId: string) => { hasRisk: boolean; riskChildren: Child[] };
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 10);
@@ -147,11 +154,17 @@ const mockRecords: RotationRecord[] = [
   { id: 'r9', toyId: 'toy3', action: 'put-back', timestamp: '2026-05-15T17:00:00Z', note: '缺了一个小零件' },
 ];
 
+const mockChildren: Child[] = [
+  { id: 'c1', name: '小明', birthDate: '2022-08-15' },
+  { id: 'c2', name: '小红', birthDate: '2024-03-20' },
+];
+
 export const useToyStore = create<ToyStore>()(
   persist(
     (set, get) => ({
       toys: mockToys,
       records: mockRecords,
+      children: mockChildren,
 
       addToy: (toy) =>
         set((state) => ({
@@ -229,6 +242,54 @@ export const useToyStore = create<ToyStore>()(
             toy.id === id ? { ...toy, status } : toy
           ),
         })),
+
+      addChild: (child) =>
+        set((state) => ({
+          children: [
+            ...state.children,
+            {
+              ...child,
+              id: generateId(),
+            },
+          ],
+        })),
+
+      updateChild: (id, data) =>
+        set((state) => ({
+          children: state.children.map((child) =>
+            child.id === id ? { ...child, ...data } : child
+          ),
+        })),
+
+      deleteChild: (id) =>
+        set((state) => ({
+          children: state.children.filter((child) => child.id !== id),
+        })),
+
+      getSmallPartsRiskToys: () => {
+        const { toys, children } = get();
+        if (children.length === 0) return [];
+        return toys.filter(
+          (toy) =>
+            toy.hasSmallParts &&
+            toy.status === 'playing' &&
+            children.some((child) =>
+              hasSmallPartsRisk(toy.ageRange, child.birthDate)
+            )
+        );
+      },
+
+      getRiskForToy: (toyId) => {
+        const { toys, children } = get();
+        const toy = toys.find((t) => t.id === toyId);
+        if (!toy || !toy.hasSmallParts || children.length === 0) {
+          return { hasRisk: false, riskChildren: [] };
+        }
+        const riskChildren = children.filter((child) =>
+          hasSmallPartsRisk(toy.ageRange, child.birthDate)
+        );
+        return { hasRisk: riskChildren.length > 0, riskChildren };
+      },
     }),
     {
       name: 'toy-rotator-storage',

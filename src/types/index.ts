@@ -2,6 +2,12 @@ export type ToyStatus = 'playing' | 'stored' | 'cleaning' | 'giving' | 'away';
 export type ToyTag = 'rainy' | 'parent-child' | 'quiet';
 export type RotationAction = 'take-out' | 'put-back';
 
+export interface Child {
+  id: string;
+  name: string;
+  birthDate: string;
+}
+
 export interface Toy {
   id: string;
   name: string;

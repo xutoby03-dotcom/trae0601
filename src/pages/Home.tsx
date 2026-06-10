@@ -11,11 +11,16 @@ import {
   CloudRain,
   Heart,
   Moon,
+  Users,
+  X,
+  Trash2,
+  UserPlus,
+  Baby,
 } from 'lucide-react';
 import { useToyStore } from '@/store/useToyStore';
 import { ToyCard } from '@/components/ToyCard';
-import { cn } from '@/lib/utils';
-import type { ToyStatus, ToyTag } from '@/types';
+import { cn, formatAge, calculateAgeInMonths } from '@/lib/utils';
+import type { ToyStatus, ToyTag, Child } from '@/types';
 import { STATUS_LABELS, TAG_LABELS } from '@/types';
 
 const statusGroups: { status: ToyStatus; icon: typeof Play; color: string; bgColor: string }[] = [
@@ -32,12 +37,26 @@ const tagFilters: { tag: ToyTag; icon: typeof CloudRain }[] = [
 ];
 
 export default function Home() {
-  const { toys, getToysByStatus, getToysByTag } = useToyStore();
+  const {
+    toys,
+    children,
+    getToysByStatus,
+    getToysByTag,
+    getSmallPartsRiskToys,
+    addChild,
+    updateChild,
+    deleteChild,
+  } = useToyStore();
+
   const [activeFilter, setActiveFilter] = useState<ToyStatus | 'all' | ToyTag>('all');
   const [filterType, setFilterType] = useState<'status' | 'tag'>('status');
+  const [showChildModal, setShowChildModal] = useState(false);
+  const [editingChild, setEditingChild] = useState<Child | null>(null);
+  const [newChildName, setNewChildName] = useState('');
+  const [newChildBirthDate, setNewChildBirthDate] = useState('');
 
-  const hasSmallPartsToys = toys.filter((t) => t.hasSmallParts && t.status === 'playing');
-  const showSafetyWarning = hasSmallPartsToys.length > 0;
+  const riskToys = getSmallPartsRiskToys();
+  const showSafetyWarning = riskToys.length > 0 && children.length > 0;
 
   const getFilteredToys = () => {
     if (activeFilter === 'all') {
@@ -61,6 +80,60 @@ export default function Home() {
     setActiveFilter(tag === activeFilter ? 'all' : tag);
   };
 
+  const openAddChild = () => {
+    setEditingChild(null);
+    setNewChildName('');
+    setNewChildBirthDate('');
+    setShowChildModal(true);
+  };
+
+  const openEditChild = (child: Child) => {
+    setEditingChild(child);
+    setNewChildName(child.name);
+    setNewChildBirthDate(child.birthDate);
+    setShowChildModal(true);
+  };
+
+  const handleSaveChild = () => {
+    if (!newChildName.trim() || !newChildBirthDate) {
+      alert('请填写孩子姓名和出生日期');
+      return;
+    }
+
+    if (editingChild) {
+      updateChild(editingChild.id, {
+        name: newChildName.trim(),
+        birthDate: newChildBirthDate,
+      });
+    } else {
+      addChild({
+        name: newChildName.trim(),
+        birthDate: newChildBirthDate,
+      });
+    }
+    setShowChildModal(false);
+  };
+
+  const handleDeleteChild = (id: string) => {
+    if (confirm('确定要删除这个孩子吗？')) {
+      deleteChild(id);
+    }
+  };
+
+  const getRiskChildrenNames = () => {
+    const names = new Set<string>();
+    riskToys.forEach((toy) => {
+      children.forEach((child) => {
+        const toyMinAge = parseInt(toy.ageRange.match(/\d+/)?.[0] || '0');
+        const childAgeMonths = calculateAgeInMonths(child.birthDate);
+        if (childAgeMonths < toyMinAge * 12) {
+          names.add(child.name);
+        }
+      });
+    });
+    return Array.from(names);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-mint-50">
       <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
@@ -70,13 +143,46 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-800">🧸 玩具轮换箱</h1>
             <p className="text-sm text-gray-500 mt-1">让每一件玩具都被好好利用</p>
           </div>
-          <Link
-            to="/stats"
-            className="p-2.5 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
-          >
-            <BarChart3 className="text-primary-500" size={22} />
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openAddChild}
+              className="p-2.5 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow relative"
+              title="孩子年龄设置"
+            >
+              <Users className="text-primary-500" size={22} />
+              {children.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {children.length}
+                </span>
+              )}
+            </button>
+            <Link
+              to="/stats"
+              className="p-2.5 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
+            >
+              <BarChart3 className="text-primary-500" size={22} />
+            </Link>
+          </div>
         </div>
+
+        {/* 孩子信息展示 */}
+        {children.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {children.map((child) => (
+              <button
+                key={child.id}
+                onClick={() => openEditChild(child)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full shadow-sm hover:shadow-md transition-all text-sm"
+              >
+                <Baby size={14} className="text-pink-500" />
+                <span className="font-medium text-gray-700">{child.name}</span>
+                <span className="text-gray-400">
+                  ({formatAge(calculateAgeInMonths(child.birthDate))})
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 安全提醒 */}
         {showSafetyWarning && (
@@ -84,10 +190,48 @@ export default function Home() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
               <div className="flex-1">
-                <p className="font-medium text-red-800 text-sm">安全提醒</p>
+                <p className="font-medium text-red-800 text-sm">⚠️ 小零件安全提醒</p>
                 <p className="text-red-600 text-xs mt-0.5">
-                  当前有 {hasSmallPartsToys.length} 件含小零件的玩具正在玩，请注意看护小龄儿童，避免误食风险。
+                  当前有 <strong>{riskToys.length}</strong> 件含小零件的玩具正在玩，
+                  {getRiskChildrenNames().length > 0 && (
+                    <>
+                      对 <strong>{getRiskChildrenNames().join('、')}</strong> 存在误食风险，
+                    </>
+                  )}
+                  请务必在成人看护下玩耍！
                 </p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {riskToys.map((toy) => (
+                    <Link
+                      key={toy.id}
+                      to={`/toy/${toy.id}`}
+                      className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full hover:bg-red-200 transition-colors"
+                    >
+                      {toy.name}（{toy.ageRange}+）
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 未设置孩子时的提示 */}
+        {children.length === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <Users className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+              <div className="flex-1">
+                <p className="font-medium text-yellow-800 text-sm">设置孩子年龄</p>
+                <p className="text-yellow-600 text-xs mt-0.5">
+                  添加孩子信息后，系统会自动判断含小零件玩具是否适合，并提供安全提醒。
+                </p>
+                <button
+                  onClick={openAddChild}
+                  className="mt-2 text-xs bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition-colors"
+                >
+                  添加孩子信息
+                </button>
               </div>
             </div>
           </div>
@@ -141,7 +285,7 @@ export default function Home() {
               </button>
             );
           })}
-          {(activeFilter !== 'all') && (
+          {activeFilter !== 'all' && (
             <button
               onClick={() => setActiveFilter('all')}
               className="text-sm text-gray-500 hover:text-gray-700 px-2"
@@ -191,6 +335,112 @@ export default function Home() {
           <span className="font-medium">添加玩具</span>
         </Link>
       </div>
+
+      {/* 孩子设置弹窗 */}
+      {showChildModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-6 animate-fade-in">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-gray-800 text-lg">
+                {editingChild ? '编辑孩子信息' : '添加孩子'}
+              </h3>
+              <button
+                onClick={() => setShowChildModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            {/* 已有孩子列表 */}
+            {!editingChild && children.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm font-medium text-gray-700 mb-3">已有孩子</p>
+                <div className="space-y-2">
+                  {children.map((child) => (
+                    <div
+                      key={child.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                          <Baby size={18} className="text-pink-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{child.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatAge(calculateAgeInMonths(child.birthDate))}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEditChild(child)}
+                          className="p-2 text-gray-500 hover:bg-white rounded-lg transition-colors"
+                        >
+                          <Users size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteChild(child.id)}
+                          className="p-2 text-red-400 hover:bg-white hover:text-red-500 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 表单 */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  孩子姓名
+                </label>
+                <input
+                  type="text"
+                  value={newChildName}
+                  onChange={(e) => setNewChildName(e.target.value)}
+                  placeholder="如：小明"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  出生日期
+                </label>
+                <input
+                  type="date"
+                  value={newChildBirthDate}
+                  onChange={(e) => setNewChildBirthDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowChildModal(false);
+                  setEditingChild(null);
+                }}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveChild}
+                className="flex-1 py-3 rounded-xl bg-primary-500 text-white font-medium hover:bg-primary-600 transition-colors flex items-center justify-center gap-1.5"
+              >
+                {editingChild ? null : <UserPlus size={18} />}
+                {editingChild ? '保存修改' : '添加'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

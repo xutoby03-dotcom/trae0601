@@ -13,6 +13,8 @@ import {
   Tag,
   ShieldAlert,
   Clock,
+  Baby,
+  AlertCircle,
 } from 'lucide-react';
 import { useToyStore } from '@/store/useToyStore';
 import {
@@ -22,7 +24,7 @@ import {
   TAG_COLORS,
   TOY_CATEGORIES,
 } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, formatAge, calculateAgeInMonths, parseAgeRange } from '@/lib/utils';
 import { useState } from 'react';
 
 export default function ToyDetail() {
@@ -37,6 +39,8 @@ export default function ToyDetail() {
     deleteToy,
     getPlayCount,
     getLastPlayTime,
+    getRiskForToy,
+    children,
   } = useToyStore();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -48,6 +52,7 @@ export default function ToyDetail() {
   const records = toy ? getRecordsByToyId(toy.id) : [];
   const playCount = toy ? getPlayCount(toy.id) : 0;
   const lastPlayTime = toy ? getLastPlayTime(toy.id) : null;
+  const riskInfo = toy ? getRiskForToy(toy.id) : { hasRisk: false, riskChildren: [] };
 
   if (!toy) {
     return (
@@ -244,6 +249,74 @@ export default function ToyDetail() {
             </div>
           </div>
         </div>
+
+        {/* 安全风险评估 */}
+        {toy.hasSmallParts && (
+          <div className={cn(
+            'rounded-2xl shadow-sm p-5 mb-6',
+            riskInfo.hasRisk ? 'bg-red-50 border border-red-100' : 'bg-mint-50 border border-mint-100'
+          )}>
+            <h3 className={cn(
+              'font-bold mb-3 flex items-center gap-2',
+              riskInfo.hasRisk ? 'text-red-800' : 'text-mint-800'
+            )}>
+              <ShieldAlert size={18} />
+              安全评估
+            </h3>
+            {children.length === 0 ? (
+              <div className="flex items-start gap-3">
+                <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-yellow-700">
+                  尚未设置孩子信息，无法进行安全评估。请在首页添加孩子年龄信息。
+                </p>
+              </div>
+            ) : riskInfo.hasRisk ? (
+              <div>
+                <p className="text-sm text-red-700 mb-3">
+                  <strong>⚠️ 存在风险：</strong>这件玩具含有小零件，对以下孩子存在误食风险：
+                </p>
+                <div className="space-y-2">
+                  {riskInfo.riskChildren.map((child) => {
+                    const childAge = calculateAgeInMonths(child.birthDate);
+                    const toyMinAge = parseAgeRange(toy.ageRange).min * 12;
+                    return (
+                      <div key={child.id} className="flex items-center justify-between bg-white rounded-xl p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <Baby size={18} className="text-red-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">{child.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {formatAge(childAge)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                            小 {toyMinAge - childAge} 个月
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-red-600 mt-3">
+                  建议：请在成人全程看护下玩耍，玩完及时收好不适合年龄的孩子接触不到的地方。
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-mint-200 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">✅</span>
+                </div>
+                <p className="text-sm text-mint-700">
+                  安全：所有孩子都达到了该玩具的适龄要求（{toy.ageRange}）。
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 玩耍统计 */}
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
