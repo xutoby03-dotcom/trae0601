@@ -332,14 +332,12 @@ export default function Statistics() {
                                     {doc.processStatus === 'not_started' ? '未开始办理' : progress}
                                   </span>
                                 </div>
-                                {missingInfo && missingInfo.total > 0 && (
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <Package className={`w-3.5 h-3.5 flex-shrink-0 ${missingCount > 0 ? 'text-amber-500' : 'text-green-500'}`} />
-                                    <span className={missingCount > 0 ? 'text-amber-700' : 'text-green-700'}>
-                                      {missingCount > 0 ? `缺 ${missingCount} 项材料` : '材料已备齐'}
-                                    </span>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Package className={`w-3.5 h-3.5 flex-shrink-0 ${!missingInfo || missingInfo.total === 0 ? 'text-slate-400' : missingCount > 0 ? 'text-amber-500' : 'text-green-500'}`} />
+                                  <span className={!missingInfo || missingInfo.total === 0 ? 'text-slate-500' : missingCount > 0 ? 'text-amber-700' : 'text-green-700'}>
+                                    {!missingInfo || missingInfo.total === 0 ? '暂无材料清单' : missingCount > 0 ? `缺 ${missingCount} 项材料` : '材料已备齐'}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </Link>
