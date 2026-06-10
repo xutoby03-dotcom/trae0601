@@ -11,6 +11,9 @@ export interface StatsOverview {
 export interface CategoryStat {
   category: BookCategory;
   count: number;
+  borrowCount: number;
+  circulationCount: number;
+  heatScore: number;
   percentage: number;
 }
 
@@ -50,19 +53,46 @@ export const calcOverview = (
   return { totalRegistered, inCirculation, totalReturned, overdueCount };
 };
 
-export const calcCategoryStats = (books: Book[]): CategoryStat[] => {
-  const counts = new Map<BookCategory, number>();
+export const calcCategoryStats = (books: Book[], records: BorrowRecord[]): CategoryStat[] => {
+  const bookToCategory = new Map(books.map((b) => [b.id, b.category]));
+  const stats = new Map<BookCategory, { count: number; borrowCount: number; circulationCount: number }>();
+
   books.forEach((b) => {
-    counts.set(b.category, (counts.get(b.category) || 0) + 1);
+    const s = stats.get(b.category) || { count: 0, borrowCount: 0, circulationCount: 0 };
+    s.count += 1;
+    stats.set(b.category, s);
   });
-  const total = books.length || 1;
-  return Array.from(counts.entries())
-    .map(([category, count]) => ({
+
+  records.forEach((r) => {
+    const category = bookToCategory.get(r.bookId);
+    if (!category) return;
+    const s = stats.get(category) || { count: 0, borrowCount: 0, circulationCount: 0 };
+    if (r.action === 'borrow') {
+      s.borrowCount += 1;
+      s.circulationCount += 1;
+    }
+    if (r.action === 'return' || r.action === 'claim') {
+      s.circulationCount += 1;
+    }
+    stats.set(category, s);
+  });
+
+  const entries = Array.from(stats.entries()).map(([category, s]) => {
+    const heatScore = s.borrowCount * 2 + s.circulationCount + s.count * 0.5;
+    return {
       category,
-      count,
-      percentage: Math.round((count / total) * 100),
-    }))
-    .sort((a, b) => b.count - a.count);
+      count: s.count,
+      borrowCount: s.borrowCount,
+      circulationCount: s.circulationCount,
+      heatScore: Math.round(heatScore * 10) / 10,
+      percentage: 0,
+    };
+  });
+
+  const totalHeat = entries.reduce((sum, e) => sum + e.heatScore, 0) || 1;
+  return entries
+    .map((e) => ({ ...e, percentage: Math.round((e.heatScore / totalHeat) * 100) }))
+    .sort((a, b) => b.heatScore - a.heatScore);
 };
 
 export const calcOverdueRank = (

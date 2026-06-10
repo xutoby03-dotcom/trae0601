@@ -12,7 +12,7 @@ export const Statistics = () => {
   const records = useAppStore((s) => s.borrowRecords);
 
   const overview = useMemo(() => calcOverview(books, records), [books, records]);
-  const categoryStats = useMemo(() => calcCategoryStats(books), [books]);
+  const categoryStats = useMemo(() => calcCategoryStats(books, records), [books, records]);
   const overdueRank = useMemo(() => calcOverdueRank(users, records), [users, records]);
 
   const statCards: StatCardData[] = [
@@ -64,11 +64,13 @@ export const Statistics = () => {
       'bg-wood-600': 'bg-gradient-to-r from-wood-500 to-wood-600',
     };
     return {
-      label: cs.category,
-      value: cs.count,
+      label: `${cs.category} · 藏${cs.count}`,
+      value: cs.heatScore,
       percentage: cs.percentage,
       color: bgMap[conf.spine] || 'bg-gradient-to-r from-wood-400 to-wood-600',
-    };
+      borrowCount: cs.borrowCount,
+      circulationCount: cs.circulationCount,
+    } as BarChartData & { borrowCount: number; circulationCount: number };
   });
 
   const rankingRows: RankingRow[] = overdueRank.map((o, i) => ({
@@ -124,7 +126,7 @@ export const Statistics = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <BarChart data={barData} title="📚 类别分布 TOP" />
+        <BarChart data={barData} title="� 类别热度榜 TOP" />
         <RankingTable
           title="🏆 漂流达人"
           rows={activeUsersRank}
