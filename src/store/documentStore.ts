@@ -2,13 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Document, Material, ReminderSetting, DocumentType, ProcessStatus } from '@/types';
 import { DEFAULT_REMINDER_SETTINGS, DEFAULT_MATERIALS } from '@/types';
-import { generateId, getDefaultRemindDays } from '@/utils/dateUtils';
+import { generateId } from '@/utils/dateUtils';
 
 interface DocumentStore {
   documents: Document[];
   materials: Material[];
   reminderSettings: ReminderSetting[];
-  addDocument: (doc: Omit<Document, 'id' | 'createdAt' | 'updatedAt' | 'remindDays' | 'processStatus'>) => void;
+  addDocument: (doc: Omit<Document, 'id' | 'createdAt' | 'updatedAt' | 'processStatus'>) => void;
   updateDocument: (id: string, updates: Partial<Document>) => void;
   deleteDocument: (id: string) => void;
   getDocumentById: (id: string) => Document | undefined;
@@ -37,7 +37,6 @@ export const useDocumentStore = create<DocumentStore>()(
           id: generateId(),
           createdAt: now,
           updatedAt: now,
-          remindDays: getDefaultRemindDays(docData.type),
           processStatus: 'not_started',
         };
         set((state) => ({

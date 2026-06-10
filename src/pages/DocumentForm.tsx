@@ -3,17 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Calendar, MapPin, User, FileText, Camera, Clock, Bell } from 'lucide-react';
 import { useDocumentStore } from '@/store/documentStore';
 import { DocumentIcon } from '@/components/DocumentIcon';
-import { DOCUMENT_TYPE_LABELS, DEFAULT_REMINDER_SETTINGS } from '@/types';
+import { DOCUMENT_TYPE_LABELS } from '@/types';
 import type { DocumentType } from '@/types';
-import { getDefaultRemindDays } from '@/utils/dateUtils';
 
 export default function DocumentForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = !!id;
 
-  const { addDocument, updateDocument, getDocumentById } = useDocumentStore();
+  const { addDocument, updateDocument, getDocumentById, getReminderDays } = useDocumentStore();
   const existingDoc = id ? getDocumentById(id) : null;
+  const defaultDaysForCurrentType = getReminderDays('id_card');
 
   const [formData, setFormData] = useState({
     type: 'id_card' as DocumentType,
@@ -23,7 +23,7 @@ export default function DocumentForm() {
     photo: '',
     needAnnualReview: false,
     notes: '',
-    remindDays: 90,
+    remindDays: defaultDaysForCurrentType,
   });
 
   const [isLongTerm, setIsLongTerm] = useState(false);
@@ -44,19 +44,14 @@ export default function DocumentForm() {
     }
   }, [existingDoc]);
 
-  useEffect(() => {
-    if (!isEditing) {
-      const defaultDays = getDefaultRemindDays(formData.type);
-      setFormData(prev => ({ ...prev, remindDays: defaultDays }));
-    }
-  }, [formData.type, isEditing]);
-
   const handleTypeChange = (type: DocumentType) => {
-    setFormData(prev => ({ ...prev, type }));
-    if (!isEditing) {
-      const defaultDays = getDefaultRemindDays(type);
-      setFormData(prev => ({ ...prev, type, remindDays: defaultDays }));
-    }
+    setFormData(prev => {
+      if (isEditing) {
+        return { ...prev, type };
+      }
+      const defaultDays = getReminderDays(type);
+      return { ...prev, type, remindDays: defaultDays };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -213,7 +208,7 @@ export default function DocumentForm() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              默认提醒：{DEFAULT_REMINDER_SETTINGS.find(s => s.documentType === formData.type)?.defaultDays || 30} 天
+              默认提醒：{getReminderDays(formData.type)} 天
             </p>
           </div>
 
