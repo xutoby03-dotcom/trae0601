@@ -48,15 +48,15 @@ export default function RouteDetail() {
   const hasMultiplePhotos = (route?.photos?.length ?? 0) > 1;
 
   const prevPhoto = () => {
-    if (lightboxIndex === null || !hasMultiplePhotos || !route?.photos?.length) return;
+    if (!hasMultiplePhotos || !route?.photos?.length) return;
     const total = route.photos.length;
-    setLightboxIndex((lightboxIndex - 1 + total) % total);
+    setLightboxIndex((prev) => (prev === null ? null : (prev - 1 + total) % total));
   };
 
   const nextPhoto = () => {
-    if (lightboxIndex === null || !hasMultiplePhotos || !route?.photos?.length) return;
+    if (!hasMultiplePhotos || !route?.photos?.length) return;
     const total = route.photos.length;
-    setLightboxIndex((lightboxIndex + 1) % total);
+    setLightboxIndex((prev) => (prev === null ? null : (prev + 1) % total));
   };
 
   useEffect(() => {
