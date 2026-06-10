@@ -26,6 +26,7 @@ interface StoreState {
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markNotificationRead: (notificationId: string) => void;
   checkOverdueBookings: () => void;
+  isBookingOverdue: (bookingId: string) => { overdue: boolean; overdueMinutes: number };
 
   checkTimeConflict: (roomId: string, date: string, startTime: string, endTime: string, excludeBookingId?: string) => boolean;
   getRoomBookingsByDate: (roomId: string, date: string) => Booking[];
@@ -72,6 +73,16 @@ const generateMockBookings = (): Booking[] => {
     endTime: format(addMinutes(now, 30), 'HH:mm'),
     practiceType: 'piano_solo', peopleCount: 1, needMusicStand: true, hasExternalSpeaker: false,
     status: 'in_use', checkInTime: format(addMinutes(now, -25), 'HH:mm'),
+    createdAt: new Date().toISOString(),
+  });
+
+  bookings.push({
+    id: 'b_overdue', roomId: 'r3', userId: 'u5', userName: '超时测试用户',
+    date: today,
+    startTime: format(addMinutes(now, -90), 'HH:mm'),
+    endTime: format(addMinutes(now, -30), 'HH:mm'),
+    practiceType: 'piano_duet', peopleCount: 2, needMusicStand: true, hasExternalSpeaker: false,
+    status: 'in_use', checkInTime: format(addMinutes(now, -85), 'HH:mm'),
     createdAt: new Date().toISOString(),
   });
 
@@ -313,12 +324,20 @@ export const useStore = create<StoreState>()(
         const state = get();
         const nowTime = new Date();
 
+        const hasNotified = (bookingId: string, type: Notification['type']) => {
+          return state.notifications.some(
+            n => n.bookingId === bookingId && n.type === type
+          );
+        };
+
         state.bookings.forEach(booking => {
-          if (booking.status === 'pending' && isToday(parseISO(booking.date))) {
-            const endDateTime = parseISO(`${booking.date}T${booking.endTime}:00`);
-            const startDateTime = parseISO(`${booking.date}T${booking.startTime}:00`);
-            
-            if (isAfter(nowTime, endDateTime) && booking.status === 'pending') {
+          if (!isToday(parseISO(booking.date))) return;
+
+          const endDateTime = parseISO(`${booking.date}T${booking.endTime}:00`);
+          const startDateTime = parseISO(`${booking.date}T${booking.startTime}:00`);
+
+          if (booking.status === 'pending') {
+            if (isAfter(nowTime, endDateTime) && !hasNotified(booking.id, 'overdue_checkout')) {
               state.addNotification({
                 bookingId: booking.id,
                 type: 'overdue_checkout',
@@ -327,7 +346,7 @@ export const useStore = create<StoreState>()(
               state.updateBookingStatus(booking.id, 'cancelled');
             }
             
-            if (isAfter(nowTime, addMinutes(startDateTime, 15)) && booking.status === 'pending') {
+            if (isAfter(nowTime, addMinutes(startDateTime, 15)) && !hasNotified(booking.id, 'overdue_checkout')) {
               state.addNotification({
                 bookingId: booking.id,
                 type: 'overdue_checkout',
@@ -335,7 +354,34 @@ export const useStore = create<StoreState>()(
               });
             }
           }
+
+          if (booking.status === 'in_use' && isAfter(nowTime, endDateTime)) {
+            if (!hasNotified(booking.id, 'overdue_checkout')) {
+              const overdueMs = nowTime.getTime() - endDateTime.getTime();
+              const overdueMins = Math.floor(overdueMs / 60000);
+              state.addNotification({
+                bookingId: booking.id,
+                type: 'overdue_checkout',
+                message: `⏰ ${state.rooms.find(r => r.id === booking.roomId)?.name} 已超时 ${overdueMins} 分钟未签退！预约 ${booking.startTime}-${booking.endTime} 已结束，请及时签退`,
+              });
+            }
+          }
         });
+      },
+
+      isBookingOverdue: (bookingId: string): { overdue: boolean; overdueMinutes: number } => {
+        const state = get();
+        const booking = state.bookings.find(b => b.id === bookingId);
+        if (!booking || booking.status !== 'in_use') return { overdue: false, overdueMinutes: 0 };
+        
+        const nowTime = new Date();
+        const endDateTime = parseISO(`${booking.date}T${booking.endTime}:00`);
+        
+        if (isAfter(nowTime, endDateTime)) {
+          const overdueMs = nowTime.getTime() - endDateTime.getTime();
+          return { overdue: true, overdueMinutes: Math.floor(overdueMs / 60000) };
+        }
+        return { overdue: false, overdueMinutes: 0 };
       },
 
       getRoomBookingsByDate: (roomId, date) => {
@@ -482,7 +528,7 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'practice-room-store',
+      name: 'practice-room-store-v2',
     }
   )
 );

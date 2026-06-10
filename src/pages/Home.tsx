@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarPlus, LogIn, LogOut, Sparkles, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { CalendarPlus, LogIn, LogOut, Sparkles, Clock, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useStore, practiceTypeLabels } from '../store';
 import RoomCard from '../components/RoomCard';
 import type { Booking } from '../types';
@@ -17,21 +17,38 @@ export default function HomePage({ onOpenFeedback }: Props) {
     checkInBooking,
     checkOutBooking,
     isAdmin,
+    isBookingOverdue,
+    checkOverdueBookings,
   } = useStore(s => ({
     getBookingsGroupedByStatus: s.getBookingsGroupedByStatus,
     rooms: s.rooms,
     checkInBooking: s.checkInBooking,
     checkOutBooking: s.checkOutBooking,
     isAdmin: s.isAdmin,
+    isBookingOverdue: s.isBookingOverdue,
+    checkOverdueBookings: s.checkOverdueBookings,
   }));
 
   const grouped = useMemo(() => getBookingsGroupedByStatus(), [getBookingsGroupedByStatus]);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    checkOverdueBookings();
+    const interval = setInterval(() => {
+      checkOverdueBookings();
+      setTick(t => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [checkOverdueBookings]);
 
   const getRoomName = (roomId: string) => rooms.find(r => r.id === roomId)?.name || roomId;
 
   const today = format(new Date(), 'yyyy年MM月dd日 EEEE');
 
-  const BookingInfo = ({ booking, showActions = true }: { booking: Booking; showActions?: boolean }) => (
+  const BookingInfo = ({ booking, showActions = true }: { booking: Booking; showActions?: boolean }) => {
+    const overdue = isBookingOverdue(booking.id);
+
+    return (
     <div className="text-sm">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="font-medium text-gray-800">{booking.userName}</span>
@@ -55,6 +72,19 @@ export default function HomePage({ onOpenFeedback }: Props) {
           <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">带外放</span>
         )}
       </div>
+      {overdue.overdue && booking.status === 'in_use' && (
+        <div className="mt-3 mb-2 p-3 bg-red-50 border-2 border-red-400 rounded-lg flex items-start gap-2 animate-pulse">
+          <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-red-700 font-semibold text-sm">
+              ⚠️ 已超时 {overdue.overdueMinutes} 分钟未签退！
+            </p>
+            <p className="text-red-600 text-xs mt-0.5">
+              预约 {booking.startTime}-{booking.endTime} 已结束，请及时签退释放房间
+            </p>
+          </div>
+        </div>
+      )}
       {showActions && booking.status === 'pending' && (
         <button
           onClick={(e) => { e.stopPropagation(); checkInBooking(booking.id); }}
@@ -93,6 +123,7 @@ export default function HomePage({ onOpenFeedback }: Props) {
       )}
     </div>
   );
+};
 
   return (
     <div className="space-y-6 pb-6">
