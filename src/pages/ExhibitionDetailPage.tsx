@@ -78,7 +78,7 @@ export default function ExhibitionDetailPage({ create = false }: { create?: bool
   const steps = [
     { key: 'info', label: '基本信息', icon: FileText },
     { key: 'layout', label: '摊位布局', icon: Grid3X3, disabled: create },
-    { key: 'rules', label: '布展规则', icon: AlertTriangle, disabled: create },
+    { key: 'rules', label: '布展规则', icon: AlertTriangle, disabled: false },
   ]
 
   const toggleBoothType = (b: Booth) => {
@@ -196,6 +196,19 @@ export default function ExhibitionDetailPage({ create = false }: { create?: bool
                     <option value="ended">已结束</option>
                   </select>
                 </Field>
+                <Field label="布展规则" className="md:col-span-2">
+                  <textarea
+                    className="input-base min-h-[120px] resize-y"
+                    value={form.setup_rules}
+                    onChange={e => updateField('setup_rules', e.target.value)}
+                    placeholder="例如：
+1. 布展时间：活动前一天 14:00 - 18:00
+2. 每位摊主限 2 人入场布展
+3. 用电超过 2000W 请提前报备
+4. 禁止使用明火、瓦斯炉
+5. 撤展时请将摊位恢复原样"
+                  />
+                </Field>
               </div>
               <div className="mt-6 pt-6 border-t border-forest-100/60 flex items-center gap-2">
                 <button onClick={() => navigate(-1)} className="btn-outline">取消</button>
@@ -295,7 +308,7 @@ export default function ExhibitionDetailPage({ create = false }: { create?: bool
               />
               <div className="mt-6 pt-6 border-t border-forest-100/60 flex items-center justify-end gap-2">
                 <button onClick={handleSubmit} className="btn-primary">
-                  <Save className="w-4 h-4" />保存规则
+                  <Save className="w-4 h-4" />{create ? '创建展会' : '保存规则'}
                 </button>
               </div>
             </div>
@@ -306,9 +319,9 @@ export default function ExhibitionDetailPage({ create = false }: { create?: bool
   )
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, children, className }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
   return (
-    <div>
+    <div className={className}>
       <label className="label">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
