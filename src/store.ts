@@ -23,6 +23,7 @@ interface FreezerState {
   markExpired: (id: string) => void;
   addToEatList: (itemId: string) => void;
   removeFromEatList: (itemId: string) => void;
+  batchRemoveFromEatList: (itemIds: string[]) => void;
   setLayout: (layout: FreezerLayout) => void;
   clearExpiredItems: () => void;
   getExpiringItems: (days?: number) => FreezerItem[];
@@ -406,6 +407,34 @@ export const useFreezerStore = create<FreezerState>()(
           set((state) => ({
             toEatList: state.toEatList.filter((id) => id !== itemId),
             records: [...state.records, record],
+          }));
+        },
+
+        batchRemoveFromEatList: (itemIds) => {
+          const state = get();
+          const validIds = itemIds.filter((id) => state.toEatList.includes(id));
+          if (validIds.length === 0) return;
+          const items = validIds
+            .map((id) => state.items.find((i) => i.id === id))
+            .filter((i): i is FreezerItem => !!i);
+          const names = items.map((i) => i.name);
+          const displayName =
+            names.length <= 3
+              ? names.join('、')
+              : `${names.slice(0, 3).join('、')} 等${names.length}样`;
+          const record: ConsumedRecord = {
+            id: generateId(),
+            itemId: validIds.join(','),
+            itemName: displayName,
+            quantity: items.length,
+            unit: '样',
+            consumedAt: new Date().toISOString(),
+            reason: 'removed_from_list',
+            note: `批量移出待吃清单，共 ${items.length} 样食材`,
+          };
+          set((s) => ({
+            toEatList: s.toEatList.filter((id) => !validIds.includes(id)),
+            records: [...s.records, record],
           }));
         },
 

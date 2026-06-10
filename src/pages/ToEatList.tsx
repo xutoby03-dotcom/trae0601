@@ -26,6 +26,7 @@ export default function ToEatList() {
     items,
     toEatList,
     removeFromEatList,
+    batchRemoveFromEatList,
     consumeQuantity,
     getExpiringItems,
     clearExpiredItems,
@@ -148,14 +149,10 @@ export default function ToEatList() {
 
   const handleBatchRemoveFromList = () => {
     if (selectedItems.length === 0) return;
-    const count = selectedItems.filter((it) => toEatList.includes(it.id)).length;
-    selectedItems.forEach((it) => {
-      if (toEatList.includes(it.id)) {
-        removeFromEatList(it.id);
-      }
-    });
+    const ids = selectedItems.filter((it) => toEatList.includes(it.id)).map((it) => it.id);
+    batchRemoveFromEatList(ids);
     setSelectedIds(new Set());
-    showToast(`🗑️ 已从待吃清单移除 ${count} 项`);
+    showToast(`🗑️ 已从待吃清单移除 ${ids.length} 项`);
   };
 
   const ItemCard = ({

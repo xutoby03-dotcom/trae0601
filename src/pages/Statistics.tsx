@@ -520,7 +520,9 @@ export default function Statistics() {
                           : r.reason === 'expired'
                           ? `丢弃过期：${r.itemName}`
                           : r.reason === 'removed_from_list'
-                          ? `移出待吃：${r.itemName}`
+                          ? r.unit === '样'
+                            ? `批量移出待吃：${r.itemName}`
+                            : `移出待吃：${r.itemName}`
                           : r.note || `移动：${r.itemName}`}
                       </div>
                       {r.reason === 'used' && r.note && (
