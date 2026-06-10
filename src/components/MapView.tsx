@@ -6,10 +6,15 @@ import type { PetMissing, Clue } from '@/types';
 import { getMarkerOpacity, formatDateTime } from '@/utils/time';
 
 interface MapViewProps {
-  pet: PetMissing;
-  clues: Clue[];
+  pet?: PetMissing;
+  clues?: Clue[];
   interactive?: boolean;
+  center?: [number, number];
+  selectedLat?: number;
+  selectedLng?: number;
   onLocationSelect?: (lat: number, lng: number) => void;
+  markerColor?: string;
+  height?: string;
 }
 
 function MapController({ center }: { center: [number, number] }) {
@@ -20,75 +25,109 @@ function MapController({ center }: { center: [number, number] }) {
   return null;
 }
 
-function LocationPicker({ onSelect }: { onSelect: (lat: number, lng: number) => void }) {
+function LocationPicker({ 
+  onSelect, 
+  selectedLat, 
+  selectedLng,
+  color 
+}: { 
+  onSelect: (lat: number, lng: number) => void;
+  selectedLat?: number;
+  selectedLng?: number;
+  color: string;
+}) {
   const map = useMap();
   const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    if (selectedLat !== undefined && selectedLng !== undefined && markerRef.current) {
+      markerRef.current.setLatLng([selectedLat, selectedLng]);
+    }
+  }, [selectedLat, selectedLng]);
 
   useEffect(() => {
     const handleClick = (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
       
       if (markerRef.current) {
-        map.removeLayer(markerRef.current);
+        markerRef.current.setLatLng([lat, lng]);
+      } else {
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        });
+        markerRef.current = L.marker([lat, lng], { icon }).addTo(map);
       }
-      
-      const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background: #FF7A45; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
-      
-      markerRef.current = L.marker([lat, lng], { icon }).addTo(map);
       onSelect(lat, lng);
     };
 
     map.on('click', handleClick);
+
+    if (selectedLat !== undefined && selectedLng !== undefined && !markerRef.current) {
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+      markerRef.current = L.marker([selectedLat, selectedLng], { icon }).addTo(map);
+    }
+
     return () => {
       map.off('click', handleClick);
       if (markerRef.current) {
         map.removeLayer(markerRef.current);
+        markerRef.current = null;
       }
     };
-  }, [map, onSelect]);
+  }, [map, onSelect, color, selectedLat, selectedLng]);
 
   return null;
 }
 
-export function MapView({ pet, clues, interactive = false, onLocationSelect }: MapViewProps) {
-  const createCustomIcon = (color: string, opacity: number) => {
+export function MapView({ 
+  pet, 
+  clues = [], 
+  interactive = false, 
+  center,
+  selectedLat,
+  selectedLng,
+  onLocationSelect,
+  markerColor = '#FF7A45',
+  height = 'h-[400px]'
+}: MapViewProps) {
+  const createCustomIcon = (color: string, opacity: number, size: number = 24) => {
     return L.divIcon({
       className: 'custom-marker',
-      html: `<div style="background: ${color}; opacity: ${opacity}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
+      html: `<div style="background: ${color}; opacity: ${opacity}; width: ${size}px; height: ${size}px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
     });
   };
 
-  const bounds: [number, number][] = [[pet.lat, pet.lng]];
-  clues.forEach(c => bounds.push([c.lat, c.lng]));
-
-  const petOpacity = getMarkerOpacity(pet.lostTime);
+  const defaultCenter: [number, number] = center ?? (pet ? [pet.lat, pet.lng] : [39.9042, 116.4074]);
 
   return (
-    <div className="h-[400px] rounded-2xl overflow-hidden shadow-sm border border-gray-200">
+    <div className={`${height} rounded-2xl overflow-hidden shadow-sm border border-gray-200`}>
       <MapContainer
-        center={[pet.lat, pet.lng]}
+        center={defaultCenter}
         zoom={14}
-        className="w-full h-full"
+        className="w-full h-full cursor-crosshair"
         zoomControl={false}
         attributionControl={false}
       >
-        <MapController center={[pet.lat, pet.lng]} />
+        <MapController center={defaultCenter} />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {!interactive && (
+        {!interactive && pet && (
           <>
             <Marker
               position={[pet.lat, pet.lng]}
-              icon={createCustomIcon('#FF7A45', petOpacity)}
+              icon={createCustomIcon('#FF7A45', getMarkerOpacity(pet.lostTime))}
             >
               <Popup>
                 <div className="text-center">
@@ -120,7 +159,12 @@ export function MapView({ pet, clues, interactive = false, onLocationSelect }: M
         )}
 
         {interactive && onLocationSelect && (
-          <LocationPicker onSelect={onLocationSelect} />
+          <LocationPicker 
+            onSelect={onLocationSelect} 
+            selectedLat={selectedLat}
+            selectedLng={selectedLng}
+            color={markerColor}
+          />
         )}
       </MapContainer>
     </div>

@@ -13,6 +13,7 @@ import {
 import { usePetStore } from '@/store/usePetStore';
 import { PhotoUpload } from '@/components/PhotoUpload';
 import { SafetyAlert } from '@/components/SafetyAlert';
+import { MapView } from '@/components/MapView';
 import type { PetSpecies, PetSize } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -283,17 +284,21 @@ export function Publish() {
                 在地图上标记位置
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                点击地图选择走失位置（当前默认：北京市中心）
+                点击地图选择走失位置
               </p>
-              <div className="h-[250px] rounded-xl overflow-hidden border border-gray-200">
-                <iframe
-                  title="地图选点"
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=116.3%2C39.8%2C116.5%2C40.0&layer=mapnik&marker=39.9042%2C116.4074"
-                  className="w-full h-full"
-                />
-              </div>
+              <MapView
+                interactive
+                center={[formData.lat, formData.lng]}
+                selectedLat={formData.lat}
+                selectedLng={formData.lng}
+                onLocationSelect={(lat, lng) => {
+                  setFormData({ ...formData, lat, lng });
+                }}
+                markerColor="#FF7A45"
+                height="h-[280px]"
+              />
               <p className="text-xs text-gray-400 mt-2">
-                坐标：{formData.lat.toFixed(4)}, {formData.lng.toFixed(4)}
+                📍 坐标：{formData.lat.toFixed(4)}, {formData.lng.toFixed(4)}
               </p>
             </div>
 

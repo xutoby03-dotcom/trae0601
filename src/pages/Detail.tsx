@@ -336,6 +336,28 @@ export function Detail() {
               />
             </div>
             <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                在地图上标记看到的位置
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                点击地图选择线索位置
+              </p>
+              <MapView
+                interactive
+                center={[pet.lat, pet.lng]}
+                selectedLat={clueData.lat}
+                selectedLng={clueData.lng}
+                onLocationSelect={(lat, lng) => {
+                  setClueData({ ...clueData, lat, lng });
+                }}
+                markerColor="#3B82F6"
+                height="h-[200px]"
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                📍 坐标：{clueData.lat.toFixed(4)}, {clueData.lng.toFixed(4)}
+              </p>
+            </div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">线索照片</label>
               <PhotoUpload photos={cluePhoto} onChange={setCluePhoto} maxPhotos={1} />
             </div>
