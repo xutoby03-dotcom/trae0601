@@ -1,0 +1,389 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-xl $spacing-lg;
+  padding-top: calc(env(safe-area-inset-top) + #{$spacing-lg});
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.dateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.dateLabel {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.dateFull {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.content {
+  flex: 1;
+  padding: $page-padding;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  margin-top: -$spacing-md;
+}
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.childName {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.dismissTime {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+}
+
+.schoolInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.schoolName {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.className {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.addressRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.addressLabel {
+  font-size: $font-size-md;
+}
+
+.addressText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.cardTitle {
+  display: block;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.memberInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.memberName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.memberRole {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.callBtn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-page;
+  border-radius: 50%;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.9);
+    background-color: $color-bg-hover;
+  }
+}
+
+.callIcon {
+  font-size: $font-size-lg;
+}
+
+.swapInfo {
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.swapRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+}
+
+.swapMember {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.swapMemberName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.swapArrow {
+  font-size: $font-size-lg;
+  color: $color-swapped;
+  font-weight: $font-weight-bold;
+}
+
+.swapStatusText {
+  display: block;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-swapped;
+}
+
+.teacherRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.teacherInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.teacherName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.teacherPhone {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.remarkText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.pickedTimeText {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-success;
+}
+
+.lateText {
+  display: block;
+  margin-top: $spacing-xs;
+  font-size: $font-size-sm;
+  color: $color-error;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc($spacing-md + env(safe-area-inset-bottom));
+  background-color: $color-bg-card;
+  border-top: 1rpx solid $color-divider;
+}
+
+.footerRow {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.footerBtn,
+.secondaryBtn,
+.rejectBtn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-page;
+  border-radius: $radius-button;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.footerBtnText,
+.secondaryBtnText,
+.rejectBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.primaryBtn,
+.confirmBtn {
+  flex: 2;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-button;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.primaryBtnText,
+.confirmBtnText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}
+
+.remarkModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 0 $spacing-lg;
+}
+
+.remarkBox {
+  width: 100%;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+}
+
+.remarkTitle {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  text-align: center;
+}
+
+.remarkInput {
+  width: 100%;
+  height: 200rpx;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.remarkActions {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.cancelBtn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-page;
+  border-radius: $radius-button;
+}
+
+.cancelBtnText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.submitBtn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-button;
+}
+
+.submitBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
+}

@@ -1,0 +1,26 @@
+[22:22:26.755] Server listening on port 50843, PID 35486
+[22:22:26.831] readProjectFiles, Found 53 files to read.
+[22:22:26.861] Starting PAI Cloud Dev...
+[22:22:28.236] [PAI SDK] createCloudSession response: {
+  "code": 0,
+  "msg": "success",
+  "sandboxId": "vefaas-f0vkicge-pyw70jixna-d8kn698290l50k804iag-sandbox",
+  "endpoint": "https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com"
+}
+[22:22:28.898] [PAI SDK] cloudServer.start called, appId: pai-preview-trae-8fd1e34b
+[22:22:29.691] [PAI SDK] Received event: log {"content":"\n> taro_template@1.0.0 dev:h5\n> npm run build:h5 -- --watch\n\n\n> taro_template@1.0.0 build:h5\n> taro build --type h5 --watch\n\n","timestamp":1781101351782}
+[22:22:30.014] [PAI SDK] Received event: log {"content":"👽 Taro v4.1.9\n\n","timestamp":1781101352126}
+[22:22:31.178] [PAI SDK] Received event: log {"content":"Tips:\n1. 建议开启持久化缓存功能，能有效提升二次编译速度，详情请参考: https://docs.taro.zone/docs/config-detail#cache。\n\n\n","timestamp":1781101353264}
+[22:22:32.166] [PAI SDK] Received event: log {"content":"- 即将开始启动编译，请稍等~\n","timestamp":1781101354291}
+[22:22:49.003] [PAI SDK] Received event: log {"content":"✅  编译成功 6/10/2026, 10:22:51 PM\n\n","timestamp":1781101371121}
+[22:22:49.004] [PAI SDK] cloudServer.start response: {
+  "status": "running",
+  "msg": "Cloud Server started successfully.",
+  "hash": "pai-preview-trae-8fd1e34b"
+}
+[22:24:06.638] [Preview Server] Frontend connected, clients size = 1
+[22:24:06.639] Sending cached status to new connection, lastStatusMessage = {"event":"status_change","message":{"url":"https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8kn698290l50k804iag-sandbox&hash=pai-preview-trae-8fd1e34b","schema":"aipa://preview?type=pai&aipa_id=pai-preview-trae-8fd1e34b&uuid=d928385a-4307-4a93-b3e0-ae67997cee15","status":"running","msg":"Cloud Server started successfully.","framework":"taro"}}
+[22:26:04.086] [Preview Server] Frontend disconnected, clients size = 1
+[22:26:04.158] [Preview Server] Frontend connected, clients size = 1
+[22:26:04.159] Sending cached status to new connection, lastStatusMessage = {"event":"status_change","message":{"url":"https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8kn698290l50k804iag-sandbox&hash=pai-preview-trae-8fd1e34b","schema":"aipa://preview?type=pai&aipa_id=pai-preview-trae-8fd1e34b&uuid=d928385a-4307-4a93-b3e0-ae67997cee15","status":"running","msg":"Cloud Server started successfully.","framework":"taro"}}
+[22:26:53.941] [AuthCredentials] read failed: ENOENT: no such file or directory, open '/Users/xuzhengcai/Documents/Work/trae/auto-trae/trae0601-2/.auth/auth.json'

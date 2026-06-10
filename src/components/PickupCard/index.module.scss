@@ -1,0 +1,189 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.95;
+  }
+
+  &.risk {
+    border-left: 6rpx solid $color-error;
+  }
+
+  &.past {
+    opacity: 0.6;
+  }
+
+  &.compact {
+    .content {
+      padding: $spacing-md;
+    }
+  }
+}
+
+.dateBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.dateText {
+  color: $color-text-white;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+}
+
+.dateFull {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: $font-size-sm;
+}
+
+.content {
+  padding: $spacing-md $spacing-lg;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.childInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.childName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.time {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.schoolInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.schoolName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.className {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.pickupInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.memberText {
+  display: flex;
+  flex-direction: column;
+}
+
+.memberName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.memberRole {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.swapArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+}
+
+.swapIcon {
+  font-size: $font-size-md;
+  color: $color-swapped;
+  font-weight: $font-weight-bold;
+}
+
+.pickedInfo,
+.lateInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pickedLabel,
+.lateLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.pickedTime {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+}
+
+.lateMinutes {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+}
+
+.remark {
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.remarkText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.swapNotice {
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background-color: rgba(255, 217, 61, 0.15);
+  border-radius: $radius-sm;
+}
+
+.swapNoticeText {
+  font-size: $font-size-sm;
+  color: #E6A800;
+}

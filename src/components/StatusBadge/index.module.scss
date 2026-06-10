@@ -1,0 +1,77 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  padding: 0 $spacing-sm;
+  white-space: nowrap;
+
+  &.sm {
+    height: 36rpx;
+    min-width: 60rpx;
+  }
+
+  &.md {
+    height: 44rpx;
+    min-width: 72rpx;
+  }
+
+  &.pending {
+    background-color: rgba(255, 217, 61, 0.15);
+    color: #E6A800;
+  }
+
+  &.picked {
+    background-color: rgba(78, 205, 196, 0.15);
+    color: $color-success;
+  }
+
+  &.late {
+    background-color: rgba(255, 107, 107, 0.15);
+    color: $color-error;
+  }
+
+  &.swapped {
+    background-color: rgba(155, 89, 182, 0.15);
+    color: $color-swapped;
+  }
+
+  &.requested {
+    background-color: rgba(255, 122, 69, 0.15);
+    color: $color-primary;
+  }
+
+  &.confirmed {
+    background-color: rgba(78, 205, 196, 0.15);
+    color: $color-success;
+  }
+
+  &.rejected {
+    background-color: rgba(255, 107, 107, 0.15);
+    color: $color-error;
+  }
+
+  &.none {
+    background-color: $color-bg-hover;
+    color: $color-text-tertiary;
+  }
+
+  &.default {
+    background-color: $color-bg-hover;
+    color: $color-text-secondary;
+  }
+}
+
+.text {
+  font-weight: $font-weight-medium;
+
+  .sm & {
+    font-size: $font-size-xs;
+  }
+
+  .md & {
+    font-size: $font-size-sm;
+  }
+}
