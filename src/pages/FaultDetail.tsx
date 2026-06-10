@@ -24,13 +24,20 @@ import StatusTimelineView from '@/components/StatusTimeline';
 import type { FaultStatus } from '@/shared/types';
 import { STATUS_CONFIG, HANDLER_OPTIONS, BUILDINGS, PHENOMENON_OPTIONS } from '@/shared/constants';
 import { formatDateTime, formatDuration, durationMinutes, relativeTime } from '@/utils/time';
+import { buildElevatorCountMap, elevatorKey } from '@/utils/statistics';
 
 export default function FaultDetail() {
   const { id } = useParams();
   const nav = useNavigate();
   const [search] = useSearchParams();
-  const { getTicketById, currentRole, updateStatus, subscriptions, toggleBuildingSubscribe } = useAppStore();
+  const { getTicketById, currentRole, updateStatus, subscriptions, toggleBuildingSubscribe, tickets } = useAppStore();
   const ticket = getTicketById(id || '');
+
+  const historyCount = useMemo(() => {
+    if (!ticket) return 0;
+    const map = buildElevatorCountMap(tickets);
+    return map[elevatorKey(ticket.elevator)] || 0;
+  }, [tickets, ticket]);
 
   const [status, setStatus] = useState<FaultStatus>(ticket?.status || 'processing');
   const [handler, setHandler] = useState(ticket?.handler || '');
@@ -171,10 +178,10 @@ export default function FaultDetail() {
                     {ticket.elevator.floorCount}层高层
                   </span>
                 )}
-                {(ticket.repeatedCount || 0) >= 2 && (
+                {historyCount >= 2 && (
                   <span className="tag bg-yellow-50 text-yellow-700 border border-yellow-200">
                     <RefreshCcw size={12} />
-                    历史 {ticket.repeatedCount} 次
+                    历史 {historyCount} 次
                   </span>
                 )}
               </div>

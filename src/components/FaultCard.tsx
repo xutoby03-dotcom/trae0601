@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import type { FaultTicket } from '@/shared/types';
@@ -5,6 +6,7 @@ import { STATUS_CONFIG, BUILDINGS } from '@/shared/constants';
 import StatusBadge from './StatusBadge';
 import { relativeTime } from '@/utils/time';
 import { PHENOMENON_OPTIONS } from '@/shared/constants';
+import { buildElevatorCountMap, elevatorKey } from '@/utils/statistics';
 import {
   Building2,
   Clock,
@@ -25,7 +27,13 @@ interface Props {
 
 export default function FaultCard({ ticket, compact = false }: Props) {
   const nav = useNavigate();
-  const { currentRole, subscriptions } = useAppStore();
+  const { currentRole, subscriptions, tickets } = useAppStore();
+
+  const historyCount = useMemo(() => {
+    const map = buildElevatorCountMap(tickets);
+    return map[elevatorKey(ticket.elevator)] || 0;
+  }, [tickets, ticket.elevator]);
+
   const cfg = STATUS_CONFIG[ticket.status];
   const building = BUILDINGS.find((b) => b.code === ticket.elevator.building);
   const isHighRise = (ticket.elevator.floorCount || 0) >= 20;
@@ -69,10 +77,10 @@ export default function FaultCard({ ticket, compact = false }: Props) {
                 高层停运
               </span>
             )}
-            {(ticket.repeatedCount || 0) >= 2 && (
+            {historyCount >= 2 && (
               <span className="tag bg-yellow-50 text-yellow-700 border border-yellow-200">
                 <Repeat size={12} />
-                历史 {ticket.repeatedCount} 次
+                历史 {historyCount} 次
               </span>
             )}
             {subscribed && (

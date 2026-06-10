@@ -2,8 +2,36 @@ import type { FaultTicket, StatisticsData, FaultStatus, FaultPhenomenon, Elevato
 import { durationMinutes, monthKey } from '@/utils/time';
 import { PHENOMENON_OPTIONS } from '@/shared/constants';
 
-function elevatorKey(e: ElevatorId): string {
+export function elevatorKey(e: { building: string; unit: string; elevatorNo: string }): string {
   return `${e.building}-${e.unit}-${e.elevatorNo}`;
+}
+
+export function buildElevatorCountMap(tickets: FaultTicket[]): Record<string, number> {
+  const map: Record<string, number> = {};
+  tickets.forEach((t) => {
+    const k = elevatorKey(t.elevator);
+    map[k] = (map[k] || 0) + 1;
+  });
+  return map;
+}
+
+export function getElevatorHistoryCount(
+  tickets: FaultTicket[],
+  elevator: { building: string; unit: string; elevatorNo: string },
+): number {
+  const k = elevatorKey(elevator);
+  let count = 0;
+  for (let i = 0; i < tickets.length; i++) {
+    const t = tickets[i];
+    if (
+      t.elevator.building === elevator.building &&
+      t.elevator.unit === elevator.unit &&
+      t.elevator.elevatorNo === elevator.elevatorNo
+    ) {
+      count++;
+    }
+  }
+  return count;
 }
 
 export function computeStatistics(tickets: FaultTicket[]): StatisticsData {
@@ -130,6 +158,7 @@ export function sortTicketsForList(tickets: FaultTicket[]): FaultTicket[] {
     recovered: 4,
     repeated: 3,
   };
+  const countMap = buildElevatorCountMap(tickets);
   return [...tickets].sort((a, b) => {
     if (a.hasTrapped !== b.hasTrapped) return a.hasTrapped ? -1 : 1;
     const fa = (a.elevator.floorCount || 0) >= 20 ? 1 : 0;
@@ -138,6 +167,8 @@ export function sortTicketsForList(tickets: FaultTicket[]): FaultTicket[] {
     const sr = statusRank[a.status] - statusRank[b.status];
     if (sr !== 0) return sr;
     if (b.occurredAt !== a.occurredAt) return b.occurredAt - a.occurredAt;
-    return (b.repeatedCount || 0) - (a.repeatedCount || 0);
+    const ca = countMap[elevatorKey(a.elevator)] || 0;
+    const cb = countMap[elevatorKey(b.elevator)] || 0;
+    return cb - ca;
   });
 }
