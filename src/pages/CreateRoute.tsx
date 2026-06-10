@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Mountain, Upload, Check, ArrowLeft, Route as RouteIcon } from 'lucide-react';
+import { MapPin, Navigation, Mountain, Upload, Check, ArrowLeft, Route as RouteIcon, Plus, X, Image as ImageIcon } from 'lucide-react';
 import FormField from '@/components/FormField';
 import RiskBadge from '@/components/RiskBadge';
 import { useStore } from '@/store/useStore';
@@ -45,6 +45,21 @@ export default function CreateRoute() {
 
   const toggleArray = <T,>(arr: T[], value: T): T[] => {
     return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
+  };
+
+  const addPhoto = () => {
+    update('photos', [...form.photos, '']);
+  };
+
+  const updatePhoto = (idx: number, value: string) => {
+    const next = [...form.photos];
+    next[idx] = value;
+    update('photos', next.filter((p) => p.trim() !== ''));
+  };
+
+  const removePhoto = (idx: number) => {
+    const next = form.photos.filter((_, i) => i !== idx);
+    update('photos', next);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -385,6 +400,44 @@ export default function CreateRoute() {
                     placeholder="https://..."
                     className="input-base pl-11"
                   />
+                </div>
+              </FormField>
+
+              <FormField label="沿途照片 URL" hint="可添加多张，留空的行会在提交时忽略">
+                <div className="space-y-3">
+                  {form.photos.length === 0 && (
+                    <p className="text-sm text-slate-500 italic">暂无沿途照片，点击下方按钮添加</p>
+                  )}
+                  {form.photos.map((url, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <ImageIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => updatePhoto(idx, e.target.value)}
+                          placeholder={`沿途照片 ${idx + 1} https://...`}
+                          className="input-base pl-11"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(idx)}
+                        className="btn-ghost !px-3 text-rose-400 hover:!bg-rose-500/10 hover:!text-rose-300"
+                        title="删除这张"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addPhoto}
+                    className="btn-secondary w-full justify-center gap-1.5"
+                  >
+                    <Plus className="h-4 w-4" />
+                    添加一张沿途照片
+                  </button>
                 </div>
               </FormField>
 

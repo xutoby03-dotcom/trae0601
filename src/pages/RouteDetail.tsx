@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Plus,
+  Image as ImageIcon,
 } from 'lucide-react';
 import RiskBadge from '@/components/RiskBadge';
 import { useStore } from '@/store/useStore';
@@ -244,6 +245,29 @@ export default function RouteDetail() {
                 <div>
                   <p className="text-sm text-slate-400 mb-1">路线介绍：</p>
                   <p className="text-slate-200 leading-relaxed">{route.description}</p>
+                </div>
+              )}
+
+              {route.photos && route.photos.length > 0 && (
+                <div>
+                  <p className="text-sm text-slate-400 mb-3 flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    沿途照片 ({route.photos.length})
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {route.photos.map((src, idx) => (
+                      <div
+                        key={idx}
+                        className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900 ring-1 ring-slate-700/50 hover:ring-emerald-500/40 transition-all group"
+                      >
+                        <img
+                          src={src}
+                          alt={`沿途照片 ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
