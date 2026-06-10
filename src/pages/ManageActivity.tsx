@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -42,6 +42,36 @@ export default function ManageActivity() {
   const waitlistList = activityRegs.filter((r) => r.status === 'waitlist');
   const cancelledList = activityRegs.filter((r) => r.status === 'cancelled');
 
+  const filteredForSelection = useMemo(() => {
+    if (!searchQuery.trim()) return registeredList;
+    const q = searchQuery.toLowerCase();
+    return registeredList.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.college.toLowerCase().includes(q) ||
+        r.phone.includes(q),
+    );
+  }, [searchQuery, registeredList]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (activeTab !== 'registered') {
+        return new Set();
+      }
+      const visibleIds = new Set(filteredForSelection.map((r) => r.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((rid) => {
+        if (visibleIds.has(rid)) {
+          next.add(rid);
+        } else {
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [activeTab, filteredForSelection]);
+
   const handleCancel = async (regId: string) => {
     if (!id || !confirm('确定要取消该同学的报名吗？')) return;
     setLoading(regId);
@@ -55,12 +85,18 @@ export default function ManageActivity() {
   };
 
   const handleBatchAbsent = async () => {
-    if (!id || selectedIds.size === 0) return;
-    if (!confirm(`确定将 ${selectedIds.size} 人标记为缺席吗？`)) return;
+    if (!id) return;
+    const visibleIds = new Set(filteredForSelection.map((r) => r.id));
+    const targetIds: string[] = [];
+    selectedIds.forEach((rid) => {
+      if (visibleIds.has(rid)) targetIds.push(rid);
+    });
+    if (targetIds.length === 0) return;
+    if (!confirm(`确定将 ${targetIds.length} 人标记为缺席吗？`)) return;
     setBatchLoading(true);
     setBatchError(null);
     let failed = 0;
-    for (const regId of selectedIds) {
+    for (const regId of targetIds) {
       try {
         await markAbsent(regId, id);
       } catch {
@@ -75,12 +111,18 @@ export default function ManageActivity() {
   };
 
   const handleBatchCancel = async () => {
-    if (!id || selectedIds.size === 0) return;
-    if (!confirm(`确定取消 ${selectedIds.size} 人的报名吗？候补人员将自动转正。`)) return;
+    if (!id) return;
+    const visibleIds = new Set(filteredForSelection.map((r) => r.id));
+    const targetIds: string[] = [];
+    selectedIds.forEach((rid) => {
+      if (visibleIds.has(rid)) targetIds.push(rid);
+    });
+    if (targetIds.length === 0) return;
+    if (!confirm(`确定取消 ${targetIds.length} 人的报名吗？候补人员将自动转正。`)) return;
     setBatchLoading(true);
     setBatchError(null);
     let failed = 0;
-    for (const regId of selectedIds) {
+    for (const regId of targetIds) {
       try {
         await cancelRegistration(regId, id);
       } catch {
@@ -107,10 +149,20 @@ export default function ManageActivity() {
   };
 
   const toggleSelectAll = (list: Registration[]) => {
-    if (selectedIds.size === list.length && list.length > 0) {
-      setSelectedIds(new Set());
+    const allChecked = list.length > 0 && list.every((r) => selectedIds.has(r.id));
+    if (allChecked) {
+      const listIds = new Set(list.map((r) => r.id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        listIds.forEach((rid) => next.delete(rid));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(list.map((r) => r.id)));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        list.forEach((r) => next.add(r.id));
+        return next;
+      });
     }
   };
 
@@ -278,10 +330,12 @@ export default function ManageActivity() {
           </div>
 
           {/* Batch Actions (only for registered tab) */}
-          {activeTab === 'registered' && selectedIds.size > 0 && (
+          {activeTab === 'registered' && (() => {
+            const visibleSelected = filteredForSelection.filter((r) => selectedIds.has(r.id)).length;
+            return visibleSelected > 0 ? (
             <div className="px-4 py-3 bg-primary-50 border-b border-primary-100 flex items-center justify-between animate-fade-in">
               <span className="text-sm font-medium text-primary-700">
-                已选 {selectedIds.size} 人
+                已选 {visibleSelected} 人
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -308,7 +362,7 @@ export default function ManageActivity() {
                 </button>
               </div>
             </div>
-          )}
+          ) : null})()}
 
           {/* Batch Error */}
           {batchError && (
