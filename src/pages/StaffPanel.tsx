@@ -248,6 +248,9 @@ export default function StaffPanel() {
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
               {waitingList.map((ticket, idx) => (
                 <div key={ticket.id} className="flex gap-2">
+                  <div className="flex-1">
+                    <TicketCard ticket={ticket} showDetails />
+                  </div>
                   <div className="flex flex-col gap-1 self-start">
                     <button
                       onClick={() => moveTicketUp(ticket.id)}
@@ -265,17 +268,15 @@ export default function StaffPanel() {
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
+                    <button
+                      onClick={() => handleCallSpecific(ticket.id)}
+                      className="w-9 h-9 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                      disabled={!!callingTicket}
+                      title="叫号"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex-1">
-                    <TicketCard ticket={ticket} showDetails />
-                  </div>
-                  <button
-                    onClick={() => handleCallSpecific(ticket.id)}
-                    className="btn-primary px-4 self-start"
-                    disabled={!!callingTicket}
-                  >
-                    叫号
-                  </button>
                 </div>
               ))}
               {waitingList.length === 0 && (

@@ -172,12 +172,18 @@ export const useQueueStore = create<QueueStore>()(
           return null;
         }
 
-        const now = new Date().toISOString();
+        const now = new Date();
+        const waiting = getWaitingList(tickets);
+        const maxOrder = waiting.length > 0
+          ? Math.max(...waiting.map(t => t.manualOrder ?? new Date(t.createdAt).getTime()))
+          : 0;
+
         const passedTicket: Ticket = {
           ...currentCalling,
           status: 'passed',
           passedCount: currentCalling.passedCount + 1,
-          lastPassedAt: now,
+          lastPassedAt: now.toISOString(),
+          manualOrder: maxOrder + 1,
         };
 
         set({
