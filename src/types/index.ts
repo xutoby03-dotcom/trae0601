@@ -27,6 +27,7 @@ export interface Ticket {
   createdAt: string;
   calledAt?: string;
   completedAt?: string;
+  lastPassedAt?: string;
 }
 
 export interface DailyStats {

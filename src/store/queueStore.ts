@@ -168,10 +168,12 @@ export const useQueueStore = create<QueueStore>()(
           return null;
         }
 
+        const now = new Date().toISOString();
         const passedTicket: Ticket = {
           ...currentCalling,
           status: 'passed',
           passedCount: currentCalling.passedCount + 1,
+          lastPassedAt: now,
         };
 
         set({

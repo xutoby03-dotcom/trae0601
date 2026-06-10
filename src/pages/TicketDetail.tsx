@@ -80,7 +80,7 @@ export default function TicketDetail() {
       border: 'border-white/5',
     },
     passed: {
-      label: '已过号',
+      label: '过号重排',
       color: 'text-amber-400',
       bg: 'glass-yellow',
       border: 'border-amber-500/30',
@@ -138,7 +138,7 @@ export default function TicketDetail() {
             </div>
           )}
 
-          {ticket.status === 'waiting' && nearbyMessage && (
+          {(ticket.status === 'waiting' || ticket.status === 'passed') && nearbyMessage && (
             <div className="glass-yellow rounded-2xl p-4 mb-6 animate-pulse-slow">
               <div className="flex items-center justify-center gap-3 text-amber-400">
                 <AlertTriangle className="w-5 h-5" />
@@ -172,7 +172,7 @@ export default function TicketDetail() {
               <span className="font-semibold text-white">{formatTime(ticket.createdAt)}</span>
             </div>
 
-            {ticket.status === 'waiting' && (
+            {(ticket.status === 'waiting' || ticket.status === 'passed') && (
               <>
                 <div className="flex items-center justify-between py-3 border-b border-white/10">
                   <div className="flex items-center gap-3 text-white/60">
@@ -218,7 +218,7 @@ export default function TicketDetail() {
           </div>
         </div>
 
-        {ticket.status === 'waiting' && (
+        {(ticket.status === 'waiting' || ticket.status === 'passed') && (
           <div className="glass rounded-2xl p-4">
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/60">当前时间</span>

@@ -33,7 +33,7 @@ const statusConfig = {
     border: 'border-white/5',
   },
   passed: {
-    label: '已过号',
+    label: '过号重排',
     icon: <XCircle className="w-4 h-4" />,
     bg: 'glass-yellow',
     text: 'text-amber-400',
@@ -99,9 +99,14 @@ export default function TicketCard({ ticket, showDetails = false, isUpcoming = f
 
       <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-white/50">
         <span>{formatTime(ticket.createdAt)} 取号</span>
-        {ticket.status === 'waiting' && queue && (
+        {(ticket.status === 'waiting' || ticket.status === 'passed') && queue && position > 0 && (
           <span className="text-primary-400 font-medium">
             前方 {position} 位 · {formatWaitTime(waitTime)}
+          </span>
+        )}
+        {ticket.status === 'passed' && queue && position === 0 && (
+          <span className="text-amber-400 font-medium">
+            即将叫号
           </span>
         )}
         {ticket.passedCount > 0 && (

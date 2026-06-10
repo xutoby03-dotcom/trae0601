@@ -41,25 +41,44 @@ export const getQueuePosition = (
   ticket: Ticket,
   allTickets: Ticket[]
 ): number => {
-  const waitingTickets = allTickets
-    .filter(t => t.status === 'waiting' || t.status === 'calling')
-    .sort((a, b) => {
-      if (a.status === 'calling') return -1;
-      if (b.status === 'calling') return 1;
-      if (a.passedCount !== b.passedCount) return a.passedCount - b.passedCount;
-      return a.number - b.number;
-    });
+  const activeTickets = allTickets
+    .filter(t => t.status === 'waiting' || t.status === 'passed' || t.status === 'calling')
+    .sort(sortActiveTickets);
   
-  return waitingTickets.findIndex(t => t.id === ticket.id);
+  const idx = activeTickets.findIndex(t => t.id === ticket.id);
+  if (idx <= 0) return 0;
+  return idx - (activeTickets[0].status === 'calling' ? 1 : 0);
+};
+
+const sortActiveTickets = (a: Ticket, b: Ticket): number => {
+  if (a.status === 'calling') return -1;
+  if (b.status === 'calling') return 1;
+
+  const aIsWaiting = a.status === 'waiting';
+  const bIsWaiting = b.status === 'waiting';
+
+  if (aIsWaiting && !bIsWaiting) return -1;
+  if (!aIsWaiting && bIsWaiting) return 1;
+
+  if (aIsWaiting && bIsWaiting) {
+    if (a.passedCount !== b.passedCount) return a.passedCount - b.passedCount;
+    return a.number - b.number;
+  }
+
+  if (!aIsWaiting && !bIsWaiting) {
+    const aTime = a.lastPassedAt ? new Date(a.lastPassedAt).getTime() : 0;
+    const bTime = b.lastPassedAt ? new Date(b.lastPassedAt).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.number - b.number;
+  }
+
+  return 0;
 };
 
 export const getWaitingList = (tickets: Ticket[]): Ticket[] => {
   return tickets
-    .filter(t => t.status === 'waiting')
-    .sort((a, b) => {
-      if (a.passedCount !== b.passedCount) return a.passedCount - b.passedCount;
-      return a.number - b.number;
-    });
+    .filter(t => t.status === 'waiting' || t.status === 'passed')
+    .sort(sortActiveTickets);
 };
 
 export const getPassedList = (tickets: Ticket[]): Ticket[] => {
