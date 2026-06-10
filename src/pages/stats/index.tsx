@@ -13,7 +13,7 @@ type StatsTab = 'pickup' | 'late' | 'swap';
 type ModalType = 'pickup' | 'late' | 'swap' | null;
 
 const StatsPage: React.FC = () => {
-  const { getStatsByMember, getSwapStats, familyMembers, pickupRecords, getChildById, getSchoolById, getMemberById } = usePickupStore();
+  const { getStatsByMember, getSwapStats, familyMembers, pickupRecords, getMemberById } = usePickupStore();
   const [activeTab, setActiveTab] = useState<StatsTab>('pickup');
 
   const [modalType, setModalType] = useState<ModalType>(null);
