@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Clock, CheckCircle, Plus, ChevronDown, ChevronUp, FileWarning, TrendingUp, Users } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, Plus, ChevronDown, ChevronUp, FileWarning, TrendingUp, Users, ArrowRight } from 'lucide-react';
 import { useDocumentStore } from '@/store/documentStore';
 import { DocumentCard } from '@/components/DocumentCard';
 import { getDocumentStatus } from '@/utils/dateUtils';
@@ -120,17 +120,27 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-accent-500 to-orange-500 rounded-2xl p-5 text-white card-shadow animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+        <Link
+          to="/statistics#risk-details"
+          className="bg-gradient-to-br from-accent-500 to-orange-500 rounded-2xl p-5 text-white card-shadow animate-fade-in-up hover:scale-[1.02] transition-transform relative overflow-hidden group"
+          style={{ animationDelay: '100ms' }}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/80 text-sm">需关注</p>
-              <p className="text-3xl font-bold mt-1">{expiringCount}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold mt-1">{expiringCount}</p>
+                <span className="text-xs text-white/80 flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                  查看明细
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
             </div>
             <div className="p-3 bg-white/20 rounded-xl">
               <TrendingUp className="w-6 h-6" />
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white card-shadow animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <div className="flex items-center justify-between">

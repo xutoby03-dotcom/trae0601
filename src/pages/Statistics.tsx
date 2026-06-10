@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   AlertTriangle, Clock, CheckCircle, TrendingUp, Users,
   FileWarning, Calendar, ChevronRight, User, BarChart3,
-  AlertCircle, CheckCircle2
+  AlertCircle, CheckCircle2, Package, ArrowRight
 } from 'lucide-react';
 import { useDocumentStore } from '@/store/documentStore';
 import { DocumentIcon } from '@/components/DocumentIcon';
@@ -13,7 +13,7 @@ import {
 import type { Document } from '@/types';
 import {
   getDocumentStatus, getDaysUntilExpiry,
-  isProcessInProgress
+  isProcessInProgress, formatExpiryDisplay
 } from '@/utils/dateUtils';
 
 interface TimeGroup {
@@ -35,6 +35,18 @@ const TIME_GROUPS: TimeGroup[] = [
 
 export default function Statistics() {
   const { documents, materials } = useDocumentStore();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash === '#risk-details') {
+      const el = document.getElementById('risk-details');
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+  }, [location.hash]);
 
   const stats = useMemo(() => {
     let expired = 0;
@@ -45,6 +57,15 @@ export default function Statistics() {
 
     const holderDocs: Record<string, Document[]> = {};
     const typeCounts: Record<string, number> = {};
+
+    const missingCountByDoc: Record<string, { missing: number; total: number }> = {};
+    documents.forEach(doc => {
+      const docMaterials = materials.filter(m => m.documentId === doc.id);
+      missingCountByDoc[doc.id] = {
+        missing: docMaterials.filter(m => !m.isReady).length,
+        total: docMaterials.length,
+      };
+    });
 
     documents.forEach(doc => {
       const status = getDocumentStatus(doc);
@@ -76,6 +97,10 @@ export default function Statistics() {
         const riskDocs = docs.filter(d => {
           const s = getDocumentStatus(d);
           return s === 'expired' || s === 'expiring_soon';
+        }).sort((a, b) => {
+          const daysA = getDaysUntilExpiry(a.expireDate);
+          const daysB = getDaysUntilExpiry(b.expireDate);
+          return daysA - daysB;
         });
         return { holder, riskDocs, totalDocs: docs.length };
       })
@@ -85,9 +110,8 @@ export default function Statistics() {
     const inProgressDocs = documents.filter(d => isProcessInProgress(d.processStatus));
 
     const incompleteMaterials = documents.map(doc => {
-      const docMaterials = materials.filter(m => m.documentId === doc.id);
-      const missing = docMaterials.filter(m => !m.isReady);
-      return { doc, missingCount: missing.length, total: docMaterials.length };
+      const info = missingCountByDoc[doc.id];
+      return { doc, missingCount: info.missing, total: info.total };
     }).filter(item => item.missingCount > 0 && item.total > 0)
       .sort((a, b) => b.missingCount - a.missingCount);
 
@@ -105,6 +129,7 @@ export default function Statistics() {
       atRiskHolders,
       inProgressDocs,
       incompleteMaterials,
+      missingCountByDoc,
     };
   }, [documents, materials]);
 
@@ -244,6 +269,82 @@ export default function Statistics() {
                           +{item.riskDocs.length - 3}
                         </div>
                       )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stats.atRiskHolders.length > 0 && (
+            <div id="risk-details" className="bg-white rounded-2xl p-6 card-shadow animate-fade-in-up" style={{ animationDelay: '750ms' }}>
+              <h2 className="text-lg font-semibold text-slate-800 mb-6 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-accent-500" />
+                风险明细
+              </h2>
+              <div className="space-y-8">
+                {stats.atRiskHolders.map((holderItem, holderIdx) => (
+                  <div key={holderItem.holder}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-1 h-6 bg-primary-500 rounded-full" />
+                      <h3 className="font-semibold text-slate-700">{holderItem.holder}</h3>
+                      <span className="text-sm text-slate-500">
+                        {holderItem.riskDocs.length} 个需关注
+                      </span>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {holderItem.riskDocs.map(doc => {
+                        const days = getDaysUntilExpiry(doc.expireDate);
+                        const isExpired = days < 0;
+                        const expiryInfo = formatExpiryDisplay(doc.expireDate);
+                        const progress = PROCESS_STATUS_LABELS[doc.processStatus];
+                        const missingInfo = stats.missingCountByDoc[doc.id];
+                        const missingCount = missingInfo?.missing || 0;
+
+                        return (
+                          <Link
+                            key={doc.id}
+                            to={`/document/${doc.id}`}
+                            className="flex items-start gap-3 p-4 rounded-xl border transition-all duration-200 hover:card-shadow-hover hover:-translate-y-0.5 group"
+                            style={{
+                              borderColor: isExpired ? '#fecaca' : '#fed7aa',
+                              backgroundColor: isExpired ? '#fef2f2' : '#fff7ed',
+                            }}
+                          >
+                            <DocumentIcon type={doc.type} className="w-5 h-5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <p className="font-medium text-slate-800">
+                                  {DOCUMENT_TYPE_LABELS[doc.type]}
+                                </p>
+                                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-primary-500 transition-colors flex-shrink-0" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Clock className={`w-3.5 h-3.5 flex-shrink-0 ${isExpired ? 'text-red-500' : 'text-orange-500'}`} />
+                                  <span className={expiryInfo.colorClass}>
+                                    {expiryInfo.text}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                  <TrendingUp className="w-3.5 h-3.5 flex-shrink-0 text-blue-500" />
+                                  <span>
+                                    {doc.processStatus === 'not_started' ? '未开始办理' : progress}
+                                  </span>
+                                </div>
+                                {missingInfo && missingInfo.total > 0 && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Package className={`w-3.5 h-3.5 flex-shrink-0 ${missingCount > 0 ? 'text-amber-500' : 'text-green-500'}`} />
+                                    <span className={missingCount > 0 ? 'text-amber-700' : 'text-green-700'}>
+                                      {missingCount > 0 ? `缺 ${missingCount} 项材料` : '材料已备齐'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
