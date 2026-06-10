@@ -264,3 +264,235 @@
   font-size: $font-size-md;
   color: $color-text-tertiary;
 }
+
+.clickable {
+  transition: all $transition-base;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.98);
+    background-color: $color-bg-hover;
+  }
+}
+
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal {
+  width: 100%;
+  max-height: 85vh;
+  background-color: $color-bg-page;
+  border-radius: $radius-xl $radius-xl 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  padding-top: calc($spacing-lg + env(safe-area-inset-top));
+  background-color: $color-bg-card;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.modalHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.modalDateBadge {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba($color-primary, 0.1);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.modalDateEmoji {
+  font-size: 44rpx;
+}
+
+.modalTitle {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.modalSubtitle {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.modalClose {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-page;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.modalCloseText {
+  font-size: $font-size-lg;
+  color: $color-text-tertiary;
+}
+
+.modalBody {
+  flex: 1;
+  padding: $page-padding;
+  padding-bottom: calc($spacing-xl + env(safe-area-inset-bottom));
+  max-height: calc(85vh - 160rpx);
+}
+
+.modalEmpty {
+  padding: $spacing-xxl 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalEmptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.detailCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+
+  &.lateCard {
+    border-left: 6rpx solid $color-error;
+  }
+
+  &.swapCard {
+    border-left: 6rpx solid $color-swapped;
+  }
+}
+
+.detailRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-xs 0;
+  gap: $spacing-md;
+}
+
+.detailLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.detailValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  text-align: right;
+  flex: 1;
+  word-break: break-all;
+}
+
+.successValue {
+  color: $color-success;
+  font-weight: $font-weight-semibold;
+}
+
+.lateValue {
+  color: $color-error;
+  font-weight: $font-weight-semibold;
+}
+
+.detailRemark {
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx dashed $color-divider;
+}
+
+.detailRemarkText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.swapChain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm 0 $spacing-md;
+  margin-bottom: $spacing-sm;
+  border-bottom: 1rpx dashed $color-divider;
+}
+
+.swapPerson {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  min-width: 120rpx;
+}
+
+.swapPersonName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.swapPersonRole {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.swapArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+}
+
+.swapArrowText {
+  font-size: $font-size-lg;
+  color: $color-swapped;
+  font-weight: $font-weight-bold;
+}
