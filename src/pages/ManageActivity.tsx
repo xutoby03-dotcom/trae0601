@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -38,9 +38,18 @@ export default function ManageActivity() {
   const activity = activities.find((a) => a.id === id);
   const activityRegs = id ? registrations.get(id) || [] : [];
 
-  const registeredList = activityRegs.filter((r) => r.status === 'registered');
-  const waitlistList = activityRegs.filter((r) => r.status === 'waitlist');
-  const cancelledList = activityRegs.filter((r) => r.status === 'cancelled');
+  const registeredList = useMemo(
+    () => activityRegs.filter((r) => r.status === 'registered'),
+    [activityRegs],
+  );
+  const waitlistList = useMemo(
+    () => activityRegs.filter((r) => r.status === 'waitlist'),
+    [activityRegs],
+  );
+  const cancelledList = useMemo(
+    () => activityRegs.filter((r) => r.status === 'cancelled'),
+    [activityRegs],
+  );
 
   const filteredForSelection = useMemo(() => {
     if (!searchQuery.trim()) return registeredList;
@@ -56,6 +65,7 @@ export default function ManageActivity() {
   useEffect(() => {
     setSelectedIds((prev) => {
       if (activeTab !== 'registered') {
+        if (prev.size === 0) return prev;
         return new Set();
       }
       const visibleIds = new Set(filteredForSelection.map((r) => r.id));
@@ -68,7 +78,8 @@ export default function ManageActivity() {
           changed = true;
         }
       });
-      return changed ? next : prev;
+      if (!changed) return prev;
+      return next;
     });
   }, [activeTab, filteredForSelection]);
 
