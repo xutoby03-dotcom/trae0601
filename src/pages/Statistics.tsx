@@ -14,9 +14,10 @@ import {
 } from 'recharts';
 import { useCleaningStore } from '@/store/cleaningStore';
 import { CATEGORY_LABELS } from '@/types';
-import { formatDateChinese, getDaysUntilNextClean } from '@/utils/dateUtils';
+import { addDays, formatDateChinese, getDaysUntilNextClean } from '@/utils/dateUtils';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Calendar, Home, AlertCircle } from 'lucide-react';
+import { TrendingUp, Calendar, Home, AlertCircle, CloudRain, Sun } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -30,9 +31,13 @@ const Statistics = () => {
     plans,
     simulateRainyDay,
     setSimulateRainyDay,
+    rainyDates,
+    toggleRainyDate,
+    isRainyDate,
   } = useCleaningStore();
 
   const [activeTab, setActiveTab] = useState<'cost' | 'room' | 'items'>('cost');
+  const [showRainCalendar, setShowRainCalendar] = useState(false);
 
   const yearlyCost = getYearlyCost();
   const monthlyStats = getMonthlyStats();
@@ -55,6 +60,16 @@ const Statistics = () => {
   }));
 
   const totalItemCount = items.length;
+
+  const nextTwoWeeks = Array.from({ length: 14 }, (_, i) => {
+    const date = addDays(new Date(), i);
+    return {
+      date,
+      label: formatDateChinese(date),
+      day: new Date(date).getDate(),
+      weekday: ['日', '一', '二', '三', '四', '五', '六'][new Date(date).getDay()],
+    };
+  });
 
   return (
     <div className="p-4 pb-8">
@@ -300,21 +315,78 @@ const Statistics = () => {
         </div>
       </div>
 
-      <div className="mt-6 p-4 bg-gray-100 rounded-xl">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">🔧 调试功能</h3>
-        <p className="text-xs text-gray-500 mb-3">
-          模拟阴雨天效果，用于测试晾晒提醒功能
-        </p>
-        <button
-          onClick={() => setSimulateRainyDay(!simulateRainyDay)}
-          className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            simulateRainyDay
-              ? 'bg-yellow-500 text-white'
-              : 'bg-white text-gray-700 border border-gray-300'
-          }`}
+      <div className="mt-6 bg-gray-100 rounded-xl overflow-hidden">
+        <div
+          className="flex items-center justify-between p-4 cursor-pointer"
+          onClick={() => setShowRainCalendar(!showRainCalendar)}
         >
-          {simulateRainyDay ? '☀️ 关闭阴雨天模拟' : '🌧️ 开启阴雨天模拟'}
-        </button>
+          <div className="flex items-center gap-2">
+            <CloudRain className={cn('w-5 h-5', simulateRainyDay ? 'text-blue-600' : 'text-gray-400')} />
+            <h3 className="text-sm font-medium text-gray-700">🔧 阴雨天模拟设置</h3>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSimulateRainyDay(!simulateRainyDay);
+            }}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+              simulateRainyDay
+                ? 'bg-yellow-500 text-white'
+                : 'bg-white text-gray-600 border border-gray-300'
+            )}
+          >
+            {simulateRainyDay ? '☀️ 已开启' : '🌧️ 未开启'}
+          </button>
+        </div>
+
+        {showRainCalendar && (
+          <div className="px-4 pb-4">
+            <p className="text-xs text-gray-500 mb-3">
+              {simulateRainyDay
+                ? '点击日期标记为阴雨天（红色），创建计划时会给出晾晒提醒'
+                : '请先开启阴雨天模拟'}
+            </p>
+            <div className="grid grid-cols-7 gap-1.5">
+              {nextTwoWeeks.map((day) => {
+                const rainy = isRainyDate(day.date);
+                return (
+                  <button
+                    key={day.date}
+                    disabled={!simulateRainyDay}
+                    onClick={() => toggleRainyDate(day.date)}
+                    className={cn(
+                      'aspect-square rounded-lg flex flex-col items-center justify-center text-xs transition-colors',
+                      simulateRainyDay
+                        ? rainy
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-700 hover:bg-gray-200'
+                        : 'bg-white/50 text-gray-400 cursor-not-allowed'
+                    )}
+                  >
+                    <span className="text-[10px] opacity-70">周{day.weekday}</span>
+                    <span className="font-medium">{day.day}</span>
+                    {rainy && <CloudRain className="w-3 h-3 mt-0.5 opacity-80" />}
+                    {!rainy && simulateRainyDay && <Sun className="w-3 h-3 mt-0.5 opacity-50 text-yellow-500" />}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-3 text-xs text-gray-500">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-blue-500 rounded" />
+                <span>阴雨天</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-white border border-gray-300 rounded" />
+                <span>晴天</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              当前标记了 {rainyDates.length} 个阴雨天
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

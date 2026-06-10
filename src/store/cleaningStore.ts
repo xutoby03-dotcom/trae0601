@@ -38,6 +38,9 @@ interface CleaningStore {
   getActivePlans: () => CleaningPlan[];
   simulateRainyDay: boolean;
   setSimulateRainyDay: (value: boolean) => void;
+  rainyDates: string[];
+  toggleRainyDate: (date: string) => void;
+  isRainyDate: (date: string) => boolean;
 }
 
 const mockItems: CleaningItem[] = [
@@ -238,15 +241,39 @@ const mockPlans: CleaningPlan[] = [
   },
 ];
 
+const initRainyDates = () => {
+  const dates: string[] = [];
+  dates.push(formatDate(new Date()));
+  dates.push(addDays(new Date(), 1));
+  dates.push(addDays(new Date(), 3));
+  return dates;
+};
+
 export const useCleaningStore = create<CleaningStore>()(
   persist(
     (set, get) => ({
       items: mockItems,
       plans: mockPlans,
       simulateRainyDay: false,
+      rainyDates: initRainyDates(),
 
       setSimulateRainyDay: (value: boolean) => {
         set({ simulateRainyDay: value });
+      },
+
+      toggleRainyDate: (date) => {
+        set((state) => {
+          const hasDate = state.rainyDates.includes(date);
+          return {
+            rainyDates: hasDate
+              ? state.rainyDates.filter((d) => d !== date)
+              : [...state.rainyDates, date],
+          };
+        });
+      },
+
+      isRainyDate: (date) => {
+        return get().simulateRainyDay && get().rainyDates.includes(date);
       },
 
       addItem: (item) => {
@@ -305,8 +332,12 @@ export const useCleaningStore = create<CleaningStore>()(
 
       completeStep: (planId, stepId) => {
         set((state) => {
+          let updatedItems = state.items;
+
           const plans = state.plans.map((plan) => {
             if (plan.id !== planId) return plan;
+            const originalStep = plan.steps.find((s) => s.id === stepId);
+            const completedStepType = originalStep?.type;
             const steps = plan.steps.map((step) => {
               if (step.id !== stepId) return step;
               return {
@@ -315,17 +346,40 @@ export const useCleaningStore = create<CleaningStore>()(
                 completedDate: formatDate(new Date()),
               };
             });
-            const allCompleted = steps.every((s) => s.isCompleted);
-            const hasDryingStep = steps.find(
-              (s) => s.type === 'dry' && s.isCompleted
-            );
+
+            const pickupStep = steps.find((s) => s.type === 'pickup');
+            const dryStep = steps.find((s) => s.type === 'dry');
             const installStep = steps.find((s) => s.type === 'install');
+            const allCompleted = steps.every((s) => s.isCompleted);
 
             let status: PlanStatus = plan.status;
-            if (allCompleted) {
+            let endDate = plan.endDate;
+
+            if (completedStepType === 'install') {
               status = 'completed';
-            } else if (hasDryingStep && installStep && !installStep.isCompleted) {
+              endDate = formatDate(new Date());
+              updatedItems = state.items.map((item) => {
+                if (item.id !== plan.itemId) return item;
+                return { ...item, lastCleanDate: endDate! };
+              });
+            } else if (
+              completedStepType === 'pickup' &&
+              pickupStep &&
+              pickupStep.isCompleted &&
+              dryStep &&
+              installStep &&
+              !installStep.isCompleted
+            ) {
               status = 'drying';
+            } else if (dryStep && installStep && !installStep.isCompleted && dryStep.isCompleted) {
+              status = 'drying';
+            } else if (allCompleted) {
+              status = 'completed';
+              endDate = formatDate(new Date());
+              updatedItems = state.items.map((item) => {
+                if (item.id !== plan.itemId) return item;
+                return { ...item, lastCleanDate: endDate! };
+              });
             } else if (steps.some((s) => s.isCompleted)) {
               status = 'inProgress';
             }
@@ -334,10 +388,10 @@ export const useCleaningStore = create<CleaningStore>()(
               ...plan,
               steps,
               status,
-              endDate: allCompleted ? formatDate(new Date()) : plan.endDate,
+              endDate,
             };
           });
-          return { plans };
+          return { plans, items: updatedItems };
         });
       },
 

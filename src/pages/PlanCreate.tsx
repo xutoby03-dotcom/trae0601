@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CloudRain, Info } from 'lucide-react';
+import { ArrowLeft, CloudRain, AlertTriangle, X } from 'lucide-react';
 import { useCleaningStore } from '@/store/cleaningStore';
 import { STEP_LABELS, type StepType, type CleaningStep } from '@/types';
-import { addDays, formatDate } from '@/utils/dateUtils';
+import { addDays, formatDate, formatDateChinese } from '@/utils/dateUtils';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 const PlanCreate = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  const { getItemById, addPlan, simulateRainyDay } = useCleaningStore();
+  const { getItemById, addPlan, simulateRainyDay, isRainyDate } = useCleaningStore();
 
   const item = itemId ? getItemById(itemId) : undefined;
 
@@ -34,6 +34,7 @@ const PlanCreate = () => {
     dry: true,
     install: true,
   });
+  const [showRainConfirm, setShowRainConfirm] = useState(false);
 
   if (!item) {
     return (
@@ -58,17 +59,27 @@ const PlanCreate = () => {
     setEnabledSteps((prev) => ({ ...prev, [type]: !prev[type] }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const dryStep = steps.find((s) => s.type === 'dry');
+  const dryStepEnabled = enabledSteps.dry;
+  const dryDateIsRainy = dryStep && simulateRainyDay && isRainyDate(dryStep.scheduledDate);
+
+  const visibleSteps = steps.filter((step) => enabledSteps[step.type]);
+  const rainyStepDates: { step: CleaningStep; date: string }[] = [];
+  if (simulateRainyDay) {
+    visibleSteps.forEach((step) => {
+      if (isRainyDate(step.scheduledDate) && step.type === 'dry') {
+        rainyStepDates.push({ step, date: step.scheduledDate });
+      }
+    });
+  }
+
+  const doSubmit = () => {
     if (!itemId) return;
-
     const filteredSteps = steps.filter((step) => enabledSteps[step.type]);
-
     if (filteredSteps.length === 0) {
       alert('请至少选择一个步骤');
       return;
     }
-
     addPlan({
       itemId,
       status: 'pending',
@@ -77,15 +88,39 @@ const PlanCreate = () => {
       startDate: filteredSteps[0]?.scheduledDate || today,
       notes,
     });
-
     navigate(-1);
   };
 
-  const visibleSteps = steps.filter((step) => enabledSteps[step.type]);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemId) return;
 
-  const hasRainyDayWarning = visibleSteps.some(
-    (step) => step.type === 'dry' && simulateRainyDay
-  );
+    const filteredSteps = steps.filter((step) => enabledSteps[step.type]);
+    if (filteredSteps.length === 0) {
+      alert('请至少选择一个步骤');
+      return;
+    }
+
+    const hasRainyDry = filteredSteps.some(
+      (s) => s.type === 'dry' && simulateRainyDay && isRainyDate(s.scheduledDate)
+    );
+
+    if (hasRainyDry) {
+      setShowRainConfirm(true);
+      return;
+    }
+
+    doSubmit();
+  };
+
+  const confirmRainSubmit = () => {
+    setShowRainConfirm(false);
+    doSubmit();
+  };
+
+  const cancelRainSubmit = () => {
+    setShowRainConfirm(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -99,14 +134,15 @@ const PlanCreate = () => {
         </div>
       </div>
 
-      {hasRainyDayWarning && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3">
+      {simulateRainyDay && dryStepEnabled && dryDateIsRainy && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-3">
           <div className="flex items-start gap-2">
-            <CloudRain className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-yellow-800">阴雨天提醒</p>
-              <p className="text-xs text-yellow-700 mt-1">
-                今天有雨，晾晒步骤可能受影响，建议调整时间或选择室内晾干
+            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">⚠️ 晾晒日期遇到阴雨天</p>
+              <p className="text-xs text-red-700 mt-1">
+                您选择的晾晒日期（{dryStep && formatDateChinese(dryStep.scheduledDate)}）预报有雨，
+                强烈建议调整晾晒日期，或选择室内晾干方式
               </p>
             </div>
           </div>
@@ -127,47 +163,66 @@ const PlanCreate = () => {
           </div>
 
           <div className="divide-y divide-gray-100">
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className={cn(
-                  'p-4 transition-opacity',
-                  !enabledSteps[step.type] && 'opacity-50'
-                )}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={enabledSteps[step.type]}
-                      onChange={() => toggleStep(step.type)}
-                      className="w-5 h-5 text-blue-600 rounded"
-                    />
-                    <span className="font-medium text-gray-900">
-                      {STEP_LABELS[step.type]}
-                    </span>
-                  </label>
-                </div>
-                {enabledSteps[step.type] && (
-                  <div className="ml-8">
-                    <div className="flex items-center gap-2">
+            {steps.map((step) => {
+              const isRainy =
+                step.type === 'dry' && simulateRainyDay && isRainyDate(step.scheduledDate);
+
+              return (
+                <div
+                  key={step.id}
+                  className={cn(
+                    'p-4 transition-opacity',
+                    !enabledSteps[step.type] && 'opacity-50',
+                    isRainy && enabledSteps[step.type] && 'bg-red-50/50'
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="date"
-                        value={step.scheduledDate}
-                        onChange={(e) => handleDateChange(step.id, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        type="checkbox"
+                        checked={enabledSteps[step.type]}
+                        onChange={() => toggleStep(step.type)}
+                        className="w-5 h-5 text-blue-600 rounded"
                       />
-                    </div>
-                    {step.type === 'dry' && simulateRainyDay && (
-                      <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
-                        <Info className="w-3 h-3" />
-                        当天可能有雨，注意安排
-                      </p>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {STEP_LABELS[step.type]}
+                        </span>
+                        {isRainy && enabledSteps[step.type] && (
+                          <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full">
+                            <CloudRain className="w-3 h-3" />
+                            阴雨天
+                          </span>
+                        )}
+                      </div>
+                    </label>
                   </div>
-                )}
-              </div>
-            ))}
+                  {enabledSteps[step.type] && (
+                    <div className="ml-8">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={step.scheduledDate}
+                          onChange={(e) => handleDateChange(step.id, e.target.value)}
+                          className={cn(
+                            'flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                            isRainy
+                              ? 'border-red-400 bg-red-50 focus:ring-red-500'
+                              : 'border-gray-300'
+                          )}
+                        />
+                      </div>
+                      {isRainy && (
+                        <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {formatDateChinese(step.scheduledDate)}预报有雨，建议改期
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -201,11 +256,68 @@ const PlanCreate = () => {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          className={cn(
+            'w-full py-3.5 rounded-xl font-medium transition-colors',
+            simulateRainyDay && dryStepEnabled && dryDateIsRainy
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          )}
         >
-          创建计划
+          {simulateRainyDay && dryStepEnabled && dryDateIsRainy
+            ? '仍要创建（晾晒遇阴雨天）'
+            : '创建计划'}
         </button>
       </form>
+
+      {showRainConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">晾晒日期有雨</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  您选择的晾晒日期预报有雨，可能会影响晾晒效果。是否调整晾晒日期？
+                </p>
+              </div>
+              <button
+                onClick={cancelRainSubmit}
+                className="text-gray-400 hover:text-gray-600 -m-1 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-5">
+              <div className="flex items-center gap-2 text-sm text-red-700">
+                <CloudRain className="w-4 h-4" />
+                {dryStep && (
+                  <span>
+                    晾晒日期：{formatDateChinese(dryStep.scheduledDate)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={cancelRainSubmit}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              >
+                返回修改日期
+              </button>
+              <button
+                onClick={confirmRainSubmit}
+                className="w-full py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              >
+                坚持原计划，室内晾干
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
