@@ -15,10 +15,17 @@ export function getMemberProgress(member: Member, effectiveWater: number) {
 
 export function getMemberStatus(member: Member, effectiveWater: number, hour: number): string {
   const progress = effectiveWater / member.dailyGoal
-  if (progress >= 1) return '已达标 🎉'
-  if (progress >= 0.8) return '快达标了'
-  if (member.limitWater && progress >= 0.9) return '接近上限 ⚠️'
-  if (hour >= 20 && member.limitWater && progress >= 0.7) return '睡前少喝 🌙'
+
+  if (member.limitWater) {
+    if (progress >= 1) return '已达上限 🚫'
+    if (progress >= 0.9) return '接近上限 ⚠️'
+    if (hour >= 20 && progress >= 0.7) return '睡前少喝 🌙'
+    if (hour >= 20) return '晚上了少喝点 🌙'
+  } else {
+    if (progress >= 1) return '已达标 🎉'
+    if (progress >= 0.8) return '快达标了'
+  }
+
   if (progress < 0.3 && hour > 12) return '该多喝水了'
   const remaining = member.dailyGoal - effectiveWater
   return `还差 ${remaining}ml`
