@@ -4,6 +4,25 @@ import type { TableData, ReservationData } from '@shared/types';
 import { useStore } from '@/store/useStore';
 import ReservationModal from './ReservationModal';
 
+const TablePhoto = ({ photo, tableNumber }: { photo?: string; tableNumber: string }) => {
+  const [imgError, setImgError] = useState(false);
+  if (photo && !imgError) {
+    return (
+      <img
+        src={photo}
+        alt={tableNumber}
+        className="w-12 h-12 rounded-xl object-cover bg-gray-100 mx-auto mb-2"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  return (
+    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-warm-200 to-warm-300 flex items-center justify-center text-warm-600 font-bold text-lg mx-auto mb-2">
+      {tableNumber.charAt(0)}
+    </div>
+  );
+};
+
 interface TimelineBoardProps {
   tables: TableData[];
   reservations: ReservationData[];
@@ -122,7 +141,8 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
               key={table.id}
               className="flex border-b border-gray-50 last:border-b-0 hover:bg-warm-50/30 transition-colors"
             >
-              <div className="w-40 flex-shrink-0 p-4 bg-warm-50/50 border-r border-gray-100">
+              <div className="w-40 flex-shrink-0 p-4 bg-warm-50/50 border-r border-gray-100 flex flex-col items-start">
+                <TablePhoto photo={table.photo} tableNumber={table.tableNumber} />
                 <div className="font-bold text-lg text-gray-800">{table.tableNumber}</div>
                 <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
                   <Users size={14} />

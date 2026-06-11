@@ -1,7 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Users, Clock, Sun, Gamepad2, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, Clock, Sun, Gamepad2, X, Check, ImageOff } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import type { TableData, CreateTableRequest } from '@shared/types';
+
+const TablePhoto = ({ photo, tableNumber, size = 'md' }: { photo?: string; tableNumber: string; size?: 'sm' | 'md' | 'lg' }) => {
+  const sizeClasses = {
+    sm: 'w-10 h-10 rounded-lg text-xs',
+    md: 'w-14 h-14 rounded-xl text-sm',
+    lg: 'w-20 h-20 rounded-2xl text-base',
+  };
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt={tableNumber}
+        className={`${sizeClasses[size]} object-cover bg-gray-100 flex-shrink-0`}
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = 'none';
+          const sibling = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
+          if (sibling) sibling.style.display = 'flex';
+        }}
+      />
+    );
+  }
+  return (
+    <div className={`${sizeClasses[size]} bg-gradient-to-br from-warm-200 to-warm-300 flex items-center justify-center text-warm-600 font-semibold flex-shrink-0`}>
+      {tableNumber.charAt(0)}
+    </div>
+  );
+};
 
 export default function TableManagement() {
   const { tables, fetchTables, createTable, updateTable, deleteTable } = useStore();
@@ -14,6 +41,7 @@ export default function TableManagement() {
     isMahjong: false,
     openTime: '08:00',
     closeTime: '22:00',
+    photo: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +59,7 @@ export default function TableManagement() {
       isMahjong: false,
       openTime: '08:00',
       closeTime: '22:00',
+      photo: '',
     });
     setError('');
     setShowModal(true);
@@ -106,6 +135,7 @@ export default function TableManagement() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">照片</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">桌号</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">容量</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">设施</th>
@@ -116,6 +146,9 @@ export default function TableManagement() {
             <tbody className="divide-y divide-gray-50">
               {tables.map(table => (
                 <tr key={table.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <TablePhoto photo={table.photo} tableNumber={table.tableNumber} />
+                  </td>
                   <td className="px-6 py-4">
                     <span className="font-semibold text-gray-800 text-lg">{table.tableNumber}</span>
                   </td>
@@ -271,6 +304,25 @@ export default function TableManagement() {
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition-all"
                     required
                   />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">照片地址</label>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      value={formData.photo || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, photo: e.target.value }))}
+                      placeholder="https://example.com/photo.jpg"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg focus:ring-2 focus:ring-primary-400 focus:border-primary-400 outline-none transition-all"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">填入图片 URL，留空显示默认占位</p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <TablePhoto photo={formData.photo} tableNumber={formData.tableNumber || 'A'} size="lg" />
+                  </div>
                 </div>
               </div>
 

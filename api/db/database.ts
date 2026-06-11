@@ -57,18 +57,18 @@ function initDb(database: Database.Database) {
   const tableCount = database.prepare('SELECT COUNT(*) as count FROM tables').get() as { count: number };
   if (tableCount.count === 0) {
     const insert = database.prepare(`
-      INSERT INTO tables (table_number, capacity, is_window, is_mahjong, open_time, close_time)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO tables (table_number, capacity, is_window, is_mahjong, open_time, close_time, photo)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const tables = [
-      ['A01', 4, 1, 1, '08:00', '22:00'],
-      ['A02', 4, 1, 1, '08:00', '22:00'],
-      ['A03', 4, 0, 1, '08:00', '22:00'],
-      ['B01', 6, 1, 0, '09:00', '21:00'],
-      ['B02', 2, 0, 0, '08:00', '22:00'],
-      ['C01', 4, 1, 0, '08:00', '22:00'],
-      ['C02', 8, 0, 0, '10:00', '20:00'],
+      ['A01', 4, 1, 1, '08:00', '22:00', 'https://images.unsplash.com/photo-1612896018708-7f0836ffcdf4?w=200&h=200&fit=crop'],
+      ['A02', 4, 1, 1, '08:00', '22:00', 'https://images.unsplash.com/photo-1596838132731-3301c3fd4317?w=200&h=200&fit=crop'],
+      ['A03', 4, 0, 1, '08:00', '22:00', 'https://images.unsplash.com/photo-1606167668584-78701c57f13d?w=200&h=200&fit=crop'],
+      ['B01', 6, 1, 0, '09:00', '21:00', 'https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=200&h=200&fit=crop'],
+      ['B02', 2, 0, 0, '08:00', '22:00', null],
+      ['C01', 4, 1, 0, '08:00', '22:00', 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=200&h=200&fit=crop'],
+      ['C02', 8, 0, 0, '10:00', '20:00', null],
     ];
 
     for (const t of tables) {
