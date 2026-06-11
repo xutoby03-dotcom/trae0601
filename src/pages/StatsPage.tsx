@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   Baby,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import StatsChart from '@/components/StatsChart';
 import UnclaimedList from '@/components/UnclaimedList';
@@ -31,6 +32,26 @@ export default function StatsPage() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, []);
 
   const availableMonths = useMemo(
     () => getAvailableMonths(patrolRecords.map((r) => r.createdAt)),
@@ -49,6 +70,7 @@ export default function StatsPage() {
     const d = new Date(selectedYear, selectedMonth - 1, 1);
     setSelectedYear(d.getFullYear());
     setSelectedMonth(d.getMonth());
+    setMenuOpen(false);
   };
 
   const goNextMonth = () => {
@@ -57,6 +79,13 @@ export default function StatsPage() {
     if (d.getTime() > cur.getTime()) return;
     setSelectedYear(d.getFullYear());
     setSelectedMonth(d.getMonth());
+    setMenuOpen(false);
+  };
+
+  const selectMonth = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
+    setMenuOpen(false);
   };
 
   const isCurrentMonth =
@@ -82,19 +111,40 @@ export default function StatsPage() {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                <div className="relative group">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors min-w-[110px] justify-center">
-                    <Calendar className="w-4 h-4 text-brand-600" />
-                    {monthLabel}
+                <div ref={menuRef} className="relative">
+                  <button
+                    onClick={() => setMenuOpen((v) => !v)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all min-w-[130px] justify-center',
+                      menuOpen
+                        ? 'bg-brand-50 text-brand-700 ring-2 ring-brand-200'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    )}
+                  >
+                    <Calendar className="w-4 h-4 text-brand-600 shrink-0" />
+                    <span className="truncate">{monthLabel}</span>
                     {isCurrentMonth && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 text-[10px] font-bold">
+                      <span className="shrink-0 px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 text-[10px] font-bold">
                         本月
                       </span>
                     )}
+                    <ChevronDown
+                      className={cn(
+                        'w-4 h-4 shrink-0 transition-transform duration-200',
+                        menuOpen && 'rotate-180'
+                      )}
+                    />
                   </button>
 
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[140px]">
-                    <div className="p-1">
+                  <div
+                    className={cn(
+                      'absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden z-50 min-w-[160px] transition-all duration-200 origin-top-right',
+                      menuOpen
+                        ? 'opacity-100 visible scale-100 translate-y-0'
+                        : 'opacity-0 invisible scale-95 -translate-y-1 pointer-events-none'
+                    )}
+                  >
+                    <div className="p-1.5 max-h-[320px] overflow-y-auto">
                       {availableMonths.map((m) => {
                         const isSelected =
                           m.year === selectedYear && m.month === selectedMonth;
@@ -103,19 +153,16 @@ export default function StatsPage() {
                         return (
                           <button
                             key={`${m.year}-${m.month}`}
-                            onClick={() => {
-                              setSelectedYear(m.year);
-                              setSelectedMonth(m.month);
-                            }}
+                            onClick={() => selectMonth(m.year, m.month)}
                             className={cn(
-                              'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                              'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors',
                               isSelected
-                                ? 'bg-brand-50 text-brand-700 font-semibold'
-                                : 'text-slate-600 hover:bg-slate-50'
+                                ? 'bg-brand-500 text-white shadow-sm font-semibold'
+                                : 'text-slate-700 hover:bg-slate-100'
                             )}
                           >
                             <span>{m.label}</span>
-                            {isCur && (
+                            {isCur && !isSelected && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 font-bold">
                                 本月
                               </span>
