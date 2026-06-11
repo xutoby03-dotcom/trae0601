@@ -78,11 +78,20 @@ const OrderItem: React.FC<OrderItemProps> = ({
     onOrderChange?.(order.id, { platform: p });
   };
 
+  const handleDistanceInput = (val: string) => {
+    setDistanceInput(val);
+    if (val === '' || val === '.') return;
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed) && parsed > 0 && parsed < 999) {
+      const rounded = Math.round(parsed * 10) / 10;
+      onOrderChange?.(order.id, { distanceKm: rounded });
+    }
+  };
+
   const commitDistance = () => {
     const parsed = parseFloat(distanceInput);
     if (!isNaN(parsed) && parsed > 0 && parsed < 999) {
       const rounded = Math.round(parsed * 10) / 10;
-      onOrderChange?.(order.id, { distanceKm: rounded });
       setDistanceInput(rounded.toFixed(1));
     } else {
       setDistanceInput(order.distanceKm.toFixed(1));
@@ -139,7 +148,7 @@ const OrderItem: React.FC<OrderItemProps> = ({
               className={styles.distanceInput}
               type="digit"
               value={distanceInput}
-              onInput={(e) => setDistanceInput(e.detail.value)}
+              onInput={(e) => handleDistanceInput(e.detail.value)}
               onBlur={commitDistance}
               onConfirm={commitDistance}
               placeholder="距离"

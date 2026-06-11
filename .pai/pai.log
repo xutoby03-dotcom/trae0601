@@ -243,3 +243,33 @@
 }
 [14:20:44.096] Update success (pai.updateCloudDev returned)
 [14:20:45.983] [PAI SDK] Received event: log {"content":"✅  编译成功 6/11/2026, 2:20:46 PM\n\n","timestamp":1781158846197}
+[14:31:48.880] File change detected. Updating...
+[14:31:48.891] readProjectFiles, Found 44 files to read.
+[14:31:48.899] Files read. Count: 44
+[14:31:48.899] Calling pai.updateCloudDev...
+[14:31:48.900] [PAI SDK] cloudServer.update called, appId: pai-preview-trae-07ca934c
+[14:31:49.118] [PAI SDK] Received event: reload {"url":"aipa://pai-preview-trae-07ca934c.aipa-cloud.bytedance.net?type=pai","timestamp":1781159509354}
+[14:31:49.118] [PAI SDK] CloudServer received reload event: {"url":"aipa://pai-preview-trae-07ca934c.aipa-cloud.bytedance.net?type=pai","timestamp":1781159509354}
+[14:31:49.118] [PAI SDK] reload, url = https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8l4r38290l50k83emog-sandbox&hash=pai-preview-trae-07ca934c
+[14:31:49.118] [PAI SDK] cloudServer.update response: {
+  "status": "running",
+  "reload": false,
+  "hash": "pai-preview-trae-07ca934c"
+}
+[14:31:49.118] Update success (pai.updateCloudDev returned)
+[14:31:50.968] [PAI SDK] Received event: log {"content":"✅  编译成功 6/11/2026, 2:31:51 PM\n\n","timestamp":1781159511211}
+[14:31:56.719] File change detected. Updating...
+[14:31:56.740] readProjectFiles, Found 44 files to read.
+[14:31:56.747] Files read. Count: 44
+[14:31:56.748] Calling pai.updateCloudDev...
+[14:31:56.748] [PAI SDK] cloudServer.update called, appId: pai-preview-trae-07ca934c
+[14:31:56.971] [PAI SDK] Received event: reload {"url":"aipa://pai-preview-trae-07ca934c.aipa-cloud.bytedance.net?type=pai","timestamp":1781159517224}
+[14:31:56.972] [PAI SDK] CloudServer received reload event: {"url":"aipa://pai-preview-trae-07ca934c.aipa-cloud.bytedance.net?type=pai","timestamp":1781159517224}
+[14:31:56.973] [PAI SDK] reload, url = https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-pyw70jixna-d8l4r38290l50k83emog-sandbox&hash=pai-preview-trae-07ca934c
+[14:31:56.973] [PAI SDK] cloudServer.update response: {
+  "status": "running",
+  "reload": false,
+  "hash": "pai-preview-trae-07ca934c"
+}
+[14:31:56.973] Update success (pai.updateCloudDev returned)
+[14:31:58.223] [PAI SDK] Received event: log {"content":"✅  编译成功 6/11/2026, 2:31:58 PM\n\n","timestamp":1781159518470}
