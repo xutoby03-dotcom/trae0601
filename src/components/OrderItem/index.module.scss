@@ -41,6 +41,51 @@
   gap: $spacing-sm;
 }
 
+.platformSwitcher {
+  display: flex;
+  background: $color-bg-hover;
+  border-radius: $radius-sm;
+  padding: 4rpx;
+  gap: 2rpx;
+}
+
+.platBtn {
+  width: 56rpx;
+  height: 48rpx;
+  border-radius: $radius-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+}
+
+.platBtnText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-text-tertiary;
+}
+
+.platBtn.meituan {
+  &.platBtnActive {
+    background: #FBBF24;
+    .platBtnText { color: #78350F; }
+  }
+}
+
+.platBtn.eleme {
+  &.platBtnActive {
+    background: #0EA5E9;
+    .platBtnText { color: #FFFFFF; }
+  }
+}
+
+.platBtn.jddj {
+  &.platBtnActive {
+    background: #EF4444;
+    .platBtnText { color: #FFFFFF; }
+  }
+}
+
 .rightHead {
   flex-shrink: 0;
 }
@@ -82,6 +127,61 @@
   font-size: $font-size-sm;
   color: $color-text-secondary;
   font-weight: $font-weight-medium;
+}
+
+.distanceStepper {
+  display: flex;
+  align-items: center;
+  background: $color-bg-hover;
+  border-radius: $radius-sm;
+  overflow: hidden;
+}
+
+.distBtn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-fast;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.distBtnText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-secondary;
+  line-height: 1;
+}
+
+.distMinus .distBtnText { color: $color-primary; }
+.distPlus .distBtnText { color: $color-primary; }
+
+.distValueBox {
+  min-width: 90rpx;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2rpx;
+  background: #FFFFFF;
+  padding: 0 $spacing-xs;
+  height: 48rpx;
+}
+
+.distValue {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1;
+}
+
+.distUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: 1;
 }
 
 .addressBox {
@@ -149,6 +249,74 @@
   display: flex;
   align-items: center;
   gap: $spacing-sm;
+}
+
+.hotToggle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: 6rpx $spacing-sm;
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 999rpx;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.8;
+  }
+
+  &.hotToggleOn {
+    background: rgba(239, 68, 68, 0.1);
+  }
+}
+
+.hotToggleTrack {
+  width: 64rpx;
+  height: 36rpx;
+  background: #CBD5E1;
+  border-radius: 999rpx;
+  position: relative;
+  transition: all $transition-base;
+  padding: 3rpx;
+  box-sizing: border-box;
+
+  .hotToggleOn & {
+    background: linear-gradient(135deg, #EF4444 0%, #F97316 100%);
+  }
+}
+
+.hotToggleThumb {
+  width: 30rpx;
+  height: 30rpx;
+  background: #FFFFFF;
+  border-radius: 50%;
+  position: absolute;
+  left: 3rpx;
+  top: 3rpx;
+  transition: all $transition-base;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
+
+  .hotToggleOn & {
+    left: 31rpx;
+  }
+}
+
+.hotToggleIcon {
+  font-size: 18rpx;
+  line-height: 1;
+}
+
+.hotToggleLabel {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+
+  .hotToggleOn & {
+    color: $color-danger;
+    font-weight: $font-weight-semibold;
+  }
 }
 
 .timeBox {

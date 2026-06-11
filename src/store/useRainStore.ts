@@ -32,6 +32,7 @@ interface RainStoreState {
   addDishStock: (dish: DishStock) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateOrderRisk: (orderId: string, risk: TimeoutRisk) => void;
+  updateOrder: (orderId: string, patch: Partial<Order>) => void;
   addOrder: (order: Order) => void;
   setActiveGroup: (g: BoardGroupType) => void;
   acknowledgeWarning: (id: string) => void;
@@ -114,6 +115,10 @@ export const useRainStore = create<RainStoreState>((set, get) => ({
 
   updateOrderRisk: (orderId, risk) => set((state) => ({
     orders: state.orders.map(o => o.id === orderId ? { ...o, timeoutRisk: risk } : o)
+  })),
+
+  updateOrder: (orderId, patch) => set((state) => ({
+    orders: state.orders.map(o => o.id === orderId ? { ...o, ...patch } : o)
   })),
 
   addOrder: (order) => set((state) => ({

@@ -32,7 +32,7 @@ const riskTabs: { key: RiskFilter; label: string }[] = [
 ];
 
 const OrdersPage: React.FC = () => {
-  const { orders, updateOrderStatus, updateOrderRisk } = useRainStore();
+  const { orders, updateOrderStatus, updateOrderRisk, updateOrder } = useRainStore();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all');
@@ -202,6 +202,8 @@ const OrdersPage: React.FC = () => {
             order={o}
             onStatusChange={handleStatusChange}
             onRiskChange={updateOrderRisk}
+            onOrderChange={updateOrder}
+            showEdit
           />
         ))
       )}
