@@ -12,9 +12,10 @@ interface DamageModalProps {
     itemId: string,
     data: Omit<DamageRecord, 'id' | 'itemId' | 'reportedAt' | 'settled'>
   ) => void;
+  forceFill?: boolean;
 }
 
-export const DamageModal = ({ open, onClose, item, onSubmit }: DamageModalProps) => {
+export const DamageModal = ({ open, onClose, item, onSubmit, forceFill = false }: DamageModalProps) => {
   const [formData, setFormData] = useState({
     reporter: roommates[0].name,
     responsiblePerson: roommates[0].name,
@@ -23,6 +24,7 @@ export const DamageModal = ({ open, onClose, item, onSubmit }: DamageModalProps)
     compensationAmount: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -60,28 +62,40 @@ export const DamageModal = ({ open, onClose, item, onSubmit }: DamageModalProps)
       compensationPlan: formData.compensationPlan.trim(),
       compensationAmount: parseFloat(formData.compensationAmount),
     });
+    setShowCloseConfirm(false);
     onClose();
+  };
+
+  const handleCancelClick = () => {
+    if (forceFill) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
   };
 
   if (!item) return null;
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={`「${item.name}」损坏报备`}
-      size="lg"
-      footer={
-        <div className="flex gap-3">
-          <button className="btn btn-secondary flex-1" onClick={onClose}>
-            取消
-          </button>
-          <button className="btn btn-danger flex-1" onClick={handleSubmit}>
-            确认报备
-          </button>
-        </div>
-      }
-    >
+    <>
+      <Modal
+        open={open && !showCloseConfirm}
+        onClose={handleCancelClick}
+        title={`「${item.name}」损坏报备`}
+        size="lg"
+        closeOnOverlayClick={!forceFill}
+        showCloseButton={!forceFill}
+        footer={
+          <div className="flex gap-3">
+            <button className="btn btn-secondary flex-1" onClick={handleCancelClick}>
+              {forceFill ? '稍后再填' : '取消'}
+            </button>
+            <button className="btn btn-danger flex-1" onClick={handleSubmit}>
+              确认报备
+            </button>
+          </div>
+        }
+      >
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="p-4 bg-danger-50 border border-danger-100 rounded-xl">
           <h5 className="text-sm font-semibold text-danger-700 mb-1">🚨 物品损坏报备</h5>
@@ -172,5 +186,46 @@ export const DamageModal = ({ open, onClose, item, onSubmit }: DamageModalProps)
         </div>
       </form>
     </Modal>
+
+      <Modal
+        open={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        title="确定放弃报备？"
+        size="sm"
+        footer={
+          <div className="flex gap-3">
+            <button
+              className="btn btn-secondary flex-1"
+              onClick={() => setShowCloseConfirm(false)}
+            >
+              继续填写
+            </button>
+            <button
+              className="btn btn-danger flex-1"
+              onClick={() => {
+                setShowCloseConfirm(false);
+                onClose();
+              }}
+            >
+              放弃报备
+            </button>
+          </div>
+        }
+      >
+        <div className="py-2 text-center">
+          <div className="w-14 h-14 mx-auto mb-3 bg-warning-100 rounded-full flex items-center justify-center">
+            <svg className="w-7 h-7 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p className="text-gray-700 mb-1">
+            损坏报备还没填完，确定要走吗？
+          </p>
+          <p className="text-sm text-gray-500">
+            放弃的话「{item.name}」会一直留在「待赔付」状态
+          </p>
+        </div>
+      </Modal>
+    </>
   );
 };

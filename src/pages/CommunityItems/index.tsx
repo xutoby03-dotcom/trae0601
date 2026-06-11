@@ -41,6 +41,7 @@ const CommunityItems = () => {
 
   const [damageTarget, setDamageTarget] = useState<CommunityItem | null>(null);
   const [damageModalOpen, setDamageModalOpen] = useState(false);
+  const [damageForceFill, setDamageForceFill] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState<CommunityItem | null>(null);
 
@@ -75,8 +76,9 @@ const CommunityItems = () => {
     markCleaned(item.id);
   };
 
-  const openDamageModal = (item: CommunityItem) => {
+  const openDamageModal = (item: CommunityItem, forceFill = false) => {
     setDamageTarget(item);
+    setDamageForceFill(forceFill);
     setDamageModalOpen(true);
     setDetailOpen(false);
   };
@@ -122,8 +124,7 @@ const CommunityItems = () => {
     returnItem(borrowId, data);
     if (!data.undamagedOnReturn && returnTarget) {
       setTimeout(() => {
-        setDamageTarget(returnTarget);
-        setDamageModalOpen(true);
+        openDamageModal(returnTarget, true);
       }, 300);
     }
   };
@@ -232,6 +233,7 @@ const CommunityItems = () => {
         onClose={() => setDamageModalOpen(false)}
         item={damageTarget}
         onSubmit={handleDamageSubmit}
+        forceFill={damageForceFill}
       />
 
       <ItemDetailModal

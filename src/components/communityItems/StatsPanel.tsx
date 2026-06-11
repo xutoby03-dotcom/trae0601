@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useCommunityItemStore } from '../../store/useCommunityItemStore';
 import { formatCurrency } from '../../utils/format';
 import { Empty } from '../Empty';
+import { Modal } from '../Modal';
 
 export const StatsPanel = () => {
   const {
@@ -9,10 +10,13 @@ export const StatsPanel = () => {
     damageRecords,
     getUnsettledCompensationTotal,
     getCleaningStats,
+    settleDamage,
   } = useCommunityItemStore();
 
   const unsettledTotal = getUnsettledCompensationTotal();
   const cleaningStats = getCleaningStats();
+
+  const [settleConfirm, setSettleConfirm] = useState<string | null>(null);
 
   const totalValue = items.reduce((s, i) => s + i.price, 0);
   const totalUsage = items.reduce((s, i) => s + i.totalUsageCount, 0);
@@ -157,19 +161,27 @@ export const StatsPanel = () => {
                 return (
                   <div
                     key={d.id}
-                    className="flex items-center justify-between py-2 px-3 bg-white rounded-lg"
+                    className="py-2 px-3 bg-white rounded-lg"
                   >
-                    <div>
+                    <div className="flex items-center justify-between mb-1">
                       <p className="text-sm font-medium text-gray-900">
                         {item?.name || '未知物品'}
                       </p>
+                      <span className="font-bold text-danger-700">
+                        {formatCurrency(d.compensationAmount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500">
                         责任人：{d.responsiblePerson}
                       </p>
+                      <button
+                        className="text-xs font-medium text-primary-600 hover:text-primary-700 px-2 py-0.5 rounded hover:bg-primary-50 transition-colors"
+                        onClick={() => setSettleConfirm(d.id)}
+                      >
+                        标记结清 →
+                      </button>
                     </div>
-                    <span className="font-bold text-danger-700">
-                      {formatCurrency(d.compensationAmount)}
-                    </span>
                   </div>
                 );
               })}
@@ -182,6 +194,52 @@ export const StatsPanel = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        open={!!settleConfirm}
+        onClose={() => setSettleConfirm(null)}
+        title="确认结清？"
+        size="sm"
+        footer={
+          <div className="flex gap-3">
+            <button
+              className="btn btn-secondary flex-1"
+              onClick={() => setSettleConfirm(null)}
+            >
+              取消
+            </button>
+            <button
+              className="btn btn-primary flex-1"
+              onClick={() => {
+                if (settleConfirm) {
+                  settleDamage(settleConfirm, '已结清赔付');
+                  setSettleConfirm(null);
+                }
+              }}
+            >
+              确认结清
+            </button>
+          </div>
+        }
+      >
+        <div className="py-2 text-center">
+          <div className="w-14 h-14 mx-auto mb-3 bg-primary-100 rounded-full flex items-center justify-center">
+            <svg className="w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-gray-700 mb-1">
+            确定要把这笔赔付标记为已结清吗？
+          </p>
+          <p className="text-2xl font-bold text-primary-600 mt-2">
+            {settleConfirm
+              ? formatCurrency(
+                  damageRecords.find((d) => d.id === settleConfirm)?.compensationAmount || 0
+                )
+              : ''}
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };

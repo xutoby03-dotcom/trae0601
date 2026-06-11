@@ -232,9 +232,14 @@ export const useCommunityItemStore = create<CommunityItemStore>()(
           const borrow = state.borrowRecords.find((b) => b.id === borrowId);
           if (!borrow) return state;
 
-          const newStatus: ItemStatus = data.cleanedOnReturn
-            ? 'available'
-            : 'needs_cleaning';
+          let newStatus: ItemStatus;
+          if (!data.undamagedOnReturn) {
+            newStatus = 'needs_repair';
+          } else if (!data.cleanedOnReturn) {
+            newStatus = 'needs_cleaning';
+          } else {
+            newStatus = 'available';
+          }
 
           return {
             borrowRecords: state.borrowRecords.map((b) =>
