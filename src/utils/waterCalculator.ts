@@ -151,7 +151,7 @@ export function buildLocationChangeComparison(
   changePoint: LocationChangePoint
 ): LocationChangeComparison {
   const before7Days = stats.slice(Math.max(0, changePoint.index - 7), changePoint.index);
-  const after7Days = stats.slice(changePoint.index, Math.min(stats.length, changePoint.index + 8));
+  const after7Days = stats.slice(changePoint.index, Math.min(stats.length, changePoint.index + 7));
   
   const beforeAvg = calculateAverageWater(before7Days);
   const afterAvg = calculateAverageWater(after7Days);

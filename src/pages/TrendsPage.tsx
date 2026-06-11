@@ -117,14 +117,14 @@ export default function TrendsPage() {
         </div>
         
         <p className="text-sm text-gray-500 mb-4">
-          自动检测换水盆的日期，对比变更前后 7 天的饮水量变化
+          自动检测换水盆的日期，对比变更前 7 天和变更当日起 7 天的饮水量变化
         </p>
         
         {allComparisons.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl">
             <MapPin size={36} className="mx-auto text-gray-300 mb-2" />
             <p className="text-gray-500 text-sm">还没有检测到换水盆的记录</p>
-            <p className="text-gray-400 text-xs mt-1">在记录页面更改水盆位置，至少 2 天后可看到对比</p>
+            <p className="text-gray-400 text-xs mt-1">在记录页面更改水盆位置，变更前后各需 1 天以上记录才能对比</p>
           </div>
         ) : (
           <>
@@ -170,19 +170,29 @@ export default function TrendsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 rounded-xl p-4 text-center">
                     <p className="text-xs text-gray-500 mb-1">
-                      变更前 7 天 · {currentComparison.beforeDays} 天有记录
+                      变更前 {currentComparison.beforeDays >= 7 ? '满 7 天' : `${currentComparison.beforeDays}/7 天`}
                     </p>
                     <p className="text-sm text-gray-600 mb-1">{currentComparison.changePoint.fromLocation}</p>
                     <p className="text-3xl font-bold text-gray-800">{currentComparison.beforeAvg}</p>
                     <p className="text-sm text-gray-500">ml / 天</p>
+                    {currentComparison.beforeDays < 7 && (
+                      <p className="text-xs text-warning-600 mt-1">
+                        还差 {7 - currentComparison.beforeDays} 天数据
+                      </p>
+                    )}
                   </div>
                   <div className="bg-primary-50 rounded-xl p-4 text-center">
                     <p className="text-xs text-primary-600 mb-1">
-                      变更后 7 天 · {currentComparison.afterDays} 天有记录
+                      变更后 {currentComparison.afterDays >= 7 ? '满 7 天' : `${currentComparison.afterDays}/7 天`}
                     </p>
                     <p className="text-sm text-primary-700 mb-1">{currentComparison.changePoint.toLocation}</p>
                     <p className="text-3xl font-bold text-primary-600">{currentComparison.afterAvg}</p>
                     <p className="text-sm text-primary-500">ml / 天</p>
+                    {currentComparison.afterDays < 7 && (
+                      <p className="text-xs text-warning-600 mt-1">
+                        还差 {7 - currentComparison.afterDays} 天数据
+                      </p>
+                    )}
                   </div>
                 </div>
                 
@@ -208,18 +218,34 @@ export default function TrendsPage() {
                 </div>
                 
                 {currentComparison.betterLocation ? (
-                  <div className="mt-4 p-3 rounded-xl bg-success-50 border border-success-100 flex items-center gap-2">
-                    <CheckCircle2 size={18} className="text-success-500 flex-shrink-0" />
-                    <p className="text-sm text-success-700">
-                      <span className="font-semibold">{currentComparison.betterLocation}</span> 的饮水量更高
-                      （多 {Math.abs(currentComparison.diffMl)} ml，{Math.abs(currentComparison.diffPercent)}%）
-                    </p>
+                  <div className="mt-4 p-3 rounded-xl bg-success-50 border border-success-100 flex items-start gap-2">
+                    <CheckCircle2 size={18} className="text-success-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-success-700">
+                        <span className="font-semibold">{currentComparison.betterLocation}</span> 的饮水量更高
+                        （多 {Math.abs(currentComparison.diffMl)} ml，{Math.abs(currentComparison.diffPercent)}%）
+                      </p>
+                      {(currentComparison.beforeDays < 7 || currentComparison.afterDays < 7) && (
+                        <p className="text-xs text-success-600 mt-1">
+                          ⚠️ 数据未满 7 天，结论仅供参考，建议继续观察
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-100">
                     <p className="text-sm text-gray-600 text-center">
-                      两个位置的饮水量差异不明显，建议继续观察几天
+                      {currentComparison.beforeDays < 3 || currentComparison.afterDays < 3
+                        ? '数据太少，暂无法判断哪个位置更好，建议再记录几天'
+                        : '两个位置的饮水量差异不明显，建议继续观察几天'
+                      }
                     </p>
+                    {(currentComparison.beforeDays < 7 || currentComparison.afterDays < 7) && (
+                      <p className="text-xs text-gray-500 text-center mt-1">
+                        变更前还差 {Math.max(0, 7 - currentComparison.beforeDays)} 天，
+                        变更后还差 {Math.max(0, 7 - currentComparison.afterDays)} 天凑满 7 天
+                      </p>
+                    )}
                   </div>
                 )}
               </>
