@@ -59,3 +59,21 @@ export interface LostFormData {
   depositRefundType: DepositRefundType;
   partialRefundAmount?: number;
 }
+
+export interface RecordFilter {
+  cardType?: CardType;
+  status?: RecordStatus | "overdue";
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface DailyStatsFilter {
+  cardType?: CardType;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface DepartmentRankingFilter {
+  startDate?: string;
+  endDate?: string;
+}

@@ -3,10 +3,14 @@ import {
   Card,
   BorrowRecord,
   CardType,
+  RecordStatus,
   BorrowFormData,
   LostFormData,
   DepartmentStats,
   DailyStats,
+  DailyStatsFilter,
+  DepartmentRankingFilter,
+  RecordFilter,
 } from "@/types";
 import {
   generateId,
@@ -37,10 +41,11 @@ interface CardStore {
     lost: { total: number; visitor: number; employee: number };
   };
   getRecentRecords: (limit?: number) => BorrowRecord[];
-  getDailyStats: (days?: number) => DailyStats[];
-  getDepartmentRanking: () => DepartmentStats[];
-  getOverdueRecords: () => BorrowRecord[];
+  getDailyStats: (filter?: DailyStatsFilter) => DailyStats[];
+  getDepartmentRanking: (filter?: DepartmentRankingFilter) => DepartmentStats[];
+  getOverdueRecords: (filter?: { startDate?: string; endDate?: string }) => BorrowRecord[];
   getOverdueCount: () => number;
+  getRecordsByFilter: (filter: RecordFilter, limit?: number) => BorrowRecord[];
   resetToInitialData: () => void;
 }
 
@@ -378,52 +383,131 @@ export const useCardStore = create<CardStore>((set, get) => ({
       .slice(0, limit);
   },
 
-  getDailyStats: (days = 14) => {
+  getDailyStats: (filter) => {
     const { records } = get();
     const stats: DailyStats[] = [];
 
-    for (let i = days - 1; i >= 0; i--) {
-      const date = getDateDaysAgo(i);
-      const dateStr = formatDate(date);
-      const dayRecords = records.filter(
+    let startDate: Date;
+    let endDate: Date;
+    const cardType = filter?.cardType;
+
+    if (filter?.startDate && filter?.endDate) {
+      startDate = new Date(filter.startDate);
+      endDate = new Date(filter.endDate);
+    } else {
+      endDate = new Date();
+      startDate = getDateDaysAgo(13);
+    }
+
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      const dateStr = formatDate(current);
+      let dayRecords = records.filter(
         (r) => formatDate(new Date(r.borrowTime)) === dateStr
       );
+      if (cardType) {
+        dayRecords = dayRecords.filter((r) => r.cardType === cardType);
+      }
       stats.push({
         date: dateStr.slice(5),
         visitorCount: dayRecords.filter((r) => r.cardType === "visitor").length,
         employeeCount: dayRecords.filter((r) => r.cardType === "employee").length,
       });
+      current.setDate(current.getDate() + 1);
     }
 
     return stats;
   },
 
-  getDepartmentRanking: () => {
+  getDepartmentRanking: (filter) => {
     const { records } = get();
     const deptMap = new Map<string, number>();
 
-    records
-      .filter((r) => r.cardType === "employee")
-      .forEach((r) => {
-        const count = deptMap.get(r.department) || 0;
-        deptMap.set(r.department, count + 1);
-      });
+    let filtered = records.filter((r) => r.cardType === "employee");
+    if (filter?.startDate) {
+      const start = new Date(filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((r) => new Date(r.borrowTime) >= start);
+    }
+    if (filter?.endDate) {
+      const end = new Date(filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((r) => new Date(r.borrowTime) <= end);
+    }
+
+    filtered.forEach((r) => {
+      const count = deptMap.get(r.department) || 0;
+      deptMap.set(r.department, count + 1);
+    });
 
     return Array.from(deptMap.entries())
       .map(([department, count]) => ({ department, count }))
       .sort((a, b) => b.count - a.count);
   },
 
-  getOverdueRecords: () => {
-    return get().records.filter(
+  getOverdueRecords: (filter) => {
+    let result = get().records.filter(
       (r) => r.status === "active" && isOverdue(r.expectedReturnTime)
     );
+    if (filter?.startDate) {
+      const start = new Date(filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      result = result.filter((r) => new Date(r.expectedReturnTime) >= start);
+    }
+    if (filter?.endDate) {
+      const end = new Date(filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((r) => new Date(r.expectedReturnTime) <= end);
+    }
+    return result;
   },
 
   getOverdueCount: () => {
     return get().records.filter(
       (r) => r.status === "active" && isOverdue(r.expectedReturnTime)
     ).length;
+  },
+
+  getRecordsByFilter: (filter, limit) => {
+    let result = [...get().records];
+
+    if (filter.cardType) {
+      result = result.filter((r) => r.cardType === filter.cardType);
+    }
+
+    if (filter.status) {
+      if (filter.status === "overdue") {
+        result = result.filter(
+          (r) => r.status === "active" && isOverdue(r.expectedReturnTime)
+        );
+      } else {
+        result = result.filter((r) => r.status === filter.status);
+      }
+    }
+
+    if (filter.startDate) {
+      const start = new Date(filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      result = result.filter((r) => new Date(r.borrowTime) >= start);
+    }
+    if (filter.endDate) {
+      const end = new Date(filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((r) => new Date(r.borrowTime) <= end);
+    }
+
+    result.sort(
+      (a, b) => new Date(b.borrowTime).getTime() - new Date(a.borrowTime).getTime()
+    );
+
+    if (limit) {
+      result = result.slice(0, limit);
+    }
+
+    return result;
   },
 
   resetToInitialData: () => {

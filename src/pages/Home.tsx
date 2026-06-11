@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   CheckCircle2,
@@ -9,16 +10,31 @@ import {
   ArrowRight,
   User,
   Building2,
+  Filter,
+  X,
 } from "lucide-react";
 import { useCardStore } from "@/store/cardStore";
 import StatusBadge from "@/components/StatusBadge";
 import CardTypeBadge from "@/components/CardTypeBadge";
 import { getRemainingTime, isOverdue } from "@/utils/dateUtils";
+import { CardType, RecordStatus } from "@/types";
+
+type StatusFilter = "all" | RecordStatus | "overdue";
+type TypeFilter = "all" | CardType;
 
 export default function Home() {
-  const { getStatsByStatus, getRecentRecords } = useCardStore();
+  const { getStatsByStatus, getRecordsByFilter } = useCardStore();
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
   const stats = getStatsByStatus();
-  const recentRecords = getRecentRecords(10);
+
+  const recentRecords = useMemo(() => {
+    const filter: { cardType?: CardType; status?: "overdue" | RecordStatus } = {};
+    if (typeFilter !== "all") filter.cardType = typeFilter;
+    if (statusFilter !== "all") filter.status = statusFilter as "overdue" | RecordStatus;
+    return getRecordsByFilter(filter, 10);
+  }, [typeFilter, statusFilter, getRecordsByFilter]);
 
   const statusCards = [
     {
@@ -66,6 +82,27 @@ export default function Home() {
       subTextClass: "text-red-600",
     },
   ];
+
+  const typeOptions: { value: TypeFilter; label: string }[] = [
+    { value: "all", label: "全部" },
+    { value: "employee", label: "员工临时卡" },
+    { value: "visitor", label: "访客卡" },
+  ];
+
+  const statusOptions: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: "全部状态" },
+    { value: "active", label: "使用中" },
+    { value: "overdue", label: "已超时" },
+    { value: "returned", label: "已归还" },
+    { value: "lost", label: "已挂失" },
+  ];
+
+  const hasFilter = typeFilter !== "all" || statusFilter !== "all";
+
+  const clearFilter = () => {
+    setTypeFilter("all");
+    setStatusFilter("all");
+  };
 
   return (
     <div className="space-y-6">
@@ -142,12 +179,60 @@ export default function Home() {
       </div>
 
       <div className="card-panel overflow-hidden">
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="font-semibold text-zinc-900">最近借用记录</h2>
-            <p className="text-sm text-zinc-500 mt-0.5">最近 10 条登记记录</p>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              {hasFilter
+                ? `筛选后共 ${recentRecords.length} 条记录（显示前 10 条）`
+                : "最近 10 条登记记录"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-zinc-400" />
+              <div className="flex items-center bg-zinc-100 rounded-lg p-0.5">
+                {typeOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setTypeFilter(opt.value)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      typeFilter === opt.value
+                        ? "bg-white text-brand-700 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="input-field py-1.5 pl-3 pr-8 text-xs w-28"
+              >
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {hasFilter && (
+              <button
+                onClick={clearFilter}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+                清除筛选
+              </button>
+            )}
           </div>
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -226,7 +311,7 @@ export default function Home() {
                     colSpan={7}
                     className="px-6 py-12 text-center text-zinc-400 text-sm"
                   >
-                    暂无借用记录
+                    {hasFilter ? "没有符合筛选条件的记录" : "暂无借用记录"}
                   </td>
                 </tr>
               )}
