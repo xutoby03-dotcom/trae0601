@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ClipboardList, ChevronDown, ChevronUp, Backpack, Check, Users, Package, User } from 'lucide-react';
+import { ClipboardList, ChevronDown, ChevronUp, Backpack, Check, Users, Package, User, Copy, CheckCircle } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { getEquipmentByBag, getTotalWeight } from '@/utils/statistics';
 import { formatWeight } from '@/utils/formatters';
@@ -7,6 +7,7 @@ import Avatar from '@/components/common/Avatar';
 import EquipmentCard from '@/components/equipment/EquipmentCard';
 import EmptyState from '@/components/common/EmptyState';
 import type { Equipment } from '@/types';
+import { STATUS_META } from '@/types';
 
 type ViewMode = 'person' | 'bag';
 
@@ -25,6 +26,7 @@ export default function Checklist() {
   const [expandedPerson, setExpandedPerson] = useState<string | null>(people[0]?.id || null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [expandedBag, setExpandedBag] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const equipmentByPerson = useMemo(() => {
     const map: Record<string, Equipment[]> = {};
@@ -51,6 +53,63 @@ export default function Checklist() {
 
   const handleMarkAllPacked = (personId: string) => {
     bulkSetStatus(personId, 'packed');
+  };
+
+  const generateChecklistText = () => {
+    const lines: string[] = [];
+    lines.push(`🏕️ ${trip?.location || '露营'} - 携带清单`);
+    lines.push(`📅 ${trip?.days || 0}天${(trip?.days || 0) + 1}晚  ·  👥 ${people.length}人`);
+    lines.push('');
+
+    people.forEach((person, idx) => {
+      const items = equipmentByPerson[person.id] || [];
+      const weight = getTotalWeight(items);
+
+      lines.push(`${idx + 1}. ${person.name}（${items.length}件 · ${formatWeight(weight)}）`);
+
+      if (items.length === 0) {
+        lines.push('   ⚪️ 暂无装备，请尽快分配');
+      } else {
+        items.forEach((eq, i) => {
+          const statusEmoji = eq.status === 'packed' ? '✅' : eq.status === 'in_car' ? '🚗' : eq.status === 'at_risk' ? '⚠️' : '⬜️';
+          const bagInfo = eq.bagName ? `  [${eq.bagName}]` : '';
+          lines.push(`   ${statusEmoji} ${i + 1}. ${eq.name}${bagInfo}  ·  ${formatWeight(eq.weightGrams)}  ·  ${STATUS_META[eq.status].label}`);
+        });
+      }
+      lines.push('');
+    });
+
+    if (equipmentByPerson['unassigned']?.length > 0) {
+      lines.push(`⚠️ 未分配负责人（${equipmentByPerson['unassigned'].length}件）`);
+      equipmentByPerson['unassigned'].forEach((eq, i) => {
+        lines.push(`   ⬜️ ${i + 1}. ${eq.name}  ·  ${formatWeight(eq.weightGrams)}`);
+      });
+      lines.push('');
+    }
+
+    const totalWeight = getTotalWeight(allEquipment);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`📦 总计：${allEquipment.length}件装备  ·  ${formatWeight(totalWeight)}`);
+
+    return lines.join('\n');
+  };
+
+  const handleCopyChecklist = async () => {
+    const text = generateChecklistText();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -91,7 +150,27 @@ export default function Checklist() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleCopyChecklist}
+            className={`btn transition-all ${
+              copied
+                ? 'bg-green-100 text-green-700 border border-green-200'
+                : 'bg-forest-600 text-white hover:bg-forest-700 shadow-softer'
+            }`}
+          >
+            {copied ? (
+              <>
+                <CheckCircle size={16} />
+                已复制！
+              </>
+            ) : (
+              <>
+                <Copy size={16} />
+                复制携带清单
+              </>
+            )}
+          </button>
           <button
             onClick={() => setShowConfirm(!showConfirm)}
             className={`btn ${
