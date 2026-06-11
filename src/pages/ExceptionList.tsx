@@ -126,6 +126,9 @@ export default function ExceptionList() {
           onClick={() => {
             if (typeFilter === 'accessory_missing') {
               setTypeFilter('all');
+              setStatusFilter('all');
+              setSeverityFilter('all');
+              setSearchTerm('');
             } else {
               setTypeFilter('accessory_missing');
               setStatusFilter('all');
