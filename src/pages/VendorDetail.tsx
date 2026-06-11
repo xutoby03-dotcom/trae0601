@@ -19,18 +19,29 @@ import {
   Camera,
   Bell,
   RefreshCw,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react';
 import { useVendorStore } from '@/stores/useVendorStore';
 import { getLicenseStatus, getDaysUntilExpiry, formatDate, formatDateTime } from '@/utils/date';
 import { stallTypeLabels, followUpStatusLabels } from '@/types';
-import type { AuditAction, FollowUpStatus } from '@/types';
+import type { AuditAction, FollowUpStatus, AuditRecord } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import Modal from '@/components/Modal';
 
 const VendorDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getVendor, getVendorAuditRecords, performAudit, deleteVendor, initData, isLoaded } = useVendorStore();
+  const {
+    getVendor,
+    getVendorAuditRecords,
+    performAudit,
+    deleteVendor,
+    initData,
+    isLoaded,
+    updateAuditFollowUp,
+  } = useVendorStore();
 
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<AuditAction | null>(null);
@@ -38,6 +49,9 @@ const VendorDetail = () => {
   const [followUpStatus, setFollowUpStatus] = useState<FollowUpStatus>('pending');
   const [nextReminderDate, setNextReminderDate] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingFollowUpRecord, setEditingFollowUpRecord] = useState<AuditRecord | null>(null);
+  const [editFollowUpStatus, setEditFollowUpStatus] = useState<FollowUpStatus>('pending');
+  const [editNextReminderDate, setEditNextReminderDate] = useState('');
 
   useEffect(() => {
     initData();
@@ -100,6 +114,28 @@ const VendorDetail = () => {
   const openAuditModal = (action: AuditAction) => {
     setSelectedAction(action);
     setShowAuditModal(true);
+  };
+
+  const openFollowUpEdit = (record: AuditRecord) => {
+    setEditingFollowUpRecord(record);
+    setEditFollowUpStatus(record.followUpStatus || 'pending');
+    setEditNextReminderDate(record.nextReminderDate || '');
+  };
+
+  const resetFollowUpEdit = () => {
+    setEditingFollowUpRecord(null);
+    setEditFollowUpStatus('pending');
+    setEditNextReminderDate('');
+  };
+
+  const handleFollowUpEditSubmit = () => {
+    if (!editingFollowUpRecord) return;
+    updateAuditFollowUp(
+      editingFollowUpRecord.id,
+      editFollowUpStatus,
+      editNextReminderDate || undefined
+    );
+    resetFollowUpEdit();
   };
 
   const actionConfig = {
@@ -344,14 +380,26 @@ const VendorDetail = () => {
                       record.action === 'approve' ? 'bg-green-500' : record.action === 'reject' ? 'bg-red-500' : 'bg-amber-500'
                     }`} />
                     <div className="ml-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <StatusBadge type="action" status={record.action} size="sm" />
-                        <span className="text-xs text-slate-400">{record.operator}</span>
-                        {record.followUpStatus && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
-                            <RefreshCw className="w-3 h-3" />
-                            {followUpStatusLabels[record.followUpStatus]}
-                          </span>
+                      <div className="flex items-center gap-2 flex-wrap justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <StatusBadge type="action" status={record.action} size="sm" />
+                          <span className="text-xs text-slate-400">{record.operator}</span>
+                          {record.followUpStatus && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                              <RefreshCw className="w-3 h-3" />
+                              {followUpStatusLabels[record.followUpStatus]}
+                            </span>
+                          )}
+                        </div>
+                        {record.action === 'material_request' && (
+                          <button
+                            onClick={() => openFollowUpEdit(record)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="编辑跟进信息"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            编辑跟进
+                          </button>
                         )}
                       </div>
                       <p className="text-sm text-slate-600 mt-2">{record.reason}</p>
@@ -460,6 +508,79 @@ const VendorDetail = () => {
                 }`}
               >
                 确认{actionConfig[selectedAction].label}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!editingFollowUpRecord}
+        onClose={resetFollowUpEdit}
+        title="编辑跟进信息"
+        size="md"
+      >
+        {editingFollowUpRecord && (
+          <div className="space-y-5">
+            <div className="p-4 rounded-xl bg-indigo-50">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center flex-shrink-0">
+                  <RefreshCw className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-medium text-indigo-700">补材料跟进信息</p>
+                  <p className="text-sm text-slate-600 mt-1">{editingFollowUpRecord.reason}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    操作人：{editingFollowUpRecord.operator} · {formatDateTime(editingFollowUpRecord.createdAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  跟进状态
+                </label>
+                <select
+                  value={editFollowUpStatus}
+                  onChange={e => setEditFollowUpStatus(e.target.value as FollowUpStatus)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                >
+                  {(Object.keys(followUpStatusLabels) as FollowUpStatus[]).map(status => (
+                    <option key={status} value={status}>
+                      {followUpStatusLabels[status]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  下次提醒日期
+                </label>
+                <input
+                  type="date"
+                  value={editNextReminderDate}
+                  onChange={e => setEditNextReminderDate(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={resetFollowUpEdit}
+                className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                取消
+              </button>
+              <button
+                onClick={handleFollowUpEditSubmit}
+                className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                保存修改
               </button>
             </div>
           </div>
