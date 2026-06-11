@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Users, Paperclip, FileText, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Paperclip, FileText, Download, Plus } from 'lucide-react';
 import TodoCard from '@/components/todo/TodoCard';
 import CompleteTodoModal from '@/components/todo/CompleteTodoModal';
+import AddTodoModal from '@/components/todo/AddTodoModal';
 import Empty from '@/components/Empty';
 import Button from '@/components/common/Button';
 import Badge from '@/components/common/Badge';
@@ -24,8 +25,9 @@ export default function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isAddTodoModalOpen, setIsAddTodoModalOpen] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
-  const { meetings, getTodosByMeetingId, completeTodo } = useTodoStore();
+  const { meetings, getTodosByMeetingId, completeTodo, addTodo } = useTodoStore();
 
   const meeting = meetings.find((m) => m.id === id);
   const meetingTodos = meeting ? getTodosByMeetingId(meeting.id) : [];
@@ -51,6 +53,29 @@ export default function MeetingDetailPage() {
     completeTodo(todoId, resultNote);
     setIsCompleteModalOpen(false);
     setSelectedTodo(null);
+  };
+
+  const handleAddTodoSubmit = (data: {
+    title: string;
+    assignee: string;
+    department: string;
+    dueDate: string;
+    priority: any;
+    relatedTopic: string;
+    deliverable: string;
+  }) => {
+    if (!meeting) return;
+    addTodo({
+      meetingId: meeting.id,
+      title: data.title,
+      relatedTopic: data.relatedTopic,
+      deliverable: data.deliverable,
+      assignee: data.assignee,
+      department: data.department,
+      priority: data.priority,
+      dueDate: data.dueDate,
+    });
+    setIsAddTodoModalOpen(false);
   };
 
   return (
@@ -136,6 +161,14 @@ export default function MeetingDetailPage() {
                   ({meetingTodos.length})
                 </span>
               </h2>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsAddTodoModalOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                拆待办
+              </Button>
             </div>
             <div className="p-6">
               {meetingTodos.length > 0 ? (
@@ -187,6 +220,13 @@ export default function MeetingDetailPage() {
           setSelectedTodo(null);
         }}
         onSubmit={handleCompleteSubmit}
+      />
+
+      <AddTodoModal
+        open={isAddTodoModalOpen}
+        meetingTitle={meeting?.title}
+        onClose={() => setIsAddTodoModalOpen(false)}
+        onSubmit={handleAddTodoSubmit}
       />
     </div>
   );
