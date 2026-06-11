@@ -374,9 +374,9 @@ export default function Home() {
                     <p className="text-sm font-medium text-blue-700 mb-1">医生备注</p>
                     <p className={cn(
                       "text-sm",
-                      detailMedicine.doctorNote ? "text-blue-600" : "text-blue-400 italic"
+                      detailMedicine.doctorNote?.trim() ? "text-blue-600" : "text-blue-400 italic"
                     )}>
-                      {detailMedicine.doctorNote || "暂无备注"}
+                      {detailMedicine.doctorNote?.trim() || "暂无备注"}
                     </p>
                   </div>
                 </div>
