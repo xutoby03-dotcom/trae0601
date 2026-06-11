@@ -44,6 +44,7 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [payRecordId, setPayRecordId] = useState<string | null>(null);
   const [payForm, setPayForm] = useState({ amount: 0, handler: '老板', remark: '' });
+  const [flowFilter, setFlowFilter] = useState<'all' | 'credit' | 'payment' | 'unpaid'>('all');
 
   const customer = getCustomerById(customerId);
   if (!customer) return (
@@ -109,6 +110,52 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
   }, [records, payments]);
 
   const lastPaymentEntry = flow.find(e => e.type === 'payment');
+
+  const { filteredFlow, summary } = useMemo(() => {
+    let list: FlowEntry[] = [];
+    switch (flowFilter) {
+      case 'all':
+        list = flow;
+        break;
+      case 'credit':
+        list = flow.filter(e => e.type === 'credit');
+        break;
+      case 'payment':
+        list = flow.filter(e => e.type === 'payment');
+        break;
+      case 'unpaid':
+        list = flow.filter(e => e.type === 'credit' && !e.isPaid);
+        break;
+    }
+
+    let sumLabel = '';
+    switch (flowFilter) {
+      case 'all': {
+        const creditCount = flow.filter(e => e.type === 'credit').length;
+        const payCount = flow.filter(e => e.type === 'payment').length;
+        sumLabel = `共 ${list.length} 笔（赊账${creditCount} · 还款${payCount}）· 当前欠款 ${formatMoney(list.length ? list[0].balance : 0)}`;
+        break;
+      }
+      case 'credit': {
+        const total = list.reduce((s, e) => s + e.amount, 0);
+        sumLabel = `共 ${list.length} 笔赊账 · 累计 ${formatMoney(total)}`;
+        break;
+      }
+      case 'payment': {
+        const total = list.reduce((s, e) => s + e.amount, 0);
+        sumLabel = `共 ${list.length} 笔还款 · 累计还款 ${formatMoney(total)}`;
+        break;
+      }
+      case 'unpaid': {
+        const remainSum = list.reduce((s, e) => s + (e.remaining ?? 0), 0);
+        const overdueCount = list.filter(e => e.overdue).length;
+        sumLabel = `共 ${list.length} 笔未结清${overdueCount ? `（逾期${overdueCount}笔）` : ''} · 还欠 ${formatMoney(remainSum)}`;
+        break;
+      }
+    }
+
+    return { filteredFlow: list, summary: sumLabel };
+  }, [flow, flowFilter]);
 
   const openPay = (recordId: string) => {
     const r = records.find(x => x.id === recordId);
@@ -184,20 +231,67 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
         </Card>
       )}
 
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 10 }}>
-        💰 欠款变化流水
-        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400, marginLeft: 8 }}>
-          赊账记 +，还款记 -，右侧为交易后欠款余额
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+          💰 欠款变化流水
+        </div>
+        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400 }}>
+          赊账 +，还款 -
         </span>
       </div>
 
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 6, padding: 4, backgroundColor: '#f1f5f9', borderRadius: 10, marginBottom: 12
+      }}>
+        {([
+          { k: 'all', label: '全部' },
+          { k: 'credit', label: '赊账' },
+          { k: 'payment', label: '还款' },
+          { k: 'unpaid', label: '未结清' }
+        ] as const).map(tab => {
+          const active = flowFilter === tab.k;
+          return (
+            <button
+              key={tab.k}
+              onClick={() => setFlowFilter(tab.k)}
+              style={{
+                border: 'none', cursor: 'pointer', fontSize: 13, padding: '8px 4px',
+                borderRadius: 8, fontWeight: active ? 600 : 400,
+                backgroundColor: active ? 'white' : 'transparent',
+                color: active ? '#4f46e5' : '#64748b',
+                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <Card padding={14} style={{
+        marginBottom: 12,
+        backgroundColor: flowFilter === 'unpaid' ? '#fef2f2' : flowFilter === 'payment' ? '#f0fdf4' : flowFilter === 'credit' ? '#fff7ed' : '#eef2ff',
+        border: '1px solid transparent'
+      }}>
+        <div style={{ fontSize: 13, color: flowFilter === 'unpaid' ? '#991b1b' : flowFilter === 'payment' ? '#047857' : flowFilter === 'credit' ? '#92400e' : '#4338ca', fontWeight: 600 }}>
+          {summary}
+        </div>
+      </Card>
+
       <Card padding={0} style={{ overflow: 'hidden', marginBottom: 16 }}>
-        {flow.length === 0 ? (
-          <EmptyState text="还没有任何赊账或还款记录" />
+        {filteredFlow.length === 0 ? (
+          <EmptyState text={
+            flowFilter === 'unpaid' ? '👍 太棒了，没有未结清的账单'
+              : flowFilter === 'credit' ? '暂无赊账记录'
+              : flowFilter === 'payment' ? '暂无还款记录'
+              : '还没有任何赊账或还款记录'
+          } />
         ) : (
           <div>
-            {flow.map((entry, idx) => {
-              const isLast = idx === flow.length - 1;
+            {filteredFlow.map((entry, idx) => {
+              const isLast = idx === filteredFlow.length - 1;
               const timelineDot = entry.type === 'credit'
                 ? { bg: '#ef4444', icon: '➕' }
                 : { bg: '#10b981', icon: '➖' };
