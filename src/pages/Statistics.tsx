@@ -12,7 +12,7 @@ import {
   Award,
 } from 'lucide-react';
 import { usePatrolStore } from '@/store/usePatrolStore';
-import { getRiskLevelColor, getRiskLevelText } from '@/utils/helpers';
+import { getRiskLevelColor, getRiskLevelText, isLateArrival } from '@/utils/helpers';
 
 export default function Statistics() {
   const { routes, patrolRecords, checkInRecords, exceptionEvents, officers, getMissedCheckIns } = usePatrolStore();
@@ -103,6 +103,18 @@ export default function Statistics() {
       const total = officerCheckIns.length;
       const missed = officerCheckIns.filter((c) => c.isMissed).length;
       const abnormal = officerCheckIns.filter((c) => c.isAbnormal).length;
+      const late = officerCheckIns.filter((c) => {
+        if (c.isMissed || !c.arrivalTime) return false;
+        const record = patrolRecords.find((r) => r.id === c.patrolRecordId);
+        if (!record) return false;
+        const route = routes.find((r) => r.id === record.routeId);
+        if (!route) return false;
+        const point = route.points.find((p) => p.id === c.pointId);
+        if (!point) return false;
+        return isLateArrival(c.arrivalTime, point.suggestedTime, 5);
+      }).length;
+      const onTime = total - missed - late;
+      const punctuality = total > 0 ? Math.round((onTime / total) * 100) : 0;
 
       return {
         officer,
@@ -110,10 +122,11 @@ export default function Statistics() {
         totalCheckIns: total,
         missed,
         abnormal,
-        punctuality: total > 0 ? Math.round(((total - missed) / total) * 100) : 0,
+        late,
+        punctuality,
       };
     });
-  }, [officers, patrolRecords, checkInRecords]);
+  }, [officers, patrolRecords, checkInRecords, routes]);
 
   const maxAbnormal = abnormalHotspots[0]?.count || 1;
 
@@ -266,12 +279,13 @@ export default function Statistics() {
                 <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">巡逻次数</th>
                 <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">打卡总数</th>
                 <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">漏打卡</th>
+                <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">迟到</th>
                 <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">发现异常</th>
                 <th className="text-center py-3 px-4 text-slate-400 text-xs font-medium uppercase tracking-wider">准点率</th>
               </tr>
             </thead>
             <tbody>
-              {officerStats.map(({ officer, totalPatrols, totalCheckIns, missed, abnormal, punctuality }) => (
+              {officerStats.map(({ officer, totalPatrols, totalCheckIns, missed, late, abnormal, punctuality }) => (
                 <tr key={officer.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors animate-fade-in-up">
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
@@ -296,6 +310,11 @@ export default function Statistics() {
                   <td className="py-4 px-4 text-center">
                     <span className={missed > 0 ? 'text-orange-400 font-medium' : 'text-slate-400'}>
                       {missed}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <span className={late > 0 ? 'text-amber-400 font-medium' : 'text-slate-400'}>
+                      {late}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-center">

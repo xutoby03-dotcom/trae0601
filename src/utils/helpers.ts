@@ -69,8 +69,17 @@ export const getAssigneeTypeText = (type: string): string => {
   return map[type] || type;
 };
 
-export const calcMinutesDiff = (time1: string, time2: string): number => {
-  const [h1, m1] = time1.split(':').map(Number);
-  const [h2, m2] = time2.split(':').map(Number);
-  return Math.abs((h1 * 60 + m1) - (h2 * 60 + m2));
+export const isLateArrival = (
+  arrivalTime: string,
+  suggestedTime: string,
+  toleranceMinutes: number = 5
+): boolean => {
+  const arrival = new Date(arrivalTime);
+  const [sh, sm] = suggestedTime.split(':').map(Number);
+  const suggestedMinutes = sh * 60 + sm;
+  const arrivalMinutes = arrival.getHours() * 60 + arrival.getMinutes();
+  let diff = arrivalMinutes - suggestedMinutes;
+  if (diff < -12 * 60) diff += 24 * 60;
+  if (diff > 12 * 60) diff -= 24 * 60;
+  return diff > toleranceMinutes;
 };
