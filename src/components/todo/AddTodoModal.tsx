@@ -19,7 +19,7 @@ interface AddTodoModalProps {
   open: boolean;
   meetingTitle?: string;
   onClose: () => void;
-  onSubmit: (data: AddTodoFormData) => void;
+  onSubmit: (data: AddTodoFormData) => { success: boolean; error?: string };
 }
 
 const defaultFormData: AddTodoFormData = {
@@ -78,13 +78,19 @@ export default function AddTodoModal({ open, meetingTitle, onClose, onSubmit }: 
     e.preventDefault();
     if (!validateForm()) return;
 
-    onSubmit({
+    const result = onSubmit({
       ...formData,
       title: formData.title.trim(),
       assignee: formData.assignee.trim(),
       relatedTopic: formData.relatedTopic.trim(),
       deliverable: formData.deliverable.trim(),
     });
+
+    if (!result.success && result.error) {
+      if (result.error.includes('关联议题')) {
+        setErrors((prev) => ({ ...prev, relatedTopic: result.error }));
+      }
+    }
   };
 
   const handleInputChange = (field: keyof AddTodoFormData, value: string) => {

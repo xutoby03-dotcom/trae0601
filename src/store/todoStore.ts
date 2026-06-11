@@ -14,7 +14,7 @@ interface TodoState {
   updateMeeting: (id: string, data: Partial<Omit<Meeting, 'id' | 'createdAt'>>) => void;
   deleteMeeting: (id: string) => void;
 
-  addTodo: (data: Omit<Todo, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => Todo;
+  addTodo: (data: Omit<Todo, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => { success: boolean; todo?: Todo; error?: string };
   updateTodo: (id: string, data: Partial<Omit<Todo, 'id' | 'createdAt'>>) => void;
   deleteTodo: (id: string) => void;
 
@@ -69,6 +69,10 @@ export const useTodoStore = create<TodoState>()(
       },
 
       addTodo: (data) => {
+        const trimmedTopic = data.relatedTopic.trim();
+        if (!trimmedTopic) {
+          return { success: false, error: '关联议题不能为空' };
+        }
         const now = new Date().toISOString();
         let initialStatus: TodoStatus = 'pending';
         if (isOverdue(formatDate(data.dueDate))) {
@@ -76,7 +80,7 @@ export const useTodoStore = create<TodoState>()(
         }
         const todo: Todo = {
           ...data,
-          relatedTopic: data.relatedTopic.trim(),
+          relatedTopic: trimmedTopic,
           id: generateId(),
           status: initialStatus,
           createdAt: now,
@@ -84,7 +88,7 @@ export const useTodoStore = create<TodoState>()(
         };
         set((state) => ({ todos: [todo, ...state.todos] }));
         get().addChangeLog(todo.id, 'create', undefined, todo.title);
-        return todo;
+        return { success: true, todo };
       },
 
       updateTodo: (id, data) => {

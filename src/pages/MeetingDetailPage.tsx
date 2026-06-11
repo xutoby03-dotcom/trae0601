@@ -64,20 +64,21 @@ export default function MeetingDetailPage() {
     relatedTopic: string;
     deliverable: string;
   }) => {
-    if (!meeting) return;
-    const trimmedRelatedTopic = data.relatedTopic.trim();
-    if (!trimmedRelatedTopic) return;
-    addTodo({
+    if (!meeting) return { success: false, error: '会议不存在' };
+    const result = addTodo({
       meetingId: meeting.id,
       title: data.title,
-      relatedTopic: trimmedRelatedTopic,
+      relatedTopic: data.relatedTopic.trim(),
       deliverable: data.deliverable,
       assignee: data.assignee,
       department: data.department,
       priority: data.priority,
       dueDate: data.dueDate,
     });
-    setIsAddTodoModalOpen(false);
+    if (result.success) {
+      setIsAddTodoModalOpen(false);
+    }
+    return result;
   };
 
   return (
