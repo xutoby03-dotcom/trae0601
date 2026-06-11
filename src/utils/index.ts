@@ -71,6 +71,21 @@ export const handleFileUpload = (file: File): Promise<string> => {
   });
 };
 
+export const escapeHTML = (s: string | number | null | undefined): string => {
+  if (s == null) return '';
+  const str = String(s);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+export const escapeAttr = (s: string | number | null | undefined): string => {
+  return escapeHTML(s);
+};
+
 export const exportReviewHTML = (params: {
   petName: string;
   species: string;
@@ -99,13 +114,15 @@ export const exportReviewHTML = (params: {
   photos: { url: string; caption: string }[];
 }) => {
   const p = params;
+  const h = escapeHTML;
+  const a = escapeAttr;
   const speciesEmoji = p.species === 'dog' ? '🐕' : p.species === 'cat' ? '🐱' : '🐾';
 
   const anomalyRows = p.anomalyRecords.length > 0
     ? p.anomalyRecords.map((r) => `
         <tr>
-          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#991b1b">${r.date}</td>
-          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#b91c1c">${r.description || '未描述'}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#991b1b">${h(r.date)}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#b91c1c">${h(r.description || '未描述')}</td>
         </tr>`).join('')
     : '<tr><td colspan="2" style="padding:20px;text-align:center;color:#6b7280">寄养期间一切正常，无异常记录</td></tr>';
 
@@ -113,15 +130,15 @@ export const exportReviewHTML = (params: {
     ? p.suppliesToBuy.map((item, i) => `
         <tr>
           <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#92400e;font-weight:600">${i + 1}</td>
-          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#b45309">${item}</td>
+          <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#b45309">${h(item)}</td>
         </tr>`).join('')
     : '<tr><td colspan="2" style="padding:20px;text-align:center;color:#6b7280">暂无需要补充的物资</td></tr>';
 
   const photoCards = p.photos.length > 0
     ? p.photos.map((photo) => `
         <div style="break-inside:avoid;margin-bottom:12px">
-          <img src="${photo.url}" alt="${photo.caption || '打卡照片'}" style="width:100%;border-radius:12px;border:1px solid #e5e7eb;display:block" />
-          ${photo.caption ? `<p style="font-size:12px;color:#6b7280;margin-top:4px;text-align:center">${photo.caption}</p>` : ''}
+          <img src="${a(photo.url)}" alt="${a(photo.caption || '打卡照片')}" style="width:100%;border-radius:12px;border:1px solid #e5e7eb;display:block" />
+          ${photo.caption ? `<p style="font-size:12px;color:#6b7280;margin-top:4px;text-align:center">${h(photo.caption)}</p>` : ''}
         </div>`).join('')
     : '<p style="color:#6b7280;text-align:center;padding:20px">暂无打卡照片</p>';
 
@@ -130,7 +147,7 @@ export const exportReviewHTML = (params: {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>交接回顾 - ${p.petName}</title>
+<title>交接回顾 - ${h(p.petName)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fffbf0; color: #1e293b; line-height: 1.6; padding: 24px; }
@@ -164,25 +181,25 @@ export const exportReviewHTML = (params: {
 <body>
 <div class="container">
   <div class="header">
-    <h1>${speciesEmoji} ${p.petName} 的交接回顾</h1>
-    <div class="subtitle">${p.taskTitle}${p.caretakerName ? ` · 照料人：${p.caretakerName}` : ''}</div>
+    <h1>${speciesEmoji} ${h(p.petName)} 的交接回顾</h1>
+    <div class="subtitle">${h(p.taskTitle)}${p.caretakerName ? ` · 照料人：${h(p.caretakerName)}` : ''}</div>
   </div>
 
   <div class="stats">
     <div class="stat-card">
-      <div class="number">${p.totalDays}</div>
+      <div class="number">${h(p.totalDays)}</div>
       <div class="label">寄养天数</div>
     </div>
     <div class="stat-card">
-      <div class="number">${p.completedCheckins}</div>
+      <div class="number">${h(p.completedCheckins)}</div>
       <div class="label">打卡天数</div>
     </div>
     <div class="stat-card">
-      <div class="number">${p.completionRate}%</div>
+      <div class="number">${h(p.completionRate)}%</div>
       <div class="label">完成率</div>
     </div>
     <div class="stat-card">
-      <div class="number">${p.photos.length}</div>
+      <div class="number">${h(p.photos.length)}</div>
       <div class="label">照片记录</div>
     </div>
   </div>
@@ -191,53 +208,53 @@ export const exportReviewHTML = (params: {
     <h2>🐾 宠物信息</h2>
     <div style="display:flex;gap:20px;margin-bottom:16px;align-items:flex-start">
       ${p.avatarUrl ? `
-        <img src="${p.avatarUrl}" alt="${p.petName}" style="width:96px;height:96px;border-radius:16px;object-fit:cover;border:2px solid #fde68a;flex-shrink:0" />
+        <img src="${a(p.avatarUrl)}" alt="${a(p.petName)}" style="width:96px;height:96px;border-radius:16px;object-fit:cover;border:2px solid #fde68a;flex-shrink:0" />
       ` : `
         <div style="width:96px;height:96px;border-radius:16px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0">${speciesEmoji}</div>
       `}
       <div style="flex:1;min-width:0">
         <div class="info-row bg-amber">
           <span class="label">名字</span>
-          <span class="value">${p.petName}</span>
+          <span class="value">${h(p.petName)}</span>
         </div>
         <div class="info-row">
           <span class="label">品种</span>
-          <span class="value">${p.breed || '未填写'}</span>
+          <span class="value">${h(p.breed || '未填写')}</span>
         </div>
         <div class="info-row">
           <span class="label">年龄</span>
-          <span class="value">${p.age} 岁</span>
+          <span class="value">${h(p.age)} 岁</span>
         </div>
       </div>
     </div>
     ${p.foodBrand || p.foodAmount ? `
       <div class="info-row bg-amber">
         <span class="label">常用粮</span>
-        <span class="value" style="color:#b45309">${p.foodBrand || '未填写'}${p.foodAmount ? ` · 每顿 ${p.foodAmount}` : ''}</span>
+        <span class="value" style="color:#b45309">${h(p.foodBrand || '未填写')}${p.foodAmount ? ` · 每顿 ${h(p.foodAmount)}` : ''}</span>
       </div>
     ` : ''}
     ${p.vaccinePhotoUrl ? `
       <div style="margin-top:14px">
         <p style="font-size:13px;color:#64748b;margin-bottom:8px;font-weight:600">💉 疫苗照片</p>
-        <img src="${p.vaccinePhotoUrl}" alt="疫苗照片" style="max-width:280px;width:100%;border-radius:12px;border:2px solid #d1fae5;display:block" />
+        <img src="${a(p.vaccinePhotoUrl)}" alt="疫苗照片" style="max-width:280px;width:100%;border-radius:12px;border:2px solid #d1fae5;display:block" />
       </div>
     ` : ''}
-    ${p.allergies ? `<div class="alert" style="margin-top:12px">⚠️ 过敏禁忌：${p.allergies}</div>` : ''}
+    ${p.allergies ? `<div class="alert" style="margin-top:12px">⚠️ 过敏禁忌：${h(p.allergies)}</div>` : ''}
   </div>
 
   <div class="section">
     <h2>📅 寄养时间</h2>
     <div class="info-row bg-emerald">
       <span class="label">开始日期</span>
-      <span class="value" style="color:#059669">${p.startDate}</span>
+      <span class="value" style="color:#059669">${h(p.startDate)}</span>
     </div>
     <div class="info-row">
       <span class="label">结束日期</span>
-      <span class="value">${p.endDate}</span>
+      <span class="value">${h(p.endDate)}</span>
     </div>
     <div class="info-row bg-amber">
       <span class="label">实际打卡</span>
-      <span class="value" style="color:#d97706">${p.completedCheckins} / ${p.totalDays} 天</span>
+      <span class="value" style="color:#d97706">${h(p.completedCheckins)} / ${h(p.totalDays)} 天</span>
     </div>
   </div>
 
@@ -245,18 +262,18 @@ export const exportReviewHTML = (params: {
     <h2>📦 粮食物资</h2>
     <div class="info-row">
       <span class="label">初始量</span>
-      <span class="value">${p.initialFoodAmount} ${p.foodUnit}</span>
+      <span class="value">${h(p.initialFoodAmount)} ${h(p.foodUnit)}</span>
     </div>
     <div class="info-row">
       <span class="label">已消耗</span>
-      <span class="value" style="color:#d97706">${p.consumedFoodAmount.toFixed(1)} ${p.foodUnit}</span>
+      <span class="value" style="color:#d97706">${h(p.consumedFoodAmount.toFixed(1))} ${h(p.foodUnit)}</span>
     </div>
     <div class="progress-bar">
       <div class="progress-fill" style="width:${p.initialFoodAmount > 0 ? (p.consumedFoodAmount / p.initialFoodAmount) * 100 : 0}%"></div>
     </div>
     <div class="info-row bg-emerald">
       <span class="label">剩余量</span>
-      <span class="value" style="color:#059669;font-size:18px">${p.remainingFoodAmount.toFixed(1)} ${p.foodUnit}</span>
+      <span class="value" style="color:#059669;font-size:18px">${h(p.remainingFoodAmount.toFixed(1))} ${h(p.foodUnit)}</span>
     </div>
   </div>
 
@@ -264,11 +281,11 @@ export const exportReviewHTML = (params: {
     <h2>${p.missedFeedings > 0 || p.missedMedications > 0 ? '⚠️' : '✅'} 任务完成情况</h2>
     <div class="info-row">
       <span class="label">🍚 漏喂次数</span>
-      <span class="value" style="color:${p.missedFeedings > 0 ? '#dc2626' : '#059669'}">${p.missedFeedings > 0 ? p.missedFeedings + ' 次' : '无'}</span>
+      <span class="value" style="color:${p.missedFeedings > 0 ? '#dc2626' : '#059669'}">${p.missedFeedings > 0 ? h(p.missedFeedings) + ' 次' : '无'}</span>
     </div>
     <div class="info-row">
       <span class="label">💊 漏药次数</span>
-      <span class="value" style="color:${p.missedMedications > 0 ? '#dc2626' : '#059669'}">${p.missedMedications > 0 ? p.missedMedications + ' 次' : '无'}</span>
+      <span class="value" style="color:${p.missedMedications > 0 ? '#dc2626' : '#059669'}">${p.missedMedications > 0 ? h(p.missedMedications) + ' 次' : '无'}</span>
     </div>
   </div>
 
@@ -308,11 +325,11 @@ export const exportReviewHTML = (params: {
 
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `交接回顾-${p.petName}-${p.startDate}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `交接回顾-${p.petName}-${p.startDate}.html`.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
