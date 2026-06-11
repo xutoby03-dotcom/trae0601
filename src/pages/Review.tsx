@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, AlertTriangle, Clock, Check, X, Bell } from 'lucide-react'
+import { ChevronDown, ChevronUp, AlertTriangle, Clock, Check, X, Bell, ArrowRight, X as CloseIcon } from 'lucide-react'
 import { useStore } from '@/store'
 import type { Application, Conflict } from '@/types'
 
@@ -8,10 +8,24 @@ type Tab = (typeof TABS)[number]
 
 export default function Review() {
   const [activeTab, setActiveTab] = useState<Tab>('待处理')
+  const [conflictModal, setConflictModal] = useState<{ appId: string } | null>(null)
   const { applications, boards, approveApplication, rejectApplication, getConflicts, getExpiredNotRemoved } = useStore()
   const getBoardName = (boardId: string) => boards.find(b => b.id === boardId)?.name ?? boardId
   const conflicts = getConflicts()
   const expired = getExpiredNotRemoved()
+
+  const handleApproveWithConflictCheck = (appId: string) => {
+    const hasConflict = conflicts.some(c => c.applicationA.id === appId || c.applicationB.id === appId)
+    if (hasConflict) {
+      setConflictModal({ appId })
+    } else {
+      approveApplication(appId)
+    }
+  }
+
+  const relatedConflict = conflictModal
+    ? conflicts.find(c => c.applicationA.id === conflictModal.appId || c.applicationB.id === conflictModal.appId)
+    : null
 
   return (
     <div className="space-y-6">
@@ -37,9 +51,22 @@ export default function Review() {
         <PendingTab
           applications={applications}
           getBoardName={getBoardName}
-          approveApplication={approveApplication}
+          approveApplication={handleApproveWithConflictCheck}
           rejectApplication={rejectApplication}
           conflicts={conflicts}
+        />
+      )}
+
+      {conflictModal && relatedConflict && (
+        <ConflictModal
+          conflict={relatedConflict}
+          currentAppId={conflictModal.appId}
+          getBoardName={getBoardName}
+          onClose={() => setConflictModal(null)}
+          onGoToConflictTab={() => {
+            setConflictModal(null)
+            setActiveTab('冲突检测')
+          }}
         />
       )}
       {activeTab === '冲突检测' && (
@@ -212,6 +239,83 @@ function EmptyState({ message }: { message: string }) {
     <div className="text-center py-16 text-brand-dark/25">
       <div className="text-4xl mb-2">📋</div>
       <div className="text-sm">{message}</div>
+    </div>
+  )
+}
+
+function ConflictModal({ conflict, currentAppId, getBoardName, onClose, onGoToConflictTab }: {
+  conflict: Conflict
+  currentAppId: string
+  getBoardName: (id: string) => string
+  onClose: () => void
+  onGoToConflictTab: () => void
+}) {
+  const isA = conflict.applicationA.id === currentAppId
+  const current = isA ? conflict.applicationA : conflict.applicationB
+  const other = isA ? conflict.applicationB : conflict.applicationA
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="bg-brand-red/10 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-brand-red">
+            <AlertTriangle size={20} />
+            <span className="font-semibold">存在时间冲突，不能直接通过</span>
+          </div>
+          <button onClick={onClose} className="text-brand-dark/40 hover:text-brand-dark">
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="text-sm text-brand-dark/60">
+            展板 <span className="font-medium text-brand-dark">{getBoardName(conflict.boardId)}</span> 在
+            <span className="mx-1 px-2 py-0.5 rounded bg-brand-red/10 text-brand-red font-medium">
+              {conflict.overlapStart} ~ {conflict.overlapEnd}
+            </span>
+            存在重叠
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`rounded-xl p-3 border-2 ${current.id === currentAppId ? 'border-brand-orange bg-brand-orange/5' : 'border-transparent bg-brand-dark/3'}`}>
+              <div className="flex items-center gap-1 text-xs mb-1">
+                {current.id === currentAppId && <span className="text-brand-orange font-medium">当前申请</span>}
+              </div>
+              <div className="text-sm font-semibold text-brand-dark">{current.activityName}</div>
+              <div className="text-xs text-brand-dark/60 mt-0.5">{current.clubName}</div>
+              <div className="text-xs text-brand-dark/40 mt-1">{current.startDate} ~ {current.endDate}</div>
+            </div>
+            <div className={`rounded-xl p-3 border-2 ${other.id === currentAppId ? 'border-brand-orange bg-brand-orange/5' : 'border-transparent bg-brand-dark/3'}`}>
+              <div className="flex items-center gap-1 text-xs mb-1">
+                {other.id === currentAppId && <span className="text-brand-orange font-medium">当前申请</span>}
+              </div>
+              <div className="text-sm font-semibold text-brand-dark">{other.activityName}</div>
+              <div className="text-xs text-brand-dark/60 mt-0.5">{other.clubName}</div>
+              <div className="text-xs text-brand-dark/40 mt-1">{other.startDate} ~ {other.endDate}</div>
+            </div>
+          </div>
+
+          <p className="text-xs text-brand-dark/50 leading-relaxed">
+            冲突双方需要同时处理。请前往「冲突检测」页面并排对比后，再决定通过或拒绝哪一方。
+          </p>
+        </div>
+
+        <div className="px-5 py-4 border-t border-brand-dark/5 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm text-brand-dark/60 hover:bg-brand-dark/5"
+          >
+            取消
+          </button>
+          <button
+            onClick={onGoToConflictTab}
+            className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium bg-brand-orange text-white hover:opacity-90"
+          >
+            去冲突检测处理
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

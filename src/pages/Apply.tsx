@@ -14,7 +14,7 @@ const STATUS_MAP: Record<Application['status'], { label: string; className: stri
 }
 
 export default function Apply() {
-  const { applications, boards, currentUser, addApplication, getConflicts, uploadPostedPhoto, uploadRemovedPhoto, confirmRemoval } = useStore()
+  const { applications, boards, currentUser, addApplication, uploadPostedPhoto, uploadRemovedPhoto, confirmRemoval } = useStore()
   const [activityName, setActivityName] = useState('')
   const [boardId, setBoardId] = useState('')
   const [startDate, setStartDate] = useState('')
@@ -22,7 +22,7 @@ export default function Apply() {
   const [size, setSize] = useState('A1')
   const [imageUrl, setImageUrl] = useState('')
   const [contact, setContact] = useState('')
-  const [conflicts, setConflicts] = useState<{ activityName: string; overlap: string }[]>([])
+  const [conflicts, setConflicts] = useState<{ activityName: string; clubName: string; overlap: string }[]>([])
   const [submitted, setSubmitted] = useState(false)
   const postedInputRef = useRef<HTMLInputElement>(null)
   const removedInputRef = useRef<HTMLInputElement>(null)
@@ -45,19 +45,29 @@ export default function Apply() {
   const handleSubmit = () => {
     if (!currentUser || !activityName || !boardId || !startDate || !endDate || !contact) return
 
-    const allConflicts = getConflicts()
-    const related = allConflicts.filter(c => {
-      const involvesNew = c.boardId === boardId &&
-        new Date(startDate) <= new Date(c.overlapEnd) &&
-        new Date(endDate) >= new Date(c.overlapStart)
-      return involvesNew
+    const newStart = new Date(startDate)
+    const newEnd = new Date(endDate)
+    const sameBoardApps = applications.filter(
+      a => a.boardId === boardId && (a.status === 'pending' || a.status === 'approved')
+    )
+    const detected: { activityName: string; clubName: string; overlap: string }[] = []
+
+    sameBoardApps.forEach(app => {
+      const appStart = new Date(app.startDate)
+      const appEnd = new Date(app.endDate)
+      if (newStart <= appEnd && appStart <= newEnd) {
+        const overlapStart = new Date(Math.max(newStart.getTime(), appStart.getTime())).toISOString().slice(0, 10)
+        const overlapEnd = new Date(Math.min(newEnd.getTime(), appEnd.getTime())).toISOString().slice(0, 10)
+        detected.push({
+          activityName: app.activityName,
+          clubName: app.clubName,
+          overlap: `${overlapStart} ~ ${overlapEnd}`,
+        })
+      }
     })
 
-    if (related.length > 0 && !submitted) {
-      setConflicts(related.map(c => ({
-        activityName: c.applicationA.boardId === boardId ? c.applicationA.activityName : c.applicationB.activityName,
-        overlap: `${c.overlapStart} ~ ${c.overlapEnd}`,
-      })))
+    if (detected.length > 0 && !submitted) {
+      setConflicts(detected)
       setSubmitted(true)
       return
     }
@@ -165,9 +175,9 @@ export default function Apply() {
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
             <div className="text-sm text-yellow-800">
-              <p className="font-medium">检测到时间冲突：</p>
+              <p className="font-medium">检测到时间冲突，以下申请在同一块展板时间重叠：</p>
               {conflicts.map((c, i) => (
-                <p key={i}>{c.activityName}（重叠时段：{c.overlap}）</p>
+                <p key={i}>{c.activityName}（{c.clubName}，重叠时段：{c.overlap}）</p>
               ))}
               <p>仍可提交，但可能被拒绝。</p>
             </div>
