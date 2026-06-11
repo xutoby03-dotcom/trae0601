@@ -61,8 +61,8 @@ export const StatsPanel = () => {
         (d) => d.responsiblePerson === rm.name && !d.settled
       );
       const stat = cleaningStats.find((s) => s.person === rm.name);
-      const recentBorrows = borrowRecords
-        .filter((b) => b.borrower === rm.name)
+      const personBorrows = borrowRecords.filter((b) => b.borrower === rm.name);
+      const recentBorrows = [...personBorrows]
         .sort((a, b) => {
           const at = a.returnTime || a.startTime;
           const bt = b.returnTime || b.startTime;
@@ -76,6 +76,7 @@ export const StatsPanel = () => {
         unsettledCount: unsettledDamages.length,
         uncleanedCount: stat?.uncleanedReturns || 0,
         totalReturns: stat?.totalReturns || 0,
+        totalBorrows: personBorrows.length,
         recentBorrows,
       };
     });
@@ -202,7 +203,7 @@ export const StatsPanel = () => {
                   >
                     拖清洁 {rm.uncleanedCount}
                   </span>
-                  <span className="text-xs text-gray-400">共借 {rm.totalReturns} 次</span>
+                  <span className="text-xs text-gray-400">共借 {rm.totalBorrows} 次</span>
                 </div>
               </div>
             </button>
@@ -465,7 +466,7 @@ export const StatsPanel = () => {
                 </div>
                 <div className="text-center p-2 bg-gray-50 rounded-lg">
                   <p className="text-lg font-bold text-gray-800">
-                    {selectedLedger.totalReturns}
+                    {selectedLedger.totalBorrows}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">借用次数</p>
                 </div>
