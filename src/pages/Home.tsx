@@ -367,17 +367,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {detailMedicine.doctorNote && (
-                <div className="p-4 bg-blue-50 rounded-2xl">
-                  <div className="flex items-start gap-2">
-                    <FileText className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-700 mb-1">医生备注</p>
-                      <p className="text-sm text-blue-600">{detailMedicine.doctorNote}</p>
-                    </div>
+              <div className="p-4 bg-blue-50 rounded-2xl">
+                <div className="flex items-start gap-2">
+                  <FileText className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 mb-1">医生备注</p>
+                    <p className={cn(
+                      "text-sm",
+                      detailMedicine.doctorNote ? "text-blue-600" : "text-blue-400 italic"
+                    )}>
+                      {detailMedicine.doctorNote || "暂无备注"}
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
               {pet && (
                 <div className="p-4 bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl">
