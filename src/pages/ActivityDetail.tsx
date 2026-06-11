@@ -339,19 +339,8 @@ export default function ActivityDetail() {
                     <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-bold text-lg shadow-soft">
                       {reg.childNickname.slice(0, 1)}
                     </div>
-                    <div>
-                      <div className="font-semibold text-ink-900 flex items-center gap-2">
-                        {reg.childNickname}
-                        <span className="text-xs font-normal text-ink-500">
-                          {reg.attendeeCount}人
-                        </span>
-                      </div>
-                      {reg.allergyInfo && reg.allergyInfo !== '无' && (
-                        <div className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          过敏：{reg.allergyInfo}
-                        </div>
-                      )}
+                    <div className="font-semibold text-ink-900">
+                      {reg.childNickname}
                     </div>
                   </div>
                   {selectedCancelId === reg.id ? (

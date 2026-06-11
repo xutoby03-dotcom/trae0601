@@ -65,6 +65,7 @@ export const useAppStore = create<AppState>()(
 
         const currentRegistrations = get().getActivityRegistrations(activityId);
         const confirmedCount = getConfirmedCount(currentRegistrations);
+        const remaining = activity.maxParticipants - confirmedCount;
         const waitlistCount = currentRegistrations.filter(
           (r) => r.status === 'waitlist'
         ).length;
@@ -73,10 +74,10 @@ export const useAppStore = create<AppState>()(
         let waitlistNumber: number | null = null;
         let message = '报名成功！';
 
-        if (confirmedCount >= activity.maxParticipants) {
+        if (data.attendeeCount > remaining) {
           status = 'waitlist';
           waitlistNumber = waitlistCount + 1;
-          message = `已加入候补队列，排位第 ${waitlistNumber} 位`;
+          message = `剩余名额不足（还需 ${data.attendeeCount} 个位，仅剩 ${remaining > 0 ? remaining : 0} 个），已加入候补第 ${waitlistNumber} 位`;
         }
 
         const newRegistration: Registration = {
@@ -105,6 +106,7 @@ export const useAppStore = create<AppState>()(
         }
 
         const wasConfirmed = reg.status === 'confirmed';
+        const freedCount = reg.attendeeCount;
         const activityId = reg.activityId;
 
         set((state) => ({
@@ -117,25 +119,55 @@ export const useAppStore = create<AppState>()(
         }));
 
         if (wasConfirmed) {
-          const waitlistRegs = get()
-            .getActivityRegistrations(activityId)
+          const updatedRegs = get().getActivityRegistrations(activityId);
+          const currentConfirmedCount = getConfirmedCount(updatedRegs);
+          const activity = get().getActivityById(activityId);
+          const maxP = activity ? activity.maxParticipants : 0;
+          const available = maxP - currentConfirmedCount;
+
+          const waitlistRegs = updatedRegs
             .filter((r) => r.status === 'waitlist')
             .sort((a, b) => (a.waitlistNumber || 0) - (b.waitlistNumber || 0));
 
-          if (waitlistRegs.length > 0) {
-            const toPromote = waitlistRegs[0];
+          let promotedNickname: string | undefined;
+          const promotedIds = new Set<string>();
+
+          let remainingSpace = available;
+          for (const wr of waitlistRegs) {
+            if (wr.attendeeCount <= remainingSpace) {
+              promotedIds.add(wr.id);
+              remainingSpace -= wr.attendeeCount;
+              if (!promotedNickname) promotedNickname = wr.childNickname;
+            }
+          }
+
+          if (promotedIds.size > 0) {
             set((state) => ({
               registrations: state.registrations.map((r) => {
-                if (r.id === toPromote.id) {
+                if (promotedIds.has(r.id)) {
                   return { ...r, status: 'confirmed' as const, waitlistNumber: null };
                 }
-                if (r.status === 'waitlist' && r.waitlistNumber && r.waitlistNumber > 1) {
-                  return { ...r, waitlistNumber: r.waitlistNumber - 1 };
+                if (r.status === 'waitlist' && r.waitlistNumber) {
+                  const shift = [...promotedIds].filter(
+                    (pid) => {
+                      const pr = state.registrations.find((x) => x.id === pid);
+                      return pr && (pr.waitlistNumber || 0) < r.waitlistNumber;
+                    }
+                  ).length;
+                  if (shift > 0) {
+                    return { ...r, waitlistNumber: r.waitlistNumber - shift };
+                  }
                 }
                 return r;
               }),
             }));
-            return { success: true, promotedWaitlist: toPromote.childNickname };
+
+            return {
+              success: true,
+              promotedWaitlist: promotedIds.size === 1
+                ? promotedNickname
+                : `${promotedNickname} 等 ${promotedIds.size} 人`,
+            };
           }
         }
 
