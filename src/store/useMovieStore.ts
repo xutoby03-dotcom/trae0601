@@ -37,10 +37,13 @@ interface MovieStore {
   currentUserId: string;
   showAddModal: boolean;
   showConfirmModal: boolean;
+  showUserSwitcher: boolean;
 
   setSelectedTab: (tab: TabType) => void;
   setShowAddModal: (show: boolean) => void;
   setShowConfirmModal: (show: boolean) => void;
+  setCurrentUserId: (id: string) => void;
+  setShowUserSwitcher: (show: boolean) => void;
 
   addMovie: (movie: Omit<Movie, 'id' | 'addedAt'>) => void;
   removeMovie: (movieId: string) => void;
@@ -74,10 +77,13 @@ export const useMovieStore = create<MovieStore>()(
       currentUserId: 'u1',
       showAddModal: false,
       showConfirmModal: false,
+      showUserSwitcher: false,
 
       setSelectedTab: (tab) => set({ selectedTab: tab }),
       setShowAddModal: (show) => set({ showAddModal: show }),
       setShowConfirmModal: (show) => set({ showConfirmModal: show }),
+      setCurrentUserId: (id) => set({ currentUserId: id, showUserSwitcher: false }),
+      setShowUserSwitcher: (show) => set({ showUserSwitcher: show }),
 
       addMovie: (movie) =>
         set((state) => ({
