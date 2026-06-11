@@ -146,7 +146,14 @@ export const useReimbursementStore = create<ReimbursementState>((set, get) => ({
   settleReimbursement: (id: string) => {
     set((state) => {
       const updated = state.reimbursements.map((item) =>
-        item.id === id ? { ...item, status: 'settled' as const } : item
+        item.id === id
+          ? {
+              ...item,
+              status: 'settled' as const,
+              settledBy: '管理员',
+              settledAt: new Date().toISOString(),
+            }
+          : item
       );
       saveReimbursements(updated);
       return { reimbursements: updated };

@@ -11,13 +11,14 @@ import {
   Store,
   Users,
   Calendar,
+  Wallet,
 } from 'lucide-react';
 import { useReimbursementStore } from '@/store/useReimbursementStore';
 import { StatusTag, InvoiceStatusTag } from '@/components/StatusTag';
 import { Modal } from '@/components/Modal';
 import type { Reimbursement } from '@/types';
 import { cn } from '@/lib/utils';
-import { formatDate, formatAmount } from '@/utils/format';
+import { formatDate, formatAmount, formatDateTime } from '@/utils/format';
 
 type TabType = 'pending' | 'over-standard' | 'missing-invoice' | 'completed';
 
@@ -35,6 +36,7 @@ export function ReviewPage() {
     approveReimbursement,
     rejectReimbursement,
     batchApproveByProject,
+    settleReimbursement,
     isOverStandard,
     getPendingCount,
     getOverStandardCount,
@@ -163,6 +165,10 @@ export function ReviewPage() {
       setSelectedIds(new Set());
       alert(`已批量通过 ${count} 条报销单`);
     }
+  };
+
+  const handleSettle = (id: string) => {
+    settleReimbursement(id);
   };
 
   return (
@@ -400,6 +406,16 @@ export function ReviewPage() {
                             )}
                           </div>
                         )}
+
+                        {activeTab === 'completed' && item.status === 'approved' && (
+                          <button
+                            onClick={() => handleSettle(item.id)}
+                            className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-1 bg-cyan-600 text-white hover:bg-cyan-700"
+                          >
+                            <Wallet className="w-4 h-4" />
+                            结算
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -467,6 +483,46 @@ export function ReviewPage() {
               </div>
             )}
 
+            {detailItem.reviewedAt && (
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                <p className="text-sm font-medium text-emerald-800 mb-2">审核信息</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-emerald-600">审核人</p>
+                    <p className="text-sm font-medium text-emerald-900 mt-0.5">
+                      {detailItem.reviewer || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-emerald-600">审核时间</p>
+                    <p className="text-sm font-medium text-emerald-900 mt-0.5">
+                      {formatDateTime(detailItem.reviewedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {detailItem.settledAt && (
+              <div className="p-4 bg-cyan-50 rounded-xl border border-cyan-100">
+                <p className="text-sm font-medium text-cyan-800 mb-2">结算信息</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-cyan-600">结算操作人</p>
+                    <p className="text-sm font-medium text-cyan-900 mt-0.5">
+                      {detailItem.settledBy || '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-cyan-600">结算时间</p>
+                    <p className="text-sm font-medium text-cyan-900 mt-0.5">
+                      {formatDateTime(detailItem.settledAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">餐单截图</p>
               <img
@@ -475,6 +531,18 @@ export function ReviewPage() {
                 className="w-full rounded-xl border border-gray-200"
               />
             </div>
+
+            {detailItem.status === 'approved' && (
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => handleSettle(detailItem.id)}
+                  className="w-full px-4 py-2.5 bg-cyan-600 text-white rounded-xl font-medium hover:bg-cyan-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Wallet className="w-4 h-4" />
+                  确认结算此报销单
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

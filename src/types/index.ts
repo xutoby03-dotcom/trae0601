@@ -29,6 +29,8 @@ export interface Reimbursement {
   reviewComment?: string;
   createdAt: string;
   reviewedAt?: string;
+  settledBy?: string;
+  settledAt?: string;
 }
 
 export interface ReimbursementFormData {
