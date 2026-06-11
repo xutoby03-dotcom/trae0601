@@ -1,37 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, Footprints, MapPin, Cloud, Star, FileText } from 'lucide-react';
+import { ArrowLeft, Footprints, MapPin, Cloud, Star, FileText, Trophy, Check, Zap } from 'lucide-react';
 import { useShoeStore } from '@/store';
-import { Surface, Weather, SURFACE_LABELS, WEATHER_LABELS, WEATHER_ICONS } from '@/types';
+import { Surface, Weather, SURFACE_LABELS, WEATHER_LABELS, WEATHER_ICONS, ShoeWithStats } from '@/types';
 import StarRating from '@/components/StarRating';
 
 const ALL_SURFACES: Surface[] = ['asphalt', 'concrete', 'track', 'trail', 'treadmill'];
 const ALL_WEATHER: Weather[] = ['sunny', 'cloudy', 'rainy', 'cold', 'hot'];
 
+interface ShoeOption {
+  shoe: ShoeWithStats;
+  isRecommended: boolean;
+  isRace: boolean;
+}
+
 export default function RunForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const addRun = useShoeStore((s) => s.addRun);
-  const shoes = useShoeStore((s) => s.shoes);
+  const getShoesWithStats = useShoeStore((s) => s.getShoesWithStats);
+  const getShoeById = useShoeStore((s) => s.getShoeById);
 
   const preselectedShoeId = searchParams.get('shoeId');
+  const allShoes = getShoesWithStats();
+  const preselectedShoe = preselectedShoeId ? getShoeById(preselectedShoeId) : null;
 
   const [form, setForm] = useState({
     shoeId: preselectedShoeId || '',
     date: new Date().toISOString().split('T')[0],
     kilometers: '',
-    surface: 'asphalt' as Surface,
+    surface: (preselectedShoe?.suitableSurfaces?.[0] as Surface) || 'asphalt',
     weather: 'sunny' as Weather,
     feelRating: 4,
     wearNotes: '',
   });
 
+  const [showRaceShoes, setShowRaceShoes] = useState(preselectedShoe?.isRaceLocked || false);
+
   useEffect(() => {
-    if (shoes.length > 0 && !form.shoeId) {
-      const available = shoes.find((s) => !s.isRaceLocked);
-      if (available) setForm((f) => ({ ...f, shoeId: available.id }));
+    if (preselectedShoeId && !form.shoeId) {
+      setForm((f) => ({ ...f, shoeId: preselectedShoeId }));
+      if (preselectedShoe?.isRaceLocked) {
+        setShowRaceShoes(true);
+      }
     }
-  }, [shoes, form.shoeId]);
+  }, [preselectedShoeId, preselectedShoe, form.shoeId]);
+
+  const shoeOptions = useMemo<ShoeOption[]>(() => {
+    const shoes = allShoes.filter((s) => (showRaceShoes ? s.isRaceLocked : !s.isRaceLocked));
+    return shoes
+      .map((s) => {
+        const isRecommended = s.suitableSurfaces.includes(form.surface);
+        return { shoe: s, isRecommended, isRace: s.isRaceLocked };
+      })
+      .sort((a, b) => {
+        if (a.isRecommended && !b.isRecommended) return -1;
+        if (!a.isRecommended && b.isRecommended) return 1;
+        return b.shoe.lifePercentage - a.shoe.lifePercentage;
+      });
+  }, [allShoes, form.surface, showRaceShoes]);
+
+  const recommendedOptions = shoeOptions.filter((o) => o.isRecommended);
+  const otherOptions = shoeOptions.filter((o) => !o.isRecommended);
+
+  const raceShoeCount = allShoes.filter((s) => s.isRaceLocked).length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +75,13 @@ export default function RunForm() {
     if (!km || km <= 0) {
       alert('请输入有效的公里数');
       return;
+    }
+
+    const selectedShoe = getShoeById(form.shoeId);
+    if (selectedShoe && !selectedShoe.suitableSurfaces.includes(form.surface)) {
+      if (!confirm(`注意：${selectedShoe.brand} ${selectedShoe.model} 不推荐用于 ${SURFACE_LABELS[form.surface]}，确定继续吗？`)) {
+        return;
+      }
     }
 
     addRun({
@@ -57,7 +96,65 @@ export default function RunForm() {
     navigate('/');
   };
 
-  if (shoes.length === 0) {
+  const ShoeCard = ({ option }: { option: ShoeOption }) => {
+    const selected = form.shoeId === option.shoe.id;
+    const s = option.shoe;
+    return (
+      <button
+        type="button"
+        onClick={() => setForm((f) => ({ ...f, shoeId: s.id }))}
+        className={`w-full text-left p-4 rounded-xl border transition-all ${
+          selected
+            ? 'bg-energy-500/10 border-energy-500 ring-2 ring-energy-500/30'
+            : 'bg-night-900 border-night-600 hover:border-night-500 hover:bg-night-800'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-display font-semibold text-white truncate">
+                {s.brand} {s.model}
+              </p>
+              {option.isRecommended && (
+                <span className="tag bg-fresh-500/20 text-fresh-400 !text-[10px] !px-2 !py-0.5">
+                  <Zap className="w-3 h-3" /> 推荐
+                </span>
+              )}
+              {option.isRace && (
+                <span className="tag bg-caution-500/20 text-caution-400 !text-[10px] !px-2 !py-0.5">
+                  <Trophy className="w-3 h-3" /> 比赛
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+              <span>
+                剩余 <span className="text-gray-200 font-medium">{s.remainingKilometers.toFixed(0)} km</span>
+              </span>
+              <span>
+                每公里 <span className="text-fresh-400 font-medium">¥{s.totalKilometers > 0 ? s.costPerKilometer.toFixed(1) : '-'}</span>
+              </span>
+              <span>
+                已用 <span className={`font-medium ${s.lifePercentage >= 85 ? 'text-danger-400' : 'text-gray-200'}`}>
+                  {s.lifePercentage.toFixed(0)}%
+                </span>
+              </span>
+            </div>
+          </div>
+          <div
+            className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center transition-all ${
+              selected
+                ? 'bg-energy-500 text-white'
+                : 'border-2 border-night-500'
+            }`}
+          >
+            {selected && <Check className="w-4 h-4" />}
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  if (allShoes.length === 0) {
     return (
       <div className="animate-fade-in">
         <div className="card text-center py-12">
@@ -91,21 +188,87 @@ export default function RunForm() {
       <form onSubmit={handleSubmit} className="card space-y-5">
         <div>
           <label className="label flex items-center gap-2">
-            <Footprints className="w-4 h-4" />
-            选择跑鞋
+            <MapPin className="w-4 h-4" />
+            路面类型
           </label>
-          <select
-            value={form.shoeId}
-            onChange={(e) => setForm({ ...form, shoeId: e.target.value })}
-            className="input-field appearance-none cursor-pointer"
-          >
-            <option value="" disabled>选择跑鞋...</option>
-            {shoes.map((shoe) => (
-              <option key={shoe.id} value={shoe.id} className="bg-night-800">
-                {shoe.brand} {shoe.model} {shoe.isRaceLocked ? '🏆' : ''}
-              </option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {ALL_SURFACES.map((surface) => {
+              const selected = form.surface === surface;
+              return (
+                <button
+                  key={surface}
+                  type="button"
+                  onClick={() => setForm({ ...form, surface })}
+                  className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-center ${
+                    selected
+                      ? 'bg-fresh-500 text-white shadow-lg shadow-fresh-500/25'
+                      : 'bg-night-700 text-gray-300 hover:bg-night-600 border border-night-500'
+                  }`}
+                >
+                  {SURFACE_LABELS[surface]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="label flex items-center gap-2 mb-0">
+              <Footprints className="w-4 h-4" />
+              选择跑鞋
+            </label>
+            {raceShoeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowRaceShoes(!showRaceShoes)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  showRaceShoes
+                    ? 'bg-caution-500/20 text-caution-400'
+                    : 'bg-night-700 text-gray-400 hover:text-gray-200 border border-night-500'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                {showRaceShoes ? '切回日常鞋' : '切换到比赛鞋'} ({raceShoeCount})
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2 max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
+            {shoeOptions.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">
+                {showRaceShoes ? '暂无比赛专用鞋' : '暂无日常训练鞋'}
+              </div>
+            ) : (
+              <>
+                {recommendedOptions.length > 0 && !showRaceShoes && (
+                  <div className="mb-4">
+                    <p className="text-xs font-medium text-fresh-400 mb-2 flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5" /> 适合 {SURFACE_LABELS[form.surface]}
+                    </p>
+                    <div className="space-y-2">
+                      {recommendedOptions.map((o) => (
+                        <ShoeCard key={o.shoe.id} option={o} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {otherOptions.length > 0 && (
+                  <div>
+                    {recommendedOptions.length > 0 && !showRaceShoes && (
+                      <p className="text-xs font-medium text-gray-500 mb-2">其他可选</p>
+                    )}
+                    <div className="space-y-2">
+                      {otherOptions.map((o) => (
+                        <ShoeCard key={o.shoe.id} option={o} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -129,32 +292,6 @@ export default function RunForm() {
               step="0.1"
               className="input-field"
             />
-          </div>
-        </div>
-
-        <div>
-          <label className="label flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            路面类型
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {ALL_SURFACES.map((surface) => {
-              const selected = form.surface === surface;
-              return (
-                <button
-                  key={surface}
-                  type="button"
-                  onClick={() => setForm({ ...form, surface })}
-                  className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-center ${
-                    selected
-                      ? 'bg-fresh-500 text-white shadow-lg shadow-fresh-500/25'
-                      : 'bg-night-700 text-gray-300 hover:bg-night-600 border border-night-500'
-                  }`}
-                >
-                  {SURFACE_LABELS[surface]}
-                </button>
-              );
-            })}
           </div>
         </div>
 
