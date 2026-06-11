@@ -69,7 +69,7 @@ const mockEquipment: Equipment[] = [
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
-      currentTripId: MOCK_TRIP_ID,
+      currentTripId: null,
       trips: mockTrips,
       people: mockPeople,
       equipment: mockEquipment,
@@ -181,7 +181,7 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'camping-checklist-storage',
+      name: 'camping-checklist-storage-v2',
     }
   )
 );
