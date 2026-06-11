@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Button } from '@tarojs/components';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, Input } from '@tarojs/components';
 import classnames from 'classnames';
 import styles from './index.module.scss';
 import type { Order, OrderStatus, TimeoutRisk, OrderPlatform } from '@/types';
@@ -55,6 +55,12 @@ const OrderItem: React.FC<OrderItemProps> = ({
   const nextStep = nextStatusMap[order.status];
   const platformColor = order.platform === 'meituan' ? 'meituan' : order.platform === 'eleme' ? 'eleme' : 'jddj';
 
+  const [distanceInput, setDistanceInput] = useState<string>(order.distanceKm.toFixed(1));
+
+  useEffect(() => {
+    setDistanceInput(order.distanceKm.toFixed(1));
+  }, [order.distanceKm]);
+
   const quickRisks: { risk: TimeoutRisk; label: string }[] = [
     { risk: 'low', label: '低' },
     { risk: 'medium', label: '中' },
@@ -72,9 +78,15 @@ const OrderItem: React.FC<OrderItemProps> = ({
     onOrderChange?.(order.id, { platform: p });
   };
 
-  const handleDistanceChange = (delta: number) => {
-    const newDist = Math.max(0.1, Math.round((order.distanceKm + delta) * 10) / 10);
-    onOrderChange?.(order.id, { distanceKm: newDist });
+  const commitDistance = () => {
+    const parsed = parseFloat(distanceInput);
+    if (!isNaN(parsed) && parsed > 0 && parsed < 999) {
+      const rounded = Math.round(parsed * 10) / 10;
+      onOrderChange?.(order.id, { distanceKm: rounded });
+      setDistanceInput(rounded.toFixed(1));
+    } else {
+      setDistanceInput(order.distanceKm.toFixed(1));
+    }
   };
 
   const toggleHotFood = () => {
@@ -122,23 +134,17 @@ const OrderItem: React.FC<OrderItemProps> = ({
       <View className={styles.customerRow}>
         <Text className={styles.customerName}>{order.customerName}</Text>
         {showEdit && onOrderChange ? (
-          <View className={styles.distanceStepper}>
-            <View
-              className={classnames(styles.distBtn, styles.distMinus)}
-              onClick={() => handleDistanceChange(-0.5)}
-            >
-              <Text className={styles.distBtnText}>−</Text>
-            </View>
-            <View className={styles.distValueBox}>
-              <Text className={styles.distValue}>{order.distanceKm.toFixed(1)}</Text>
-              <Text className={styles.distUnit}>km</Text>
-            </View>
-            <View
-              className={classnames(styles.distBtn, styles.distPlus)}
-              onClick={() => handleDistanceChange(0.5)}
-            >
-              <Text className={styles.distBtnText}>+</Text>
-            </View>
+          <View className={styles.distanceInputBox}>
+            <Input
+              className={styles.distanceInput}
+              type="digit"
+              value={distanceInput}
+              onInput={(e) => setDistanceInput(e.detail.value)}
+              onBlur={commitDistance}
+              onConfirm={commitDistance}
+              placeholder="距离"
+            />
+            <Text className={styles.distanceInputUnit}>km</Text>
           </View>
         ) : (
           <View className={styles.distanceBox}>
