@@ -427,12 +427,13 @@ export const useCardStore = create<CardStore>((set, get) => ({
     const { records } = get();
     const deptMap = new Map<string, number>();
 
-    const targetCardType = filter?.cardType ?? "employee";
-    if (targetCardType !== "employee") {
-      return [];
+    let filtered = [...records];
+    if (filter?.cardType) {
+      filtered = filtered.filter((r) => r.cardType === filter.cardType);
+    } else {
+      filtered = filtered.filter((r) => r.cardType === "employee");
     }
 
-    let filtered = records.filter((r) => r.cardType === "employee");
     if (filter?.startDate) {
       const start = new Date(filter.startDate);
       start.setHours(0, 0, 0, 0);

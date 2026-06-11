@@ -162,12 +162,17 @@ export default function Statistics() {
       const csv = generateDailyStatsCsv(dailyStats, cardTypeLabel);
       downloadCsv(csv, `${filename}_每日借用量.csv`);
     } else if (type === "overdue") {
-      const csv = generateOverdueCsv(overdueRecords, dateRangeLabel);
+      const csv = generateOverdueCsv(
+        overdueRecords,
+        dateRangeLabel,
+        cardTypeLabel
+      );
       downloadCsv(csv, `${filename}_超时未还.csv`);
     } else if (type === "department") {
       const csv = generateDepartmentRankingCsv(
         departmentRanking,
-        dateRangeLabel
+        dateRangeLabel,
+        cardTypeLabel
       );
       downloadCsv(csv, `${filename}_部门排行.csv`);
     }
@@ -452,12 +457,14 @@ export default function Statistics() {
             </div>
             <div>
               <h2 className="font-semibold text-zinc-900">
-                部门忘带工牌排行
+                {typeFilter === "visitor"
+                  ? "访客单位排行"
+                  : "部门忘带工牌排行"}
               </h2>
               <p className="text-sm text-zinc-500 mt-0.5">
                 {hasFilter
-                  ? `${dateRangeLabel} · 按借用员工临时卡次数排名`
-                  : "按借用员工临时卡次数排名"}
+                  ? `${dateRangeLabel} · 按借用${cardTypeLabel}次数排名`
+                  : `按借用${cardTypeLabel}次数排名`}
               </p>
             </div>
           </div>
@@ -517,7 +524,7 @@ export default function Statistics() {
             </div>
           ) : (
             <div className="text-center py-12 text-zinc-400 text-sm">
-              该时间段暂无员工临时卡借用数据
+              该时间段暂无{typeFilter === "visitor" ? "访客卡" : "员工临时卡"}借用数据
             </div>
           )}
         </div>

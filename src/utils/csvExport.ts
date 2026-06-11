@@ -45,7 +45,8 @@ export function generateDailyStatsCsv(
 
 export function generateOverdueCsv(
   records: BorrowRecord[],
-  dateRangeLabel: string
+  dateRangeLabel: string,
+  cardTypeLabel: string
 ): string {
   let csv = toCsvRow([
     "卡号",
@@ -70,20 +71,23 @@ export function generateOverdueCsv(
     ]);
   });
   csv += toCsvRow([]);
-  csv += toCsvRow(["筛选条件", dateRangeLabel]);
+  csv += toCsvRow(["筛选条件 - 日期", dateRangeLabel]);
+  csv += toCsvRow(["筛选条件 - 卡类型", cardTypeLabel]);
   return csv;
 }
 
 export function generateDepartmentRankingCsv(
   ranking: DepartmentStats[],
-  dateRangeLabel: string
+  dateRangeLabel: string,
+  cardTypeLabel: string
 ): string {
-  let csv = toCsvRow(["排名", "部门", "借用次数"]);
+  let csv = toCsvRow(["排名", "部门/单位", "借用次数"]);
   ranking.forEach((d, index) => {
     csv += toCsvRow([index + 1, d.department, d.count]);
   });
   csv += toCsvRow([]);
-  csv += toCsvRow(["筛选条件", dateRangeLabel]);
+  csv += toCsvRow(["筛选条件 - 日期", dateRangeLabel]);
+  csv += toCsvRow(["筛选条件 - 卡类型", cardTypeLabel]);
   return csv;
 }
 
@@ -104,12 +108,12 @@ export function generateFullExportCsv(
   csv += toCsvRow([]);
   csv += toCsvRow(["=== 超时未还列表 ==="]);
   csv += toCsvRow([]);
-  csv += generateOverdueCsv(overdueRecords, filters.dateRange);
+  csv += generateOverdueCsv(overdueRecords, filters.dateRange, filters.cardType);
   csv += toCsvRow([]);
   csv += toCsvRow([]);
-  csv += toCsvRow(["=== 部门忘带工牌排行 ==="]);
+  csv += toCsvRow(["=== 部门/单位借用排行 ==="]);
   csv += toCsvRow([]);
-  csv += generateDepartmentRankingCsv(ranking, filters.dateRange);
+  csv += generateDepartmentRankingCsv(ranking, filters.dateRange, filters.cardType);
   return csv;
 }
 
