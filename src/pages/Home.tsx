@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Check, XCircle, AlertTriangle, PawPrint, ChevronRight } from 'lucide-react';
 import useAppStore from '@/store/useAppStore';
 import FeedingModal from '@/components/FeedingModal';
@@ -9,10 +9,26 @@ import { cn } from '@/lib/utils';
 export default function Home() {
   const [selectedTask, setSelectedTask] = useState<FeedingTask | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [, forceUpdate] = useState(0);
   
   const getTodayTasks = useAppStore(state => state.getTodayTasks);
   const getRunningOutMedicines = useAppStore(state => state.getRunningOutMedicines);
   const getPetById = useAppStore(state => state.getPetById);
+  const refreshTodayStatus = useAppStore(state => state.refreshTodayStatus);
+  const generateDailyRecords = useAppStore(state => state.generateDailyRecords);
+  
+  useEffect(() => {
+    const today = getTodayStr();
+    generateDailyRecords(today);
+    refreshTodayStatus();
+    
+    const interval = setInterval(() => {
+      refreshTodayStatus();
+      forceUpdate(n => n + 1);
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [refreshTodayStatus, generateDailyRecords]);
   
   const tasks = getTodayTasks();
   const runningOutMeds = getRunningOutMedicines();

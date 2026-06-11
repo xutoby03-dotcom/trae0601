@@ -11,6 +11,7 @@ interface AppState {
   
   init: () => void;
   generateDailyRecords: (date: string) => void;
+  refreshTodayStatus: () => void;
   
   addPet: (pet: Omit<Pet, 'id' | 'createdAt'>) => void;
   updatePet: (pet: Pet) => void;
@@ -59,6 +60,32 @@ const useAppStore = create<AppState>((set, get) => ({
     
     const today = getTodayStr();
     get().generateDailyRecords(today);
+    get().refreshTodayStatus();
+  },
+
+  refreshTodayStatus: () => {
+    const today = getTodayStr();
+    const { feedingRecords } = get();
+    let changed = false;
+    
+    const updatedRecords = feedingRecords.map(record => {
+      if (record.date === today && record.status === 'pending') {
+        if (isTimePast(record.timeSlot, 2)) {
+          changed = true;
+          return { ...record, status: 'missed' as const };
+        }
+      }
+      return record;
+    });
+    
+    if (changed) {
+      set({ feedingRecords: updatedRecords });
+      saveToStorage({
+        pets: get().pets,
+        medicines: get().medicines,
+        feedingRecords: updatedRecords,
+      });
+    }
   },
 
   generateDailyRecords: (date: string) => {
