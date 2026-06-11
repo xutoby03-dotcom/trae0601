@@ -148,48 +148,214 @@ function ConflictTab({ conflicts, getBoardName, approveApplication, rejectApplic
   approveApplication: (id: string) => void
   rejectApplication: (id: string) => void
 }) {
+  const [resolutionConflict, setResolutionConflict] = useState<Conflict | null>(null)
+
   if (conflicts.length === 0) {
     return <EmptyState message="暂无冲突" />
   }
 
   return (
-    <div className="space-y-4">
-      {conflicts.map((c, i) => (
-        <div key={i} className="rounded-xl overflow-hidden shadow-sm bg-white">
-          <div className="px-4 py-2 text-sm font-medium bg-brand-red/10 text-brand-red">
-            <AlertTriangle size={14} className="inline mr-1" />
-            {getBoardName(c.boardId)} — 冲突
+    <>
+      <div className="space-y-4">
+        {conflicts.map((c, i) => (
+          <div key={i} className="rounded-xl overflow-hidden shadow-sm bg-white">
+            <div className="px-4 py-2 text-sm font-medium bg-brand-red/10 text-brand-red">
+              <AlertTriangle size={14} className="inline mr-1" />
+              {getBoardName(c.boardId)} — 冲突
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-brand-dark/5">
+              <div className="p-4">
+                <div className="font-semibold text-sm text-brand-dark">{c.applicationA.activityName}</div>
+                <div className="text-xs mt-1 text-brand-dark/60">{c.applicationA.clubName}</div>
+                <div className="text-xs mt-1 text-brand-dark/40">{c.applicationA.startDate} ~ {c.applicationA.endDate}</div>
+                <div className="flex gap-1 mt-2">
+                  <button onClick={() => setResolutionConflict(c)} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-green hover:opacity-90">
+                    <Check size={12} />通过
+                  </button>
+                  <button onClick={() => rejectApplication(c.applicationA.id)} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-red hover:opacity-90">
+                    <X size={12} />拒绝
+                  </button>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="font-semibold text-sm text-brand-dark">{c.applicationB.activityName}</div>
+                <div className="text-xs mt-1 text-brand-dark/60">{c.applicationB.clubName}</div>
+                <div className="text-xs mt-1 text-brand-dark/40">{c.applicationB.startDate} ~ {c.applicationB.endDate}</div>
+                <div className="flex gap-1 mt-2">
+                  <button onClick={() => setResolutionConflict(c)} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-green hover:opacity-90">
+                    <Check size={12} />通过
+                  </button>
+                  <button onClick={() => rejectApplication(c.applicationB.id)} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-red hover:opacity-90">
+                    <X size={12} />拒绝
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="px-4 py-2 text-center text-xs font-medium bg-brand-red/15 text-brand-red">
+              重叠时段：{c.overlapStart} ~ {c.overlapEnd}
+            </div>
           </div>
-          <div className="grid grid-cols-2 divide-x divide-brand-dark/5">
-            <AppSide app={c.applicationA} onApprove={() => approveApplication(c.applicationA.id)} onReject={() => rejectApplication(c.applicationA.id)} />
-            <AppSide app={c.applicationB} onApprove={() => approveApplication(c.applicationB.id)} onReject={() => rejectApplication(c.applicationB.id)} />
-          </div>
-          <div className="px-4 py-2 text-center text-xs font-medium bg-brand-red/15 text-brand-red">
-            重叠时段：{c.overlapStart} ~ {c.overlapEnd}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {resolutionConflict && (
+        <ConflictResolutionModal
+          conflict={resolutionConflict}
+          getBoardName={getBoardName}
+          approveApplication={approveApplication}
+          rejectApplication={rejectApplication}
+          onClose={() => setResolutionConflict(null)}
+        />
+      )}
+    </>
   )
 }
 
-function AppSide({ app, onApprove, onReject }: {
-  app: Application
-  onApprove: () => void
-  onReject: () => void
+function ConflictResolutionModal({ conflict, getBoardName, approveApplication, rejectApplication, onClose }: {
+  conflict: Conflict
+  getBoardName: (id: string) => string
+  approveApplication: (id: string) => void
+  rejectApplication: (id: string) => void
+  onClose: () => void
 }) {
+  const [rejectedId, setRejectedId] = useState<string | null>(null)
+
+  const handleReject = (id: string) => {
+    rejectApplication(id)
+    setRejectedId(id)
+  }
+
+  const handleApprove = (id: string) => {
+    approveApplication(id)
+    onClose()
+  }
+
+  const appARejected = rejectedId === conflict.applicationA.id || conflict.applicationA.status === 'rejected'
+  const appBRejected = rejectedId === conflict.applicationB.id || conflict.applicationB.status === 'rejected'
+  const canApproveA = appBRejected
+  const canApproveB = appARejected
+
   return (
-    <div className="p-4">
-      <div className="font-semibold text-sm text-brand-dark">{app.activityName}</div>
-      <div className="text-xs mt-1 text-brand-dark/60">{app.clubName}</div>
-      <div className="text-xs mt-1 text-brand-dark/40">{app.startDate} ~ {app.endDate}</div>
-      <div className="flex gap-1 mt-2">
-        <button onClick={onApprove} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-green hover:opacity-90">
-          <Check size={12} />通过
-        </button>
-        <button onClick={onReject} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-red hover:opacity-90">
-          <X size={12} />拒绝
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="bg-brand-red/10 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-brand-red">
+            <AlertTriangle size={20} />
+            <span className="font-semibold">冲突处理 — {getBoardName(conflict.boardId)}</span>
+          </div>
+          <button onClick={onClose} className="text-brand-dark/40 hover:text-brand-dark">
+            <CloseIcon size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="text-sm text-brand-dark/60">
+            重叠时段：
+            <span className="px-2 py-0.5 rounded bg-brand-red/10 text-brand-red font-medium">
+              {conflict.overlapStart} ~ {conflict.overlapEnd}
+            </span>
+            <span className="ml-1">需先拒绝一方，才能通过另一方。</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className={`rounded-xl p-3 border-2 transition-colors ${appARejected ? 'border-gray-300 bg-gray-50 opacity-60' : 'border-brand-orange/30 bg-brand-orange/3'}`}>
+              {appARejected && (
+                <span className="inline-block text-xs font-medium text-gray-400 mb-1">已拒绝</span>
+              )}
+              <div className={`text-sm font-semibold ${appARejected ? 'text-gray-400 line-through' : 'text-brand-dark'}`}>
+                {conflict.applicationA.activityName}
+              </div>
+              <div className={`text-xs mt-0.5 ${appARejected ? 'text-gray-400' : 'text-brand-dark/60'}`}>
+                {conflict.applicationA.clubName}
+              </div>
+              <div className={`text-xs mt-1 ${appARejected ? 'text-gray-400' : 'text-brand-dark/40'}`}>
+                {conflict.applicationA.startDate} ~ {conflict.applicationA.endDate}
+              </div>
+              <div className="flex gap-1 mt-3">
+                <button
+                  disabled={appARejected || canApproveA}
+                  onClick={() => handleReject(conflict.applicationA.id)}
+                  className={`flex items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    appARejected
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : canApproveA
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-brand-red text-white hover:opacity-90'
+                  }`}
+                >
+                  <X size={12} />{appARejected ? '已拒绝' : '拒绝'}
+                </button>
+                <button
+                  disabled={!canApproveA}
+                  onClick={() => handleApprove(conflict.applicationA.id)}
+                  className={`flex items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    canApproveA
+                      ? 'bg-brand-green text-white hover:opacity-90'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Check size={12} />通过
+                </button>
+              </div>
+            </div>
+
+            <div className={`rounded-xl p-3 border-2 transition-colors ${appBRejected ? 'border-gray-300 bg-gray-50 opacity-60' : 'border-brand-orange/30 bg-brand-orange/3'}`}>
+              {appBRejected && (
+                <span className="inline-block text-xs font-medium text-gray-400 mb-1">已拒绝</span>
+              )}
+              <div className={`text-sm font-semibold ${appBRejected ? 'text-gray-400 line-through' : 'text-brand-dark'}`}>
+                {conflict.applicationB.activityName}
+              </div>
+              <div className={`text-xs mt-0.5 ${appBRejected ? 'text-gray-400' : 'text-brand-dark/60'}`}>
+                {conflict.applicationB.clubName}
+              </div>
+              <div className={`text-xs mt-1 ${appBRejected ? 'text-gray-400' : 'text-brand-dark/40'}`}>
+                {conflict.applicationB.startDate} ~ {conflict.applicationB.endDate}
+              </div>
+              <div className="flex gap-1 mt-3">
+                <button
+                  disabled={appBRejected || canApproveB}
+                  onClick={() => handleReject(conflict.applicationB.id)}
+                  className={`flex items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    appBRejected
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : canApproveB
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-brand-red text-white hover:opacity-90'
+                  }`}
+                >
+                  <X size={12} />{appBRejected ? '已拒绝' : '拒绝'}
+                </button>
+                <button
+                  disabled={!canApproveB}
+                  onClick={() => handleApprove(conflict.applicationB.id)}
+                  className={`flex items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    canApproveB
+                      ? 'bg-brand-green text-white hover:opacity-90'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Check size={12} />通过
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {!appARejected && !appBRejected && (
+            <p className="text-xs text-brand-dark/50 leading-relaxed text-center">
+              请先点击一方的「拒绝」按钮，另一方的「通过」按钮才会解锁。
+            </p>
+          )}
+        </div>
+
+        <div className="px-5 py-4 border-t border-brand-dark/5 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-sm text-brand-dark/60 hover:bg-brand-dark/5"
+          >
+            关闭
+          </button>
+        </div>
       </div>
     </div>
   )
