@@ -19,6 +19,7 @@ interface GroupSectionProps {
   onNoShow?: (id: string) => void;
   onPostpone?: (id: string) => void;
   emptyText: string;
+  showActions?: boolean;
 }
 
 function GroupSection({
@@ -33,6 +34,7 @@ function GroupSection({
   onNoShow,
   onPostpone,
   emptyText,
+  showActions = true,
 }: GroupSectionProps) {
   return (
     <div className="flex flex-col h-full">
@@ -66,6 +68,7 @@ function GroupSection({
                 onComplete={onComplete}
                 onNoShow={onNoShow}
                 onPostpone={onPostpone}
+                showActions={showActions}
               />
             ))}
           </div>
@@ -102,6 +105,47 @@ export default function Dashboard() {
   const todayEvents = getTodayEvents();
   const currentEvent = events.find(e => e.id === currentEventId) || todayEvents[0];
 
+  useEffect(() => {
+    if (!currentEvent) return;
+    if (currentEvent.status !== 'completed') return;
+    const ongoing = todayEvents.find(e => e.status !== 'completed' && e.id !== currentEvent.id);
+    if (ongoing) {
+      setCurrentEvent(ongoing.id);
+    }
+  }, [currentEvent, todayEvents, setCurrentEvent]);
+
+  const isCompleted = currentEvent?.status === 'completed';
+
+  const safeCheckIn = (id: string) => {
+    if (isCompleted) return;
+    checkIn(id);
+    forceUpdate(n => n + 1);
+  };
+
+  const safeStartService = (id: string) => {
+    if (isCompleted) return;
+    startService(id);
+    forceUpdate(n => n + 1);
+  };
+
+  const safeCompleteService = (id: string) => {
+    if (isCompleted) return;
+    completeService(id);
+    forceUpdate(n => n + 1);
+  };
+
+  const safeMarkNoShow = (id: string) => {
+    if (isCompleted) return;
+    markNoShow(id);
+    forceUpdate(n => n + 1);
+  };
+
+  const safePostpone = (id: string) => {
+    if (isCompleted) return;
+    postpone(id);
+    forceUpdate(n => n + 1);
+  };
+
   const servingAppointments = currentEvent ? getServingAppointments(currentEvent.id) : [];
   const nextInQueue = currentEvent ? getNextInQueue(currentEvent.id) : null;
   const stats = currentEvent ? getEventStats(currentEvent.id) : null;
@@ -117,10 +161,9 @@ export default function Dashboard() {
   );
 
   const handleCallNext = () => {
-    if (currentEvent) {
-      callNext(currentEvent.id);
-      forceUpdate(n => n + 1);
-    }
+    if (!currentEvent || isCompleted) return;
+    callNext(currentEvent.id);
+    forceUpdate(n => n + 1);
   };
 
   const handleCompleteEvent = () => {
@@ -236,11 +279,44 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="card p-6 mb-6 bg-gradient-to-r from-primary-500 to-primary-600 text-white">
+      {isCompleted && (
+        <div className="card p-5 mb-6 border-warm-300 bg-warm-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-warm-200 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-warm-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-warm-700">本场活动已结束</h2>
+                <p className="text-sm text-warm-500">签到、叫号、服务、爽约、过号等操作已锁定，无法继续修改队列</p>
+              </div>
+            </div>
+            {todayEvents.filter(e => e.status !== 'completed').length > 0 && (
+              <select
+                onChange={(e) => setCurrentEvent(e.target.value)}
+                value=""
+                className="input py-2 text-sm w-auto"
+              >
+                <option value="" disabled>切换到其他场次</option>
+                {todayEvents
+                  .filter(e => e.status !== 'completed')
+                  .map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.startTime} 场 - {event.location}
+                    </option>
+                  ))
+                }
+              </select>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`card p-6 mb-6 text-white ${isCompleted ? 'bg-gradient-to-r from-warm-400 to-warm-500' : 'bg-gradient-to-r from-primary-500 to-primary-600'}`}>
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-8">
             <div className="text-center">
-              <p className="text-primary-100 text-sm mb-1">当前服务中</p>
+              <p className={`text-sm mb-1 ${isCompleted ? 'text-warm-100' : 'text-primary-100'}`}>当前服务中</p>
               <div className="flex items-end gap-2">
                 {servingAppointments.length > 0 ? (
                   servingAppointments.map(appt => (
@@ -260,7 +336,7 @@ export default function Dashboard() {
             <div className="h-16 w-px bg-white/30" />
 
             <div className="text-center">
-              <p className="text-primary-100 text-sm mb-1">下一位</p>
+              <p className={`text-sm mb-1 ${isCompleted ? 'text-warm-100' : 'text-primary-100'}`}>下一位</p>
               {nextInQueue ? (
                 <>
                   <span className="text-4xl font-bold">
@@ -276,11 +352,11 @@ export default function Dashboard() {
 
           <button
             onClick={handleCallNext}
-            disabled={!nextInQueue}
-            className="bg-white text-primary-600 px-8 py-3 rounded-xl font-bold text-lg hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+            disabled={!nextInQueue || isCompleted}
+            className={`${isCompleted ? 'bg-warm-200 text-warm-500 cursor-not-allowed' : 'bg-white text-primary-600 hover:bg-primary-50'} px-8 py-3 rounded-xl font-bold text-lg transition-colors flex items-center gap-2 shadow-lg`}
           >
             <PlayCircle className="w-6 h-6" />
-            叫下一位
+            {isCompleted ? '已结束' : '叫下一位'}
           </button>
         </div>
       </div>
@@ -292,8 +368,9 @@ export default function Dashboard() {
           color="text-primary-600"
           bgColor="bg-primary-50"
           appointments={allCheckedIn}
-          onStart={startService}
-          onNoShow={markNoShow}
+          onStart={isCompleted ? undefined : safeStartService}
+          onNoShow={isCompleted ? undefined : safeMarkNoShow}
+          showActions={!isCompleted}
           emptyText="暂无等待中的老人"
         />
 
@@ -303,8 +380,9 @@ export default function Dashboard() {
           color="text-info-600"
           bgColor="bg-info-50"
           appointments={bookedAppts}
-          onCheckIn={checkIn}
-          onNoShow={markNoShow}
+          onCheckIn={isCompleted ? undefined : safeCheckIn}
+          onNoShow={isCompleted ? undefined : safeMarkNoShow}
+          showActions={!isCompleted}
           emptyText="暂无已预约未签到"
         />
 
@@ -314,6 +392,7 @@ export default function Dashboard() {
           color="text-warning-600"
           bgColor="bg-warning-50"
           appointments={waitlistAppts}
+          showActions={!isCompleted}
           emptyText="暂无候补助阵"
         />
 
@@ -323,6 +402,7 @@ export default function Dashboard() {
           color="text-success-600"
           bgColor="bg-success-50"
           appointments={completedAppts}
+          showActions={false}
           emptyText="暂无完成记录"
         />
       </div>
@@ -335,6 +415,7 @@ export default function Dashboard() {
             color="text-danger-600"
             bgColor="bg-danger-50"
             appointments={noShowAppts}
+            showActions={false}
             emptyText="暂无爽约记录"
           />
         </div>
