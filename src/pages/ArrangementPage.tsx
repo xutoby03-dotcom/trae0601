@@ -392,16 +392,17 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
 
       {showPoster && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm" onClick={() => setShowPoster(false)}>
-          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowPoster(false)}
-              className="absolute -top-3 -right-3 z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all active:scale-95 touch-manipulation"
+              className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all active:scale-95 touch-manipulation"
               aria-label="关闭海报"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#1A0B2E] via-[#1A0B2E] to-[#0f051a] border border-white/10 shadow-2xl shadow-pink-500/10">
+            <div className="max-h-[80vh] sm:max-h-[85vh] overflow-y-auto rounded-3xl">
+              <div className="relative overflow-hidden bg-gradient-to-b from-[#1A0B2E] via-[#1A0B2E] to-[#0f051a] border border-white/10 shadow-2xl shadow-pink-500/10 rounded-3xl">
               <div className="relative">
                 <img
                   src={selectedMovie?.posterUrl}
@@ -497,6 +498,7 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
                   </p>
                 </div>
               </div>
+            </div>
             </div>
 
             <div className="mt-5 flex flex-col sm:flex-row gap-3">
