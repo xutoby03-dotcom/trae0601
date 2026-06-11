@@ -1,0 +1,194 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 160rpx;
+}
+
+.form {
+  padding: $spacing-lg $page-padding;
+}
+
+.formItem {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.label {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: block;
+}
+
+.required {
+  color: $color-error;
+  margin-left: 4rpx;
+}
+
+.input {
+  width: 100%;
+  height: 80rpx;
+  background-color: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: 0 $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  height: 80rpx;
+  background-color: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: 0 $spacing-md;
+}
+
+.inputValue {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.inputPlaceholder {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.arrow {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.switchLabel {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+}
+
+.switch {
+  width: 100rpx;
+  height: 60rpx;
+}
+
+.tagGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.tag {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-round;
+  background-color: $color-bg-hover;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &.active {
+    background-color: rgba(255, 122, 69, 0.1);
+    color: $color-primary;
+    border-color: $color-primary;
+  }
+}
+
+.photoSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.photoPreview {
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: $radius-lg;
+  background-color: $color-bg-hover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-md;
+  overflow: hidden;
+
+  .image {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.photoPlaceholder {
+  font-size: 80rpx;
+}
+
+.photoButton {
+  @include button-reset;
+  padding: $spacing-sm $spacing-xl;
+  background-color: $color-primary;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  height: $button-height-sm;
+  border: none;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: $spacing-lg $page-padding;
+  background-color: $color-bg-card;
+  box-shadow: $shadow-float;
+  z-index: 100;
+}
+
+.submitButton {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-button;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  color: $color-text-white;
+  border: none;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    background: $color-text-disabled;
+  }
+}

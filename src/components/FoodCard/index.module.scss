@@ -1,0 +1,160 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  display: flex;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: $shadow-card-hover;
+  }
+
+  &.expired {
+    opacity: 0.7;
+  }
+}
+
+.image {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: $radius-md;
+  flex-shrink: 0;
+  background-color: $color-bg-hover;
+}
+
+.imagePlaceholder {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: $radius-md;
+  background-color: $color-bg-hover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.placeholderText {
+  font-size: 80rpx;
+}
+
+.content {
+  flex: 1;
+  margin-left: $spacing-md;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.name {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+  flex: 1;
+  margin-right: $spacing-sm;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+
+  .label {
+    font-size: $font-size-sm;
+    color: $color-text-tertiary;
+    margin-right: $spacing-xs;
+    flex-shrink: 0;
+  }
+
+  .value {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    @include text-ellipsis;
+    flex: 1;
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-sm;
+}
+
+.suitableTags {
+  display: flex;
+  gap: $spacing-xs;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  background-color: rgba(255, 122, 69, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  white-space: nowrap;
+}
+
+.daysBadge {
+  padding: 6rpx 16rpx;
+  border-radius: $radius-round;
+  background-color: rgba(76, 175, 80, 0.1);
+
+  &.warning {
+    background-color: rgba(255, 193, 7, 0.15);
+  }
+
+  &.danger {
+    background-color: rgba(244, 67, 54, 0.15);
+  }
+}
+
+.daysText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-success;
+
+  .warning & {
+    color: $color-warning;
+  }
+
+  .danger & {
+    color: $color-error;
+  }
+}
+
+.processedOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.processedText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-secondary;
+}

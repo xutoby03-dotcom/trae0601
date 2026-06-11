@@ -1,0 +1,108 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+  background-color: $color-bg-page;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-xl $page-padding;
+  padding-top: 48rpx;
+  border-radius: 0 0 $radius-xl $radius-xl;
+  margin-bottom: $spacing-lg;
+}
+
+.greeting {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-sm;
+}
+
+.subGreeting {
+  font-size: $font-size-md;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: $spacing-lg;
+}
+
+.statsRow {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.statItem {
+  flex: 1;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  text-align: center;
+  backdrop-filter: blur(10rpx);
+}
+
+.statNumber {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: $spacing-xs;
+}
+
+.content {
+  padding: 0 $page-padding;
+}
+
+.addButton {
+  position: fixed;
+  right: $page-padding;
+  bottom: 120rpx;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(255, 122, 69, 0.4);
+  z-index: 100;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.92);
+    box-shadow: 0 4rpx 12rpx rgba(255, 122, 69, 0.3);
+  }
+}
+
+.addIcon {
+  font-size: 56rpx;
+  color: $color-text-white;
+  font-weight: $font-weight-light;
+  line-height: 1;
+}
+
+.emptyState {
+  padding: 80rpx $page-padding;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-lg;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.emptySubtext {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

@@ -1,0 +1,293 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 48rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: $spacing-xl $page-padding;
+  padding-top: 48rpx;
+  border-radius: 0 0 $radius-xl $radius-xl;
+  margin-bottom: $spacing-lg;
+}
+
+.pageTitle {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-xs;
+}
+
+.pageSubtitle {
+  font-size: $font-size-md;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.content {
+  padding: 0 $page-padding;
+}
+
+.section {
+  margin-bottom: $spacing-lg;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+
+  &::before {
+    content: '';
+    width: 6rpx;
+    height: 28rpx;
+    background-color: $color-primary;
+    border-radius: $radius-xs;
+    margin-right: $spacing-sm;
+  }
+}
+
+.overviewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+}
+
+.overviewCard {
+  width: calc(50% - #{$spacing-md} / 2);
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-top: 4rpx solid;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.overviewIcon {
+  font-size: 48rpx;
+  flex-shrink: 0;
+}
+
+.overviewInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.overviewValue {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.overviewLabel {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: $spacing-xs;
+}
+
+.avgCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  box-shadow: $shadow-card;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.avgContent {
+  flex: 1;
+}
+
+.avgLabel {
+  font-size: $font-size-md;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: $spacing-xs;
+}
+
+.avgValue {
+  font-size: 64rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  line-height: 1;
+
+  .unit {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-normal;
+    margin-left: $spacing-xs;
+  }
+}
+
+.avgIcon {
+  font-size: 80rpx;
+  opacity: 0.8;
+}
+
+.rankList {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.rankItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rankNumber {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+
+  &.rank1 {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  }
+
+  &.rank2 {
+    background: linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%);
+  }
+
+  &.rank3 {
+    background: linear-gradient(135deg, #CD7F32 0%, #B87333 100%);
+  }
+
+  &.rankOther {
+    background-color: $color-text-tertiary;
+  }
+}
+
+.rankCrown {
+  margin-right: $spacing-xs;
+}
+
+.rankName {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  @include text-ellipsis;
+}
+
+.rankCount {
+  font-size: $font-size-sm;
+  color: $color-error;
+  font-weight: $font-weight-semibold;
+
+  .times {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-weight: $font-weight-normal;
+    margin-left: 4rpx;
+  }
+}
+
+.dateList {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.dateItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.dateInfo {
+  width: 160rpx;
+  flex-shrink: 0;
+}
+
+.dateText {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.dateWeekday {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.dateBarContainer {
+  flex: 1;
+  height: 16rpx;
+  background-color: $color-bg-hover;
+  border-radius: $radius-round;
+  margin: 0 $spacing-md;
+  overflow: hidden;
+}
+
+.dateBar {
+  height: 100%;
+  background: linear-gradient(90deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-round;
+  transition: width $transition-base;
+}
+
+.dateCount {
+  width: 80rpx;
+  text-align: right;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+
+  .unit {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+    font-weight: $font-weight-normal;
+  }
+}
+
+.emptyState {
+  padding: 80rpx $page-padding;
+  text-align: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.emptyIcon {
+  font-size: 100rpx;
+  margin-bottom: $spacing-md;
+}
+
+.emptyText {
+  font-size: $font-size-lg;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.emptySubtext {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

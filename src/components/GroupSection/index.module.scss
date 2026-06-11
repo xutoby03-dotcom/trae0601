@@ -1,0 +1,71 @@
+@use '@/styles/variables.scss' as *;
+
+.section {
+  margin-bottom: $spacing-lg;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  cursor: pointer;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+}
+
+.colorBar {
+  width: 6rpx;
+  height: 32rpx;
+  border-radius: $radius-xs;
+  margin-right: $spacing-sm;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  margin-right: $spacing-sm;
+}
+
+.countBadge {
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 4rpx 16rpx;
+  border-radius: $radius-round;
+}
+
+.countText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.arrow {
+  font-size: $font-size-md;
+  transition: transform $transition-base;
+  color: $color-text-tertiary;
+
+  &.expanded {
+    transform: rotate(180deg);
+  }
+}
+
+.content {
+  padding-top: $spacing-sm;
+}
+
+.empty {
+  padding: $spacing-xl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
