@@ -18,6 +18,7 @@ interface EventState {
   setCurrentEvent: (id: string | null) => void;
   getTodayEvents: () => HaircutEvent[];
   getUpcomingEvents: () => HaircutEvent[];
+  completeEvent: (id: string) => void;
 }
 
 export const useEventStore = create<EventState>((set, get) => ({
@@ -147,7 +148,17 @@ export const useEventStore = create<EventState>((set, get) => ({
   getUpcomingEvents: () => {
     const today = new Date().toISOString().split('T')[0];
     return get().events
-      .filter(e => e.date >= today && e.status !== 'cancelled')
+      .filter(e => e.date >= today && e.status !== 'cancelled' && e.status !== 'completed')
       .sort((a, b) => a.date.localeCompare(b.date));
+  },
+
+  completeEvent: (id: string) => {
+    const updatedEvents = get().events.map(e =>
+      e.id === id
+        ? { ...e, status: 'completed' as const, updatedAt: new Date().toISOString() }
+        : e
+    );
+    set({ events: updatedEvents });
+    setToStorage('events', updatedEvents);
   },
 }));

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Users, Clock, PlayCircle, CheckCircle2, XCircle, Clock4, ChevronRight, Calendar } from 'lucide-react';
+import { MapPin, Users, Clock, PlayCircle, CheckCircle2, XCircle, Clock4, ChevronRight, Calendar, Flag } from 'lucide-react';
 import { useEventStore } from '@/store/eventStore';
 import { useAppointmentStore } from '@/store/appointmentStore';
 import AppointmentCard from '@/components/AppointmentCard';
@@ -76,7 +76,7 @@ function GroupSection({
 }
 
 export default function Dashboard() {
-  const { events, currentEventId, setCurrentEvent, getTodayEvents } = useEventStore();
+  const { events, currentEventId, setCurrentEvent, getTodayEvents, completeEvent } = useEventStore();
   const {
     getAppointmentsByStatus,
     checkIn,
@@ -119,6 +119,14 @@ export default function Dashboard() {
   const handleCallNext = () => {
     if (currentEvent) {
       callNext(currentEvent.id);
+      forceUpdate(n => n + 1);
+    }
+  };
+
+  const handleCompleteEvent = () => {
+    if (!currentEvent) return;
+    if (window.confirm('确定要结束本场理发活动吗？结束后将无法继续叫号服务。')) {
+      completeEvent(currentEvent.id);
       forceUpdate(n => n + 1);
     }
   };
@@ -193,6 +201,16 @@ export default function Dashboard() {
                 ))}
               </select>
             </div>
+          )}
+
+          {currentEvent.status !== 'completed' && (
+            <button
+              onClick={handleCompleteEvent}
+              className="btn-secondary"
+            >
+              <Flag className="w-4 h-4 mr-2" />
+              结束场次
+            </button>
           )}
         </div>
 

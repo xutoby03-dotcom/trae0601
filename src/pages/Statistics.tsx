@@ -60,11 +60,16 @@ function StatCard({ title, value, subtitle, icon: Icon, color, bgColor, trend, t
 
 export default function Statistics() {
   const { events } = useEventStore();
-  const { getEventStats, getTimeSlotStats, getDailyStats, appointments } = useAppointmentStore();
+  const { getEventStats, getTimeSlotStats, getDailyStats } = useAppointmentStore();
   
   const [selectedEventId, setSelectedEventId] = useState<string>('all');
 
   const completedEvents = events.filter(e => e.status === 'completed');
+  
+  const totalAppointments = completedEvents.reduce((sum, e) => {
+    const stats = getEventStats(e.id);
+    return sum + stats.totalAppointments;
+  }, 0);
   
   const totalCompleted = completedEvents.reduce((sum, e) => {
     const stats = getEventStats(e.id);
@@ -75,8 +80,6 @@ export default function Statistics() {
     const stats = getEventStats(e.id);
     return sum + stats.noShowCount;
   }, 0);
-
-  const totalAppointments = appointments.length;
   
   const overallNoShowRate = totalCompleted + totalNoShow > 0
     ? Math.round((totalNoShow / (totalCompleted + totalNoShow)) * 1000) / 10
@@ -87,7 +90,7 @@ export default function Statistics() {
   const getPopularTimeSlots = () => {
     const allSlotStats: Record<string, number> = {};
     
-    events.forEach(event => {
+    completedEvents.forEach(event => {
       const slotStats = getTimeSlotStats(event.id);
       slotStats.forEach(slot => {
         allSlotStats[slot.time] = (allSlotStats[slot.time] || 0) + slot.count;

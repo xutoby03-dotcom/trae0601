@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Plus, MapPin, Clock, Users, Calendar, Edit2, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Clock, Users, Calendar, Edit2, Trash2, Flag } from 'lucide-react';
 import { useEventStore } from '@/store/eventStore';
 import { useAppointmentStore } from '@/store/appointmentStore';
 import StatusBadge from '@/components/StatusBadge';
 import { getWeekday, isToday } from '@/utils/time';
 
 export default function EventList() {
-  const { events, deleteEvent } = useEventStore();
+  const { events, deleteEvent, completeEvent } = useEventStore();
   const { getEventStats } = useAppointmentStore();
 
   const sortedEvents = [...events].sort((a, b) => a.date.localeCompare(b.date));
@@ -17,15 +17,19 @@ export default function EventList() {
     }
   };
 
-  const upcomingEvents = sortedEvents.filter(e => {
-    const today = new Date().toISOString().split('T')[0];
-    return e.date >= today && e.status !== 'cancelled';
-  });
+  const handleCompleteEvent = (id: string) => {
+    if (window.confirm('确定要结束这场理发活动吗？结束后将无法继续叫号服务。')) {
+      completeEvent(id);
+    }
+  };
 
-  const pastEvents = sortedEvents.filter(e => {
-    const today = new Date().toISOString().split('T')[0];
-    return e.date < today || e.status === 'cancelled';
-  });
+  const upcomingEvents = sortedEvents.filter(e => 
+    e.status !== 'completed' && e.status !== 'cancelled'
+  );
+
+  const pastEvents = sortedEvents.filter(e => 
+    e.status === 'completed' || e.status === 'cancelled'
+  );
 
   return (
     <div className="container mx-auto py-6">
@@ -120,6 +124,13 @@ export default function EventList() {
                     >
                       预约
                     </Link>
+                    <button
+                      onClick={() => handleCompleteEvent(event.id)}
+                      className="btn-secondary px-3 py-2"
+                      title="结束场次"
+                    >
+                      <Flag className="w-4 h-4" />
+                    </button>
                     <Link
                       to={`/events/${event.id}/edit`}
                       className="btn-secondary px-3 py-2"
