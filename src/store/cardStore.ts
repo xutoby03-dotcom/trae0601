@@ -19,13 +19,17 @@ import {
   getDateDaysAgo,
 } from "@/utils/dateUtils";
 
+const STORAGE_KEY_CARDS = "temporary-card-cards";
+const STORAGE_KEY_RECORDS = "temporary-card-records";
+
 interface CardStore {
   cards: Card[];
   records: BorrowRecord[];
-  addBorrowRecord: (data: BorrowFormData) => void;
+  addBorrowRecord: (data: BorrowFormData) => boolean;
   returnCard: (recordId: string) => void;
   reportLost: (recordId: string, data: LostFormData) => void;
   getActiveRecordByCardNumber: (cardNumber: string) => BorrowRecord | undefined;
+  getCardByNumber: (cardNumber: string) => Card | undefined;
   getStatsByStatus: () => {
     available: { total: number; visitor: number; employee: number };
     inUse: { total: number; visitor: number; employee: number };
@@ -37,6 +41,7 @@ interface CardStore {
   getDepartmentRanking: () => DepartmentStats[];
   getOverdueRecords: () => BorrowRecord[];
   getOverdueCount: () => number;
+  resetToInitialData: () => void;
 }
 
 const now = new Date();
@@ -190,6 +195,42 @@ const initialRecords: BorrowRecord[] = [
   },
 ];
 
+function loadCardsFromStorage(): Card[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CARDS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn("Failed to load cards from localStorage", e);
+  }
+  return initialCards;
+}
+
+function loadRecordsFromStorage(): BorrowRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_RECORDS);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.warn("Failed to load records from localStorage", e);
+  }
+  return initialRecords;
+}
+
+function saveCardsToStorage(cards: Card[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(cards));
+  } catch (e) {
+    console.warn("Failed to save cards to localStorage", e);
+  }
+}
+
+function saveRecordsToStorage(records: BorrowRecord[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
+  } catch (e) {
+    console.warn("Failed to save records to localStorage", e);
+  }
+}
+
 function filterByType<T extends { cardType: CardType }>(items: T[]) {
   return {
     total: items.length,
@@ -199,15 +240,26 @@ function filterByType<T extends { cardType: CardType }>(items: T[]) {
 }
 
 export const useCardStore = create<CardStore>((set, get) => ({
-  cards: initialCards,
-  records: initialRecords,
+  cards: loadCardsFromStorage(),
+  records: loadRecordsFromStorage(),
 
   addBorrowRecord: (data) => {
     const { cards, records } = get();
+    const cardNumber = data.cardNumber.trim().toUpperCase();
+
+    const existingCard = cards.find((c) => c.cardNumber === cardNumber);
+
+    if (existingCard && existingCard.status === "lost") {
+      return false;
+    }
+    if (existingCard && existingCard.status !== "available") {
+      return false;
+    }
+
     const newRecord: BorrowRecord = {
       id: generateId(),
-      cardId: generateId(),
-      cardNumber: data.cardNumber,
+      cardId: existingCard ? existingCard.id : generateId(),
+      cardNumber,
       cardType: data.cardType,
       borrowerName: data.borrowerName,
       department: data.department,
@@ -219,7 +271,6 @@ export const useCardStore = create<CardStore>((set, get) => ({
       status: "active",
     };
 
-    const existingCard = cards.find((c) => c.cardNumber === data.cardNumber);
     let updatedCards = cards;
     if (existingCard) {
       updatedCards = cards.map((c) =>
@@ -228,7 +279,7 @@ export const useCardStore = create<CardStore>((set, get) => ({
     } else {
       const newCard: Card = {
         id: newRecord.cardId,
-        cardNumber: data.cardNumber,
+        cardNumber,
         cardType: data.cardType,
         accessArea: data.accessArea,
         deposit: data.deposit,
@@ -237,7 +288,11 @@ export const useCardStore = create<CardStore>((set, get) => ({
       updatedCards = [...cards, newCard];
     }
 
-    set({ cards: updatedCards, records: [newRecord, ...records] });
+    const updatedRecords = [newRecord, ...records];
+    saveCardsToStorage(updatedCards);
+    saveRecordsToStorage(updatedRecords);
+    set({ cards: updatedCards, records: updatedRecords });
+    return true;
   },
 
   returnCard: (recordId) => {
@@ -255,6 +310,8 @@ export const useCardStore = create<CardStore>((set, get) => ({
       c.cardNumber === record.cardNumber ? { ...c, status: "available" as const } : c
     );
 
+    saveCardsToStorage(updatedCards);
+    saveRecordsToStorage(updatedRecords);
     set({ cards: updatedCards, records: updatedRecords });
   },
 
@@ -279,6 +336,8 @@ export const useCardStore = create<CardStore>((set, get) => ({
       c.cardNumber === record.cardNumber ? { ...c, status: "lost" as const } : c
     );
 
+    saveCardsToStorage(updatedCards);
+    saveRecordsToStorage(updatedRecords);
     set({ cards: updatedCards, records: updatedRecords });
   },
 
@@ -286,6 +345,10 @@ export const useCardStore = create<CardStore>((set, get) => ({
     return get().records.find(
       (r) => r.cardNumber === cardNumber && r.status === "active"
     );
+  },
+
+  getCardByNumber: (cardNumber) => {
+    return get().cards.find((c) => c.cardNumber === cardNumber);
   },
 
   getStatsByStatus: () => {
@@ -361,5 +424,11 @@ export const useCardStore = create<CardStore>((set, get) => ({
     return get().records.filter(
       (r) => r.status === "active" && isOverdue(r.expectedReturnTime)
     ).length;
+  },
+
+  resetToInitialData: () => {
+    saveCardsToStorage(initialCards);
+    saveRecordsToStorage(initialRecords);
+    set({ cards: initialCards, records: initialRecords });
   },
 }));

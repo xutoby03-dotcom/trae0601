@@ -20,7 +20,7 @@ import {
 
 export default function Borrow() {
   const navigate = useNavigate();
-  const { addBorrowRecord, getActiveRecordByCardNumber } = useCardStore();
+  const { addBorrowRecord, getCardByNumber } = useCardStore();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const now = new Date();
@@ -54,8 +54,16 @@ export default function Borrow() {
 
     if (!formData.cardNumber.trim()) {
       newErrors.cardNumber = "请输入卡号";
-    } else if (getActiveRecordByCardNumber(formData.cardNumber.trim())) {
-      newErrors.cardNumber = "该卡号当前正在使用中";
+    } else {
+      const cardNumber = formData.cardNumber.trim().toUpperCase();
+      const existingCard = getCardByNumber(cardNumber);
+      if (existingCard) {
+        if (existingCard.status === "lost") {
+          newErrors.cardNumber = "该卡片已挂失，不能借用";
+        } else if (existingCard.status !== "available") {
+          newErrors.cardNumber = "该卡号当前正在使用中";
+        }
+      }
     }
 
     if (!formData.accessArea.trim()) {
