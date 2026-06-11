@@ -175,11 +175,60 @@ function ConsumableForm({
           </div>
           <div>
             <label className="label-field">耗材图片</label>
-            <div className="mt-1 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-lab-400 transition-colors cursor-pointer">
-              <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-xs text-gray-400">点击或拖拽上传图片</p>
-              {form.imageUrl && (
-                <p className="text-xs text-lab-600 mt-1">已上传图片</p>
+            <div className="mt-1">
+              {form.imageUrl ? (
+                <div className="relative w-full h-40 rounded-lg overflow-hidden border border-gray-200 group">
+                  <img
+                    src={form.imageUrl}
+                    alt="耗材预览"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <label className="cursor-pointer px-3 py-1.5 bg-white text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100">
+                      更换图片
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const reader = new FileReader()
+                          reader.onload = () => {
+                            setForm({ ...form, imageUrl: reader.result as string })
+                          }
+                          reader.readAsDataURL(file)
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, imageUrl: '' })}
+                      className="px-3 py-1.5 bg-danger-500 text-white rounded-lg text-xs font-medium hover:bg-danger-600"
+                    >
+                      移除
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="block border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-lab-400 hover:bg-lab-50/30 transition-all cursor-pointer">
+                  <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400">点击或拖拽上传图片</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        setForm({ ...form, imageUrl: reader.result as string })
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                </label>
               )}
             </div>
           </div>
@@ -384,16 +433,24 @@ export default function Consumables() {
                 >
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-9 h-9 rounded-lg flex items-center justify-center',
-                        c.isHazardous ? 'bg-red-50' : 'bg-lab-50'
-                      )}>
-                        {c.isHazardous ? (
-                          <Flame className="w-4 h-4 text-danger-500" />
-                        ) : (
-                          <Package className="w-4 h-4 text-lab-600" />
-                        )}
-                      </div>
+                      {c.imageUrl ? (
+                        <img
+                          src={c.imageUrl}
+                          alt={c.name}
+                          className="w-9 h-9 rounded-lg object-cover border border-gray-100"
+                        />
+                      ) : (
+                        <div className={cn(
+                          'w-9 h-9 rounded-lg flex items-center justify-center',
+                          c.isHazardous ? 'bg-red-50' : 'bg-lab-50'
+                        )}>
+                          {c.isHazardous ? (
+                            <Flame className="w-4 h-4 text-danger-500" />
+                          ) : (
+                            <Package className="w-4 h-4 text-lab-600" />
+                          )}
+                        </div>
+                      )}
                       <div>
                         <p className="text-xs text-gray-500">{c.specification}</p>
                         <p className="text-xs text-gray-400">{c.unit}</p>
