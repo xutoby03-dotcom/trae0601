@@ -100,6 +100,22 @@ export default function CheckupHistory() {
                     </div>
                   </div>
 
+                  {record.photos && record.photos.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {record.photos.map((photo, i) => (
+                        <a
+                          key={i}
+                          href={photo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aspect-square rounded-md overflow-hidden border border-zinc-700 hover:border-emerald-500/50 transition-colors"
+                        >
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   <p className="text-xs text-zinc-400 leading-relaxed">{record.suggestion}</p>
                 </div>
               </div>

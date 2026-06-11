@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useStore } from '@/store/useStore'
 import { calculateDegradation, getLevelLabel, getLevelColor } from '@/utils/degradation'
+import { Camera, X, ImagePlus } from 'lucide-react'
 
 const resultBgMap: Record<string, string> = {
   emerald: 'bg-emerald-500/10 border-emerald-500/30',
@@ -40,7 +41,30 @@ export default function Checkup() {
   const [fullChargeHours, setFullChargeHours] = useState('')
   const [actualRange, setActualRange] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [photos, setPhotos] = useState<string[]>([])
   const [result, setResult] = useState<ReturnType<typeof calculateDegradation> | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string
+        if (dataUrl) {
+          setPhotos((prev) => [...prev, dataUrl])
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const activeVehicle = vehicles.find((v) => v.id === (selectedId || vehicleId))
 
@@ -79,7 +103,7 @@ export default function Checkup() {
       voltage: Number(voltage),
       fullChargeHours: Number(fullChargeHours),
       actualRange: Number(actualRange),
-      photos: [],
+      photos,
       degradationLevel: res.level,
       degradationScore: res.score,
       suggestion: res.suggestion,
@@ -221,6 +245,48 @@ export default function Checkup() {
               placeholder="55"
               className="w-full mt-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 focus:border-emerald-500/50 focus:outline-none"
             />
+          </div>
+
+          <div>
+            <label className="text-sm text-zinc-400 flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5" />
+              电池照片
+              <span className="text-zinc-600 text-xs">(可选)</span>
+            </label>
+            <div className="mt-1">
+              {photos.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {photos.map((photo, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-zinc-700 group">
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-4 rounded-xl border-2 border-dashed border-zinc-700 hover:border-emerald-500/40 hover:bg-zinc-900 text-zinc-500 hover:text-emerald-400 transition-all flex flex-col items-center gap-1"
+              >
+                <ImagePlus className="w-6 h-6" />
+                <span className="text-xs">{photos.length > 0 ? '继续添加照片' : '点击上传照片'}</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoSelect}
+                className="hidden"
+              />
+            </div>
           </div>
 
           <button
