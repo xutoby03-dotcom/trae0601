@@ -12,6 +12,7 @@ import {
   ClipboardCheck,
   FileText,
   Package,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import {
@@ -20,6 +21,7 @@ import {
   formatDateDisplay,
   getTodayStr,
   checkInItemTypeIcon,
+  exportReviewHTML,
 } from '@/utils';
 
 export default function TaskDetail() {
@@ -34,6 +36,7 @@ export default function TaskDetail() {
     getMissedItems,
     getTodayCheckIn,
     ensureTodayCheckIn,
+    generateReviewReport,
   } = useAppStore();
 
   const task = id ? getTaskById(id) : undefined;
@@ -76,6 +79,50 @@ export default function TaskDetail() {
         <span className={`tag ${statusColor[status]} text-base`}>
           {statusLabel[status]}
         </span>
+        {status === 'completed' && id && (
+          <button
+            onClick={() => {
+              const report = generateReviewReport(id);
+              if (!report) return;
+              const completionRate = report.totalDays > 0
+                ? Math.round((report.completedCheckins / report.totalDays) * 100)
+                : 0;
+              exportReviewHTML({
+                petName: pet?.name || '宠物',
+                species: pet?.species || 'other',
+                breed: pet?.breed || '',
+                age: pet?.age || 0,
+                allergies: pet?.allergies || '',
+                taskTitle: task.title,
+                startDate: formatDateDisplay(task.startDate),
+                endDate: formatDateDisplay(task.endDate),
+                caretakerName: task.caretakerName,
+                totalDays: report.totalDays,
+                completedCheckins: report.completedCheckins,
+                completionRate,
+                missedFeedings: report.missedFeedings,
+                missedMedications: report.missedMedications,
+                anomalyRecords: report.anomalyRecords.map((r) => ({
+                  date: formatDateDisplay(r.checkinDate),
+                  description: r.anomalyDescription || '未描述具体异常',
+                })),
+                initialFoodAmount: report.initialFoodAmount,
+                consumedFoodAmount: report.consumedFoodAmount,
+                remainingFoodAmount: report.remainingFoodAmount,
+                foodUnit: task.foodUnit || '份',
+                suppliesToBuy: report.suppliesToBuy,
+                photos: report.checkinPhotos.map((ph) => ({
+                  url: ph.photoUrl,
+                  caption: ph.caption,
+                })),
+              });
+            }}
+            className="btn-secondary text-sm"
+          >
+            <Download size={16} />
+            导出回顾
+          </button>
+        )}
       </div>
 
       {missedItems.length > 0 && (
@@ -169,6 +216,49 @@ export default function TaskDetail() {
                   <FileText size={18} />
                   查看交接回顾
                 </Link>
+                <button
+                  onClick={() => {
+                    if (!id) return;
+                    const report = generateReviewReport(id);
+                    if (!report) return;
+                    const completionRate = report.totalDays > 0
+                      ? Math.round((report.completedCheckins / report.totalDays) * 100)
+                      : 0;
+                    exportReviewHTML({
+                      petName: pet?.name || '宠物',
+                      species: pet?.species || 'other',
+                      breed: pet?.breed || '',
+                      age: pet?.age || 0,
+                      allergies: pet?.allergies || '',
+                      taskTitle: task.title,
+                      startDate: formatDateDisplay(task.startDate),
+                      endDate: formatDateDisplay(task.endDate),
+                      caretakerName: task.caretakerName,
+                      totalDays: report.totalDays,
+                      completedCheckins: report.completedCheckins,
+                      completionRate,
+                      missedFeedings: report.missedFeedings,
+                      missedMedications: report.missedMedications,
+                      anomalyRecords: report.anomalyRecords.map((r) => ({
+                        date: formatDateDisplay(r.checkinDate),
+                        description: r.anomalyDescription || '未描述具体异常',
+                      })),
+                      initialFoodAmount: report.initialFoodAmount,
+                      consumedFoodAmount: report.consumedFoodAmount,
+                      remainingFoodAmount: report.remainingFoodAmount,
+                      foodUnit: task.foodUnit || '份',
+                      suppliesToBuy: report.suppliesToBuy,
+                      photos: report.checkinPhotos.map((ph) => ({
+                        url: ph.photoUrl,
+                        caption: ph.caption,
+                      })),
+                    });
+                  }}
+                  className="btn bg-emerald-600 text-white hover:bg-emerald-700 flex-1 justify-center"
+                >
+                  <Download size={18} />
+                  导出报告
+                </button>
               </div>
             )}
           </div>

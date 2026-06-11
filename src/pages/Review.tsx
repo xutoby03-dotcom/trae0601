@@ -10,9 +10,10 @@ import {
   TrendingDown,
   Image,
   FileText,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { formatDateDisplay, statusLabel, statusColor } from '@/utils';
+import { formatDateDisplay, statusLabel, statusColor, exportReviewHTML } from '@/utils';
 
 export default function Review() {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +39,38 @@ export default function Review() {
       ? Math.round((report.completedCheckins / report.totalDays) * 100)
       : 0;
 
+  const handleExport = () => {
+    exportReviewHTML({
+      petName: pet?.name || '宠物',
+      species: pet?.species || 'other',
+      breed: pet?.breed || '',
+      age: pet?.age || 0,
+      allergies: pet?.allergies || '',
+      taskTitle: task.title,
+      startDate: formatDateDisplay(task.startDate),
+      endDate: formatDateDisplay(task.endDate),
+      caretakerName: task.caretakerName,
+      totalDays: report.totalDays,
+      completedCheckins: report.completedCheckins,
+      completionRate,
+      missedFeedings: report.missedFeedings,
+      missedMedications: report.missedMedications,
+      anomalyRecords: report.anomalyRecords.map((r) => ({
+        date: formatDateDisplay(r.checkinDate),
+        description: r.anomalyDescription || '未描述具体异常',
+      })),
+      initialFoodAmount: report.initialFoodAmount,
+      consumedFoodAmount: report.consumedFoodAmount,
+      remainingFoodAmount: report.remainingFoodAmount,
+      foodUnit: task.foodUnit || '份',
+      suppliesToBuy: report.suppliesToBuy,
+      photos: report.checkinPhotos.map((ph) => ({
+        url: ph.photoUrl,
+        caption: ph.caption,
+      })),
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -56,6 +89,10 @@ export default function Review() {
         <span className={`tag ${statusColor[status]} text-base`}>
           {statusLabel[status]}
         </span>
+        <button onClick={handleExport} className="btn-secondary text-sm">
+          <Download size={16} />
+          导出报告
+        </button>
       </div>
 
       <div className="card bg-gradient-to-br from-brand-500 to-brand-600 text-white">
@@ -308,6 +345,10 @@ export default function Review() {
         <Link to={`/tasks/${task.id}`} className="btn-primary">
           查看任务详情
         </Link>
+        <button onClick={handleExport} className="btn bg-emerald-600 text-white hover:bg-emerald-700">
+          <Download size={18} />
+          下载报告
+        </button>
       </div>
     </div>
   );
