@@ -177,23 +177,32 @@ function InfoRow({
 
 interface TaskBoardProps {
   onCompleteTask: (task: BathTask) => void;
-  onOpenNewTask: (preselectedElderId?: string) => void;
+  drawerOpen: boolean;
+  preselectedElderId?: string;
+  editingTask: BathTask | null;
+  onDrawerOpenChange: (open: boolean) => void;
+  onEditTask: (task: BathTask | null) => void;
+  onClearPreselection: () => void;
 }
 
-export function TaskBoard({ onCompleteTask, onOpenNewTask }: TaskBoardProps) {
+export function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, editingTask, onDrawerOpenChange, onEditTask, onClearPreselection }: TaskBoardProps) {
   const { tasks } = useStore();
-  const [editingTask, setEditingTask] = useState<BathTask | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const openEdit = (task: BathTask) => {
-    setEditingTask(task);
-    setDrawerOpen(true);
+    onEditTask(task);
+    onClearPreselection();
+    onDrawerOpenChange(true);
   };
 
   const openNew = () => {
-    setEditingTask(null);
-    setDrawerOpen(true);
-    onOpenNewTask();
+    onEditTask(null);
+    onClearPreselection();
+    onDrawerOpenChange(true);
+  };
+
+  const closeDrawer = () => {
+    onDrawerOpenChange(false);
+    onEditTask(null);
   };
 
   const columns: Exclude<TaskStatus, 'completed'>[] = ['today', 'delayed', 'observation'];
@@ -268,20 +277,21 @@ export function TaskBoard({ onCompleteTask, onOpenNewTask }: TaskBoardProps) {
         })}
       </div>
 
-      {drawerOpen && <TaskDrawer task={editingTask} onClose={() => setDrawerOpen(false)} />}
+      {drawerOpen && <TaskDrawer task={editingTask} preselectedElderId={preselectedElderId} onClose={closeDrawer} />}
     </section>
   );
 }
 
 interface TaskDrawerProps {
   task: BathTask | null;
+  preselectedElderId?: string;
   onClose: () => void;
 }
 
-function TaskDrawer({ task, onClose }: TaskDrawerProps) {
+function TaskDrawer({ task, preselectedElderId, onClose }: TaskDrawerProps) {
   const { elders, members, addTask, updateTask, deleteTask } = useStore();
   const [form, setForm] = useState(() => ({
-    elderId: task?.elderId || elders[0]?.id || '',
+    elderId: task?.elderId || preselectedElderId || elders[0]?.id || '',
     assignedTo: task?.assignedTo || members[0]?.id || '',
     bathroom: task?.bathroom || '主卧浴室',
     nonSlipMat: task?.nonSlipMat ?? true,
