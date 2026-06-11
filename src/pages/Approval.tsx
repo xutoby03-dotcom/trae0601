@@ -319,6 +319,8 @@ export default function Approval() {
   const handleHazardousConfirm = (id: string) => {
     approveHazardousRequisition(id, '李老师')
     setConfirmHazardousId(null)
+    setRejectingInDrawer(false)
+    setRejectReason('')
   }
 
   const handleReject = (id: string, reason: string) => {
@@ -339,6 +341,12 @@ export default function Approval() {
 
   const openDetail = (id: string) => {
     setSelectedId(id)
+    setRejectingInDrawer(false)
+    setRejectReason('')
+  }
+
+  const closeDetail = () => {
+    setSelectedId(null)
     setRejectingInDrawer(false)
     setRejectReason('')
   }
@@ -478,6 +486,7 @@ export default function Approval() {
                       onClick={() => {
                         setSelectedId(r.id)
                         setRejectingInDrawer(true)
+                        setRejectReason('')
                       }}
                       className="btn-outline text-xs px-3 py-1.5 flex items-center gap-1 border-danger-500 text-danger-500 hover:bg-red-50"
                     >
@@ -505,7 +514,7 @@ export default function Approval() {
         <DetailDrawer
           requisition={selectedReq}
           consumable={selectedConsumable}
-          onClose={() => setSelectedId(null)}
+          onClose={closeDetail}
           onApprove={handleDrawerApprove}
           onReject={handleDrawerReject}
           rejecting={rejectingInDrawer}
@@ -518,7 +527,11 @@ export default function Approval() {
 
       {confirmHazardousId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmHazardousId(null)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => {
+            setConfirmHazardousId(null)
+            setRejectingInDrawer(false)
+            setRejectReason('')
+          }} />
           <div className="relative bg-white rounded-2xl p-6 w-[440px] shadow-2xl animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
@@ -536,7 +549,11 @@ export default function Approval() {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => setConfirmHazardousId(null)}
+                onClick={() => {
+                  setConfirmHazardousId(null)
+                  setRejectingInDrawer(false)
+                  setRejectReason('')
+                }}
                 className="btn-outline flex-1"
               >
                 取消
