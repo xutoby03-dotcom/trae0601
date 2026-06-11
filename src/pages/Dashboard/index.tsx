@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Package, Truck, CheckCircle, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Package, Truck, CheckCircle, MessageCircle, AlertTriangle, Search, X, Clock } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import type { ShipmentStatus, ShipmentOrder } from '@/store/types';
 import { StatusCard } from '@/components/StatusCard';
@@ -8,7 +8,7 @@ import { ShipmentCard } from '@/components/ShipmentCard';
 import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
 import { expressCompanyOptions } from '@/utils/express';
-import { getTodayStr } from '@/utils/date';
+import { getTodayStr, parseISO } from '@/utils/date';
 
 const statusTabs: { status: ShipmentStatus; label: string }[] = [
   { status: 'pending', label: '待寄出' },
@@ -19,7 +19,7 @@ const statusTabs: { status: ShipmentStatus; label: string }[] = [
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   
   const {
@@ -34,7 +34,8 @@ export const Dashboard: React.FC = () => {
   } = useStore();
 
   const [activeStatus, setActiveStatus] = useState<ShipmentStatus>('pending');
-  const [displayOrders, setDisplayOrders] = useState<ShipmentOrder[]>([]);
+  const [showOverdueOnly, setShowOverdueOnly] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const [shippedModalOpen, setShippedModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -57,15 +58,57 @@ export const Dashboard: React.FC = () => {
   }, [loadFromStorage]);
 
   useEffect(() => {
-    const searchKeyword = searchParams.get('search');
-    if (searchKeyword) {
-      const results = searchOrders(searchKeyword);
-      setDisplayOrders(results);
+    const keyword = searchParams.get('search') || '';
+    setSearchInput(keyword);
+  }, [searchParams]);
+
+  const displayOrders = useMemo(() => {
+    let orders: ShipmentOrder[];
+
+    if (searchInput.trim()) {
+      orders = searchOrders(searchInput.trim());
     } else {
-      const orders = getOrdersByStatus(activeStatus);
-      setDisplayOrders(orders);
+      orders = getOrdersByStatus(activeStatus);
     }
-  }, [activeStatus, shipmentOrders, searchParams, getOrdersByStatus, searchOrders]);
+
+    if (showOverdueOnly) {
+      const today = new Date();
+      orders = orders.filter(order => {
+        if (order.status !== 'shipping' || !order.expectedArrivalDate) return false;
+        return parseISO(order.expectedArrivalDate) < today;
+      });
+    }
+
+    return orders;
+  }, [searchInput, activeStatus, showOverdueOnly, shipmentOrders, searchOrders, getOrdersByStatus]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setSearchParams({ search: searchInput.trim() });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setSearchParams({});
+  };
+
+  const toggleOverdueFilter = () => {
+    const next = !showOverdueOnly;
+    setShowOverdueOnly(next);
+    if (next && activeStatus !== 'shipping') {
+      setActiveStatus('shipping');
+    }
+  };
+
+  const handleStatusClick = (status: ShipmentStatus) => {
+    setActiveStatus(status);
+    setShowOverdueOnly(false);
+    setSearchParams({});
+  };
 
   const handleMarkShipped = (id: string) => {
     setSelectedOrderId(id);
@@ -146,7 +189,19 @@ export const Dashboard: React.FC = () => {
   const deliveredCount = getOrdersByStatus('delivered').length;
   const followupCount = getOrdersByStatus('followup').length;
   const overdueCount = getOverdueOrders().length;
-  const searchKeyword = searchParams.get('search');
+  const hasActiveFilter = searchInput.trim() || showOverdueOnly;
+
+  let emptyTitle = '暂无寄样单';
+  let emptyDesc = '';
+  if (searchInput.trim()) {
+    emptyTitle = '没有找到匹配的寄样单';
+    emptyDesc = `试试换个关键词搜索，或清除筛选条件`;
+  } else if (showOverdueOnly) {
+    emptyTitle = '暂无超时未签收的包裹';
+    emptyDesc = '当前运输中的包裹均在预计到达时间内';
+  } else {
+    emptyDesc = `当前"${statusTabs.find(t => t.status === activeStatus)?.label}"分组暂无数据`;
+  }
 
   return (
     <div className="space-y-6">
@@ -156,32 +211,32 @@ export const Dashboard: React.FC = () => {
           count={pendingCount}
           label="待寄出"
           icon={<Package className="w-6 h-6" />}
-          isActive={activeStatus === 'pending' && !searchKeyword}
-          onClick={() => { setActiveStatus('pending'); navigate('/'); }}
+          isActive={activeStatus === 'pending' && !hasActiveFilter}
+          onClick={() => handleStatusClick('pending')}
         />
         <StatusCard
           status="shipping"
           count={shippingCount}
           label={overdueCount > 0 ? `运输中 (${overdueCount}超时)` : '运输中'}
           icon={<Truck className="w-6 h-6" />}
-          isActive={activeStatus === 'shipping' && !searchKeyword}
-          onClick={() => { setActiveStatus('shipping'); navigate('/'); }}
+          isActive={activeStatus === 'shipping' && !hasActiveFilter}
+          onClick={() => handleStatusClick('shipping')}
         />
         <StatusCard
           status="delivered"
           count={deliveredCount}
           label="已签收"
           icon={<CheckCircle className="w-6 h-6" />}
-          isActive={activeStatus === 'delivered' && !searchKeyword}
-          onClick={() => { setActiveStatus('delivered'); navigate('/'); }}
+          isActive={activeStatus === 'delivered' && !hasActiveFilter}
+          onClick={() => handleStatusClick('delivered')}
         />
         <StatusCard
           status="followup"
           count={followupCount}
           label="要回访"
           icon={<MessageCircle className="w-6 h-6" />}
-          isActive={activeStatus === 'followup' && !searchKeyword}
-          onClick={() => { setActiveStatus('followup'); navigate('/'); }}
+          isActive={activeStatus === 'followup' && !hasActiveFilter}
+          onClick={() => handleStatusClick('followup')}
         />
       </div>
 
@@ -196,21 +251,17 @@ export const Dashboard: React.FC = () => {
       )}
 
       <div className="bg-white rounded-xl border border-gray-200">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {searchKeyword ? (
-                <h2 className="text-lg font-semibold text-gray-800">
-                  搜索结果："{searchKeyword}"
-                </h2>
-              ) : (
+        <div className="border-b border-gray-200 px-6 py-4 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {!searchInput.trim() && (
                 <div className="flex gap-1">
                   {statusTabs.map((tab) => (
                     <button
                       key={tab.status}
-                      onClick={() => setActiveStatus(tab.status)}
+                      onClick={() => handleStatusClick(tab.status)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        activeStatus === tab.status
+                        activeStatus === tab.status && !hasActiveFilter
                           ? 'bg-blue-100 text-blue-700'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
@@ -223,6 +274,11 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
               )}
+              {searchInput.trim() && (
+                <h2 className="text-lg font-semibold text-gray-800">
+                  搜索结果："{searchInput.trim()}"
+                </h2>
+              )}
             </div>
             <button
               onClick={() => navigate('/create')}
@@ -232,13 +288,71 @@ export const Dashboard: React.FC = () => {
               新建寄样单
             </button>
           </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="搜索客户名、样品名、快递单号..."
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </form>
+
+            <button
+              onClick={toggleOverdueFilter}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                showOverdueOnly
+                  ? 'bg-red-100 text-red-700 border border-red-200'
+                  : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              超时未签收
+              {overdueCount > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                  showOverdueOnly ? 'bg-red-200 text-red-800' : 'bg-red-500 text-white'
+                }`}>
+                  {overdueCount}
+                </span>
+              )}
+            </button>
+
+            {hasActiveFilter && (
+              <button
+                onClick={() => { clearSearch(); setShowOverdueOnly(false); }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-1"
+              >
+                <X className="w-4 h-4" />
+                清除筛选
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-6">
           {displayOrders.length === 0 ? (
-            <div className="text-center py-12">
-              <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">暂无寄样单</p>
+            <div className="text-center py-16">
+              {searchInput.trim() ? (
+                <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              ) : showOverdueOnly ? (
+                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              ) : (
+                <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              )}
+              <p className="text-gray-700 font-medium mb-1">{emptyTitle}</p>
+              {emptyDesc && <p className="text-gray-400 text-sm">{emptyDesc}</p>}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
