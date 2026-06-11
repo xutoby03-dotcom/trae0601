@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import type { Reimbursement, ReimbursementFormData, Project } from '@/types';
 import { mockReimbursements, mockProjects } from '@/data/mockData';
 
-const STORAGE_KEY_REIMBURSEMENTS = 'overtime-meal-reimbursements';
-const STORAGE_KEY_INITIALIZED = 'overtime-meal-initialized';
+const STORAGE_KEY_REIMBURSEMENTS = 'overtime-meal-reimbursements-v2';
+const STORAGE_KEY_INITIALIZED = 'overtime-meal-initialized-v2';
 
 interface ReimbursementState {
   reimbursements: Reimbursement[];

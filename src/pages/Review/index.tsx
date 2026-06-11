@@ -16,7 +16,6 @@ import {
 import { useReimbursementStore } from '@/store/useReimbursementStore';
 import { StatusTag, InvoiceStatusTag } from '@/components/StatusTag';
 import { Modal } from '@/components/Modal';
-import type { Reimbursement } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatDate, formatAmount, formatDateTime } from '@/utils/format';
 
@@ -46,7 +45,12 @@ export function ReviewPage() {
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [detailItem, setDetailItem] = useState<Reimbursement | null>(null);
+  const [detailItemId, setDetailItemId] = useState<string | null>(null);
+
+  const detailItem = useMemo(
+    () => (detailItemId ? reimbursements.find((r) => r.id === detailItemId) ?? null : null),
+    [detailItemId, reimbursements]
+  );
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingId, setRejectingId] = useState<string>('');
@@ -372,7 +376,7 @@ export function ReviewPage() {
 
                       <div className="mt-3 flex items-center justify-between">
                         <button
-                          onClick={() => setDetailItem(item)}
+                          onClick={() => setDetailItemId(item.id)}
                           className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
                         >
                           <Eye className="w-4 h-4" />
@@ -426,7 +430,7 @@ export function ReviewPage() {
         </div>
       </div>
 
-      <Modal isOpen={!!detailItem} onClose={() => setDetailItem(null)} title="报销单详情">
+      <Modal isOpen={!!detailItem} onClose={() => setDetailItemId(null)} title="报销单详情">
         {detailItem && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
