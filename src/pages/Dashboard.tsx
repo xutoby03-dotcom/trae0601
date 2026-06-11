@@ -116,7 +116,6 @@ function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
     const prev = lastTwo[0]
     const curr = lastTwo[1]
     const diffVal = curr.value - prev.value
-    const diffDecimals = diffVal % 1 === 0 ? 0 : (diffVal.toString().split(".")[1]?.length || 2)
     const isZero = prev.value === 0
     const diffPct = isZero ? null : ((curr.value - prev.value) / prev.value) * 100
     return {
@@ -124,7 +123,7 @@ function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
       currValue: curr.value,
       prevDate: prev.date,
       currDate: curr.date,
-      diff: diffVal.toFixed(diffDecimals),
+      diff: String(parseFloat(diffVal.toFixed(2))),
       diffPercent: diffPct !== null ? diffPct.toFixed(1) : null,
       isNewIndicator: isZero,
     }
