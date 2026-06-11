@@ -80,9 +80,19 @@ export function readFileAsDataURL(file: File): Promise<string> {
 export function sortStrollersByPriority<T extends { isFireExit: boolean; status: StrollerStatus; updatedAt: string }>(
   list: T[]
 ): T[] {
+  const getPriority = (item: T): number => {
+    if (item.isFireExit && item.status === 'blocking') return 0;
+    if (item.isFireExit) return 1;
+    if (item.status === 'blocking') return 2;
+    if (item.status === 'pending') return 3;
+    if (item.status === 'normal') return 4;
+    return 5;
+  };
+
   return [...list].sort((a, b) => {
-    const weightA = (a.isFireExit ? 1000 : 0) + (a.status === 'blocking' ? 500 : 0) - new Date(a.updatedAt).getTime();
-    const weightB = (b.isFireExit ? 1000 : 0) + (b.status === 'blocking' ? 500 : 0) - new Date(b.updatedAt).getTime();
-    return weightB - weightA;
+    const prioA = getPriority(a);
+    const prioB = getPriority(b);
+    if (prioA !== prioB) return prioA - prioB;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
 }

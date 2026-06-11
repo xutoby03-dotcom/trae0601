@@ -10,7 +10,7 @@ export default function StrollerForm() {
     useStrollerStore();
   const editing = activeFormStrollerId ? getStrollerById(activeFormStrollerId) : null;
 
-  const [form, setForm] = useState({
+  const initialForm = {
     building: '1栋',
     room: '',
     ownerName: '',
@@ -21,11 +21,15 @@ export default function StrollerForm() {
     isLongTerm: false,
     photos: [] as string[],
     status: 'normal' as StrollerStatus,
-  });
+  };
+
+  const [form, setForm] = useState(initialForm);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (editing) {
+    if (activeFormStrollerId === '') {
+      setForm({ ...initialForm });
+    } else if (editing) {
       setForm({
         building: editing.building,
         room: editing.room,
@@ -39,7 +43,7 @@ export default function StrollerForm() {
         status: editing.status,
       });
     }
-  }, [editing]);
+  }, [activeFormStrollerId, editing]);
 
   if (!activeFormStrollerId && activeFormStrollerId !== null) {
     // wait for modal trigger
