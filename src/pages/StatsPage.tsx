@@ -53,10 +53,15 @@ export default function StatsPage() {
     return () => document.removeEventListener('keydown', handleEsc);
   }, []);
 
-  const availableMonths = useMemo(
-    () => getAvailableMonths(patrolRecords.map((r) => r.createdAt)),
-    [patrolRecords]
-  );
+  const menuMonths = useMemo(() => {
+    const base = getAvailableMonths(patrolRecords.map((r) => r.createdAt));
+    const exists = base.some((m) => m.year === selectedYear && m.month === selectedMonth);
+    if (exists) return base;
+    const label = `${selectedYear}年${selectedMonth + 1}月`;
+    const merged = [...base, { year: selectedYear, month: selectedMonth, label }];
+    merged.sort((a, b) => b.year - a.year || b.month - a.month);
+    return merged;
+  }, [patrolRecords, selectedYear, selectedMonth]);
 
   const monthFilter = { year: selectedYear, month: selectedMonth };
   const topLocations = getTopBlockingLocations(10, monthFilter);
@@ -145,7 +150,7 @@ export default function StatsPage() {
                     )}
                   >
                     <div className="p-1.5 max-h-[320px] overflow-y-auto">
-                      {availableMonths.map((m) => {
+                      {menuMonths.map((m) => {
                         const isSelected =
                           m.year === selectedYear && m.month === selectedMonth;
                         const isCur =
