@@ -233,14 +233,20 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
 
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 12, gap: 12, flexWrap: 'wrap'
+        marginBottom: 12, gap: 10
       }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', flexShrink: 0 }}>
+        <div style={{
+          fontSize: 14, fontWeight: 600, color: '#0f172a',
+          flexShrink: 0, whiteSpace: 'nowrap'
+        }}>
           💰 欠款变化流水
         </div>
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, auto)',
-          gap: 4, padding: 3, backgroundColor: '#f1f5f9', borderRadius: 9, flexShrink: 0
+          display: 'flex', gap: 4, padding: 3,
+          backgroundColor: '#f1f5f9', borderRadius: 9,
+          overflowX: 'auto', overflowY: 'hidden',
+          flexShrink: 1, minWidth: 0,
+          scrollbarWidth: 'none'
         }}>
           {([
             { k: 'all', label: '全部' },
@@ -255,12 +261,13 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
                 onClick={() => setFlowFilter(tab.k)}
                 title={tab.k === 'all' ? '赊账记+，还款记-' : undefined}
                 style={{
-                  border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 10px',
+                  border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 12px',
                   borderRadius: 7, fontWeight: active ? 600 : 400,
                   backgroundColor: active ? 'white' : 'transparent',
                   color: active ? '#4f46e5' : '#64748b',
                   boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.2s', whiteSpace: 'nowrap'
+                  transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
                 {tab.label}
