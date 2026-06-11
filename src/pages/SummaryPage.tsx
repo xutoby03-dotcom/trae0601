@@ -28,7 +28,6 @@ const COLORS = ["#03A9F4", "#EF5350", "#66BB6A", "#FFA726", "#AB47BC", "#26A69A"
 export default function SummaryPage() {
   const history = useStore((s) => s.history);
   const members = useStore((s) => s.members);
-  const clothings = useStore((s) => s.clothings);
 
   const stats = useMemo(() => {
     const weekHistory = history.filter((h) => isWithinDays(h.completedAt, 7));
@@ -51,12 +50,6 @@ export default function SummaryPage() {
       });
     });
 
-    const memberClothingCount: Record<string, number> = {};
-    clothings.forEach((c) => {
-      memberClothingCount[c.memberId] =
-        (memberClothingCount[c.memberId] || 0) + 1;
-    });
-
     const memberWeekWashCount: Record<string, number> = {};
     weekHistory.forEach((h) => {
       Object.entries(h.memberStats).forEach(([mid, cnt]) => {
@@ -69,10 +62,9 @@ export default function SummaryPage() {
       totalClothesInWeek,
       totalConflicts: Object.values(conflictCount).reduce((a, b) => a + b, 0),
       conflictCount,
-      memberClothingCount,
       memberWeekWashCount,
     };
-  }, [history, clothings]);
+  }, [history]);
 
   const conflictChartData = useMemo(() => {
     return Object.entries(stats.conflictCount)
@@ -88,21 +80,23 @@ export default function SummaryPage() {
   const memberChartData = useMemo(() => {
     return members.map((m, idx) => ({
       name: `${m.avatar} ${m.name}`,
-      衣物总数: stats.memberClothingCount[m.id] || 0,
       本周洗涤: stats.memberWeekWashCount[m.id] || 0,
       fill: COLORS[idx % COLORS.length],
     }));
-  }, [members, stats.memberClothingCount, stats.memberWeekWashCount]);
+  }, [members, stats.memberWeekWashCount]);
 
   const pieData = useMemo(() => {
     return members
       .map((m, idx) => ({
         name: `${m.avatar} ${m.name}`,
-        value: stats.memberClothingCount[m.id] || 0,
+        value: stats.memberWeekWashCount[m.id] || 0,
         fill: COLORS[idx % COLORS.length],
       }))
       .filter((d) => d.value > 0);
-  }, [members, stats.memberClothingCount]);
+  }, [members, stats.memberWeekWashCount]);
+
+  const hasHistory = history.length > 0;
+  const hasWeekData = stats.weekWashCount > 0;
 
   return (
     <div className="container py-6">
@@ -218,12 +212,13 @@ export default function SummaryPage() {
           <div className="mb-4 flex items-center gap-2">
             <Users className="h-5 w-5 text-primary-500" />
             <h2 className="text-lg font-semibold text-neutral-800">
-              衣物数量分布
+              本周谁的衣服洗得最多
             </h2>
           </div>
-          {pieData.length === 0 ? (
-            <div className="flex h-64 items-center justify-center text-sm text-neutral-400">
-              暂无衣物数据
+          {!hasWeekData ? (
+            <div className="flex h-64 flex-col items-center justify-center gap-2 text-sm text-neutral-400">
+              <WashingMachine className="h-10 w-10 opacity-30" />
+              本周暂无洗衣记录
             </div>
           ) : (
             <div className="h-64">
@@ -261,32 +256,34 @@ export default function SummaryPage() {
           <div className="mb-4 flex items-center gap-2">
             <WashingMachine className="h-5 w-5 text-primary-500" />
             <h2 className="text-lg font-semibold text-neutral-800">
-              各成员衣物 vs 本周洗涤对比
+              各成员本周洗衣量
             </h2>
           </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={memberChartData}
-                margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
-              >
-                <XAxis dataKey="name" tick={{ fontSize: 13 }} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="衣物总数"
-                  fill="#03A9F4"
-                  radius={[6, 6, 0, 0]}
-                />
-                <Bar
-                  dataKey="本周洗涤"
-                  fill="#66BB6A"
-                  radius={[6, 6, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {!hasWeekData ? (
+            <div className="flex h-72 flex-col items-center justify-center gap-2 text-sm text-neutral-400">
+              <WashingMachine className="h-12 w-12 opacity-30" />
+              暂无洗衣记录，洗完第一桶后再来看看谁的衣服最多
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={memberChartData}
+                  margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+                >
+                  <XAxis dataKey="name" tick={{ fontSize: 13 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar
+                    dataKey="本周洗涤"
+                    fill="#03A9F4"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
     </div>
