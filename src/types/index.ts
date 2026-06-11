@@ -76,4 +76,11 @@ export interface DailyStatsFilter {
 export interface DepartmentRankingFilter {
   startDate?: string;
   endDate?: string;
+  cardType?: CardType;
+}
+
+export interface OverdueFilter {
+  startDate?: string;
+  endDate?: string;
+  cardType?: CardType;
 }

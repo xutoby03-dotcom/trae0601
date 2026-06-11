@@ -65,13 +65,21 @@ export default function Statistics() {
   );
 
   const rankingFilter = useMemo(
-    () => ({ startDate, endDate }),
-    [startDate, endDate]
+    () => ({
+      startDate,
+      endDate,
+      cardType: typeFilter === "all" ? undefined : typeFilter,
+    }),
+    [startDate, endDate, typeFilter]
   );
 
   const overdueFilter = useMemo(
-    () => ({ startDate, endDate }),
-    [startDate, endDate]
+    () => ({
+      startDate,
+      endDate,
+      cardType: typeFilter === "all" ? undefined : typeFilter,
+    }),
+    [startDate, endDate, typeFilter]
   );
 
   const dailyStats = getDailyStats(dailyFilter);

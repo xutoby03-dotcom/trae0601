@@ -11,6 +11,7 @@ import {
   DailyStatsFilter,
   DepartmentRankingFilter,
   RecordFilter,
+  OverdueFilter,
 } from "@/types";
 import {
   generateId,
@@ -43,7 +44,7 @@ interface CardStore {
   getRecentRecords: (limit?: number) => BorrowRecord[];
   getDailyStats: (filter?: DailyStatsFilter) => DailyStats[];
   getDepartmentRanking: (filter?: DepartmentRankingFilter) => DepartmentStats[];
-  getOverdueRecords: (filter?: { startDate?: string; endDate?: string }) => BorrowRecord[];
+  getOverdueRecords: (filter?: OverdueFilter) => BorrowRecord[];
   getOverdueCount: () => number;
   getRecordsByFilter: (filter: RecordFilter, limit?: number) => BorrowRecord[];
   resetToInitialData: () => void;
@@ -426,6 +427,11 @@ export const useCardStore = create<CardStore>((set, get) => ({
     const { records } = get();
     const deptMap = new Map<string, number>();
 
+    const targetCardType = filter?.cardType ?? "employee";
+    if (targetCardType !== "employee") {
+      return [];
+    }
+
     let filtered = records.filter((r) => r.cardType === "employee");
     if (filter?.startDate) {
       const start = new Date(filter.startDate);
@@ -452,6 +458,9 @@ export const useCardStore = create<CardStore>((set, get) => ({
     let result = get().records.filter(
       (r) => r.status === "active" && isOverdue(r.expectedReturnTime)
     );
+    if (filter?.cardType) {
+      result = result.filter((r) => r.cardType === filter.cardType);
+    }
     if (filter?.startDate) {
       const start = new Date(filter.startDate);
       start.setHours(0, 0, 0, 0);
