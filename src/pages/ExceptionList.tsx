@@ -21,6 +21,7 @@ export default function ExceptionList() {
   const { exceptions, loans, devices, customers, resolveException } = useAppStore();
   const [statusFilter, setStatusFilter] = useState<ExceptionStatus | 'all'>('all');
   const [severityFilter, setSeverityFilter] = useState<ExceptionSeverity | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<ExceptionType | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showResolveModal, setShowResolveModal] = useState<string | null>(null);
   const [solution, setSolution] = useState('');
@@ -35,11 +36,12 @@ export default function ExceptionList() {
   const filteredExceptions = exceptionsWithDetails.filter((exc) => {
     const matchesStatus = statusFilter === 'all' || exc.status === statusFilter;
     const matchesSeverity = severityFilter === 'all' || exc.severity === severityFilter;
+    const matchesType = typeFilter === 'all' || exc.type === typeFilter;
     const matchesSearch =
       exc.device?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exc.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exc.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSeverity && matchesSearch;
+    return matchesStatus && matchesSeverity && matchesType && matchesSearch;
   });
 
   const statusCounts = {
@@ -75,7 +77,7 @@ export default function ExceptionList() {
   return (
     <PageContainer title="异常管理" subtitle="管理样机异常问题与处理">
       {/* 统计卡片 */}
-      <div className="grid grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-5 gap-6 mb-6">
         <div className="bg-white rounded-xl shadow-card p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -120,6 +122,30 @@ export default function ExceptionList() {
             </div>
           </div>
         </div>
+        <button
+          onClick={() => setTypeFilter(typeFilter === 'accessory_missing' ? 'all' : 'accessory_missing')}
+          className={`rounded-xl shadow-card p-5 transition-all text-left ${
+            typeFilter === 'accessory_missing'
+              ? 'bg-primary-900 ring-2 ring-primary-400'
+              : 'bg-white hover:shadow-card-hover'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`text-sm ${typeFilter === 'accessory_missing' ? 'text-primary-200' : 'text-gray-500'}`}>
+                配件缺失
+              </p>
+              <p className={`text-2xl font-bold font-serif mt-1 ${typeFilter === 'accessory_missing' ? 'text-white' : 'text-primary-700'}`}>
+                {exceptions.filter(e => e.type === 'accessory_missing').length}
+              </p>
+            </div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              typeFilter === 'accessory_missing' ? 'bg-primary-700' : 'bg-primary-50'
+            }`}>
+              <Package className={`w-6 h-6 ${typeFilter === 'accessory_missing' ? 'text-white' : 'text-primary-500'}`} />
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* 操作栏 */}
@@ -215,10 +241,16 @@ export default function ExceptionList() {
                         <span className="flex items-center gap-1">
                           <Package className="w-3.5 h-3.5" />
                           {exc.device?.name}
+                          {exc.device?.deviceNo && (
+                            <span className="text-gray-400 ml-0.5">{exc.device.deviceNo}</span>
+                          )}
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="w-3.5 h-3.5" />
                           {exc.customer?.name}
+                          {exc.customer?.company && (
+                            <span className="text-gray-400 ml-0.5">{exc.customer.company}</span>
+                          )}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
