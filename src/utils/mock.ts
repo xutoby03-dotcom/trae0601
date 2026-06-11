@@ -121,6 +121,8 @@ export const mockExceptionEvents: ExceptionEvent[] = [
     assigneeName: '赵师傅',
     status: 'processing',
     createdAt: '2026-06-10T22:25:00',
+    assignedAt: '2026-06-10T22:40:00',
+    startedAt: '2026-06-10T23:05:00',
     handlingResult: '',
   },
   {
@@ -135,6 +137,7 @@ export const mockExceptionEvents: ExceptionEvent[] = [
     assigneeName: '钱师傅',
     status: 'assigned',
     createdAt: '2026-06-10T22:18:00',
+    assignedAt: '2026-06-10T22:35:00',
   },
   {
     id: 'e3',
@@ -148,6 +151,8 @@ export const mockExceptionEvents: ExceptionEvent[] = [
     assigneeName: '孙队长',
     status: 'resolved',
     createdAt: '2026-06-10T23:03:00',
+    assignedAt: '2026-06-10T23:10:00',
+    startedAt: '2026-06-10T23:25:00',
     resolvedAt: '2026-06-11T08:30:00',
     handlingResult: '已调取监控，未发现可疑人员，门锁已更换',
   },
