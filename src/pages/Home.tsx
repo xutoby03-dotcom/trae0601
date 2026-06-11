@@ -451,7 +451,6 @@ export default function Home() {
         onClose={closeDetailDrawer}
         ladderId={drawerLadderId}
         onOpenReturn={openReturnModalFor}
-        onOpenBorrow={openBorrowModalFor}
       />
     </div>
   );

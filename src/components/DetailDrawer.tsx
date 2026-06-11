@@ -1,4 +1,4 @@
-import { X, User, MapPin, Phone, CalendarClock, HandHelping, Lightbulb, Clock, Trash2, Undo2, LogOut } from 'lucide-react';
+import { X, User, MapPin, Phone, CalendarClock, HandHelping, Lightbulb, Clock, Trash2, Undo2 } from 'lucide-react';
 import { useStore } from '@/store';
 import { useToast } from '@/components/Toast';
 import { LadderStatus, ReservationStatus } from '@/types';
@@ -9,7 +9,6 @@ interface DetailDrawerProps {
   onClose: () => void;
   ladderId: string | null;
   onOpenReturn?: (ladderId: string) => void;
-  onOpenBorrow?: (ladderId: string) => void;
 }
 
 export default function DetailDrawer({
@@ -17,7 +16,6 @@ export default function DetailDrawer({
   onClose,
   ladderId,
   onOpenReturn,
-  onOpenBorrow,
 }: DetailDrawerProps) {
   const {
     ladders,
@@ -93,11 +91,6 @@ export default function DetailDrawer({
   const handleOpenReturn = () => {
     onClose();
     onOpenReturn?.(ladderId);
-  };
-
-  const handleOpenBorrow = () => {
-    onClose();
-    onOpenBorrow?.(ladderId);
   };
 
   const now = new Date();
@@ -241,22 +234,13 @@ export default function DetailDrawer({
         <div className="border-t border-slate-100 p-5 bg-slate-50/80 backdrop-blur">
           <div className="flex gap-3">
             {status === LadderStatus.RESERVED && activeReservation && (
-              <>
-                <button
-                  onClick={() => handleCancelReservation(activeReservation.id)}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 hover:border-danger-200 hover:text-danger-600 transition-all duration-200 shadow-soft"
-                >
-                  <Trash2 className="w-4.5 h-4.5" />
-                  取消预约
-                </button>
-                <button
-                  onClick={handleOpenBorrow}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white font-medium shadow-soft hover:shadow-card hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  <LogOut className="w-4.5 h-4.5" />
-                  借出登记
-                </button>
-              </>
+              <button
+                onClick={() => handleCancelReservation(activeReservation.id)}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 hover:border-danger-200 hover:text-danger-600 transition-all duration-200 shadow-soft"
+              >
+                <Trash2 className="w-4.5 h-4.5" />
+                取消预约
+              </button>
             )}
 
             {(status === LadderStatus.BORROWED || status === LadderStatus.OVERDUE) && (
