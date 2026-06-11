@@ -123,7 +123,16 @@ export default function ExceptionList() {
           </div>
         </div>
         <button
-          onClick={() => setTypeFilter(typeFilter === 'accessory_missing' ? 'all' : 'accessory_missing')}
+          onClick={() => {
+            if (typeFilter === 'accessory_missing') {
+              setTypeFilter('all');
+            } else {
+              setTypeFilter('accessory_missing');
+              setStatusFilter('all');
+              setSeverityFilter('all');
+              setSearchTerm('');
+            }
+          }}
           className={`rounded-xl shadow-card p-5 transition-all text-left ${
             typeFilter === 'accessory_missing'
               ? 'bg-primary-900 ring-2 ring-primary-400'
