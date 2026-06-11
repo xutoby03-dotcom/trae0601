@@ -13,7 +13,7 @@ export default function HistoryPage() {
   const members = useStore((s) => s.members);
   const clearHistory = useStore((s) => s.clearHistory);
   const [searchParams, setSearchParams] = useSearchParams();
-  const highlightId = searchParams.get("id");
+  const highlightId = searchParams.get("historyId") || searchParams.get("id");
   const recordRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -55,8 +55,10 @@ export default function HistoryPage() {
 
   const clearHighlight = () => {
     if (highlightId) {
-      searchParams.delete("id");
-      setSearchParams(searchParams, { replace: true });
+      const params = new URLSearchParams(searchParams);
+      params.delete("historyId");
+      params.delete("id");
+      setSearchParams(params, { replace: true });
     }
   };
 
