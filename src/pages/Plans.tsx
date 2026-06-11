@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, MapPin, Calendar, Clock, Trash2, Edit2, ChevronRight, Users, DollarSign, Armchair } from 'lucide-react';
 import useStore from '../store/useStore';
@@ -40,6 +41,7 @@ const colors = [
 ];
 
 export default function Plans() {
+  const navigate = useNavigate();
   const { plans, members, addPlan, deletePlan } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PlanFormData>(initialFormData);
@@ -197,7 +199,8 @@ export default function Plans() {
               key={plan.id}
               variants={itemVariants}
               transition={{ delay: index * 0.05 }}
-              className="group relative overflow-hidden glass-card p-6 hover:border-neon-purple/50 transition-all duration-300"
+              className="group relative overflow-hidden glass-card p-6 hover:border-neon-purple/50 transition-all duration-300 cursor-pointer"
+              onClick={() => navigate(`/plans/${plan.id}`)}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6">
                 {/* Artist Image */}
