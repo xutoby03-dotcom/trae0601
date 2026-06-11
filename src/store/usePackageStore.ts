@@ -25,7 +25,7 @@ function savePackages(packages: PackageItem[]) {
 }
 
 function isOverdue(pkg: PackageItem): boolean {
-  if (pkg.status === 'picked_up') return false;
+  if (pkg.status === 'picked_up' || pkg.status === 'resolved') return false;
   const created = new Date(pkg.createdAt).getTime();
   const now = Date.now();
   const hoursDiff = (now - created) / (1000 * 60 * 60);

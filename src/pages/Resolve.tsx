@@ -15,6 +15,7 @@ export default function Resolve() {
   const [targetStatus, setTargetStatus] = useState<'pending' | 'resolved'>('pending');
   const [showError, setShowError] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ by: string; note: string; target: 'pending' | 'resolved' } | null>(null);
 
   if (!pkg) {
     return (
@@ -24,6 +25,29 @@ export default function Resolve() {
         </div>
         <p className="text-warm-500 text-sm mb-4">未找到该包裹</p>
         <Link to="/" className="text-sm text-primary-500 hover:underline">返回首页</Link>
+      </div>
+    );
+  }
+
+  if (success && successInfo) {
+    return (
+      <div className="p-6 max-w-md mx-auto text-center py-20">
+        <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-check-pop">
+          <Check className="w-9 h-9 text-emerald-600" />
+        </div>
+        <h3 className="text-xl font-bold text-primary-800 mb-2">处理完成！</h3>
+        <p className="text-warm-500 text-sm mb-1">
+          {successInfo.by} 已将包裹标记为「{STATUS_LABELS[successInfo.target]}」
+        </p>
+        {successInfo.note && (
+          <p className="text-warm-400 text-xs mb-6">备注：{successInfo.note}</p>
+        )}
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors"
+        >
+          返回首页
+        </button>
       </div>
     );
   }
@@ -51,32 +75,12 @@ export default function Resolve() {
       setShowError(true);
       return;
     }
-    resolveAbnormal(pkg.id, resolvedBy.trim(), resolvedNote.trim(), targetStatus);
+    const by = resolvedBy.trim();
+    const note = resolvedNote.trim();
+    resolveAbnormal(pkg.id, by, note, targetStatus);
+    setSuccessInfo({ by, note, target: targetStatus });
     setSuccess(true);
   };
-
-  if (success) {
-    return (
-      <div className="p-6 max-w-md mx-auto text-center py-20">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-check-pop">
-          <Check className="w-9 h-9 text-emerald-600" />
-        </div>
-        <h3 className="text-xl font-bold text-primary-800 mb-2">处理完成！</h3>
-        <p className="text-warm-500 text-sm mb-1">
-          {resolvedBy} 已将包裹标记为「{STATUS_LABELS[targetStatus]}」
-        </p>
-        {resolvedNote && (
-          <p className="text-warm-400 text-xs mb-6">备注：{resolvedNote}</p>
-        )}
-        <button
-          onClick={() => navigate('/')}
-          className="px-6 py-2.5 bg-primary-500 text-white rounded-xl text-sm font-semibold hover:bg-primary-600 transition-colors"
-        >
-          返回首页
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 max-w-md mx-auto">

@@ -18,7 +18,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function isOverdueCheck(pkg: PackageItem): boolean {
-  if (pkg.status === 'picked_up') return false;
+  if (pkg.status === 'picked_up' || pkg.status === 'resolved') return false;
   const created = new Date(pkg.createdAt).getTime();
   const hoursDiff = (Date.now() - created) / 3600000;
   if (pkg.isColdChain) return hoursDiff > 4;
@@ -48,7 +48,7 @@ export default function PackageCard({ pkg }: PackageCardProps) {
         </div>
       )}
 
-      {overdue && pkg.status !== 'picked_up' && (
+      {overdue && pkg.status !== 'picked_up' && pkg.status !== 'resolved' && (
         <div className="absolute -top-2 -left-2 bg-coral-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg animate-pulse-slow">
           <AlertTriangle className="w-3.5 h-3.5" />
         </div>
@@ -106,7 +106,7 @@ export default function PackageCard({ pkg }: PackageCardProps) {
                 冷藏
               </span>
             )}
-            {overdue && pkg.status !== 'picked_up' && (
+            {overdue && pkg.status !== 'picked_up' && pkg.status !== 'resolved' && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-coral-50 text-coral-600 font-medium animate-pulse-slow">
                 ⚠ 超时未取
               </span>
@@ -151,11 +151,13 @@ export default function PackageCard({ pkg }: PackageCardProps) {
               </p>
             </div>
           )}
-          {pkg.resolvedAt && (
+          {pkg.resolvedAt && !pkg.pickedUpAt && (
             <div className="text-right space-y-0.5">
-              <div className="text-xs text-slate-600 font-medium flex items-center justify-end gap-1">
+              <div className={`text-xs font-medium flex items-center justify-end gap-1 ${
+                pkg.status === 'resolved' ? 'text-slate-600' : 'text-amber-600'
+              }`}>
                 <Wrench className="w-3.5 h-3.5" />
-                已处理
+                {pkg.status === 'resolved' ? '已处理' : '已恢复'}
               </div>
               {pkg.resolvedBy && (
                 <p className="text-xs text-warm-500">处理人：{pkg.resolvedBy}</p>
