@@ -8,6 +8,7 @@ import {
   TrendingUp,
   AlertCircle,
   Sparkles,
+  ChevronRight,
   ArrowRight,
   Clock,
   UserCheck,
@@ -15,17 +16,185 @@ import {
   PieChart as PieChartIcon,
   CalendarCheck,
   CalendarX,
+  Phone,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { Activity, Registration } from '@/types';
 import { cn, formatDateTime, isUpcoming, getConfirmedCount } from '@/utils/helpers';
 import Empty from '@/components/Empty';
+import Drawer from '@/components/Drawer';
 
 type TabType = 'stats' | 'published' | 'registered';
+
+interface RegistrationDetailContentProps {
+  activity: Activity;
+  registrations: Registration[];
+}
+
+function RegistrationDetailContent({ activity, registrations }: RegistrationDetailContentProps) {
+  const confirmed = useMemo(
+    () => registrations.filter(r => r.status === 'confirmed')
+      .sort((a, b) => new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime()),
+    [registrations]
+  );
+  const waitlist = useMemo(
+    () => registrations.filter(r => r.status === 'waitlist')
+      .sort((a, b) => (a.waitlistNumber || 0) - (b.waitlistNumber || 0)),
+    [registrations]
+  );
+  const cancelled = useMemo(
+    () => registrations.filter(r => r.status === 'cancelled')
+      .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime()),
+    [registrations]
+  );
+
+  const confirmedCount = getConfirmedCount(registrations);
+  const progress = Math.min((confirmedCount / activity.maxParticipants) * 100, 100);
+
+  return (
+    <div className="p-5 space-y-6">
+      <div className="p-4 rounded-2xl bg-cream-50">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-ink-700">报名进度</span>
+          <span className="text-sm font-bold text-primary-600">
+            {confirmedCount}/{activity.maxParticipants} 人
+          </span>
+        </div>
+        <div className="h-2.5 bg-cream-200 rounded-full overflow-hidden">
+          <div
+            className={cn(
+              'h-full rounded-full transition-all duration-700',
+              progress >= 100
+                ? 'bg-gradient-to-r from-primary-400 to-primary-600'
+                : 'bg-gradient-to-r from-accent-400 to-accent-600'
+            )}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {waitlist.length > 0 && (
+          <div className="text-xs text-ink-500 mt-2">
+            候补 <span className="font-medium text-primary-600">{waitlist.length}</span> 人
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-5 bg-accent-500 rounded-full" />
+          <h4 className="font-bold text-ink-900">已确认 ({confirmed.length}组)</h4>
+        </div>
+        {confirmed.length === 0 ? (
+          <div className="text-center py-8 text-ink-500 text-sm bg-cream-50 rounded-2xl">
+            还没有确认的报名
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {confirmed.map(reg => (
+              <RegistrationItem key={reg.id} registration={reg} statusLabel="已确认" statusType="confirmed" />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-5 bg-primary-500 rounded-full" />
+          <h4 className="font-bold text-ink-900">候补队列 ({waitlist.length}人)</h4>
+        </div>
+        {waitlist.length === 0 ? (
+          <div className="text-center py-8 text-ink-500 text-sm bg-cream-50 rounded-2xl">
+            暂无候补
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {waitlist.map(reg => (
+              <RegistrationItem
+                key={reg.id}
+                registration={reg}
+                statusLabel={`候补第${reg.waitlistNumber}位`}
+                statusType="waitlist"
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {cancelled.length > 0 && (
+        <div className="space-y-3 pt-3 border-t border-cream-200">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 bg-ink-400 rounded-full" />
+            <h4 className="font-bold text-ink-700">已取消 ({cancelled.length}人)</h4>
+          </div>
+          <div className="space-y-3 opacity-60">
+            {cancelled.map(reg => (
+              <RegistrationItem
+                key={reg.id}
+                registration={reg}
+                statusLabel="已取消"
+                statusType="cancelled"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface RegistrationItemProps {
+  registration: Registration;
+  statusLabel: string;
+  statusType: 'confirmed' | 'waitlist' | 'cancelled';
+}
+
+function RegistrationItem({ registration, statusLabel, statusType }: RegistrationItemProps) {
+  const statusClass = {
+    confirmed: 'bg-accent-100 text-accent-700 border-accent-200',
+    waitlist: 'bg-primary-100 text-primary-700 border-primary-200',
+    cancelled: 'bg-ink-100 text-ink-500 border-ink-200',
+  }[statusType];
+
+  return (
+    <div className="p-4 rounded-2xl bg-white border-2 border-cream-200 hover:border-cream-300 transition-colors animate-fade-in">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-bold shrink-0 shadow-soft">
+          {registration.childNickname.slice(0, 1)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold text-ink-900 truncate">{registration.childNickname}</span>
+            <span className={cn('chip border text-xs py-0.5 shrink-0', statusClass)}>
+              {statusLabel}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-y-2.5 gap-x-3 text-sm">
+            <div className="flex items-center gap-1.5 text-ink-500">
+              <Users className="w-3.5 h-3.5 text-primary-500" />
+              <span>到场 <span className="font-medium text-ink-700">{registration.attendeeCount}人</span></span>
+            </div>
+            <div className="flex items-center gap-1.5 text-ink-500">
+              <Phone className="w-3.5 h-3.5 text-accent-500" />
+              <span className="font-medium text-ink-700 truncate">{registration.parentPhone}</span>
+            </div>
+            {registration.allergyInfo && registration.allergyInfo !== '无' && (
+              <div className="flex items-start gap-1.5 text-ink-500 col-span-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                <span className="text-red-600">过敏：{registration.allergyInfo}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Statistics() {
   const activities = useAppStore((s) => s.activities);
   const registrations = useAppStore((s) => s.registrations);
   const [activeTab, setActiveTab] = useState<TabType>('stats');
+  const [drawerActivity, setDrawerActivity] = useState<Activity | null>(null);
 
   const stats = useMemo(() => {
     const totalActivities = activities.length;
@@ -388,10 +557,10 @@ export default function Statistics() {
               {myPublished.map((activity, idx) => {
                 const confirmed = getConfirmedCount(registrations.filter(r => r.activityId === activity.id));
                 return (
-                  <Link
+                  <button
                     key={activity.id}
-                    to={`/activity/${activity.id}`}
-                    className="card p-5 flex items-center gap-5 group animate-slide-up hover:translate-y-[-2px]"
+                    onClick={() => setDrawerActivity(activity)}
+                    className="card w-full text-left p-5 flex items-center gap-5 group animate-slide-up hover:translate-y-[-2px]"
                     style={{ animationDelay: `${idx * 60}ms` }}
                   >
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-3xl shrink-0 shadow-soft">
@@ -426,8 +595,8 @@ export default function Statistics() {
                         </span>
                       </div>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-ink-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all shrink-0" />
-                  </Link>
+                    <ChevronRight className="w-5 h-5 text-ink-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </button>
                 );
               })}
             </div>
@@ -504,6 +673,20 @@ export default function Statistics() {
           )}
         </div>
       )}
+
+      <Drawer
+        open={!!drawerActivity}
+        onClose={() => setDrawerActivity(null)}
+        title={drawerActivity?.title || ''}
+        subtitle={drawerActivity ? `${formatDateTime(drawerActivity.startTime)} · ${drawerActivity.location}` : ''}
+      >
+        {drawerActivity && (
+          <RegistrationDetailContent
+            activity={drawerActivity}
+            registrations={registrations.filter(r => r.activityId === drawerActivity.id)}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }
