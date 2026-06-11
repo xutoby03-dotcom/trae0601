@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TodoGroup, { GroupType } from '@/components/todo/TodoGroup';
 import TodoFilter, { TodoFilterValues } from '@/components/todo/TodoFilter';
+import CompleteTodoModal from '@/components/todo/CompleteTodoModal';
 import Empty from '@/components/Empty';
-import { mockTodos, mockMeetings } from '@/data/mockData';
+import { useTodoStore } from '@/store/todoStore';
 import { Todo } from '@/types';
 import { isOverdue, isToday, isThisWeek, formatDate } from '@/utils/dateUtils';
 
@@ -18,9 +19,15 @@ const defaultFilter: TodoFilterValues = {
 export default function TodoListPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<TodoFilterValues>(defaultFilter);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const todos = useTodoStore((state) => state.todos);
+  const meetings = useTodoStore((state) => state.meetings);
+  const completeTodo = useTodoStore((state) => state.completeTodo);
 
   const filteredTodos = useMemo(() => {
-    return mockTodos.filter((todo) => {
+    return todos.filter((todo) => {
       if (filter.keyword) {
         const keyword = filter.keyword.toLowerCase();
         if (
@@ -41,14 +48,14 @@ export default function TodoListPage() {
         return false;
       }
       if (filter.meetingType) {
-        const meeting = mockMeetings.find((m) => m.id === todo.meetingId);
+        const meeting = meetings.find((m) => m.id === todo.meetingId);
         if (!meeting || meeting.type !== filter.meetingType) {
           return false;
         }
       }
       return true;
     });
-  }, [filter]);
+  }, [todos, meetings, filter]);
 
   const groupedTodos = useMemo(() => {
     const groups: Record<GroupType, Todo[]> = {
@@ -82,7 +89,16 @@ export default function TodoListPage() {
   };
 
   const handleComplete = (todo: Todo) => {
-    console.log('Complete todo:', todo.id);
+    setSelectedTodo(todo);
+    setModalOpen(true);
+  };
+
+  const handleSubmitComplete = (todoId: string, resultNote: string) => {
+    const result = completeTodo(todoId, resultNote);
+    if (result.success) {
+      setModalOpen(false);
+      setSelectedTodo(null);
+    }
   };
 
   const hasActiveTodos = Object.values(groupedTodos).some((group) => group.length > 0);
@@ -138,6 +154,16 @@ export default function TodoListPage() {
           <Empty />
         </div>
       )}
+
+      <CompleteTodoModal
+        open={modalOpen}
+        todo={selectedTodo}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedTodo(null);
+        }}
+        onSubmit={handleSubmitComplete}
+      />
     </div>
   );
 }

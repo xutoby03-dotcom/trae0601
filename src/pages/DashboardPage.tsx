@@ -1,17 +1,18 @@
 import { useMemo } from 'react';
 import StatsCards, { StatsCardData } from '@/components/dashboard/StatsCards';
 import { BarChartCard, PieChartCard, LineChartCard, BarChartData, PieChartData, LineChartData } from '@/components/dashboard/Charts';
-import { mockTodos, mockMeetings } from '@/data/mockData';
-import { PRIORITY_LABELS, STATUS_LABELS, DEPARTMENTS } from '@/types';
+import { useTodoStore } from '@/store/todoStore';
+import { STATUS_LABELS, MEETING_TYPE_LABELS, DEPARTMENTS } from '@/types';
 import { formatDate } from '@/utils/dateUtils';
 
 export default function DashboardPage() {
+  const { todos, meetings } = useTodoStore();
+
   const stats = useMemo<StatsCardData[]>(() => {
-    const totalMeetings = mockMeetings.length;
-    const totalTodos = mockTodos.length;
-    const completedTodos = mockTodos.filter((t) => t.status === 'completed').length;
-    const inProgressTodos = mockTodos.filter((t) => t.status === 'in_progress').length;
-    const overdueTodos = mockTodos.filter((t) => t.status === 'overdue').length;
+    const totalMeetings = meetings.length;
+    const completedTodos = todos.filter((t) => t.status === 'completed').length;
+    const inProgressTodos = todos.filter((t) => t.status === 'in_progress').length;
+    const overdueTodos = todos.filter((t) => t.status === 'overdue').length;
 
     return [
       {
@@ -47,44 +48,47 @@ export default function DashboardPage() {
         color: 'danger',
       },
     ];
-  }, []);
+  }, [todos, meetings]);
 
-  const priorityData = useMemo<PieChartData[]>(() => {
-    const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0 };
-    mockTodos.forEach((t) => {
-      counts[t.priority] = (counts[t.priority] || 0) + 1;
+  const meetingTypeData = useMemo<PieChartData[]>(() => {
+    const counts: Record<string, number> = {};
+    todos.forEach((t) => {
+      const meeting = meetings.find((m) => m.id === t.meetingId);
+      if (meeting) {
+        counts[meeting.type] = (counts[meeting.type] || 0) + 1;
+      }
     });
     return Object.entries(counts).map(([key, value]) => ({
-      name: PRIORITY_LABELS[key as keyof typeof PRIORITY_LABELS],
+      name: MEETING_TYPE_LABELS[key as keyof typeof MEETING_TYPE_LABELS],
       value,
     }));
-  }, []);
+  }, [todos, meetings]);
 
   const statusData = useMemo<PieChartData[]>(() => {
     const counts: Record<string, number> = { pending: 0, in_progress: 0, completed: 0, overdue: 0 };
-    mockTodos.forEach((t) => {
+    todos.forEach((t) => {
       counts[t.status] = (counts[t.status] || 0) + 1;
     });
     return Object.entries(counts).map(([key, value]) => ({
       name: STATUS_LABELS[key as keyof typeof STATUS_LABELS],
       value,
     }));
-  }, []);
+  }, [todos]);
 
   const departmentData = useMemo<BarChartData[]>(() => {
     const counts: Record<string, number> = {};
     DEPARTMENTS.forEach((dept) => {
       counts[dept] = 0;
     });
-    mockTodos.forEach((t) => {
-      if (counts[t.department] !== undefined) {
+    todos.forEach((t) => {
+      if (t.status === 'overdue' && counts[t.department] !== undefined) {
         counts[t.department] += 1;
       }
     });
     return Object.entries(counts)
       .filter(([, value]) => value > 0)
       .map(([name, value]) => ({ name, value }));
-  }, []);
+  }, [todos]);
 
   const weeklyTrendData = useMemo<LineChartData[]>(() => {
     const days: LineChartData[] = [];
@@ -94,12 +98,12 @@ export default function DashboardPage() {
       date.setDate(today.getDate() - i);
       const dateStr = formatDate(date);
       const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
-      const created = mockTodos.filter((t) => formatDate(t.createdAt) === dateStr).length;
-      const completed = mockTodos.filter((t) => t.completedAt && formatDate(t.completedAt) === dateStr).length;
+      const created = todos.filter((t) => formatDate(t.createdAt) === dateStr).length;
+      const completed = todos.filter((t) => t.completedAt && formatDate(t.completedAt) === dateStr).length;
       days.push({ name: dayLabel, 新增: created, 完成: completed });
     }
     return days;
-  }, []);
+  }, [todos]);
 
   return (
     <div className="space-y-6">
@@ -112,9 +116,9 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PieChartCard
-          title="待办优先级分布"
-          subtitle="按优先级统计待办数量"
-          data={priorityData}
+          title="会议类型待办分布"
+          subtitle="按会议类型统计待办数量"
+          data={meetingTypeData}
         />
         <PieChartCard
           title="待办状态分布"
@@ -125,8 +129,8 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BarChartCard
-          title="各部门待办数量"
-          subtitle="按部门统计待办分配情况"
+          title="各部门逾期待办数量"
+          subtitle="按部门统计逾期待办分配情况"
           data={departmentData}
         />
         <LineChartCard

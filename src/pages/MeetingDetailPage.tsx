@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Users, Paperclip, FileText, Download } from 'lucide-react';
 import TodoCard from '@/components/todo/TodoCard';
+import CompleteTodoModal from '@/components/todo/CompleteTodoModal';
 import Empty from '@/components/Empty';
 import Button from '@/components/common/Button';
 import Badge from '@/components/common/Badge';
-import { mockMeetings, mockTodos } from '@/data/mockData';
+import { useTodoStore } from '@/store/todoStore';
 import { MEETING_TYPE_LABELS, Meeting, Todo } from '@/types';
 import { formatDateTime } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
@@ -21,9 +23,12 @@ const meetingTypeColors: Record<string, string> = {
 export default function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null);
+  const { meetings, getTodosByMeetingId, completeTodo } = useTodoStore();
 
-  const meeting = mockMeetings.find((m) => m.id === id);
-  const meetingTodos = mockTodos.filter((t) => t.meetingId === id);
+  const meeting = meetings.find((m) => m.id === id);
+  const meetingTodos = meeting ? getTodosByMeetingId(meeting.id) : [];
 
   if (!meeting) {
     return (
@@ -38,7 +43,14 @@ export default function MeetingDetailPage() {
   };
 
   const handleCompleteTodo = (todo: Todo) => {
-    console.log('Complete todo:', todo.id);
+    setSelectedTodo(todo);
+    setIsCompleteModalOpen(true);
+  };
+
+  const handleCompleteSubmit = (todoId: string, resultNote: string) => {
+    completeTodo(todoId, resultNote);
+    setIsCompleteModalOpen(false);
+    setSelectedTodo(null);
   };
 
   return (
@@ -166,6 +178,16 @@ export default function MeetingDetailPage() {
           </div>
         </div>
       </div>
+
+      <CompleteTodoModal
+        open={isCompleteModalOpen}
+        todo={selectedTodo}
+        onClose={() => {
+          setIsCompleteModalOpen(false);
+          setSelectedTodo(null);
+        }}
+        onSubmit={handleCompleteSubmit}
+      />
     </div>
   );
 }

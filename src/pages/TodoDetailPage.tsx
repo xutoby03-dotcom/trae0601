@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
   ArrowLeft,
   Calendar,
@@ -14,7 +15,8 @@ import {
 import Empty from '@/components/Empty';
 import Button from '@/components/common/Button';
 import Badge from '@/components/common/Badge';
-import { mockTodos, mockMeetings, mockChangeLogs } from '@/data/mockData';
+import CompleteTodoModal from '@/components/todo/CompleteTodoModal';
+import { useTodoStore } from '@/store/todoStore';
 import { Todo, MEETING_TYPE_LABELS } from '@/types';
 import { formatDateTime, getRelativeDate } from '@/utils/dateUtils';
 import { getPriorityBadgeClass, getPriorityLabel, getStatusColor, getStatusLabel } from '@/utils/statusUtils';
@@ -23,10 +25,27 @@ import { cn } from '@/lib/utils';
 export default function TodoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const todo = mockTodos.find((t) => t.id === id);
-  const meeting = todo ? mockMeetings.find((m) => m.id === todo.meetingId) : undefined;
-  const changeLogs = todo ? mockChangeLogs.filter((log) => log.todoId === todo.id) : [];
+  const todos = useTodoStore((state) => state.todos);
+  const meetings = useTodoStore((state) => state.meetings);
+  const getChangeLogsByTodoId = useTodoStore((state) => state.getChangeLogsByTodoId);
+  const completeTodo = useTodoStore((state) => state.completeTodo);
+
+  const todo = todos.find((t) => t.id === id);
+  const meeting = todo ? meetings.find((m) => m.id === todo.meetingId) : undefined;
+  const changeLogs = todo ? getChangeLogsByTodoId(todo.id) : [];
+
+  const handleComplete = () => {
+    setModalOpen(true);
+  };
+
+  const handleSubmitComplete = (todoId: string, resultNote: string) => {
+    const result = completeTodo(todoId, resultNote);
+    if (result.success) {
+      setModalOpen(false);
+    }
+  };
 
   if (!todo) {
     return (
@@ -63,7 +82,7 @@ export default function TodoDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900">{todo.title}</h1>
         </div>
         {todo.status !== 'completed' && (
-          <Button leftIcon={<CheckCircle2 className="w-4 h-4" />} variant="secondary">
+          <Button leftIcon={<CheckCircle2 className="w-4 h-4" />} variant="secondary" onClick={handleComplete}>
             标记完成
           </Button>
         )}
@@ -252,6 +271,13 @@ export default function TodoDetailPage() {
           </div>
         </div>
       </div>
+
+      <CompleteTodoModal
+        open={modalOpen}
+        todo={todo}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleSubmitComplete}
+      />
     </div>
   );
 }

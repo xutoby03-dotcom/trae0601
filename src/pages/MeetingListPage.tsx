@@ -2,30 +2,38 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import MeetingCard from '@/components/meeting/MeetingCard';
+import MeetingForm from '@/components/meeting/MeetingForm';
 import Empty from '@/components/Empty';
 import Button from '@/components/common/Button';
-import { mockMeetings, mockTodos } from '@/data/mockData';
+import { useTodoStore } from '@/store/todoStore';
 import { Meeting } from '@/types';
 
 export default function MeetingListPage() {
   const navigate = useNavigate();
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { meetings, todos, addMeeting } = useTodoStore();
 
-  const filteredMeetings = mockMeetings.filter((meeting) =>
+  const filteredMeetings = meetings.filter((meeting) =>
     meeting.title.toLowerCase().includes(searchKeyword.toLowerCase())
   );
 
   const getMeetingTodoStats = (meetingId: string) => {
-    const todos = mockTodos.filter((t) => t.meetingId === meetingId);
-    const completed = todos.filter((t) => t.status === 'completed').length;
+    const meetingTodos = todos.filter((t) => t.meetingId === meetingId);
+    const completed = meetingTodos.filter((t) => t.status === 'completed').length;
     return {
-      todoCount: todos.length,
+      todoCount: meetingTodos.length,
       completedTodoCount: completed,
     };
   };
 
   const handleViewMeeting = (meeting: Meeting) => {
     navigate(`/meetings/${meeting.id}`);
+  };
+
+  const handleCreateMeeting = (data: Omit<Meeting, 'id' | 'createdAt' | 'updatedAt'>) => {
+    addMeeting(data);
+    setIsFormOpen(false);
   };
 
   return (
@@ -37,7 +45,7 @@ export default function MeetingListPage() {
             共 {filteredMeetings.length} 场会议
           </p>
         </div>
-        <Button leftIcon={<Plus className="w-4 h-4" />}>
+        <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setIsFormOpen(true)}>
           新建会议
         </Button>
       </div>
@@ -71,6 +79,21 @@ export default function MeetingListPage() {
       ) : (
         <div className="h-64">
           <Empty />
+        </div>
+      )}
+
+      {isFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsFormOpen(false)}
+          />
+          <div className="relative w-full max-w-xl">
+            <MeetingForm
+              onSubmit={handleCreateMeeting}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          </div>
         </div>
       )}
     </div>
