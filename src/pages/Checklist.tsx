@@ -61,7 +61,7 @@ export default function Checklist() {
     const days = trip?.days;
     let dateText = '日期待确认';
     if (days && days > 0) {
-      dateText = days === 1 ? `${days}天` : `${days}天${days - 1}晚`;
+      dateText = `${days}天${days - 1}晚`;
     }
     lines.push(`📅 ${dateText}  ·  👥 ${people.length}人`);
     lines.push('');
