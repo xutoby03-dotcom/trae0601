@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import type { Reimbursement, ReimbursementFormData, Project } from '@/types';
 import { mockReimbursements, mockProjects } from '@/data/mockData';
 
-const STORAGE_KEY_REIMBURSEMENTS = 'overtime-meal-reimbursements-v2';
-const STORAGE_KEY_INITIALIZED = 'overtime-meal-initialized-v2';
+const STORAGE_KEY_REIMBURSEMENTS = 'overtime-meal-reimbursements';
+const STORAGE_KEY_INITIALIZED = 'overtime-meal-initialized';
+const STORAGE_KEY_REIMBURSEMENTS_V2 = 'overtime-meal-reimbursements-v2';
+const STORAGE_KEY_INITIALIZED_V2 = 'overtime-meal-initialized-v2';
 
 interface ReimbursementState {
   reimbursements: Reimbursement[];
@@ -21,20 +23,49 @@ interface ReimbursementState {
   getProjectStandard: (projectId: string) => number;
 }
 
+const migrateReimbursement = (item: Reimbursement): Reimbursement => {
+  const migrated: Reimbursement = { ...item };
+  if (migrated.status === 'settled' && !migrated.settledAt) {
+    migrated.settledAt = migrated.reviewedAt ?? migrated.createdAt;
+  }
+  if (migrated.status === 'settled' && !migrated.settledBy) {
+    migrated.settledBy = migrated.reviewer ?? '管理员';
+  }
+  return migrated;
+};
+
 const loadReimbursements = (): Reimbursement[] => {
   if (typeof window === 'undefined') return mockReimbursements;
 
-  const initialized = localStorage.getItem(STORAGE_KEY_INITIALIZED);
+  let initialized = localStorage.getItem(STORAGE_KEY_INITIALIZED);
+  let rawData = localStorage.getItem(STORAGE_KEY_REIMBURSEMENTS);
+
+  if (!initialized && !rawData) {
+    const v2Initialized = localStorage.getItem(STORAGE_KEY_INITIALIZED_V2);
+    const v2Data = localStorage.getItem(STORAGE_KEY_REIMBURSEMENTS_V2);
+    if (v2Initialized && v2Data) {
+      initialized = v2Initialized;
+      rawData = v2Data;
+    }
+  }
+
   if (!initialized) {
     localStorage.setItem(STORAGE_KEY_INITIALIZED, 'true');
     localStorage.setItem(STORAGE_KEY_REIMBURSEMENTS, JSON.stringify(mockReimbursements));
+    localStorage.removeItem(STORAGE_KEY_INITIALIZED_V2);
+    localStorage.removeItem(STORAGE_KEY_REIMBURSEMENTS_V2);
     return mockReimbursements;
   }
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY_REIMBURSEMENTS);
-    if (stored) {
-      return JSON.parse(stored);
+    if (rawData) {
+      const parsed: Reimbursement[] = JSON.parse(rawData);
+      const migrated = parsed.map(migrateReimbursement);
+      localStorage.setItem(STORAGE_KEY_INITIALIZED, 'true');
+      localStorage.setItem(STORAGE_KEY_REIMBURSEMENTS, JSON.stringify(migrated));
+      localStorage.removeItem(STORAGE_KEY_INITIALIZED_V2);
+      localStorage.removeItem(STORAGE_KEY_REIMBURSEMENTS_V2);
+      return migrated;
     }
     return mockReimbursements;
   } catch {
