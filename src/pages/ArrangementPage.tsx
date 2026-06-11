@@ -395,9 +395,10 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
           <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowPoster(false)}
-              className="absolute -top-2 -right-2 z-10 w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all"
+              className="absolute -top-3 -right-3 z-10 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all active:scale-95 touch-manipulation"
+              aria-label="关闭海报"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
 
             <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#1A0B2E] via-[#1A0B2E] to-[#0f051a] border border-white/10 shadow-2xl shadow-pink-500/10">
@@ -447,22 +448,22 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
               </div>
 
               <div className="px-5 pb-5 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-sky-300" />
+                      <Calendar className="w-3.5 h-3.5 text-sky-300 shrink-0" />
                       <span className="text-[11px] text-white/50 font-medium">观影时间</span>
                     </div>
-                    <p className="text-sm font-bold text-white leading-tight">
+                    <p className="text-sm font-bold text-white leading-snug break-words">
                       {formatDisplayDateTime(effectiveArrangement.viewingTime)}
                     </p>
                   </div>
                   <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-rose-300" />
+                      <MapPin className="w-3.5 h-3.5 text-rose-300 shrink-0" />
                       <span className="text-[11px] text-white/50 font-medium">观影地点</span>
                     </div>
-                    <p className="text-sm font-bold text-white leading-tight truncate" title={effectiveArrangement.location}>
+                    <p className="text-sm font-bold text-white leading-snug break-words whitespace-normal">
                       {effectiveArrangement.location}
                     </p>
                   </div>
@@ -498,24 +499,24 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
               </div>
             </div>
 
-            <div className="mt-5 flex gap-3">
+            <div className="mt-5 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleCopy}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95',
+                  'flex-1 min-h-[48px] flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-sm transition-all active:scale-[0.97] touch-manipulation select-none',
                   copied
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
                 )}
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}
                 {copied ? '已复制文案' : '复制文案'}
               </button>
               <button
                 onClick={() => setShowPoster(false)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-amber-400 text-white font-bold text-sm shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 active:scale-95 transition-all"
+                className="flex-1 min-h-[48px] flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-pink-500 to-amber-400 text-white font-bold text-sm shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 active:scale-[0.97] transition-all touch-manipulation select-none"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 shrink-0" />
                 关闭
               </button>
             </div>
