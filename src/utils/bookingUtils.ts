@@ -1,6 +1,6 @@
 import { format, addDays, startOfWeek, isSameDay, parseISO } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { TIME_SLOTS } from '@/types';
+import { TIME_SLOTS, DEFAULT_TIME_SLOTS } from '@/types';
 
 export const generateTimeSlots = (): string[] => {
   return [...TIME_SLOTS];
@@ -125,7 +125,8 @@ export const getSlotStatus = (
     return 'blocked';
   }
 
-  if (availableTimeSlots.length > 0 && !availableTimeSlots.includes(timeSlot)) {
+  const effectiveSlots = availableTimeSlots.length > 0 ? availableTimeSlots : DEFAULT_TIME_SLOTS;
+  if (!effectiveSlots.includes(timeSlot)) {
     return 'not_open';
   }
   

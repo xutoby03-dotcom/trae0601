@@ -1,4 +1,4 @@
-import { Room, Booking, PianoType, TIME_SLOTS } from '@/types';
+import { Room, Booking, PianoType, TIME_SLOTS, getRoomTimeSlots } from '@/types';
 import { generateTimeSlots, formatDate, generateId, getNext7Days } from '@/utils/bookingUtils';
 import { addDays } from 'date-fns';
 
@@ -78,18 +78,18 @@ export const generateMockBookings = (rooms: Room[]): Booking[] => {
     
     rooms.forEach((room, roomIndex) => {
       if (room.status !== 'available') return;
-      if (room.availableTimeSlots.length === 0) return;
       
-      const maxBookings = Math.min(room.availableTimeSlots.length, isToday ? 8 : 6);
+      const roomSlots = getRoomTimeSlots(room);
+      const maxBookings = Math.min(roomSlots.length, isToday ? 8 : 6);
       const numBookings = Math.floor(Math.random() * maxBookings) + 2;
       const usedSlots = new Set<string>();
       
       for (let i = 0; i < numBookings; i++) {
         let randomSlot: string;
         do {
-          const slotIdx = Math.floor(Math.random() * room.availableTimeSlots.length);
-          randomSlot = room.availableTimeSlots[slotIdx];
-        } while (usedSlots.has(randomSlot) && usedSlots.size < room.availableTimeSlots.length);
+          const slotIdx = Math.floor(Math.random() * roomSlots.length);
+          randomSlot = roomSlots[slotIdx];
+        } while (usedSlots.has(randomSlot) && usedSlots.size < roomSlots.length);
         
         usedSlots.add(randomSlot);
         

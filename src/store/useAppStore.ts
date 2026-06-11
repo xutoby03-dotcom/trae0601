@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Room, Booking, UserRole, RoomStatus, BookingStatus } from '@/types';
+import { Room, Booking, UserRole, RoomStatus, BookingStatus, DEFAULT_TIME_SLOTS, getRoomTimeSlots } from '@/types';
 import { initializeMockData } from '@/data/mockData';
 import { 
   generateId, 
   validateDailyBookingLimit, 
   validateConsecutiveBookings,
   getWaitlistPosition,
-  getSlotStatus,
+  getSlotStatus as getSlotStatusUtil,
   formatDate,
 } from '@/utils/bookingUtils';
 
@@ -41,7 +41,7 @@ interface AppState {
   getBookingsForRoom: (roomId: string) => Booking[];
   getBookingsForDate: (date: string) => Booking[];
   getBookingsForStudent: (studentName: string) => Booking[];
-  getSlotStatus: (roomId: string, date: string, timeSlot: string) => ReturnType<typeof getSlotStatus>;
+  getSlotStatus: (roomId: string, date: string, timeSlot: string) => ReturnType<typeof getSlotStatusUtil>;
   getWaitlistForSlot: (roomId: string, date: string, timeSlot: string) => Booking[];
   
   resetData: () => void;
@@ -148,7 +148,8 @@ export const useAppStore = create<AppState>()(
             return { success: false, message: '琴房暂不可用' };
           }
 
-          if (room.availableTimeSlots.length > 0 && !room.availableTimeSlots.includes(bookingData.timeSlot)) {
+          const roomSlots = getRoomTimeSlots(room);
+          if (!roomSlots.includes(bookingData.timeSlot)) {
             return { success: false, message: '该时段琴房未开放' };
           }
           
@@ -171,13 +172,13 @@ export const useAppStore = create<AppState>()(
             return { success: false, message: consecutiveValidation.message };
           }
           
-          const slotStatus = getSlotStatus(
+          const slotStatus = getSlotStatusUtil(
             bookingData.roomId,
             bookingData.date,
             bookingData.timeSlot,
             state.bookings,
             room.status,
-            room.availableTimeSlots
+            roomSlots
           );
           
           if (slotStatus === 'blocked' || slotStatus === 'not_open') {
@@ -254,7 +255,7 @@ export const useAppStore = create<AppState>()(
         getSlotStatus: (roomId, date, timeSlot) => {
           const state = get();
           const room = state.rooms.find(r => r.id === roomId);
-          return getSlotStatus(roomId, date, timeSlot, state.bookings, room?.status || 'available', room?.availableTimeSlots || []);
+          return getSlotStatusUtil(roomId, date, timeSlot, state.bookings, room?.status || 'available', room ? getRoomTimeSlots(room) : []);
         },
         
         getWaitlistForSlot: (roomId, date, timeSlot) => {
@@ -274,6 +275,20 @@ export const useAppStore = create<AppState>()(
     },
     {
       name: 'piano-room-storage',
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          if (persistedState.rooms && Array.isArray(persistedState.rooms)) {
+            persistedState.rooms = persistedState.rooms.map((room: any) => ({
+              ...room,
+              availableTimeSlots: room.availableTimeSlots && Array.isArray(room.availableTimeSlots) && room.availableTimeSlots.length > 0
+                ? room.availableTimeSlots
+                : [...DEFAULT_TIME_SLOTS],
+            }));
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

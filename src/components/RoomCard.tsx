@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Music, MapPin, Clock, Calendar, X, ChevronRight } from 'lucide-react';
-import { Room, ROOM_STATUS_LABELS, PIANO_TYPE_LABELS, TIME_SLOTS } from '@/types';
+import { Room, ROOM_STATUS_LABELS, PIANO_TYPE_LABELS, TIME_SLOTS, getRoomTimeSlots } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDisplayDate, formatShortWeekday, getNext7Days } from '@/utils/bookingUtils';
 import RoomDetailModal from './RoomDetailModal';
@@ -19,19 +19,15 @@ export default function RoomCard({ room, index }: RoomCardProps) {
   
   const bookings = getBookingsForRoom(room.id);
   
-  const previewSlots = room.availableTimeSlots.slice(0, 6);
+  const roomSlots = getRoomTimeSlots(room);
+  const previewSlots = roomSlots.slice(0, 6);
   
-  const todaySlots = previewSlots.length > 0
-    ? previewSlots.map(slot => ({
-        time: slot,
-        status: getSlotStatus(room.id, today, slot),
-      }))
-    : TIME_SLOTS.slice(0, 6).map(slot => ({
-        time: slot,
-        status: 'not_open' as const,
-      }));
+  const todaySlots = previewSlots.map(slot => ({
+    time: slot,
+    status: getSlotStatus(room.id, today, slot),
+  }));
   
-  const availableCount = room.availableTimeSlots.filter(
+  const availableCount = roomSlots.filter(
     slot => getSlotStatus(room.id, today, slot) === 'available'
   ).length;
   

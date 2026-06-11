@@ -1,5 +1,5 @@
 import { X, Music, MapPin, Clock, Calendar, AlertCircle } from 'lucide-react';
-import { Room, PIANO_TYPE_LABELS, TIME_SLOTS, ROOM_STATUS_LABELS } from '@/types';
+import { Room, PIANO_TYPE_LABELS, TIME_SLOTS, ROOM_STATUS_LABELS, getRoomTimeSlots } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDisplayDate, formatShortWeekday, getNext7Days } from '@/utils/bookingUtils';
 
@@ -11,6 +11,7 @@ interface RoomDetailModalProps {
 export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps) {
   const { selectedDate, setSelectedDate, getSlotStatus, openBookingModal } = useAppStore();
   const days = getNext7Days();
+  const roomSlots = getRoomTimeSlots(room);
   
   const handleSlotClick = (date: string, timeSlot: string) => {
     const status = getSlotStatus(room.id, date, timeSlot);
@@ -82,14 +83,14 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
             <div className="card p-4">
               <Clock className="w-5 h-5 text-wood-500 mb-2" />
               <p className="text-xs text-wood-500">开放时段</p>
-              <p className="font-semibold text-wood-900">{room.availableTimeSlots.length} 个</p>
+              <p className="font-semibold text-wood-900">{roomSlots.length} 个</p>
             </div>
             <div className="card p-4">
               <Calendar className="w-5 h-5 text-wood-500 mb-2" />
               <p className="text-xs text-wood-500">开放时间</p>
               <p className="font-semibold text-wood-900">
-                {room.availableTimeSlots.length > 0 
-                  ? `${room.availableTimeSlots[0].split('-')[0]}-${room.availableTimeSlots[room.availableTimeSlots.length - 1].split('-')[1]}`
+                {roomSlots.length > 0 
+                  ? `${roomSlots[0].split('-')[0]}-${roomSlots[roomSlots.length - 1].split('-')[1]}`
                   : '暂未开放'}
               </p>
             </div>

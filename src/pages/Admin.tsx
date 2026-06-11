@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit2, Trash2, Wrench, Lock, Unlock, X, Save, Music, MapPin, Clock, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { Room, PIANO_TYPE_LABELS, ROOM_STATUS_LABELS, FLOORS, PianoType, RoomStatus, TIME_SLOTS } from '@/types';
+import { Room, PIANO_TYPE_LABELS, ROOM_STATUS_LABELS, FLOORS, PianoType, RoomStatus, TIME_SLOTS, getRoomTimeSlots } from '@/types';
 
 export default function Admin() {
   const { rooms, currentRole, addRoom, updateRoom, updateRoomStatus, deleteRoom, resetData } = useAppStore();
@@ -43,7 +43,7 @@ export default function Admin() {
       photoUrl: room.photoUrl,
       status: room.status,
       maintenanceReason: room.maintenanceReason || '',
-      availableTimeSlots: [...room.availableTimeSlots],
+      availableTimeSlots: [...getRoomTimeSlots(room)],
     });
     setShowForm(true);
   };

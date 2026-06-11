@@ -113,4 +113,12 @@ export const TIME_SLOTS = [
   '21:00-22:00',
 ];
 
+export const DEFAULT_TIME_SLOTS = [...TIME_SLOTS];
+
+export const getRoomTimeSlots = (room: { availableTimeSlots?: string[] }): string[] => {
+  return room.availableTimeSlots && room.availableTimeSlots.length > 0
+    ? room.availableTimeSlots
+    : DEFAULT_TIME_SLOTS;
+};
+
 export const FLOORS = [1, 2, 3, 4, 5];
