@@ -88,18 +88,20 @@ export default function Events() {
         return (
           <div
             key={event.id}
-            className={`rounded-2xl bg-zinc-900 border border-zinc-800 p-4 space-y-3 transition-all ${
-              isAdmin ? 'hover:border-emerald-500/30 hover:bg-zinc-900/80 cursor-pointer' : ''
+            className={`rounded-2xl bg-zinc-900 border border-zinc-800 p-4 space-y-3 ${
+              isAdmin ? 'hover:border-emerald-500/20 transition-all' : ''
             }`}
-            onClick={(e) => {
-              if (!isAdmin) return
-              const target = e.target as HTMLElement
-              if (target.closest('button')) return
-              setRosterEventId(event.id)
-            }}
           >
             <div className="flex justify-between items-start">
-              <div className="space-y-2">
+              <div
+                className={`space-y-2 flex-1 rounded-lg p-2 -ml-2 ${
+                  isAdmin ? 'cursor-pointer hover:bg-zinc-800/50 transition-colors' : ''
+                }`}
+                onClick={() => {
+                  if (!isAdmin) return
+                  setRosterEventId(event.id)
+                }}
+              >
                 <div className="flex items-center gap-2 text-zinc-300 text-sm">
                   <Calendar className="w-4 h-4 text-zinc-500" /> {event.date}
                 </div>
@@ -110,7 +112,7 @@ export default function Events() {
                   <MapPin className="w-4 h-4 text-zinc-500" /> {event.location}
                 </div>
               </div>
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1 ml-2">
                 {isAdmin && (
                   <button
                     onClick={() => setRosterEventId(event.id)}
@@ -131,7 +133,15 @@ export default function Events() {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div
+              className={`space-y-1 rounded-lg p-2 -m-2 ${
+                isAdmin ? 'cursor-pointer hover:bg-zinc-800/50 transition-colors' : ''
+              }`}
+              onClick={() => {
+                if (!isAdmin) return
+                setRosterEventId(event.id)
+              }}
+            >
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1 text-zinc-400">
                   <Users className="w-3.5 h-3.5" /> 已报名
@@ -147,7 +157,7 @@ export default function Events() {
             </div>
 
             {!isAdmin && hasRegistered && (
-              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-2">
                 {myRegs.map((reg) => {
                   const regVehicle = vehicles.find((v) => v.id === reg.vehicleId)
                   return (
@@ -168,8 +178,7 @@ export default function Events() {
 
             {!isAdmin && !hasRegistered && regCount < event.maxSlots && registerableVehicles.length > 0 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
+                onClick={() => {
                   setRegisterEventId(event.id)
                   setSelectedVehicleId(registerableVehicles[0]?.id || '')
                 }}
@@ -180,13 +189,12 @@ export default function Events() {
             )}
 
             {!isAdmin && !hasRegistered && regCount >= event.maxSlots && (
-              <div className="text-center py-2 text-zinc-500 text-sm" onClick={(e) => e.stopPropagation()}>名额已满</div>
+              <div className="text-center py-2 text-zinc-500 text-sm">名额已满</div>
             )}
 
             {!isAdmin && hasRegistered && registerableVehicles.length > 0 && regCount < event.maxSlots && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
+                onClick={() => {
                   setRegisterEventId(event.id)
                   setSelectedVehicleId(registerableVehicles[0]?.id || '')
                 }}
