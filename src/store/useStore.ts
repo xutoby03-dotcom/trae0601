@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { StoreState, Sample, ShipmentOrder, InventoryLog, ShipmentStatus, StatisticsData } from './types';
 import { generateMockSamples, generateMockShipmentOrders, generateMockInventoryLogs } from './mockData';
 import { saveToLocalStorage, loadFromLocalStorage } from '@/utils/storage';
-import { format, parseISO, isDateInRange } from '@/utils/date';
+import { format, parseISO, isDateInRange, isOverdue } from '@/utils/date';
 import { getExpressCompanyName } from '@/utils/express';
 
 const generateId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -171,12 +171,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   getOverdueOrders: () => {
     const state = get();
-    const today = new Date();
-    
-    return state.shipmentOrders.filter(order => {
-      if (order.status !== 'shipping' || !order.expectedArrivalDate) return false;
-      return parseISO(order.expectedArrivalDate) < today;
-    });
+    return state.shipmentOrders.filter(order => isOverdue(order.expectedArrivalDate, order.status));
   },
 
   getStatistics: (startDate, endDate) => {
@@ -205,17 +200,15 @@ export const useStore = create<StoreState>((set, get) => ({
       monthMap.set(month, monthData);
 
       if (order.expressCompany) {
-        const expressName = getExpressCompanyName(order.expressCompany);
-        const expressData = expressMap.get(expressName) || { total: 0, overdue: 0 };
-        expressData.total++;
-        if (order.status === 'shipping' && order.expectedArrivalDate) {
-          if (parseISO(order.expectedArrivalDate) < new Date()) {
+          const expressName = getExpressCompanyName(order.expressCompany);
+          const expressData = expressMap.get(expressName) || { total: 0, overdue: 0 };
+          expressData.total++;
+          if (isOverdue(order.expectedArrivalDate, order.status)) {
             expressData.overdue++;
             overdueCount++;
           }
+          expressMap.set(expressName, expressData);
         }
-        expressMap.set(expressName, expressData);
-      }
 
       if (order.convertedToOrder) convertedCount++;
       if (order.needReissue) reissueCount++;

@@ -1,4 +1,4 @@
-import { format, parseISO, differenceInDays, isBefore, isAfter, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, differenceInDays, isBefore, isAfter, differenceInCalendarDays, startOfDay } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
 export { format, parseISO };
@@ -36,9 +36,9 @@ export const formatRelative = (dateStr: string): string => {
 export const isOverdue = (expectedDate: string | null, status: string): boolean => {
   if (!expectedDate || status !== 'shipping') return false;
   try {
-    const expected = parseISO(expectedDate);
-    const now = new Date();
-    return isBefore(expected, now);
+    const expected = startOfDay(parseISO(expectedDate));
+    const today = startOfDay(new Date());
+    return isBefore(expected, today);
   } catch {
     return false;
   }

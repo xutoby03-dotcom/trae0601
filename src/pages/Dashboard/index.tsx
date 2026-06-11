@@ -8,7 +8,7 @@ import { ShipmentCard } from '@/components/ShipmentCard';
 import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
 import { expressCompanyOptions } from '@/utils/express';
-import { getTodayStr, parseISO } from '@/utils/date';
+import { getTodayStr, isOverdue } from '@/utils/date';
 
 const statusTabs: { status: ShipmentStatus; label: string }[] = [
   { status: 'pending', label: '待寄出' },
@@ -72,11 +72,7 @@ export const Dashboard: React.FC = () => {
     }
 
     if (showOverdueOnly) {
-      const today = new Date();
-      orders = orders.filter(order => {
-        if (order.status !== 'shipping' || !order.expectedArrivalDate) return false;
-        return parseISO(order.expectedArrivalDate) < today;
-      });
+      orders = orders.filter(order => isOverdue(order.expectedArrivalDate, order.status));
     }
 
     return orders;
@@ -193,9 +189,12 @@ export const Dashboard: React.FC = () => {
 
   let emptyTitle = '暂无寄样单';
   let emptyDesc = '';
-  if (searchInput.trim()) {
+  if (searchInput.trim() && showOverdueOnly) {
+    emptyTitle = '搜索结果中没有超时未签收的包裹';
+    emptyDesc = '试试换个关键词，或清除筛选条件查看全部';
+  } else if (searchInput.trim()) {
     emptyTitle = '没有找到匹配的寄样单';
-    emptyDesc = `试试换个关键词搜索，或清除筛选条件`;
+    emptyDesc = '试试换个关键词搜索，或清除筛选条件';
   } else if (showOverdueOnly) {
     emptyTitle = '暂无超时未签收的包裹';
     emptyDesc = '当前运输中的包裹均在预计到达时间内';
@@ -344,7 +343,9 @@ export const Dashboard: React.FC = () => {
         <div className="p-6">
           {displayOrders.length === 0 ? (
             <div className="text-center py-16">
-              {searchInput.trim() ? (
+              {searchInput.trim() && showOverdueOnly ? (
+                <AlertTriangle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              ) : searchInput.trim() ? (
                 <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               ) : showOverdueOnly ? (
                 <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
