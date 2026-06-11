@@ -9,10 +9,11 @@ import { cn } from '@/lib/utils';
 export default function SeasoningDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getSeasoningById, updateSeasoning } = useSeasoningStore();
+  const { getSeasoningById, updateSeasoning, isInitialized } = useSeasoningStore();
 
   const seasoning = id ? getSeasoningById(id) : undefined;
-  const notFound = id && !seasoning;
+  const notFound = isInitialized && id && !seasoning;
+  const isLoading = !isInitialized;
 
   const [form, setForm] = useState({
     name: '',
@@ -99,6 +100,17 @@ export default function SeasoningDetail() {
       navigate('/');
     }, 300);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-2 animate-pulse">⏳</div>
+          <p className="text-gray-500">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (notFound) {
     return (
