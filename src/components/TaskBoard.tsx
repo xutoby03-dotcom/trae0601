@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import {
   ClipboardList,
   AlertCircle,
@@ -183,9 +183,11 @@ interface TaskBoardProps {
   onDrawerOpenChange: (open: boolean) => void;
   onEditTask: (task: BathTask | null) => void;
   onClearPreselection: () => void;
+  delayedFilterMemberId?: string;
+  onClearDelayedFilter: () => void;
 }
 
-export function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, editingTask, onDrawerOpenChange, onEditTask, onClearPreselection }: TaskBoardProps) {
+export const TaskBoard = forwardRef<HTMLElement, TaskBoardProps>(function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, editingTask, onDrawerOpenChange, onEditTask, onClearPreselection, delayedFilterMemberId, onClearDelayedFilter }, ref) {
   const { tasks } = useStore();
 
   const openEdit = (task: BathTask) => {
@@ -206,13 +208,18 @@ export function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, edit
   };
 
   const columns: Exclude<TaskStatus, 'completed'>[] = ['today', 'delayed', 'observation'];
-  const columnTasks = columns.map((k) => ({
-    key: k,
-    items: tasks.filter((t) => t.status === k),
-  }));
+  const columnTasks = columns.map((k) => {
+    let items = tasks.filter((t) => t.status === k);
+    if (k === 'delayed' && delayedFilterMemberId) {
+      items = items.filter((t) => t.assignedTo === delayedFilterMemberId);
+    }
+    return { key: k, items };
+  });
+
+  const filterMember = useStore((s) => s.members.find((m) => m.id === delayedFilterMemberId));
 
   return (
-    <section className="max-w-7xl mx-auto px-6 pt-10">
+    <section ref={ref} className="max-w-7xl mx-auto px-6 pt-10">
       <div className="flex items-end justify-between mb-5">
         <div>
           <h2 className="text-xl font-semibold text-teal-700 font-serif flex items-center gap-2">
@@ -220,12 +227,29 @@ export function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, edit
           </h2>
           <p className="text-sm text-teal-300 mt-1">按状态分类，今日待办优先处理</p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-dashed border-teal-200 text-teal-300 text-sm font-medium hover:border-teal hover:text-teal hover:bg-teal-50 transition-all"
-        >
-          <Plus className="w-4 h-4" /> 新增任务
-        </button>
+        <div className="flex items-center gap-3">
+          {delayedFilterMemberId && filterMember && (
+            <button
+              onClick={onClearDelayedFilter}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-coral-50 border border-coral/30 text-coral text-sm font-medium hover:bg-coral-100 transition-all"
+            >
+              <span
+                className="w-5 h-5 rounded-full text-[11px] flex items-center justify-center text-white"
+                style={{ backgroundColor: filterMember.color }}
+              >
+                {filterMember.avatar}
+              </span>
+              <span>筛选：{filterMember.name}的延期</span>
+              <X className="w-3.5 h-3.5 ml-0.5" />
+            </button>
+          )}
+          <button
+            onClick={openNew}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border-2 border-dashed border-teal-200 text-teal-300 text-sm font-medium hover:border-teal hover:text-teal hover:bg-teal-50 transition-all"
+          >
+            <Plus className="w-4 h-4" /> 新增任务
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -280,7 +304,7 @@ export function TaskBoard({ onCompleteTask, drawerOpen, preselectedElderId, edit
       {drawerOpen && <TaskDrawer task={editingTask} preselectedElderId={preselectedElderId} onClose={closeDrawer} />}
     </section>
   );
-}
+});
 
 interface TaskDrawerProps {
   task: BathTask | null;

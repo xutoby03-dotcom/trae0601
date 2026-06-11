@@ -6,11 +6,18 @@ import {
   Trophy,
   TrendingUp,
   AlertCircle,
+  Sparkles,
+  Filter,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { cn } from '@/lib/utils';
 
-export function FamilyStats() {
+interface FamilyStatsProps {
+  onArrangeForElder?: (elderId: string) => void;
+  onFilterDelayedByMember?: (memberId: string) => void;
+}
+
+export function FamilyStats({ onArrangeForElder, onFilterDelayedByMember }: FamilyStatsProps) {
   const { elders, tasks, records, members } = useStore();
 
   const intervalWarnings = useMemo(() => {
@@ -133,14 +140,17 @@ export function FamilyStats() {
                 <div className="space-y-2.5">
                   {intervalWarnings.map(({ elder, days }, i) => {
                     const urgent = days >= 6 || days === -1;
+                    const clickable = !!onArrangeForElder;
                     return (
                       <div
                         key={elder.id}
+                        onClick={() => onArrangeForElder?.(elder.id)}
                         className={cn(
                           'flex items-center gap-3 p-3 rounded-xl border transition-all',
                           urgent
                             ? 'bg-coral-50/80 border-coral/30'
-                            : 'bg-amber2-50/60 border-amber2-600/30'
+                            : 'bg-amber2-50/60 border-amber2-600/30',
+                          clickable && 'cursor-pointer hover:shadow-card hover:-translate-y-0.5 group/row'
                         )}
                         style={{ animation: `fadeInUp 0.4s ease-out ${i * 80}ms both` }}
                       >
@@ -169,15 +179,22 @@ export function FamilyStats() {
                             )}
                           </p>
                         </div>
-                        <div
-                          className={cn(
-                            'text-xs font-bold px-2.5 py-1 rounded-lg tabular-nums',
-                            urgent
-                              ? 'bg-coral text-white'
-                              : 'bg-amber2-600 text-white'
+                        <div className="flex items-center gap-2">
+                          {clickable && (
+                            <span className="text-[11px] text-teal-300 opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center gap-0.5 whitespace-nowrap">
+                              <Sparkles className="w-3 h-3" /> 安排
+                            </span>
                           )}
-                        >
-                          {days === -1 ? '!' : days + '天'}
+                          <div
+                            className={cn(
+                              'text-xs font-bold px-2.5 py-1 rounded-lg tabular-nums',
+                              urgent
+                                ? 'bg-coral text-white'
+                                : 'bg-amber2-600 text-white'
+                            )}
+                          >
+                            {days === -1 ? '!' : days + '天'}
+                          </div>
                         </div>
                       </div>
                     );
@@ -217,9 +234,12 @@ export function FamilyStats() {
                 <div className="space-y-3.5">
                   {delayStats.byMember.map(({ member, count }, i) => {
                     const pct = Math.round((count / delayStats.total) * 100);
+                    const clickable = !!onFilterDelayedByMember;
                     return (
                       <div
                         key={member!.id}
+                        onClick={() => onFilterDelayedByMember?.(member!.id)}
+                        className={cn(clickable && 'cursor-pointer group/delay')}
                         style={{ animation: `fadeInUp 0.4s ease-out ${i * 80}ms both` }}
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -237,11 +257,23 @@ export function FamilyStats() {
                               {member!.role}
                             </span>
                           </div>
-                          <span className="text-xs font-bold text-coral tabular-nums">
-                            {count} 条 · {pct}%
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {clickable && (
+                              <span className="text-[11px] text-coral opacity-0 group-hover/delay:opacity-100 transition-opacity flex items-center gap-0.5">
+                                <Filter className="w-3 h-3" /> 查看延期
+                              </span>
+                            )}
+                            <span className="text-xs font-bold text-coral tabular-nums">
+                              {count} 条 · {pct}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="h-2.5 rounded-full bg-cream-200 overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-2.5 rounded-full bg-cream-200 overflow-hidden transition-all',
+                            clickable && 'group-hover/delay:bg-cream-300'
+                          )}
+                        >
                           <div
                             className="h-full bg-gradient-to-r from-coral-300 to-coral rounded-full transition-all duration-700 ease-out"
                             style={{ width: `${pct}%` }}

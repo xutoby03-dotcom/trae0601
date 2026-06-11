@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { ElderProfiles } from '@/components/ElderProfiles';
 import { TaskBoard } from '@/components/TaskBoard';
@@ -11,6 +11,8 @@ export default function Home() {
   const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<BathTask | null>(null);
   const [preselectedElderId, setPreselectedElderId] = useState<string | undefined>(undefined);
+  const [delayedFilterMemberId, setDelayedFilterMemberId] = useState<string | undefined>(undefined);
+  const taskBoardRef = useRef<HTMLElement>(null);
 
   const openNewTask = (elderId?: string) => {
     setEditingTask(null);
@@ -20,6 +22,11 @@ export default function Home() {
 
   const openRecord = (task: BathTask) => setRecordTask(task);
 
+  const handleFilterDelayed = (memberId: string) => {
+    setDelayedFilterMemberId(memberId);
+    taskBoardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="min-h-screen bg-cream-100">
       <Header onAddTask={() => openNewTask()} />
@@ -28,6 +35,7 @@ export default function Home() {
         <ElderProfiles onAddTaskForElder={(id) => openNewTask(id)} />
 
         <TaskBoard
+          ref={taskBoardRef}
           onCompleteTask={openRecord}
           drawerOpen={taskDrawerOpen}
           preselectedElderId={preselectedElderId}
@@ -35,9 +43,14 @@ export default function Home() {
           onDrawerOpenChange={setTaskDrawerOpen}
           onEditTask={setEditingTask}
           onClearPreselection={() => setPreselectedElderId(undefined)}
+          delayedFilterMemberId={delayedFilterMemberId}
+          onClearDelayedFilter={() => setDelayedFilterMemberId(undefined)}
         />
 
-        <FamilyStats />
+        <FamilyStats
+          onArrangeForElder={(elderId) => openNewTask(elderId)}
+          onFilterDelayedByMember={handleFilterDelayed}
+        />
       </main>
 
       <RecordModal task={recordTask} onClose={() => setRecordTask(null)} />
