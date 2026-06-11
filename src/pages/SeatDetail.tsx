@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, User, Phone, Clock, Coffee, AlertTriangle,
-  Camera, FileText, Send, LogOut, Undo2, Loader2, X, CheckCircle2,
+  Camera, FileText, Send, LogOut, Undo2, Loader2, X, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 import type { Seat } from '../types';
 import { SeatStatus, SEAT_STATUS_COLORS } from '../types';
@@ -29,6 +29,7 @@ export default function SeatDetail() {
   const [remark, setRemark] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [, setTick] = useState(0);
   const loadedRef = useRef(false);
 
@@ -106,8 +107,8 @@ export default function SeatDetail() {
       showToast('请选择图片文件');
       return;
     }
-    if (file.size > 8 * 1024 * 1024) {
-      showToast('图片不能超过 8MB');
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('图片不能超过 5MB，请压缩后再试');
       return;
     }
     const reader = new FileReader();
@@ -131,10 +132,11 @@ export default function SeatDetail() {
   const handleSubmitFeedback = async () => {
     if (!seat) return;
     if (!reporterName.trim()) {
-      showToast('请填写你的称呼');
+      setSubmitError('请填写你的称呼');
       return;
     }
     setActionLoading('feedback');
+    setSubmitError('');
     try {
       await apiClient.createDispute({
         seatId: seat.id,
@@ -150,6 +152,8 @@ export default function SeatDetail() {
       if (fileInputRef.current) fileInputRef.current.value = '';
       showToast('反馈已提交，管理员会尽快处理');
       loadDisputes();
+    } catch (e) {
+      setSubmitError((e as Error).message || '提交失败，请稍后重试');
     } finally {
       setActionLoading('');
     }
@@ -493,7 +497,7 @@ export default function SeatDetail() {
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 16v-4M12 8h.01" />
               </svg>
-              支持 JPG/PNG，最大 8MB，图片仅用于管理员核实占座情况
+              支持 JPG/PNG，最大 5MB，图片仅用于管理员核实占座情况
             </p>
           </div>
           <div>
@@ -512,6 +516,24 @@ export default function SeatDetail() {
             </div>
           </div>
         </div>
+
+        {submitError && (
+          <div className="mt-5 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-rose-700">提交失败</p>
+              <p className="text-xs text-rose-600 mt-0.5">{submitError}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmitError('')}
+              className="text-rose-400 hover:text-rose-600 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={() => setFeedbackOpen(false)}

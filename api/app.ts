@@ -20,8 +20,8 @@ dotenv.config()
 const app: express.Application = express()
 
 app.use(cors())
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(express.json({ limit: '16mb' }))
+app.use(express.urlencoded({ extended: true, limit: '16mb' }))
 
 app.use('/api/seats', seatsRoutes)
 app.use('/api/disputes', disputesRoutes)
@@ -38,10 +38,17 @@ app.use(
   },
 )
 
-app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((error: Error & { status?: number; type?: string }, req: Request, res: Response, next: NextFunction) => {
+  if (error.status === 413 || error.type === 'entity.too.large') {
+    res.status(413).json({
+      success: false,
+      error: '提交内容过大，请压缩图片后重试（建议小于 5MB）',
+    })
+    return
+  }
   res.status(500).json({
     success: false,
-    error: 'Server internal error',
+    error: '服务器内部错误',
   })
 })
 
