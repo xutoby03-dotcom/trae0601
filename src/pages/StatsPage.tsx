@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -7,6 +8,8 @@ import {
   Trophy,
   Calendar,
   Baby,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import StatsChart from '@/components/StatsChart';
 import UnclaimedList from '@/components/UnclaimedList';
@@ -14,18 +17,50 @@ import StrollerForm from '@/components/StrollerForm';
 import PatrolModal from '@/components/PatrolModal';
 import StrollerDetail from '@/components/StrollerDetail';
 import { useStrollerStore } from '@/store/useStrollerStore';
+import { getAvailableMonths, cn } from '@/utils/helpers';
 
 export default function StatsPage() {
-  const { getTopBlockingLocations, getLongUnclaimedCars, getTotalStats, patrolRecords } =
-    useStrollerStore();
-
-  const topLocations = getTopBlockingLocations(10);
-  const unclaimed = getLongUnclaimedCars();
-  const stats = getTotalStats();
-  const totalBlockingRecords = patrolRecords.filter((r) => r.status === 'blocking').length;
+  const {
+    getTopBlockingLocations,
+    getLongUnclaimedCars,
+    getTotalStats,
+    getBlockingRecordCount,
+    patrolRecords,
+  } = useStrollerStore();
 
   const now = new Date();
-  const monthLabel = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+
+  const availableMonths = useMemo(
+    () => getAvailableMonths(patrolRecords.map((r) => r.createdAt)),
+    [patrolRecords]
+  );
+
+  const monthFilter = { year: selectedYear, month: selectedMonth };
+  const topLocations = getTopBlockingLocations(10, monthFilter);
+  const unclaimed = getLongUnclaimedCars();
+  const stats = getTotalStats();
+  const totalBlockingRecords = getBlockingRecordCount(monthFilter);
+
+  const monthLabel = `${selectedYear}年${selectedMonth + 1}月`;
+
+  const goPrevMonth = () => {
+    const d = new Date(selectedYear, selectedMonth - 1, 1);
+    setSelectedYear(d.getFullYear());
+    setSelectedMonth(d.getMonth());
+  };
+
+  const goNextMonth = () => {
+    const d = new Date(selectedYear, selectedMonth + 1, 1);
+    const cur = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (d.getTime() > cur.getTime()) return;
+    setSelectedYear(d.getFullYear());
+    setSelectedMonth(d.getMonth());
+  };
+
+  const isCurrentMonth =
+    selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
 
   return (
     <div className="min-h-screen pb-16">
@@ -36,9 +71,76 @@ export default function StatsPage() {
               <ArrowLeft className="w-4 h-4" />
               返回看板
             </Link>
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <Calendar className="w-4 h-4" />
-              数据周期：{monthLabel}
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                <button
+                  onClick={goPrevMonth}
+                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                  title="上一月"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="relative group">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors min-w-[110px] justify-center">
+                    <Calendar className="w-4 h-4 text-brand-600" />
+                    {monthLabel}
+                    {isCurrentMonth && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 text-[10px] font-bold">
+                        本月
+                      </span>
+                    )}
+                  </button>
+
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[140px]">
+                    <div className="p-1">
+                      {availableMonths.map((m) => {
+                        const isSelected =
+                          m.year === selectedYear && m.month === selectedMonth;
+                        const isCur =
+                          m.year === now.getFullYear() && m.month === now.getMonth();
+                        return (
+                          <button
+                            key={`${m.year}-${m.month}`}
+                            onClick={() => {
+                              setSelectedYear(m.year);
+                              setSelectedMonth(m.month);
+                            }}
+                            className={cn(
+                              'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors',
+                              isSelected
+                                ? 'bg-brand-50 text-brand-700 font-semibold'
+                                : 'text-slate-600 hover:bg-slate-50'
+                            )}
+                          >
+                            <span>{m.label}</span>
+                            {isCur && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 font-bold">
+                                本月
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={goNextMonth}
+                  disabled={isCurrentMonth}
+                  className={cn(
+                    'p-1.5 rounded-lg transition-colors',
+                    isCurrentMonth
+                      ? 'text-slate-300 cursor-not-allowed'
+                      : 'text-slate-500 hover:bg-slate-100'
+                  )}
+                  title="下一月"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -49,14 +151,14 @@ export default function StatsPage() {
             <div>
               <h1 className="text-2xl font-bold text-slate-800">月度统计看板</h1>
               <p className="text-sm text-slate-500 mt-0.5">
-                占道热点分析 & 长期未认领车辆追踪
+                {monthLabel} · 占道热点分析 & 长期未认领车辆追踪
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <SummaryCard
-              label="占道挡路总次数"
+              label={`${monthLabel}占道挡路次数`}
               value={totalBlockingRecords}
               unit="次"
               icon={<Flame className="w-6 h-6" />}
@@ -100,9 +202,11 @@ export default function StatsPage() {
                   <Trophy className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800">占道次数 Top 位置排行</h2>
+                  <h2 className="text-lg font-bold text-slate-800">
+                    {monthLabel}占道次数 Top 位置排行
+                  </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    本月累计，消防通道区域以红色高亮显示
+                    消防通道区域以红色高亮显示
                   </p>
                 </div>
               </div>
@@ -111,19 +215,24 @@ export default function StatsPage() {
               </div>
             </div>
             <StatsChart data={topLocations} />
+            {topLocations.length === 0 && (
+              <div className="text-center py-8 text-sm text-slate-400">
+                {monthLabel}暂无占道记录
+              </div>
+            )}
           </section>
 
           <section className="card p-6 animate-fade-in-up" style={{ animationDelay: '80ms' }}>
             <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-50 to-brand-50/50 border border-brand-100">
               <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-brand-600" />
-                管理建议
+                {monthLabel} 管理建议
               </h3>
               <ul className="text-sm text-slate-600 space-y-1.5 leading-relaxed">
                 {topLocations[0] && (
                   <li>
                     📍 <span className="font-semibold">「{topLocations[0].location}」</span>
-                    是占道最频繁位置（{topLocations[0].blockingCount} 次），建议设置物理隔离栏或增设临时停车区
+                    是{monthLabel}占道最频繁位置（{topLocations[0].blockingCount} 次），建议设置物理隔离栏或增设临时停车区
                   </li>
                 )}
                 {unclaimed.length > 0 && (
@@ -134,13 +243,14 @@ export default function StatsPage() {
                 )}
                 {totalBlockingRecords > 5 && (
                   <li>
-                    📢 本月占道记录已达 <span className="font-semibold text-red-600">{totalBlockingRecords}</span>
+                    📢 {monthLabel}占道记录已达{' '}
+                    <span className="font-semibold text-red-600">{totalBlockingRecords}</span>
                     次，建议在业主群发布月度管理公告提醒规范停放
                   </li>
                 )}
-                {totalBlockingRecords === 0 && (
+                {totalBlockingRecords === 0 && topLocations.length === 0 && (
                   <li>
-                    ✨ 本月暂无占道记录，管理情况良好！建议保持定期巡查。
+                    ✨ {monthLabel}暂无占道记录，管理情况良好！建议保持定期巡查。
                   </li>
                 )}
               </ul>
@@ -158,7 +268,7 @@ export default function StatsPage() {
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">长期未认领车辆</h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    超过 30 天未更新状态的车辆
+                    超过 30 天未更新状态的车辆（不随月份切换）
                   </p>
                 </div>
               </div>
@@ -207,7 +317,9 @@ function SummaryCard({
       <div
         className={`absolute -right-4 -top-4 w-20 h-20 rounded-full bg-gradient-to-br ${gradient} opacity-10 group-hover:opacity-20 transition-opacity`}
       />
-      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center shadow-md mb-3`}>
+      <div
+        className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center shadow-md mb-3`}
+      >
         {icon}
       </div>
       <div className="text-3xl font-bold text-slate-800 mb-0.5">

@@ -77,6 +77,34 @@ export function readFileAsDataURL(file: File): Promise<string> {
   });
 }
 
+export function getMonthRange(year: number, month: number): { start: Date; end: Date } {
+  const start = new Date(year, month, 1, 0, 0, 0, 0);
+  const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  return { start, end };
+}
+
+export function isInMonth(dateStr: string, year: number, month: number): boolean {
+  const date = new Date(dateStr);
+  return date.getFullYear() === year && date.getMonth() === month;
+}
+
+export function getAvailableMonths(dateStrs: string[]): { year: number; month: number; label: string }[] {
+  const set = new Set<string>();
+  dateStrs.forEach((d) => {
+    const date = new Date(d);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    set.add(key);
+  });
+  const now = new Date();
+  set.add(`${now.getFullYear()}-${now.getMonth()}`);
+  return Array.from(set)
+    .map((key) => {
+      const [y, m] = key.split('-').map(Number);
+      return { year: y, month: m, label: `${y}年${m + 1}月` };
+    })
+    .sort((a, b) => b.year - a.year || b.month - a.month);
+}
+
 export function sortStrollersByPriority<T extends { isFireExit: boolean; status: StrollerStatus; updatedAt: string }>(
   list: T[]
 ): T[] {

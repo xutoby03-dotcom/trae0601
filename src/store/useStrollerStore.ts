@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Stroller, PatrolRecord, Filters, StrollerStatus, LocationStats } from '@/types';
 import { mockStrollers, mockPatrolRecords } from '@/data/mockData';
-import { generateId, isFireExitLocation, daysBetween } from '@/utils/helpers';
+import { generateId, isFireExitLocation, daysBetween, isInMonth } from '@/utils/helpers';
 import { LONG_TERM_THRESHOLD_DAYS } from '@/utils/constants';
 
 interface StrollerStore {
@@ -32,7 +32,8 @@ interface StrollerStore {
   getFilteredStrollers: () => Stroller[];
   getStrollerById: (id: string) => Stroller | undefined;
   getRecordsByStrollerId: (id: string) => PatrolRecord[];
-  getTopBlockingLocations: (limit?: number) => LocationStats[];
+  getTopBlockingLocations: (limit?: number, monthFilter?: { year: number; month: number }) => LocationStats[];
+  getBlockingRecordCount: (monthFilter?: { year: number; month: number }) => number;
   getLongUnclaimedCars: () => Stroller[];
   getFireExitBlockingCount: () => number;
   getTotalStats: () => {
@@ -126,11 +127,12 @@ export const useStrollerStore = create<StrollerStore>()(
           .patrolRecords.filter((r) => r.strollerId === id)
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
 
-      getTopBlockingLocations: (limit = 10) => {
+      getTopBlockingLocations: (limit = 10, monthFilter) => {
         const { patrolRecords, strollers } = get();
         const locationMap = new Map<string, number>();
         patrolRecords
           .filter((r) => r.status === 'blocking')
+          .filter((r) => (monthFilter ? isInMonth(r.createdAt, monthFilter.year, monthFilter.month) : true))
           .forEach((r) => {
             const s = strollers.find((x) => x.id === r.strollerId);
             if (s) {
@@ -141,6 +143,15 @@ export const useStrollerStore = create<StrollerStore>()(
           .map(([location, blockingCount]) => ({ location, blockingCount }))
           .sort((a, b) => b.blockingCount - a.blockingCount)
           .slice(0, limit);
+      },
+
+      getBlockingRecordCount: (monthFilter) => {
+        const { patrolRecords } = get();
+        return patrolRecords.filter(
+          (r) =>
+            r.status === 'blocking' &&
+            (monthFilter ? isInMonth(r.createdAt, monthFilter.year, monthFilter.month) : true)
+        ).length;
       },
 
       getLongUnclaimedCars: () =>
