@@ -1,0 +1,217 @@
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, AlertTriangle, Clock, Check, X, Bell } from 'lucide-react'
+import { useStore } from '@/store'
+import type { Application, Conflict } from '@/types'
+
+const TABS = ['待处理', '冲突检测', '过期下架'] as const
+type Tab = (typeof TABS)[number]
+
+export default function Review() {
+  const [activeTab, setActiveTab] = useState<Tab>('待处理')
+  const { applications, boards, approveApplication, rejectApplication, getConflicts, getExpiredNotRemoved } = useStore()
+  const getBoardName = (boardId: string) => boards.find(b => b.id === boardId)?.name ?? boardId
+  const conflicts = getConflicts()
+  const expired = getExpiredNotRemoved()
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-brand-dark">审核管理</h1>
+
+      <div className="flex gap-1 rounded-xl p-1 bg-brand-dark">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              backgroundColor: activeTab === tab ? '#E8652E' : 'transparent',
+              color: activeTab === tab ? '#FFF8F0' : '#FFF8F0AA',
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === '待处理' && (
+        <PendingTab
+          applications={applications}
+          getBoardName={getBoardName}
+          approveApplication={approveApplication}
+          rejectApplication={rejectApplication}
+          conflicts={conflicts}
+        />
+      )}
+      {activeTab === '冲突检测' && (
+        <ConflictTab
+          conflicts={conflicts}
+          getBoardName={getBoardName}
+          approveApplication={approveApplication}
+          rejectApplication={rejectApplication}
+        />
+      )}
+      {activeTab === '过期下架' && (
+        <ExpiredTab expired={expired} getBoardName={getBoardName} />
+      )}
+    </div>
+  )
+}
+
+function PendingTab({ applications, getBoardName, approveApplication, rejectApplication, conflicts }: {
+  applications: Application[]
+  getBoardName: (id: string) => string
+  approveApplication: (id: string) => void
+  rejectApplication: (id: string) => void
+  conflicts: Conflict[]
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const conflictAppIds = new Set(conflicts.flatMap(c => [c.applicationA.id, c.applicationB.id]))
+  const pending = applications.filter(a => a.status === 'pending').sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+  if (pending.length === 0) {
+    return <EmptyState message="暂无待处理申请" />
+  }
+
+  return (
+    <div className="space-y-3">
+      {pending.map(app => (
+        <div key={app.id} className="rounded-xl p-4 shadow-sm bg-white">
+          <div className="flex items-start justify-between cursor-pointer" onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-brand-dark">{app.activityName}</span>
+                {conflictAppIds.has(app.id) && (
+                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-brand-red/10 text-brand-red">
+                    <AlertTriangle size={12} />冲突
+                  </span>
+                )}
+              </div>
+              <div className="text-sm mt-1 text-brand-dark/60">
+                {app.clubName} · {getBoardName(app.boardId)} · {app.size} · {app.contact}
+              </div>
+              <div className="text-xs mt-1 text-brand-dark/40">
+                {app.startDate} ~ {app.endDate}
+              </div>
+            </div>
+            {expandedId === app.id ? <ChevronUp size={18} className="text-brand-dark/40" /> : <ChevronDown size={18} className="text-brand-dark/40" />}
+          </div>
+
+          {expandedId === app.id && (
+            <div className="mt-3 pt-3 border-t border-brand-dark/5">
+              {app.imageUrl && <img src={app.imageUrl} alt={app.activityName} className="w-full h-40 object-cover rounded-lg mb-3" />}
+              <div className="flex gap-2">
+                <button onClick={() => approveApplication(app.id)} className="flex items-center gap-1 px-4 py-2 rounded-lg text-white text-sm font-medium bg-brand-green hover:opacity-90">
+                  <Check size={16} />通过
+                </button>
+                <button onClick={() => rejectApplication(app.id)} className="flex items-center gap-1 px-4 py-2 rounded-lg text-white text-sm font-medium bg-brand-red hover:opacity-90">
+                  <X size={16} />拒绝
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ConflictTab({ conflicts, getBoardName, approveApplication, rejectApplication }: {
+  conflicts: Conflict[]
+  getBoardName: (id: string) => string
+  approveApplication: (id: string) => void
+  rejectApplication: (id: string) => void
+}) {
+  if (conflicts.length === 0) {
+    return <EmptyState message="暂无冲突" />
+  }
+
+  return (
+    <div className="space-y-4">
+      {conflicts.map((c, i) => (
+        <div key={i} className="rounded-xl overflow-hidden shadow-sm bg-white">
+          <div className="px-4 py-2 text-sm font-medium bg-brand-red/10 text-brand-red">
+            <AlertTriangle size={14} className="inline mr-1" />
+            {getBoardName(c.boardId)} — 冲突
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-brand-dark/5">
+            <AppSide app={c.applicationA} onApprove={() => approveApplication(c.applicationA.id)} onReject={() => rejectApplication(c.applicationA.id)} />
+            <AppSide app={c.applicationB} onApprove={() => approveApplication(c.applicationB.id)} onReject={() => rejectApplication(c.applicationB.id)} />
+          </div>
+          <div className="px-4 py-2 text-center text-xs font-medium bg-brand-red/15 text-brand-red">
+            重叠时段：{c.overlapStart} ~ {c.overlapEnd}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function AppSide({ app, onApprove, onReject }: {
+  app: Application
+  onApprove: () => void
+  onReject: () => void
+}) {
+  return (
+    <div className="p-4">
+      <div className="font-semibold text-sm text-brand-dark">{app.activityName}</div>
+      <div className="text-xs mt-1 text-brand-dark/60">{app.clubName}</div>
+      <div className="text-xs mt-1 text-brand-dark/40">{app.startDate} ~ {app.endDate}</div>
+      <div className="flex gap-1 mt-2">
+        <button onClick={onApprove} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-green hover:opacity-90">
+          <Check size={12} />通过
+        </button>
+        <button onClick={onReject} className="flex items-center gap-0.5 px-2 py-1 rounded text-xs text-white bg-brand-red hover:opacity-90">
+          <X size={12} />拒绝
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ExpiredTab({ expired, getBoardName }: {
+  expired: Application[]
+  getBoardName: (id: string) => string
+}) {
+  if (expired.length === 0) {
+    return <EmptyState message="暂无过期未下架申请" />
+  }
+
+  return (
+    <div className="space-y-3">
+      {expired.map(app => {
+        const daysOverdue = Math.floor((Date.now() - new Date(app.endDate).getTime()) / 86400000)
+        return (
+          <div key={app.id} className="rounded-xl p-4 shadow-sm bg-brand-gold/15 border-l-4 border-brand-gold">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-semibold text-brand-dark">{app.activityName}</div>
+                <div className="text-sm mt-1 text-brand-dark/60">
+                  {app.clubName} · {getBoardName(app.boardId)}
+                </div>
+                <div className="flex items-center gap-1 text-xs mt-1 text-brand-orange">
+                  <Clock size={12} />
+                  结束于 {app.endDate}，已过期 {daysOverdue} 天
+                </div>
+              </div>
+              <button
+                onClick={() => alert(`已向 ${app.clubName} 发送催促提醒！`)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-gold text-brand-dark hover:opacity-90"
+              >
+                <Bell size={14} />催促
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="text-center py-16 text-brand-dark/25">
+      <div className="text-4xl mb-2">📋</div>
+      <div className="text-sm">{message}</div>
+    </div>
+  )
+}
