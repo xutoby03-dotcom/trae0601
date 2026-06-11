@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store';
 import { useToast } from '@/components/Toast';
 import BorrowModal from '@/components/BorrowModal';
 import ReturnModal from '@/components/ReturnModal';
+import DetailDrawer from '@/components/DetailDrawer';
 import { LadderStatus, ReservationStatus } from '@/types';
 import {
   CheckCircle2,
@@ -21,7 +22,6 @@ import {
   Phone,
   CalendarClock,
   HandHelping,
-  Trash2,
   Bell,
   AlertOctagon,
   Loader2,
@@ -82,7 +82,6 @@ export default function Home() {
     getLadderCurrentBorrow,
     getReservationBorrowRecord,
     getOverdueBorrowRecords,
-    cancelReservation,
     initSampleData,
     refreshLadderStatuses,
   } = useStore();
@@ -91,6 +90,8 @@ export default function Home() {
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedLadderForBorrow, setSelectedLadderForBorrow] = useState<string | undefined>();
   const [selectedLadderForReturn, setSelectedLadderForReturn] = useState<string | undefined>();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerLadderId, setDrawerLadderId] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
   const [initialized, setInitialized] = useState(false);
 
@@ -136,12 +137,6 @@ export default function Home() {
     );
   };
 
-  const handleCancelReservation = (reservationId: string) => {
-    if (!confirm('确定要取消该预约吗？')) return;
-    const result = cancelReservation(reservationId);
-    showToast(result.message, result.success ? 'success' : 'error');
-  };
-
   const openBorrowModalFor = (ladderId?: string) => {
     setSelectedLadderForBorrow(ladderId);
     setBorrowModalOpen(true);
@@ -150,6 +145,16 @@ export default function Home() {
   const openReturnModalFor = (ladderId?: string) => {
     setSelectedLadderForReturn(ladderId);
     setReturnModalOpen(true);
+  };
+
+  const openDetailDrawer = (ladderId: string) => {
+    setDrawerLadderId(ladderId);
+    setDrawerOpen(true);
+  };
+
+  const closeDetailDrawer = () => {
+    setDrawerOpen(false);
+    setTimeout(() => setDrawerLadderId(null), 300);
   };
 
   const totalLadders = ladders.length;
@@ -244,7 +249,8 @@ export default function Home() {
                 return (
                   <div
                     key={borrow.id}
-                    className="flex items-center justify-between gap-4 p-3 rounded-xl bg-white border border-danger-100 shadow-sm"
+                    onClick={() => openDetailDrawer(ladder.id)}
+                    className="flex items-center justify-between gap-4 p-3 rounded-xl bg-white border border-danger-100 shadow-sm cursor-pointer hover:shadow-md hover:border-danger-200 transition-all duration-200"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-danger-100 flex items-center justify-center flex-shrink-0">
@@ -276,7 +282,10 @@ export default function Home() {
                         </div>
                       </div>
                       <button
-                        onClick={() => openReturnModalFor(ladder.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openReturnModalFor(ladder.id);
+                        }}
                         className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-danger-200 text-danger-600 hover:bg-danger-50 hover:border-danger-300 transition-colors"
                       >
                         催还/登记
@@ -342,10 +351,12 @@ export default function Home() {
                         ? reservations.find((r) => r.id === borrow.reservationId)
                         : null;
 
+                      const isClickable = status !== LadderStatus.AVAILABLE;
                       return (
                         <div
                           key={ladder.id}
-                          className={`p-4 rounded-xl border ${config.border} ${config.bgSoft} hover:shadow-md transition-all duration-200`}
+                          onClick={() => isClickable && openDetailDrawer(ladder.id)}
+                          className={`p-4 rounded-xl border ${config.border} ${config.bgSoft} hover:shadow-md transition-all duration-200 ${isClickable ? 'cursor-pointer hover:border-amber-300' : ''}`}
                         >
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div>
@@ -361,24 +372,21 @@ export default function Home() {
                             <div className="flex flex-col gap-1.5 items-end">
                               {status === LadderStatus.AVAILABLE && (
                                 <button
-                                  onClick={() => handleQuickReserve(ladder.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleQuickReserve(ladder.id);
+                                  }}
                                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-mint-500 to-mint-600 text-white hover:shadow-md transition-all"
                                 >
                                   立即预约
                                 </button>
                               )}
-                              {status === LadderStatus.RESERVED && reservation && (
-                                <button
-                                  onClick={() => handleCancelReservation(reservation.id)}
-                                  className="p-1.5 rounded-full text-slate-400 hover:text-danger-500 hover:bg-danger-50 transition-colors"
-                                  title="取消预约"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
                               {status === LadderStatus.BORROWED && (
                                 <button
-                                  onClick={() => openReturnModalFor(ladder.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openReturnModalFor(ladder.id);
+                                  }}
                                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors"
                                 >
                                   登记归还
@@ -386,7 +394,10 @@ export default function Home() {
                               )}
                               {status === LadderStatus.OVERDUE && (
                                 <button
-                                  onClick={() => openReturnModalFor(ladder.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openReturnModalFor(ladder.id);
+                                  }}
                                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-danger-200 text-danger-600 hover:bg-danger-50 transition-colors"
                                 >
                                   立即催还
@@ -434,6 +445,13 @@ export default function Home() {
         isOpen={returnModalOpen}
         onClose={() => setReturnModalOpen(false)}
         ladderId={selectedLadderForReturn}
+      />
+      <DetailDrawer
+        isOpen={drawerOpen}
+        onClose={closeDetailDrawer}
+        ladderId={drawerLadderId}
+        onOpenReturn={openReturnModalFor}
+        onOpenBorrow={openBorrowModalFor}
       />
     </div>
   );
