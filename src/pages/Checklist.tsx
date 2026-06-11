@@ -58,7 +58,12 @@ export default function Checklist() {
   const generateChecklistText = () => {
     const lines: string[] = [];
     lines.push(`🏕️ ${trip?.location || '露营'} - 携带清单`);
-    lines.push(`📅 ${trip?.days || 0}天${(trip?.days || 0) + 1}晚  ·  👥 ${people.length}人`);
+    const days = trip?.days;
+    let dateText = '日期待确认';
+    if (days && days > 0) {
+      dateText = days === 1 ? `${days}天` : `${days}天${days - 1}晚`;
+    }
+    lines.push(`📅 ${dateText}  ·  👥 ${people.length}人`);
     lines.push('');
 
     people.forEach((person, idx) => {
