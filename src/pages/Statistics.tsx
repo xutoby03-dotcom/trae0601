@@ -27,14 +27,13 @@ export default function StatisticsPage() {
     const overdueList = getOverdueBorrowRecords();
     const overdueCount = overdueList.length;
 
-    const historyOverdue = returnRecords.length > 0
-      ? reservations.filter((r) => {
-          const borrow = borrowRecords.find((b) => b.reservationId === r.id);
-          if (!borrow) return false;
-          return new Date(borrow.borrowTime).getTime() >
-            new Date(r.expectedEndTime).getTime();
-        }).length
-      : 0;
+    const historyOverdue = returnRecords.filter((rr) => {
+      const borrow = borrowRecords.find((b) => b.id === rr.borrowRecordId);
+      if (!borrow) return false;
+      const reservation = reservations.find((r) => r.id === borrow.reservationId);
+      if (!reservation) return false;
+      return new Date(rr.returnTime).getTime() > new Date(reservation.expectedEndTime).getTime();
+    }).length;
 
     const totalOverdueCount = overdueCount + historyOverdue;
 
@@ -73,7 +72,25 @@ export default function StatisticsPage() {
     const maxWeekdayCount = Math.max(1, ...weekdayCount);
 
     const personOverdueCount: Record<string, { name: string; count: number; building: string }> = {};
+
     overdueList.forEach(({ reservation }) => {
+      const key = `${reservation.borrowerName}-${reservation.building}`;
+      if (!personOverdueCount[key]) {
+        personOverdueCount[key] = {
+          name: reservation.borrowerName,
+          count: 0,
+          building: reservation.building,
+        };
+      }
+      personOverdueCount[key].count++;
+    });
+
+    returnRecords.forEach((rr) => {
+      const borrow = borrowRecords.find((b) => b.id === rr.borrowRecordId);
+      if (!borrow) return;
+      const reservation = reservations.find((r) => r.id === borrow.reservationId);
+      if (!reservation) return;
+      if (new Date(rr.returnTime).getTime() <= new Date(reservation.expectedEndTime).getTime()) return;
       const key = `${reservation.borrowerName}-${reservation.building}`;
       if (!personOverdueCount[key]) {
         personOverdueCount[key] = {
