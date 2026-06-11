@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-white/10;
+  }
+  
+  body {
+    @apply bg-cyber-black text-white antialiased min-h-screen;
+    font-family: 'Noto Sans SC', sans-serif;
+    background: linear-gradient(135deg, #0D0221 0%, #1A0536 25%, #0F0820 50%, #1A0536 75%, #0D0221 100%);
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cyber-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neon-purple/50 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neon-purple/80;
+  }
+
+  ::selection {
+    @apply bg-neon-pink/30 text-white;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-cyber-card backdrop-blur-xl border border-white/10 rounded-2xl;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .neon-border {
+    position: relative;
+  }
+
+  .neon-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg, #FF2E9D, #9D4EDD, #4CC9F0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .neon-btn {
+    @apply relative px-6 py-3 rounded-full font-semibold text-white overflow-hidden transition-all duration-300;
+    background: linear-gradient(135deg, #FF2E9D, #9D4EDD);
+    box-shadow: 0 4px 15px rgba(255, 46, 157, 0.4);
+  }
+
+  .neon-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 46, 157, 0.6);
+  }
+
+  .neon-btn:active {
+    transform: translateY(0);
+  }
+
+  .neon-btn-secondary {
+    @apply relative px-6 py-3 rounded-full font-semibold text-white overflow-hidden transition-all duration-300;
+    background: rgba(157, 78, 221, 0.2);
+    border: 2px solid #9D4EDD;
+  }
+
+  .neon-btn-secondary:hover {
+    background: rgba(157, 78, 221, 0.4);
+    box-shadow: 0 0 20px rgba(157, 78, 221, 0.5);
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-neon-purple/50 focus:ring-2 focus:ring-neon-purple/20 transition-all duration-200;
+  }
+
+  .input-field:focus {
+    box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .page-title {
+    @apply text-3xl md:text-4xl font-bold font-orbitron mb-2 bg-clip-text text-transparent bg-neon-gradient;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold mb-4 text-white/90 flex items-center gap-2;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
