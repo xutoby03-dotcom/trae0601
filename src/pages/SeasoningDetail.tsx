@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Camera, ChevronLeft, Upload, Edit3 } from 'lucide-react';
+import { Camera, ChevronLeft, Upload, Edit3, ArrowLeft } from 'lucide-react';
 import { useSeasoningStore } from '@/store/useSeasoningStore';
 import { CATEGORIES, UNITS, LOCATIONS } from '@/types';
 import { compressImage } from '@/utils/seasoningUtils';
@@ -12,6 +12,7 @@ export default function SeasoningDetail() {
   const { getSeasoningById, updateSeasoning } = useSeasoningStore();
 
   const seasoning = id ? getSeasoningById(id) : undefined;
+  const notFound = id && !seasoning;
 
   const [form, setForm] = useState({
     name: '',
@@ -25,10 +26,9 @@ export default function SeasoningDetail() {
     photoUrl: undefined as string | undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (seasoning && !isLoaded) {
+    if (seasoning) {
       setForm({
         name: seasoning.name,
         brand: seasoning.brand,
@@ -40,16 +40,8 @@ export default function SeasoningDetail() {
         unit: seasoning.unit,
         photoUrl: seasoning.photoUrl,
       });
-      setIsLoaded(true);
     }
-  }, [seasoning, isLoaded]);
-
-  useEffect(() => {
-    if (!seasoning && id && isLoaded) {
-      alert('找不到该调料');
-      navigate('/');
-    }
-  }, [seasoning, id, isLoaded, navigate]);
+  }, [seasoning]);
 
   const handleChange = (field: string, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -70,13 +62,22 @@ export default function SeasoningDetail() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!id || !seasoning) return;
     if (!form.name.trim()) {
       alert('请输入调料名称');
       return;
     }
     if (!form.brand.trim()) {
       alert('请输入品牌');
+      return;
+    }
+    const amount = Number(form.currentAmount);
+    if (isNaN(amount) || amount < 0) {
+      alert('剩余量不能为负数');
+      return;
+    }
+    if (amount > seasoning.initialAmount) {
+      alert('剩余量不能超过初始容量');
       return;
     }
 
@@ -89,7 +90,7 @@ export default function SeasoningDetail() {
       openDate: form.openDate,
       shelfLifeDays: Number(form.shelfLifeDays),
       location: form.location,
-      currentAmount: Number(form.currentAmount),
+      currentAmount: amount,
       unit: form.unit,
       photoUrl: form.photoUrl,
     });
@@ -99,15 +100,40 @@ export default function SeasoningDetail() {
     }, 300);
   };
 
-  if (!seasoning) {
+  if (notFound) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-2">⏳</div>
-          <p className="text-gray-500">加载中...</p>
+      <div className="min-h-screen bg-gray-50">
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+          <div className="container max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <h1 className="text-lg font-bold text-gray-800">编辑调料</h1>
+          </div>
+        </header>
+        <div className="container max-w-lg mx-auto px-4 py-20">
+          <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-gray-100">
+            <div className="text-6xl mb-4">🔍</div>
+            <h2 className="text-lg font-bold text-gray-800 mb-2">找不到这个调料</h2>
+            <p className="text-sm text-gray-500 mb-6">可能已被删除或链接不正确</p>
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+            >
+              <ArrowLeft size={18} />
+              返回看板
+            </button>
+          </div>
         </div>
       </div>
     );
+  }
+
+  if (!seasoning) {
+    return null;
   }
 
   return (
@@ -241,6 +267,7 @@ export default function SeasoningDetail() {
               </label>
               <input
                 type="number"
+                min="0"
                 value={form.currentAmount}
                 onChange={(e) => handleChange('currentAmount', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
