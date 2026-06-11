@@ -85,10 +85,12 @@ export const useStore = create<StoreState>((set, get) => ({
   recordFeedback: (id, feedback, needReissue, convertedToOrder) => {
     const state = get();
     const now = getNowStr();
-    
+
+    const targetStatus: ShipmentStatus = needReissue || !convertedToOrder ? 'followup' : 'delivered';
+
     const updatedOrders = state.shipmentOrders.map(order =>
       order.id === id
-        ? { ...order, feedback, needReissue, convertedToOrder, updatedAt: now }
+        ? { ...order, feedback, needReissue, convertedToOrder, status: targetStatus, updatedAt: now }
         : order
     );
 

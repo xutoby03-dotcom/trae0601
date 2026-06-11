@@ -152,11 +152,12 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleRecordFeedback = (id: string) => {
+    const order = shipmentOrders.find(o => o.id === id);
     setSelectedOrderId(id);
     setFeedbackForm({
-      feedback: '',
-      needReissue: false,
-      convertedToOrder: false,
+      feedback: order?.feedback || '',
+      needReissue: order?.needReissue || false,
+      convertedToOrder: order?.convertedToOrder || false,
     });
     setFeedbackModalOpen(true);
   };

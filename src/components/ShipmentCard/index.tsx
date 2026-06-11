@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, Phone, MapPin, Calendar, Clock, User, AlertTriangle } from 'lucide-react';
+import { Package, Phone, MapPin, Calendar, Clock, User, AlertTriangle, MessageSquare, RefreshCw, ShoppingCart } from 'lucide-react';
 import type { ShipmentOrder } from '@/store/types';
 import { StatusBadge } from '@/components/StatusBadge';
 import { formatDate, formatRelative, isOverdue, getDaysRemaining } from '@/utils/date';
@@ -37,6 +37,26 @@ export const ShipmentCard: React.FC<ShipmentCardProps> = ({
           <div>
             <h3 className="font-semibold text-gray-800">{order.customerName}</h3>
             <p className="text-sm text-gray-500">{order.sampleName} × {order.quantity}</p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {order.feedback && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 text-purple-600 text-xs rounded border border-purple-100">
+                  <MessageSquare className="w-3 h-3" />
+                  有反馈
+                </span>
+              )}
+              {order.needReissue && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-50 text-orange-600 text-xs rounded border border-orange-100">
+                  <RefreshCw className="w-3 h-3" />
+                  待补寄
+                </span>
+              )}
+              {order.convertedToOrder && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 text-green-600 text-xs rounded border border-green-100">
+                  <ShoppingCart className="w-3 h-3" />
+                  已转单
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <StatusBadge status={order.status} />
@@ -123,12 +143,20 @@ export const ShipmentCard: React.FC<ShipmentCardProps> = ({
               标记签收
             </button>
           )}
-          {order.status === 'delivered' && !order.feedback && onRecordFeedback && (
+          {(order.status === 'delivered' || order.status === 'followup') && !order.feedback && onRecordFeedback && (
             <button
               onClick={() => onRecordFeedback(order.id)}
               className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               录入反馈
+            </button>
+          )}
+          {order.status === 'followup' && order.feedback && onRecordFeedback && (
+            <button
+              onClick={() => onRecordFeedback(order.id)}
+              className="px-3 py-1.5 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              更新反馈
             </button>
           )}
           <button

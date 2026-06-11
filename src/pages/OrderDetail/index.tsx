@@ -45,12 +45,17 @@ export const OrderDetail: React.FC = () => {
   useEffect(() => {
     const state = location.state as { openFeedback?: boolean; openShipped?: boolean };
     if (state?.openFeedback) {
+      setFeedbackForm({
+        feedback: order?.feedback || '',
+        needReissue: order?.needReissue || false,
+        convertedToOrder: order?.convertedToOrder || false,
+      });
       setFeedbackModalOpen(true);
     }
     if (state?.openShipped) {
       setShippedModalOpen(true);
     }
-  }, [location.state]);
+  }, [location.state, order]);
 
   if (!order) {
     return (
@@ -325,11 +330,34 @@ export const OrderDetail: React.FC = () => {
             )}
             {(order.status === 'delivered' || order.status === 'followup') && !order.feedback && (
               <button
-                onClick={() => setFeedbackModalOpen(true)}
+                onClick={() => {
+                  setFeedbackForm({
+                    feedback: order.feedback || '',
+                    needReissue: order.needReissue || false,
+                    convertedToOrder: order.convertedToOrder || false,
+                  });
+                  setFeedbackModalOpen(true);
+                }}
                 className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
               >
                 <MessageCircle className="w-4 h-4" />
                 录入客户反馈
+              </button>
+            )}
+            {(order.status === 'delivered' || order.status === 'followup') && order.feedback && (
+              <button
+                onClick={() => {
+                  setFeedbackForm({
+                    feedback: order.feedback || '',
+                    needReissue: order.needReissue || false,
+                    convertedToOrder: order.convertedToOrder || false,
+                  });
+                  setFeedbackModalOpen(true);
+                }}
+                className="px-5 py-2.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium flex items-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                更新客户反馈
               </button>
             )}
             {order.needReissue && !order.reissueOrderId && (
