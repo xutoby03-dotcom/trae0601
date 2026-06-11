@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Layout } from '../components/Layout';
 import { Card, EmptyState } from '../components/Card';
 import { Avatar } from '../components/Avatar';
@@ -6,8 +6,27 @@ import { Button } from '../components/Button';
 import { Modal, ModalActions } from '../components/Modal';
 import { FormField, Input } from '../components/FormField';
 import { useApp } from '../context/AppContext';
-import { Page } from '../types';
+import { Page, CreditItem } from '../types';
 import { formatMoney, formatDateTime, formatDate, isOverdue, getOverdueDays } from '../utils/helpers';
+
+interface FlowEntry {
+  id: string;
+  createdAt: string;
+  type: 'credit' | 'payment';
+  amount: number;
+  balance: number;
+  handler?: string;
+  remark?: string;
+  items?: CreditItem[];
+  creditRecordId?: string;
+  remaining?: number;
+  isPaid?: boolean;
+  overdue?: boolean;
+  overdueDays?: number;
+  relatedItemsText?: string;
+  paidAt?: string;
+  dueDays?: number;
+}
 
 interface CustomerDetailPageProps {
   customerId: string;
@@ -38,6 +57,59 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
   const payments = getCustomerPayments(customerId);
   const records = getCustomerRecords(customerId);
 
+  const flow: FlowEntry[] = useMemo(() => {
+    const list: FlowEntry[] = [];
+
+    records.forEach(r => {
+      list.push({
+        id: `credit-${r.id}`,
+        createdAt: r.createdAt,
+        type: 'credit',
+        amount: r.totalAmount,
+        balance: 0,
+        handler: r.handler,
+        remark: r.remark,
+        items: r.items,
+        creditRecordId: r.id,
+        remaining: r.totalAmount - r.paidAmount,
+        isPaid: r.isPaid,
+        overdue: !r.isPaid && isOverdue(r.createdAt, r.dueDays),
+        overdueDays: !r.isPaid ? getOverdueDays(r.createdAt, r.dueDays) : 0,
+        paidAt: r.paidAt,
+        dueDays: r.dueDays
+      });
+    });
+
+    payments.forEach(p => {
+      const r = records.find(x => x.id === p.creditRecordId);
+      list.push({
+        id: `payment-${p.id}`,
+        createdAt: p.createdAt,
+        type: 'payment',
+        amount: p.amount,
+        balance: 0,
+        handler: p.handler,
+        remark: p.remark,
+        relatedItemsText: r ? r.items.map(i => i.productName).join('、') : undefined
+      });
+    });
+
+    list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    let running = 0;
+    list.forEach(entry => {
+      if (entry.type === 'credit') running += entry.amount;
+      else running -= entry.amount;
+      if (running < 0) running = 0;
+      entry.balance = running;
+    });
+
+    list.reverse();
+    return list;
+  }, [records, payments]);
+
+  const lastPaymentEntry = flow.find(e => e.type === 'payment');
+
   const openPay = (recordId: string) => {
     const r = records.find(x => x.id === recordId);
     if (!r) return;
@@ -57,11 +129,6 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
     setPayModalOpen(false);
   };
 
-  const lastPayment = payments[0];
-
-  const unpaidRecords = records.filter(r => !r.isPaid);
-  const paidRecords = records.filter(r => r.isPaid);
-
   return (
     <Layout
       page={page}
@@ -76,7 +143,7 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 20, fontWeight: 700 }}>{customer.name}</div>
             {customer.phone && <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>📞 {customer.phone}</div>}
-            <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 12, opacity: 0.9 }}>
+            <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 12, opacity: 0.9, flexWrap: 'wrap' }}>
               <span>额度 {formatMoney(customer.creditLimit)}</span>
               {overdueCount > 0 && <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 8 }}>逾期{overdueCount}笔</span>}
             </div>
@@ -89,10 +156,16 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
           </div>
           <div>
             <div style={{ fontSize: 11, opacity: 0.8 }}>最近还款</div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>
-              {lastPayment ? formatMoney(lastPayment.amount) : '暂无'}
-            </div>
-            {lastPayment && <div style={{ fontSize: 11, opacity: 0.8 }}>{formatDateTime(lastPayment.createdAt)}</div>}
+            {lastPaymentEntry ? (
+              <>
+                <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>
+                  <span style={{ color: '#86efac' }}>-{formatMoney(lastPaymentEntry.amount)}</span>
+                </div>
+                <div style={{ fontSize: 11, opacity: 0.8 }}>{formatDateTime(lastPaymentEntry.createdAt)}{lastPaymentEntry.relatedItemsText && ` · ${lastPaymentEntry.relatedItemsText}`}</div>
+              </>
+            ) : (
+              <div style={{ fontSize: 14, opacity: 0.7, marginTop: 6 }}>暂无</div>
+            )}
           </div>
         </div>
       </Card>
@@ -112,24 +185,119 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
       )}
 
       <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 10 }}>
-        还款记录
+        💰 欠款变化流水
+        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400, marginLeft: 8 }}>
+          赊账记 +，还款记 -，右侧为交易后欠款余额
+        </span>
       </div>
-      <Card padding={0} style={{ marginBottom: 16, overflow: 'hidden' }}>
-        {payments.length === 0 ? (
-          <EmptyState text="暂无还款记录" />
+
+      <Card padding={0} style={{ overflow: 'hidden', marginBottom: 16 }}>
+        {flow.length === 0 ? (
+          <EmptyState text="还没有任何赊账或还款记录" />
         ) : (
           <div>
-            {payments.map(p => {
-              const r = records.find(x => x.id === p.creditRecordId);
+            {flow.map((entry, idx) => {
+              const isLast = idx === flow.length - 1;
+              const timelineDot = entry.type === 'credit'
+                ? { bg: '#ef4444', icon: '➕' }
+                : { bg: '#10b981', icon: '➖' };
+              const amountColor = entry.type === 'credit' ? '#dc2626' : '#059669';
+              const amountPrefix = entry.type === 'credit' ? '+' : '-';
               return (
-                <div key={p.id} style={{ padding: 12, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#10b981' }}>+ {formatMoney(p.amount)}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                      {formatDateTime(p.createdAt)} · {p.handler}
+                <div key={entry.id} style={{ display: 'flex', gap: 12 }}>
+                  <div style={{
+                    width: 52, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    paddingTop: 14
+                  }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      backgroundColor: timelineDot.bg, color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, zIndex: 1
+                    }}>
+                      {timelineDot.icon}
                     </div>
-                    {r && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>对应账单：{r.items.map(i => i.productName).join('、')}</div>}
-                    {p.remark && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>备注：{p.remark}</div>}
+                    {!isLast && <div style={{
+                      flex: 1, width: 2, backgroundColor: '#e2e8f0',
+                      margin: '4px 0'
+                    }} />}
+                  </div>
+
+                  <div style={{ flex: 1, padding: '12px 16px 12px 0', minWidth: 0, borderBottom: !isLast ? '1px solid #f1f5f9' : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: 11,
+                            backgroundColor: entry.type === 'credit' ? '#fef2f2' : '#f0fdf4',
+                            color: entry.type === 'credit' ? '#b91c1c' : '#047857',
+                            padding: '2px 8px', borderRadius: 8, fontWeight: 600
+                          }}>
+                            {entry.type === 'credit' ? '赊账' : '还款'}
+                          </span>
+                          {entry.type === 'credit' && entry.overdue && !entry.isPaid && (
+                            <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 6px', borderRadius: 8, fontSize: 10, fontWeight: 500 }}>
+                              逾期{entry.overdueDays}天
+                            </span>
+                          )}
+                          {entry.type === 'credit' && entry.isPaid && (
+                            <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 8, fontSize: 10, fontWeight: 500 }}>
+                              已结清
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                          {formatDateTime(entry.createdAt)}{entry.handler ? ` · ${entry.handler}` : ''}
+                        </div>
+
+                        {entry.type === 'credit' && entry.items && (
+                          <div style={{ fontSize: 12, color: '#334155', marginTop: 6 }}>
+                            {entry.items.map((it, i) => (
+                              <span key={i} style={{ marginRight: 10 }}>
+                                {it.productName}×{it.quantity}
+                                <span style={{ color: '#94a3b8', marginLeft: 2 }}>({formatMoney(it.unitPrice)}/件)</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {entry.type === 'payment' && entry.relatedItemsText && (
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+                            对应账单：{entry.relatedItemsText}
+                          </div>
+                        )}
+                        {entry.remark && (
+                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                            备注：{entry.remark}
+                          </div>
+                        )}
+                        {entry.type === 'credit' && entry.dueDays && (
+                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                            约定 {entry.dueDays} 天内还清{entry.isPaid && entry.paidAt ? ` · 实际结清于 ${formatDate(entry.paidAt)}` : ''}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: amountColor }}>
+                          {amountPrefix}{formatMoney(entry.amount)}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                          余额 <span style={{ color: '#475569', fontWeight: 600 }}>{formatMoney(entry.balance)}</span>
+                        </div>
+                        {entry.type === 'credit' && !entry.isPaid && (entry.remaining ?? 0) > 0 && (
+                          <div style={{ marginTop: 6 }}>
+                            <Button size="sm" variant="success" onClick={() => entry.creditRecordId && openPay(entry.creditRecordId)}>
+                              还这笔
+                            </Button>
+                          </div>
+                        )}
+                        {entry.type === 'credit' && !entry.isPaid && (entry.remaining ?? 0) < entry.amount && (entry.remaining ?? 0) > 0 && (
+                          <div style={{ fontSize: 11, color: '#d97706', marginTop: 4 }}>
+                            本笔还欠 {formatMoney(entry.remaining ?? 0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -138,70 +306,6 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
         )}
       </Card>
 
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 10 }}>
-        赊账明细
-      </div>
-
-      {unpaidRecords.length > 0 && (
-        <Card padding={0} style={{ marginBottom: 12, overflow: 'hidden' }}>
-          <div style={{ padding: '10px 16px', backgroundColor: '#fef2f2', fontSize: 12, fontWeight: 600, color: '#991b1b' }}>
-            未结清 ({unpaidRecords.length}笔)
-          </div>
-          {unpaidRecords.map(r => {
-            const overdue = isOverdue(r.createdAt, r.dueDays);
-            const overdueDays = getOverdueDays(r.createdAt, r.dueDays);
-            const remaining = r.totalAmount - r.paidAmount;
-            return (
-              <div key={r.id} style={overdue ? { padding: 12, borderBottom: '1px solid #f1f5f9', borderLeft: '3px solid #ef4444' } : { padding: 12, borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, color: '#0f172a' }}>{formatDate(r.createdAt)}</span>
-                    {overdue && (
-                      <span style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 6px', borderRadius: 8, fontSize: 10 }}>逾期{overdueDays}天</span>
-                    )}
-                  </div>
-                  <Button size="sm" variant="success" onClick={() => openPay(r.id)}>还款</Button>
-                </div>
-                <div style={{ fontSize: 12, color: '#334155', marginTop: 6 }}>
-                  {r.items.map((it, i) => (
-                    <span key={i} style={{ marginRight: 8 }}>{it.productName}×{it.quantity}</span>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
-                  <span style={{ color: '#64748b' }}>共{formatMoney(r.totalAmount)}{r.paidAmount > 0 && ` · 已还${formatMoney(r.paidAmount)}`}</span>
-                  <span style={{ color: '#dc2626', fontWeight: 600 }}>还欠 {formatMoney(remaining)}</span>
-                </div>
-                {r.remark && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>备注：{r.remark}</div>}
-              </div>
-            );
-          })}
-        </Card>
-      )}
-
-      {paidRecords.length > 0 && (
-        <Card padding={0} style={{ overflow: 'hidden', opacity: 0.85 }}>
-          <div style={{ padding: '10px 16px', backgroundColor: '#f0fdf4', fontSize: 12, fontWeight: 600, color: '#166534' }}>
-            已结清 ({paidRecords.length}笔)
-          </div>
-          {paidRecords.map(r => (
-            <div key={r.id} style={{ padding: 12, borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#0f172a' }}>{formatDate(r.createdAt)}</span>
-                <span style={{ backgroundColor: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 500 }}>已结清</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#334155', marginTop: 6 }}>
-                {r.items.map((it, i) => (
-                  <span key={i} style={{ marginRight: 8 }}>{it.productName}×{it.quantity}</span>
-                ))}
-              </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                共 {formatMoney(r.totalAmount)} · 结清于 {r.paidAt && formatDate(r.paidAt)}
-              </div>
-            </div>
-          ))}
-        </Card>
-      )}
-
       <Modal open={payModalOpen} title="还款" onClose={() => setPayModalOpen(false)} width={400}>
         {payRecordId && (() => {
           const r = records.find(x => x.id === payRecordId);
@@ -209,9 +313,12 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
           return (
             <>
               <Card padding={12} style={{ backgroundColor: '#f8fafc', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: '#64748b' }}>待还金额</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>待还金额（本笔）</div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#dc2626', marginTop: 4 }}>
                   {formatMoney(r.totalAmount - r.paidAmount)}
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  本笔共 {formatMoney(r.totalAmount)}，累计已还 {formatMoney(r.paidAmount)}
                 </div>
               </Card>
               <FormField label="本次还款金额" required>
