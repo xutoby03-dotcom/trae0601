@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Shield, ArrowLeft, FileWarning, CheckCircle2, XCircle, Loader2,
-  MapPin, User, FileText, Clock, Check, X, Search, Filter,
+  MapPin, User, FileText, Clock, Check, X, Search, Filter, ZoomIn,
 } from 'lucide-react';
 import { useAppStore } from '../store/useStore';
 import type { Dispute, Seat } from '../types';
 import { apiClient } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
+import { Modal } from '../components/Modal';
 import { timeAgo, formatDateTime } from '../utils/time';
 import { cn } from '../lib/utils';
 
@@ -22,6 +23,7 @@ export default function AdminPanel() {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
+  const [lightboxImage, setLightboxImage] = useState<string>('');
   const loadedRef = useRef(false);
 
   const showToast = (msg: string) => {
@@ -194,6 +196,7 @@ export default function AdminPanel() {
                     resolving={resolving === d.id}
                     onResolve={handleResolve}
                     onGoSeat={(sid) => navigate(`/seat/${sid}`)}
+                    onPreviewPhoto={(url) => setLightboxImage(url)}
                   />
                 ))}
               </div>
@@ -210,6 +213,26 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxImage('')}
+        >
+          <button
+            onClick={() => setLightboxImage('')}
+            className="absolute top-5 right-5 w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center backdrop-blur hover:bg-white/20 transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="查看大图"
+            className="max-w-[92vw] max-h-[88vh] object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -219,11 +242,13 @@ function DisputeCard({
   resolving,
   onResolve,
   onGoSeat,
+  onPreviewPhoto,
 }: {
   dispute: Dispute & { seat?: Seat };
   resolving: boolean;
   onResolve: (id: string, action: 'recover' | 'reject') => void;
   onGoSeat: (seatId: string) => void;
+  onPreviewPhoto: (url: string) => void;
 }) {
   const isPending = dispute.status === 'pending';
   return (
@@ -285,15 +310,38 @@ function DisputeCard({
 
           {dispute.photoUrl && (
             <div className="bg-white rounded-xl p-3 border border-slate-100">
-              <p className="text-xs font-medium text-slate-500 mb-2">现场照片</p>
-              <img
-                src={dispute.photoUrl}
-                alt="证据照片"
-                className="max-h-40 rounded-lg object-cover border border-slate-200"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-slate-500">现场照片</p>
+                <button
+                  type="button"
+                  onClick={() => onPreviewPhoto(dispute.photoUrl!)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold text-teal-700 hover:bg-teal-50 transition"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                  查看大图
+                </button>
+              </div>
+              <div
+                onClick={() => onPreviewPhoto(dispute.photoUrl!)}
+                className="group relative rounded-xl overflow-hidden border border-slate-200 cursor-zoom-in"
+              >
+                <img
+                  src={dispute.photoUrl}
+                  alt="证据照片（点击放大）"
+                  className="w-full max-h-48 object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const parent = (e.target as HTMLImageElement).parentElement;
+                    if (parent) parent.style.display = 'none';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/50 backdrop-blur text-white text-xs font-medium">
+                    <ZoomIn className="w-3.5 h-3.5" />
+                    点击查看大图
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

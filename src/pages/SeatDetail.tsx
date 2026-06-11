@@ -25,7 +25,9 @@ export default function SeatDetail() {
   const [tempLeaveMin, setTempLeaveMin] = useState(15);
   const [reporterName, setReporterName] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [photoPreview, setPhotoPreview] = useState<string>('');
   const [remark, setRemark] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   const [, setTick] = useState(0);
   const loadedRef = useRef(false);
@@ -97,6 +99,35 @@ export default function SeatDetail() {
     }
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('请选择图片文件');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('图片不能超过 8MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setPhotoPreview(result);
+      setPhotoUrl(result);
+    };
+    reader.onerror = () => {
+      showToast('读取图片失败');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview('');
+    setPhotoUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmitFeedback = async () => {
     if (!seat) return;
     if (!reporterName.trim()) {
@@ -114,7 +145,9 @@ export default function SeatDetail() {
       setFeedbackOpen(false);
       setReporterName('');
       setPhotoUrl('');
+      setPhotoPreview('');
       setRemark('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       showToast('反馈已提交，管理员会尽快处理');
       loadDisputes();
     } finally {
@@ -374,18 +407,94 @@ export default function SeatDetail() {
           </div>
           <div>
             <label className="text-sm font-semibold text-slate-700 mb-2 block">
-              现场照片链接（可选）
+              现场照片 <span className="text-xs font-normal text-slate-500 ml-1">（可选，拍照或从相册选）</span>
             </label>
-            <div className="relative">
-              <Camera className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder="粘贴图片URL地址（演示用）"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-teal-400 focus:ring-4 focus:ring-teal-500/10"
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">提示：实际部署可接入图片上传功能</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple={false}
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+
+            {!photoPreview ? (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50 hover:bg-sky-100 hover:border-sky-400 transition-all"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/30 group-hover:scale-105 transition">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-sky-700">拍照</p>
+                    <p className="text-xs text-sky-600/80 mt-0.5">调用摄像头</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.removeAttribute('capture');
+                      fileInputRef.current.click();
+                      fileInputRef.current.setAttribute('capture', 'environment');
+                    }
+                  }}
+                  className="group relative flex flex-col items-center justify-center gap-2 py-6 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-400 transition-all"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 group-hover:scale-105 transition">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-emerald-700">选图</p>
+                    <p className="text-xs text-emerald-600/80 mt-0.5">从相册选择</p>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="relative group rounded-2xl overflow-hidden border-2 border-slate-200 bg-slate-50">
+                <img
+                  src={photoPreview}
+                  alt="预览"
+                  className="w-full max-h-72 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/95 text-rose-600 flex items-center justify-center shadow-lg hover:bg-rose-500 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="font-medium px-2 py-1 rounded-lg bg-black/40 backdrop-blur">已添加现场照片</span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-white/95 text-slate-800 font-semibold hover:bg-white transition"
+                  >
+                    重新选择
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              支持 JPG/PNG，最大 8MB，图片仅用于管理员核实占座情况
+            </p>
           </div>
           <div>
             <label className="text-sm font-semibold text-slate-700 mb-2 block">
