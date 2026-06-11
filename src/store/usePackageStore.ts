@@ -130,6 +130,7 @@ function generateMockData(): PackageItem[] {
       status: 'picked_up',
       createdAt: new Date(now - 2 * day).toISOString(),
       pickedUpAt: new Date(now - 1.5 * day).toISOString(),
+      signedBy: '刘洋',
       phoneTailVerified: true,
     },
     {
@@ -146,6 +147,7 @@ function generateMockData(): PackageItem[] {
       status: 'picked_up',
       createdAt: new Date(now - 3 * day).toISOString(),
       pickedUpAt: new Date(now - 2.5 * day).toISOString(),
+      signedBy: '孙丽',
       phoneTailVerified: true,
     },
     {
@@ -199,7 +201,7 @@ function generateMockData(): PackageItem[] {
 interface PackageStore {
   packages: PackageItem[];
   addPackage: (pkg: Omit<PackageItem, 'id' | 'createdAt' | 'status' | 'phoneTailVerified'>) => void;
-  pickupPackage: (id: string, phoneTail: string) => boolean;
+  pickupPackage: (id: string, phoneTail: string, signedBy: string) => boolean;
   deletePackage: (id: string) => void;
   checkOverdue: () => void;
   getFilteredPackages: (query: string, filters: PackageFilters) => PackageItem[];
@@ -226,7 +228,7 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
     });
   },
 
-  pickupPackage: (id, phoneTail) => {
+  pickupPackage: (id, phoneTail, signedBy) => {
     let success = false;
     set((state) => {
       const updated = state.packages.map((pkg) => {
@@ -238,6 +240,7 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
               ...pkg,
               status: 'picked_up' as PackageStatus,
               pickedUpAt: new Date().toISOString(),
+              signedBy,
               phoneTailVerified: true,
             };
           }
@@ -291,7 +294,9 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
           pkg.recipientName.toLowerCase().includes(q) ||
           pkg.pickupCode.toLowerCase().includes(q) ||
           pkg.courierCompany.toLowerCase().includes(q) ||
-          pkg.shelfLocation.toLowerCase().includes(q)
+          pkg.shelfLocation.toLowerCase().includes(q) ||
+          pkg.recipientPhone.endsWith(q) ||
+          (pkg.signedBy && pkg.signedBy.toLowerCase().includes(q))
         );
       }
       return true;

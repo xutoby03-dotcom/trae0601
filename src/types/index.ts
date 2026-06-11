@@ -14,6 +14,7 @@ export interface PackageItem {
   status: PackageStatus;
   createdAt: string;
   pickedUpAt?: string;
+  signedBy?: string;
   phoneTailVerified: boolean;
 }
 

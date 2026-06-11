@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Snowflake, AlertTriangle, Wine, Clock } from 'lucide-react';
+import { Snowflake, AlertTriangle, Wine, Clock, Check } from 'lucide-react';
 import type { PackageItem } from '@/types';
 import { STATUS_LABELS } from '@/types';
 
@@ -122,9 +122,23 @@ export default function PackageCard({ pkg }: PackageCardProps) {
             </Link>
           )}
           {pkg.pickedUpAt && (
-            <span className="text-xs text-emerald-600 font-medium">
-              ✓ 已签收
-            </span>
+            <div className="text-right space-y-0.5">
+              <div className="text-xs text-emerald-600 font-medium flex items-center justify-end gap-1">
+                <Check className="w-3.5 h-3.5" />
+                已签收
+              </div>
+              {pkg.signedBy && (
+                <p className="text-xs text-warm-500">签收人：{pkg.signedBy}</p>
+              )}
+              <p className="text-xs text-warm-400">
+                {new Date(pkg.pickedUpAt).toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
           )}
         </div>
       </div>
