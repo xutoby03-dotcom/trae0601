@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -43,7 +43,7 @@ interface AccessoryReturn {
 export default function ReturnCheck() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getLoanById, returnLoan } = useAppStore();
+  const { getLoanById, returnLoan, addException, deleteException, updateException } = useAppStore();
 
   const loan = getLoanById(id || '');
   const [currentStep, setCurrentStep] = useState(0);
@@ -68,6 +68,8 @@ export default function ReturnCheck() {
 
   const [powerOk, setPowerOk] = useState<boolean | null>(null);
   const [powerNote, setPowerNote] = useState('');
+
+  const accessoryExceptionIdRef = useRef<string | null>(null);
 
   const [hasDamage, setHasDamage] = useState(false);
   const [damageDescription, setDamageDescription] = useState('');
@@ -163,19 +165,6 @@ export default function ReturnCheck() {
       });
     }
 
-    if (hasMissingAccessories()) {
-      const missing = accessories
-        .filter((a) => a.returnQuantity < a.loanQuantity)
-        .map((a) => `${a.name} 缺少 ${a.loanQuantity - a.returnQuantity} 件`)
-        .join('，');
-      exceptions.push({
-        type: 'accessory_missing',
-        description: missing,
-        severity: 'medium',
-        loanId: loan.id,
-      });
-    }
-
     if (powerOk === false && powerNote) {
       exceptions.push({
         type: 'malfunction',
@@ -190,13 +179,43 @@ export default function ReturnCheck() {
   };
 
   const updateAccessoryQuantity = (index: number, delta: number) => {
-    setAccessories((prev) =>
-      prev.map((acc, i) => {
+    setAccessories((prev) => {
+      const next = prev.map((acc, i) => {
         if (i !== index) return acc;
         const newQty = Math.max(0, acc.returnQuantity + delta);
         return { ...acc, returnQuantity: newQty };
-      })
-    );
+      });
+
+      const hasMissing = next.some((a) => a.returnQuantity < a.loanQuantity);
+
+      if (hasMissing) {
+        const missing = next
+          .filter((a) => a.returnQuantity < a.loanQuantity)
+          .map((a) => `${a.name} 缺少 ${a.loanQuantity - a.returnQuantity} 件`)
+          .join('，');
+
+        if (accessoryExceptionIdRef.current) {
+          updateException(accessoryExceptionIdRef.current, {
+            description: missing,
+          });
+        } else {
+          const newId = addException({
+            type: 'accessory_missing',
+            description: missing,
+            severity: 'medium',
+            loanId: loan.id,
+          });
+          accessoryExceptionIdRef.current = newId;
+        }
+      } else {
+        if (accessoryExceptionIdRef.current) {
+          deleteException(accessoryExceptionIdRef.current);
+          accessoryExceptionIdRef.current = null;
+        }
+      }
+
+      return next;
+    });
   };
 
   const renderStepContent = () => {

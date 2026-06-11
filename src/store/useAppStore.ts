@@ -46,9 +46,10 @@ interface AppState {
   approveRenewal: (loanId: string, renewalId: string, note: string) => void;
   rejectRenewal: (loanId: string, renewalId: string, note: string) => void;
 
-  addException: (exception: Omit<Exception, 'id' | 'status' | 'createDate'>) => void;
+  addException: (exception: Omit<Exception, 'id' | 'status' | 'createDate'>) => string;
   updateException: (id: string, exception: Partial<Exception>) => void;
   resolveException: (id: string, solution: string) => void;
+  deleteException: (id: string) => void;
 
   returnLoan: (loanId: string, returnedAccessories: { id: string; returnQuantity: number }[], exceptions?: Omit<Exception, 'id' | 'loanId' | 'status' | 'createDate'>[]) => void;
 
@@ -263,6 +264,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           : l
       ),
     }));
+    return newException.id;
   },
 
   updateException: (id, exception) => {
@@ -289,6 +291,16 @@ export const useAppStore = create<AppState>((set, get) => ({
             ? { ...e, status: 'resolved', solution, resolveDate: getToday() }
             : e
         ),
+      })),
+    }));
+  },
+
+  deleteException: (id) => {
+    set((state) => ({
+      exceptions: state.exceptions.filter((e) => e.id !== id),
+      loans: state.loans.map((l) => ({
+        ...l,
+        exceptions: l.exceptions.filter((e) => e.id !== id),
       })),
     }));
   },
