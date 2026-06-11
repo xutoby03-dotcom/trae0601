@@ -3,8 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ChevronLeft, Clock, Users, DollarSign, Target,
   Star, MessageSquare, QrCode, CheckCircle,
-  Filter, X
+  Filter, X, Copy, Check
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Navbar } from '@/components/Navbar';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +43,26 @@ export default function TastingDetail() {
 
   const [selectedKeyword, setSelectedKeyword] = useState<string>('');
   const [showQR, setShowQR] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const feedbackUrl = useMemo(() => {
+    if (typeof window !== 'undefined' && id) {
+      return `${window.location.origin}/feedback/${id}`;
+    }
+    return '';
+  }, [id]);
+
+  const handleCopyLink = async () => {
+    if (feedbackUrl) {
+      try {
+        await navigator.clipboard.writeText(feedbackUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('复制失败:', err);
+      }
+    }
+  };
 
   if (!item) {
     return (
@@ -329,25 +350,76 @@ export default function TastingDetail() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowQR(false)}
         >
-          <Card className="max-w-sm w-full animate-fade-in">
-            <CardContent className="text-center space-y-4">
-              <h3 className="text-xl font-bold text-brown-800">扫码提交反馈</h3>
-              <p className="text-sm text-brown-500">{item.name}</p>
-              <div className="bg-brown-50 p-6 rounded-xl">
-                <div className="aspect-square bg-white rounded-lg flex items-center justify-center border-2 border-dashed border-brown-300">
-                  <QrCode className="w-32 h-32 text-brown-400" />
+          <div onClick={e => e.stopPropagation()}>
+            <Card className="max-w-sm w-full animate-fade-in">
+              <CardContent className="text-center space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-brown-800">扫码提交反馈</h3>
+                  <button
+                    onClick={() => setShowQR(false)}
+                    className="p-1.5 rounded-full hover:bg-brown-100 text-brown-400 hover:text-brown-600 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-              </div>
-              <p className="text-xs text-brown-400">
-                顾客扫描二维码即可提交反馈
-              </p>
-              <div className="pt-2">
-                <Button variant="secondary" onClick={() => setShowQR(false)} fullWidth>
-                  关闭
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                <p className="text-sm text-brown-500">{item.name} - {item.flavor}口味</p>
+                <div className="bg-white p-5 rounded-xl border border-brown-200 inline-block">
+                  <QRCodeSVG
+                    value={feedbackUrl}
+                    size={200}
+                    level="M"
+                    includeMargin={false}
+                    fgColor="#5D4037"
+                    bgColor="#FFFFFF"
+                  />
+                </div>
+                <div className="bg-brown-50 rounded-xl p-3">
+                  <p className="text-xs text-brown-500 mb-2">反馈链接</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs text-brown-700 bg-white px-3 py-2 rounded-lg border border-brown-200 truncate text-left">
+                      {feedbackUrl}
+                    </code>
+                    <button
+                      onClick={handleCopyLink}
+                      className={cn(
+                        'flex-shrink-0 p-2.5 rounded-lg transition-all duration-200',
+                        copied
+                          ? 'bg-green-500 text-white'
+                          : 'bg-primary-500 text-white hover:bg-primary-600 active:scale-95'
+                      )}
+                      title="复制链接"
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {copied && (
+                    <p className="text-xs text-green-600 mt-2 font-medium">已复制到剪贴板！</p>
+                  )}
+                </div>
+                <p className="text-xs text-brown-400">
+                  顾客扫描二维码或点击链接即可提交反馈
+                </p>
+                <div className="pt-1 grid grid-cols-2 gap-3">
+                  <Button variant="secondary" onClick={handleCopyLink} fullWidth>
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        已复制
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-2" />
+                        复制链接
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowQR(false)} fullWidth>
+                    关闭
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
