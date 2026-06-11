@@ -106,32 +106,76 @@ function FollowUpCard({ indicator }: { indicator: Indicator }) {
 }
 
 function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
+  const followUps = useHealthStore((s) => s.followUps)
+
+  const { prevValue, currValue, prevDate, currDate, diff, diffPercent } = useMemo(() => {
+    const indicatorFollowUps = followUps
+      .filter((f) => f.indicatorId === indicator.id)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    const lastTwo = indicatorFollowUps.slice(-2)
+    const prev = lastTwo[0]
+    const curr = lastTwo[1]
+    const diffVal = curr.value - prev.value
+    const diffPct = ((curr.value - prev.value) / prev.value) * 100
+    return {
+      prevValue: prev.value,
+      currValue: curr.value,
+      prevDate: prev.date,
+      currDate: curr.date,
+      diff: diffVal.toFixed(curr.value % 1 === 0 ? 0 : 2),
+      diffPercent: diffPct.toFixed(1),
+    }
+  }, [followUps, indicator.id])
+
   return (
-    <div className={`card relative overflow-hidden p-4 pl-5`}>
-      <div className={`severity-bar ${severityColors[indicator.severity]}`} />
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={16} className="text-red-500" />
-            <h4 className="font-semibold text-gray-900 truncate">{indicator.name}</h4>
+    <Link to={`/indicators/${indicator.id}`} className="block">
+      <div className={`card-hover relative overflow-hidden p-4 pl-5`}>
+        <div className={`severity-bar ${severityColors[indicator.severity]}`} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={16} className="text-red-500 shrink-0" />
+              <h4 className="font-semibold text-gray-900 truncate">{indicator.name}</h4>
+            </div>
+            <div className="flex items-end gap-3 mb-2">
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">上次</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {prevValue}<span className="text-gray-400 text-xs ml-0.5">{indicator.unit}</span>
+                </p>
+                <p className="text-xs text-gray-400">{formatDateDisplay(prevDate)}</p>
+              </div>
+              <div className="text-red-500 pb-4">
+                <TrendingUp size={14} className="inline" />
+                <span className="text-sm font-bold ml-0.5">+{diffPercent}%</span>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-400 mb-0.5">本次</p>
+                <p className="text-sm font-bold text-red-600">
+                  {currValue}<span className="text-gray-400 text-xs font-normal ml-0.5">{indicator.unit}</span>
+                </p>
+                <p className="text-xs text-gray-400">{formatDateDisplay(currDate)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-red-500 font-medium">
+              ↑ 上涨 {diff} {indicator.unit}
+            </p>
           </div>
-          <p className="text-sm text-gray-500">
-            当前值: <span className="font-semibold text-gray-900">{indicator.value}</span>
-            <span className="text-gray-400 ml-1">{indicator.unit}</span>
-          </p>
-          <p className="text-xs text-gray-400 mt-1 line-clamp-2">{indicator.doctorAdvice}</p>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <span className={`badge ${
+              indicator.severity === "urgent"
+                ? "bg-red-100 text-red-600"
+                : indicator.severity === "attention"
+                ? "bg-amber-100 text-amber-600"
+                : "bg-green-100 text-green-600"
+            }`}>
+              {severityLabels[indicator.severity]}
+            </span>
+            <ChevronRight size={16} className="text-gray-300 mt-auto" />
+          </div>
         </div>
-        <span className={`badge ${
-          indicator.severity === "urgent"
-            ? "bg-red-100 text-red-600"
-            : indicator.severity === "attention"
-            ? "bg-amber-100 text-amber-600"
-            : "bg-green-100 text-green-600"
-        } shrink-0`}>
-          {severityLabels[indicator.severity]}
-        </span>
       </div>
-    </div>
+    </Link>
   )
 }
 
