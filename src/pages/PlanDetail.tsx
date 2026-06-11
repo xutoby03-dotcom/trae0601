@@ -85,7 +85,14 @@ export default function PlanDetail() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate('/tickets')}
+            onClick={() => navigate('/tickets', { state: { planId: plan.id, autoOpen: true } })}
+            className="neon-btn flex items-center gap-2"
+          >
+            <Ticket className="w-4 h-4" />
+            录入抢票
+          </button>
+          <button
+            onClick={() => navigate('/tickets', { state: { planId: plan.id } })}
             className="neon-btn-secondary flex items-center gap-2"
           >
             <Ticket className="w-4 h-4" />
@@ -322,7 +329,7 @@ export default function PlanDetail() {
         <h2 className="section-title">快捷操作</h2>
         <div className="grid md:grid-cols-3 gap-4">
           <button
-            onClick={() => navigate('/tickets')}
+            onClick={() => navigate('/tickets', { state: { planId: plan.id, autoOpen: true } })}
             className="flex items-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-neon-green/50 transition-all text-left"
           >
             <div className="p-2 rounded-lg bg-neon-green/20">

@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Plus, Ticket, Trash2, Edit2, CheckCircle, Clock, User,
-  DollarSign, Upload, Check, X, Image as ImageIcon
+  DollarSign, Upload, Check, X, Image as ImageIcon, Filter
 } from 'lucide-react';
 import useStore from '../store/useStore';
 import Modal from '../components/Modal';
@@ -43,26 +44,58 @@ const initialFormData: TicketFormData = {
 };
 
 export default function Tickets() {
+  const location = useLocation();
   const { tickets, plans, members, addTicket, updateTicket, deleteTicket } = useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<TicketFormData>(initialFormData);
   const [editingTicket, setEditingTicket] = useState<TicketRecord | null>(null);
   const [filterStatus, setFilterStatus] = useState<TicketStatus | 'all'>('all');
+  const [filterPlanId, setFilterPlanId] = useState<string>('all');
+
+  // Handle location state from navigation (coming from PlanDetail)
+  useEffect(() => {
+    const state = location.state as { planId?: string; autoOpen?: boolean } | null;
+    if (state?.planId) {
+      setFilterPlanId(state.planId);
+      if (state.autoOpen) {
+        const planExists = plans.some((p) => p.id === state.planId);
+        if (planExists) {
+          setEditingTicket(null);
+          setFormData({
+            ...initialFormData,
+            planId: state.planId,
+            memberId: members[0]?.id || '',
+            splitMemberIds: members.map((m) => m.id),
+          });
+          setIsModalOpen(true);
+          // Clear state after use to avoid reopening on re-render
+          window.history.replaceState({}, document.title);
+        }
+      }
+    }
+  }, [location.state, plans, members]);
 
   const filteredTickets = useMemo(() => {
-    if (filterStatus === 'all') return tickets;
-    return tickets.filter((t) => t.status === filterStatus);
-  }, [tickets, filterStatus]);
+    let result = tickets;
+    if (filterStatus !== 'all') {
+      result = result.filter((t) => t.status === filterStatus);
+    }
+    if (filterPlanId !== 'all') {
+      result = result.filter((t) => t.planId === filterPlanId);
+    }
+    return result;
+  }, [tickets, filterStatus, filterPlanId]);
 
   const sortedTickets = [...filteredTickets].sort(
     (a, b) => new Date(b.obtainedAt).getTime() - new Date(a.obtainedAt).getTime()
   );
 
-  const openCreateModal = () => {
+  const openCreateModal = (prefillPlanId?: string) => {
+    const finalPlanId = prefillPlanId || (filterPlanId !== 'all' ? filterPlanId : plans[0]?.id || '');
     setEditingTicket(null);
     setFormData({
       ...initialFormData,
-      planId: plans[0]?.id || '',
+      planId: finalPlanId,
       memberId: members[0]?.id || '',
       splitMemberIds: members.map((m) => m.id),
     });
@@ -221,12 +254,20 @@ export default function Tickets() {
       className="space-y-6"
     >
       {/* Header */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="page-title">抢票录入</h1>
-          <p className="text-gray-400">记录抢票结果、座位信息和分摊详情</p>
+      <motion.div variants={itemVariants} className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="page-title">抢票录入</h1>
+            <p className="text-gray-400">记录抢票结果、座位信息和分摊详情</p>
+          </div>
+          <button onClick={() => openCreateModal()} className="neon-btn flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            录入抢票
+          </button>
         </div>
-        <div className="flex items-center gap-3">
+        
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex bg-white/5 rounded-xl p-1">
             {(['all', 'success', 'pending_transfer', 'failed'] as const).map((status) => (
               <button
@@ -239,14 +280,39 @@ export default function Tickets() {
                     : 'text-gray-400 hover:text-white'
                 )}
               >
-                {status === 'all' ? '全部' : getStatusConfig(status).label}
+                {status === 'all' ? '全部状态' : getStatusConfig(status).label}
               </button>
             ))}
           </div>
-          <button onClick={openCreateModal} className="neon-btn flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            录入抢票
-          </button>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select
+              value={filterPlanId}
+              onChange={(e) => setFilterPlanId(e.target.value)}
+              className="input-field max-w-xs py-2"
+            >
+              <option value="all" className="bg-cyber-dark">全部演出</option>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id} className="bg-cyber-dark">
+                  {plan.artist} - {plan.city}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {filterPlanId !== 'all' && (
+            <button
+              onClick={() => setFilterPlanId('all')}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              清除筛选
+            </button>
+          )}
+          
+          <div className="text-sm text-gray-500 ml-auto">
+            共 {sortedTickets.length} 条记录
+          </div>
         </div>
       </motion.div>
 
@@ -423,12 +489,18 @@ export default function Tickets() {
       </div>
 
       {/* Empty State */}
-      {tickets.length === 0 && (
+      {sortedTickets.length === 0 && (
         <motion.div variants={itemVariants} className="glass-card p-12 text-center">
           <Ticket className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">还没有抢票记录</h3>
-          <p className="text-gray-500 mb-6">录入你的第一条抢票结果，开始追踪分摊状态</p>
-          <button onClick={openCreateModal} className="neon-btn inline-flex items-center gap-2">
+          <h3 className="text-xl font-semibold mb-2">
+            {filterPlanId !== 'all' || filterStatus !== 'all' ? '没有符合条件的抢票记录' : '还没有抢票记录'}
+          </h3>
+          <p className="text-gray-500 mb-6">
+            {filterPlanId !== 'all' || filterStatus !== 'all'
+              ? '试试调整筛选条件'
+              : '录入你的第一条抢票结果，开始追踪分摊状态'}
+          </p>
+          <button onClick={() => openCreateModal()} className="neon-btn inline-flex items-center gap-2">
             <Plus className="w-5 h-5" />
             录入抢票
           </button>
