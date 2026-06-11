@@ -2,33 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Users, Clock, Sun, Gamepad2, X, Check } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import type { TableData, CreateTableRequest } from '@shared/types';
-
-const TablePhoto = ({ photo, tableNumber, size = 'md' }: { photo?: string; tableNumber: string; size?: 'sm' | 'md' | 'lg' }) => {
-  const [imgError, setImgError] = useState(false);
-  useEffect(() => {
-    setImgError(false);
-  }, [photo]);
-  const sizeClasses = {
-    sm: 'w-10 h-10 rounded-lg text-xs',
-    md: 'w-14 h-14 rounded-xl text-sm',
-    lg: 'w-20 h-20 rounded-2xl text-base',
-  };
-  if (photo && !imgError) {
-    return (
-      <img
-        src={photo}
-        alt={tableNumber}
-        className={`${sizeClasses[size]} object-cover bg-gray-100 flex-shrink-0`}
-        onError={() => setImgError(true)}
-      />
-    );
-  }
-  return (
-    <div className={`${sizeClasses[size]} bg-gradient-to-br from-warm-200 to-warm-300 flex items-center justify-center text-warm-600 font-semibold flex-shrink-0`}>
-      {tableNumber.charAt(0)}
-    </div>
-  );
-};
+import TablePhoto from '@/components/TablePhoto';
 
 export default function TableManagement() {
   const { tables, fetchTables, createTable, updateTable, deleteTable } = useStore();
@@ -147,7 +121,7 @@ export default function TableManagement() {
               {tables.map(table => (
                 <tr key={table.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <TablePhoto photo={table.photo} tableNumber={table.tableNumber} />
+                    <TablePhoto photo={table.photo} tableNumber={table.tableNumber} size="lg" className="flex-shrink-0" />
                   </td>
                   <td className="px-6 py-4">
                     <span className="font-semibold text-gray-800 text-lg">{table.tableNumber}</span>
@@ -321,7 +295,7 @@ export default function TableManagement() {
                     <p className="text-xs text-gray-400 mt-1">填入图片 URL，留空显示默认占位</p>
                   </div>
                   <div className="flex-shrink-0">
-                    <TablePhoto photo={formData.photo} tableNumber={formData.tableNumber || 'A'} size="lg" />
+                    <TablePhoto photo={formData.photo} tableNumber={formData.tableNumber || 'A'} size="xl" className="flex-shrink-0" />
                   </div>
                 </div>
               </div>
