@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Search, AlertTriangle, Snowflake, Wine, Clock } from 'lucide-react';
+import { Search, AlertTriangle, Snowflake, Wine, Clock, X, Filter } from 'lucide-react';
 import { usePackageStore } from '@/store/usePackageStore';
 import PackageCard from '@/components/PackageCard';
 import type { PackageStatus, PackageFilters } from '@/types';
-import { STATUS_LABELS } from '@/types';
+import { STATUS_LABELS, DEPARTMENTS, COURIER_COMPANIES } from '@/types';
 
 const tabs: { key: PackageStatus; color: string; dotColor: string }[] = [
   { key: 'new', color: 'text-indigo-700', dotColor: 'bg-indigo-500' },
@@ -39,6 +39,21 @@ export default function Home() {
     }));
   };
 
+  const clearFilters = () => {
+    setFilters({});
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters =
+    filters.isColdChain || filters.isFragile || filters.isOverdue || filters.department || filters.courierCompany;
+
+  const activeChips: { label: string; onRemove: () => void }[] = [];
+  if (filters.department) activeChips.push({ label: `部门：${filters.department}`, onRemove: () => setFilters((p) => ({ ...p, department: undefined })) });
+  if (filters.courierCompany) activeChips.push({ label: `快递：${filters.courierCompany}`, onRemove: () => setFilters((p) => ({ ...p, courierCompany: undefined })) });
+  if (filters.isColdChain) activeChips.push({ label: '冷藏件', onRemove: () => toggleFilter('isColdChain') });
+  if (filters.isFragile) activeChips.push({ label: '易碎件', onRemove: () => toggleFilter('isFragile') });
+  if (filters.isOverdue) activeChips.push({ label: '超时件', onRemove: () => toggleFilter('isOverdue') });
+
   return (
     <div className="p-6 max-w-5xl">
       {overduePkgs.length > 0 && (
@@ -64,7 +79,7 @@ export default function Home() {
         <span className="text-xs text-warm-500">共 {packages.length} 件</span>
       </div>
 
-      <div className="relative mb-5">
+      <div className="relative mb-3">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-400" />
         <input
           type="text"
@@ -75,7 +90,54 @@ export default function Home() {
         />
       </div>
 
+      {activeChips.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {activeChips.map((chip, idx) => (
+            <button
+              key={idx}
+              onClick={chip.onRemove}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200 font-medium hover:bg-primary-100 transition-colors"
+            >
+              {chip.label}
+              <X className="w-3 h-3" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-warm-400" />
+          <select
+            value={filters.department || ''}
+            onChange={(e) =>
+              setFilters((p) => ({ ...p, department: e.target.value || undefined }))
+            }
+            className="pl-8 pr-7 py-2 bg-white border border-warm-300/60 rounded-lg text-xs text-warm-600 focus:border-primary-400 transition-colors appearance-none cursor-pointer hover:border-primary-300"
+          >
+            <option value="">全部部门</option>
+            {DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-warm-400" />
+          <select
+            value={filters.courierCompany || ''}
+            onChange={(e) =>
+              setFilters((p) => ({ ...p, courierCompany: e.target.value || undefined }))
+            }
+            className="pl-8 pr-7 py-2 bg-white border border-warm-300/60 rounded-lg text-xs text-warm-600 focus:border-primary-400 transition-colors appearance-none cursor-pointer hover:border-primary-300"
+          >
+            <option value="">全部快递</option>
+            {COURIER_COMPANIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={() => toggleFilter('isColdChain')}
           className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
@@ -109,6 +171,16 @@ export default function Home() {
           <Clock className="w-3 h-3" />
           超时件
         </button>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border border-warm-300/60 text-warm-500 bg-white hover:border-coral-300 hover:text-coral-600 hover:bg-coral-50 transition-all ml-auto"
+          >
+            <X className="w-3 h-3" />
+            清空筛选
+          </button>
+        )}
       </div>
 
       <div className="flex gap-1 mb-5 bg-white rounded-xl p-1 border border-warm-200">
