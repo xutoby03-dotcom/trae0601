@@ -18,6 +18,7 @@ export default function SeasoningForm() {
     shelfLifeDays: 30,
     location: '厨房柜子',
     initialAmount: 500,
+    currentAmount: 500,
     unit: 'g',
     restockThreshold: 0.2,
     price: undefined as number | undefined,
@@ -26,7 +27,13 @@ export default function SeasoningForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field: string, value: string | number) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === 'initialAmount' && prev.currentAmount === prev.initialAmount) {
+        next.currentAmount = value as number;
+      }
+      return next;
+    });
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,7 +70,7 @@ export default function SeasoningForm() {
       shelfLifeDays: Number(form.shelfLifeDays),
       location: form.location,
       initialAmount: Number(form.initialAmount),
-      currentAmount: Number(form.initialAmount),
+      currentAmount: Number(form.currentAmount),
       unit: form.unit,
       photoUrl,
       restockThreshold: Number(form.restockThreshold),
@@ -196,13 +203,22 @@ export default function SeasoningForm() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
           <h2 className="font-bold text-gray-800 mb-2">📦 容量与存放</h2>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">初始容量</label>
               <input
                 type="number"
                 value={form.initialAmount}
                 onChange={(e) => handleChange('initialAmount', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">当前剩余</label>
+              <input
+                type="number"
+                value={form.currentAmount}
+                onChange={(e) => handleChange('currentAmount', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               />
             </div>

@@ -5,7 +5,7 @@ import StatusFilter from '@/components/seasoning/StatusFilter';
 import SeasoningCard from '@/components/seasoning/SeasoningCard';
 import { useSeasoningStore } from '@/store/useSeasoningStore';
 import type { SeasoningStatusFilter, Seasoning } from '@/types';
-import { getSeasoningStatus, needsRestock } from '@/utils/seasoningUtils';
+import { getSeasoningStatus, needsRestock, getDaysRemaining } from '@/utils/seasoningUtils';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
@@ -15,7 +15,7 @@ export default function Dashboard() {
 
   const filteredSeasonings = useMemo(() => {
     const active = seasonings.filter((s) => s.status === 'active');
-    
+
     return active
       .filter((s) => {
         const status = getSeasoningStatus(s);
@@ -23,7 +23,7 @@ export default function Dashboard() {
 
         switch (filter) {
           case 'all':
-            return true;
+            return status !== 'expired';
           case 'fresh':
             return status === 'fresh' && !restock;
           case 'soon':
@@ -37,17 +37,9 @@ export default function Dashboard() {
         }
       })
       .sort((a: Seasoning, b: Seasoning) => {
-        const aStatus = getSeasoningStatus(a);
-        const bStatus = getSeasoningStatus(b);
-
-        const statusOrder = { expired: 0, soon: 1, fresh: 2 };
-        if (statusOrder[aStatus] !== statusOrder[bStatus]) {
-          return statusOrder[aStatus] - statusOrder[bStatus];
-        }
-
-        const aExpiry = new Date(a.openDate).getTime() + a.shelfLifeDays * 86400000;
-        const bExpiry = new Date(b.openDate).getTime() + b.shelfLifeDays * 86400000;
-        return aExpiry - bExpiry;
+        const aDays = getDaysRemaining(a);
+        const bDays = getDaysRemaining(b);
+        return aDays - bDays;
       });
   }, [seasonings, filter]);
 

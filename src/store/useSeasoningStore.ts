@@ -158,7 +158,7 @@ export function getFilteredSeasonings(filter: string) {
       
       switch (filter) {
         case 'all':
-          return true;
+          return status !== 'expired';
         case 'fresh':
           return status === 'fresh' && !restock;
         case 'soon':
@@ -172,16 +172,22 @@ export function getFilteredSeasonings(filter: string) {
       }
     })
     .sort((a, b) => {
-      const aStatus = getSeasoningStatus(a);
-      const bStatus = getSeasoningStatus(b);
-      
-      const statusOrder = { expired: 0, soon: 1, fresh: 2 };
-      if (statusOrder[aStatus] !== statusOrder[bStatus]) {
-        return statusOrder[aStatus] - statusOrder[bStatus];
-      }
-      
-      const aExpiry = new Date(a.openDate).getTime() + a.shelfLifeDays * 24 * 60 * 60 * 1000;
-      const bExpiry = new Date(b.openDate).getTime() + b.shelfLifeDays * 24 * 60 * 60 * 1000;
-      return aExpiry - bExpiry;
+      const aDays = (() => {
+        const expiryDate = new Date(a.openDate);
+        expiryDate.setDate(expiryDate.getDate() + a.shelfLifeDays);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiryDate.setHours(0, 0, 0, 0);
+        return Math.ceil((expiryDate.getTime() - today.getTime()) / 86400000);
+      })();
+      const bDays = (() => {
+        const expiryDate = new Date(b.openDate);
+        expiryDate.setDate(expiryDate.getDate() + b.shelfLifeDays);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        expiryDate.setHours(0, 0, 0, 0);
+        return Math.ceil((expiryDate.getTime() - today.getTime()) / 86400000);
+      })();
+      return aDays - bDays;
     });
 }
