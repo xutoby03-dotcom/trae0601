@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Clock, Users, Coffee, X, CheckCircle, Calendar, Phone } from 'lucide-react';
 import type { TableData, ReservationData } from '@shared/types';
 import { useStore } from '@/store/useStore';
@@ -6,6 +6,9 @@ import ReservationModal from './ReservationModal';
 
 const TablePhoto = ({ photo, tableNumber }: { photo?: string; tableNumber: string }) => {
   const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [photo]);
   if (photo && !imgError) {
     return (
       <img

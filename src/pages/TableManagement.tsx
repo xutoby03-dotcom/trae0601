@@ -1,25 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Users, Clock, Sun, Gamepad2, X, Check, ImageOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, Clock, Sun, Gamepad2, X, Check } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import type { TableData, CreateTableRequest } from '@shared/types';
 
 const TablePhoto = ({ photo, tableNumber, size = 'md' }: { photo?: string; tableNumber: string; size?: 'sm' | 'md' | 'lg' }) => {
+  const [imgError, setImgError] = useState(false);
+  useEffect(() => {
+    setImgError(false);
+  }, [photo]);
   const sizeClasses = {
     sm: 'w-10 h-10 rounded-lg text-xs',
     md: 'w-14 h-14 rounded-xl text-sm',
     lg: 'w-20 h-20 rounded-2xl text-base',
   };
-  if (photo) {
+  if (photo && !imgError) {
     return (
       <img
         src={photo}
         alt={tableNumber}
         className={`${sizeClasses[size]} object-cover bg-gray-100 flex-shrink-0`}
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-          const sibling = (e.target as HTMLImageElement).nextElementSibling as HTMLElement;
-          if (sibling) sibling.style.display = 'flex';
-        }}
+        onError={() => setImgError(true)}
       />
     );
   }
