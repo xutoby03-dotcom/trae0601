@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '@/store'
+import type { Requisition, Consumable } from '@/types'
 import {
   CheckSquare,
   Flame,
@@ -8,16 +9,291 @@ import {
   CheckCircle,
   XCircle,
   ShieldAlert,
+  X,
+  Package,
+  User,
+  BookOpen,
+  FileText,
+  Calendar,
+  Users,
+  ArrowRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
+function DetailDrawer({
+  requisition,
+  consumable,
+  onClose,
+  onApprove,
+  onReject,
+  rejecting,
+  rejectReason,
+  setRejectReason,
+  setRejecting,
+  currentRole,
+}: {
+  requisition: Requisition
+  consumable?: Consumable
+  onClose: () => void
+  onApprove: () => void
+  onReject: () => void
+  rejecting: boolean
+  rejectReason: string
+  setRejectReason: (v: string) => void
+  setRejecting: (v: boolean) => void
+  currentRole: 'admin' | 'student'
+}) {
+  const isPending =
+    requisition.status === 'pending' || requisition.status === 'hazardous_pending'
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative w-[480px] bg-white h-full shadow-2xl animate-slide-in overflow-y-auto">
+        <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between z-10">
+          <h2 className="font-serif text-lg font-bold text-lab-900">申请详情</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div
+            className={cn(
+              'p-4 rounded-xl border',
+              requisition.isHazardous
+                ? 'bg-red-50/50 border-red-200'
+                : 'bg-lab-50/50 border-lab-200'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {consumable?.imageUrl ? (
+                <img
+                  src={consumable.imageUrl}
+                  alt={consumable.name}
+                  className="w-14 h-14 rounded-lg object-cover border border-white/50"
+                />
+              ) : (
+                <div
+                  className={cn(
+                    'w-14 h-14 rounded-lg flex items-center justify-center',
+                    requisition.isHazardous ? 'bg-red-100' : 'bg-lab-100'
+                  )}
+                >
+                  {requisition.isHazardous ? (
+                    <Flame className="w-6 h-6 text-danger-500" />
+                  ) : (
+                    <Package className="w-6 h-6 text-lab-600" />
+                  )}
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-semibold text-gray-900">{consumable?.name}</span>
+                  {requisition.isHazardous && (
+                    <span className="badge-danger">
+                      <Flame className="w-3 h-3 mr-0.5" />危化品
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">{consumable?.specification}</p>
+                <div className="flex items-center gap-3 mt-2">
+                  <div>
+                    <p className="text-[10px] text-gray-400">申请数量</p>
+                    <p className="text-sm font-bold text-lab-900">
+                      {requisition.quantity} {consumable?.unit}
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-gray-200" />
+                  <div>
+                    <p className="text-[10px] text-gray-400">当前库存</p>
+                    <p
+                      className={cn(
+                        'text-sm font-bold',
+                        (consumable?.stock ?? 0) < (consumable?.minAlert ?? 0)
+                          ? 'text-danger-500'
+                          : 'text-gray-900'
+                      )}
+                    >
+                      {consumable?.stock} {consumable?.unit}
+                    </p>
+                  </div>
+                  <div className="w-px h-8 bg-gray-200" />
+                  <div>
+                    <p className="text-[10px] text-gray-400">警戒线</p>
+                    <p className="text-sm font-bold text-gray-500">
+                      {consumable?.minAlert} {consumable?.unit}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">申请人</p>
+                <p className="text-sm font-medium text-gray-900">{requisition.applicant}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">导师</p>
+                <p className="text-sm font-medium text-gray-900">{requisition.advisor}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-4 h-4 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">项目名称</p>
+                <p className="text-sm font-medium text-gray-900">{requisition.projectName}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-4 h-4 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">用途说明</p>
+                <p className="text-sm text-gray-700">{requisition.purpose}</p>
+              </div>
+            </div>
+
+            {requisition.returnNote && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                  <ArrowRight className="w-4 h-4 text-gray-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">预计归还或消耗说明</p>
+                  <p className="text-sm text-gray-700">{requisition.returnNote}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-4 h-4 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-400">提交时间</p>
+                <p className="text-sm text-gray-700">
+                  {format(new Date(requisition.createdAt), 'yyyy-MM-dd HH:mm')}
+                </p>
+              </div>
+            </div>
+
+            {requisition.approvedAt && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-safe-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">审批通过</p>
+                  <p className="text-sm text-safe-600">
+                    {format(new Date(requisition.approvedAt), 'yyyy-MM-dd HH:mm')} ·{' '}
+                    {requisition.approvedBy}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {requisition.status === 'rejected' && requisition.rejectReason && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-4 h-4 text-danger-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">驳回原因</p>
+                  <p className="text-sm text-danger-500">{requisition.rejectReason}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isPending && currentRole === 'admin' && (
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              {!rejecting ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={onApprove}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    通过
+                  </button>
+                  <button
+                    onClick={() => setRejecting(true)}
+                    className="btn-outline flex-1 flex items-center justify-center gap-2 border-danger-500 text-danger-500 hover:bg-red-50"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    驳回
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2 animate-fade-in">
+                  <label className="label-field">驳回原因</label>
+                  <textarea
+                    className="input-field min-h-[80px]"
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="请输入驳回原因..."
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setRejecting(false)}
+                      className="btn-ghost flex-1 text-sm"
+                    >
+                      取消
+                    </button>
+                    <button onClick={onReject} className="btn-danger flex-1 text-sm">
+                      确认驳回
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {requisition.status === 'hazardous_pending' && (
+                <p className="text-xs text-danger-500 bg-red-50 p-2 rounded-lg">
+                  <ShieldAlert className="w-3.5 h-3.5 inline mr-1" />
+                  此为危化品领用，点击「通过」将进行二次确认
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Approval() {
-  const { requisitions, consumables, approveRequisition, rejectRequisition, approveHazardousRequisition, currentRole } = useStore()
+  const {
+    requisitions,
+    consumables,
+    approveRequisition,
+    rejectRequisition,
+    approveHazardousRequisition,
+    currentRole,
+  } = useStore()
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending')
-  const [rejectingId, setRejectingId] = useState<string | null>(null)
-  const [rejectReason, setRejectReason] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmHazardousId, setConfirmHazardousId] = useState<string | null>(null)
+  const [rejectingInDrawer, setRejectingInDrawer] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
 
   const pendingReqs = requisitions
     .filter((r) => r.status === 'pending' || r.status === 'hazardous_pending')
@@ -27,6 +303,10 @@ export default function Approval() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   const displayReqs = activeTab === 'pending' ? pendingReqs : allReqs
+  const selectedReq = requisitions.find((r) => r.id === selectedId)
+  const selectedConsumable = selectedReq
+    ? consumables.find((c) => c.id === selectedReq.consumableId)
+    : undefined
 
   const handleApprove = (id: string, isHazardous: boolean) => {
     if (isHazardous) {
@@ -41,22 +321,51 @@ export default function Approval() {
     setConfirmHazardousId(null)
   }
 
-  const handleReject = (id: string) => {
-    if (rejectingId === id) {
-      rejectRequisition(id, rejectReason || '不符合领用条件')
-      setRejectingId(null)
-      setRejectReason('')
-    } else {
-      setRejectingId(id)
-      setRejectReason('')
-    }
+  const handleReject = (id: string, reason: string) => {
+    rejectRequisition(id, reason || '不符合领用条件')
+    setRejectingInDrawer(false)
+    setRejectReason('')
   }
 
-  const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
+  const handleDrawerApprove = () => {
+    if (!selectedReq) return
+    handleApprove(selectedReq.id, selectedReq.isHazardous)
+  }
+
+  const handleDrawerReject = () => {
+    if (!selectedReq) return
+    handleReject(selectedReq.id, rejectReason)
+  }
+
+  const openDetail = (id: string) => {
+    setSelectedId(id)
+    setRejectingInDrawer(false)
+    setRejectReason('')
+  }
+
+  const statusConfig: Record<
+    string,
+    { label: string; color: string; icon: React.ElementType; bg: string }
+  > = {
     pending: { label: '待审批', color: 'text-lab-700', icon: Clock, bg: 'bg-lab-50' },
-    hazardous_pending: { label: '待二次审批', color: 'text-danger-500', icon: ShieldAlert, bg: 'bg-red-50' },
-    approved: { label: '已通过', color: 'text-safe-600', icon: CheckCircle, bg: 'bg-emerald-50' },
-    rejected: { label: '已驳回', color: 'text-danger-500', icon: XCircle, bg: 'bg-red-50' },
+    hazardous_pending: {
+      label: '待二次审批',
+      color: 'text-danger-500',
+      icon: ShieldAlert,
+      bg: 'bg-red-50',
+    },
+    approved: {
+      label: '已通过',
+      color: 'text-safe-600',
+      icon: CheckCircle,
+      bg: 'bg-emerald-50',
+    },
+    rejected: {
+      label: '已驳回',
+      color: 'text-danger-500',
+      icon: XCircle,
+      bg: 'bg-red-50',
+    },
   }
 
   return (
@@ -102,8 +411,9 @@ export default function Approval() {
           return (
             <div
               key={r.id}
+              onClick={() => openDetail(r.id)}
               className={cn(
-                'card p-5 transition-all',
+                'card p-5 transition-all cursor-pointer hover:shadow-md',
                 r.isHazardous && isPending && 'animate-pulse-border border-l-4 border-l-danger-500',
                 r.isHazardous && !isPending && 'border-l-4 border-l-danger-500'
               )}
@@ -121,7 +431,8 @@ export default function Approval() {
                       </span>
                       {r.isHazardous && (
                         <span className="badge-danger">
-                          <Flame className="w-3 h-3 mr-0.5" />危化品
+                          <Flame className="w-3 h-3 mr-0.5" />
+                          危化品
                         </span>
                       )}
                     </div>
@@ -155,7 +466,7 @@ export default function Approval() {
                 </div>
 
                 {isPending && currentRole === 'admin' && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleApprove(r.id, r.isHazardous)}
                       className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
@@ -164,7 +475,10 @@ export default function Approval() {
                       通过
                     </button>
                     <button
-                      onClick={() => handleReject(r.id)}
+                      onClick={() => {
+                        setSelectedId(r.id)
+                        setRejectingInDrawer(true)
+                      }}
                       className="btn-outline text-xs px-3 py-1.5 flex items-center gap-1 border-danger-500 text-danger-500 hover:bg-red-50"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -173,22 +487,6 @@ export default function Approval() {
                   </div>
                 )}
               </div>
-
-              {rejectingId === r.id && (
-                <div className="mt-3 pt-3 border-t border-gray-100 animate-fade-in">
-                  <label className="label-field">驳回原因</label>
-                  <textarea
-                    className="input-field min-h-[60px] mb-2"
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="请输入驳回原因..."
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button onClick={() => setRejectingId(null)} className="btn-ghost text-xs">取消</button>
-                    <button onClick={() => handleReject(r.id)} className="btn-danger text-xs">确认驳回</button>
-                  </div>
-                </div>
-              )}
             </div>
           )
         })}
@@ -203,8 +501,23 @@ export default function Approval() {
         )}
       </div>
 
+      {selectedReq && (
+        <DetailDrawer
+          requisition={selectedReq}
+          consumable={selectedConsumable}
+          onClose={() => setSelectedId(null)}
+          onApprove={handleDrawerApprove}
+          onReject={handleDrawerReject}
+          rejecting={rejectingInDrawer}
+          rejectReason={rejectReason}
+          setRejectReason={setRejectReason}
+          setRejecting={setRejectingInDrawer}
+          currentRole={currentRole}
+        />
+      )}
+
       {confirmHazardousId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmHazardousId(null)} />
           <div className="relative bg-white rounded-2xl p-6 w-[440px] shadow-2xl animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
