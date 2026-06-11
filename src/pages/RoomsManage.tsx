@@ -30,6 +30,7 @@ export default function RoomsManage() {
     location: "",
     admin: "",
     adminPhone: "",
+    faultPhotos: [] as string[],
   });
 
   const handleOpenAdd = () => {
@@ -41,6 +42,7 @@ export default function RoomsManage() {
       location: "",
       admin: "",
       adminPhone: "",
+      faultPhotos: [],
     });
     setIsModalOpen(true);
   };
@@ -54,6 +56,7 @@ export default function RoomsManage() {
       location: room.location,
       admin: room.admin,
       adminPhone: room.adminPhone,
+      faultPhotos: room.faultPhotos || [],
     });
     setIsModalOpen(true);
   };
@@ -63,9 +66,23 @@ export default function RoomsManage() {
     if (editingRoom) {
       updateRoom(editingRoom.id, formData);
     } else {
-      addRoom({ ...formData, faultPhotos: [] });
+      addRoom(formData);
     }
     setIsModalOpen(false);
+  };
+
+  const handleAddFaultPhoto = () => {
+    const url = prompt("请输入照片URL（演示用）：");
+    if (url) {
+      setFormData({ ...formData, faultPhotos: [...formData.faultPhotos, url] });
+    }
+  };
+
+  const handleRemoveFaultPhoto = (index: number) => {
+    setFormData({
+      ...formData,
+      faultPhotos: formData.faultPhotos.filter((_, i) => i !== index),
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -118,6 +135,9 @@ export default function RoomsManage() {
                     管理员
                   </th>
                   <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">
+                    故障照片
+                  </th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">
                     状态
                   </th>
                   <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700">
@@ -167,6 +187,32 @@ export default function RoomsManage() {
                           <span>{room.adminPhone}</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {room.faultPhotos && room.faultPhotos.length > 0 ? (
+                        <div className="flex gap-1">
+                          {room.faultPhotos.slice(0, 4).map((photo, idx) => (
+                            <div
+                              key={idx}
+                              className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200"
+                              title={`故障照片${idx + 1}`}
+                            >
+                              <img
+                                src={photo}
+                                alt={`故障照片${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                          {room.faultPhotos.length > 4 && (
+                            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                              +{room.faultPhotos.length - 4}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge variant={room.status}>
@@ -330,6 +376,43 @@ export default function RoomsManage() {
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              故障照片（可选）
+            </label>
+            <div className="flex flex-wrap gap-3 mb-3">
+              {formData.faultPhotos.map((photo, index) => (
+                <div key={index} className="relative group">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                    <img
+                      src={photo}
+                      alt={`故障照片${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFaultPhoto(index)}
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={handleAddFaultPhoto}
+                className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-primary-500 hover:text-primary-500 transition-all"
+              >
+                <Image size={24} />
+                <span className="text-xs mt-1">添加</span>
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              上传故障设备的参考照片，方便快速排查问题
+            </p>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">

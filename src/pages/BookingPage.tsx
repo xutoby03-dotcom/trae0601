@@ -20,7 +20,7 @@ import { formatDateTime, cn } from "@/lib/utils";
 
 export default function BookingPage() {
   const location = useLocation();
-  const { rooms, bookings, addBooking, cancelBooking, completeBooking, refreshBookingStatuses, getRoomById } =
+  const { rooms, bookings, addBooking, cancelBooking, completeBooking, startBooking, hasOverlappingBooking, refreshBookingStatuses, getRoomById } =
     useStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState("");
@@ -51,7 +51,7 @@ export default function BookingPage() {
   }, [preselectedRoomId, rooms]);
 
   const availableRooms = rooms.filter(
-    (r) => r.status === "available" || r.status === "in_use"
+    (r) => r.status === "available"
   );
 
   const sortedBookings = [...bookings].sort(
@@ -73,7 +73,11 @@ export default function BookingPage() {
       alert("暂无可预约的会议室");
       return;
     }
-    setSelectedRoomId(preselectedRoomId || availableRooms[0]?.id || "");
+    const defaultRoomId =
+      preselectedRoomId && availableRooms.some((r) => r.id === preselectedRoomId)
+        ? preselectedRoomId
+        : availableRooms[0]?.id || "";
+    setSelectedRoomId(defaultRoomId);
     const now = new Date();
     const start = new Date(now.getTime() + 10 * 60 * 1000);
     const end = new Date(now.getTime() + 60 * 60 * 1000);
@@ -94,11 +98,24 @@ export default function BookingPage() {
       alert("请选择会议室");
       return;
     }
+    const newStart = new Date(formData.startTime).toISOString();
+    const newEnd = new Date(formData.endTime).toISOString();
+
+    if (new Date(formData.startTime) >= new Date(formData.endTime)) {
+      alert("结束时间必须晚于开始时间");
+      return;
+    }
+
+    if (hasOverlappingBooking(selectedRoomId, newStart, newEnd)) {
+      alert("该会议室在所选时间段内已有预约，请选择其他时间");
+      return;
+    }
+
     addBooking({
       roomId: selectedRoomId,
       topic: formData.topic,
-      startTime: new Date(formData.startTime).toISOString(),
-      endTime: new Date(formData.endTime).toISOString(),
+      startTime: newStart,
+      endTime: newEnd,
       equipmentNeeds: formData.equipmentNeeds,
       host: formData.host,
       hostPhone: formData.hostPhone,
@@ -110,6 +127,10 @@ export default function BookingPage() {
     if (confirm("确定要结束这个会议吗？")) {
       completeBooking(id);
     }
+  };
+
+  const handleStart = (id: string) => {
+    startBooking(id);
   };
 
   const handleCancel = (id: string) => {
@@ -182,7 +203,7 @@ export default function BookingPage() {
             )}
             {booking.status === "upcoming" && (
               <button
-                onClick={() => handleComplete(booking.id)}
+                onClick={() => handleStart(booking.id)}
                 className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all text-sm font-medium"
               >
                 <PlayCircle size={16} />

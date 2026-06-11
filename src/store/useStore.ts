@@ -101,6 +101,8 @@ interface StoreState {
   updateBooking: (id: string, booking: Partial<Booking>) => void;
   cancelBooking: (id: string) => void;
   completeBooking: (id: string) => void;
+  startBooking: (id: string) => void;
+  hasOverlappingBooking: (roomId: string, startTime: string, endTime: string, excludeBookingId?: string) => boolean;
   refreshBookingStatuses: () => void;
 
   addFault: (fault: Omit<FaultReport, "id" | "createdAt" | "status">) => void;
@@ -232,6 +234,39 @@ export const useStore = create<StoreState>()(
               : state.rooms,
           };
         }),
+
+      startBooking: (id) =>
+        set((state) => {
+          const booking = state.bookings.find((b) => b.id === id);
+          if (!booking || booking.status !== "upcoming") return state;
+
+          return {
+            bookings: state.bookings.map((b) =>
+              b.id === id ? { ...b, status: "ongoing" } : b
+            ),
+            rooms: state.rooms.map((r) =>
+              r.id === booking.roomId && r.status !== "faulty"
+                ? { ...r, status: "in_use" }
+                : r
+            ),
+          };
+        }),
+
+      hasOverlappingBooking: (roomId, startTime, endTime, excludeBookingId) => {
+        const { bookings } = get();
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
+
+        return bookings.some((b) => {
+          if (b.roomId !== roomId) return false;
+          if (excludeBookingId && b.id === excludeBookingId) return false;
+          if (b.status === "completed") return false;
+
+          const bStart = new Date(b.startTime).getTime();
+          const bEnd = new Date(b.endTime).getTime();
+          return start < bEnd && end > bStart;
+        });
+      },
 
       refreshBookingStatuses: () =>
         set((state) => {
