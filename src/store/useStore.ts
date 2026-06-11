@@ -183,6 +183,9 @@ const mockLowStockEvents: LowStockEvent[] = [
   { id: 'lse4', medicineId: 'm4', previousQuantity: 8, newQuantity: 3, threshold: 10, timestamp: new Date(Date.now() - 86400000 * 7).toISOString() },
   { id: 'lse5', medicineId: 'm4', previousQuantity: 15, newQuantity: 10, threshold: 10, timestamp: new Date(Date.now() - 86400000 * 14).toISOString() },
   { id: 'lse6', medicineId: 'm5', previousQuantity: 2, newQuantity: 1, threshold: 1, timestamp: new Date(Date.now() - 86400000 * 45).toISOString() },
+  { id: 'lse7', medicineId: 'm5', previousQuantity: 1, newQuantity: 0, threshold: 1, timestamp: new Date(Date.now() - 86400000 * 20).toISOString() },
+  { id: 'lse8', medicineId: 'm8', previousQuantity: 2, newQuantity: 1, threshold: 1, timestamp: new Date(Date.now() - 86400000 * 6).toISOString() },
+  { id: 'lse9', medicineId: 'm8', previousQuantity: 1, newQuantity: 0, threshold: 1, timestamp: new Date(Date.now() - 86400000 * 4).toISOString() },
 ];
 
 interface StoreState {
@@ -236,17 +239,19 @@ export const useStore = create<StoreState>()(
 
           const prevQty = medicine.quantity;
           const newQty = Math.max(0, prevQty - quantity);
-          const wasAboveThreshold = prevQty > medicine.lowStockThreshold;
-          const isNowAtOrBelow = newQty <= medicine.lowStockThreshold;
+          const threshold = medicine.lowStockThreshold;
+
+          const crossedThreshold = prevQty > threshold && newQty <= threshold;
+          const ranOutOfStock = prevQty > 0 && prevQty <= threshold && newQty === 0;
 
           const newLowStockEvent: LowStockEvent | null =
-            wasAboveThreshold && isNowAtOrBelow
+            crossedThreshold || ranOutOfStock
               ? {
                   id: uid(),
                   medicineId,
                   previousQuantity: prevQty,
                   newQuantity: newQty,
-                  threshold: medicine.lowStockThreshold,
+                  threshold,
                   timestamp: new Date().toISOString(),
                 }
               : null;
