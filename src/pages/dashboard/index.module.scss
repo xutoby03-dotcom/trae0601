@@ -1,0 +1,344 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $spacing-md $page-padding $spacing-xl;
+  min-height: 100vh;
+}
+
+.hero {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 50%, #60A5FA 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl $spacing-lg;
+  color: white;
+  margin-bottom: $spacing-lg;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12rpx 40rpx rgba(30, 64, 175, 0.28);
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: -60rpx;
+    top: -60rpx;
+    width: 260rpx;
+    height: 260rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    right: 80rpx;
+    bottom: -80rpx;
+    width: 180rpx;
+    height: 180rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.heroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+  margin-bottom: $spacing-lg;
+}
+
+.heroLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.weatherIcon {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10rpx);
+}
+
+.weatherEmoji {
+  font-size: 56rpx;
+}
+
+.weatherInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.rainLabel {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.temperature {
+  font-size: $font-size-md;
+  opacity: 0.9;
+}
+
+.heroRight {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.forecastLabel {
+  font-size: $font-size-xs;
+  opacity: 0.75;
+}
+
+.forecastVal {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-sm;
+  position: relative;
+  z-index: 1;
+  margin-top: $spacing-md;
+}
+
+.heroStat {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-sm;
+  text-align: center;
+  backdrop-filter: blur(8rpx);
+}
+
+.heroStatVal {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+  display: block;
+}
+
+.heroStatLabel {
+  font-size: $font-size-xs;
+  opacity: 0.85;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-lg 0 $spacing-md;
+}
+
+.sectionTitleText {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionSubtitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.groupList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.ordersHeader {
+  background: $color-bg-card;
+  border-radius: $radius-lg $radius-lg 0 0;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-bottom: 1rpx solid $color-divider;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ordersHeaderTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.ordersHeaderCount {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.ordersBody {
+  background: $color-bg-card;
+  border-radius: 0 0 $radius-lg $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.orderList {
+  display: flex;
+  flex-direction: column;
+}
+
+.emptyBox {
+  padding: $spacing-xl 0;
+  text-align: center;
+}
+
+.emptyEmoji {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}
+
+.floatingActions {
+  position: fixed;
+  right: $spacing-lg;
+  bottom: 200rpx;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  z-index: 99;
+}
+
+.fab {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(30, 64, 175, 0.35);
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.fabIcon {
+  font-size: 44rpx;
+}
+
+.lowStockPanel {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.lowStockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.lowStockTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.lowStockCount {
+  font-size: $font-size-xs;
+  color: $color-danger;
+  font-weight: $font-weight-semibold;
+}
+
+.lowStockList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.stockRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.stockNameBox {
+  flex: 1;
+  min-width: 0;
+}
+
+.stockName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  display: block;
+  @include text-ellipsis;
+}
+
+.stockCat {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.stockBarWrap {
+  flex: 0 0 200rpx;
+  height: 12rpx;
+  background: $color-bg-hover;
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.stockBar {
+  height: 100%;
+  border-radius: 999rpx;
+  transition: width 0.5s ease;
+}
+
+.stockVal {
+  flex: 0 0 auto;
+  min-width: 100rpx;
+  text-align: right;
+}
+
+.stockCurr {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-danger;
+  display: block;
+}
+
+.stockSafe {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

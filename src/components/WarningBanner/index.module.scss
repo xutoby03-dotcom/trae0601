@@ -1,0 +1,132 @@
+@use '@/styles/variables.scss' as *;
+
+.banner {
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 8rpx;
+  }
+
+  &:active {
+    transform: scale(0.995);
+    opacity: 0.95;
+  }
+}
+
+.levelInfo {
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  &::before { background: $color-primary; }
+}
+
+.levelWarning {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  &::before { background: $color-warning; }
+}
+
+.levelDanger {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
+  &::before { background: $color-danger; }
+  animation: pulseDanger 2s ease-in-out infinite;
+}
+
+@keyframes pulseDanger {
+  0%, 100% { box-shadow: $shadow-card; }
+  50% { box-shadow: 0 4rpx 20rpx rgba(239, 68, 68, 0.25); }
+}
+
+.acknowledged {
+  opacity: 0.55;
+  animation: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.iconBox {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 36rpx;
+}
+
+.titleRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.body {
+  padding-left: 80rpx;
+}
+
+.message {
+  display: block;
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+  margin-bottom: $spacing-sm;
+}
+
+.suggestionBox {
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-top: $spacing-sm;
+}
+
+.suggestionLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.suggestionText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+  display: block;
+}
+
+.ackTip {
+  position: absolute;
+  right: $spacing-lg;
+  top: $spacing-lg;
+}
+
+.ackTipText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

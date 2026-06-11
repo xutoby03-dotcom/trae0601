@@ -1,0 +1,143 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  display: flex;
+  gap: $spacing-md;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-base;
+
+  &:active {
+    transform: translateY(2rpx);
+    box-shadow: 0 1rpx 6rpx rgba(0, 0, 0, 0.06);
+  }
+}
+
+.tonePrimary {
+  background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%);
+  .iconWrap { background: rgba(30, 64, 175, 0.1); }
+  .value { color: $color-primary; }
+}
+
+.toneSuccess {
+  background: linear-gradient(135deg, #FFFFFF 0%, #ECFDF5 100%);
+  .iconWrap { background: rgba(16, 185, 129, 0.12); }
+  .value { color: $color-success; }
+}
+
+.toneWarning {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%);
+  .iconWrap { background: rgba(245, 158, 11, 0.12); }
+  .value { color: $color-warning; }
+}
+
+.toneDanger {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%);
+  .iconWrap { background: rgba(239, 68, 68, 0.12); }
+  .value { color: $color-danger; }
+}
+
+.toneInfo {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0F9FF 100%);
+  .iconWrap { background: rgba(59, 130, 246, 0.1); }
+  .value { color: $color-info; }
+}
+
+.iconWrap {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.label {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+  margin-bottom: 4rpx;
+}
+
+.value {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  line-height: 1.1;
+}
+
+.unit {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+}
+
+.subRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: 4rpx;
+}
+
+.subLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.subValue {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.trend {
+  padding: 2rpx $spacing-sm;
+  border-radius: $radius-xs;
+}
+
+.up {
+  background: $color-danger-light;
+  .trendText { color: $color-danger; }
+}
+
+.down {
+  background: $color-success-light;
+  .trendText { color: $color-success; }
+}
+
+.flat {
+  background: rgba(148, 163, 184, 0.12);
+  .trendText { color: $color-text-tertiary; }
+}
+
+.trendText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}

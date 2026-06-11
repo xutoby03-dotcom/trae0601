@@ -1,0 +1,89 @@
+@use '@/styles/variables.scss' as *;
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  padding: 0 $spacing-sm;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.tagText {
+  font-weight: $font-weight-medium;
+  line-height: inherit;
+}
+
+.sm {
+  height: 36rpx;
+  min-width: 56rpx;
+  .tagText {
+    font-size: $font-size-xs;
+  }
+}
+
+.md {
+  height: 48rpx;
+  min-width: 72rpx;
+  padding: 0 $spacing-md;
+  .tagText {
+    font-size: $font-size-sm;
+  }
+}
+
+.primary {
+  background: rgba(30, 64, 175, 0.08);
+  color: $color-primary;
+}
+
+.success {
+  background: $color-success-light;
+  color: $color-success;
+}
+
+.warning {
+  background: $color-warning-light;
+  color: $color-warning;
+}
+
+.danger {
+  background: $color-danger-light;
+  color: $color-danger;
+}
+
+.info {
+  background: rgba(59, 130, 246, 0.1);
+  color: $color-info;
+}
+
+.rain {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.2) 0%, rgba(30, 58, 138, 0.15) 100%);
+  color: $color-rain-heavy;
+}
+
+.hot {
+  background: rgba(239, 68, 68, 0.1);
+  color: $color-danger;
+}
+
+.default {
+  background: $color-bg-hover;
+  color: $color-text-secondary;
+}
+
+.meituan {
+  background: rgba(255, 209, 0, 0.15);
+  color: #A67C00;
+}
+
+.eleme {
+  background: rgba(0, 151, 255, 0.12);
+  color: $color-platform-eleme;
+}
+
+.jddj {
+  background: rgba(225, 37, 27, 0.1);
+  color: $color-platform-jddj;
+}

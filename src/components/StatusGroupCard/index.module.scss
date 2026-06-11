@@ -1,0 +1,108 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  border: 3rpx solid transparent;
+  transition: all $transition-base;
+  position: relative;
+
+  &:active {
+    transform: scale(0.985);
+  }
+}
+
+.active {
+  border-color: $color-primary;
+  box-shadow: 0 4rpx 20rpx rgba(30, 64, 175, 0.18);
+}
+
+.normal {
+  background: linear-gradient(135deg, #FFFFFF 0%, #ECFDF5 100%);
+  &.active { border-color: $color-success; box-shadow: 0 4rpx 20rpx rgba(16, 185, 129, 0.2); }
+  .countBox { background: rgba(16, 185, 129, 0.12); }
+  .count { color: $color-success; }
+}
+
+.backlog {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%);
+  &.active { border-color: $color-warning; box-shadow: 0 4rpx 20rpx rgba(245, 158, 11, 0.22); }
+  .countBox { background: rgba(245, 158, 11, 0.14); }
+  .count { color: $color-warning; }
+}
+
+.noRider {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF3C7 60%, #FFFBEB 100%);
+  &.active { border-color: #D97706; box-shadow: 0 4rpx 20rpx rgba(217, 119, 6, 0.2); }
+  .countBox { background: rgba(217, 119, 6, 0.14); }
+  .count { color: #D97706; }
+}
+
+.lowStock {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%);
+  &.active { border-color: $color-danger; box-shadow: 0 4rpx 20rpx rgba(239, 68, 68, 0.2); }
+  .countBox { background: rgba(239, 68, 68, 0.12); }
+  .count { color: $color-danger; }
+}
+
+.iconBox {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 42rpx;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.desc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.countBox {
+  min-width: 96rpx;
+  height: 80rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4rpx;
+  padding: 0 $spacing-md;
+  flex-shrink: 0;
+}
+
+.count {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+}
+
+.countUnit {
+  font-size: $font-size-sm;
+  color: inherit;
+  opacity: 0.75;
+}

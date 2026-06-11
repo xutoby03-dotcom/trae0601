@@ -1,0 +1,190 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $spacing-md $page-padding $spacing-xl;
+  min-height: 100vh;
+}
+
+.filterBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, #EFF6FF 0%, rgba(241, 245, 249, 0.95) 100%);
+  backdrop-filter: blur(10rpx);
+  padding: $spacing-sm 0 $spacing-md;
+  margin: -$spacing-md (-$page-padding) $spacing-md;
+  padding-left: $page-padding;
+  padding-right: $page-padding;
+}
+
+.filterTabs {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+}
+
+.filterTab {
+  padding: 0 $spacing-md;
+  height: 64rpx;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 2rpx solid transparent;
+  box-shadow: $shadow-card;
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.filterTabActive {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-color: $color-primary;
+  box-shadow: 0 4rpx 16rpx rgba(30, 64, 175, 0.25);
+
+  .filterTabText {
+    color: white;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.filterTabText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.platformFilter {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.platformBtn {
+  flex: 1;
+  height: 64rpx;
+  border-radius: $radius-md;
+  background: $color-bg-card;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  border: 2rpx solid transparent;
+  box-shadow: $shadow-card;
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.platformBtnActiveMeituan {
+  border-color: rgba(255, 209, 0, 0.6);
+  background: rgba(255, 209, 0, 0.1);
+}
+
+.platformBtnActiveEleme {
+  border-color: rgba(0, 151, 255, 0.6);
+  background: rgba(0, 151, 255, 0.08);
+}
+
+.platformBtnActiveJddj {
+  border-color: rgba(225, 37, 27, 0.5);
+  background: rgba(225, 37, 27, 0.08);
+}
+
+.platformBtnText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.platformBtnActiveMeituan .platformBtnText { color: #A67C00; }
+.platformBtnActiveEleme .platformBtnText { color: #0097FF; }
+.platformBtnActiveJddj .platformBtnText { color: #E1251B; }
+
+.summaryBox {
+  background: linear-gradient(135deg, #FFFFFF 0%, #EFF6FF 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-sm;
+}
+
+.summaryItem {
+  text-align: center;
+}
+
+.summaryVal {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1.2;
+  display: block;
+}
+
+.summaryValSuccess { color: $color-success; }
+.summaryValWarning { color: $color-warning; }
+.summaryValDanger  { color: $color-danger; }
+
+.summaryLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: $spacing-lg 0 $spacing-md;
+}
+
+.listHeaderTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.listHeaderCount {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.emptyState {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl $spacing-lg;
+  text-align: center;
+  box-shadow: $shadow-card;
+}
+
+.emptyEmoji {
+  font-size: 100rpx;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.emptyTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.emptySub {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: block;
+}

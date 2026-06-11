@@ -1,0 +1,248 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding: $spacing-md $page-padding $spacing-xl;
+  min-height: 100vh;
+}
+
+.section {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.sectionIcon {
+  font-size: 32rpx;
+}
+
+.updateTip {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.rainOptions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-sm;
+}
+
+.rainOption {
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-sm;
+  text-align: center;
+  border: 3rpx solid transparent;
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.rainOptionActive {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+  border-color: $color-primary;
+  box-shadow: 0 0 0 4rpx rgba(30, 64, 175, 0.1);
+}
+
+.rainOptEmoji {
+  font-size: 48rpx;
+  display: block;
+  line-height: 1.2;
+}
+
+.rainOptLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.rainOptionActive .rainOptLabel {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.staffGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.staffGroup {
+  background: $color-bg-hover;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.staffGroupLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacing-sm;
+  display: block;
+}
+
+.staffMini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.staffMiniLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.staffMiniVal {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.dishList {
+  display: flex;
+  flex-direction: column;
+}
+
+.dishItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.dishInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.dishNameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: 4rpx;
+}
+
+.dishName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.hotBadge {
+  font-size: $font-size-xs;
+}
+
+.dishMeta {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.dishStepper {
+  flex: 0 0 auto;
+  width: 260rpx;
+}
+
+.dishStatus {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: $color-success;
+  flex-shrink: 0;
+}
+
+.dishStatusLow {
+  background: $color-warning;
+}
+
+.dishStatusCritical {
+  background: $color-danger;
+  animation: blinkCrit 1.2s ease-in-out infinite;
+}
+
+@keyframes blinkCrit {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.kitchenRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.kitchenField {
+  flex: 1;
+}
+
+.toast {
+  position: fixed;
+  top: 180rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  color: white;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-sm;
+  z-index: 999;
+  box-shadow: $shadow-popup;
+  animation: toastIn 0.2s ease;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, -20rpx); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.smallStepper {
+  :global {
+    .stepperBtn {
+      width: 52rpx;
+      height: 52rpx;
+    }
+    .stepperBtnText {
+      font-size: 32rpx;
+    }
+    .stepperValue {
+      font-size: $font-size-md;
+      min-width: 56rpx;
+    }
+    .stepperSuffix {
+      font-size: $font-size-xs;
+    }
+  }
+}

@@ -1,0 +1,329 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+  border-left: 6rpx solid transparent;
+  transition: all $transition-base;
+}
+
+.overdue {
+  border-left-color: $color-warning;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFFBEB 100%);
+}
+
+.critical {
+  border-left-color: $color-danger;
+  animation: pulseCrit 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF2F2 100%);
+}
+
+@keyframes pulseCrit {
+  0%, 100% { box-shadow: $shadow-card; }
+  50% { box-shadow: 0 0 0 6rpx rgba(239, 68, 68, 0.08), 0 4rpx 20rpx rgba(239, 68, 68, 0.15); }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.leftHead {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.rightHead {
+  flex-shrink: 0;
+}
+
+.orderNo {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+  letter-spacing: 1rpx;
+}
+
+.customerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.customerName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.distanceBox {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx $spacing-sm;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: $radius-sm;
+}
+
+.distanceIcon {
+  font-size: $font-size-sm;
+}
+
+.distanceText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.addressBox {
+  margin-bottom: $spacing-md;
+}
+
+.address {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-normal;
+  display: block;
+  @include text-ellipsis;
+}
+
+.dishesBox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.dishChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 6rpx $spacing-sm;
+  background: $color-bg-hover;
+  border-radius: $radius-sm;
+  max-width: 100%;
+}
+
+.dishHot {
+  font-size: $font-size-xs;
+}
+
+.dishName {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  @include text-ellipsis;
+  max-width: 180rpx;
+}
+
+.dishQty {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-semibold;
+}
+
+.dishMore {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  padding: 6rpx $spacing-sm;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+  border-top: 1rpx solid $color-divider;
+  margin-bottom: $spacing-xs;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.timeBox {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+
+.timeLeft {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.overdueText {
+  color: $color-danger;
+}
+
+.timeUnit {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.riskRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+  margin-bottom: $spacing-sm;
+}
+
+.riskLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  flex-shrink: 0;
+}
+
+.riskButtons {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+.riskBtn {
+  height: 44rpx;
+  min-width: 56rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-xs;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-bg-hover;
+  border: 2rpx solid transparent;
+  transition: all $transition-fast;
+}
+
+.riskBtnText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+}
+
+.riskBtn.low {
+  background: rgba(16, 185, 129, 0.08);
+  .riskBtnText { color: $color-success; }
+  &.riskActive {
+    background: $color-success-light;
+    border-color: $color-success;
+  }
+}
+
+.riskBtn.medium {
+  background: rgba(245, 158, 11, 0.1);
+  .riskBtnText { color: $color-warning; }
+  &.riskActive {
+    background: $color-warning-light;
+    border-color: $color-warning;
+  }
+}
+
+.riskBtn.high {
+  background: rgba(239, 68, 68, 0.08);
+  .riskBtnText { color: $color-danger; }
+  &.riskActive {
+    background: $color-danger-light;
+    border-color: $color-danger;
+  }
+}
+
+.riskBtn.critical {
+  background: rgba(239, 68, 68, 0.15);
+  .riskBtnText { color: $color-danger; font-weight: $font-weight-bold; }
+  &.riskActive {
+    background: $color-danger-light;
+    border-color: $color-danger;
+    box-shadow: 0 0 0 4rpx rgba(239, 68, 68, 0.15);
+  }
+}
+
+.remarkBox {
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-sm;
+  display: flex;
+}
+
+.remarkLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
+.remarkText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  flex: 1;
+}
+
+.actionRow, .footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.actionBtn {
+  @include button-reset;
+  flex: 1;
+  height: 72rpx;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  transition: all $transition-fast;
+
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
+.actionBtn.primary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+}
+
+.actionBtn.warning {
+  background: linear-gradient(135deg, #D97706 0%, $color-warning 100%);
+}
+
+.actionBtn.info {
+  background: linear-gradient(135deg, $color-info 0%, #60A5FA 100%);
+}
+
+.actionBtn.success {
+  background: linear-gradient(135deg, $color-success 0%, #34D399 100%);
+}
+
+.actionBtnText {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.amount {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-danger;
+  flex-shrink: 0;
+}
+
+.footerInfo {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
