@@ -45,8 +45,11 @@ export default function BookingPage() {
 
   useEffect(() => {
     if (preselectedRoomId && rooms.length > 0) {
-      setSelectedRoomId(preselectedRoomId);
-      setIsModalOpen(true);
+      const preselectedRoom = rooms.find((r) => r.id === preselectedRoomId);
+      if (preselectedRoom && preselectedRoom.status === "available") {
+        setSelectedRoomId(preselectedRoomId);
+        setIsModalOpen(true);
+      }
     }
   }, [preselectedRoomId, rooms]);
 
@@ -96,6 +99,17 @@ export default function BookingPage() {
     e.preventDefault();
     if (!selectedRoomId) {
       alert("请选择会议室");
+      return;
+    }
+    const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+    if (!selectedRoom) {
+      alert("所选会议室不存在");
+      return;
+    }
+    if (selectedRoom.status !== "available") {
+      alert(
+        `该会议室当前${selectedRoom.status === "in_use" ? "使用中" : "故障中"}，暂不可预约`
+      );
       return;
     }
     const newStart = new Date(formData.startTime).toISOString();

@@ -192,16 +192,16 @@ export default function Home() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate("/booking", { state: { roomId: room.id } })}
-                    disabled={room.status === "faulty"}
+                    disabled={room.status !== "available"}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all",
-                      room.status === "faulty"
+                      room.status !== "available"
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-primary-500 text-white hover:bg-primary-600"
                     )}
                   >
                     <CalendarPlus size={16} />
-                    预约使用
+                    {room.status === "in_use" ? "使用中" : room.status === "faulty" ? "故障中" : "预约使用"}
                   </button>
                   {room.status === "faulty" && (
                     <button
