@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Clock, Users, Coffee, X } from 'lucide-react';
+import { Clock, Users, Coffee, X, CheckCircle, Calendar, Phone } from 'lucide-react';
 import type { TableData, ReservationData } from '@shared/types';
+import { useStore } from '@/store/useStore';
 import ReservationModal from './ReservationModal';
 
 interface TimelineBoardProps {
@@ -26,10 +27,13 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function TimelineBoard({ tables, reservations, selectedDate }: TimelineBoardProps) {
+  const { fetchReservations, fetchStats, checkInReservation } = useStore();
   const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [hoveredReservation, setHoveredReservation] = useState<ReservationData | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<ReservationData | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
 
   const timeSlots = useMemo(() => {
     const slots = [];
@@ -67,8 +71,30 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
     setShowModal(true);
   };
 
+  const handleReservationClick = (reservation: ReservationData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedReservation(reservation);
+  };
+
+  const handleCheckIn = async () => {
+    if (!selectedReservation || checkingIn) return;
+    setCheckingIn(true);
+    try {
+      await checkInReservation(selectedReservation.id);
+      await fetchReservations();
+      await fetchStats();
+      setSelectedReservation(null);
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
   const formatTime = (iso: string) => {
     return new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getTableByReservation = (tableId: number) => {
+    return tables.find(t => t.id === tableId);
   };
 
   return (
@@ -126,14 +152,16 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
                   const position = getReservationPosition(reservation);
                   const colors = STATUS_COLORS[reservation.status];
                   const isActive = reservation.status === 'pending' || reservation.status === 'checked_in';
+                  const isPending = reservation.status === 'pending';
                   
                   return (
                     <div
                       key={reservation.id}
-                      className={`absolute top-2 bottom-2 rounded-lg ${colors.bg} ${colors.border} border ${isActive ? 'cursor-pointer hover:shadow-md' : ''} transition-all overflow-hidden`}
+                      className={`absolute top-2 bottom-2 rounded-lg ${colors.bg} ${colors.border} border ${isActive ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''} transition-all overflow-hidden`}
                       style={{ left: position.left, width: position.width }}
                       onMouseEnter={() => setHoveredReservation(reservation)}
                       onMouseLeave={() => setHoveredReservation(null)}
+                      onClick={(e) => handleReservationClick(reservation, e)}
                     >
                       <div className="p-2 h-full flex flex-col justify-center">
                         <div className={`text-sm font-semibold ${colors.text} truncate`}>
@@ -142,10 +170,16 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
                         <div className="text-xs text-gray-500 truncate">
                           {reservation.contactName}
                         </div>
+                        {isPending && (
+                          <div className="text-xs text-primary-500 flex items-center gap-1 mt-0.5 animate-pulse-soft">
+                            <Clock size={10} />
+                            <span>待签到</span>
+                          </div>
+                        )}
                       </div>
 
                       {hoveredReservation?.id === reservation.id && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 pointer-events-none">
                           <div className="bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl whitespace-nowrap">
                             <div className="font-semibold mb-1">{reservation.gameType} - {STATUS_LABELS[reservation.status]}</div>
                             <div className="text-gray-300 space-y-0.5">
@@ -158,6 +192,11 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
                                 </div>
                               )}
                             </div>
+                            {isPending && (
+                              <div className="mt-2 pt-2 border-t border-gray-700 text-primary-300 text-center">
+                                点击查看详情 / 签到
+                              </div>
+                            )}
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                           </div>
                         </div>
@@ -188,6 +227,116 @@ export default function TimelineBoard({ tables, reservations, selectedDate }: Ti
             setSelectedTable(null);
           }}
         />
+      )}
+
+      {selectedReservation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full animate-slide-up overflow-hidden">
+            <div className={`p-6 ${STATUS_COLORS[selectedReservation.status].bg}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-gray-500">
+                    {getTableByReservation(selectedReservation.tableId)?.tableNumber} 号桌
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mt-1">
+                    {selectedReservation.gameType}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedReservation(null)}
+                  className="p-2 bg-white/80 hover:bg-white rounded-full transition-colors"
+                >
+                  <X size={20} className="text-gray-600" />
+                </button>
+              </div>
+              <div className="mt-3">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
+                  selectedReservation.status === 'pending' ? 'bg-primary-500 text-white' :
+                  selectedReservation.status === 'checked_in' ? 'bg-success-600 text-white' :
+                  selectedReservation.status === 'no_show' ? 'bg-red-500 text-white' :
+                  'bg-gray-500 text-white'
+                }`}>
+                  {STATUS_LABELS[selectedReservation.status]}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-warm-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Calendar className="text-warm-600" size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">时间</div>
+                  <div className="font-semibold text-gray-800">
+                    {formatTime(selectedReservation.startTime)} - {formatTime(selectedReservation.endTime)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Users className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">人数</div>
+                  <div className="font-semibold text-gray-800">{selectedReservation.peopleCount} 人</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-success-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Phone className="text-success-600" size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">联系人</div>
+                  <div className="font-semibold text-gray-800">
+                    {selectedReservation.contactName}
+                  </div>
+                  <div className="text-sm text-gray-500">{selectedReservation.contactPhone}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Coffee className="text-amber-600" size={20} />
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">茶水需求</div>
+                  <div className="font-semibold text-gray-800">
+                    {selectedReservation.teaRequirement || '无'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 pt-0 space-y-3">
+              {selectedReservation.status === 'pending' && (
+                <button
+                  onClick={handleCheckIn}
+                  disabled={checkingIn}
+                  className="w-full py-4 bg-success-500 hover:bg-success-600 disabled:bg-success-300 text-white font-semibold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={20} />
+                  {checkingIn ? '签到中...' : '确认签到'}
+                </button>
+              )}
+
+              {selectedReservation.status === 'pending' && (
+                <p className="text-xs text-gray-400 text-center">
+                  温馨提示：超过开始时间 15 分钟未签到将自动释放桌位
+                </p>
+              )}
+
+              <button
+                onClick={() => setSelectedReservation(null)}
+                className="w-full py-3 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
