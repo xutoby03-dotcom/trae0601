@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Phone, Calendar, FileText, Filter } from 'lucide-react';
+import { Search, Plus, Phone, Calendar, FileText, Filter, AlertCircle } from 'lucide-react';
 import { useVendorStore } from '@/stores/useVendorStore';
-import { getLicenseStatus, getDaysUntilExpiry, formatDate } from '@/utils/date';
+import { getLicenseStatus, getDaysUntilExpiry, formatDate, isExpiringThisWeek } from '@/utils/date';
 import { stallTypeLabels } from '@/types';
 import type { LicenseStatus, AuditStatus, StallType } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
@@ -20,6 +20,7 @@ const VendorList = () => {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [auditFilter, setAuditFilter] = useState<FilterAudit>('all');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
+  const [expiringWeekFilter, setExpiringWeekFilter] = useState(false);
 
   useEffect(() => {
     initData();
@@ -29,16 +30,19 @@ const VendorList = () => {
     const status = searchParams.get('status') as LicenseStatus | null;
     const audit = searchParams.get('audit') as AuditStatus | null;
     const type = searchParams.get('type') as StallType | null;
+    const expiringWeek = searchParams.get('expiringWeek');
 
     if (status) setStatusFilter(status);
     if (audit) setAuditFilter(audit);
     if (type) setTypeFilter(type);
+    if (expiringWeek === 'true') setExpiringWeekFilter(true);
   }, [searchParams]);
 
   const filteredVendors = useMemo(() => {
     return vendors.filter(vendor => {
       const licenseStatus = getLicenseStatus(vendor.validUntil);
 
+      if (expiringWeekFilter && !isExpiringThisWeek(vendor.validUntil)) return false;
       if (statusFilter !== 'all' && licenseStatus !== statusFilter) return false;
       if (auditFilter !== 'all' && vendor.auditStatus !== auditFilter) return false;
       if (typeFilter !== 'all' && vendor.stallType !== typeFilter) return false;
@@ -55,15 +59,17 @@ const VendorList = () => {
 
       return true;
     });
-  }, [vendors, statusFilter, auditFilter, typeFilter, searchQuery]);
+  }, [vendors, expiringWeekFilter, statusFilter, auditFilter, typeFilter, searchQuery]);
 
   const handleStatusTabClick = (status: FilterStatus) => {
     setStatusFilter(status);
+    setExpiringWeekFilter(false);
     if (status === 'all') {
       searchParams.delete('status');
     } else {
       searchParams.set('status', status);
     }
+    searchParams.delete('expiringWeek');
     setSearchParams(searchParams);
   };
 
@@ -82,8 +88,32 @@ const VendorList = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">摊主管理</h1>
-          <p className="text-slate-500 mt-1">管理所有摊主档案和证照信息</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-800">
+              {expiringWeekFilter ? '本周到期证照' : '摊主管理'}
+            </h1>
+            {expiringWeekFilter && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-full">
+                <AlertCircle className="w-4 h-4" />
+                仅显示本周到期
+                <button
+                  onClick={() => {
+                    setExpiringWeekFilter(false);
+                    searchParams.delete('expiringWeek');
+                    setSearchParams(searchParams);
+                  }}
+                  className="ml-1 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
+            )}
+          </div>
+          <p className="text-slate-500 mt-1">
+            {expiringWeekFilter ? '本周内证照到期的摊主列表' : '管理所有摊主档案和证照信息'}
+          </p>
         </div>
         <button
           onClick={() => navigate('/vendors/new')}

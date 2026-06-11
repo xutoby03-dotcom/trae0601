@@ -44,7 +44,7 @@ const Dashboard = () => {
       icon: CalendarClock,
       gradient: 'from-orange-500 to-amber-500',
       linkText: '查看全部',
-      linkTo: '/vendors?status=expiring',
+      linkTo: '/vendors?expiringWeek=true',
       unit: '张',
     },
     {
@@ -192,15 +192,15 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => navigate('/vendors?status=expiring')}
+              onClick={() => navigate('/vendors?expiringWeek=true')}
               className="w-full flex items-center gap-3 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                 <CalendarClock className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-medium">证照到期处理</p>
-                <p className="text-sm text-amber-600">{expiringVendors.length} 张证照临期</p>
+                <p className="font-medium">本周到期处理</p>
+                <p className="text-sm text-amber-600">{expiringThisWeek.length} 张本周到期</p>
               </div>
             </button>
 
@@ -219,7 +219,17 @@ const Dashboard = () => {
           </div>
 
           <div className="mt-6 pt-6 border-t border-slate-100">
-            <h3 className="text-sm font-medium text-slate-500 mb-4">本周到期证照详情</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-slate-500">本周到期证照详情</h3>
+              {expiringThisWeek.length > 0 && (
+                <button
+                  onClick={() => navigate('/vendors?expiringWeek=true')}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  查看全部
+                </button>
+              )}
+            </div>
             {expiringThisWeek.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">本周无到期证照</p>
             ) : (
