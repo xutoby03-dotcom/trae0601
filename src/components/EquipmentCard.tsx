@@ -1,4 +1,4 @@
-import { Ruler, Store, Banknote, Clock, User } from 'lucide-react';
+import { Ruler, Store, Banknote, Clock, User, RefreshCcw } from 'lucide-react';
 import type { Equipment } from '../types';
 import { EQUIPMENT_TYPE_LABELS, EQUIPMENT_STATUS_LABELS } from '../types';
 import { formatCurrency } from '../utils/costCalculator';
@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/costCalculator';
 interface EquipmentCardProps {
   equipment: Equipment;
   onRent?: () => void;
+  onSwap?: () => void;
   currentUser?: string;
 }
 
@@ -15,7 +16,7 @@ const statusColors = {
   returned: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
-export default function EquipmentCard({ equipment, onRent, currentUser }: EquipmentCardProps) {
+export default function EquipmentCard({ equipment, onRent, onSwap, currentUser }: EquipmentCardProps) {
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group hover:-translate-y-1">
       <div className="relative h-48 overflow-hidden">
@@ -79,6 +80,16 @@ export default function EquipmentCard({ equipment, onRent, currentUser }: Equipm
             className="w-full py-2.5 bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-xl font-medium hover:from-sky-600 hover:to-cyan-600 transition-all duration-200 shadow-md hover:shadow-lg active:scale-98"
           >
             立即认领
+          </button>
+        )}
+
+        {onSwap && equipment.status === 'rented' && (
+          <button
+            onClick={onSwap}
+            className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 flex items-center justify-center gap-2"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            换装备
           </button>
         )}
       </div>

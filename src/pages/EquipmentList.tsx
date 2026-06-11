@@ -3,15 +3,18 @@ import { Package, RefreshCw } from 'lucide-react';
 import EquipmentCard from '../components/EquipmentCard';
 import FilterBar from '../components/FilterBar';
 import RentalModal from '../components/RentalModal';
+import SwapModal from '../components/SwapModal';
 import { useRentalStore } from '../store/useStore';
-import type { Equipment, EquipmentType, EquipmentStatus } from '../types';
+import type { Equipment, EquipmentType, EquipmentStatus, RentalRecord } from '../types';
 
 export default function EquipmentList() {
-  const { equipments, persons, rentalRecords, createRental, resetData } = useRentalStore();
+  const { equipments, persons, rentalRecords, createRental, swapEquipment, resetData } = useRentalStore();
   const [selectedType, setSelectedType] = useState<EquipmentType | 'all'>('all');
   const [selectedStatus, setSelectedStatus] = useState<EquipmentStatus | 'all'>('all');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [swapEquipmentData, setSwapEquipmentData] = useState<{ equipment: Equipment; record: RentalRecord } | null>(null);
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
 
   const filteredEquipments = equipments.filter((eq) => {
     if (selectedType !== 'all' && eq.type !== selectedType) return false;
@@ -44,6 +47,26 @@ export default function EquipmentList() {
       equipmentId: selectedEquipment.id,
     });
   };
+
+  const getActiveRental = (equipmentId: string): RentalRecord | undefined => {
+    return rentalRecords.find(
+      (r) => r.equipmentId === equipmentId && !r.isReturned
+    );
+  };
+
+  const handleSwapClick = (equipment: Equipment) => {
+    const record = getActiveRental(equipment.id);
+    if (!record) return;
+    setSwapEquipmentData({ equipment, record });
+    setIsSwapModalOpen(true);
+  };
+
+  const handleConfirmSwap = (toEquipmentId: string, reason: string) => {
+    if (!swapEquipmentData) return;
+    swapEquipment(swapEquipmentData.record.id, toEquipmentId, reason);
+  };
+
+  const availableEquipmentsForSwap = equipments.filter((e) => e.status === 'available');
 
   const stats = {
     total: equipments.length,
@@ -112,6 +135,7 @@ export default function EquipmentList() {
                 key={equipment.id}
                 equipment={equipment}
                 onRent={equipment.status === 'available' ? () => handleRentClick(equipment) : undefined}
+                onSwap={equipment.status === 'rented' ? () => handleSwapClick(equipment) : undefined}
                 currentUser={getCurrentUser(equipment.id)}
               />
             ))}
@@ -125,6 +149,17 @@ export default function EquipmentList() {
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             onConfirm={handleConfirmRent}
+          />
+        )}
+
+        {swapEquipmentData && (
+          <SwapModal
+            currentEquipment={swapEquipmentData.equipment}
+            rentalRecord={swapEquipmentData.record}
+            availableEquipments={availableEquipmentsForSwap}
+            isOpen={isSwapModalOpen}
+            onClose={() => setIsSwapModalOpen(false)}
+            onConfirm={handleConfirmSwap}
           />
         )}
       </div>
