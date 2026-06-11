@@ -52,6 +52,11 @@ export default function TastingDetail() {
     return '';
   }, [id]);
 
+  const shortFeedbackUrl = useMemo(() => {
+    if (id) return `/feedback/${id}`;
+    return '';
+  }, [id]);
+
   const handleCopyLink = async () => {
     if (feedbackUrl) {
       try {
@@ -376,8 +381,8 @@ export default function TastingDetail() {
                 <div className="bg-brown-50 rounded-xl p-3">
                   <p className="text-xs text-brown-500 mb-2">反馈链接</p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 text-xs text-brown-700 bg-white px-3 py-2 rounded-lg border border-brown-200 truncate text-left">
-                      {feedbackUrl}
+                    <code className="flex-1 text-xs text-brown-700 bg-white px-3 py-2 rounded-lg border border-brown-200 text-left">
+                      {shortFeedbackUrl}
                     </code>
                     <button
                       onClick={handleCopyLink}
