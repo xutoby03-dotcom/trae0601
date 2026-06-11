@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Activity, DollarSign, Footprints, ShoppingBag, BarChart2, TrendingUp } from 'lucide-react';
+import { Activity, DollarSign, Footprints, ShoppingBag, BarChart2, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useShoeStore } from '@/store';
 import { SURFACE_LABELS, Surface } from '@/types';
 import LifeProgressBar from '@/components/LifeProgressBar';
@@ -42,6 +42,41 @@ export default function Stats() {
         color: SURFACE_CHART_COLORS[s],
       }));
   }, [stats.surfaceComparison]);
+
+  const surfaceWearData = useMemo(() => {
+    const entries = (Object.keys(stats.surfaceComparison) as Surface[])
+      .filter((s) => stats.surfaceComparison[s].distance > 0)
+      .map((s) => {
+        const d = stats.surfaceComparison[s];
+        return {
+          key: s,
+          name: SURFACE_LABELS[s],
+          distance: Number(d.distance.toFixed(1)),
+          count: d.count,
+          lifeConsumed: Number(d.lifeConsumed.toFixed(2)),
+          wearNotesCount: d.wearNotesCount,
+          wearScore: Number(d.wearScore.toFixed(4)),
+          color: SURFACE_CHART_COLORS[s],
+        };
+      });
+
+    entries.sort((a, b) => b.wearScore - a.wearScore);
+
+    const maxScore = entries.length > 0 ? entries[0].wearScore : 1;
+
+    return entries.map((e) => ({
+      ...e,
+      wearPercent: maxScore > 0 ? Number(((e.wearScore / maxScore) * 100).toFixed(1)) : 0,
+    }));
+  }, [stats.surfaceComparison]);
+
+  const wearConclusion = useMemo(() => {
+    if (surfaceWearData.length < 2) return null;
+    const worst = surfaceWearData[0];
+    const best = surfaceWearData[surfaceWearData.length - 1];
+    if (worst.wearScore === 0) return null;
+    return { worst, best };
+  }, [surfaceWearData]);
 
   const shoeCostData = useMemo(() => {
     return shoes
@@ -255,27 +290,76 @@ export default function Stats() {
       </div>
 
       <div className="card">
-        <h3 className="font-display font-semibold text-white mb-4">路面对比：哪个更费鞋？</h3>
-        {surfaceChartData.length < 2 ? (
-          <p className="text-gray-500 text-sm">多跑几种路面，这里会显示不同路面的里程对比</p>
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-5 h-5 text-danger-500" />
+          <h3 className="font-display font-semibold text-white">路面磨损对比：哪个更费鞋？</h3>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">综合「每公里寿命消耗占比」和「磨损备注频率」计算磨损评分，评分越高越费鞋</p>
+
+        {surfaceWearData.length < 2 ? (
+          <p className="text-gray-500 text-sm">至少跑两种路面后，这里会显示磨损对比</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {surfaceChartData.map((s) => (
-              <div key={s.name} className="p-4 rounded-xl bg-night-900 border border-night-600">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-white">{s.name}</p>
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: s.color }}
-                  />
+          <>
+            {wearConclusion && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-danger-500/10 via-night-800 to-fresh-500/10 border border-night-600 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-danger-400" />
+                    <span className="text-white font-semibold">{wearConclusion.worst.name}</span>
+                    <span className="tag bg-danger-500/20 text-danger-400">更费鞋</span>
+                  </div>
+                  <span className="text-gray-500 mx-2">vs</span>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-fresh-400" />
+                    <span className="text-white font-semibold">{wearConclusion.best.name}</span>
+                    <span className="tag bg-fresh-500/20 text-fresh-400">更省鞋</span>
+                  </div>
                 </div>
-                <p className="text-2xl font-display font-bold" style={{ color: s.color }}>
-                  {s.distance.toFixed(1)}<span className="text-sm text-gray-400 ml-1">km</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-1">共 {s.count} 次跑步</p>
               </div>
-            ))}
-          </div>
+            )}
+
+            <div className="space-y-4">
+              {surfaceWearData.map((s, idx) => (
+                <div
+                  key={s.key}
+                  className={`p-4 rounded-xl bg-night-900 border ${
+                    idx === 0 ? 'border-danger-500/40' : 'border-night-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: s.color }}
+                      />
+                      <p className="font-display font-semibold text-white">{s.name}</p>
+                      {idx === 0 && <span className="tag bg-danger-500/20 text-danger-400">最费鞋</span>}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                      <span>{s.distance} km</span>
+                      <span>消耗寿命 {s.lifeConsumed}%</span>
+                      <span>磨损备注 {s.wearNotesCount}/{s.count} 次</span>
+                    </div>
+                  </div>
+
+                  <div className="progress-track h-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        idx === 0
+                          ? 'bg-gradient-to-r from-danger-500 to-red-400'
+                          : 'bg-gradient-to-r from-fresh-500 to-emerald-400'
+                      }`}
+                      style={{ width: `${s.wearPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-[10px] text-gray-500">磨损评分 {s.wearScore}</span>
+                    <span className="text-[10px] text-gray-500">{s.wearPercent}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

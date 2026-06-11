@@ -21,6 +21,8 @@ export default function Home() {
 
     if (showRaceOnly) {
       result = result.filter((s) => s.isRaceLocked);
+    } else {
+      result = result.filter((s) => !s.isRaceLocked);
     }
 
     if (search.trim()) {

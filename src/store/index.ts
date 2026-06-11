@@ -21,7 +21,13 @@ interface ShoeStore {
     activeShoes: number;
     totalCost: number;
     avgCostPerKm: number;
-    surfaceComparison: Record<Surface, { distance: number; count: number }>;
+    surfaceComparison: Record<Surface, {
+      distance: number;
+      count: number;
+      lifeConsumed: number;
+      wearNotesCount: number;
+      wearScore: number;
+    }>;
   };
 }
 
@@ -163,11 +169,7 @@ export const useShoeStore = create<ShoeStore>()(
 
       getSortedShoes: () => {
         const shoes = get().getShoesWithStats();
-        return shoes.sort((a, b) => {
-          if (a.isRaceLocked && !b.isRaceLocked) return -1;
-          if (!a.isRaceLocked && b.isRaceLocked) return 1;
-          return b.lifePercentage - a.lifePercentage;
-        });
+        return shoes.sort((a, b) => b.lifePercentage - a.lifePercentage);
       },
 
       getRunsByShoeId: (shoeId) => {
@@ -184,13 +186,43 @@ export const useShoeStore = create<ShoeStore>()(
         const avgCostPerKm = totalDistance > 0 ? totalCost / totalDistance : 0;
         const activeShoes = shoesWithStats.filter((s) => s.lifePercentage < 100).length;
 
-        const surfaceComparison = {} as Record<Surface, { distance: number; count: number }>;
+        const surfaceComparison = {} as Record<Surface, {
+          distance: number;
+          count: number;
+          lifeConsumed: number;
+          wearNotesCount: number;
+          wearScore: number;
+        }>;
         (['asphalt', 'concrete', 'track', 'trail', 'treadmill'] as Surface[]).forEach((s) => {
-          surfaceComparison[s] = { distance: 0, count: 0 };
+          surfaceComparison[s] = { distance: 0, count: 0, lifeConsumed: 0, wearNotesCount: 0, wearScore: 0 };
         });
+
+        const shoeMap = new Map(shoesWithStats.map((s) => [s.id, s]));
+
         runs.forEach((r) => {
+          const shoe = shoeMap.get(r.shoeId);
+          if (!shoe) return;
+          const lifeShare = shoe.maxKilometers > 0
+            ? (r.kilometers / shoe.maxKilometers) * 100
+            : 0;
           surfaceComparison[r.surface].distance += r.kilometers;
           surfaceComparison[r.surface].count += 1;
+          surfaceComparison[r.surface].lifeConsumed += lifeShare;
+          if (r.wearNotes && r.wearNotes.trim()) {
+            surfaceComparison[r.surface].wearNotesCount += 1;
+          }
+        });
+
+        Object.keys(surfaceComparison).forEach((key) => {
+          const s = surfaceComparison[key as Surface];
+          const km = s.distance;
+          if (km === 0) {
+            s.wearScore = 0;
+          } else {
+            const normalizedLife = s.lifeConsumed / km;
+            const normalizedNotes = s.wearNotesCount / s.count;
+            s.wearScore = normalizedLife * 0.6 + normalizedNotes * 40 * 0.4;
+          }
         });
 
         return {
