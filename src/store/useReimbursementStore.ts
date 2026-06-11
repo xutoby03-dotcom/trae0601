@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { Reimbursement, ReimbursementFormData, Project } from '@/types';
 import { mockReimbursements, mockProjects } from '@/data/mockData';
 
+const STORAGE_KEY_REIMBURSEMENTS = 'overtime-meal-reimbursements';
+const STORAGE_KEY_INITIALIZED = 'overtime-meal-initialized';
+
 interface ReimbursementState {
   reimbursements: Reimbursement[];
   projects: Project[];
@@ -18,10 +21,40 @@ interface ReimbursementState {
   getProjectStandard: (projectId: string) => number;
 }
 
+const loadReimbursements = (): Reimbursement[] => {
+  if (typeof window === 'undefined') return mockReimbursements;
+
+  const initialized = localStorage.getItem(STORAGE_KEY_INITIALIZED);
+  if (!initialized) {
+    localStorage.setItem(STORAGE_KEY_INITIALIZED, 'true');
+    localStorage.setItem(STORAGE_KEY_REIMBURSEMENTS, JSON.stringify(mockReimbursements));
+    return mockReimbursements;
+  }
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_REIMBURSEMENTS);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return mockReimbursements;
+  } catch {
+    return mockReimbursements;
+  }
+};
+
+const saveReimbursements = (list: Reimbursement[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY_REIMBURSEMENTS, JSON.stringify(list));
+  } catch {
+    // silent
+  }
+};
+
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
 export const useReimbursementStore = create<ReimbursementState>((set, get) => ({
-  reimbursements: mockReimbursements,
+  reimbursements: loadReimbursements(),
   projects: mockProjects,
 
   addReimbursement: (data: ReimbursementFormData) => {
@@ -42,41 +75,47 @@ export const useReimbursementStore = create<ReimbursementState>((set, get) => ({
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
-    set((state) => ({
-      reimbursements: [newItem, ...state.reimbursements],
-    }));
+    set((state) => {
+      const updated = [newItem, ...state.reimbursements];
+      saveReimbursements(updated);
+      return { reimbursements: updated };
+    });
   },
 
   approveReimbursement: (id: string, comment?: string) => {
-    set((state) => ({
-      reimbursements: state.reimbursements.map((item) =>
+    set((state) => {
+      const updated = state.reimbursements.map((item) =>
         item.id === id
           ? {
               ...item,
-              status: 'approved',
+              status: 'approved' as const,
               reviewer: '管理员',
               reviewComment: comment,
               reviewedAt: new Date().toISOString(),
             }
           : item
-      ),
-    }));
+      );
+      saveReimbursements(updated);
+      return { reimbursements: updated };
+    });
   },
 
   rejectReimbursement: (id: string, comment: string) => {
-    set((state) => ({
-      reimbursements: state.reimbursements.map((item) =>
+    set((state) => {
+      const updated = state.reimbursements.map((item) =>
         item.id === id
           ? {
               ...item,
-              status: 'rejected',
+              status: 'rejected' as const,
               reviewer: '管理员',
               reviewComment: comment,
               reviewedAt: new Date().toISOString(),
             }
           : item
-      ),
-    }));
+      );
+      saveReimbursements(updated);
+      return { reimbursements: updated };
+    });
   },
 
   batchApproveByProject: (projectId: string) => {
@@ -98,17 +137,20 @@ export const useReimbursementStore = create<ReimbursementState>((set, get) => ({
         }
         return item;
       });
+      saveReimbursements(updated);
       return { reimbursements: updated };
     });
     return count;
   },
 
   settleReimbursement: (id: string) => {
-    set((state) => ({
-      reimbursements: state.reimbursements.map((item) =>
-        item.id === id ? { ...item, status: 'settled' } : item
-      ),
-    }));
+    set((state) => {
+      const updated = state.reimbursements.map((item) =>
+        item.id === id ? { ...item, status: 'settled' as const } : item
+      );
+      saveReimbursements(updated);
+      return { reimbursements: updated };
+    });
   },
 
   getPendingCount: () => {
