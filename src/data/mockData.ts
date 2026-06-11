@@ -295,8 +295,11 @@ export const INITIAL_TICKETS: Ticket[] = [
     queuePosition: 4,
     createdAt: hoursAgo(2),
     updatedAt: hoursAgo(2),
-    messages: [{ id: 'm23', sender: 'system', senderName: '系统', content: '报修单已提交', timestamp: hoursAgo(2) }],
-    jumpReasons: [],
+    messages: [
+      { id: 'm23', sender: 'system', senderName: '系统', content: '报修单已提交', timestamp: hoursAgo(2) },
+      { id: 'm23-1', sender: 'system', senderName: '系统', content: '黄莉已将此单标记为紧急：衣柜锁坏，内有贵重物品担心失窃', timestamp: hoursAgo(1.9) },
+    ],
+    jumpReasons: [{ reason: '衣柜锁损坏，内有笔记本电脑等贵重物品，担心失窃', operator: '黄莉', timestamp: hoursAgo(1.9) }],
     statusHistory: [{ status: 'pending', timestamp: hoursAgo(2) }],
   },
   {

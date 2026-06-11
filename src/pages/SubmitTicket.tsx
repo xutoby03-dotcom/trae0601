@@ -14,6 +14,12 @@ export default function SubmitTicket() {
   const [faultType, setFaultType] = useState(FAULT_TYPES[0]);
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState<UrgencyLevel>('normal');
+  const [jumpReason, setJumpReason] = useState('');
+
+  const handleUrgencyChange = (u: UrgencyLevel) => {
+    setUrgency(u);
+    if (u === 'normal') setJumpReason('');
+  };
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [photos, setPhotos] = useState<{ id: string; url: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -57,23 +63,30 @@ export default function SubmitTicket() {
       alert('请填写完整信息（房间号、故障描述、至少一个可上门时间段）');
       return;
     }
+    if (urgency === 'urgent' && !jumpReason.trim()) {
+      alert('紧急报修必须填写插队原因，请说明紧急情况');
+      return;
+    }
     setSubmitting(true);
     setTimeout(() => {
-      addTicket({
-        studentName: currentUserName,
-        building,
-        room,
-        faultType,
-        description,
-        photos: photos.map((p, i) => ({
-          id: p.id,
-          url: p.url,
-          uploadedAt: new Date().toISOString(),
-          uploader: 'student',
-        })),
-        urgency,
-        availableTimes,
-      });
+      addTicket(
+        {
+          studentName: currentUserName,
+          building,
+          room,
+          faultType,
+          description,
+          photos: photos.map((p, i) => ({
+            id: p.id,
+            url: p.url,
+            uploadedAt: new Date().toISOString(),
+            uploader: 'student',
+          })),
+          urgency,
+          availableTimes,
+        },
+        { jumpReason: urgency === 'urgent' ? jumpReason.trim() : undefined },
+      );
       navigate('/');
     }, 600);
   };
@@ -194,7 +207,7 @@ export default function SubmitTicket() {
                 {(['normal', 'urgent'] as UrgencyLevel[]).map((u) => (
                   <button
                     key={u}
-                    onClick={() => setUrgency(u)}
+                    onClick={() => handleUrgencyChange(u)}
                     className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold border transition-all ${
                       urgency === u
                         ? u === 'urgent'
@@ -208,9 +221,22 @@ export default function SubmitTicket() {
                 ))}
               </div>
               {urgency === 'urgent' && (
-                <p className="text-xs text-orange-600 mt-2 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-                  紧急工单将优先排队，维修员会优先处理
-                </p>
+                <div className="mt-3 space-y-2 animate-fade-in">
+                  <p className="text-xs text-orange-600 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                    紧急工单将优先排队，请务必填写插队原因，方便维修员判断优先级
+                  </p>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-ink-500">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    插队原因 <span className="text-orange-500">*</span>
+                  </label>
+                  <textarea
+                    value={jumpReason}
+                    onChange={(e) => setJumpReason(e.target.value)}
+                    rows={2}
+                    placeholder="例如：漏水严重影响生活、门锁坏了无法进出等"
+                    className="w-full px-4 py-3 rounded-xl bg-orange-50/50 border border-orange-300 text-ink-500 placeholder:text-ink-200 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all resize-none"
+                  />
+                </div>
               )}
             </div>
 

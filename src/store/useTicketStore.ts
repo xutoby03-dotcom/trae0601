@@ -10,7 +10,10 @@ interface TicketState {
   currentUserName: string;
   setRole: (role: UserRole) => void;
   setCurrentUserName: (name: string) => void;
-  addTicket: (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt' | 'messages' | 'jumpReasons' | 'statusHistory' | 'queuePosition' | 'status'>) => void;
+  addTicket: (
+    ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt' | 'messages' | 'jumpReasons' | 'statusHistory' | 'queuePosition' | 'status'>,
+    options?: { jumpReason?: string },
+  ) => void;
   updateTicketStatus: (id: string, status: TicketStatus, operator: string) => void;
   assignWorker: (id: string, workerName: string) => void;
   addMessage: (id: string, message: Omit<Message, 'id' | 'timestamp'>) => void;
@@ -57,19 +60,41 @@ export const useTicketStore = create<TicketState>()(
         });
       },
 
-      addTicket: (ticketData) => {
+      addTicket: (ticketData, options) => {
         const now = new Date().toISOString();
         const id = generateId();
+        const jumpReason = options?.jumpReason;
+        const isUrgent = ticketData.urgency === 'urgent';
+
+        const baseMessages: Message[] = [
+          { id: 'sys-' + Date.now(), sender: 'system' as const, senderName: '系统', content: '报修单已提交，等待维修员接单', timestamp: now },
+        ];
+        const baseJumpReasons: JumpReason[] = [];
+
+        if (isUrgent && jumpReason) {
+          const operator = get().currentUserName;
+          baseMessages.push({
+            id: 'sys-' + (Date.now() + 1),
+            sender: 'system' as const,
+            senderName: '系统',
+            content: `${operator}已将此单标记为紧急：${jumpReason}`,
+            timestamp: now,
+          });
+          baseJumpReasons.push({
+            reason: jumpReason,
+            operator,
+            timestamp: now,
+          });
+        }
+
         const newTicket: Ticket = {
           ...ticketData,
           id,
           status: 'pending',
           createdAt: now,
           updatedAt: now,
-          messages: [
-            { id: 'sys-' + Date.now(), sender: 'system', senderName: '系统', content: '报修单已提交，等待维修员接单', timestamp: now },
-          ],
-          jumpReasons: [],
+          messages: baseMessages,
+          jumpReasons: baseJumpReasons,
           statusHistory: [{ status: 'pending', timestamp: now, operator: '系统' }],
         };
         set((state) => {
