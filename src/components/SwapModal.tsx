@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, RefreshCcw, AlertCircle, FileText, Check } from 'lucide-react';
 import type { Equipment, RentalRecord } from '../types';
 import { EQUIPMENT_TYPE_LABELS } from '../types';
@@ -24,12 +24,27 @@ export default function SwapModal({
   const [selectedId, setSelectedId] = useState('');
   const [reason, setReason] = useState('');
 
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedId('');
+      setReason('');
+    }
+  }, [isOpen, currentEquipment.id]);
+
+  useEffect(() => {
+    if (selectedId && !availableEquipments.some((e) => e.id === selectedId)) {
+      setSelectedId('');
+    }
+  }, [availableEquipments, selectedId]);
+
   if (!isOpen) return null;
 
   const selectedEquipment = availableEquipments.find((e) => e.id === selectedId);
 
   const handleSubmit = () => {
     if (!selectedId || !reason.trim()) return;
+    const stillAvailable = availableEquipments.some((e) => e.id === selectedId);
+    if (!stillAvailable) return;
     onConfirm(selectedId, reason.trim());
     onClose();
   };
