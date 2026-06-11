@@ -296,7 +296,10 @@ export default function SeatDetail() {
                   )}
                   {seat.status === SeatStatus.SUSPECTED && (
                     <ActionButton
-                      onClick={() => setFeedbackOpen(true)}
+                      onClick={() => {
+                        setSubmitError('');
+                        setFeedbackOpen(true);
+                      }}
                       color="rose"
                       icon={Camera}
                       label="拍照反馈举报"
@@ -379,7 +382,10 @@ export default function SeatDetail() {
 
       <Modal
         open={feedbackOpen}
-        onClose={() => setFeedbackOpen(false)}
+        onClose={() => {
+          setSubmitError('');
+          setFeedbackOpen(false);
+        }}
         title="反馈疑似占座"
         size="md"
       >
@@ -536,7 +542,10 @@ export default function SeatDetail() {
 
         <div className="flex justify-end gap-3 mt-6">
           <button
-            onClick={() => setFeedbackOpen(false)}
+            onClick={() => {
+              setSubmitError('');
+              setFeedbackOpen(false);
+            }}
             className="px-5 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-medium transition"
           >
             <span className="inline-flex items-center gap-1.5">
