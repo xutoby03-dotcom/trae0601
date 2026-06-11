@@ -13,6 +13,8 @@ import {
   Film,
   Star,
   PlayCircle,
+  X,
+  Download,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMovieStore } from '../store/useMovieStore';
@@ -39,6 +41,7 @@ export default function ArrangementPage() {
   const [locationValue, setLocationValue] = useState('');
   const [copied, setCopied] = useState(false);
   const [spinningIndex, setSpinningIndex] = useState<number | null>(null);
+  const [showPoster, setShowPoster] = useState(false);
 
   const selectedMovie = movies.find((m) => m.id === currentEvent.selectedMovieId);
   const effectiveArrangement = _arrangement || (() => {
@@ -375,28 +378,150 @@ ${effectiveArrangement.snacks.map((s) => `${s.snack} - ${s.owner}`).join('\n')}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/5 to-amber-400/10 border border-white/10">
           <div>
             <h3 className="font-bold text-white mb-1">分享给小伙伴</h3>
-            <p className="text-sm text-white/50">生成活动文案，一键复制转发</p>
+            <p className="text-sm text-white/50">生成精美海报，一键复制转发</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleCopy}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95',
-                copied
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
-              )}
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? '已复制！' : '复制文案'}
-            </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-amber-400 text-white font-bold text-sm shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 hover:scale-105 active:scale-95 transition-all">
-              <Share2 className="w-4 h-4" />
-              生成海报
-            </button>
-          </div>
+          <button
+            onClick={() => setShowPoster(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-amber-400 text-white font-bold text-sm shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 hover:scale-105 active:scale-95 transition-all"
+          >
+            <Share2 className="w-4 h-4" />
+            生成海报
+          </button>
         </div>
       </div>
+
+      {showPoster && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm" onClick={() => setShowPoster(false)}>
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowPoster(false)}
+              className="absolute -top-2 -right-2 z-10 w-9 h-9 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#1A0B2E] via-[#1A0B2E] to-[#0f051a] border border-white/10 shadow-2xl shadow-pink-500/10">
+              <div className="relative">
+                <img
+                  src={selectedMovie?.posterUrl}
+                  alt={selectedMovie?.title}
+                  className="w-full h-64 sm:h-72 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1A0B2E] via-[#1A0B2E]/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1A0B2E]/70 via-transparent to-transparent" />
+
+                <div className="absolute top-4 left-4 right-4 flex items-start justify-between">
+                  <div className="px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500/90 to-amber-400/90 backdrop-blur-sm text-white text-xs font-bold shadow-lg">
+                    🎬 {currentEvent.title}
+                  </div>
+                  <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/90 text-xs font-medium">
+                    ⭐ {selectedMovie?.rating}
+                  </div>
+                </div>
+
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {selectedMovie?.genres.slice(0, 3).map((g) => (
+                      <span
+                        key={g}
+                        className="px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] text-white/90 font-medium border border-white/10"
+                      >
+                        {g}
+                      </span>
+                    ))}
+                  </div>
+                  <h2
+                    className="text-2xl sm:text-3xl font-bold text-white leading-tight"
+                    style={{ fontFamily: "'Playfair Display', serif" }}
+                  >
+                    {selectedMovie?.title}
+                  </h2>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-white/60">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {selectedMovie ? formatDuration(selectedMovie.duration) : ''}
+                    </span>
+                    <span>{selectedMovie?.platform}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-5 pb-5 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-sky-300" />
+                      <span className="text-[11px] text-white/50 font-medium">观影时间</span>
+                    </div>
+                    <p className="text-sm font-bold text-white leading-tight">
+                      {formatDisplayDateTime(effectiveArrangement.viewingTime)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-rose-300" />
+                      <span className="text-[11px] text-white/50 font-medium">观影地点</span>
+                    </div>
+                    <p className="text-sm font-bold text-white leading-tight truncate" title={effectiveArrangement.location}>
+                      {effectiveArrangement.location}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-gradient-to-br from-amber-400/[0.08] to-pink-500/[0.05] border border-amber-400/20 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-base">🍱</span>
+                    <h4 className="text-sm font-bold text-white">零食分工</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {effectiveArrangement.snacks.map((s, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                        <span className="text-lg">{s.snack.split(' ')[0]}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] text-white/50 truncate">{s.snack.split(' ').slice(1).join(' ')}</p>
+                          <p className="text-xs font-semibold text-white/90 truncate">{s.owner}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between text-[11px] text-white/40">
+                    <span>🧑‍🤝‍🧑 组织者：{users.find((u) => u.id === currentEvent.hostId)?.name}</span>
+                    <span>👥 {users.length} 人参与</span>
+                  </div>
+                  <p className="text-center text-xs text-white/30 mt-3 font-medium tracking-wider">
+                    ✨ 不见不散 · 周末电影夜 ✨
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95',
+                  copied
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'bg-white/10 text-white hover:bg-white/15 border border-white/10'
+                )}
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? '已复制文案' : '复制文案'}
+              </button>
+              <button
+                onClick={() => setShowPoster(false)}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-amber-400 text-white font-bold text-sm shadow-lg shadow-pink-500/30 hover:shadow-pink-500/50 active:scale-95 transition-all"
+              >
+                <X className="w-4 h-4" />
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
