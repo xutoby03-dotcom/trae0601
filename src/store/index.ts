@@ -31,15 +31,18 @@ interface AppState {
   getTaskStatus: (task: FosterTask) => TaskStatus;
 
   addCheckIn: (checkin: Omit<DailyCheckIn, 'id' | 'createdAt'>) => DailyCheckIn;
+  updateCheckIn: (id: string, data: Partial<DailyCheckIn>) => void;
   addCheckInItem: (item: Omit<CheckInItem, 'id'>) => void;
   updateCheckInItem: (id: string, data: Partial<CheckInItem>) => void;
   addPhoto: (photo: Omit<CheckInPhoto, 'id' | 'uploadedAt'>) => void;
+  deletePhoto: (id: string) => void;
   getCheckInsByTaskId: (taskId: string) => DailyCheckIn[];
   getCheckInById: (id: string) => DailyCheckIn | undefined;
   getCheckInItemsByCheckInId: (checkinId: string) => CheckInItem[];
   getPhotosByCheckInId: (checkinId: string) => CheckInPhoto[];
   getTodayCheckIn: (taskId: string) => DailyCheckIn | null;
   getMissedItems: (taskId: string, date: string) => CheckInItem[];
+  ensureTodayCheckIn: (taskId: string) => DailyCheckIn | null;
 
   generateReviewReport: (taskId: string) => ReviewReport;
 }
@@ -124,6 +127,14 @@ export const useAppStore = create<AppState>()(
         return newCheckIn;
       },
 
+      updateCheckIn: (id, data) => {
+        set((state) => ({
+          checkins: state.checkins.map((c) =>
+            c.id === id ? { ...c, ...data } : c
+          ),
+        }));
+      },
+
       addCheckInItem: (item) => {
         const newItem: CheckInItem = {
           ...item,
@@ -147,6 +158,12 @@ export const useAppStore = create<AppState>()(
           uploadedAt: new Date().toISOString(),
         };
         set((state) => ({ checkinPhotos: [...state.checkinPhotos, newPhoto] }));
+      },
+
+      deletePhoto: (id) => {
+        set((state) => ({
+          checkinPhotos: state.checkinPhotos.filter((p) => p.id !== id),
+        }));
       },
 
       getCheckInsByTaskId: (taskId) => {
@@ -197,6 +214,32 @@ export const useAppStore = create<AppState>()(
           (item) =>
             checkins.some((c) => c.id === item.checkinId) && !item.completed
         );
+      },
+
+      ensureTodayCheckIn: (taskId) => {
+        const state = get();
+        const task = state.tasks.find((t) => t.id === taskId);
+        if (!task) return null;
+
+        const status = state.getTaskStatus(task);
+        if (status !== 'active') return null;
+
+        const todayCheckin = state.getTodayCheckIn(taskId);
+        if (todayCheckin) return todayCheckin;
+
+        const newCheckin = state.addCheckIn({
+          taskId: task.id,
+          checkinDate: new Date().toISOString().split('T')[0],
+          notes: '',
+          hasAnomaly: false,
+          anomalyDescription: '',
+          remainingFoodAmount: task.initialFoodAmount,
+        });
+
+        const checkinItems = generateCheckInItems(task, newCheckin.id);
+        checkinItems.forEach((item) => state.addCheckInItem(item));
+
+        return newCheckin;
       },
 
       generateReviewReport: (taskId) => {

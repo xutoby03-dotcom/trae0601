@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   PawPrint,
@@ -14,7 +15,16 @@ import TaskCard from '@/components/TaskCard';
 import { getTodayStr } from '@/utils';
 
 export default function Home() {
-  const { pets, tasks, getTaskStatus, getPetById, getMissedItems, getTodayCheckIn } = useAppStore();
+  const { pets, tasks, getTaskStatus, getPetById, getMissedItems, getTodayCheckIn, ensureTodayCheckIn } = useAppStore();
+
+  useEffect(() => {
+    tasks.forEach((task) => {
+      const status = getTaskStatus(task);
+      if (status === 'active') {
+        ensureTodayCheckIn(task.id);
+      }
+    });
+  }, [tasks.length]);
 
   const today = getTodayStr();
 

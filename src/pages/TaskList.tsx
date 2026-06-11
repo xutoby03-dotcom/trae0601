@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ClipboardList } from 'lucide-react';
 import { useAppStore } from '@/store';
@@ -7,8 +7,17 @@ import type { TaskStatus } from '@/types';
 import { getTodayStr } from '@/utils';
 
 export default function TaskList() {
-  const { tasks, pets, getPetById, getTaskStatus, getMissedItems } = useAppStore();
+  const { tasks, pets, getPetById, getTaskStatus, getMissedItems, ensureTodayCheckIn } = useAppStore();
   const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
+
+  useEffect(() => {
+    tasks.forEach((task) => {
+      const status = getTaskStatus(task);
+      if (status === 'active') {
+        ensureTodayCheckIn(task.id);
+      }
+    });
+  }, [tasks.length]);
 
   const tasksWithStatus = tasks
     .map((task) => ({

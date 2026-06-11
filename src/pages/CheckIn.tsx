@@ -11,7 +11,7 @@ import {
   X,
   Package,
 } from 'lucide-react';
-import { useAppStore, generateCheckInItems } from '@/store';
+import { useAppStore } from '@/store';
 import {
   formatDateDisplay,
   getTodayStr,
@@ -34,7 +34,10 @@ export default function CheckIn() {
     addCheckIn,
     addCheckInItem,
     updateCheckInItem,
+    updateCheckIn,
     addPhoto,
+    deletePhoto,
+    ensureTodayCheckIn,
   } = useAppStore();
 
   const task = id ? getTaskById(id) : undefined;
@@ -66,37 +69,19 @@ export default function CheckIn() {
   const [currentCheckinId, setCurrentCheckinId] = useState(todayCheckin?.id || '');
 
   useEffect(() => {
-    if (task && !todayCheckin) {
-      const newCheckin = addCheckIn({
-        taskId: task.id,
-        checkinDate: getTodayStr(),
-        notes: '',
-        hasAnomaly: false,
-        anomalyDescription: '',
-        remainingFoodAmount: task.initialFoodAmount,
-      });
-      setCurrentCheckinId(newCheckin.id);
-
-      const checkinItems = generateCheckInItems(task, newCheckin.id);
-      checkinItems.forEach((item) => addCheckInItem(item));
-
-      setCheckinData({
-        notes: '',
-        hasAnomaly: false,
-        anomalyDescription: '',
-        remainingFoodAmount: task.initialFoodAmount,
-      });
-      setItems(checkinItems.map((_, idx) => ({ ...checkinItems[idx], id: '' })));
-    } else if (todayCheckin) {
-      setCurrentCheckinId(todayCheckin.id);
-      setCheckinData({
-        notes: todayCheckin.notes,
-        hasAnomaly: todayCheckin.hasAnomaly,
-        anomalyDescription: todayCheckin.anomalyDescription,
-        remainingFoodAmount: todayCheckin.remainingFoodAmount,
-      });
-      setItems(getCheckInItemsByCheckInId(todayCheckin.id));
-      setPhotos(getPhotosByCheckInId(todayCheckin.id));
+    if (task) {
+      const checkin = ensureTodayCheckIn(task.id);
+      if (checkin) {
+        setCurrentCheckinId(checkin.id);
+        setCheckinData({
+          notes: checkin.notes,
+          hasAnomaly: checkin.hasAnomaly,
+          anomalyDescription: checkin.anomalyDescription,
+          remainingFoodAmount: checkin.remainingFoodAmount,
+        });
+        setItems(getCheckInItemsByCheckInId(checkin.id));
+        setPhotos(getPhotosByCheckInId(checkin.id));
+      }
     }
   }, [task?.id]);
 
@@ -170,19 +155,13 @@ export default function CheckIn() {
   };
 
   const handleDeletePhoto = (photoId: string) => {
+    deletePhoto(photoId);
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
   };
 
   const handleSave = () => {
-    if (!todayCheckin) return;
-
-    const updatedCheckin = useAppStore.getState().checkins.find((c) => c.id === todayCheckin.id);
-    if (updatedCheckin) {
-      useAppStore.getState().checkins = useAppStore.getState().checkins.map((c) =>
-        c.id === todayCheckin.id ? { ...c, ...checkinData } : c
-      );
-    }
-
+    if (!currentCheckinId) return;
+    updateCheckIn(currentCheckinId, checkinData);
     navigate(`/tasks/${task.id}`);
   };
 

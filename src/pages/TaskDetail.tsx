@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -32,6 +33,7 @@ export default function TaskDetail() {
     getPhotosByCheckInId,
     getMissedItems,
     getTodayCheckIn,
+    ensureTodayCheckIn,
   } = useAppStore();
 
   const task = id ? getTaskById(id) : undefined;
@@ -41,6 +43,12 @@ export default function TaskDetail() {
   const today = getTodayStr();
   const missedItems = id ? getMissedItems(id, today) : [];
   const todayCheckin = id ? getTodayCheckIn(id) : null;
+
+  useEffect(() => {
+    if (task && status === 'active') {
+      ensureTodayCheckIn(task.id);
+    }
+  }, [task?.id, status]);
 
   if (!task) {
     return (
