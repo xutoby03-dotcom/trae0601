@@ -48,8 +48,10 @@ export const CreateOrder: React.FC = () => {
       newErrors.quantity = `库存不足，当前可用：${selectedSample.stockQuantity}`;
     }
     if (!formData.batch.trim()) newErrors.batch = '请输入批次';
+    if (!formData.trackingNumber.trim()) newErrors.trackingNumber = '请输入快递单号';
     if (!formData.sender.trim()) newErrors.sender = '请选择/输入寄送人';
     if (!formData.sendDate) newErrors.sendDate = '请选择寄出日期';
+    if (!formData.expectedArrivalDate) newErrors.expectedArrivalDate = '请选择预计到达日期';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -316,14 +318,25 @@ export const CreateOrder: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">快递单号</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  快递单号 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.trackingNumber}
                   onChange={(e) => setFormData({ ...formData, trackingNumber: e.target.value })}
-                  placeholder="如未寄出可稍后填写"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="请输入快递单号"
+                  className={cn(
+                    'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all',
+                    errors.trackingNumber ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'
+                  )}
                 />
+                {errors.trackingNumber && (
+                  <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.trackingNumber}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -346,13 +359,24 @@ export const CreateOrder: React.FC = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">预计到达日期</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  预计到达日期 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   value={formData.expectedArrivalDate}
                   onChange={(e) => setFormData({ ...formData, expectedArrivalDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={cn(
+                    'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all',
+                    errors.expectedArrivalDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'
+                  )}
                 />
+                {errors.expectedArrivalDate && (
+                  <p className="mt-1 text-xs text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.expectedArrivalDate}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -72,6 +72,10 @@ export const OrderDetail: React.FC = () => {
       showToast('请输入快递单号', 'error');
       return;
     }
+    if (!shippedForm.sendDate) {
+      showToast('请选择寄出日期', 'error');
+      return;
+    }
     if (!shippedForm.expectedArrivalDate) {
       showToast('请选择预计到达日期', 'error');
       return;
