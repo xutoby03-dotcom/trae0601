@@ -4,7 +4,7 @@ import { Search, Plus, Phone, Calendar, FileText, Filter, AlertCircle, FileWarni
 import { useVendorStore } from '@/stores/useVendorStore';
 import { getLicenseStatus, getDaysUntilExpiry, formatDate, isExpiringThisWeek } from '@/utils/date';
 import { stallTypeLabels, followUpStatusLabels } from '@/types';
-import type { LicenseStatus, AuditStatus, StallType } from '@/types';
+import type { LicenseStatus, AuditStatus, StallType, AuditRecord } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 
 type FilterStatus = 'all' | LicenseStatus;
@@ -14,7 +14,7 @@ type FilterType = 'all' | StallType;
 const VendorList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { vendors, initData, isLoaded, getLatestMaterialRecord } = useVendorStore();
+  const { vendors, auditRecords, initData, isLoaded } = useVendorStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
@@ -37,6 +37,18 @@ const VendorList = () => {
     if (type) setTypeFilter(type);
     if (expiringWeek === 'true') setExpiringWeekFilter(true);
   }, [searchParams]);
+
+  const latestMaterialRecordMap = useMemo(() => {
+    const map = new Map<string, AuditRecord>();
+    for (const r of auditRecords) {
+      if (r.action !== 'material_request') continue;
+      const prev = map.get(r.vendorId);
+      if (!prev || new Date(r.createdAt) > new Date(prev.createdAt)) {
+        map.set(r.vendorId, r);
+      }
+    }
+    return map;
+  }, [auditRecords]);
 
   const filteredVendors = useMemo(() => {
     const result = vendors.filter(vendor => {
@@ -62,8 +74,8 @@ const VendorList = () => {
 
     if (auditFilter === 'material_required') {
       return result.sort((a, b) => {
-        const aRec = getLatestMaterialRecord(a.id);
-        const bRec = getLatestMaterialRecord(b.id);
+        const aRec = latestMaterialRecordMap.get(a.id);
+        const bRec = latestMaterialRecordMap.get(b.id);
         const aDate = aRec?.nextReminderDate ? new Date(aRec.nextReminderDate).getTime() : Infinity;
         const bDate = bRec?.nextReminderDate ? new Date(bRec.nextReminderDate).getTime() : Infinity;
         return aDate - bDate;
@@ -71,7 +83,7 @@ const VendorList = () => {
     }
 
     return result;
-  }, [vendors, expiringWeekFilter, statusFilter, auditFilter, typeFilter, searchQuery, getLatestMaterialRecord]);
+  }, [vendors, expiringWeekFilter, statusFilter, auditFilter, typeFilter, searchQuery, latestMaterialRecordMap]);
 
   const handleStatusTabClick = (status: FilterStatus) => {
     setStatusFilter(status);
@@ -221,7 +233,7 @@ const VendorList = () => {
                 const isExpiring = licenseStatus === 'expiring';
                 const isExpired = licenseStatus === 'expired';
                 const latestMaterialRecord = vendor.auditStatus === 'material_required'
-                  ? getLatestMaterialRecord(vendor.id)
+                  ? latestMaterialRecordMap.get(vendor.id)
                   : undefined;
 
                 return (

@@ -15,29 +15,38 @@ import {
 import { useVendorStore } from '@/stores/useVendorStore';
 import { isExpiringThisWeek, getDaysUntilExpiry, getLicenseStatus, formatDate } from '@/utils/date';
 import { followUpStatusLabels } from '@/types';
+import type { AuditRecord } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { vendors, initData, isLoaded, getLatestMaterialRecord } = useVendorStore();
+  const { vendors, auditRecords, initData, isLoaded } = useVendorStore();
 
   useEffect(() => {
     initData();
   }, [initData]);
 
   const sortedMaterialRequired = useMemo(() => {
+    const latestByVendor = new Map<string, AuditRecord>();
+    for (const r of auditRecords) {
+      if (r.action !== 'material_request') continue;
+      const prev = latestByVendor.get(r.vendorId);
+      if (!prev || new Date(r.createdAt) > new Date(prev.createdAt)) {
+        latestByVendor.set(r.vendorId, r);
+      }
+    }
     return vendors
       .filter(v => v.auditStatus === 'material_required')
       .map(vendor => ({
         vendor,
-        record: getLatestMaterialRecord(vendor.id),
+        record: latestByVendor.get(vendor.id),
       }))
       .sort((a, b) => {
         const aDate = a.record?.nextReminderDate ? new Date(a.record.nextReminderDate).getTime() : Infinity;
         const bDate = b.record?.nextReminderDate ? new Date(b.record.nextReminderDate).getTime() : Infinity;
         return aDate - bDate;
       });
-  }, [vendors, getLatestMaterialRecord]);
+  }, [vendors, auditRecords]);
 
   if (!isLoaded) {
     return <div className="text-center py-20">加载中...</div>;

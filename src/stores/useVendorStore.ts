@@ -161,15 +161,16 @@ export const useVendorStore = create<VendorState>((set, get) => ({
     followUpStatus: FollowUpStatus,
     nextReminderDate?: string
   ) => {
-    const newRecords = get().auditRecords.map(r =>
-      r.id === recordId
-        ? {
-            ...r,
-            followUpStatus,
-            ...(nextReminderDate ? { nextReminderDate } : {}),
-          }
-        : r
-    );
+    const newRecords = get().auditRecords.map(r => {
+      if (r.id !== recordId) return r;
+      const next: AuditRecord = { ...r, followUpStatus };
+      if (nextReminderDate) {
+        next.nextReminderDate = nextReminderDate;
+      } else {
+        delete next.nextReminderDate;
+      }
+      return next;
+    });
     set({ auditRecords: newRecords });
     localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(newRecords));
   },
