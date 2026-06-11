@@ -108,7 +108,7 @@ function FollowUpCard({ indicator }: { indicator: Indicator }) {
 function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
   const followUps = useHealthStore((s) => s.followUps)
 
-  const { prevValue, currValue, prevDate, currDate, diff, diffPercent } = useMemo(() => {
+  const { prevValue, currValue, prevDate, currDate, diff, diffPercent, isNewIndicator } = useMemo(() => {
     const indicatorFollowUps = followUps
       .filter((f) => f.indicatorId === indicator.id)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -116,14 +116,17 @@ function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
     const prev = lastTwo[0]
     const curr = lastTwo[1]
     const diffVal = curr.value - prev.value
-    const diffPct = ((curr.value - prev.value) / prev.value) * 100
+    const diffDecimals = diffVal % 1 === 0 ? 0 : (diffVal.toString().split(".")[1]?.length || 2)
+    const isZero = prev.value === 0
+    const diffPct = isZero ? null : ((curr.value - prev.value) / prev.value) * 100
     return {
       prevValue: prev.value,
       currValue: curr.value,
       prevDate: prev.date,
       currDate: curr.date,
-      diff: diffVal.toFixed(curr.value % 1 === 0 ? 0 : 2),
-      diffPercent: diffPct.toFixed(1),
+      diff: diffVal.toFixed(diffDecimals),
+      diffPercent: diffPct !== null ? diffPct.toFixed(1) : null,
+      isNewIndicator: isZero,
     }
   }, [followUps, indicator.id])
 
@@ -147,7 +150,9 @@ function RisingIndicatorCard({ indicator }: { indicator: Indicator }) {
               </div>
               <div className="text-red-500 pb-4">
                 <TrendingUp size={14} className="inline" />
-                <span className="text-sm font-bold ml-0.5">+{diffPercent}%</span>
+                <span className="text-sm font-bold ml-0.5">
+                  {diffPercent !== null ? `+${diffPercent}%` : "新异常"}
+                </span>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-400 mb-0.5">本次</p>
