@@ -17,11 +17,13 @@ import {
   XCircle,
   FileWarning,
   Camera,
+  Bell,
+  RefreshCw,
 } from 'lucide-react';
 import { useVendorStore } from '@/stores/useVendorStore';
 import { getLicenseStatus, getDaysUntilExpiry, formatDate, formatDateTime } from '@/utils/date';
-import { stallTypeLabels } from '@/types';
-import type { AuditAction } from '@/types';
+import { stallTypeLabels, followUpStatusLabels } from '@/types';
+import type { AuditAction, FollowUpStatus } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import Modal from '@/components/Modal';
 
@@ -33,6 +35,8 @@ const VendorDetail = () => {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<AuditAction | null>(null);
   const [auditReason, setAuditReason] = useState('');
+  const [followUpStatus, setFollowUpStatus] = useState<FollowUpStatus>('pending');
+  const [nextReminderDate, setNextReminderDate] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -63,12 +67,29 @@ const VendorDetail = () => {
   const licenseStatus = getLicenseStatus(vendor.validUntil);
   const daysLeft = getDaysUntilExpiry(vendor.validUntil);
 
-  const handleAuditSubmit = () => {
-    if (!selectedAction || !auditReason.trim()) return;
-    performAudit(vendor.id, selectedAction, auditReason.trim(), '管理员');
+  const resetAuditForm = () => {
     setShowAuditModal(false);
     setSelectedAction(null);
     setAuditReason('');
+    setFollowUpStatus('pending');
+    setNextReminderDate('');
+  };
+
+  const handleAuditSubmit = () => {
+    if (!selectedAction || !auditReason.trim()) return;
+    if (selectedAction === 'material_request') {
+      performAudit(
+        vendor.id,
+        selectedAction,
+        auditReason.trim(),
+        '管理员',
+        followUpStatus,
+        nextReminderDate || undefined
+      );
+    } else {
+      performAudit(vendor.id, selectedAction, auditReason.trim(), '管理员');
+    }
+    resetAuditForm();
   };
 
   const handleDelete = () => {
@@ -323,11 +344,23 @@ const VendorDetail = () => {
                       record.action === 'approve' ? 'bg-green-500' : record.action === 'reject' ? 'bg-red-500' : 'bg-amber-500'
                     }`} />
                     <div className="ml-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge type="action" status={record.action} size="sm" />
                         <span className="text-xs text-slate-400">{record.operator}</span>
+                        {record.followUpStatus && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                            <RefreshCw className="w-3 h-3" />
+                            {followUpStatusLabels[record.followUpStatus]}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-600 mt-2">{record.reason}</p>
+                      {record.nextReminderDate && (
+                        <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg w-fit">
+                          <Bell className="w-3.5 h-3.5" />
+                          下次提醒：{formatDate(record.nextReminderDate)}
+                        </div>
+                      )}
                       <p className="text-xs text-slate-400 mt-1.5">{formatDateTime(record.createdAt)}</p>
                     </div>
                   </div>
@@ -340,11 +373,7 @@ const VendorDetail = () => {
 
       <Modal
         isOpen={showAuditModal}
-        onClose={() => {
-          setShowAuditModal(false);
-          setSelectedAction(null);
-          setAuditReason('');
-        }}
+        onClose={resetAuditForm}
         title={selectedAction ? `${actionConfig[selectedAction].label}审核` : '审核操作'}
         size="md"
       >
@@ -382,13 +411,41 @@ const VendorDetail = () => {
               />
             </div>
 
+            {selectedAction === 'material_request' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    跟进状态
+                  </label>
+                  <select
+                    value={followUpStatus}
+                    onChange={e => setFollowUpStatus(e.target.value as FollowUpStatus)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
+                  >
+                    {(Object.keys(followUpStatusLabels) as FollowUpStatus[]).map(status => (
+                      <option key={status} value={status}>
+                        {followUpStatusLabels[status]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    下次提醒日期
+                  </label>
+                  <input
+                    type="date"
+                    value={nextReminderDate}
+                    onChange={e => setNextReminderDate(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  setShowAuditModal(false);
-                  setSelectedAction(null);
-                  setAuditReason('');
-                }}
+                onClick={resetAuditForm}
                 className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-colors font-medium"
               >
                 取消

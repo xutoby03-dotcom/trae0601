@@ -6,6 +6,8 @@ export type AuditStatus = 'pending' | 'approved' | 'rejected' | 'material_requir
 
 export type AuditAction = 'approve' | 'reject' | 'material_request';
 
+export type FollowUpStatus = 'pending' | 'contacted' | 'materials_received' | 'resolved';
+
 export interface Vendor {
   id: string;
   name: string;
@@ -27,7 +29,16 @@ export interface AuditRecord {
   reason: string;
   operator: string;
   createdAt: string;
+  followUpStatus?: FollowUpStatus;
+  nextReminderDate?: string;
 }
+
+export const followUpStatusLabels: Record<FollowUpStatus, string> = {
+  pending: '待跟进',
+  contacted: '已联系',
+  materials_received: '已收材料',
+  resolved: '已处理',
+};
 
 export const stallTypeLabels: Record<StallType, string> = {
   food: '食品类',

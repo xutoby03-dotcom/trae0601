@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarClock,
@@ -10,18 +10,34 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Bell,
 } from 'lucide-react';
 import { useVendorStore } from '@/stores/useVendorStore';
 import { isExpiringThisWeek, getDaysUntilExpiry, getLicenseStatus, formatDate } from '@/utils/date';
+import { followUpStatusLabels } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { vendors, initData, isLoaded } = useVendorStore();
+  const { vendors, initData, isLoaded, getLatestMaterialRecord } = useVendorStore();
 
   useEffect(() => {
     initData();
   }, [initData]);
+
+  const sortedMaterialRequired = useMemo(() => {
+    return vendors
+      .filter(v => v.auditStatus === 'material_required')
+      .map(vendor => ({
+        vendor,
+        record: getLatestMaterialRecord(vendor.id),
+      }))
+      .sort((a, b) => {
+        const aDate = a.record?.nextReminderDate ? new Date(a.record.nextReminderDate).getTime() : Infinity;
+        const bDate = b.record?.nextReminderDate ? new Date(b.record.nextReminderDate).getTime() : Infinity;
+        return aDate - bDate;
+      });
+  }, [vendors, getLatestMaterialRecord]);
 
   if (!isLoaded) {
     return <div className="text-center py-20">加载中...</div>;
@@ -29,13 +45,14 @@ const Dashboard = () => {
 
   const expiringThisWeek = vendors.filter(v => isExpiringThisWeek(v.validUntil));
   const foodVendors = vendors.filter(v => v.stallType === 'food');
-  const materialRequired = vendors.filter(v => v.auditStatus === 'material_required');
   const expiringVendors = vendors.filter(v => getLicenseStatus(v.validUntil) === 'expiring');
   const expiredVendors = vendors.filter(v => getLicenseStatus(v.validUntil) === 'expired');
 
   const sortedExpiring = [...expiringVendors, ...expiredVendors].sort(
     (a, b) => getDaysUntilExpiry(a.validUntil) - getDaysUntilExpiry(b.validUntil)
   );
+
+  const materialRequired = sortedMaterialRequired.map(item => item.vendor);
 
   const statsCards = [
     {
@@ -242,6 +259,51 @@ const Dashboard = () => {
                   >
                     <span className="text-sm font-medium text-slate-700">{vendor.name}</span>
                     <span className="text-xs text-slate-400">{formatDate(vendor.validUntil)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-slate-500">待补材料跟进</h3>
+              {sortedMaterialRequired.length > 0 && (
+                <button
+                  onClick={() => navigate('/vendors?audit=material_required')}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  查看全部
+                </button>
+              )}
+            </div>
+            {sortedMaterialRequired.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">暂无待补材料</p>
+            ) : (
+              <div className="space-y-3">
+                {sortedMaterialRequired.map(item => (
+                  <div
+                    key={item.vendor.id}
+                    onClick={() => navigate(`/vendors/${item.vendor.id}`)}
+                    className="p-3 rounded-lg border border-amber-100 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-medium text-slate-800">{item.vendor.name}</span>
+                      {item.record?.followUpStatus && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700">
+                          {followUpStatusLabels[item.record.followUpStatus]}
+                        </span>
+                      )}
+                    </div>
+                    {item.record && (
+                      <p className="text-xs text-slate-600 line-clamp-1 mb-1.5">{item.record.reason}</p>
+                    )}
+                    {item.record?.nextReminderDate && (
+                      <div className="flex items-center gap-1 text-xs text-amber-600">
+                        <Bell className="w-3 h-3" />
+                        下次提醒：{formatDate(item.record.nextReminderDate)}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

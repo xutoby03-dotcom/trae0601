@@ -156,6 +156,8 @@ export const mockAuditRecords: AuditRecord[] = [
     reason: '缺少从业人员健康证明，请尽快补充提交',
     operator: '管理员',
     createdAt: '2024-03-01T14:20:00Z',
+    followUpStatus: 'contacted',
+    nextReminderDate: addDays(2),
   },
   {
     id: 'r3',
@@ -180,6 +182,8 @@ export const mockAuditRecords: AuditRecord[] = [
     reason: '食品经营许可证照片不清晰，且缺少健康证，请重新上传',
     operator: '管理员',
     createdAt: '2024-05-15T11:30:00Z',
+    followUpStatus: 'pending',
+    nextReminderDate: addDays(5),
   },
   {
     id: 'r6',
@@ -196,6 +200,7 @@ export const mockAuditRecords: AuditRecord[] = [
     reason: '证照照片模糊，请提供清晰的证照扫描件',
     operator: '管理员',
     createdAt: '2024-04-05T09:00:00Z',
+    followUpStatus: 'resolved',
   },
   {
     id: 'r8',

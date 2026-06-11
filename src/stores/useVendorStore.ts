@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Vendor, AuditRecord, AuditAction, AuditStatus } from '@/types';
+import type { Vendor, AuditRecord, AuditAction, AuditStatus, FollowUpStatus } from '@/types';
 import { mockVendors, mockAuditRecords } from '@/data/vendors';
 import { generateId } from '@/utils/date';
 
@@ -10,10 +10,23 @@ interface VendorState {
   initData: () => void;
   getVendor: (id: string) => Vendor | undefined;
   getVendorAuditRecords: (vendorId: string) => AuditRecord[];
+  getLatestMaterialRecord: (vendorId: string) => AuditRecord | undefined;
   addVendor: (vendor: Omit<Vendor, 'id' | 'createdAt' | 'updatedAt' | 'auditStatus'>) => void;
   updateVendor: (id: string, updates: Partial<Vendor>) => void;
   deleteVendor: (id: string) => void;
-  performAudit: (vendorId: string, action: AuditAction, reason: string, operator: string) => void;
+  performAudit: (
+    vendorId: string,
+    action: AuditAction,
+    reason: string,
+    operator: string,
+    followUpStatus?: FollowUpStatus,
+    nextReminderDate?: string
+  ) => void;
+  updateAuditFollowUp: (
+    recordId: string,
+    followUpStatus: FollowUpStatus,
+    nextReminderDate?: string
+  ) => void;
 }
 
 const actionToStatusMap: Record<AuditAction, AuditStatus> = {
@@ -33,10 +46,17 @@ export const useVendorStore = create<VendorState>((set, get) => ({
   initData: () => {
     if (get().isLoaded) return;
 
+    const shouldReset = new URLSearchParams(window.location.search).get('resetData') === 'true';
+
+    if (shouldReset) {
+      localStorage.removeItem(STORAGE_KEY_VENDORS);
+      localStorage.removeItem(STORAGE_KEY_RECORDS);
+    }
+
     const savedVendors = localStorage.getItem(STORAGE_KEY_VENDORS);
     const savedRecords = localStorage.getItem(STORAGE_KEY_RECORDS);
 
-    if (savedVendors && savedRecords) {
+    if (savedVendors && savedRecords && !shouldReset) {
       set({
         vendors: JSON.parse(savedVendors),
         auditRecords: JSON.parse(savedRecords),
@@ -61,6 +81,12 @@ export const useVendorStore = create<VendorState>((set, get) => ({
     return get().auditRecords
       .filter(r => r.vendorId === vendorId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  getLatestMaterialRecord: (vendorId: string) => {
+    return get().auditRecords
+      .filter(r => r.vendorId === vendorId && r.action === 'material_request')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   },
 
   addVendor: (vendorData) => {
@@ -95,7 +121,14 @@ export const useVendorStore = create<VendorState>((set, get) => ({
     localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(newRecords));
   },
 
-  performAudit: (vendorId: string, action: AuditAction, reason: string, operator: string) => {
+  performAudit: (
+    vendorId: string,
+    action: AuditAction,
+    reason: string,
+    operator: string,
+    followUpStatus?: FollowUpStatus,
+    nextReminderDate?: string
+  ) => {
     const now = new Date().toISOString();
     const newRecord: AuditRecord = {
       id: generateId(),
@@ -104,6 +137,12 @@ export const useVendorStore = create<VendorState>((set, get) => ({
       reason,
       operator,
       createdAt: now,
+      ...(action === 'material_request' && followUpStatus !== undefined
+        ? { followUpStatus }
+        : {}),
+      ...(action === 'material_request' && nextReminderDate
+        ? { nextReminderDate }
+        : {}),
     };
 
     const newRecords = [newRecord, ...get().auditRecords];
@@ -114,6 +153,24 @@ export const useVendorStore = create<VendorState>((set, get) => ({
 
     set({ vendors: newVendors, auditRecords: newRecords });
     localStorage.setItem(STORAGE_KEY_VENDORS, JSON.stringify(newVendors));
+    localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(newRecords));
+  },
+
+  updateAuditFollowUp: (
+    recordId: string,
+    followUpStatus: FollowUpStatus,
+    nextReminderDate?: string
+  ) => {
+    const newRecords = get().auditRecords.map(r =>
+      r.id === recordId
+        ? {
+            ...r,
+            followUpStatus,
+            ...(nextReminderDate ? { nextReminderDate } : {}),
+          }
+        : r
+    );
+    set({ auditRecords: newRecords });
     localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(newRecords));
   },
 }));

@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Plus, Phone, Calendar, FileText, Filter, AlertCircle } from 'lucide-react';
+import { Search, Plus, Phone, Calendar, FileText, Filter, AlertCircle, FileWarning, Bell } from 'lucide-react';
 import { useVendorStore } from '@/stores/useVendorStore';
 import { getLicenseStatus, getDaysUntilExpiry, formatDate, isExpiringThisWeek } from '@/utils/date';
-import { stallTypeLabels } from '@/types';
+import { stallTypeLabels, followUpStatusLabels } from '@/types';
 import type { LicenseStatus, AuditStatus, StallType } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 
@@ -14,7 +14,7 @@ type FilterType = 'all' | StallType;
 const VendorList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { vendors, initData, isLoaded } = useVendorStore();
+  const { vendors, initData, isLoaded, getLatestMaterialRecord } = useVendorStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
@@ -39,7 +39,7 @@ const VendorList = () => {
   }, [searchParams]);
 
   const filteredVendors = useMemo(() => {
-    return vendors.filter(vendor => {
+    const result = vendors.filter(vendor => {
       const licenseStatus = getLicenseStatus(vendor.validUntil);
 
       if (expiringWeekFilter && !isExpiringThisWeek(vendor.validUntil)) return false;
@@ -59,7 +59,19 @@ const VendorList = () => {
 
       return true;
     });
-  }, [vendors, expiringWeekFilter, statusFilter, auditFilter, typeFilter, searchQuery]);
+
+    if (auditFilter === 'material_required') {
+      return result.sort((a, b) => {
+        const aRec = getLatestMaterialRecord(a.id);
+        const bRec = getLatestMaterialRecord(b.id);
+        const aDate = aRec?.nextReminderDate ? new Date(aRec.nextReminderDate).getTime() : Infinity;
+        const bDate = bRec?.nextReminderDate ? new Date(bRec.nextReminderDate).getTime() : Infinity;
+        return aDate - bDate;
+      });
+    }
+
+    return result;
+  }, [vendors, expiringWeekFilter, statusFilter, auditFilter, typeFilter, searchQuery, getLatestMaterialRecord]);
 
   const handleStatusTabClick = (status: FilterStatus) => {
     setStatusFilter(status);
@@ -208,6 +220,9 @@ const VendorList = () => {
                 const daysLeft = getDaysUntilExpiry(vendor.validUntil);
                 const isExpiring = licenseStatus === 'expiring';
                 const isExpired = licenseStatus === 'expired';
+                const latestMaterialRecord = vendor.auditStatus === 'material_required'
+                  ? getLatestMaterialRecord(vendor.id)
+                  : undefined;
 
                 return (
                   <div
@@ -270,6 +285,31 @@ const VendorList = () => {
                         <span>{vendor.phone}</span>
                       </div>
                     </div>
+
+                    {latestMaterialRecord && (
+                      <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <FileWarning className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-amber-700 font-medium mb-1">待补材料说明</p>
+                            <p className="text-sm text-amber-800 line-clamp-2">{latestMaterialRecord.reason}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs">
+                              {latestMaterialRecord.followUpStatus && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium">
+                                  {followUpStatusLabels[latestMaterialRecord.followUpStatus]}
+                                </span>
+                              )}
+                              {latestMaterialRecord.nextReminderDate && (
+                                <span className="inline-flex items-center gap-1 text-amber-600">
+                                  <Bell className="w-3 h-3" />
+                                  {formatDate(latestMaterialRecord.nextReminderDate)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                       <StatusBadge type="audit" status={vendor.auditStatus} size="sm" />
