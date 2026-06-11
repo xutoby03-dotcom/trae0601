@@ -254,7 +254,10 @@ function DetailDrawer({
                   />
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setRejecting(false)}
+                      onClick={() => {
+                        setRejecting(false)
+                        setRejectReason('')
+                      }}
                       className="btn-ghost flex-1 text-sm"
                     >
                       取消
@@ -319,12 +322,15 @@ export default function Approval() {
   const handleHazardousConfirm = (id: string) => {
     approveHazardousRequisition(id, '李老师')
     setConfirmHazardousId(null)
-    setRejectingInDrawer(false)
-    setRejectReason('')
+    resetRejectState()
   }
 
   const handleReject = (id: string, reason: string) => {
     rejectRequisition(id, reason || '不符合领用条件')
+    resetRejectState()
+  }
+
+  const resetRejectState = () => {
     setRejectingInDrawer(false)
     setRejectReason('')
   }
@@ -341,14 +347,12 @@ export default function Approval() {
 
   const openDetail = (id: string) => {
     setSelectedId(id)
-    setRejectingInDrawer(false)
-    setRejectReason('')
+    resetRejectState()
   }
 
   const closeDetail = () => {
     setSelectedId(null)
-    setRejectingInDrawer(false)
-    setRejectReason('')
+    resetRejectState()
   }
 
   const statusConfig: Record<
@@ -529,8 +533,7 @@ export default function Approval() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => {
             setConfirmHazardousId(null)
-            setRejectingInDrawer(false)
-            setRejectReason('')
+            resetRejectState()
           }} />
           <div className="relative bg-white rounded-2xl p-6 w-[440px] shadow-2xl animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
@@ -551,8 +554,7 @@ export default function Approval() {
               <button
                 onClick={() => {
                   setConfirmHazardousId(null)
-                  setRejectingInDrawer(false)
-                  setRejectReason('')
+                  resetRejectState()
                 }}
                 className="btn-outline flex-1"
               >
