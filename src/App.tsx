@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Restock from '@/pages/Restock';
 import Stats from '@/pages/Stats';
+import SeasoningDetail from '@/pages/SeasoningDetail';
 import SeasoningForm from '@/components/seasoning/SeasoningForm';
 import { useSeasoningStore } from '@/store/useSeasoningStore';
 
@@ -21,6 +22,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/add" element={<SeasoningForm />} />
+        <Route path="/detail/:id" element={<SeasoningDetail />} />
         <Route path="/restock" element={<Restock />} />
         <Route path="/stats" element={<Stats />} />
       </Routes>

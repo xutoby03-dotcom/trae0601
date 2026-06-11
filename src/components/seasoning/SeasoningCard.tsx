@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Minus, Plus, Trash2, Package, Calendar, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Minus, Plus, Trash2, Package, Calendar, MapPin, Edit3 } from 'lucide-react';
 import type { Seasoning } from '@/types';
 import { cn } from '@/lib/utils';
 import {
@@ -17,6 +18,7 @@ interface SeasoningCardProps {
 }
 
 export default function SeasoningCard({ seasoning, index = 0, showActions = true }: SeasoningCardProps) {
+  const navigate = useNavigate();
   const [showUsePanel, setShowUsePanel] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
   const { useSeasoning, deleteSeasoning, markAsWasted } = useSeasoningStore();
@@ -94,15 +96,28 @@ export default function SeasoningCard({ seasoning, index = 0, showActions = true
               <h3 className="font-bold text-gray-800 text-base truncate">{seasoning.name}</h3>
               <p className="text-sm text-gray-500 truncate">{seasoning.brand}</p>
             </div>
-            <span
-              className={cn(
-                'flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium',
-                statusConfig[status].bg,
-                statusConfig[status].color
-              )}
-            >
-              {statusConfig[status].label}
-            </span>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <span
+                className={cn(
+                  'px-2.5 py-1 rounded-full text-xs font-medium',
+                  statusConfig[status].bg,
+                  statusConfig[status].color
+                )}
+              >
+                {statusConfig[status].label}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/detail/${seasoning.id}`);
+                }}
+                className="p-1.5 text-gray-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+                title="编辑"
+              >
+                <Edit3 size={14} />
+              </button>
+            </div>
           </div>
 
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
