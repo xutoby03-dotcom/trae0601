@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans",
+    "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 select-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand-700 text-white hover:bg-brand-800 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 hover:shadow-lg;
+  }
+  .btn-warning {
+    @apply btn bg-amber-500 text-white hover:bg-amber-600 hover:shadow-lg;
+  }
+  .btn-success {
+    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-100;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100 shadow-card transition-all duration-300;
+  }
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           placeholder:text-slate-400 transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .badge-normal {
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-100;
+  }
+  .badge-blocking {
+    @apply badge bg-red-50 text-red-700 border border-red-100;
+  }
+  .badge-pending {
+    @apply badge bg-amber-50 text-amber-700 border border-amber-100;
+  }
+  .badge-moved {
+    @apply badge bg-sky-50 text-sky-700 border border-sky-100;
+  }
+  .badge-fire {
+    @apply badge bg-orange-50 text-orange-700 border border-orange-200;
+  }
+}
