@@ -77,6 +77,10 @@ export const exportReviewHTML = (params: {
   breed: string;
   age: number;
   allergies: string;
+  foodBrand: string;
+  foodAmount: string;
+  avatarUrl: string;
+  vaccinePhotoUrl: string;
   taskTitle: string;
   startDate: string;
   endDate: string;
@@ -185,19 +189,40 @@ export const exportReviewHTML = (params: {
 
   <div class="section">
     <h2>🐾 宠物信息</h2>
-    <div class="info-row bg-amber">
-      <span class="label">名字</span>
-      <span class="value">${p.petName}</span>
+    <div style="display:flex;gap:20px;margin-bottom:16px;align-items:flex-start">
+      ${p.avatarUrl ? `
+        <img src="${p.avatarUrl}" alt="${p.petName}" style="width:96px;height:96px;border-radius:16px;object-fit:cover;border:2px solid #fde68a;flex-shrink:0" />
+      ` : `
+        <div style="width:96px;height:96px;border-radius:16px;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0">${speciesEmoji}</div>
+      `}
+      <div style="flex:1;min-width:0">
+        <div class="info-row bg-amber">
+          <span class="label">名字</span>
+          <span class="value">${p.petName}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">品种</span>
+          <span class="value">${p.breed || '未填写'}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">年龄</span>
+          <span class="value">${p.age} 岁</span>
+        </div>
+      </div>
     </div>
-    <div class="info-row">
-      <span class="label">品种</span>
-      <span class="value">${p.breed || '未填写'}</span>
-    </div>
-    <div class="info-row">
-      <span class="label">年龄</span>
-      <span class="value">${p.age} 岁</span>
-    </div>
-    ${p.allergies ? `<div class="alert">⚠️ 过敏禁忌：${p.allergies}</div>` : ''}
+    ${p.foodBrand || p.foodAmount ? `
+      <div class="info-row bg-amber">
+        <span class="label">常用粮</span>
+        <span class="value" style="color:#b45309">${p.foodBrand || '未填写'}${p.foodAmount ? ` · 每顿 ${p.foodAmount}` : ''}</span>
+      </div>
+    ` : ''}
+    ${p.vaccinePhotoUrl ? `
+      <div style="margin-top:14px">
+        <p style="font-size:13px;color:#64748b;margin-bottom:8px;font-weight:600">💉 疫苗照片</p>
+        <img src="${p.vaccinePhotoUrl}" alt="疫苗照片" style="max-width:280px;width:100%;border-radius:12px;border:2px solid #d1fae5;display:block" />
+      </div>
+    ` : ''}
+    ${p.allergies ? `<div class="alert" style="margin-top:12px">⚠️ 过敏禁忌：${p.allergies}</div>` : ''}
   </div>
 
   <div class="section">
