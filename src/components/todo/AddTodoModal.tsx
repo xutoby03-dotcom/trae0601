@@ -60,6 +60,12 @@ export default function AddTodoModal({ open, meetingTitle, onClose, onSubmit }: 
       newErrors.dueDate = '请选择截止日期';
     }
 
+    if (!formData.relatedTopic.trim()) {
+      newErrors.relatedTopic = '请输入关联议题';
+    } else if (formData.relatedTopic.trim().length < 2) {
+      newErrors.relatedTopic = '关联议题至少2个字符';
+    }
+
     if (!formData.deliverable.trim()) {
       newErrors.deliverable = '请描述交付物内容';
     }
@@ -235,15 +241,23 @@ export default function AddTodoModal({ open, meetingTitle, onClose, onSubmit }: 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            关联议题
+            关联议题 <span className="text-danger-500">*</span>
           </label>
           <input
             type="text"
             value={formData.relatedTopic}
             onChange={(e) => handleInputChange('relatedTopic', e.target.value)}
             placeholder="该待办关联的会议议题，例如：用户权限改造方案讨论"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500/20 transition-colors"
+            className={cn(
+              'w-full px-4 py-2.5 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-accent-500/20',
+              errors.relatedTopic
+                ? 'border-danger-300 focus:border-danger-500'
+                : 'border-gray-200 focus:border-accent-500'
+            )}
           />
+          {errors.relatedTopic && (
+            <p className="mt-1 text-sm text-danger-500">{errors.relatedTopic}</p>
+          )}
         </div>
 
         <div>

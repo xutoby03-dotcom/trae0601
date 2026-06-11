@@ -65,10 +65,12 @@ export default function MeetingDetailPage() {
     deliverable: string;
   }) => {
     if (!meeting) return;
+    const trimmedRelatedTopic = data.relatedTopic.trim();
+    if (!trimmedRelatedTopic) return;
     addTodo({
       meetingId: meeting.id,
       title: data.title,
-      relatedTopic: data.relatedTopic,
+      relatedTopic: trimmedRelatedTopic,
       deliverable: data.deliverable,
       assignee: data.assignee,
       department: data.department,

@@ -76,6 +76,7 @@ export const useTodoStore = create<TodoState>()(
         }
         const todo: Todo = {
           ...data,
+          relatedTopic: data.relatedTopic.trim(),
           id: generateId(),
           status: initialStatus,
           createdAt: now,
