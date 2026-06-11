@@ -1,44 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, MapPin, BarChart3 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, MapPin, BarChart3, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { usePetStore } from '@/store/usePetStore';
 import WaterChart from '@/components/WaterChart';
 import StatCard from '@/components/StatCard';
-import { buildDailyStats, calculateAverageWater, getLocationComparison } from '@/utils/waterCalculator';
-import { getLastNDays } from '@/utils/date';
+import { buildDailyStats, calculateAverageWater, getAllLocationChangeComparisons } from '@/utils/waterCalculator';
+import { getLastNDays, formatDateChinese } from '@/utils/date';
 import StatusBadge from '@/components/StatusBadge';
-import { DailyWaterStats } from '@/types';
+import { LocationChangeComparison } from '@/types';
 
 export default function TrendsPage() {
   const navigate = useNavigate();
   const { pet, records, initDefaultPet } = usePetStore();
   
-  const [selectedLocationA, setSelectedLocationA] = useState('');
-  const [selectedLocationB, setSelectedLocationB] = useState('');
+  const [selectedChangeIndex, setSelectedChangeIndex] = useState(0);
   
   useEffect(() => {
     initDefaultPet();
   }, [initDefaultPet]);
   
-  useEffect(() => {
-    if (records.length > 0) {
-      const locations = [...new Set(records.map(r => r.bowlLocation))].filter(Boolean);
-      if (locations.length >= 1) setSelectedLocationA(locations[0]);
-      if (locations.length >= 2) setSelectedLocationB(locations[1]);
-      else if (locations.length >= 1) setSelectedLocationB(locations[0]);
-    }
-  }, [records]);
-  
   if (!pet) {
     return <div className="flex items-center justify-center min-h-screen">加载中...</div>;
   }
   
-  const last14Days = getLastNDays(14);
-  const last14Records = last14Days
+  const last30Days = getLastNDays(30);
+  const last30Records = last30Days
     .map(date => records.find(r => r.date === date))
     .filter(Boolean) as typeof records;
   
-  const dailyStats = buildDailyStats(last14Records, pet);
+  const dailyStats = buildDailyStats(last30Records, pet);
   
   const last7Stats = dailyStats.slice(-7);
   const prev7Stats = dailyStats.slice(-14, -7);
@@ -53,15 +43,12 @@ export default function TrendsPage() {
     ? `${Math.round(((avg7Days - avgPrev7Days) / avgPrev7Days) * 100)}%`
     : '-';
   
-  const allLocations = [...new Set(records.map(r => r.bowlLocation))].filter(Boolean);
-  
-  const locationComparison = getLocationComparison(dailyStats, selectedLocationA, selectedLocationB);
-  const avgLocationA = calculateAverageWater(locationComparison.locationA);
-  const avgLocationB = calculateAverageWater(locationComparison.locationB);
-  
   const normalDays = dailyStats.filter(s => s.status === 'normal').length;
   const lowDays = dailyStats.filter(s => s.status === 'low').length;
   const highDays = dailyStats.filter(s => s.status === 'high' || s.status === 'consecutive_abnormal').length;
+  
+  const allComparisons = getAllLocationChangeComparisons(dailyStats);
+  const currentComparison: LocationChangeComparison | null = allComparisons[selectedChangeIndex] || null;
   
   return (
     <div className="pb-24 md:pb-8">
@@ -120,7 +107,7 @@ export default function TrendsPage() {
       </div>
       
       <div className="mb-6">
-        <WaterChart data={dailyStats} title="最近14天饮水量" height={280} />
+        <WaterChart data={dailyStats} title="最近饮水量趋势" height={280} />
       </div>
       
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-6 opacity-0 animate-fade-in-up" style={{ animationDelay: '500ms', animationFillMode: 'forwards' }}>
@@ -130,69 +117,112 @@ export default function TrendsPage() {
         </div>
         
         <p className="text-sm text-gray-500 mb-4">
-          对比不同位置的饮水量，找到猫咪最喜欢的喝水位置
+          自动检测换水盆的日期，对比变更前后 7 天的饮水量变化
         </p>
         
-        {allLocations.length < 2 ? (
+        {allComparisons.length === 0 ? (
           <div className="text-center py-8 bg-gray-50 rounded-xl">
             <MapPin size={36} className="mx-auto text-gray-300 mb-2" />
-            <p className="text-gray-500 text-sm">至少需要 2 个不同位置的记录才能对比</p>
-            <p className="text-gray-400 text-xs mt-1">在记录页面更改水盆位置即可</p>
+            <p className="text-gray-500 text-sm">还没有检测到换水盆的记录</p>
+            <p className="text-gray-400 text-xs mt-1">在记录页面更改水盆位置，至少 2 天后可看到对比</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">位置 A</label>
-                <select
-                  value={selectedLocationA}
-                  onChange={(e) => setSelectedLocationA(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition-all text-sm"
-                >
-                  {allLocations.map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
+            {allComparisons.length > 1 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {allComparisons.map((comp, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedChangeIndex(idx)}
+                    className={`
+                      px-3 py-1.5 rounded-lg text-sm transition-all
+                      ${selectedChangeIndex === idx
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }
+                    `}
+                  >
+                    {formatDateChinese(comp.changePoint.date)} 换位置
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">位置 B</label>
-                <select
-                  value={selectedLocationB}
-                  onChange={(e) => setSelectedLocationB(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition-all text-sm"
-                >
-                  {allLocations.map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            )}
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-primary-50 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">{selectedLocationA}</p>
-                <p className="text-2xl font-bold text-primary-600">{avgLocationA} ml</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {locationComparison.locationA.length} 天记录
-                </p>
-              </div>
-              <div className="bg-secondary-50 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-600 mb-1">{selectedLocationB}</p>
-                <p className="text-2xl font-bold text-secondary-600">{avgLocationB} ml</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {locationComparison.locationB.length} 天记录
-                </p>
-              </div>
-            </div>
-            
-            {avgLocationA > 0 && avgLocationB > 0 && (
-              <div className="mt-4 p-3 rounded-xl bg-success-50 border border-success-100">
-                <p className="text-sm text-success-700 text-center">
-                  {avgLocationA > avgLocationB ? selectedLocationA : selectedLocationB} 的饮水量更高
-                  （多 {Math.round(Math.abs(avgLocationA - avgLocationB))} ml，
-                  {Math.round(Math.abs(avgLocationA - avgLocationB) / Math.min(avgLocationA, avgLocationB) * 100)}%）
-                </p>
-              </div>
+            {currentComparison && (
+              <>
+                <div className="bg-primary-50 rounded-xl p-4 mb-4">
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">变更前</p>
+                      <p className="font-semibold text-gray-800">{currentComparison.changePoint.fromLocation}</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <ArrowRight size={20} className="text-primary-500" />
+                      <p className="text-xs text-primary-600 font-medium">{formatDateChinese(currentComparison.changePoint.date)} 更换</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">变更后</p>
+                      <p className="font-semibold text-gray-800">{currentComparison.changePoint.toLocation}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <p className="text-xs text-gray-500 mb-1">
+                      变更前 7 天 · {currentComparison.beforeDays} 天有记录
+                    </p>
+                    <p className="text-sm text-gray-600 mb-1">{currentComparison.changePoint.fromLocation}</p>
+                    <p className="text-3xl font-bold text-gray-800">{currentComparison.beforeAvg}</p>
+                    <p className="text-sm text-gray-500">ml / 天</p>
+                  </div>
+                  <div className="bg-primary-50 rounded-xl p-4 text-center">
+                    <p className="text-xs text-primary-600 mb-1">
+                      变更后 7 天 · {currentComparison.afterDays} 天有记录
+                    </p>
+                    <p className="text-sm text-primary-700 mb-1">{currentComparison.changePoint.toLocation}</p>
+                    <p className="text-3xl font-bold text-primary-600">{currentComparison.afterAvg}</p>
+                    <p className="text-sm text-primary-500">ml / 天</p>
+                  </div>
+                </div>
+                
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">差值</p>
+                    <p className={`text-lg font-bold ${
+                      currentComparison.diffMl > 0 ? 'text-success-600' :
+                      currentComparison.diffMl < 0 ? 'text-danger-600' : 'text-gray-600'
+                    }`}>
+                      {currentComparison.diffMl > 0 ? '+' : ''}{currentComparison.diffMl} ml
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">变化幅度</p>
+                    <p className={`text-lg font-bold ${
+                      currentComparison.diffPercent > 0 ? 'text-success-600' :
+                      currentComparison.diffPercent < 0 ? 'text-danger-600' : 'text-gray-600'
+                    }`}>
+                      {currentComparison.diffPercent > 0 ? '+' : ''}{currentComparison.diffPercent}%
+                    </p>
+                  </div>
+                </div>
+                
+                {currentComparison.betterLocation ? (
+                  <div className="mt-4 p-3 rounded-xl bg-success-50 border border-success-100 flex items-center gap-2">
+                    <CheckCircle2 size={18} className="text-success-500 flex-shrink-0" />
+                    <p className="text-sm text-success-700">
+                      <span className="font-semibold">{currentComparison.betterLocation}</span> 的饮水量更高
+                      （多 {Math.abs(currentComparison.diffMl)} ml，{Math.abs(currentComparison.diffPercent)}%）
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <p className="text-sm text-gray-600 text-center">
+                      两个位置的饮水量差异不明显，建议继续观察几天
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -200,14 +230,38 @@ export default function TrendsPage() {
       
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 opacity-0 animate-fade-in-up" style={{ animationDelay: '600ms', animationFillMode: 'forwards' }}>
         <h3 className="text-lg font-bold text-gray-800 mb-4">每日状态详情</h3>
-        <div className="space-y-2 max-h-80 overflow-y-auto">
+        <div className="space-y-2 max-h-96 overflow-y-auto">
           {dailyStats.slice().reverse().map((stat) => (
-            <div key={stat.date} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors">
-              <div>
-                <p className="font-medium text-gray-800">{stat.date}</p>
-                <p className="text-sm text-gray-500">{stat.waterConsumed} ml · {stat.bowlLocation}</p>
+            <div key={stat.date} className="p-3 rounded-xl hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-gray-800">{formatDateChinese(stat.date)}</p>
+                  {stat.locationChanged && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary-100 text-primary-700">
+                      <MapPin size={10} />
+                      换位置
+                    </span>
+                  )}
+                </div>
+                <StatusBadge status={stat.status} size="sm" />
               </div>
-              <StatusBadge status={stat.status} size="sm" />
+              <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                <span>{stat.waterConsumed} ml</span>
+                <span>·</span>
+                <span>
+                  {stat.locationChanged && stat.previousLocation ? (
+                    <>
+                      <span className="line-through text-gray-400">{stat.previousLocation}</span>
+                      <span className="mx-1">→</span>
+                      <span className="text-primary-600 font-medium">{stat.bowlLocation}</span>
+                    </>
+                  ) : (
+                    stat.bowlLocation
+                  )}
+                </span>
+                <span>·</span>
+                <span>{stat.urineClumps} 个尿团</span>
+              </div>
             </div>
           ))}
         </div>

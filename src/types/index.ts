@@ -35,6 +35,8 @@ export interface DailyWaterStats {
   urineClumps: number;
   fountainOn: boolean;
   bowlLocation: string;
+  locationChanged?: boolean;
+  previousLocation?: string;
 }
 
 export interface StatusLabel {
@@ -42,4 +44,24 @@ export interface StatusLabel {
   label: string;
   color: string;
   bgColor: string;
+}
+
+export interface LocationChangePoint {
+  date: string;
+  fromLocation: string;
+  toLocation: string;
+  index: number;
+}
+
+export interface LocationChangeComparison {
+  changePoint: LocationChangePoint;
+  before7Days: DailyWaterStats[];
+  after7Days: DailyWaterStats[];
+  beforeAvg: number;
+  afterAvg: number;
+  beforeDays: number;
+  afterDays: number;
+  diffMl: number;
+  diffPercent: number;
+  betterLocation: string | null;
 }

@@ -1,4 +1,4 @@
-import { WaterStatus, DailyWaterStats, WaterRecord, PetProfile } from '@/types';
+import { WaterStatus, DailyWaterStats, WaterRecord, PetProfile, LocationChangePoint, LocationChangeComparison } from '@/types';
 
 export const WATER_PER_KG = 50;
 
@@ -103,6 +103,10 @@ export function buildDailyStats(
         stats[i].status = 'consecutive_abnormal';
       }
     }
+    if (i > 0 && stats[i].bowlLocation && stats[i - 1].bowlLocation && stats[i].bowlLocation !== stats[i - 1].bowlLocation) {
+      stats[i].locationChanged = true;
+      stats[i].previousLocation = stats[i - 1].bowlLocation;
+    }
   }
   
   return stats;
@@ -123,4 +127,61 @@ export function calculateAverageWater(stats: DailyWaterStats[]): number {
   if (stats.length === 0) return 0;
   const total = stats.reduce((sum, s) => sum + s.waterConsumed, 0);
   return Math.round(total / stats.length);
+}
+
+export function findLocationChangePoints(stats: DailyWaterStats[]): LocationChangePoint[] {
+  const points: LocationChangePoint[] = [];
+  for (let i = 1; i < stats.length; i++) {
+    const curr = stats[i];
+    const prev = stats[i - 1];
+    if (curr.bowlLocation && prev.bowlLocation && curr.bowlLocation !== prev.bowlLocation) {
+      points.push({
+        date: curr.date,
+        fromLocation: prev.bowlLocation,
+        toLocation: curr.bowlLocation,
+        index: i,
+      });
+    }
+  }
+  return points;
+}
+
+export function buildLocationChangeComparison(
+  stats: DailyWaterStats[],
+  changePoint: LocationChangePoint
+): LocationChangeComparison {
+  const before7Days = stats.slice(Math.max(0, changePoint.index - 7), changePoint.index);
+  const after7Days = stats.slice(changePoint.index, Math.min(stats.length, changePoint.index + 8));
+  
+  const beforeAvg = calculateAverageWater(before7Days);
+  const afterAvg = calculateAverageWater(after7Days);
+  const diffMl = afterAvg - beforeAvg;
+  const diffPercent = beforeAvg > 0 ? Math.round((diffMl / beforeAvg) * 100) : 0;
+  
+  let betterLocation: string | null = null;
+  if (beforeAvg > afterAvg * 1.05) {
+    betterLocation = changePoint.fromLocation;
+  } else if (afterAvg > beforeAvg * 1.05) {
+    betterLocation = changePoint.toLocation;
+  }
+  
+  return {
+    changePoint,
+    before7Days,
+    after7Days,
+    beforeAvg,
+    afterAvg,
+    beforeDays: before7Days.length,
+    afterDays: after7Days.length,
+    diffMl,
+    diffPercent,
+    betterLocation,
+  };
+}
+
+export function getAllLocationChangeComparisons(
+  stats: DailyWaterStats[]
+): LocationChangeComparison[] {
+  const points = findLocationChangePoints(stats);
+  return points.map(p => buildLocationChangeComparison(stats, p));
 }
