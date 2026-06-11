@@ -218,24 +218,21 @@ export default function Dashboard() {
   )
 
   const pendingFollowUps = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const warningWindow = 30 * 24 * 60 * 60 * 1000
     return indicators
       .filter((i) => {
-        const indicatorFollowUps = followUps.filter((f) => f.indicatorId === i.id)
-        if (indicatorFollowUps.length === 0) return true
-        const latestFollowUp = indicatorFollowUps.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        )[0]
-        return (
-          new Date(latestFollowUp.date).getTime() <
-          new Date(i.nextFollowUpDate).getTime() - i.followUpCycleDays * 24 * 60 * 60 * 1000
-        )
+        const nextDate = new Date(i.nextFollowUpDate).getTime()
+        const diff = nextDate - today.getTime()
+        return diff <= warningWindow
       })
       .sort((a, b) => {
         const aTime = new Date(a.nextFollowUpDate).getTime()
         const bTime = new Date(b.nextFollowUpDate).getTime()
         return aTime - bTime
       })
-  }, [indicators, followUps])
+  }, [indicators])
 
   const risingIndicators = useMemo(() => {
     return indicators.filter((indicator) => {
