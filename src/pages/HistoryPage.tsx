@@ -1,8 +1,10 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useStore } from "@/store/useStore";
 import ClothingCard from "@/components/ClothingCard";
 import ConflictCard from "@/components/ConflictCard";
 import { formatDate } from "@/utils/washUtils";
-import { Calendar, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
+import { Calendar, AlertTriangle, CheckCircle2, Trash2, Pin } from "lucide-react";
 import type { Clothing } from "@/types";
 
 export default function HistoryPage() {
@@ -10,6 +12,20 @@ export default function HistoryPage() {
   const allClothes = useStore((s) => s.clothings);
   const members = useStore((s) => s.members);
   const clearHistory = useStore((s) => s.clearHistory);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get("id");
+  const recordRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (highlightId && recordRefs.current[highlightId]) {
+      setTimeout(() => {
+        recordRefs.current[highlightId]?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+    }
+  }, [highlightId, history]);
 
   if (history.length === 0) {
     return (
@@ -37,6 +53,13 @@ export default function HistoryPage() {
     );
   }
 
+  const clearHighlight = () => {
+    if (highlightId) {
+      searchParams.delete("id");
+      setSearchParams(searchParams, { replace: true });
+    }
+  };
+
   return (
     <div className="container py-6">
       <div className="mb-6 flex items-end justify-between animate-fade-in">
@@ -46,6 +69,15 @@ export default function HistoryPage() {
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
             共完成 {history.length} 桶洗衣
+            {highlightId && (
+              <button
+                onClick={clearHighlight}
+                className="ml-3 inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-600 hover:bg-primary-100"
+              >
+                <Pin className="h-3 w-3" />
+                已定位到指定记录，取消高亮
+              </button>
+            )}
           </p>
         </div>
         <button
@@ -68,15 +100,26 @@ export default function HistoryPage() {
               .map((id) => allClothes.find((c) => c.id === id))
               .filter(Boolean) as Clothing[];
             const hasConflict = record.conflicts.length > 0;
+            const isHighlighted = highlightId === record.id;
 
             return (
               <div
                 key={record.id}
-                className="relative pl-16 animate-fade-in"
+                ref={(el) => {
+                  recordRefs.current[record.id] = el;
+                }}
+                id={`history-${record.id}`}
+                className={`relative pl-16 animate-fade-in ${
+                  isHighlighted ? "z-10" : ""
+                }`}
                 style={{ animationDelay: `${idx * 0.08}s` }}
               >
                 <div
-                  className={`absolute left-2 top-4 flex h-10 w-10 items-center justify-center rounded-full shadow-card ${
+                  className={`absolute left-2 top-4 flex h-10 w-10 items-center justify-center rounded-full shadow-card transition-all duration-500 ${
+                    isHighlighted
+                      ? "ring-4 ring-primary-300 ring-offset-4 scale-110"
+                      : ""
+                  } ${
                     hasConflict
                       ? "bg-accent-danger text-white"
                       : "bg-accent-success text-white"
@@ -89,7 +132,13 @@ export default function HistoryPage() {
                   )}
                 </div>
 
-                <div className="rounded-2xl bg-white shadow-card overflow-hidden">
+                <div
+                  className={`rounded-2xl overflow-hidden transition-all duration-500 ${
+                    isHighlighted
+                      ? "bg-white ring-4 ring-primary-400/60 shadow-elevated scale-[1.01]"
+                      : "bg-white shadow-card"
+                  }`}
+                >
                   <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-3">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-neutral-700">

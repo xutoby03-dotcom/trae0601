@@ -297,7 +297,7 @@ export default function SummaryPage() {
                               {formatDate(d.completedAt)}
                             </span>
                             <button
-                              onClick={() => navigate("/history")}
+                              onClick={() => navigate(`/history?id=${d.historyId}`)}
                               className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-primary-600 opacity-0 shadow-soft transition-all hover:bg-primary-50 group-hover:opacity-100"
                             >
                               <ExternalLink className="h-3 w-3" />
