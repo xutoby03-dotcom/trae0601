@@ -1,4 +1,4 @@
-export type PackageStatus = 'new' | 'pending' | 'picked_up' | 'abnormal';
+export type PackageStatus = 'new' | 'pending' | 'picked_up' | 'abnormal' | 'resolved';
 
 export interface PackageItem {
   id: string;
@@ -16,6 +16,9 @@ export interface PackageItem {
   pickedUpAt?: string;
   signedBy?: string;
   phoneTailVerified: boolean;
+  resolvedBy?: string;
+  resolvedNote?: string;
+  resolvedAt?: string;
 }
 
 export interface PackageFilters {
@@ -64,6 +67,7 @@ export const STATUS_LABELS: Record<PackageStatus, string> = {
   pending: '待领取',
   picked_up: '已领取',
   abnormal: '异常',
+  resolved: '已处理',
 };
 
 export const STATUS_COLORS: Record<PackageStatus, string> = {
@@ -71,6 +75,7 @@ export const STATUS_COLORS: Record<PackageStatus, string> = {
   pending: 'bg-amber-500',
   picked_up: 'bg-emerald-500',
   abnormal: 'bg-coral-500',
+  resolved: 'bg-slate-500',
 };
 
 export const COLD_CHAIN_TIMEOUT_HOURS = 4;

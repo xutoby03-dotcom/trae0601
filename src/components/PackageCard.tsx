@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Snowflake, AlertTriangle, Wine, Clock, Check } from 'lucide-react';
+import { Snowflake, AlertTriangle, Wine, Clock, Check, Wrench, MessageSquare } from 'lucide-react';
 import type { PackageItem } from '@/types';
 import { STATUS_LABELS } from '@/types';
 
@@ -87,6 +87,8 @@ export default function PackageCard({ pkg }: PackageCardProps) {
                   ? 'bg-amber-100 text-amber-700'
                   : pkg.status === 'picked_up'
                   ? 'bg-emerald-100 text-emerald-700'
+                  : pkg.status === 'resolved'
+                  ? 'bg-slate-100 text-slate-700'
                   : 'bg-coral-100 text-coral-700'
               }`}
             >
@@ -113,7 +115,16 @@ export default function PackageCard({ pkg }: PackageCardProps) {
         </div>
 
         <div className="shrink-0 flex flex-col items-end gap-2">
-          {pkg.status !== 'picked_up' && (
+          {pkg.status === 'abnormal' && (
+            <Link
+              to={`/resolve/${pkg.id}`}
+              className="text-xs px-3 py-1.5 rounded-lg bg-coral-500 text-white font-medium hover:bg-coral-600 transition-colors shadow-sm flex items-center gap-1"
+            >
+              <Wrench className="w-3 h-3" />
+              处理
+            </Link>
+          )}
+          {pkg.status !== 'picked_up' && pkg.status !== 'abnormal' && pkg.status !== 'resolved' && (
             <Link
               to={`/pickup/${pkg.id}`}
               className="text-xs px-3 py-1.5 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition-colors shadow-sm"
@@ -132,6 +143,31 @@ export default function PackageCard({ pkg }: PackageCardProps) {
               )}
               <p className="text-xs text-warm-400">
                 {new Date(pkg.pickedUpAt).toLocaleString('zh-CN', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          )}
+          {pkg.resolvedAt && (
+            <div className="text-right space-y-0.5">
+              <div className="text-xs text-slate-600 font-medium flex items-center justify-end gap-1">
+                <Wrench className="w-3.5 h-3.5" />
+                已处理
+              </div>
+              {pkg.resolvedBy && (
+                <p className="text-xs text-warm-500">处理人：{pkg.resolvedBy}</p>
+              )}
+              {pkg.resolvedNote && (
+                <p className="text-xs text-warm-400 max-w-[140px] truncate" title={pkg.resolvedNote}>
+                  <MessageSquare className="w-3 h-3 inline mr-0.5" />
+                  {pkg.resolvedNote}
+                </p>
+              )}
+              <p className="text-xs text-warm-400">
+                {new Date(pkg.resolvedAt).toLocaleString('zh-CN', {
                   month: '2-digit',
                   day: '2-digit',
                   hour: '2-digit',

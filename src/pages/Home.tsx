@@ -10,6 +10,7 @@ const tabs: { key: PackageStatus; color: string; dotColor: string }[] = [
   { key: 'pending', color: 'text-amber-700', dotColor: 'bg-amber-500' },
   { key: 'picked_up', color: 'text-emerald-700', dotColor: 'bg-emerald-500' },
   { key: 'abnormal', color: 'text-coral-700', dotColor: 'bg-coral-500' },
+  { key: 'resolved', color: 'text-slate-700', dotColor: 'bg-slate-500' },
 ];
 
 export default function Home() {

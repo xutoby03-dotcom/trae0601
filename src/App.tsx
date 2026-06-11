@@ -4,6 +4,7 @@ import Home from '@/pages/Home';
 import Register from '@/pages/Register';
 import PickupSearch from '@/pages/PickupSearch';
 import Pickup from '@/pages/Pickup';
+import Resolve from '@/pages/Resolve';
 import Stats from '@/pages/Stats';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/pickup-search" element={<PickupSearch />} />
           <Route path="/pickup/:id" element={<Pickup />} />
+          <Route path="/resolve/:id" element={<Resolve />} />
           <Route path="/stats" element={<Stats />} />
         </Route>
       </Routes>

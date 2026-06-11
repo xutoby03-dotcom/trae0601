@@ -202,6 +202,7 @@ interface PackageStore {
   packages: PackageItem[];
   addPackage: (pkg: Omit<PackageItem, 'id' | 'createdAt' | 'status' | 'phoneTailVerified'>) => void;
   pickupPackage: (id: string, phoneTail: string, signedBy: string) => boolean;
+  resolveAbnormal: (id: string, resolvedBy: string, resolvedNote: string, targetStatus: 'pending' | 'resolved') => void;
   deletePackage: (id: string) => void;
   checkOverdue: () => void;
   getFilteredPackages: (query: string, filters: PackageFilters) => PackageItem[];
@@ -253,6 +254,25 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
     return success;
   },
 
+  resolveAbnormal: (id, resolvedBy, resolvedNote, targetStatus) => {
+    set((state) => {
+      const updated = state.packages.map((pkg) => {
+        if (pkg.id === id && pkg.status === 'abnormal') {
+          return {
+            ...pkg,
+            status: targetStatus as PackageStatus,
+            resolvedBy,
+            resolvedNote,
+            resolvedAt: new Date().toISOString(),
+          };
+        }
+        return pkg;
+      });
+      savePackages(updated);
+      return { packages: updated };
+    });
+  },
+
   deletePackage: (id) => {
     set((state) => {
       const updated = state.packages.filter((pkg) => pkg.id !== id);
@@ -265,7 +285,7 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
     set((state) => {
       let changed = false;
       const updated = state.packages.map((pkg) => {
-        if (pkg.status !== 'picked_up' && isOverdue(pkg) && pkg.status !== 'abnormal') {
+        if (pkg.status !== 'picked_up' && pkg.status !== 'abnormal' && pkg.status !== 'resolved' && isOverdue(pkg)) {
           changed = true;
           return { ...pkg, status: 'abnormal' as PackageStatus };
         }
@@ -362,6 +382,7 @@ export const usePackageStore = create<PackageStore>((set, get) => ({
       pending: packages.filter((p) => p.status === 'pending').length,
       picked_up: packages.filter((p) => p.status === 'picked_up').length,
       abnormal: packages.filter((p) => p.status === 'abnormal').length,
+      resolved: packages.filter((p) => p.status === 'resolved').length,
     };
   },
 }));
