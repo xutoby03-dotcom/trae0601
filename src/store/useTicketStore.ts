@@ -256,7 +256,10 @@ export const useTicketStore = create<TicketState>()(
         };
       },
 
-      resetData: () => set({ tickets: INITIAL_TICKETS }),
+      resetData: () => {
+        set({ tickets: INITIAL_TICKETS });
+        get().recalcQueuePositions();
+      },
     }),
     {
       name: 'dorm-repair-store',

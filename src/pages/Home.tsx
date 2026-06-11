@@ -19,7 +19,12 @@ export default function Home() {
 
   const filtered = tickets
     .filter((t) => activeFilter === 'all' || t.status === activeFilter)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort((a, b) => {
+      if (activeFilter === 'pending') {
+        return (a.queuePosition || 999) - (b.queuePosition || 999);
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   const counts = {
     all: tickets.length,
