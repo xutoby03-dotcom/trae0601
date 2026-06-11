@@ -86,7 +86,18 @@ export default function Events() {
         const registerableVehicles = userVehicles.filter((v) => !alreadyVehicleIds.includes(v.id))
 
         return (
-          <div key={event.id} className="rounded-2xl bg-zinc-900 border border-zinc-800 p-4 space-y-3">
+          <div
+            key={event.id}
+            className={`rounded-2xl bg-zinc-900 border border-zinc-800 p-4 space-y-3 transition-all ${
+              isAdmin ? 'hover:border-emerald-500/30 hover:bg-zinc-900/80 cursor-pointer' : ''
+            }`}
+            onClick={(e) => {
+              if (!isAdmin) return
+              const target = e.target as HTMLElement
+              if (target.closest('button')) return
+              setRosterEventId(event.id)
+            }}
+          >
             <div className="flex justify-between items-start">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-zinc-300 text-sm">
@@ -99,7 +110,7 @@ export default function Events() {
                   <MapPin className="w-4 h-4 text-zinc-500" /> {event.location}
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 {isAdmin && (
                   <button
                     onClick={() => setRosterEventId(event.id)}
@@ -136,7 +147,7 @@ export default function Events() {
             </div>
 
             {!isAdmin && hasRegistered && (
-              <div className="space-y-2">
+              <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                 {myRegs.map((reg) => {
                   const regVehicle = vehicles.find((v) => v.id === reg.vehicleId)
                   return (
@@ -157,7 +168,8 @@ export default function Events() {
 
             {!isAdmin && !hasRegistered && regCount < event.maxSlots && registerableVehicles.length > 0 && (
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   setRegisterEventId(event.id)
                   setSelectedVehicleId(registerableVehicles[0]?.id || '')
                 }}
@@ -168,12 +180,13 @@ export default function Events() {
             )}
 
             {!isAdmin && !hasRegistered && regCount >= event.maxSlots && (
-              <div className="text-center py-2 text-zinc-500 text-sm">名额已满</div>
+              <div className="text-center py-2 text-zinc-500 text-sm" onClick={(e) => e.stopPropagation()}>名额已满</div>
             )}
 
             {!isAdmin && hasRegistered && registerableVehicles.length > 0 && regCount < event.maxSlots && (
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   setRegisterEventId(event.id)
                   setSelectedVehicleId(registerableVehicles[0]?.id || '')
                 }}
