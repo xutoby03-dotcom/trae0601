@@ -1,4 +1,4 @@
-import { Room, Booking, PianoType } from '@/types';
+import { Room, Booking, PianoType, TIME_SLOTS } from '@/types';
 import { generateTimeSlots, formatDate, generateId, getNext7Days } from '@/utils/bookingUtils';
 import { addDays } from 'date-fns';
 
@@ -18,6 +18,17 @@ const photoPrompts = [
   'premium hybrid piano in professional music room',
 ];
 
+const roomTimeSlots: string[][] = [
+  [...TIME_SLOTS],
+  [...TIME_SLOTS],
+  TIME_SLOTS.filter(s => !['12:00-13:00', '13:00-14:00'].includes(s)),
+  TIME_SLOTS.filter(s => s >= '09:00-10:00' && s <= '20:00-21:00'),
+  TIME_SLOTS.filter(s => s >= '08:00-09:00' && s <= '18:00-19:00'),
+  [...TIME_SLOTS],
+  TIME_SLOTS.filter(s => !['12:00-13:00'].includes(s)),
+  TIME_SLOTS.filter(s => s >= '14:00-15:00' && s <= '22:00-22:00'),
+];
+
 export const generateMockRooms = (): Room[] => {
   return roomNumbers.map((number, index) => ({
     id: `room-${index + 1}`,
@@ -26,7 +37,7 @@ export const generateMockRooms = (): Room[] => {
     floor: floors[index],
     hasMusicStand: hasStand[index],
     photoUrl: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(photoPrompts[index])}&image_size=square`,
-    availableTimeSlots: generateTimeSlots(),
+    availableTimeSlots: roomTimeSlots[index],
     status: index === 3 ? 'maintenance' : index === 6 ? 'temporarily_closed' : 'available',
     maintenanceReason: index === 3 ? '琴弦需要更换' : undefined,
     createdAt: new Date().toISOString(),
@@ -58,7 +69,6 @@ const phones = [
 export const generateMockBookings = (rooms: Room[]): Booking[] => {
   const bookings: Booking[] = [];
   const days = getNext7Days();
-  const timeSlots = generateTimeSlots();
   
   let idCounter = 1;
   
@@ -68,17 +78,20 @@ export const generateMockBookings = (rooms: Room[]): Booking[] => {
     
     rooms.forEach((room, roomIndex) => {
       if (room.status !== 'available') return;
+      if (room.availableTimeSlots.length === 0) return;
       
-      const numBookings = isToday ? Math.floor(Math.random() * 8) + 3 : Math.floor(Math.random() * 6) + 2;
+      const maxBookings = Math.min(room.availableTimeSlots.length, isToday ? 8 : 6);
+      const numBookings = Math.floor(Math.random() * maxBookings) + 2;
       const usedSlots = new Set<string>();
       
       for (let i = 0; i < numBookings; i++) {
-        let slotIndex: number;
+        let randomSlot: string;
         do {
-          slotIndex = Math.floor(Math.random() * timeSlots.length);
-        } while (usedSlots.has(timeSlots[slotIndex]) && usedSlots.size < timeSlots.length);
+          const slotIdx = Math.floor(Math.random() * room.availableTimeSlots.length);
+          randomSlot = room.availableTimeSlots[slotIdx];
+        } while (usedSlots.has(randomSlot) && usedSlots.size < room.availableTimeSlots.length);
         
-        usedSlots.add(timeSlots[slotIndex]);
+        usedSlots.add(randomSlot);
         
         const studentIndex = Math.floor(Math.random() * studentNames.length);
         const isWaitlist = i >= 1 && Math.random() > 0.7;
@@ -91,7 +104,7 @@ export const generateMockBookings = (rooms: Room[]): Booking[] => {
           phone: phones[studentIndex % phones.length],
           practicePurpose: purposes[Math.floor(Math.random() * purposes.length)],
           date,
-          timeSlot: timeSlots[slotIndex],
+          timeSlot: randomSlot,
           status: isWaitlist ? 'waitlist' : (dayOffset < 0 ? (Math.random() > 0.1 ? 'completed' : 'no_show') : 'confirmed'),
           isWaitlist,
           waitlistPosition: isWaitlist ? Math.floor(Math.random() * 3) + 1 : undefined,

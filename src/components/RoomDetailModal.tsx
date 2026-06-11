@@ -25,6 +25,7 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
       case 'booked': return 'slot-booked';
       case 'waitlist_only': return 'slot-waitlist';
       case 'blocked': return 'slot-blocked';
+      case 'not_open': return 'slot-not-open';
       default: return 'slot-available';
     }
   };
@@ -35,6 +36,7 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
       case 'booked': return '已满';
       case 'waitlist_only': return '候补';
       case 'blocked': return '关闭';
+      case 'not_open': return '未开放';
       default: return '';
     }
   };
@@ -79,13 +81,17 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
             </div>
             <div className="card p-4">
               <Clock className="w-5 h-5 text-wood-500 mb-2" />
-              <p className="text-xs text-wood-500">时段数</p>
-              <p className="font-semibold text-wood-900">{TIME_SLOTS.length} 个</p>
+              <p className="text-xs text-wood-500">开放时段</p>
+              <p className="font-semibold text-wood-900">{room.availableTimeSlots.length} 个</p>
             </div>
             <div className="card p-4">
               <Calendar className="w-5 h-5 text-wood-500 mb-2" />
-              <p className="text-xs text-wood-500">营业时间</p>
-              <p className="font-semibold text-wood-900">08:00-22:00</p>
+              <p className="text-xs text-wood-500">开放时间</p>
+              <p className="font-semibold text-wood-900">
+                {room.availableTimeSlots.length > 0 
+                  ? `${room.availableTimeSlots[0].split('-')[0]}-${room.availableTimeSlots[room.availableTimeSlots.length - 1].split('-')[1]}`
+                  : '暂未开放'}
+              </p>
             </div>
           </div>
 
@@ -121,11 +127,12 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
             <div className="flex gap-1 flex-wrap">
               {TIME_SLOTS.map(slot => {
                 const status = getSlotStatus(room.id, selectedDate, slot);
+                const notClickable = status === 'booked' || status === 'blocked' || status === 'not_open';
                 return (
                   <button
                     key={slot}
                     onClick={() => handleSlotClick(selectedDate, slot)}
-                    disabled={status === 'booked' || status === 'blocked'}
+                    disabled={notClickable}
                     className={`w-24 py-2 px-3 rounded-lg text-sm transition-all ${getSlotClass(status)}`}
                   >
                     <p className="font-medium">{slot}</p>
@@ -136,7 +143,7 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-4 border-t border-cream-200">
+          <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-cream-200">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-green-200"></div>
               <span className="text-sm text-wood-600">可预约</span>
@@ -152,6 +159,10 @@ export default function RoomDetailModal({ room, onClose }: RoomDetailModalProps)
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-gray-200"></div>
               <span className="text-sm text-wood-600">关闭</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-wood-200"></div>
+              <span className="text-sm text-wood-600">未开放</span>
             </div>
           </div>
         </div>

@@ -65,6 +65,7 @@ export default function Booking() {
       case 'booked': return 'slot-booked';
       case 'waitlist_only': return 'slot-waitlist';
       case 'blocked': return 'slot-blocked';
+      case 'not_open': return 'slot-not-open';
       default: return 'slot-available';
     }
   };
@@ -173,23 +174,24 @@ export default function Booking() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                   {TIME_SLOTS.map(slot => {
                     const status = getSlotStatus(currentRoom.id, selectedDate, slot);
+                    const notClickable = status === 'booked' || status === 'blocked' || status === 'not_open';
                     return (
                       <button
                         key={slot}
                         onClick={() => handleSlotClick(selectedDate, slot)}
-                        disabled={status === 'booked' || status === 'blocked'}
+                        disabled={notClickable}
                         className={`p-3 rounded-lg text-sm transition-all ${getSlotClass(status)}`}
                       >
                         <p className="font-medium">{slot}</p>
                         <p className="text-xs opacity-75">
-                          {status === 'available' ? '可约' : status === 'waitlist_only' ? '候补' : status === 'booked' ? '已满' : '关闭'}
+                          {status === 'available' ? '可约' : status === 'waitlist_only' ? '候补' : status === 'booked' ? '已满' : status === 'not_open' ? '未开放' : '关闭'}
                         </p>
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="flex items-center gap-6 mt-6 pt-4 border-t border-cream-200">
+                <div className="flex flex-wrap items-center gap-6 mt-6 pt-4 border-t border-cream-200">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded bg-green-200"></div>
                     <span className="text-sm text-wood-600">可预约</span>
@@ -201,6 +203,10 @@ export default function Booking() {
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded bg-red-200"></div>
                     <span className="text-sm text-wood-600">已满</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-wood-200"></div>
+                    <span className="text-sm text-wood-600">未开放</span>
                   </div>
                 </div>
               </div>

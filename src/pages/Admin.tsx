@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Wrench, Lock, Unlock, X, Save, Music, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, Wrench, Lock, Unlock, X, Save, Music, MapPin, Clock, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { Room, PIANO_TYPE_LABELS, ROOM_STATUS_LABELS, FLOORS, PianoType, RoomStatus } from '@/types';
+import { Room, PIANO_TYPE_LABELS, ROOM_STATUS_LABELS, FLOORS, PianoType, RoomStatus, TIME_SLOTS } from '@/types';
 
 export default function Admin() {
   const { rooms, currentRole, addRoom, updateRoom, updateRoomStatus, deleteRoom, resetData } = useAppStore();
@@ -15,6 +15,7 @@ export default function Admin() {
     photoUrl: '',
     status: 'available' as RoomStatus,
     maintenanceReason: '',
+    availableTimeSlots: [] as string[],
   });
 
   const handleAddClick = () => {
@@ -27,6 +28,7 @@ export default function Admin() {
       photoUrl: '',
       status: 'available',
       maintenanceReason: '',
+      availableTimeSlots: [...TIME_SLOTS],
     });
     setShowForm(true);
   };
@@ -41,12 +43,35 @@ export default function Admin() {
       photoUrl: room.photoUrl,
       status: room.status,
       maintenanceReason: room.maintenanceReason || '',
+      availableTimeSlots: [...room.availableTimeSlots],
     });
     setShowForm(true);
   };
 
+  const toggleTimeSlot = (slot: string) => {
+    setFormData(prev => ({
+      ...prev,
+      availableTimeSlots: prev.availableTimeSlots.includes(slot)
+        ? prev.availableTimeSlots.filter(s => s !== slot)
+        : [...prev.availableTimeSlots, slot],
+    }));
+  };
+
+  const selectAllTimeSlots = () => {
+    setFormData(prev => ({ ...prev, availableTimeSlots: [...TIME_SLOTS] }));
+  };
+
+  const clearAllTimeSlots = () => {
+    setFormData(prev => ({ ...prev, availableTimeSlots: [] }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.availableTimeSlots.length === 0) {
+      alert('请至少选择一个可用时段');
+      return;
+    }
     
     const roomData = {
       roomNumber: formData.roomNumber,
@@ -54,7 +79,7 @@ export default function Admin() {
       floor: formData.floor,
       hasMusicStand: formData.hasMusicStand,
       photoUrl: formData.photoUrl || `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(`${PIANO_TYPE_LABELS[formData.pianoType]} in elegant music practice room`)}&image_size=square`,
-      availableTimeSlots: Array.from({ length: 14 }, (_, i) => `${String(8 + i).padStart(2, '0')}:00-${String(9 + i).padStart(2, '0')}:00`),
+      availableTimeSlots: [...formData.availableTimeSlots].sort(),
       status: formData.status,
       maintenanceReason: formData.status !== 'available' ? formData.maintenanceReason : undefined,
     };
@@ -309,6 +334,56 @@ export default function Admin() {
                   className="input-field"
                   placeholder="留空将自动生成"
                 />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-wood-700 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4" />
+                    可用时段
+                    <span className="text-xs text-wood-400 font-normal">
+                      (已选 {formData.availableTimeSlots.length}/{TIME_SLOTS.length})
+                    </span>
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllTimeSlots}
+                      className="text-xs px-2 py-1 text-wood-600 hover:text-wood-800 hover:bg-wood-50 rounded transition-colors"
+                    >
+                      全选
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAllTimeSlots}
+                      className="text-xs px-2 py-1 text-wood-600 hover:text-wood-800 hover:bg-wood-50 rounded transition-colors"
+                    >
+                      清空
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 p-3 bg-cream-50 rounded-lg border border-cream-200">
+                  {TIME_SLOTS.map(slot => {
+                    const isSelected = formData.availableTimeSlots.includes(slot);
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => toggleTimeSlot(slot)}
+                        className={`relative px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+                          isSelected
+                            ? 'bg-wood-700 text-gold-300 shadow-md'
+                            : 'bg-white text-wood-500 border border-wood-200 hover:bg-wood-50 hover:text-wood-700'
+                        }`}
+                      >
+                        <span>{slot}</span>
+                        {isSelected && (
+                          <Check className="absolute top-0.5 right-0.5 w-3 h-3 text-gold-300" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>

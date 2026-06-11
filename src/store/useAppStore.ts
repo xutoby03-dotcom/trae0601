@@ -147,6 +147,10 @@ export const useAppStore = create<AppState>()(
           if (room.status !== 'available') {
             return { success: false, message: '琴房暂不可用' };
           }
+
+          if (room.availableTimeSlots.length > 0 && !room.availableTimeSlots.includes(bookingData.timeSlot)) {
+            return { success: false, message: '该时段琴房未开放' };
+          }
           
           const dailyValidation = validateDailyBookingLimit(
             bookingData.studentName,
@@ -172,11 +176,12 @@ export const useAppStore = create<AppState>()(
             bookingData.date,
             bookingData.timeSlot,
             state.bookings,
-            room.status
+            room.status,
+            room.availableTimeSlots
           );
           
-          if (slotStatus === 'blocked') {
-            return { success: false, message: '该时段不可预约' };
+          if (slotStatus === 'blocked' || slotStatus === 'not_open') {
+            return { success: false, message: slotStatus === 'not_open' ? '该时段琴房未开放' : '该时段不可预约' };
           }
           
           const willBeWaitlist = isWaitlist || slotStatus === 'waitlist_only';
@@ -249,7 +254,7 @@ export const useAppStore = create<AppState>()(
         getSlotStatus: (roomId, date, timeSlot) => {
           const state = get();
           const room = state.rooms.find(r => r.id === roomId);
-          return getSlotStatus(roomId, date, timeSlot, state.bookings, room?.status || 'available');
+          return getSlotStatus(roomId, date, timeSlot, state.bookings, room?.status || 'available', room?.availableTimeSlots || []);
         },
         
         getWaitlistForSlot: (roomId, date, timeSlot) => {

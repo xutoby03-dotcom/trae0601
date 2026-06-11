@@ -4,7 +4,7 @@ export type RoomStatus = 'available' | 'maintenance' | 'temporarily_closed';
 
 export type BookingStatus = 'confirmed' | 'cancelled' | 'no_show' | 'waitlist' | 'completed';
 
-export type SlotStatus = 'available' | 'booked' | 'waitlist_only' | 'blocked';
+export type SlotStatus = 'available' | 'booked' | 'waitlist_only' | 'blocked' | 'not_open';
 
 export type UserRole = 'student' | 'teacher' | 'admin';
 

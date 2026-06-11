@@ -118,10 +118,15 @@ export const getSlotStatus = (
   date: string,
   timeSlot: string,
   bookings: { roomId: string; date: string; timeSlot: string; status: string; isWaitlist: boolean }[],
-  roomStatus: string
-): 'available' | 'booked' | 'waitlist_only' | 'blocked' => {
+  roomStatus: string,
+  availableTimeSlots: string[] = []
+): 'available' | 'booked' | 'waitlist_only' | 'blocked' | 'not_open' => {
   if (roomStatus !== 'available') {
     return 'blocked';
+  }
+
+  if (availableTimeSlots.length > 0 && !availableTimeSlots.includes(timeSlot)) {
+    return 'not_open';
   }
   
   const confirmedBookings = bookings.filter(

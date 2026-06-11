@@ -19,12 +19,21 @@ export default function RoomCard({ room, index }: RoomCardProps) {
   
   const bookings = getBookingsForRoom(room.id);
   
-  const todaySlots = TIME_SLOTS.slice(0, 6).map(slot => ({
-    time: slot,
-    status: getSlotStatus(room.id, today, slot),
-  }));
+  const previewSlots = room.availableTimeSlots.slice(0, 6);
   
-  const availableCount = todaySlots.filter(s => s.status === 'available').length;
+  const todaySlots = previewSlots.length > 0
+    ? previewSlots.map(slot => ({
+        time: slot,
+        status: getSlotStatus(room.id, today, slot),
+      }))
+    : TIME_SLOTS.slice(0, 6).map(slot => ({
+        time: slot,
+        status: 'not_open' as const,
+      }));
+  
+  const availableCount = room.availableTimeSlots.filter(
+    slot => getSlotStatus(room.id, today, slot) === 'available'
+  ).length;
   
   const statusClass = {
     available: 'badge-available',
@@ -96,6 +105,8 @@ export default function RoomCard({ room, index }: RoomCardProps) {
                       ? 'bg-green-100 text-green-700'
                       : slot.status === 'waitlist_only'
                       ? 'bg-yellow-100 text-yellow-700'
+                      : slot.status === 'not_open'
+                      ? 'bg-wood-100 text-wood-400'
                       : 'bg-red-100 text-red-700'
                   }`}
                   title={`${slot.time} - ${slot.status}`}
