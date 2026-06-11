@@ -231,43 +231,43 @@ export const CustomerDetailPage: React.FC<CustomerDetailPageProps> = ({ customer
         </Card>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 12, gap: 12, flexWrap: 'wrap'
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', flexShrink: 0 }}>
           💰 欠款变化流水
         </div>
-        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400 }}>
-          赊账 +，还款 -
-        </span>
-      </div>
-
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 6, padding: 4, backgroundColor: '#f1f5f9', borderRadius: 10, marginBottom: 12
-      }}>
-        {([
-          { k: 'all', label: '全部' },
-          { k: 'credit', label: '赊账' },
-          { k: 'payment', label: '还款' },
-          { k: 'unpaid', label: '未结清' }
-        ] as const).map(tab => {
-          const active = flowFilter === tab.k;
-          return (
-            <button
-              key={tab.k}
-              onClick={() => setFlowFilter(tab.k)}
-              style={{
-                border: 'none', cursor: 'pointer', fontSize: 13, padding: '8px 4px',
-                borderRadius: 8, fontWeight: active ? 600 : 400,
-                backgroundColor: active ? 'white' : 'transparent',
-                color: active ? '#4f46e5' : '#64748b',
-                boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.2s'
-              }}
-            >
-              {tab.label}
-            </button>
-          );
-        })}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, auto)',
+          gap: 4, padding: 3, backgroundColor: '#f1f5f9', borderRadius: 9, flexShrink: 0
+        }}>
+          {([
+            { k: 'all', label: '全部' },
+            { k: 'credit', label: '赊账' },
+            { k: 'payment', label: '还款' },
+            { k: 'unpaid', label: '未结清' }
+          ] as const).map(tab => {
+            const active = flowFilter === tab.k;
+            return (
+              <button
+                key={tab.k}
+                onClick={() => setFlowFilter(tab.k)}
+                title={tab.k === 'all' ? '赊账记+，还款记-' : undefined}
+                style={{
+                  border: 'none', cursor: 'pointer', fontSize: 12, padding: '6px 10px',
+                  borderRadius: 7, fontWeight: active ? 600 : 400,
+                  backgroundColor: active ? 'white' : 'transparent',
+                  color: active ? '#4f46e5' : '#64748b',
+                  boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s', whiteSpace: 'nowrap'
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <Card padding={14} style={{
