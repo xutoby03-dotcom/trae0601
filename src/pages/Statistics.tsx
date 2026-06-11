@@ -53,24 +53,33 @@ export default function Statistics() {
     return { total, items };
   }, [medicines, stockRecords]);
 
+  const lowStockEvents = useStore((s) => s.lowStockEvents);
+
   const frequentOutage = useMemo(() => {
-    return medicines
-      .filter((m) => !m.disposed)
-      .map((m) => {
-        const outCount = stockRecords.filter(
-          (r) => r.medicineId === m.id && r.type === 'use'
-        ).length;
-        const isNowLow = m.quantity <= m.lowStockThreshold;
-        return {
-          medicine: m,
-          score: outCount * 2 + (isNowLow ? 5 : 0),
-          useCount: outCount,
-          isNowLow,
-        };
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-  }, [medicines, stockRecords]);
+    const eventCountMap = new Map<string, number>();
+    lowStockEvents.forEach((e) => {
+      eventCountMap.set(e.medicineId, (eventCountMap.get(e.medicineId) || 0) + 1);
+    });
+
+    const withEvents = medicines
+      .filter((m) => !m.disposed && eventCountMap.has(m.id))
+      .map((m) => ({
+        medicine: m,
+        shortageCount: eventCountMap.get(m.id) || 0,
+        isNowLow: m.quantity <= m.lowStockThreshold,
+      }))
+      .sort((a, b) => b.shortageCount - a.shortageCount);
+
+    const currentlyLowNoEvent = medicines
+      .filter((m) => !m.disposed && !eventCountMap.has(m.id) && m.quantity <= m.lowStockThreshold)
+      .map((m) => ({
+        medicine: m,
+        shortageCount: 0,
+        isNowLow: true,
+      }));
+
+    return [...withEvents, ...currentlyLowNoEvent].slice(0, 5);
+  }, [medicines, lowStockEvents]);
 
   const monthlyUseCount = stockRecords.filter(
     (r) => r.type === 'use' && isThisMonth(r.timestamp)
@@ -178,7 +187,7 @@ export default function Statistics() {
             <Award className="w-5 h-5 text-warning-500" />
             常缺物品排行榜
           </h3>
-          {frequentOutage.length === 0 || !frequentOutage[0]?.useCount ? (
+          {frequentOutage.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <p className="text-3xl mb-2">🏆</p>
               <p className="text-sm">暂无缺货记录</p>
@@ -209,11 +218,17 @@ export default function Statistics() {
                     <p className="text-xs text-gray-500">{item.medicine.category}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-700">
-                      使用 {item.useCount} 次
-                    </p>
-                    {item.isNowLow && (
-                      <p className="text-xs text-danger-600">当前库存低</p>
+                    {item.shortageCount > 0 ? (
+                      <p className="text-sm font-semibold text-danger-600">
+                        缺货 {item.shortageCount} 次
+                      </p>
+                    ) : (
+                      <p className="text-sm font-semibold text-warning-600">
+                        当前库存低
+                      </p>
+                    )}
+                    {item.isNowLow && item.shortageCount > 0 && (
+                      <p className="text-xs text-danger-500">当前仍低库存</p>
                     )}
                   </div>
                 </div>

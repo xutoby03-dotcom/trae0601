@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Medicine, StockRecord, DisposalRecord } from '@/types';
+import type { Medicine, StockRecord, DisposalRecord, LowStockEvent } from '@/types';
 import { uid } from '@/utils/id';
 import { addDaysStr, todayStr } from '@/utils/dateUtils';
 
@@ -176,10 +176,20 @@ const mockStockRecords: StockRecord[] = [
   { id: 's10', medicineId: 'm4', type: 'restock', quantity: 20, unitPrice: 12, purchaseChannel: '淘宝/天猫', purchaseDate: addDaysStr(-120), timestamp: new Date(Date.now() - 86400000 * 120).toISOString() },
 ];
 
+const mockLowStockEvents: LowStockEvent[] = [
+  { id: 'lse1', medicineId: 'm1', previousQuantity: 2, newQuantity: 1, threshold: 2, timestamp: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: 'lse2', medicineId: 'm3', previousQuantity: 2, newQuantity: 0, threshold: 4, timestamp: new Date(Date.now() - 86400000 * 3).toISOString() },
+  { id: 'lse3', medicineId: 'm3', previousQuantity: 6, newQuantity: 2, threshold: 4, timestamp: new Date(Date.now() - 86400000 * 10).toISOString() },
+  { id: 'lse4', medicineId: 'm4', previousQuantity: 8, newQuantity: 3, threshold: 10, timestamp: new Date(Date.now() - 86400000 * 7).toISOString() },
+  { id: 'lse5', medicineId: 'm4', previousQuantity: 15, newQuantity: 10, threshold: 10, timestamp: new Date(Date.now() - 86400000 * 14).toISOString() },
+  { id: 'lse6', medicineId: 'm5', previousQuantity: 2, newQuantity: 1, threshold: 1, timestamp: new Date(Date.now() - 86400000 * 45).toISOString() },
+];
+
 interface StoreState {
   medicines: Medicine[];
   stockRecords: StockRecord[];
   disposalRecords: DisposalRecord[];
+  lowStockEvents: LowStockEvent[];
   addMedicine: (data: Omit<Medicine, 'id' | 'createdAt'>) => void;
   updateMedicine: (id: string, data: Partial<Medicine>) => void;
   deleteMedicine: (id: string) => void;
@@ -194,6 +204,7 @@ export const useStore = create<StoreState>()(
       medicines: mockMedicines,
       stockRecords: mockStockRecords,
       disposalRecords: [],
+      lowStockEvents: mockLowStockEvents,
 
       addMedicine: (data) =>
         set((state) => ({
@@ -215,26 +226,50 @@ export const useStore = create<StoreState>()(
           medicines: state.medicines.filter((m) => m.id !== id),
           stockRecords: state.stockRecords.filter((r) => r.medicineId !== id),
           disposalRecords: state.disposalRecords.filter((r) => r.medicineId !== id),
+          lowStockEvents: state.lowStockEvents.filter((e) => e.medicineId !== id),
         })),
 
       useMedicine: (medicineId, quantity) =>
-        set((state) => ({
-          medicines: state.medicines.map((m) =>
-            m.id === medicineId
-              ? { ...m, quantity: Math.max(0, m.quantity - quantity) }
-              : m
-          ),
-          stockRecords: [
-            ...state.stockRecords,
-            {
-              id: uid(),
-              medicineId,
-              type: 'use',
-              quantity,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        })),
+        set((state) => {
+          const medicine = state.medicines.find((m) => m.id === medicineId);
+          if (!medicine) return state;
+
+          const prevQty = medicine.quantity;
+          const newQty = Math.max(0, prevQty - quantity);
+          const wasAboveThreshold = prevQty > medicine.lowStockThreshold;
+          const isNowAtOrBelow = newQty <= medicine.lowStockThreshold;
+
+          const newLowStockEvent: LowStockEvent | null =
+            wasAboveThreshold && isNowAtOrBelow
+              ? {
+                  id: uid(),
+                  medicineId,
+                  previousQuantity: prevQty,
+                  newQuantity: newQty,
+                  threshold: medicine.lowStockThreshold,
+                  timestamp: new Date().toISOString(),
+                }
+              : null;
+
+          return {
+            medicines: state.medicines.map((m) =>
+              m.id === medicineId ? { ...m, quantity: newQty } : m
+            ),
+            stockRecords: [
+              ...state.stockRecords,
+              {
+                id: uid(),
+                medicineId,
+                type: 'use',
+                quantity,
+                timestamp: new Date().toISOString(),
+              },
+            ],
+            ...(newLowStockEvent
+              ? { lowStockEvents: [...state.lowStockEvents, newLowStockEvent] }
+              : {}),
+          };
+        }),
 
       restockMedicine: (medicineId, quantity, unitPrice, purchaseChannel, purchaseDate) =>
         set((state) => ({

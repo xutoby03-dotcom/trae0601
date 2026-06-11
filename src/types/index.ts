@@ -56,6 +56,15 @@ export interface DisposalRecord {
   timestamp: string;
 }
 
+export interface LowStockEvent {
+  id: string;
+  medicineId: string;
+  previousQuantity: number;
+  newQuantity: number;
+  threshold: number;
+  timestamp: string;
+}
+
 export const CATEGORY_EMOJI: Record<Category, string> = {
   '退烧药': '🤒',
   '感冒药': '🤧',
