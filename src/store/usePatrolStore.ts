@@ -271,6 +271,7 @@ export const usePatrolStore = create<PatrolState>()(
                     assigneeId,
                     assigneeName: officer?.name,
                     status: 'assigned',
+                    assignedAt: new Date().toISOString(),
                   }
                 : e
             ),
@@ -286,6 +287,10 @@ export const usePatrolStore = create<PatrolState>()(
                   ...e,
                   status,
                   handlingResult: handlingResult || e.handlingResult,
+                  startedAt:
+                    status === 'processing' && !e.startedAt
+                      ? new Date().toISOString()
+                      : e.startedAt,
                   resolvedAt:
                     status === 'resolved' ? new Date().toISOString() : e.resolvedAt,
                 }

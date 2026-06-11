@@ -55,6 +55,8 @@ export interface ExceptionEvent {
   assigneeName?: string;
   status: ExceptionStatus;
   createdAt: string;
+  assignedAt?: string;
+  startedAt?: string;
   resolvedAt?: string;
   handlingResult?: string;
 }

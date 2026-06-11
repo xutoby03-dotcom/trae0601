@@ -9,6 +9,9 @@ import {
   CheckCircle2,
   ChevronRight,
   MapPin,
+  ArrowRight,
+  Calendar,
+  PlayCircle,
 } from 'lucide-react';
 import { usePatrolStore } from '@/store/usePatrolStore';
 import type { ExceptionEvent, ExceptionStatus, AssigneeType } from '@/types/patrol';
@@ -20,9 +23,12 @@ import {
 } from '@/utils/helpers';
 import AssignModal from '@/components/modals/AssignModal';
 
+type AssigneeFilter = 'all' | 'unassigned' | AssigneeType;
+
 export default function ExceptionList() {
   const { exceptionEvents, updateExceptionStatus } = usePatrolStore();
   const [statusFilter, setStatusFilter] = useState<ExceptionStatus | 'all'>('all');
+  const [assigneeFilter, setAssigneeFilter] = useState<AssigneeFilter>('all');
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [activeEvent, setActiveEvent] = useState<ExceptionEvent | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -31,11 +37,21 @@ export default function ExceptionList() {
     const sorted = [...exceptionEvents].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    if (statusFilter === 'all') return sorted;
-    return sorted.filter((e) => e.status === statusFilter);
-  }, [exceptionEvents, statusFilter]);
+    return sorted.filter((e) => {
+      if (statusFilter !== 'all' && e.status !== statusFilter) return false;
+      if (assigneeFilter === 'all') return true;
+      if (assigneeFilter === 'unassigned') return !e.assigneeType;
+      return e.assigneeType === assigneeFilter;
+    });
+  }, [exceptionEvents, statusFilter, assigneeFilter]);
 
   const statuses: Array<ExceptionStatus | 'all'> = ['all', 'pending', 'assigned', 'processing', 'resolved'];
+  const assigneeFilters: Array<{ key: AssigneeFilter; label: string; icon: 'none' | 'maintenance' | 'security' | 'unassigned' }> = [
+    { key: 'all', label: '全部', icon: 'none' },
+    { key: 'unassigned', label: '待分派', icon: 'unassigned' },
+    { key: 'maintenance', label: '物业维修', icon: 'maintenance' },
+    { key: 'security', label: '安保复查', icon: 'security' },
+  ];
 
   const stats = useMemo(() => {
     return {
@@ -49,6 +65,12 @@ export default function ExceptionList() {
   const handleOpenAssign = (event: ExceptionEvent) => {
     setActiveEvent(event);
     setAssignModalOpen(true);
+  };
+
+  const assigneeCount = (key: AssigneeFilter) => {
+    if (key === 'all') return exceptionEvents.length;
+    if (key === 'unassigned') return exceptionEvents.filter((e) => !e.assigneeType).length;
+    return exceptionEvents.filter((e) => e.assigneeType === key).length;
   };
 
   return (
@@ -107,22 +129,52 @@ export default function ExceptionList() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Filter className="w-4 h-4 text-slate-500" />
-        <div className="flex gap-1.5 flex-wrap">
-          {statuses.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                statusFilter === s
-                  ? 'bg-primary-700 text-white shadow-lg shadow-primary-700/30'
-                  : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-700/50'
-              }`}
-            >
-              {s === 'all' ? '全部' : getExceptionStatusText(s)}
-            </button>
-          ))}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <span className="text-slate-500 text-xs">状态：</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {statuses.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                  statusFilter === s
+                    ? 'bg-primary-700 text-white shadow-lg shadow-primary-700/30'
+                    : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                {s === 'all' ? '全部' : getExceptionStatusText(s)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4 text-slate-500" />
+          <span className="text-slate-500 text-xs">分派对象：</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {assigneeFilters.map(({ key, label, icon }) => (
+              <button
+                key={key}
+                onClick={() => setAssigneeFilter(key)}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                  assigneeFilter === key
+                    ? 'bg-primary-700 text-white shadow-lg shadow-primary-700/30'
+                    : 'bg-slate-800/60 text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                {icon === 'maintenance' && <Wrench className="w-3 h-3" />}
+                {icon === 'security' && <Shield className="w-3 h-3" />}
+                {icon === 'unassigned' && <Clock className="w-3 h-3" />}
+                {label}
+                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                  assigneeFilter === key ? 'bg-white/20' : 'bg-slate-700/60 text-slate-300'
+                }`}>
+                  {assigneeCount(key)}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -242,13 +294,13 @@ export default function ExceptionList() {
                 {isExpanded && (
                   <div className="px-5 pb-5 pt-0 border-t border-slate-700/30">
                     <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-slate-400 mb-1.5">异常描述</p>
-                        <div className="p-3 rounded-xl bg-red-950/20 border border-red-900/30">
-                          <p className="text-white text-sm">{event.description}</p>
-                        </div>
-                      </div>
                       <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-slate-400 mb-1.5">异常描述</p>
+                          <div className="p-3 rounded-xl bg-red-950/20 border border-red-900/30">
+                            <p className="text-white text-sm">{event.description}</p>
+                          </div>
+                        </div>
                         <div>
                           <p className="text-xs text-slate-400 mb-1.5">分派信息</p>
                           <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-700/30">
@@ -281,16 +333,63 @@ export default function ExceptionList() {
                             )}
                           </div>
                         </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-slate-400 mb-1.5">处理时间线</p>
+                          <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-700/30 space-y-2.5">
+                            <div className="flex items-start gap-2.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-400 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-white font-medium">异常上报</p>
+                                <p className="text-[11px] text-slate-500">{formatDateTime(event.createdAt)}</p>
+                              </div>
+                            </div>
+                            {event.assignedAt && (
+                              <>
+                                <div className="flex items-start gap-2.5">
+                                  <ArrowRight className="w-3 h-3 text-slate-600 mx-[3px] mt-0.5 flex-shrink-0" />
+                                  <Calendar className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-white font-medium">
+                                      已分派给 {event.assigneeName}（{getAssigneeTypeText(event.assigneeType!)}）
+                                    </p>
+                                    <p className="text-[11px] text-slate-500">{formatDateTime(event.assignedAt)}</p>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {event.startedAt && (
+                              <>
+                                <div className="flex items-start gap-2.5">
+                                  <ArrowRight className="w-3 h-3 text-slate-600 mx-[3px] mt-0.5 flex-shrink-0" />
+                                  <PlayCircle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-white font-medium">开始处理</p>
+                                    <p className="text-[11px] text-slate-500">{formatDateTime(event.startedAt)}</p>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {event.resolvedAt && (
+                              <>
+                                <div className="flex items-start gap-2.5">
+                                  <ArrowRight className="w-3 h-3 text-slate-600 mx-[3px] mt-0.5 flex-shrink-0" />
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-white font-medium">处理完成</p>
+                                    <p className="text-[11px] text-slate-500">{formatDateTime(event.resolvedAt)}</p>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
                         {event.handlingResult && (
                           <div>
                             <p className="text-xs text-slate-400 mb-1.5">处理结果</p>
                             <div className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/30">
                               <p className="text-white text-sm">{event.handlingResult}</p>
-                              {event.resolvedAt && (
-                                <p className="text-xs text-slate-500 mt-1">
-                                  {formatDateTime(event.resolvedAt)}
-                                </p>
-                              )}
                             </div>
                           </div>
                         )}
