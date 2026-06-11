@@ -41,15 +41,15 @@ const IndexPage: React.FC = () => {
   }, [foods]);
 
   const activeCount = useMemo(() => {
-    return foods.filter(f => f.status !== 'processed').length;
+    return foods.filter(f => !f.processInfo).length;
   }, [foods]);
 
   const tonightCount = useMemo(() => {
-    return foods.filter(f => f.status === 'tonight').length;
+    return foods.filter(f => !f.processInfo && f.status === 'tonight').length;
   }, [foods]);
 
   const frozenCount = useMemo(() => {
-    return foods.filter(f => f.status === 'frozen').length;
+    return foods.filter(f => !f.processInfo && f.status === 'frozen').length;
   }, [foods]);
 
   const handleAdd = () => {

@@ -86,7 +86,7 @@ const FoodCard: React.FC<FoodCardProps> = ({ food, onClick }) => {
         </View>
       </View>
 
-      {food.status === 'processed' && food.processInfo && (
+      {food.processInfo && (
         <View className={styles.processedOverlay}>
           <Text className={styles.processedText}>
             {food.processInfo.type === 'eaten' && '🍽️ 已吃掉'}

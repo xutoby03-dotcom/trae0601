@@ -33,7 +33,7 @@ const DetailPage: React.FC = () => {
   const remainingDays = getRemainingDays(food.cookDate, food.expectedDays);
   const expired = isExpired(food.cookDate, food.expectedDays);
   const expiring = isExpiringSoon(food.cookDate, food.expectedDays);
-  const isProcessed = food.status === 'processed';
+  const isProcessed = !!food.processInfo;
 
   const getDaysClass = () => {
     if (remainingDays < 0) return styles.danger;

@@ -20,7 +20,7 @@ interface FoodStore {
 const determineStatus = (food: FoodRecord): FoodStatus => {
   if (food.processInfo) return 'processed';
   if (food.isFrozen) return 'frozen';
-  if (isExpired(food.cookDate, food.expectedDays)) return 'processed';
+  if (isExpired(food.cookDate, food.expectedDays)) return 'expiring';
   if (isTonightCandidate(food.cookDate, food.expectedDays)) return 'tonight';
   if (isExpiringSoon(food.cookDate, food.expectedDays)) return 'expiring';
   return 'tonight';
