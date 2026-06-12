@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.ant-layout-sider {
+  position: fixed !important;
+  height: 100vh;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.ant-layout-sider-collapsed + .ant-layout {
+  margin-left: 80px !important;
+}
+
+.ant-layout-sider:not(.ant-layout-sider-collapsed) + .ant-layout {
+  margin-left: 240px !important;
+}
+
+.ant-layout-header {
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s infinite;
+}
+
+.ant-table-tbody > tr.bg-red-50\/50 > td {
+  background-color: rgba(254, 226, 226, 0.5) !important;
+}
+
+.ant-table-tbody > tr.bg-red-50\/50:hover > td {
+  background-color: rgba(254, 226, 226, 0.7) !important;
+}
+
+.ant-table-tbody > tr.bg-orange-50\/30 > td {
+  background-color: rgba(255, 247, 237, 0.3) !important;
+}
+
+.ant-table-tbody > tr.bg-orange-50\/30:hover > td {
+  background-color: rgba(255, 247, 237, 0.5) !important;
+}
+
+.ant-card-hoverable:hover {
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.ant-btn-primary {
+  transition: all 0.2s ease;
+}
+
+.ant-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
