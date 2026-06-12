@@ -57,40 +57,58 @@ const MaterialDetail = ({
   const status = getMaterialStatus(material, deliveries);
   const progress = Math.min((receivedQuantity / material.orderQuantity) * 100, 100);
 
-  const handleAddDelivery = (data: Omit<Delivery, 'id' | 'createdAt'>) => {
-    onAddDelivery(data);
+  const handleAddDelivery = (data: {
+    delivery: Omit<Delivery, 'id' | 'createdAt'>;
+    wrongDelivery: { isWrong: boolean; note: string };
+  }) => {
+    const { delivery, wrongDelivery } = data;
+    onAddDelivery(delivery);
     setShowDeliveryForm(false);
 
     const remaining = material.orderQuantity - receivedQuantity;
-    const missingQuantity = remaining - data.receivedQuantity;
+    const missingQuantity = remaining - delivery.receivedQuantity;
     const createdAfterSales: string[] = [];
 
-    if (data.damagedQuantity > 0) {
+    if (delivery.damagedQuantity > 0) {
       onAddAfterSale({
-        materialId: data.materialId,
+        materialId: delivery.materialId,
         type: 'damaged',
-        severity: data.damagedQuantity >= 3 ? 'high' : data.damagedQuantity >= 2 ? 'medium' : 'low',
+        severity: delivery.damagedQuantity >= 3 ? 'high' : delivery.damagedQuantity >= 2 ? 'medium' : 'low',
         status: 'pending',
-        description: `本次到货破损 ${data.damagedQuantity} ${material.unit}`,
+        description: `本次到货破损 ${delivery.damagedQuantity} ${material.unit}`,
         solution: '',
         handler: '',
         resolvedAt: null,
       });
-      createdAfterSales.push(`破损 ${data.damagedQuantity} ${material.unit}`);
+      createdAfterSales.push(`破损 ${delivery.damagedQuantity} ${material.unit}`);
     }
 
     if (missingQuantity > 0) {
       onAddAfterSale({
-        materialId: data.materialId,
+        materialId: delivery.materialId,
         type: 'missing',
         severity: missingQuantity >= 10 ? 'high' : missingQuantity >= 5 ? 'medium' : 'low',
         status: 'pending',
-        description: `本次到货少发 ${missingQuantity} ${material.unit}，应收 ${remaining} ${material.unit}，实收 ${data.receivedQuantity} ${material.unit}`,
+        description: `本次到货少发 ${missingQuantity} ${material.unit}，应收 ${remaining} ${material.unit}，实收 ${delivery.receivedQuantity} ${material.unit}`,
         solution: '',
         handler: '',
         resolvedAt: null,
       });
       createdAfterSales.push(`缺件 ${missingQuantity} ${material.unit}`);
+    }
+
+    if (wrongDelivery.isWrong && wrongDelivery.note) {
+      onAddAfterSale({
+        materialId: delivery.materialId,
+        type: 'wrong',
+        severity: 'medium',
+        status: 'pending',
+        description: wrongDelivery.note,
+        solution: '',
+        handler: '',
+        resolvedAt: null,
+      });
+      createdAfterSales.push('错发型号');
     }
 
     if (createdAfterSales.length > 0) {

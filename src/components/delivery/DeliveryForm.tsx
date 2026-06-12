@@ -4,13 +4,16 @@ import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import { defaultRooms } from '@/utils/helpers';
-import { ImagePlus, X } from 'lucide-react';
+import { ImagePlus, X, PackageX } from 'lucide-react';
 
 interface DeliveryFormProps {
   materialId: string;
   orderQuantity: number;
   receivedSoFar: number;
-  onSubmit: (data: Omit<Delivery, 'id' | 'createdAt'>) => void;
+  onSubmit: (data: {
+    delivery: Omit<Delivery, 'id' | 'createdAt'>;
+    wrongDelivery: { isWrong: boolean; note: string };
+  }) => void;
   onCancel: () => void;
 }
 
@@ -31,16 +34,21 @@ const DeliveryForm = ({
     receiver: '',
     photo: '',
     remark: '',
+    isWrongDelivery: false,
+    wrongDeliveryNote: '',
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === 'receivedQuantity' || name === 'damagedQuantity'
+        type === 'checkbox'
+          ? checked
+          : name === 'receivedQuantity' || name === 'damagedQuantity'
           ? Number(value)
           : value,
     }));
@@ -49,8 +57,20 @@ const DeliveryForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      materialId,
-      ...formData,
+      delivery: {
+        materialId,
+        deliveryDate: formData.deliveryDate,
+        receivedQuantity: formData.receivedQuantity,
+        damagedQuantity: formData.damagedQuantity,
+        storageRoom: formData.storageRoom,
+        receiver: formData.receiver,
+        photo: formData.photo,
+        remark: formData.remark,
+      },
+      wrongDelivery: {
+        isWrong: formData.isWrongDelivery,
+        note: formData.wrongDeliveryNote,
+      },
     });
   };
 
@@ -110,6 +130,57 @@ const DeliveryForm = ({
           value={formData.damagedQuantity}
           onChange={handleChange}
         />
+
+        <div className="col-span-2">
+          <label className="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 group">
+            <input
+              type="checkbox"
+              name="isWrongDelivery"
+              checked={formData.isWrongDelivery}
+              onChange={handleChange}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <PackageX className={`w-4 h-4 ${formData.isWrongDelivery ? 'text-purple-600' : 'text-gray-400'}`} />
+                <span className={`text-sm font-medium ${formData.isWrongDelivery ? 'text-purple-700' : 'text-gray-700'}`}>
+                  送错型号/规格
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">勾选后将自动创建错发售后工单</p>
+            </div>
+          </label>
+          <style>{`
+            label:has(input[name="isWrongDelivery"]:checked) {
+              border-color: rgb(168 85 247);
+              background-color: rgb(250 245 255);
+            }
+            label:has(input[name="isWrongDelivery"]:not(:checked)) {
+              border-color: rgb(229 231 235);
+            }
+            label:has(input[name="isWrongDelivery"]:not(:checked)):hover {
+              border-color: rgb(168 85 247 / 0.5);
+              background-color: rgb(250 245 255 / 0.5);
+            }
+          `}</style>
+        </div>
+
+        {formData.isWrongDelivery && (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              错发说明 <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              name="wrongDeliveryNote"
+              value={formData.wrongDeliveryNote}
+              onChange={handleChange}
+              rows={2}
+              placeholder="请说明送错的具体情况，如：订购800x800mm，实际送来600x600mm..."
+              required
+              className="w-full px-3 py-2 rounded-lg border border-purple-300 text-sm text-gray-900 placeholder-gray-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-purple-50/30"
+            />
+          </div>
+        )}
 
         <Select
           label="存放房间"
