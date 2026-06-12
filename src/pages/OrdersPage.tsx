@@ -348,7 +348,7 @@ export default function OrdersPage() {
               </div>
               <div className="mt-1 flex justify-between text-brand-600">
                 <span>取消截止时间</span>
-                <span className="font-medium">{formatTime(cancelTarget.cancelDeadline)}</span>
+                <span className="font-medium">{formatDateTime(cancelTarget.cancelDeadline)}</span>
               </div>
             </div>
             {!cancelCheckInfo?.canCancel && (
@@ -402,7 +402,7 @@ export default function OrdersPage() {
               <InfoRow label="下单时间" value={formatDateTime(viewTarget.createdAt)} />
               <InfoRow
                 label="取消截止"
-                value={formatTime(viewTarget.cancelDeadline)}
+                value={formatDateTime(viewTarget.cancelDeadline)}
               />
               {viewTarget.dietaryNote && (
                 <div className="col-span-2 rounded-lg bg-red-50 px-3 py-2">

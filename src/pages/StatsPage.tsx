@@ -103,12 +103,8 @@ export default function StatsPage() {
 
   // 餐别分布
   const mealDistribution = useMemo(() => {
-    const valid = orders.filter((o) => {
-      const d = formatDate(o.createdAt);
-      return (
-        d === selectedDate && o.status !== "cancelled"
-      );
-    });
+    const dayOrders = getDateOrders(orders, selectedDate);
+    const valid = dayOrders.filter((o) => o.status !== "cancelled");
     const counts: Record<string, number> = { breakfast: 0, lunch: 0, dinner: 0 };
     valid.forEach((o) => {
       counts[o.mealType] = (counts[o.mealType] || 0) + 1;
