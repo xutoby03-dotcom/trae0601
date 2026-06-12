@@ -3,14 +3,15 @@ import { useCountdown } from '@/hooks/useCountdown';
 import { formatTime } from '@/utils/time';
 import type { Batch } from '@/types';
 
-function LayerItem({ batch }: { batch: Batch | null }) {
-  if (!batch) {
-    return (
-      <div className="h-16 rounded-lg border-2 border-dashed border-espresso-200 bg-espresso-50/50 flex items-center justify-center text-espresso-300 text-sm">
-        空闲
-      </div>
-    );
-  }
+function EmptyLayer() {
+  return (
+    <div className="h-16 rounded-lg border-2 border-dashed border-espresso-200 bg-espresso-50/50 flex items-center justify-center text-espresso-300 text-sm">
+      空闲
+    </div>
+  );
+}
+
+function OccupiedLayer({ batch }: { batch: Batch }) {
   const { remaining, status } = useCountdown(batch.startTime, batch.targetDuration);
   const overtime = remaining <= 0;
   const display = overtime ? `+${formatTime(-remaining)}` : formatTime(remaining);
@@ -42,8 +43,19 @@ function LayerItem({ batch }: { batch: Batch | null }) {
   );
 }
 
+function LayerItem({ batch }: { batch: Batch | null }) {
+  if (!batch) {
+    return <EmptyLayer />;
+  }
+  return <OccupiedLayer batch={batch} />;
+}
+
 export default function OvenStatus() {
-  const { ovens, getActiveBatchesByOven } = useBatchStore();
+  const ovens = useBatchStore((s) => s.ovens);
+  const batches = useBatchStore((s) => s.batches);
+
+  const getActiveBatchesByOven = (ovenId: string) =>
+    batches.filter((b) => b.status === 'baking' && b.ovenId === ovenId);
 
   return (
     <div className="space-y-4">
