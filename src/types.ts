@@ -22,6 +22,7 @@ export interface Registration {
   phone: string
   status: 'confirmed' | 'waitlisted' | 'cancelled'
   checkedIn: boolean
+  rescheduleNotified: boolean
   createdAt: string
 }
 

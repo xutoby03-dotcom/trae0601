@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Calendar, MapPin, Users, Shield, CloudRain,
-  UserPlus, CheckCircle, XCircle, Clock, Baby, Trash2,
+  UserPlus, CheckCircle, XCircle, Clock, Baby, Trash2, Bell, BellOff,
 } from 'lucide-react'
 import { useCinemaStore } from '@/store'
 import RegistrationForm from '@/components/RegistrationForm'
@@ -169,6 +169,19 @@ export default function ScreeningDetail() {
                         {reg.checkedIn && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-600">已签到</span>
                         )}
+                        {screening.isRescheduled && (
+                          reg.rescheduleNotified ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-600 flex items-center gap-0.5">
+                              <Bell className="w-3 h-3" />
+                              已通知改期
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-600 flex items-center gap-0.5">
+                              <BellOff className="w-3 h-3" />
+                              未通知
+                            </span>
+                          )
+                        )}
                       </div>
                       <p className="text-xs text-night-lighter">
                         {reg.building} · {reg.peopleCount}人 · {reg.phone}
@@ -259,7 +272,7 @@ export default function ScreeningDetail() {
             </button>
           </div>
 
-          <WaitlistPanel waitlisted={waitlisted} childrenCount={childrenCount} />
+          <WaitlistPanel waitlisted={waitlisted} childrenCount={childrenCount} isRescheduled={screening.isRescheduled} />
         </div>
       </div>
 

@@ -44,11 +44,11 @@ const defaultScreenings: Screening[] = [
 ]
 
 const defaultRegistrations: Registration[] = [
-  { id: 'r1', screeningId: '1', name: '张伟', peopleCount: 3, building: '3栋501', hasChildren: true, phone: '138****1234', status: 'confirmed', checkedIn: false, createdAt: '2026-06-12T10:00:00Z' },
-  { id: 'r2', screeningId: '1', name: '李娜', peopleCount: 2, building: '5栋302', hasChildren: false, phone: '139****5678', status: 'confirmed', checkedIn: true, createdAt: '2026-06-12T11:00:00Z' },
-  { id: 'r3', screeningId: '1', name: '王芳', peopleCount: 4, building: '2栋101', hasChildren: true, phone: '137****9012', status: 'confirmed', checkedIn: true, createdAt: '2026-06-12T12:00:00Z' },
-  { id: 'r4', screeningId: '2', name: '赵刚', peopleCount: 2, building: '7栋201', hasChildren: false, phone: '136****3456', status: 'confirmed', checkedIn: false, createdAt: '2026-06-13T09:00:00Z' },
-  { id: 'r5', screeningId: '2', name: '孙丽', peopleCount: 5, building: '1栋601', hasChildren: true, phone: '135****7890', status: 'confirmed', checkedIn: true, createdAt: '2026-06-13T10:00:00Z' },
+  { id: 'r1', screeningId: '1', name: '张伟', peopleCount: 3, building: '3栋501', hasChildren: true, phone: '138****1234', status: 'confirmed', checkedIn: false, rescheduleNotified: false, createdAt: '2026-06-12T10:00:00Z' },
+  { id: 'r2', screeningId: '1', name: '李娜', peopleCount: 2, building: '5栋302', hasChildren: false, phone: '139****5678', status: 'confirmed', checkedIn: true, rescheduleNotified: false, createdAt: '2026-06-12T11:00:00Z' },
+  { id: 'r3', screeningId: '1', name: '王芳', peopleCount: 4, building: '2栋101', hasChildren: true, phone: '137****9012', status: 'confirmed', checkedIn: true, rescheduleNotified: false, createdAt: '2026-06-12T12:00:00Z' },
+  { id: 'r4', screeningId: '2', name: '赵刚', peopleCount: 2, building: '7栋201', hasChildren: false, phone: '136****3456', status: 'confirmed', checkedIn: false, rescheduleNotified: false, createdAt: '2026-06-13T09:00:00Z' },
+  { id: 'r5', screeningId: '2', name: '孙丽', peopleCount: 5, building: '1栋601', hasChildren: true, phone: '135****7890', status: 'confirmed', checkedIn: true, rescheduleNotified: false, createdAt: '2026-06-13T10:00:00Z' },
 ]
 
 function loadFromStorage<T>(key: string, fallback: T[]): T[] {
@@ -122,8 +122,14 @@ export const useCinemaStore = create<CinemaStore>((set, get) => ({
           ? { ...s, isRescheduled: true, originalDate: s.date, date: newDate }
           : s
       )
+      const registrations = state.registrations.map((r) =>
+        r.screeningId === id && r.status !== 'cancelled'
+          ? { ...r, rescheduleNotified: true }
+          : r
+      )
       saveToStorage(SCREENINGS_KEY, screenings)
-      return { screenings }
+      saveToStorage(REGISTRATIONS_KEY, registrations)
+      return { screenings, registrations }
     })
   },
 
@@ -150,6 +156,7 @@ export const useCinemaStore = create<CinemaStore>((set, get) => ({
       ...data,
       status: isConfirmed ? 'confirmed' : 'waitlisted',
       checkedIn: false,
+      rescheduleNotified: false,
       createdAt: new Date().toISOString(),
     }
 

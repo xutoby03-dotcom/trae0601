@@ -1,12 +1,13 @@
-import { Users, Clock, Baby } from 'lucide-react'
+import { Users, Clock, Baby, Bell, BellOff } from 'lucide-react'
 import type { Registration } from '@/types'
 
 interface WaitlistPanelProps {
   waitlisted: Registration[]
   childrenCount: number
+  isRescheduled?: boolean
 }
 
-export default function WaitlistPanel({ waitlisted, childrenCount }: WaitlistPanelProps) {
+export default function WaitlistPanel({ waitlisted, childrenCount, isRescheduled }: WaitlistPanelProps) {
   if (waitlisted.length === 0 && childrenCount === 0) return null
 
   return (
@@ -29,7 +30,22 @@ export default function WaitlistPanel({ waitlisted, childrenCount }: WaitlistPan
                   {index + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-night">{reg.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-night">{reg.name}</p>
+                    {isRescheduled && (
+                      reg.rescheduleNotified ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-600 flex items-center gap-0.5">
+                          <Bell className="w-3 h-3" />
+                          已通知改期
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-600 flex items-center gap-0.5">
+                          <BellOff className="w-3 h-3" />
+                          未通知
+                        </span>
+                      )
+                    )}
+                  </div>
                   <p className="text-xs text-night-lighter">{reg.building} · {reg.peopleCount}人</p>
                 </div>
                 {reg.hasChildren && (
