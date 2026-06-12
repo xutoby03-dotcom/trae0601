@@ -71,14 +71,19 @@ export default function ScreeningDetail() {
     [waitlisted, notifyFilter, screening.isRescheduled]
   )
 
+  const sumPeople = (regs: Registration[]) => regs.reduce((s, r) => s + r.peopleCount, 0)
+
+  const confirmedAllPeople = sumPeople(allConfirmedRegs)
+  const waitlistAllPeople = sumPeople(waitlisted)
+
   const filterCounts = {
-    all: allConfirmedRegs.length + waitlisted.length,
+    all: confirmedAllPeople + waitlistAllPeople,
     notified:
-      allConfirmedRegs.filter((r) => r.rescheduleNotified).length +
-      waitlisted.filter((r) => r.rescheduleNotified).length,
+      sumPeople(allConfirmedRegs.filter((r) => r.rescheduleNotified)) +
+      sumPeople(waitlisted.filter((r) => r.rescheduleNotified)),
     unnotified:
-      allConfirmedRegs.filter((r) => !r.rescheduleNotified).length +
-      waitlisted.filter((r) => !r.rescheduleNotified).length,
+      sumPeople(allConfirmedRegs.filter((r) => !r.rescheduleNotified)) +
+      sumPeople(waitlisted.filter((r) => !r.rescheduleNotified)),
   }
 
   const filterLabels: Record<NotifyFilter, string> = {
@@ -87,8 +92,8 @@ export default function ScreeningDetail() {
     unnotified: '未通知',
   }
 
-  const confirmedFilteredPeople = confirmedRegs.reduce((s, r) => s + r.peopleCount, 0)
-  const waitlistFilteredPeople = filteredWaitlisted.reduce((s, r) => s + r.peopleCount, 0)
+  const confirmedFilteredPeople = sumPeople(confirmedRegs)
+  const waitlistFilteredPeople = sumPeople(filteredWaitlisted)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -224,14 +229,8 @@ export default function ScreeningDetail() {
               <div className="mb-3 p-3 rounded-xl bg-cream border border-night-lighter/5">
                 <p className="text-xs text-night-lighter">
                   按「{filterLabels[notifyFilter]}」筛选：
-                  已报名 <span className="font-semibold text-night">{confirmedRegs.length}</span> 人
-                  （<span className="text-orange">{confirmedFilteredPeople}</span> 人次）
-                  {filteredWaitlisted.length > 0 && (
-                    <>
-                      {' · '}候补 <span className="font-semibold text-gold">{filteredWaitlisted.length}</span> 人
-                      （<span className="text-gold">{waitlistFilteredPeople}</span> 人次）
-                    </>
-                  )}
+                  已报名 <span className="font-semibold text-night">{confirmedFilteredPeople}</span> 人
+                  {' · '}候补 <span className="font-semibold text-gold">{waitlistFilteredPeople}</span> 人
                 </p>
               </div>
             )}
