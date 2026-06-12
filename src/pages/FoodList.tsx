@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useBBQStore } from '@/store/useBBQStore';
 import { STATUS_LIST } from '@/types';
 import type { FoodItem } from '@/types';
@@ -31,6 +31,31 @@ export default function FoodList() {
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptMode, setReceiptMode] = useState<'purchased' | 'receipt-only'>('purchased');
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
+  const [showReceiptDoneToast, setShowReceiptDoneToast] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const receiptItemId = searchParams.get('receiptItemId');
+
+  useEffect(() => {
+    if (receiptItemId) {
+      const target = items.find((it) => it.id === receiptItemId);
+      if (target) {
+        setSelectedCategory('全部');
+        setActiveStatus(target.status);
+        setSelectedItem(target);
+        setReceiptMode('receipt-only');
+        setReceiptModalOpen(true);
+      }
+      const cleanParams = new URLSearchParams(searchParams);
+      cleanParams.delete('receiptItemId');
+      setSearchParams(cleanParams, { replace: true });
+    }
+  }, [receiptItemId, items]);
+
+  const handleReceiptClose = () => {
+    setReceiptModalOpen(false);
+  };
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -80,6 +105,8 @@ export default function FoodList() {
         markPurchased(selectedItem.id, receiptPhoto);
       } else {
         uploadReceipt(selectedItem.id, receiptPhoto);
+        setShowReceiptDoneToast(true);
+        setTimeout(() => setShowReceiptDoneToast(false), 5000);
       }
     }
   };
@@ -113,7 +140,23 @@ export default function FoodList() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF5F0]">
+    <div className="min-h-screen bg-[#FAF5F0] relative">
+      {showReceiptDoneToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-up">
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white shadow-2xl border border-[#5A8F5C]/30">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#5A8F5C]/15 text-[#5A8F5C] text-lg">✓</span>
+            <span className="text-sm font-medium text-[#2D2A26]">小票上传成功</span>
+            <Link
+              to="/overview"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#E8652E] text-white text-xs font-medium hover:bg-[#d4581f] transition-colors"
+            >
+              回总览
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto">
         <header className="px-4 pt-6 pb-2">
           <div className="flex items-center justify-between">
@@ -176,7 +219,7 @@ export default function FoodList() {
 
       <ReceiptModal
         isOpen={receiptModalOpen}
-        onClose={() => setReceiptModalOpen(false)}
+        onClose={handleReceiptClose}
         onSubmit={handleReceiptSubmit}
         itemName={selectedItem?.name ?? ''}
         mode={receiptMode}

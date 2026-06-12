@@ -91,16 +91,23 @@ export default function Overview() {
             <p className="text-green-600 font-medium">✅ 所有人员已上传小票</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {missingReceipts.map((entry, idx) => (
+              {missingReceipts.map((entry) => (
                 <div
-                  key={idx}
-                  className="flex items-center justify-between bg-amber-50 rounded-lg px-4 py-2"
+                  key={entry.itemId}
+                  className="flex items-center justify-between gap-3 bg-amber-50 rounded-lg px-4 py-2"
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm">🧑</span>
-                    <span className="font-medium">{entry.buyer}</span>
-                  </span>
-                  <span className="text-sm text-gray-600">{entry.item}</span>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-sm flex-shrink-0">🧑</span>
+                    <span className="font-medium flex-shrink-0">{entry.buyer}</span>
+                    <span className="text-sm text-gray-600 truncate">{entry.item}</span>
+                  </div>
+                  <Link
+                    to={`/?receiptItemId=${entry.itemId}`}
+                    className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 transition-colors shadow-sm"
+                  >
+                    去补传
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </Link>
                 </div>
               ))}
             </div>

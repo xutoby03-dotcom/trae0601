@@ -42,7 +42,7 @@ interface BBQStore {
   getTotalCost: () => number;
   getPerPersonCost: () => number;
   getUnclaimedItems: () => FoodItem[];
-  getMissingReceipts: () => { buyer: string; item: string }[];
+  getMissingReceipts: () => { buyer: string; item: string; itemId: string }[];
   getUnclaimedRefrigerated: () => FoodItem[];
 }
 
@@ -116,7 +116,7 @@ export const useBBQStore = create<BBQStore>((set, get) => ({
     const { items } = get();
     return items
       .filter((item) => (item.status === '已认领' || item.status === '已买到') && item.claim && !item.claim.receiptPhoto)
-      .map((item) => ({ buyer: item.claim!.buyer, item: item.name }));
+      .map((item) => ({ buyer: item.claim!.buyer, item: item.name, itemId: item.id }));
   },
 
   getUnclaimedRefrigerated: () => {
