@@ -401,8 +401,14 @@ export default function PurchaseList() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="label">上传入库照片</label>
-                <div className="w-full h-48 rounded-xl bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden relative group">
+                <label className="label">
+                  上传入库照片 <span className="text-danger-500">*</span>
+                </label>
+                <div
+                  className={`w-full h-48 rounded-xl bg-slate-100 border-2 border-dashed flex flex-col items-center justify-center overflow-hidden relative group transition-colors ${
+                    confirmPhoto ? 'border-brand-300' : 'border-danger-300'
+                  }`}
+                >
                   {confirmPhoto ? (
                     <>
                       <img src={confirmPhoto} alt="" className="w-full h-full object-cover" />
@@ -413,23 +419,45 @@ export default function PurchaseList() {
                       </label>
                     </>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer text-slate-400 hover:text-brand-500 transition-colors">
+                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer text-danger-400 hover:text-brand-500 transition-colors">
                       <Upload className="w-10 h-10 mb-2" />
-                      <span className="text-sm font-medium">点击上传照片</span>
+                      <span className="text-sm font-medium">点击上传入库照片</span>
                       <span className="text-xs mt-1">支持 JPG、PNG 格式</span>
                       <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                     </label>
                   )}
                 </div>
-                {!confirmPhoto && (
-                  <p className="text-xs text-warn-600 mt-2">
-                    ⚠️ 建议上传物品入库实拍照片作为凭证
-                  </p>
+                {!confirmPhoto ? (
+                  <div className="mt-3 p-3 bg-danger-50 border border-danger-100 rounded-xl">
+                    <p className="text-xs text-danger-600 font-medium">
+                      ⚠️ 请上传物品入库实拍照片作为凭证
+                    </p>
+                    <p className="text-xs text-danger-500 mt-1">
+                      照片需清晰显示物品实物、数量和包装，确保入库有据可查
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-3 bg-brand-50 border border-brand-100 rounded-xl">
+                    <p className="text-xs text-brand-600 font-medium">
+                      ✅ 照片已上传，可点击确认入库
+                    </p>
+                    <p className="text-xs text-brand-500 mt-1">
+                      确认后将自动更新库存并标记补货申请为已完成
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
             <div className="flex gap-3 p-5 border-t border-slate-100">
-              <button onClick={handleConfirmArrival} className="btn-primary flex-1">
+              <button
+                onClick={handleConfirmArrival}
+                disabled={!confirmPhoto}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                  confirmPhoto
+                    ? 'btn-primary'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              >
                 <CheckCircle className="w-4 h-4" />
                 确认入库
               </button>
