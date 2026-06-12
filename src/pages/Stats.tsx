@@ -1,8 +1,18 @@
 import { useMemo } from 'react'
-import { Palette, Clock, TrendingUp } from 'lucide-react'
-import type { ClothingColor } from '@/types'
-import { COLOR_LABELS, COLOR_HEX, CATEGORY_LABELS } from '@/types'
+import { Palette, Clock, TrendingUp, Calendar, Coffee, Briefcase, Heart, Dumbbell, Building, Music } from 'lucide-react'
+import type { ClothingColor, Occasion, OutfitRecord, Clothing } from '@/types'
+import { COLOR_LABELS, COLOR_HEX, CATEGORY_LABELS, OCCASION_LABELS } from '@/types'
 import { useWardrobeStore, getDaysSince } from '@/store/wardrobeStore'
+
+const OCCASION_ICONS: Record<Occasion | 'none', typeof Coffee> = {
+  casual: Coffee,
+  work: Briefcase,
+  date: Heart,
+  sport: Dumbbell,
+  formal: Building,
+  party: Music,
+  none: Calendar,
+}
 
 function getWeekNumber(dateStr: string): string {
   const d = new Date(dateStr)
@@ -68,6 +78,33 @@ export default function Stats() {
   const maxColorCount = colorStats.length > 0 ? colorStats[0][1] : 0
   const maxWeeklyCount = weeklyStats.length > 0 ? Math.max(...weeklyStats.map((w) => w.count)) : 0
 
+  const occasionStats = useMemo(() => {
+    if (outfitRecords.length === 0) return []
+    const countMap: Record<string, number> = {}
+    for (const record of outfitRecords) {
+      const key = record.occasion || 'none'
+      countMap[key] = (countMap[key] || 0) + 1
+    }
+    return Object.entries(countMap)
+      .map(([key, count]) => ({ key: key as Occasion | 'none', count }))
+      .sort((a, b) => b.count - a.count)
+  }, [outfitRecords])
+
+  const maxOccasionCount = occasionStats.length > 0 ? Math.max(...occasionStats.map((o) => o.count)) : 0
+
+  const recentOutfits = useMemo(() => {
+    const clothingMap = new Map<string, Clothing>(clothing.map((c) => [c.id, c]))
+    return [...outfitRecords]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 6)
+      .map((record) => ({
+        record,
+        items: [record.topId, record.bottomId, record.outerwearId, record.shoesId]
+          .map((id) => clothingMap.get(id))
+          .filter(Boolean) as Clothing[],
+      }))
+  }, [outfitRecords, clothing])
+
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -104,6 +141,42 @@ export default function Stats() {
                   <span className="text-sm text-charcoal/50 w-8 text-right">{count}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm lg:col-span-1">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-5 h-5 text-warm-500" />
+            <h2 className="font-display font-semibold text-lg">场合分布</h2>
+          </div>
+          {occasionStats.length === 0 ? (
+            <p className="text-charcoal/30 text-sm">暂无数据</p>
+          ) : (
+            <div className="space-y-3">
+              {occasionStats.map(({ key, count }) => {
+                const Icon = OCCASION_ICONS[key]
+                const label = key === 'none' ? '未选择' : OCCASION_LABELS[key]
+                return (
+                  <div key={key} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-warm-100 flex items-center justify-center shrink-0">
+                      <Icon size={14} className="text-warm-500" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-charcoal/70">{label}</span>
+                        <span className="text-xs text-charcoal/40">{count}次</span>
+                      </div>
+                      <div className="h-2 bg-warm-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-warm-500 rounded-full transition-all duration-500"
+                          style={{ width: `${(count / maxOccasionCount) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -164,6 +237,62 @@ export default function Stats() {
                   <span className="text-xs text-charcoal/40">{week.label}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm lg:col-span-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar className="w-5 h-5 text-warm-500" />
+            <h2 className="font-display font-semibold text-lg">最近搭配</h2>
+          </div>
+          {recentOutfits.length === 0 ? (
+            <p className="text-charcoal/30 text-sm">暂无数据</p>
+          ) : (
+            <div className="space-y-3">
+              {recentOutfits.map(({ record, items }) => {
+                const OccasionIcon = OCCASION_ICONS[record.occasion || 'none']
+                const occasionLabel = record.occasion ? OCCASION_LABELS[record.occasion] : '未选择'
+                return (
+                  <div key={record.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-warm-50 transition-colors">
+                    <div className="flex flex-col items-center w-12 shrink-0">
+                      <span className="text-lg font-display font-bold text-warm-500">
+                        {record.date.slice(8, 10)}
+                      </span>
+                      <span className="text-[10px] text-charcoal/40">
+                        {record.date.slice(5, 7)}月
+                      </span>
+                    </div>
+                    <div className="flex -space-x-2 shrink-0">
+                      {items.slice(0, 4).map((item) =>
+                        item.photoUrl ? (
+                          <img
+                            key={item.id}
+                            src={item.photoUrl}
+                            alt={item.name}
+                            className="w-9 h-9 rounded-lg object-cover border-2 border-white shadow-sm"
+                          />
+                        ) : (
+                          <div
+                            key={item.id}
+                            className="w-9 h-9 rounded-lg border-2 border-white shadow-sm"
+                            style={{ backgroundColor: COLOR_HEX[item.color] }}
+                          />
+                        )
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-charcoal truncate">
+                        {items.map((i) => i.name).join(' + ')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <OccasionIcon size={12} className="text-warm-500" />
+                      <span className="text-xs text-charcoal/60">{occasionLabel}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
