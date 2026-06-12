@@ -166,7 +166,6 @@ export function getPendingDisposals(): Vehicle[] {
 
   return vehicles.filter((v) => {
     if (processedIds.has(v.id)) return false;
-    if (v.status === "normal") return false;
     const lastMoved = new Date(v.lastMovedAt).getTime();
     return now.getTime() - lastMoved >= thresholdMs;
   });
@@ -184,8 +183,8 @@ export function getDashboardData(): DashboardData {
       (v) => v.status === "suspicious" || v.status === "contacted",
     ).length;
     const chargingUsed = areaVehicles.filter(
-      (v) => v.status === "charging_occupied" || v.status === "normal",
-    ).slice(0, area.chargingCapacity).length;
+      (v) => v.status === "charging_occupied",
+    ).length;
 
     return {
       id: area.id,
