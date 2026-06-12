@@ -32,6 +32,7 @@ export default function FoodList() {
   const [receiptMode, setReceiptMode] = useState<'purchased' | 'receipt-only'>('purchased');
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [showReceiptDoneToast, setShowReceiptDoneToast] = useState(false);
+  const [fromOverview, setFromOverview] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function FoodList() {
         setSelectedItem(target);
         setReceiptMode('receipt-only');
         setReceiptModalOpen(true);
+        setFromOverview(true);
       }
       const cleanParams = new URLSearchParams(searchParams);
       cleanParams.delete('receiptItemId');
@@ -55,6 +57,7 @@ export default function FoodList() {
 
   const handleReceiptClose = () => {
     setReceiptModalOpen(false);
+    setFromOverview(false);
   };
 
   const filteredItems = useMemo(() => {
@@ -105,8 +108,13 @@ export default function FoodList() {
         markPurchased(selectedItem.id, receiptPhoto);
       } else {
         uploadReceipt(selectedItem.id, receiptPhoto);
-        setShowReceiptDoneToast(true);
-        setTimeout(() => setShowReceiptDoneToast(false), 5000);
+        if (fromOverview) {
+          setFromOverview(false);
+          setTimeout(() => navigate('/overview?receiptDone=1'), 150);
+        } else {
+          setShowReceiptDoneToast(true);
+          setTimeout(() => setShowReceiptDoneToast(false), 5000);
+        }
       }
     }
   };
@@ -114,6 +122,7 @@ export default function FoodList() {
   const handleUploadReceipt = (item: FoodItem) => {
     setSelectedItem(item);
     setReceiptMode('receipt-only');
+    setFromOverview(false);
     setReceiptModalOpen(true);
   };
 

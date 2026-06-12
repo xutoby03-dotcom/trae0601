@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useBBQStore } from '@/store/useBBQStore';
@@ -24,6 +25,20 @@ export default function Overview() {
   const getUnclaimedItems = useBBQStore((s) => s.getUnclaimedItems);
   const getMissingReceipts = useBBQStore((s) => s.getMissingReceipts);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showDoneToast, setShowDoneToast] = useState(false);
+  const receiptDone = searchParams.get('receiptDone');
+
+  useEffect(() => {
+    if (receiptDone === '1') {
+      setShowDoneToast(true);
+      const clean = new URLSearchParams(searchParams);
+      clean.delete('receiptDone');
+      setSearchParams(clean, { replace: true });
+      setTimeout(() => setShowDoneToast(false), 4000);
+    }
+  }, [receiptDone]);
+
   const unclaimedItems = getUnclaimedItems();
   const missingReceipts = getMissingReceipts();
   const refrigeratedItems = items.filter((item) => item.needsRefrigeration);
@@ -44,7 +59,16 @@ export default function Overview() {
   const perPersonCost = getPerPersonCost();
 
   return (
-    <div className="min-h-screen bg-[#FAF5F0]" style={{ color: '#2D2A26' }}>
+    <div className="min-h-screen bg-[#FAF5F0] relative" style={{ color: '#2D2A26' }}>
+      {showDoneToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-up">
+          <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white shadow-2xl border border-[#5A8F5C]/30">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#5A8F5C]/15 text-[#5A8F5C] text-lg">✓</span>
+            <span className="text-sm font-medium text-[#2D2A26]">小票已上传，搞定！</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center gap-3 mb-2">
         <Link to="/" className="text-[#E8652E] hover:opacity-70 transition-opacity">
