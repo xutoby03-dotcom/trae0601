@@ -1,19 +1,24 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Calendar, MapPin, Users, Shield, CloudRain,
   UserPlus, CheckCircle, XCircle, Clock, Baby, Trash2, Bell, BellOff,
+  Filter,
 } from 'lucide-react'
 import { useCinemaStore } from '@/store'
 import RegistrationForm from '@/components/RegistrationForm'
 import WaitlistPanel from '@/components/WaitlistPanel'
 import ReschedulePanel from '@/components/ReschedulePanel'
+import type { Registration } from '@/types'
+
+type NotifyFilter = 'all' | 'notified' | 'unnotified'
 
 export default function ScreeningDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [showRegForm, setShowRegForm] = useState(false)
   const [showReschedule, setShowReschedule] = useState(false)
+  const [notifyFilter, setNotifyFilter] = useState<NotifyFilter>('all')
 
   const screening = useCinemaStore((s) => s.screenings.find((sc) => sc.id === id))
   const getScreeningRegistrations = useCinemaStore((s) => s.getScreeningRegistrations)
@@ -39,7 +44,7 @@ export default function ScreeningDetail() {
   const confirmedCount = getConfirmedCount(screening.id)
   const waitlisted = getWaitlisted(screening.id)
   const childrenCount = getChildrenCount(screening.id)
-  const confirmedRegs = registrations.filter((r) => r.status === 'confirmed')
+  const allConfirmedRegs = registrations.filter((r) => r.status === 'confirmed')
   const remainingSeats = screening.seatLimit - confirmedCount
 
   const statusMap: Record<string, { label: string; color: string }> = {
@@ -48,6 +53,42 @@ export default function ScreeningDetail() {
     completed: { label: '已结束', color: 'bg-night-lighter/10 text-night-lighter' },
     rained_out: { label: '因雨改期', color: 'bg-blue-100 text-blue-700' },
   }
+
+  const filterFn = (r: Registration): boolean => {
+    if (!screening.isRescheduled) return true
+    if (notifyFilter === 'all') return true
+    if (notifyFilter === 'notified') return r.rescheduleNotified
+    if (notifyFilter === 'unnotified') return !r.rescheduleNotified
+    return true
+  }
+
+  const confirmedRegs = useMemo(
+    () => allConfirmedRegs.filter(filterFn),
+    [allConfirmedRegs, notifyFilter, screening.isRescheduled]
+  )
+  const filteredWaitlisted = useMemo(
+    () => waitlisted.filter(filterFn),
+    [waitlisted, notifyFilter, screening.isRescheduled]
+  )
+
+  const filterCounts = {
+    all: allConfirmedRegs.length + waitlisted.length,
+    notified:
+      allConfirmedRegs.filter((r) => r.rescheduleNotified).length +
+      waitlisted.filter((r) => r.rescheduleNotified).length,
+    unnotified:
+      allConfirmedRegs.filter((r) => !r.rescheduleNotified).length +
+      waitlisted.filter((r) => !r.rescheduleNotified).length,
+  }
+
+  const filterLabels: Record<NotifyFilter, string> = {
+    all: '全部',
+    notified: '已通知',
+    unnotified: '未通知',
+  }
+
+  const confirmedFilteredPeople = confirmedRegs.reduce((s, r) => s + r.peopleCount, 0)
+  const waitlistFilteredPeople = filteredWaitlisted.reduce((s, r) => s + r.peopleCount, 0)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -136,17 +177,64 @@ export default function ScreeningDetail() {
           </div>
 
           <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h2 className="font-bold text-night flex items-center gap-2">
                 <Users className="w-4 h-4 text-orange" />
                 报名列表
               </h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-night-lighter">
-                  已报名 {confirmedRegs.length} 人
-                </span>
-              </div>
+
+              {screening.isRescheduled ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 bg-cream rounded-xl p-1">
+                    {(['all', 'notified', 'unnotified'] as NotifyFilter[]).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setNotifyFilter(f)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-all duration-200 ${
+                          notifyFilter === f
+                            ? 'bg-white text-night shadow-sm'
+                            : 'text-night-lighter/60 hover:text-night-lighter'
+                        }`}
+                      >
+                        {f === 'notified' && <Bell className="w-3 h-3" />}
+                        {f === 'unnotified' && <BellOff className="w-3 h-3" />}
+                        {f === 'all' && <Filter className="w-3 h-3" />}
+                        {filterLabels[f]}
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] ml-0.5 ${
+                          notifyFilter === f
+                            ? 'bg-orange/10 text-orange'
+                            : 'bg-night-lighter/10 text-night-lighter'
+                        }`}>
+                          {filterCounts[f]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-night-lighter">
+                    已报名 {confirmedRegs.length} 人
+                  </span>
+                </div>
+              )}
             </div>
+
+            {screening.isRescheduled && notifyFilter !== 'all' && (
+              <div className="mb-3 p-3 rounded-xl bg-cream border border-night-lighter/5">
+                <p className="text-xs text-night-lighter">
+                  按「{filterLabels[notifyFilter]}」筛选：
+                  已报名 <span className="font-semibold text-night">{confirmedRegs.length}</span> 人
+                  （<span className="text-orange">{confirmedFilteredPeople}</span> 人次）
+                  {filteredWaitlisted.length > 0 && (
+                    <>
+                      {' · '}候补 <span className="font-semibold text-gold">{filteredWaitlisted.length}</span> 人
+                      （<span className="text-gold">{waitlistFilteredPeople}</span> 人次）
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
 
             {confirmedRegs.length > 0 ? (
               <div className="space-y-2">
@@ -164,7 +252,7 @@ export default function ScreeningDetail() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-night">{reg.name}</p>
                         {reg.checkedIn && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-600">已签到</span>
@@ -216,7 +304,11 @@ export default function ScreeningDetail() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-night-lighter/60 text-center py-6">暂无报名</p>
+              <p className="text-sm text-night-lighter/60 text-center py-6">
+                {screening.isRescheduled && notifyFilter !== 'all'
+                  ? `当前筛选「${filterLabels[notifyFilter]}」下无报名记录`
+                  : '暂无报名'}
+              </p>
             )}
           </div>
         </div>
@@ -272,7 +364,17 @@ export default function ScreeningDetail() {
             </button>
           </div>
 
-          <WaitlistPanel waitlisted={waitlisted} childrenCount={childrenCount} isRescheduled={screening.isRescheduled} />
+          <WaitlistPanel
+            waitlisted={filteredWaitlisted}
+            childrenCount={
+              notifyFilter === 'all'
+                ? childrenCount
+                : filteredWaitlisted
+                    .filter((r) => r.hasChildren)
+                    .reduce((sum, r) => sum + Math.max(1, Math.floor(r.peopleCount / 2)), 0)
+            }
+            isRescheduled={screening.isRescheduled}
+          />
         </div>
       </div>
 
