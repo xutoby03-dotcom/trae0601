@@ -9,9 +9,10 @@ import {
   Upload,
   User,
   Clock,
-  Filter,
-  Eye,
   X,
+  Camera,
+  Image as ImageIcon,
+  Eye,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
@@ -27,12 +28,16 @@ export default function PurchaseList() {
 
   const [tab, setTab] = useState<'pending' | 'ordered' | 'history'>('pending');
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [selectedPurchase, setSelectedPurchase] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [purchaseForm, setPurchaseForm] = useState({
     quantity: '',
     expectedArrivalDate: '',
     actualAmount: '',
   });
+  const [confirmPhoto, setConfirmPhoto] = useState('');
 
   const pendingRequests = requests.filter((r) => r.status === 'pending');
   const urgencyOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -76,9 +81,29 @@ export default function PurchaseList() {
     setTab('ordered');
   };
 
-  const handleConfirmArrival = (purchaseId: string) => {
-    if (confirm('确认物品已到货并入库？')) {
-      confirmPurchaseArrival(purchaseId);
+  const openConfirmModal = (purchaseId: string) => {
+    setSelectedPurchase(purchaseId);
+    setConfirmPhoto('');
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmArrival = () => {
+    if (!selectedPurchase) return;
+    confirmPurchaseArrival(selectedPurchase, confirmPhoto);
+    setShowConfirmModal(false);
+    setSelectedPurchase(null);
+    setConfirmPhoto('');
+    setTab('history');
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setConfirmPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -199,7 +224,7 @@ export default function PurchaseList() {
                     </span>
                   </div>
                 </div>
-                <button onClick={() => handleConfirmArrival(pur.id)} className="btn-primary flex-shrink-0">
+                <button onClick={() => openConfirmModal(pur.id)} className="btn-primary flex-shrink-0">
                   <CheckCircle className="w-4 h-4" />
                   确认入库
                 </button>
@@ -225,6 +250,7 @@ export default function PurchaseList() {
             <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
                 <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">物品</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">入库照片</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">数量</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">金额</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase">下单时间</th>
@@ -239,6 +265,19 @@ export default function PurchaseList() {
                   <tr key={pur.id} className="hover:bg-slate-50">
                     <td className="px-6 py-3">
                       <p className="font-medium text-slate-900 text-sm">{item?.name || '未知'}</p>
+                    </td>
+                    <td className="px-6 py-3">
+                      {pur.receiptPhotoUrl ? (
+                        <button
+                          onClick={() => setShowImageModal(pur.receiptPhotoUrl)}
+                          className="flex items-center gap-1 text-brand-600 hover:text-brand-700 text-sm font-medium"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          查看照片
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-sm text-slate-600">x{pur.quantity}</td>
                     <td className="px-6 py-3 text-sm text-slate-600">¥{pur.actualAmount}</td>
@@ -345,6 +384,80 @@ export default function PurchaseList() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-hover w-full max-w-md animate-slide-up">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <h3 className="font-display text-xl text-slate-900">确认入库</h3>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="label">上传入库照片</label>
+                <div className="w-full h-48 rounded-xl bg-slate-100 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden relative group">
+                  {confirmPhoto ? (
+                    <>
+                      <img src={confirmPhoto} alt="" className="w-full h-full object-cover" />
+                      <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <Camera className="w-8 h-8 text-white mb-2" />
+                        <span className="text-white text-sm">重新上传</span>
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                      </label>
+                    </>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer text-slate-400 hover:text-brand-500 transition-colors">
+                      <Upload className="w-10 h-10 mb-2" />
+                      <span className="text-sm font-medium">点击上传照片</span>
+                      <span className="text-xs mt-1">支持 JPG、PNG 格式</span>
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                    </label>
+                  )}
+                </div>
+                {!confirmPhoto && (
+                  <p className="text-xs text-warn-600 mt-2">
+                    ⚠️ 建议上传物品入库实拍照片作为凭证
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-slate-100">
+              <button onClick={handleConfirmArrival} className="btn-primary flex-1">
+                <CheckCircle className="w-4 h-4" />
+                确认入库
+              </button>
+              <button onClick={() => setShowConfirmModal(false)} className="btn-secondary flex-1">
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImageModal && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowImageModal(null)}
+        >
+          <button
+            onClick={() => setShowImageModal(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={showImageModal}
+            alt="入库照片"
+            className="max-w-full max-h-[90vh] rounded-xl shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
