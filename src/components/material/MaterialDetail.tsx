@@ -16,7 +16,7 @@ import {
   getStatusColor,
   formatDate,
 } from '@/utils/helpers';
-import { Package, Calendar, MapPin, Building, Edit2, Trash2, Plus, Wrench } from 'lucide-react';
+import { Package, Calendar, MapPin, Building, Edit2, Trash2, Plus, Wrench, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface MaterialDetailProps {
   material: Material | null;
@@ -46,6 +46,7 @@ const MaterialDetail = ({
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
   const [showAfterSaleForm, setShowAfterSaleForm] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'warning' } | null>(null);
 
   if (!material) return null;
 
@@ -59,6 +60,55 @@ const MaterialDetail = ({
   const handleAddDelivery = (data: Omit<Delivery, 'id' | 'createdAt'>) => {
     onAddDelivery(data);
     setShowDeliveryForm(false);
+
+    const remaining = material.orderQuantity - receivedQuantity;
+    const missingQuantity = remaining - data.receivedQuantity;
+    const createdAfterSales: string[] = [];
+
+    if (data.damagedQuantity > 0) {
+      onAddAfterSale({
+        materialId: data.materialId,
+        type: 'damaged',
+        severity: data.damagedQuantity >= 3 ? 'high' : data.damagedQuantity >= 2 ? 'medium' : 'low',
+        status: 'pending',
+        description: `本次到货破损 ${data.damagedQuantity} ${material.unit}`,
+        solution: '',
+        handler: '',
+        resolvedAt: null,
+      });
+      createdAfterSales.push(`破损 ${data.damagedQuantity} ${material.unit}`);
+    }
+
+    if (missingQuantity > 0) {
+      onAddAfterSale({
+        materialId: data.materialId,
+        type: 'missing',
+        severity: missingQuantity >= 10 ? 'high' : missingQuantity >= 5 ? 'medium' : 'low',
+        status: 'pending',
+        description: `本次到货少发 ${missingQuantity} ${material.unit}，应收 ${remaining} ${material.unit}，实收 ${data.receivedQuantity} ${material.unit}`,
+        solution: '',
+        handler: '',
+        resolvedAt: null,
+      });
+      createdAfterSales.push(`缺件 ${missingQuantity} ${material.unit}`);
+    }
+
+    if (createdAfterSales.length > 0) {
+      setToast({
+        show: true,
+        message: `已自动创建售后工单：${createdAfterSales.join('、')}`,
+        type: 'warning',
+      });
+      setActiveTab('aftersales');
+    } else {
+      setToast({
+        show: true,
+        message: '到货登记成功',
+        type: 'success',
+      });
+    }
+
+    setTimeout(() => setToast(null), 4000);
   };
 
   const handleAddAfterSale = (data: Omit<AfterSale, 'id' | 'createdAt'>) => {
@@ -215,6 +265,24 @@ const MaterialDetail = ({
             )}
           </div>
         </div>
+        {toast && toast.show && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg ${
+                toast.type === 'success'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-amber-500 text-white'
+              }`}
+            >
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5" />
+              ) : (
+                <AlertTriangle className="w-5 h-5" />
+              )}
+              <span className="text-sm font-medium">{toast.message}</span>
+            </div>
+          </div>
+        )}
       </Drawer>
 
       <Modal
