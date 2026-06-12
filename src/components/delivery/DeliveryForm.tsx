@@ -54,7 +54,13 @@ const DeliveryForm = ({
           ? Number(value)
           : value,
     }));
-    if (name === 'wrongDeliveryNote' || name === 'isWrongDelivery') {
+
+    if (name === 'wrongDeliveryNote') {
+      if (value.trim()) {
+        setError(null);
+      }
+    }
+    if (name === 'isWrongDelivery') {
       setError(null);
     }
   };
