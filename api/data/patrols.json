@@ -1,0 +1,72 @@
+[
+  {
+    "id": "patrol-001",
+    "vehicleId": "veh-002",
+    "areaId": "area-001",
+    "status": "suspicious",
+    "remark": "车辆布满灰尘，轮胎漏气，疑似长期未使用",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dusty%20abandoned%20electric%20scooter%20flat%20tire&image_size=square",
+    "patrolTime": "2026-06-05T09:30:00.000Z",
+    "patrolUser": "张建国"
+  },
+  {
+    "id": "patrol-002",
+    "vehicleId": "veh-003",
+    "areaId": "area-002",
+    "status": "suspicious",
+    "remark": "车身锈蚀严重，链条已断，无人认领",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=rusty%20abandoned%20old%20bicycle%20broken%20chain&image_size=square",
+    "patrolTime": "2026-06-05T10:15:00.000Z",
+    "patrolUser": "李淑芬"
+  },
+  {
+    "id": "patrol-003",
+    "vehicleId": "veh-004",
+    "areaId": "area-003",
+    "status": "charging_occupied",
+    "remark": "非充电车辆占用充电车位，已贴提示条",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=motorcycle%20parked%20in%20electric%20vehicle%20charging%20spot&image_size=square",
+    "patrolTime": "2026-06-08T14:00:00.000Z",
+    "patrolUser": "王志强"
+  },
+  {
+    "id": "patrol-004",
+    "vehicleId": "veh-005",
+    "areaId": "area-003",
+    "status": "contacted",
+    "remark": "已电话联系车主，承诺3日内挪走",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=notice%20sticker%20on%20parked%20scooter&image_size=square",
+    "patrolTime": "2026-06-09T11:00:00.000Z",
+    "patrolUser": "王志强"
+  },
+  {
+    "id": "patrol-005",
+    "vehicleId": "veh-007",
+    "areaId": "area-004",
+    "status": "suspicious",
+    "remark": "停放超过1个月，座位积灰严重",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dusty%20parked%20scooter%20covered%20in%20dirt&image_size=square",
+    "patrolTime": "2026-06-01T16:20:00.000Z",
+    "patrolUser": "赵美玲"
+  },
+  {
+    "id": "patrol-006",
+    "vehicleId": "veh-010",
+    "areaId": "area-002",
+    "status": "suspicious",
+    "remark": "轮胎完全瘪掉，车锁已生锈",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=abandoned%20electric%20bike%20flat%20tire%20rusty%20lock&image_size=square",
+    "patrolTime": "2026-05-28T10:45:00.000Z",
+    "patrolUser": "李淑芬"
+  },
+  {
+    "id": "patrol-007",
+    "vehicleId": "veh-001",
+    "areaId": "area-001",
+    "status": "normal",
+    "remark": "车辆正常，车主日常使用",
+    "photoUrl": "",
+    "patrolTime": "2026-06-10T09:00:00.000Z",
+    "patrolUser": "张建国"
+  }
+]

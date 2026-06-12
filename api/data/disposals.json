@@ -1,0 +1,13 @@
+[
+  {
+    "id": "disp-001",
+    "vehicleId": "veh-010",
+    "areaId": "area-002",
+    "disposalType": "清运",
+    "disposalTime": "2026-06-01T14:00:00.000Z",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=abandoned%20bicycle%20being%20loaded%20on%20truck&image_size=square",
+    "remark": "无法联系车主，已统一清运处理",
+    "handledBy": "李淑芬",
+    "createdAt": "2026-06-01T14:30:00.000Z"
+  }
+]

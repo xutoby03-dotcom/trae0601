@@ -1,0 +1,112 @@
+[
+  {
+    "id": "veh-001",
+    "plateNumber": "京A·12345",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138001",
+    "areaId": "area-001",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=modern%20electric%20scooter%20white%20color%20parked&image_size=square",
+    "status": "normal",
+    "lastMovedAt": "2026-06-10T08:30:00.000Z",
+    "createdAt": "2026-04-01T10:00:00.000Z"
+  },
+  {
+    "id": "veh-002",
+    "plateNumber": "京B·67890",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138002",
+    "areaId": "area-001",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=electric%20bicycle%20black%20parked%20sidewalk&image_size=square",
+    "status": "suspicious",
+    "lastMovedAt": "2026-05-20T14:20:00.000Z",
+    "createdAt": "2026-04-05T11:00:00.000Z"
+  },
+  {
+    "id": "veh-003",
+    "plateNumber": "京C·11111",
+    "vehicleType": "自行车",
+    "ownerPhone": "13800138003",
+    "areaId": "area-002",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=old%20rusty%20bicycle%20abandoned%20corner&image_size=square",
+    "status": "suspicious",
+    "lastMovedAt": "2026-05-01T09:00:00.000Z",
+    "createdAt": "2026-03-20T14:00:00.000Z"
+  },
+  {
+    "id": "veh-004",
+    "plateNumber": "京D·22222",
+    "vehicleType": "摩托车",
+    "ownerPhone": "13800138004",
+    "areaId": "area-003",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=electric%20motorcycle%20red%20sporty%20parked&image_size=square",
+    "status": "charging_occupied",
+    "lastMovedAt": "2026-06-11T07:00:00.000Z",
+    "createdAt": "2026-04-10T08:30:00.000Z"
+  },
+  {
+    "id": "veh-005",
+    "plateNumber": "京E·33333",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138005",
+    "areaId": "area-003",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=family%20electric%20scooter%20blue%20color&image_size=square",
+    "status": "contacted",
+    "lastMovedAt": "2026-05-15T16:45:00.000Z",
+    "createdAt": "2026-03-25T13:00:00.000Z"
+  },
+  {
+    "id": "veh-006",
+    "plateNumber": "京F·44444",
+    "vehicleType": "三轮车",
+    "ownerPhone": "13800138006",
+    "areaId": "area-001",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=three%20wheeled%20electric%20cargo%20bike&image_size=square",
+    "status": "normal",
+    "lastMovedAt": "2026-06-11T12:00:00.000Z",
+    "createdAt": "2026-04-15T09:00:00.000Z"
+  },
+  {
+    "id": "veh-007",
+    "plateNumber": "京G·55555",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138007",
+    "areaId": "area-004",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=compact%20electric%20scooter%20gray%20parked&image_size=square",
+    "status": "suspicious",
+    "lastMovedAt": "2026-04-28T11:00:00.000Z",
+    "createdAt": "2026-04-01T16:00:00.000Z"
+  },
+  {
+    "id": "veh-008",
+    "plateNumber": "京H·66666",
+    "vehicleType": "自行车",
+    "ownerPhone": "13800138008",
+    "areaId": "area-004",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=lightweight%20road%20bicycle%20green%20color&image_size=square",
+    "status": "normal",
+    "lastMovedAt": "2026-06-11T18:30:00.000Z",
+    "createdAt": "2026-05-10T10:00:00.000Z"
+  },
+  {
+    "id": "veh-009",
+    "plateNumber": "京J·77777",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138009",
+    "areaId": "area-003",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=electric%20delivery%20scooter%20with%20cargo%20box&image_size=square",
+    "status": "normal",
+    "lastMovedAt": "2026-06-10T20:00:00.000Z",
+    "createdAt": "2026-04-20T08:00:00.000Z"
+  },
+  {
+    "id": "veh-010",
+    "plateNumber": "京K·88888",
+    "vehicleType": "电动车",
+    "ownerPhone": "13800138010",
+    "areaId": "area-002",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dusty%20old%20electric%20bike%20flat%20tire&image_size=square",
+    "status": "suspicious",
+    "lastMovedAt": "2026-03-10T15:00:00.000Z",
+    "createdAt": "2026-02-01T10:00:00.000Z"
+  }
+]

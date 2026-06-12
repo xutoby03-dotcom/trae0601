@@ -1,0 +1,42 @@
+[
+  {
+    "id": "area-001",
+    "name": "1号楼东侧车棚",
+    "capacity": 50,
+    "chargingCapacity": 10,
+    "hasCharging": true,
+    "manager": "张建国",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=community%20bicycle%20parking%20shed%20outdoor%20clean%20modern&image_size=landscape_16_9",
+    "createdAt": "2026-03-15T09:00:00.000Z"
+  },
+  {
+    "id": "area-002",
+    "name": "2号楼南侧车棚",
+    "capacity": 40,
+    "chargingCapacity": 0,
+    "hasCharging": false,
+    "manager": "李淑芬",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=residential%20bike%20storage%20area%20concrete%20shelter&image_size=landscape_16_9",
+    "createdAt": "2026-03-15T09:15:00.000Z"
+  },
+  {
+    "id": "area-003",
+    "name": "3号楼地下车库B区",
+    "capacity": 80,
+    "chargingCapacity": 20,
+    "hasCharging": true,
+    "manager": "王志强",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=underground%20parking%20garage%20electric%20vehicle%20charging%20station&image_size=landscape_16_9",
+    "createdAt": "2026-03-15T09:30:00.000Z"
+  },
+  {
+    "id": "area-004",
+    "name": "5号楼北侧车棚",
+    "capacity": 35,
+    "chargingCapacity": 8,
+    "hasCharging": true,
+    "manager": "赵美玲",
+    "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=covered%20bike%20parking%20lot%20with%20solar%20lighting&image_size=landscape_16_9",
+    "createdAt": "2026-03-15T09:45:00.000Z"
+  }
+]
