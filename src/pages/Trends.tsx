@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,
@@ -20,16 +21,30 @@ import {
   Cloud,
   Sunset,
   Moon,
+  ChevronLeft,
+  User,
+  Heart,
+  RefreshCw,
+  XCircle,
+  CheckCircle,
+  ClipboardList,
 } from "lucide-react";
 import { useAppStore } from "@/store";
 import {
   getWeeklyAbnormalData,
   getRetestStats,
   getTimeSlotDistribution,
+  getTimeSlot,
+  formatTime,
+  isRetestOverdue,
+  getRetestRemainingMinutes,
+  formatDateTime,
+  getFeelingEmoji,
 } from "@/utils/bpUtils";
 import RetestAlertBanner from "@/components/BPRecord/RetestAlertBanner";
-import type { TimeSlot } from "@/types";
+import type { TimeSlot, BloodPressureRecord } from "@/types";
 import { cn } from "@/lib/utils";
+import { startOfDay, addDays, parseISO } from "date-fns";
 
 const SLOT_ICONS: Record<TimeSlot, typeof Sun> = {
   morning: Sunrise,
@@ -40,8 +55,12 @@ const SLOT_ICONS: Record<TimeSlot, typeof Sun> = {
   night: Moon,
 };
 
+const ALL_SLOTS: TimeSlot[] = ["morning", "forenoon", "noon", "afternoon", "evening", "night"];
+
 export default function Trends() {
+  const navigate = useNavigate();
   const { records, selectedElderId, profiles } = useAppStore();
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   const elderRecords = useMemo(() => {
     return selectedElderId
@@ -58,6 +77,48 @@ export default function Trends() {
   const peakSlot = timeSlotData.reduce((max, curr) =>
     curr.count > max.count ? curr : max
   );
+
+  const slotDetailRecords = useMemo<BloodPressureRecord[]>(() => {
+    if (!selectedSlot) return [];
+    const today = startOfDay(new Date());
+    const weekAgo = addDays(today, -6);
+    return elderRecords
+      .filter(
+        (r) =>
+          !r.originalRecordId &&
+          r.isAbnormal &&
+          parseISO(r.measureTime) >= weekAgo &&
+          getTimeSlot(r.measureTime) === selectedSlot
+      )
+      .sort(
+        (a, b) => parseISO(b.measureTime).getTime() - parseISO(a.measureTime).getTime()
+      );
+  }, [elderRecords, selectedSlot]);
+
+  const getRetestStatus = (record: BloodPressureRecord) => {
+    if (!record.needsRetest) return null;
+    if (record.retestCompleted) {
+      const retest = records.find((r) => r.id === record.retestRecordId);
+      return {
+        type: "done" as const,
+        label: retest
+          ? `已复测 ${formatTime(retest.measureTime)}`
+          : "已完成复测",
+        retest,
+      };
+    }
+    const overdue = isRetestOverdue(record);
+    const remaining = getRetestRemainingMinutes(record);
+    return {
+      type: overdue ? ("overdue" as const) : ("pending" as const),
+      label: overdue
+        ? "复测已超时"
+        : remaining > 0
+        ? `${remaining} 分钟内需复测`
+        : "即将超时",
+      retest: null,
+    };
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -252,71 +313,252 @@ export default function Trends() {
       </div>
 
       <div className="card">
-        <h2 className="section-title mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary-600" />
-          异常高发时段分布
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {timeSlotData.map((slot) => {
-            const Icon = SLOT_ICONS[slot.slot];
-            const intensity = slot.count / maxSlotCount;
-            const isPeak = slot.count === maxSlotCount && slot.count > 0;
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="section-title flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary-600" />
+            异常高发时段分布
+          </h2>
+          {selectedSlot && (
+            <button
+              onClick={() => setSelectedSlot(null)}
+              className="flex items-center gap-1.5 text-sm text-primary-600 font-medium hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              返回全部时段
+            </button>
+          )}
+        </div>
 
-            return (
-              <div
-                key={slot.slot}
-                className={cn(
-                  "relative p-5 rounded-2xl border-2 transition-all",
-                  isPeak
-                    ? "border-danger-300 bg-gradient-to-br from-danger-50 to-white shadow-lg"
-                    : "border-gray-100 bg-white hover:border-gray-200"
-                )}
-              >
-                {isPeak && (
-                  <span className="absolute -top-2 -right-2 tag bg-danger-500 text-white text-[10px]">
-                    最高
-                  </span>
-                )}
-                <div
-                  className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center mb-3",
-                    isPeak ? "bg-danger-100" : "bg-gray-100"
-                  )}
-                >
-                  <Icon
+        {!selectedSlot ? (
+          <>
+            <p className="text-sm text-gray-500 mb-4">
+              点击下方时段卡片，查看该时段内本周所有异常血压记录
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {timeSlotData.map((slot) => {
+                const Icon = SLOT_ICONS[slot.slot];
+                const intensity = slot.count / maxSlotCount;
+                const isPeak = slot.count === maxSlotCount && slot.count > 0;
+                const clickable = slot.count > 0;
+
+                return (
+                  <button
+                    key={slot.slot}
+                    onClick={() => clickable && setSelectedSlot(slot.slot)}
+                    disabled={!clickable}
                     className={cn(
-                      "w-6 h-6",
-                      isPeak ? "text-danger-600" : "text-gray-500"
-                    )}
-                  />
-                </div>
-                <p className="text-sm font-medium text-gray-900 mb-1">
-                  {slot.label}
-                </p>
-                <div className="flex items-end gap-2">
-                  <p
-                    className={cn(
-                      "text-2xl font-bold font-serif",
-                      isPeak ? "text-danger-600" : "text-gray-900"
+                      "relative p-5 rounded-2xl border-2 transition-all text-left w-full",
+                      isPeak
+                        ? "border-danger-300 bg-gradient-to-br from-danger-50 to-white shadow-lg"
+                        : clickable
+                        ? "border-gray-100 bg-white hover:border-primary-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                        : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
                     )}
                   >
-                    {slot.count}
-                  </p>
-                  <span className="text-xs text-gray-500 pb-1">次异常</span>
-                </div>
-                <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      isPeak ? "bg-danger-500" : "bg-primary-400"
+                    {isPeak && (
+                      <span className="absolute -top-2 -right-2 tag bg-danger-500 text-white text-[10px]">
+                        最高
+                      </span>
                     )}
-                    style={{ width: `${intensity * 100}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    {clickable && (
+                      <span className="absolute top-3 right-3 text-xs text-primary-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        查看明细 →
+                      </span>
+                    )}
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center mb-3",
+                        isPeak
+                          ? "bg-danger-100"
+                          : clickable
+                          ? "bg-primary-50"
+                          : "bg-gray-100"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-6 h-6",
+                          isPeak
+                            ? "text-danger-600"
+                            : clickable
+                            ? "text-primary-600"
+                            : "text-gray-400"
+                        )}
+                      />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 mb-1">
+                      {slot.label}
+                    </p>
+                    <div className="flex items-end gap-2">
+                      <p
+                        className={cn(
+                          "text-2xl font-bold font-serif",
+                          isPeak ? "text-danger-600" : "text-gray-900"
+                        )}
+                      >
+                        {slot.count}
+                      </p>
+                      <span className="text-xs text-gray-500 pb-1">次异常</span>
+                    </div>
+                    <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          isPeak ? "bg-danger-500" : "bg-primary-400"
+                        )}
+                        style={{ width: `${intensity * 100}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="animate-fade-in">
+            {(() => {
+              const slotInfo = timeSlotData.find((s) => s.slot === selectedSlot);
+              const Icon = SLOT_ICONS[selectedSlot];
+              return (
+                <>
+                  <div className="flex items-center gap-4 mb-5 p-4 bg-gradient-to-r from-primary-50 to-white rounded-xl border border-primary-100">
+                    <div className="w-14 h-14 rounded-2xl bg-primary-100 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-7 h-7 text-primary-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-500">时段明细</p>
+                      <p className="text-xl font-bold font-serif text-gray-900">
+                        {slotInfo?.label}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-bold font-serif text-primary-600">
+                        {slotDetailRecords.length}
+                      </p>
+                      <p className="text-xs text-gray-500">本周异常次数</p>
+                    </div>
+                  </div>
+
+                  {slotDetailRecords.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">本周该时段暂无异常记录</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {slotDetailRecords.map((record) => {
+                        const elder = profiles.find((p) => p.id === record.elderId);
+                        const retestStatus = getRetestStatus(record);
+
+                        return (
+                          <div
+                            key={record.id}
+                            className="flex items-center gap-4 p-4 rounded-xl bg-white border border-gray-100 hover:border-primary-200 hover:shadow-sm transition-all group"
+                          >
+                            <div className="flex-shrink-0">
+                              {elder ? (
+                                <img
+                                  src={elder.avatar}
+                                  alt={elder.name}
+                                  className="w-12 h-12 rounded-xl object-cover"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                                  <User className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="font-semibold text-gray-900">
+                                  {elder?.name || "未知"}
+                                </span>
+                                <span className="text-2xl mr-0.5">
+                                  {getFeelingEmoji(record.feeling)}
+                                </span>
+                                {record.isAbnormal && (
+                                  <span className="tag bg-danger-100 text-danger-700 text-[11px] py-0.5">
+                                    异常
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-gray-500 flex-wrap">
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {formatDateTime(record.measureTime)}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Heart className="w-3.5 h-3.5 text-danger-400" />
+                                  高压 <b className="text-gray-900">{record.systolic}</b>
+                                  <span className="text-gray-400 mx-0.5">/</span>
+                                  低压 <b className="text-gray-900">{record.diastolic}</b>
+                                  <span className="text-gray-400 ml-1">·</span>
+                                  <span className="ml-1">心率 {record.heartRate}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              {retestStatus && (
+                                <div className="text-right">
+                                  <p
+                                    className={cn(
+                                      "text-sm font-medium inline-flex items-center gap-1",
+                                      retestStatus.type === "done" && "text-success-600",
+                                      retestStatus.type === "overdue" &&
+                                        "text-danger-600",
+                                      retestStatus.type === "pending" &&
+                                        "text-amber-600"
+                                    )}
+                                  >
+                                    {retestStatus.type === "done" && (
+                                      <CheckCircle className="w-4 h-4" />
+                                    )}
+                                    {retestStatus.type === "overdue" && (
+                                      <XCircle className="w-4 h-4" />
+                                    )}
+                                    {retestStatus.type === "pending" && (
+                                      <RefreshCw className="w-4 h-4" />
+                                    )}
+                                    {retestStatus.label}
+                                  </p>
+                                  {retestStatus.retest && (
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      复测 {retestStatus.retest.systolic}/
+                                      {retestStatus.retest.diastolic}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {record.needsRetest && !record.retestCompleted && (
+                                <button
+                                  onClick={() =>
+                                    navigate(`/records/${record.id}/retest`)
+                                  }
+                                  className={cn(
+                                    "px-4 py-2 rounded-xl font-medium text-sm transition-all hover:scale-105 active:scale-95",
+                                    retestStatus?.type === "overdue"
+                                      ? "bg-danger-500 text-white hover:bg-danger-600 animate-pulse-red"
+                                      : "bg-primary-600 text-white hover:bg-primary-700"
+                                  )}
+                                >
+                                  <RefreshCw className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                                  去复测
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );
