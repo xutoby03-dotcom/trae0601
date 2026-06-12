@@ -91,13 +91,24 @@ export default function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
 
         <div className="mt-4 pt-4 border-t border-warm-100 flex items-center justify-between gap-3">
-          <a
-            href={candidate.resumeUrl}
-            className="inline-flex items-center gap-1.5 text-sm text-terra hover:text-terra-dark font-medium transition-colors"
-          >
-            <FileText size={15} />
-            {candidate.resumeName}
-          </a>
+          {candidate.resumeUrl && candidate.resumeUrl !== '#' ? (
+            <a
+              href={candidate.resumeUrl}
+              download={candidate.resumeName}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-terra hover:text-terra-dark font-medium transition-colors"
+            >
+              <FileText size={15} />
+              {candidate.resumeName}
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-sm text-warm-400 font-medium">
+              <FileText size={15} />
+              {candidate.resumeName}
+              <span className="text-xs text-warm-300">（待上传）</span>
+            </span>
+          )}
 
           <div
             className={cn(

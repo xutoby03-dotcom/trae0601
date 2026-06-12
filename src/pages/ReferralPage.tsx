@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Briefcase, Plus, Users2, X } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Briefcase, Plus, Users2, X, Upload, FileText } from 'lucide-react'
 import StatsPanel from '@/components/StatsPanel'
 import FilterBar from '@/components/FilterBar'
 import CandidateCard from '@/components/CandidateCard'
@@ -21,6 +21,34 @@ export default function ReferralPage() {
     resumeName: '',
     bonusAmount: 5000,
   })
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [resumeUrl, setResumeUrl] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (resumeUrl) {
+      URL.revokeObjectURL(resumeUrl)
+    }
+
+    const url = URL.createObjectURL(file)
+    setResumeFile(file)
+    setResumeUrl(url)
+    setForm((prev) => ({ ...prev, resumeName: file.name }))
+  }
+
+  const clearFile = () => {
+    if (resumeUrl) {
+      URL.revokeObjectURL(resumeUrl)
+    }
+    setResumeFile(null)
+    setResumeUrl('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const filtered = useMemo(() => {
     return candidates.filter((c) => {
@@ -32,16 +60,24 @@ export default function ReferralPage() {
 
   const handleAdd = () => {
     if (!form.name.trim()) return
+
+    const finalResumeName = resumeFile
+      ? resumeFile.name
+      : form.resumeName.trim() || `${form.name}-${form.targetPosition}-简历.pdf`
+
+    const finalResumeUrl = resumeUrl || '#'
+
     addCandidate({
       name: form.name.trim(),
       avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
       targetPosition: form.targetPosition,
       referrer: form.referrer,
-      resumeUrl: '#',
-      resumeName: form.resumeName.trim() || `${form.name}-${form.targetPosition}-简历.pdf`,
+      resumeUrl: finalResumeUrl,
+      resumeName: finalResumeName,
       sourceDate: new Date().toISOString().slice(0, 10),
       bonusAmount: form.bonusAmount,
     })
+
     setForm({
       name: '',
       targetPosition: POSITIONS[0],
@@ -49,6 +85,8 @@ export default function ReferralPage() {
       resumeName: '',
       bonusAmount: 5000,
     })
+    setResumeFile(null)
+    setResumeUrl('')
     setShowAdd(false)
   }
 
@@ -172,15 +210,53 @@ export default function ReferralPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1.5">
-                  简历文件名
+                  简历文件
                 </label>
                 <input
-                  type="text"
-                  value={form.resumeName}
-                  onChange={(e) => setForm({ ...form, resumeName: e.target.value })}
-                  placeholder="可选，如 张三-前端-3年.pdf"
-                  className="w-full px-4 py-2.5 rounded-xl border border-warm-200 bg-warm-50 focus:outline-none focus:ring-2 focus:ring-terra/30 focus:border-terra transition-all"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="resume-upload"
                 />
+                {!resumeFile ? (
+                  <label
+                    htmlFor="resume-upload"
+                    className="flex flex-col items-center justify-center w-full px-4 py-6 rounded-xl border-2 border-dashed border-warm-200 bg-warm-50 hover:bg-warm-100 hover:border-terra/40 cursor-pointer transition-all"
+                  >
+                    <Upload size={22} className="text-warm-400 mb-2" />
+                    <span className="text-sm text-warm-600 font-medium">
+                      点击上传简历文件
+                    </span>
+                    <span className="text-xs text-warm-400 mt-0.5">
+                      支持 PDF、Word、TXT 格式
+                    </span>
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-warm-50 border border-warm-200">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-terra/10 flex items-center justify-center flex-shrink-0">
+                        <FileText size={16} className="text-terra" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-charcoal truncate">
+                          {resumeFile.name}
+                        </p>
+                        <p className="text-xs text-warm-500">
+                          {(resumeFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearFile}
+                      className="p-1.5 rounded-lg hover:bg-warm-200 text-warm-500 hover:text-warm-700 transition-colors flex-shrink-0"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-charcoal mb-1.5">
