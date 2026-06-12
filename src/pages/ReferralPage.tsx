@@ -50,6 +50,25 @@ export default function ReferralPage() {
     }
   }
 
+  const closeAddCandidate = () => {
+    if (resumeUrl) {
+      URL.revokeObjectURL(resumeUrl)
+    }
+    setResumeFile(null)
+    setResumeUrl('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setForm({
+      name: '',
+      targetPosition: POSITIONS[0],
+      referrer: REFERRERS[0],
+      resumeName: '',
+      bonusAmount: 5000,
+    })
+    setShowAdd(false)
+  }
+
   const filtered = useMemo(() => {
     return candidates.filter((c) => {
       if (filterPosition && c.targetPosition !== filterPosition) return false
@@ -87,6 +106,9 @@ export default function ReferralPage() {
     })
     setResumeFile(null)
     setResumeUrl('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     setShowAdd(false)
   }
 
@@ -149,7 +171,7 @@ export default function ReferralPage() {
       {showAdd && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
-          onClick={() => setShowAdd(false)}
+          onClick={closeAddCandidate}
         >
           <div
             className="w-full max-w-md bg-white rounded-2xl shadow-2xl animate-scale-in overflow-hidden"
@@ -158,7 +180,7 @@ export default function ReferralPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-warm-200">
               <h3 className="text-lg font-semibold text-charcoal">新增内推候选人</h3>
               <button
-                onClick={() => setShowAdd(false)}
+                onClick={closeAddCandidate}
                 className="p-2 rounded-full hover:bg-warm-100 text-warm-600 transition-colors"
               >
                 <X size={18} />
@@ -273,7 +295,7 @@ export default function ReferralPage() {
 
             <div className="px-6 py-4 bg-warm-50 border-t border-warm-200 flex gap-3">
               <button
-                onClick={() => setShowAdd(false)}
+                onClick={closeAddCandidate}
                 className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-white border border-warm-200 text-warm-700 hover:bg-warm-100 transition-colors"
               >
                 取消
