@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { Batch } from '@/types';
 import { useBatchStore } from '@/store/batchStore';
-import { formatDateTime, formatDuration, isToday } from '@/utils/time';
+import { formatDateTime, formatDuration } from '@/utils/time';
 
 const colorGradeMap = {
   light: { label: '偏浅', emoji: '🌤️', color: 'bg-amber-100 text-amber-800 border-amber-300' },
@@ -173,8 +173,13 @@ export default function FinishedBatchList() {
   const { batches, ovens } = useBatchStore();
 
   const finished = batches
-    .filter((b) => b.status === 'finished' && isToday(b.startTime))
-    .sort((a, b) => (b.finishTime || '').localeCompare(a.finishTime || ''));
+    .filter((b) => b.status === 'finished')
+    .sort((a, b) => {
+      if (!a.finishTime && !b.finishTime) return 0;
+      if (!a.finishTime) return 1;
+      if (!b.finishTime) return -1;
+      return b.finishTime.localeCompare(a.finishTime);
+    });
 
   const getOvenName = (id: string) => ovens.find((o) => o.id === id)?.name || '--';
 
@@ -187,7 +192,7 @@ export default function FinishedBatchList() {
           </div>
           <div>
             <h3 className="font-display text-lg font-bold text-espresso-800">出炉记录</h3>
-            <p className="text-xs text-espresso-500">今日已完成的批次，点击查看详情</p>
+            <p className="text-xs text-espresso-500">所有已完成的批次，点击查看详情</p>
           </div>
         </div>
         <span className="text-sm font-medium text-espresso-600 bg-copper-100 px-3 py-1 rounded-full">
@@ -208,7 +213,7 @@ export default function FinishedBatchList() {
       ) : (
         <div className="py-12 text-center text-espresso-400">
           <div className="text-4xl mb-2">🍪</div>
-          <div className="text-sm">今天还没有出炉的批次</div>
+          <div className="text-sm">还没有出炉的批次</div>
         </div>
       )}
     </div>
