@@ -58,7 +58,7 @@ export default function Dashboard() {
             icon={<CalendarCheck className="w-6 h-6" />}
             trend={{ value: '15%', isUp: true }}
             color="rose"
-            onClick={() => navigate('/reservations?status=pending')}
+            onClick={() => navigate('/reservations?today=1')}
             clickableHint="查看待取"
           />
           <StatCard

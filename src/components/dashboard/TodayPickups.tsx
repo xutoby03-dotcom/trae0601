@@ -11,7 +11,7 @@ export default function TodayPickups() {
   const todayPickups = getTodayPickups();
 
   const goToPending = () => {
-    navigate('/reservations?status=pending');
+    navigate('/reservations?today=1');
   };
 
   return (
