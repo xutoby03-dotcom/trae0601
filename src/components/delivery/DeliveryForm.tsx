@@ -38,6 +38,8 @@ const DeliveryForm = ({
     wrongDeliveryNote: '',
   });
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -52,10 +54,22 @@ const DeliveryForm = ({
           ? Number(value)
           : value,
     }));
+    if (name === 'wrongDeliveryNote' || name === 'isWrongDelivery') {
+      setError(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const trimmedNote = formData.wrongDeliveryNote.trim();
+
+    if (formData.isWrongDelivery && !trimmedNote) {
+      setError('请填写错发说明');
+      return;
+    }
+
     onSubmit({
       delivery: {
         materialId,
@@ -69,7 +83,7 @@ const DeliveryForm = ({
       },
       wrongDelivery: {
         isWrong: formData.isWrongDelivery,
-        note: formData.wrongDeliveryNote,
+        note: trimmedNote,
       },
     });
   };
@@ -177,8 +191,16 @@ const DeliveryForm = ({
               rows={2}
               placeholder="请说明送错的具体情况，如：订购800x800mm，实际送来600x600mm..."
               required
-              className="w-full px-3 py-2 rounded-lg border border-purple-300 text-sm text-gray-900 placeholder-gray-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-purple-50/30"
+              className={`w-full px-3 py-2 rounded-lg border text-sm text-gray-900 placeholder-gray-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none bg-purple-50/30 ${
+                error ? 'border-red-400' : 'border-purple-300'
+              }`}
             />
+            {error && (
+              <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+                {error}
+              </p>
+            )}
           </div>
         )}
 
