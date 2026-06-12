@@ -38,7 +38,7 @@ export default function StatsPanel({ selectedMonth = 'all' }: Props) {
     });
   }, [waterChanges, selectedMonth]);
 
-  const monthlyData = getMonthlyWaterChanges(waterChanges);
+  const monthlyData = getMonthlyWaterChanges(filteredChanges);
   const qualityTrend = getWaterQualityTrend(filteredChanges);
   const problematicFish = getMostProblematicFish(observations, fishes);
   const phStats = calculatePhStats(filteredChanges);
@@ -63,32 +63,38 @@ export default function StatsPanel({ selectedMonth = 'all' }: Props) {
         <div>
           <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <Activity size={16} className="text-sky-500" />
-            每月换水次数
+            {selectedMonth === 'all' ? '每月换水次数' : '当月换水次数'}
           </h4>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#999" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#999" allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    fontSize: '12px',
-                  }}
-                  formatter={(value: number) => [`${value} 次`, '换水次数']}
-                />
-                <Bar
-                  dataKey="count"
-                  fill="#0EA5E9"
-                  radius={[4, 4, 0, 0]}
-                  fillOpacity={1}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {filteredChanges.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
+              当前筛选无数据
+            </div>
+          ) : (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#999" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="#999" allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '12px',
+                    }}
+                    formatter={(value: number) => [`${value} 次`, '换水次数']}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="#0EA5E9"
+                    radius={[4, 4, 0, 0]}
+                    fillOpacity={1}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         <div>
