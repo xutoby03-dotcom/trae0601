@@ -1,0 +1,57 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    container: {
+      center: true,
+    },
+    extend: {
+      fontFamily: {
+        sans: ['"Noto Sans SC"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        brand: {
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          500: '#10b981',
+          600: '#059669',
+        },
+      },
+      keyframes: {},
+      animation: {},
+    },
+  },
+  safelist: [
+    'bg-emerald-500',
+    'bg-orange-400',
+    'bg-orange-500',
+    'bg-rose-500',
+    'bg-sky-500',
+    'bg-amber-500',
+    'text-emerald-600',
+    'text-emerald-700',
+    'text-orange-600',
+    'text-orange-700',
+    'text-rose-600',
+    'text-rose-700',
+    'text-amber-700',
+    'ring-emerald-100',
+    'ring-emerald-200',
+    'ring-rose-100',
+    'ring-amber-100',
+    'ring-amber-200',
+    'bg-emerald-50',
+    'bg-emerald-100',
+    'bg-orange-50',
+    'bg-orange-100',
+    'bg-rose-50',
+    'bg-rose-100',
+    'bg-amber-50',
+    'bg-amber-100',
+    'shadow-emerald-200',
+    'shadow-emerald-300',
+  ],
+  plugins: [],
+};
