@@ -8,6 +8,7 @@ import StatusTabs from '@/components/StatusTabs';
 import FoodCard from '@/components/FoodCard';
 import ClaimModal from '@/components/ClaimModal';
 import SubstituteModal from '@/components/SubstituteModal';
+import ReceiptModal from '@/components/ReceiptModal';
 import CostBar from '@/components/CostBar';
 
 export default function FoodList() {
@@ -16,6 +17,7 @@ export default function FoodList() {
     participants,
     claimItem,
     markPurchased,
+    uploadReceipt,
     markOutOfStock,
     addSubstitute,
     getTotalCost,
@@ -26,6 +28,8 @@ export default function FoodList() {
   const [activeStatus, setActiveStatus] = useState('未认领');
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [substituteModalOpen, setSubstituteModalOpen] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [receiptMode, setReceiptMode] = useState<'purchased' | 'receipt-only'>('purchased');
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
 
   const filteredItems = useMemo(() => {
@@ -65,7 +69,25 @@ export default function FoodList() {
   };
 
   const handleMarkPurchased = (item: FoodItem) => {
-    markPurchased(item.id, '');
+    setSelectedItem(item);
+    setReceiptMode('purchased');
+    setReceiptModalOpen(true);
+  };
+
+  const handleReceiptSubmit = (receiptPhoto: string) => {
+    if (selectedItem) {
+      if (receiptMode === 'purchased') {
+        markPurchased(selectedItem.id, receiptPhoto);
+      } else {
+        uploadReceipt(selectedItem.id, receiptPhoto);
+      }
+    }
+  };
+
+  const handleUploadReceipt = (item: FoodItem) => {
+    setSelectedItem(item);
+    setReceiptMode('receipt-only');
+    setReceiptModalOpen(true);
   };
 
   const handleMarkOutOfStock = (item: FoodItem) => {
@@ -126,6 +148,7 @@ export default function FoodList() {
                 onMarkPurchased={handleMarkPurchased}
                 onMarkOutOfStock={handleMarkOutOfStock}
                 onSubstitute={handleSubstitute}
+                onUploadReceipt={handleUploadReceipt}
               />
             </div>
           ))}
@@ -149,6 +172,14 @@ export default function FoodList() {
         onClose={() => setSubstituteModalOpen(false)}
         onSubmit={handleSubstituteSubmit}
         itemName={selectedItem?.name ?? ''}
+      />
+
+      <ReceiptModal
+        isOpen={receiptModalOpen}
+        onClose={() => setReceiptModalOpen(false)}
+        onSubmit={handleReceiptSubmit}
+        itemName={selectedItem?.name ?? ''}
+        mode={receiptMode}
       />
 
       <CostBar

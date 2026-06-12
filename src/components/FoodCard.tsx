@@ -8,9 +8,10 @@ interface FoodCardProps {
   onMarkPurchased: (item: FoodItem) => void;
   onMarkOutOfStock: (item: FoodItem) => void;
   onSubstitute: (item: FoodItem) => void;
+  onUploadReceipt: (item: FoodItem) => void;
 }
 
-export default function FoodCard({ item, onClaim, onMarkPurchased, onMarkOutOfStock, onSubstitute }: FoodCardProps) {
+export default function FoodCard({ item, onClaim, onMarkPurchased, onMarkOutOfStock, onSubstitute, onUploadReceipt }: FoodCardProps) {
   const categoryEmoji = CATEGORY_EMOJI[item.category];
   const statusColor = STATUS_COLOR[item.status];
 
@@ -69,7 +70,7 @@ export default function FoodCard({ item, onClaim, onMarkPurchased, onMarkOutOfSt
             <>
               <button
                 onClick={() => onMarkPurchased(item)}
-                className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#4AA8D8] text-white text-xs font-medium hover:bg-[#3a9ac8] transition-colors"
+                className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#4AA8D8] text-white text-xs font-medium hover:bg-[#3a9ac8] transition-colors shadow-sm"
               >
                 <ShoppingCart className="w-3 h-3" />
                 已买到
@@ -82,22 +83,48 @@ export default function FoodCard({ item, onClaim, onMarkPurchased, onMarkOutOfSt
                 缺货
               </button>
               {item.claim && !item.claim.receiptPhoto && (
-                <span className="flex items-center gap-0.5 text-[10px] text-[#8B5E3C]">
+                <button
+                  onClick={() => onUploadReceipt(item)}
+                  className="flex items-center gap-0.5 text-[10px] text-[#8B5E3C] hover:text-[#E8652E] transition-colors underline decoration-dotted underline-offset-2"
+                >
                   <Camera className="w-3 h-3" />
-                  上传小票
+                  补传小票
+                </button>
+              )}
+              {item.claim?.receiptPhoto && (
+                <span className="flex items-center gap-0.5 text-[10px] text-[#5A8F5C]">
+                  <Check className="w-3 h-3" />
+                  小票已传
                 </span>
               )}
             </>
           )}
 
           {item.status === '已买到' && (
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white"
-              style={{ backgroundColor: statusColor }}
-            >
-              <Check className="w-3 h-3" />
-              已买到
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-white"
+                style={{ backgroundColor: statusColor }}
+              >
+                <Check className="w-3 h-3" />
+                已买到
+              </span>
+              {item.claim && !item.claim.receiptPhoto && (
+                <button
+                  onClick={() => onUploadReceipt(item)}
+                  className="flex items-center gap-0.5 text-[10px] text-[#D94F4F] hover:text-[#E8652E] transition-colors underline decoration-dotted underline-offset-2 font-medium"
+                >
+                  <Camera className="w-3 h-3" />
+                  缺小票，补传
+                </button>
+              )}
+              {item.claim?.receiptPhoto && (
+                <span className="flex items-center gap-0.5 text-[10px] text-[#5A8F5C]">
+                  <Check className="w-3 h-3" />
+                  小票已传
+                </span>
+              )}
+            </div>
           )}
 
           {item.status === '临时缺货' && (

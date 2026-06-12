@@ -35,6 +35,7 @@ interface BBQStore {
   participants: Participant[];
   claimItem: (id: string, claim: ClaimInfo) => void;
   markPurchased: (id: string, receiptPhoto: string) => void;
+  uploadReceipt: (id: string, receiptPhoto: string) => void;
   markOutOfStock: (id: string) => void;
   addSubstitute: (id: string, substitute: SubstituteInfo) => void;
   updateItemStatus: (id: string, status: FoodItem['status']) => void;
@@ -61,6 +62,15 @@ export const useBBQStore = create<BBQStore>((set, get) => ({
       items: state.items.map((item) =>
         item.id === id
           ? { ...item, status: '已买到' as const, claim: { ...item.claim!, receiptPhoto } }
+          : item
+      ),
+    })),
+
+  uploadReceipt: (id, receiptPhoto) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id
+          ? { ...item, claim: { ...item.claim!, receiptPhoto } }
           : item
       ),
     })),
