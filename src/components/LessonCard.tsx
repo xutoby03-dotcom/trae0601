@@ -62,7 +62,11 @@ function formatDateTime(iso: string): string {
 
 function isUpcomingSoon(iso: string): boolean {
   const diffDays = localDayDiff(iso)
-  return diffDays >= 0 && diffDays <= 3
+  if (diffDays < 0 || diffDays > 3) return false
+  if (diffDays > 0) return true
+  const d = new Date(iso).getTime()
+  const now = Date.now()
+  return d > now
 }
 
 export const LessonCard: React.FC<Props> = ({ lesson, onFeedback, onEnroll, onGiveUp }) => {
