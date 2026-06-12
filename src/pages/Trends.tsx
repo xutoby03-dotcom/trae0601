@@ -70,8 +70,20 @@ export default function Trends() {
 
   const weeklyData = getWeeklyAbnormalData(elderRecords);
   const retestStats = getRetestStats(elderRecords);
-  const timeSlotData = getTimeSlotDistribution(elderRecords);
   const selectedElder = profiles.find((p) => p.id === selectedElderId);
+
+  const weeklyAbnormalRecords = useMemo<BloodPressureRecord[]>(() => {
+    const today = startOfDay(new Date());
+    const weekAgo = addDays(today, -6);
+    return elderRecords.filter(
+      (r) =>
+        !r.originalRecordId &&
+        r.isAbnormal &&
+        parseISO(r.measureTime) >= weekAgo
+    );
+  }, [elderRecords]);
+
+  const timeSlotData = getTimeSlotDistribution(weeklyAbnormalRecords);
 
   const maxSlotCount = Math.max(...timeSlotData.map((d) => d.count), 1);
   const peakSlot = timeSlotData.reduce((max, curr) =>
@@ -80,20 +92,12 @@ export default function Trends() {
 
   const slotDetailRecords = useMemo<BloodPressureRecord[]>(() => {
     if (!selectedSlot) return [];
-    const today = startOfDay(new Date());
-    const weekAgo = addDays(today, -6);
-    return elderRecords
-      .filter(
-        (r) =>
-          !r.originalRecordId &&
-          r.isAbnormal &&
-          parseISO(r.measureTime) >= weekAgo &&
-          getTimeSlot(r.measureTime) === selectedSlot
-      )
+    return weeklyAbnormalRecords
+      .filter((r) => getTimeSlot(r.measureTime) === selectedSlot)
       .sort(
         (a, b) => parseISO(b.measureTime).getTime() - parseISO(a.measureTime).getTime()
       );
-  }, [elderRecords, selectedSlot]);
+  }, [weeklyAbnormalRecords, selectedSlot]);
 
   const getRetestStatus = (record: BloodPressureRecord) => {
     if (!record.needsRetest) return null;
