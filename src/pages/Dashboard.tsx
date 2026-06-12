@@ -209,10 +209,14 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="text-center p-2 bg-slate-50 rounded-xl">
                   <div className="text-xl font-bold text-amber-600">{room.borrowed}</div>
                   <div className="text-xs text-slate-500 mt-0.5">借出中</div>
+                </div>
+                <div className="text-center p-2 bg-slate-50 rounded-xl">
+                  <div className="text-xl font-bold text-sky-600">{room.pendingReturn}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">待归还</div>
                 </div>
                 <div className="text-center p-2 bg-slate-50 rounded-xl">
                   <div className="text-xl font-bold text-red-600">{room.overdue}</div>
