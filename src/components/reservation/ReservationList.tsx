@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useReservationStore } from '@/store/reservationStore';
 import { ReservationStatus } from '@/types';
 import ReservationCard from './ReservationCard';
@@ -14,14 +14,8 @@ const statusTabs: { key: ReservationStatus | 'all'; label: string; icon: typeof 
 ];
 
 export default function ReservationList() {
-  const { reservations, checkTimeoutReservations } = useReservationStore();
+  const { reservations } = useReservationStore();
   const [activeTab, setActiveTab] = useState<ReservationStatus | 'all'>('all');
-
-  useEffect(() => {
-    checkTimeoutReservations();
-    const interval = setInterval(checkTimeoutReservations, 60000);
-    return () => clearInterval(interval);
-  }, [checkTimeoutReservations]);
 
   const filteredReservations = activeTab === 'all'
     ? reservations

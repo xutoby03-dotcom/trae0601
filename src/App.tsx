@@ -1,11 +1,21 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/pages/Dashboard';
 import Bouquets from '@/pages/Bouquets';
 import Reservations from '@/pages/Reservations';
 import Records from '@/pages/Records';
+import { useReservationStore } from '@/store/reservationStore';
 
 function App() {
+  const { checkTimeoutReservations } = useReservationStore();
+
+  useEffect(() => {
+    checkTimeoutReservations();
+    const interval = setInterval(checkTimeoutReservations, 60000);
+    return () => clearInterval(interval);
+  }, [checkTimeoutReservations]);
+
   return (
     <BrowserRouter>
       <div className="flex min-h-screen bg-cream-50 font-sans">

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import TodayPickups from '@/components/dashboard/TodayPickups';
@@ -11,12 +10,8 @@ import { CalendarCheck, AlertTriangle, TrendingUp, Flower2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard() {
-  const { reservations, checkTimeoutReservations, getTodayPickups } = useReservationStore();
+  const { reservations, getTodayPickups } = useReservationStore();
   const { bouquets } = useBouquetStore();
-
-  useEffect(() => {
-    checkTimeoutReservations();
-  }, [checkTimeoutReservations]);
 
   const todayPickups = getTodayPickups();
   const completedCount = reservations.filter(r => r.status === 'completed').length;
