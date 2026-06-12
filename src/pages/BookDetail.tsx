@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -19,6 +19,8 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Sparkles,
+  ThumbsUp,
 } from "lucide-react";
 import Modal from "@/components/Modal";
 import BookForm from "@/components/BookForm";
@@ -27,25 +29,41 @@ import DamageForm from "@/components/DamageForm";
 import ReviewForm from "@/components/ReviewForm";
 import { useBookStore } from "@/store/bookStore";
 import { STATUS_LABELS, STATUS_COLORS } from "@/types";
-import type { BorrowRecord } from "@/types";
+import type { BorrowRecord, Review } from "@/types";
 
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    books,
-    boxes,
-    deleteBook,
-    getBorrowRecordsByBook,
-    getReviewsByBook,
-    getActiveBorrowRecord,
-    returnBook,
-  } = useBookStore();
 
-  const book = books.find((b) => b.id === id);
-  const borrowRecords = id ? getBorrowRecordsByBook(id) : [];
-  const reviews = id ? getReviewsByBook(id) : [];
-  const activeRecord = id ? getActiveBorrowRecord(id) : undefined;
+  const book = useBookStore((state) => state.books.find((b) => b.id === id));
+  const allReviews = useBookStore((state) => state.reviews);
+  const allBorrowRecords = useBookStore((state) => state.borrowRecords);
+  const boxes = useBookStore((state) => state.boxes);
+  const deleteBook = useBookStore((state) => state.deleteBook);
+  const returnBook = useBookStore((state) => state.returnBook);
+
+  const reviews = useMemo<Review[]>(() => {
+    if (!id) return [];
+    return allReviews
+      .filter((r) => r.bookId === id)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [allReviews, id]);
+
+  const borrowRecords = useMemo<BorrowRecord[]>(() => {
+    if (!id) return [];
+    return allBorrowRecords
+      .filter((r) => r.bookId === id)
+      .sort((a, b) => b.borrowDate.localeCompare(a.borrowDate));
+  }, [allBorrowRecords, id]);
+
+  const activeRecord = useMemo(() => {
+    if (!id) return undefined;
+    return allBorrowRecords.find(
+      (r) => r.bookId === id && (r.status === "borrowing" || r.status === "overdue")
+    );
+  }, [allBorrowRecords, id]);
+
+  const newestReviewId = reviews[0]?.id;
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isBorrowOpen, setIsBorrowOpen] = useState(false);
@@ -358,45 +376,126 @@ export default function BookDetail() {
             )}
           </div>
 
-          <div className="card p-5">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <MessageSquarePlus className="w-5 h-5 text-teal-500" />
-              读者短评 ({reviews.length})
-            </h3>
+          <div className="card p-5 overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <MessageSquarePlus className="w-5 h-5 text-teal-500" />
+                读者短评
+                <span className="badge bg-teal-100 text-teal-700 ml-1">
+                  {reviews.length} 条
+                </span>
+                {averageRating > 0 && (
+                  <span className="flex items-center gap-1 ml-2 text-xs text-gray-500">
+                    平均
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3 h-3 ${
+                            s <= Math.round(averageRating)
+                              ? "text-amber-400 fill-amber-400"
+                              : "text-gray-200"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-medium text-amber-600">{averageRating.toFixed(1)}</span>
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={() => setIsReviewOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white text-xs font-medium rounded-lg shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                写短评
+              </button>
+            </div>
+
             {reviews.length === 0 ? (
-              <div className="py-8 text-center text-gray-400 text-sm">
-                还没有人写短评，快来做第一个吧！
+              <div className="py-12 flex flex-col items-center justify-center text-center animate-fade-in">
+                <div className="relative mb-5">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-100 to-teal-100 flex items-center justify-center">
+                    <MessageSquarePlus className="w-10 h-10 text-teal-500" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-2xl bg-amber-400 flex items-center justify-center shadow-md animate-float">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                <p className="text-gray-700 font-medium">还没有同学写短评</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  读过这本书？快来写下你的感想，分享给其他同学吧～
+                </p>
+                <button
+                  onClick={() => setIsReviewOpen(true)}
+                  className="mt-5 btn-primary flex items-center gap-2 !px-5 !py-2 !text-sm"
+                >
+                  <ThumbsUp className="w-4 h-4" />
+                  做第一个写短评的人
+                </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {reviews.map((review) => (
-                  <div key={review.id} className="p-4 bg-gradient-to-br from-amber-50/50 to-teal-50/50 rounded-xl border border-amber-50">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-bold text-sm">
-                          {review.studentName.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800 text-sm">{review.studentName}</p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star
-                                  key={s}
-                                  className={`w-3 h-3 ${
-                                    s <= review.rating ? "text-amber-400 fill-amber-400" : "text-gray-200"
-                                  }`}
-                                />
-                              ))}
+              <div className="space-y-3 max-h-[480px] overflow-y-auto scrollbar-thin pr-1">
+                {reviews.map((review, idx) => {
+                  const isNewest = review.id === newestReviewId;
+                  return (
+                    <div
+                      key={review.id}
+                      className={`p-4 rounded-2xl border transition-all duration-500 ${
+                        isNewest
+                          ? "bg-gradient-to-br from-amber-50 to-teal-50 border-teal-200 shadow-sm animate-slide-up ring-1 ring-teal-200/50"
+                          : "bg-gray-50/50 border-gray-100 hover:bg-amber-50/30 hover:border-amber-100"
+                      }`}
+                      style={{ animationDelay: `${idx * 30}ms` }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm ${
+                              isNewest
+                                ? "bg-gradient-to-br from-amber-400 to-teal-500 text-white"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {review.studentName.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-gray-800">{review.studentName}</p>
+                              {isNewest && (
+                                <span className="badge bg-gradient-to-r from-amber-400 to-teal-500 text-white shadow-sm flex items-center gap-0.5">
+                                  <Sparkles className="w-3 h-3" />
+                                  最新
+                                </span>
+                              )}
                             </div>
-                            <span className="text-xs text-gray-400 ml-1">{review.createdAt}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    className={`w-3.5 h-3.5 ${
+                                      s <= review.rating
+                                        ? "text-amber-400 fill-amber-400"
+                                        : "text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <CalendarDays className="w-3 h-3" />
+                                {review.createdAt}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
+                      <p className="mt-3 text-gray-700 text-sm leading-relaxed pl-12">
+                        {review.content}
+                      </p>
                     </div>
-                    <p className="mt-3 text-gray-700 text-sm leading-relaxed">{review.content}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
