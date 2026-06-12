@@ -19,6 +19,8 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'photos' | 'history'>('info');
   const [editModal, setEditModal] = useState<EditModalType>(null);
   const [editValue, setEditValue] = useState('');
+  const [editStartTime, setEditStartTime] = useState('');
+  const [editEndTime, setEditEndTime] = useState('');
   const [editReason, setEditReason] = useState('');
 
   const task = tasks.find((t) => t.id === taskId);
@@ -60,11 +62,17 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
     setEditModal(type);
     setEditValue(currentValue);
     setEditReason('');
+    if (type === 'time' && task) {
+      setEditStartTime(task.startTime);
+      setEditEndTime(task.endTime || '');
+    }
   };
 
   const closeEditModal = () => {
     setEditModal(null);
     setEditValue('');
+    setEditStartTime('');
+    setEditEndTime('');
     setEditReason('');
   };
 
@@ -79,10 +87,20 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
     let updates: Record<string, any> = {};
 
     if (editModal === 'time') {
-      oldValue = formatTime(task.startTime) + (task.endTime ? ` - ${formatTime(task.endTime)}` : '');
-      newValue = editValue;
-      const [start, end] = editValue.split(' - ');
-      updates = { startTime: start, endTime: end || undefined };
+      const oldStartTime = task.startTime;
+      const oldEndTime = task.endTime;
+      const newStartTime = editStartTime;
+      const newEndTime = editEndTime.trim() || undefined;
+
+      oldValue = formatTime(oldStartTime) + (oldEndTime ? ` - ${formatTime(oldEndTime)}` : '');
+      newValue = formatTime(newStartTime) + (newEndTime ? ` - ${formatTime(newEndTime)}` : '');
+
+      updates = { startTime: newStartTime };
+      if (newEndTime !== undefined) {
+        updates.endTime = newEndTime;
+      } else if (oldEndTime && !newEndTime) {
+        updates.endTime = undefined;
+      }
     } else if (editModal === 'person') {
       const oldPerson = people.find((p) => p.id === task.assigneeId);
       oldValue = oldPerson ? `${oldPerson.name} (${oldPerson.role})` : '待认领';
@@ -495,11 +513,9 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
                       </label>
                       <input
                         type="datetime-local"
-                        value={editValue.split(' - ')[0].replace(' ', 'T').slice(0, 16)}
+                        value={editStartTime.replace(' ', 'T').slice(0, 16)}
                         onChange={(e) => {
-                          const start = e.target.value.replace('T', ' ');
-                          const end = editValue.split(' - ')[1] || '';
-                          setEditValue(start + (end ? ` - ${end}` : ''));
+                          setEditStartTime(e.target.value.replace('T', ' '));
                         }}
                         className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
                       />
@@ -510,11 +526,9 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
                       </label>
                       <input
                         type="datetime-local"
-                        value={editValue.split(' - ')[1] ? editValue.split(' - ')[1].replace(' ', 'T').slice(0, 16) : ''}
+                        value={editEndTime ? editEndTime.replace(' ', 'T').slice(0, 16) : ''}
                         onChange={(e) => {
-                          const start = editValue.split(' - ')[0];
-                          const end = e.target.value ? e.target.value.replace('T', ' ') : '';
-                          setEditValue(start + (end ? ` - ${end}` : ''));
+                          setEditEndTime(e.target.value ? e.target.value.replace('T', ' ') : '');
                         }}
                         className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
                       />
