@@ -13,6 +13,7 @@ import {
   Image,
   Alert,
   Empty,
+  Switch,
 } from 'antd';
 import {
   ToolOutlined,
@@ -33,6 +34,7 @@ import {
   getDaysUntilDue,
   getDeviceTypeIcon,
   getAnomalyStatusText,
+  isThisMonth,
 } from '../utils/helpers';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -41,6 +43,9 @@ const AnomalyPage: React.FC = () => {
   const { points, anomalyTickets, inspectionRecords, updateAnomalyStatus, currentUser, addInspectionRecord } =
     useStore();
   const [statusFilter, setStatusFilter] = useState<AnomalyStatus | null>(null);
+  const [areaFilter, setAreaFilter] = useState<string | null>(null);
+  const [deviceTypeFilter, setDeviceTypeFilter] = useState<string | null>(null);
+  const [onlyOpenThisMonth, setOnlyOpenThisMonth] = useState(false);
   const [repairModalOpen, setRepairModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [currentTicket, setCurrentTicket] = useState<AnomalyTicket | null>(null);
@@ -49,6 +54,9 @@ const AnomalyPage: React.FC = () => {
   const [form] = Form.useForm();
 
   const overduePoints = useMemo(() => points.filter(isOverdue), [points]);
+
+  const areas = Array.from(new Set(points.map((p) => p.area)));
+  const deviceTypes = Array.from(new Set(points.map((p) => p.deviceType)));
 
   const filteredTickets = useMemo(() => {
     let tickets = [...anomalyTickets].sort(
@@ -59,8 +67,28 @@ const AnomalyPage: React.FC = () => {
       tickets = tickets.filter((t) => t.status === statusFilter);
     }
 
+    if (areaFilter) {
+      tickets = tickets.filter((t) => {
+        const point = points.find((p) => p.id === t.pointId);
+        return point?.area === areaFilter;
+      });
+    }
+
+    if (deviceTypeFilter) {
+      tickets = tickets.filter((t) => {
+        const point = points.find((p) => p.id === t.pointId);
+        return point?.deviceType === deviceTypeFilter;
+      });
+    }
+
+    if (onlyOpenThisMonth) {
+      tickets = tickets.filter(
+        (t) => t.status !== 'reviewed' && isThisMonth(t.createdAt)
+      );
+    }
+
     return tickets;
-  }, [anomalyTickets, statusFilter]);
+  }, [anomalyTickets, statusFilter, areaFilter, deviceTypeFilter, onlyOpenThisMonth, points]);
 
   const handleRepair = (ticket: AnomalyTicket) => {
     setCurrentTicket(ticket);
@@ -216,20 +244,20 @@ const AnomalyPage: React.FC = () => {
   ];
 
   const stats = useMemo(() => {
-    const total = anomalyTickets.length;
-    const pending = anomalyTickets.filter((t) => t.status === 'pending').length;
-    const reported = anomalyTickets.filter((t) => t.status === 'reported').length;
-    const reviewed = anomalyTickets.filter((t) => t.status === 'reviewed').length;
+    const total = filteredTickets.length;
+    const pending = filteredTickets.filter((t) => t.status === 'pending').length;
+    const reported = filteredTickets.filter((t) => t.status === 'reported').length;
+    const reviewed = filteredTickets.filter((t) => t.status === 'reviewed').length;
     const closeRate = total > 0 ? Math.round((reviewed / total) * 100) : 0;
     return { total, pending, reported, reviewed, closeRate };
-  }, [anomalyTickets]);
+  }, [filteredTickets]);
 
   return (
     <div className="space-y-6">
       {overduePoints.length > 0 && (
         <Card
           className="border-0 shadow-md bg-gradient-to-r from-red-500 to-red-600 text-white overflow-hidden"
-          bodyStyle={{ padding: '20px 24px' }}
+          styles={{ body: { padding: '20px 24px' } }}
         >
           <Alert
             type="error"
@@ -358,16 +386,51 @@ const AnomalyPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
             <Select
-              placeholder="筛选状态"
+              placeholder="筛选楼层"
+              value={areaFilter}
+              onChange={setAreaFilter}
+              allowClear
+              className="w-28"
+            >
+              {areas.map((area) => (
+                <Select.Option key={area} value={area}>
+                  {area}
+                </Select.Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="设备类型"
+              value={deviceTypeFilter}
+              onChange={setDeviceTypeFilter}
+              allowClear
+              className="w-36"
+            >
+              {deviceTypes.map((type) => (
+                <Select.Option key={type} value={type}>
+                  {getDeviceTypeIcon(type)} {type}
+                </Select.Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="工单状态"
               value={statusFilter}
               onChange={setStatusFilter}
               allowClear
-              className="w-36"
+              className="w-32"
             >
               <Select.Option value="pending">待维修</Select.Option>
               <Select.Option value="reported">已报修</Select.Option>
               <Select.Option value="reviewed">已复查</Select.Option>
             </Select>
+            <div className="flex items-center gap-2 ml-2 pl-3 border-l border-gray-200">
+              <Switch
+                checked={onlyOpenThisMonth}
+                onChange={setOnlyOpenThisMonth}
+              />
+              <span className={`text-sm ${onlyOpenThisMonth ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                只看本月未闭环
+              </span>
+            </div>
           </div>
 
           <Space>
