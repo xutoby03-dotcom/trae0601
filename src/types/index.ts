@@ -26,6 +26,7 @@ export interface Order {
   id: string;
   elderlyName: string;
   building: string;
+  mealDate: string;
   mealType: MealType;
   dietaryNote: string;
   deliveryType: DeliveryType;

@@ -95,7 +95,7 @@ export const getOrderedCount = (dishId: string, orders: Order[]) => {
 };
 
 export const getDateOrders = (orders: Order[], dateStr: string) => {
-  return orders.filter((o) => formatDate(o.createdAt) === dateStr);
+  return orders.filter((o) => o.mealDate === dateStr);
 };
 
 export const genDateList = (days: number) => {

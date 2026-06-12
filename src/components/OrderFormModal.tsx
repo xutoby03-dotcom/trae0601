@@ -23,6 +23,7 @@ interface Props {
   onSubmit: (data: {
     elderlyName: string;
     building: string;
+    mealDate: string;
     mealType: MealType;
     dietaryNote: string;
     deliveryType: DeliveryType;
@@ -30,7 +31,7 @@ interface Props {
     items: OrderItem[];
   }) => void;
   dishes: Dish[];
-  defaultDate: string;
+  mealDate: string;
 }
 
 export default function OrderFormModal({
@@ -38,7 +39,7 @@ export default function OrderFormModal({
   onClose,
   onSubmit,
   dishes,
-  defaultDate,
+  mealDate,
 }: Props) {
   const [step, setStep] = useState<number>(1);
   const [mealType, setMealType] = useState<MealType>("lunch");
@@ -63,8 +64,8 @@ export default function OrderFormModal({
   }, [open]);
 
   const availableDishes = useMemo(() => {
-    return dishes.filter((d) => d.date === defaultDate && d.mealType === mealType);
-  }, [dishes, defaultDate, mealType]);
+    return dishes.filter((d) => d.date === mealDate && d.mealType === mealType);
+  }, [dishes, mealDate, mealType]);
 
   const totalPrice = useMemo(() => {
     let sum = 0;
@@ -105,6 +106,7 @@ export default function OrderFormModal({
     onSubmit({
       elderlyName: elderlyName.trim(),
       building,
+      mealDate,
       mealType,
       dietaryNote: dietaryNote.trim(),
       deliveryType,
@@ -185,9 +187,9 @@ export default function OrderFormModal({
           </div>
 
           <div className="text-xs text-brand-500">
-            ⚠️ 取消截止时间：每日
+            ⚠️ 取消截止时间：
             <span className="font-medium text-brand-700">
-              {CANCEL_DEADLINES[mealType]}
+              {mealDate.slice(5).replace("-", "月")}日 {CANCEL_DEADLINES[mealType]}
             </span>{" "}
             前可免费取消
           </div>
@@ -195,7 +197,8 @@ export default function OrderFormModal({
           {/* 菜品选择 */}
           {availableDishes.length === 0 ? (
             <div className="py-10 text-center text-brand-500">
-              今日{MEAL_TYPE_LABELS[mealType]}暂无菜品，请先在菜单管理中添加
+              {mealDate.slice(5).replace("-", "/")}{" "}
+              {MEAL_TYPE_LABELS[mealType]}暂无菜品，请先在菜单管理中添加
             </div>
           ) : (
             <div className="grid max-h-[400px] grid-cols-1 gap-3 overflow-y-auto pr-2 scrollbar-thin sm:grid-cols-2">

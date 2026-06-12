@@ -312,7 +312,7 @@ export default function OrdersPage() {
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
         dishes={dishes}
-        defaultDate={selectedDate}
+        mealDate={selectedDate}
       />
 
       {/* 取消确认弹窗 */}

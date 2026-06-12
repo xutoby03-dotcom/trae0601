@@ -28,6 +28,7 @@ interface StoreState {
   addOrder: (data: {
     elderlyName: string;
     building: string;
+    mealDate: string;
     mealType: MealType;
     dietaryNote: string;
     deliveryType: DeliveryType;
@@ -68,8 +69,8 @@ export const useStore = create<StoreState>()(
 
       addOrder: (data) => {
         const now = new Date();
-        const deadline = new Date();
         const [h, m] = CANCEL_DEADLINES[data.mealType].split(":").map(Number);
+        const deadline = new Date(`${data.mealDate}T00:00:00`);
         deadline.setHours(h, m, 0, 0);
 
         set((s) => ({
@@ -110,10 +111,11 @@ export const useStore = create<StoreState>()(
         const now = new Date();
         const deadline = new Date(order.cancelDeadline);
         if (now > deadline) {
+          const d = new Date(order.mealDate);
           const [h, m] = CANCEL_DEADLINES[order.mealType].split(":");
           return {
             canCancel: false,
-            reason: `已超过取消截止时间（每日 ${h}:${m} 前可取消）`,
+            reason: `已超过取消截止时间（${d.getMonth() + 1}月${d.getDate()}日 ${h}:${m} 前可取消）`,
           };
         }
         return { canCancel: true };
@@ -151,6 +153,21 @@ export const useStore = create<StoreState>()(
         dishes: s.dishes,
         orders: s.orders,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.orders = state.orders.map((o) => {
+          if (o.mealDate) return o;
+          const d = new Date(o.createdAt);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const mealDate = `${y}-${m}-${day}`;
+          const deadline = new Date(`${mealDate}T00:00:00`);
+          const [h, min] = CANCEL_DEADLINES[o.mealType].split(":").map(Number);
+          deadline.setHours(h, min, 0, 0);
+          return { ...o, mealDate, cancelDeadline: deadline.toISOString() };
+        });
+      },
     }
   )
 );

@@ -237,7 +237,7 @@ const makeTime = (hour: number, minute = 0) => {
   return d.toISOString();
 };
 
-export const MOCK_ORDERS: Order[] = [
+const rawMockOrders = [
   {
     id: "o1",
     elderlyName: "张奶奶",
@@ -440,6 +440,22 @@ export const MOCK_ORDERS: Order[] = [
   },
 ];
 
+const deadlineMap: Record<string, number> = {
+  breakfast: 7,
+  lunch: 10,
+  dinner: 16,
+};
+
+export const MOCK_ORDERS: Order[] = rawMockOrders.map((o: any) => {
+  const d = new Date(today);
+  d.setHours(deadlineMap[o.mealType], 0, 0, 0);
+  return {
+    ...o,
+    mealDate: todayStr,
+    cancelDeadline: d.toISOString(),
+  };
+});
+
 export const HISTORY_ORDERS: Order[] = (() => {
   const elderlyNames = ["马奶奶", "何爷爷", "罗阿姨", "梁大爷", "宋奶奶", "唐爷爷"];
   const buildings = ["1号楼", "2号楼", "3号楼", "4号楼", "5号楼", "6号楼"];
@@ -475,6 +491,7 @@ export const HISTORY_ORDERS: Order[] = (() => {
         id: `h-${dayOffset}-${i}`,
         elderlyName: elderlyNames[idx],
         building: buildings[idx],
+        mealDate: orderDateStr,
         mealType: i % 3 === 0 ? "breakfast" : i % 3 === 1 ? "lunch" : "dinner",
         dietaryNote: i % 4 === 0 ? "少盐" : i % 5 === 0 ? "不吃辣" : "",
         deliveryType: deliveryTypes[idx],
@@ -494,8 +511,14 @@ export const HISTORY_ORDERS: Order[] = (() => {
               })()
             : undefined,
         cancelDeadline: (() => {
-          const cd = new Date(d);
-          cd.setHours(10, 0, 0, 0);
+          const mealType = i % 3 === 0 ? "breakfast" : i % 3 === 1 ? "lunch" : "dinner";
+          const cd = new Date(orderDate);
+          const deadlineMap: Record<string, number> = {
+            breakfast: 7,
+            lunch: 10,
+            dinner: 16,
+          };
+          cd.setHours(deadlineMap[mealType], 0, 0, 0);
           return cd.toISOString();
         })(),
       });
