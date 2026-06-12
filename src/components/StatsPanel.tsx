@@ -38,7 +38,11 @@ export default function StatsPanel({ selectedMonth = 'all' }: Props) {
     });
   }, [waterChanges, selectedMonth]);
 
-  const monthlyData = getMonthlyWaterChanges(filteredChanges);
+  const monthlyData = getMonthlyWaterChanges(filteredChanges).map((item) => {
+    const [year, month] = item.month.split('-');
+    const label = selectedMonth === 'all' ? item.month : `${year}年${Number(month)}月`;
+    return { ...item, label };
+  });
   const qualityTrend = getWaterQualityTrend(filteredChanges);
   const problematicFish = getMostProblematicFish(observations, fishes);
   const phStats = calculatePhStats(filteredChanges);
@@ -74,7 +78,7 @@ export default function StatsPanel({ selectedMonth = 'all' }: Props) {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#999" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#999" />
                   <YAxis tick={{ fontSize: 11 }} stroke="#999" allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
@@ -84,6 +88,7 @@ export default function StatsPanel({ selectedMonth = 'all' }: Props) {
                       fontSize: '12px',
                     }}
                     formatter={(value: number) => [`${value} 次`, '换水次数']}
+                    labelFormatter={(label: string) => `${label}`}
                   />
                   <Bar
                     dataKey="count"
