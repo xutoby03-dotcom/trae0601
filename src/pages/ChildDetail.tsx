@@ -375,8 +375,8 @@ export default function ChildDetail() {
           setShowDelayModal(false);
           setTargetVaccine(null);
         }}
-        onSubmit={(reason) => {
-          if (targetVaccine) delayVaccine(targetVaccine.id, reason);
+        onSubmit={(data) => {
+          if (targetVaccine) delayVaccine(targetVaccine.id, data);
         }}
         vaccine={targetVaccine}
       />

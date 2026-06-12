@@ -41,7 +41,14 @@ interface AppState {
       reaction?: string;
     },
   ) => void;
-  delayVaccine: (id: string, reason: string) => void;
+  delayVaccine: (
+    id: string,
+    data: {
+      reason: string;
+      suggestedDate: string;
+      latestDate: string;
+    },
+  ) => void;
 
   updateVaccineStatus: () => void;
   getStatistics: () => Statistics;
@@ -172,12 +179,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
-  delayVaccine: (id, reason) => {
+  delayVaccine: (id, data) => {
     const v = get().vaccines.find((x) => x.id === id);
     if (!v) return;
+    const originalSuggestedDate = v.originalSuggestedDate || v.suggestedDate;
+    const originalLatestDate = v.originalLatestDate || v.latestDate;
     get().updateVaccine(id, {
-      delayedReason: reason,
+      delayedReason: data.reason,
       delayedCount: v.delayedCount + 1,
+      suggestedDate: data.suggestedDate,
+      latestDate: data.latestDate,
+      originalSuggestedDate,
+      originalLatestDate,
+      status: 'pending',
     });
   },
 

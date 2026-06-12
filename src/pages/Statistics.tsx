@@ -12,6 +12,7 @@ import {
   Users,
   Calendar,
   FileWarning,
+  History,
 } from 'lucide-react';
 import { formatDate } from '@/utils/date';
 import type { Vaccine } from '@/types';
@@ -48,6 +49,10 @@ interface DelayedRowProps {
 }
 
 function DelayedRow({ v, childName }: DelayedRowProps) {
+  const hasOriginalDates =
+    (v.originalSuggestedDate && v.originalSuggestedDate !== v.suggestedDate) ||
+    (v.originalLatestDate && v.originalLatestDate !== v.latestDate);
+
   return (
     <div className="flex items-start gap-4 p-4 rounded-xl bg-white border border-slate-100 hover:border-danger-200 hover:bg-danger-50/30 transition-all">
       <div className="shrink-0 w-10 h-10 rounded-xl bg-danger-100 text-danger-600 flex items-center justify-center">
@@ -66,9 +71,9 @@ function DelayedRow({ v, childName }: DelayedRowProps) {
           </span>
         </div>
         {v.delayedReason && (
-          <p className="text-sm text-slate-600 mb-1">原因：{v.delayedReason}</p>
+          <p className="text-sm text-slate-600 mb-2">原因：{v.delayedReason}</p>
         )}
-        <div className="flex items-center gap-4 text-xs text-slate-400">
+        <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             建议：{formatDate(v.suggestedDate)}
@@ -78,6 +83,33 @@ function DelayedRow({ v, childName }: DelayedRowProps) {
             最晚：{formatDate(v.latestDate)}
           </span>
         </div>
+        {hasOriginalDates && (
+          <div className="mt-2 pt-2 border-t border-slate-100 flex items-start gap-2 text-[11px] text-slate-500 flex-wrap">
+            <History className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>家人对比：</span>
+            {v.originalSuggestedDate &&
+              v.originalSuggestedDate !== v.suggestedDate && (
+                <span className="text-slate-500">
+                  原建议
+                  <span className="line-through mx-1">{v.originalSuggestedDate}</span>
+                  →
+                  <span className="text-info-600 font-medium ml-1">
+                    {formatDate(v.suggestedDate)}
+                  </span>
+                </span>
+              )}
+            {v.originalLatestDate && v.originalLatestDate !== v.latestDate && (
+              <span className="text-slate-500">
+                原最晚
+                <span className="line-through mx-1">{v.originalLatestDate}</span>
+                →
+                <span className="text-danger-600 font-medium ml-1">
+                  {formatDate(v.latestDate)}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

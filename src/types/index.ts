@@ -22,6 +22,8 @@ export interface Vaccine {
   dose: number;
   suggestedDate: string;
   latestDate: string;
+  originalSuggestedDate?: string;
+  originalLatestDate?: string;
   status: VaccineStatus;
   notes: string;
   appointmentTime?: string;

@@ -65,6 +65,8 @@ const generateMockVaccines = (): Omit<Vaccine, 'id' | 'createdAt'>[] => {
       dose: 1,
       suggestedDate: fmt(addDays(base, -20)),
       latestDate: fmt(addDays(base, 10)),
+      originalSuggestedDate: fmt(addDays(base, -35)),
+      originalLatestDate: fmt(addDays(base, -5)),
       status: 'overdue',
       notes: '注射后可能发热',
       delayedReason: '感冒咳嗽，医生建议延期',

@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   CheckCircle,
   AlertOctagon,
+  History,
 } from 'lucide-react';
 import { formatDate, formatDateTime, friendlyDateDiff } from '@/utils/date';
 
@@ -85,16 +86,54 @@ export default function VaccineCard({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 mb-4">
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <Calendar className="w-4 h-4 text-info-500" />
-          <span>建议：{formatDate(vaccine.suggestedDate)}</span>
-          <span className="text-xs text-slate-400">
-            ({friendlyDateDiff(vaccine.suggestedDate)})
-          </span>
+        <div className="text-sm text-slate-600">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-info-500 shrink-0" />
+            <span>
+              建议：{formatDate(vaccine.suggestedDate)}
+            </span>
+            <span className="text-xs text-slate-400">
+              ({friendlyDateDiff(vaccine.suggestedDate)})
+            </span>
+          </div>
+          {vaccine.originalSuggestedDate &&
+            vaccine.originalSuggestedDate !== vaccine.suggestedDate && (
+              <div className="flex items-center gap-2 mt-1 ml-6 text-xs text-slate-500">
+                <History className="w-3 h-3" />
+                <span>
+                  原计划：
+                  <span className="line-through text-slate-400">
+                    {vaccine.originalSuggestedDate}
+                  </span>
+                  <span className="mx-1 text-slate-300">→</span>
+                  <span className="text-info-600 font-medium">
+                    已推迟至 {formatDate(vaccine.suggestedDate)}
+                  </span>
+                </span>
+              </div>
+            )}
         </div>
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <AlertOctagon className="w-4 h-4 text-danger-500" />
-          <span>最晚：{formatDate(vaccine.latestDate)}</span>
+        <div className="text-sm text-slate-600">
+          <div className="flex items-center gap-2">
+            <AlertOctagon className="w-4 h-4 text-danger-500 shrink-0" />
+            <span>最晚：{formatDate(vaccine.latestDate)}</span>
+          </div>
+          {vaccine.originalLatestDate &&
+            vaccine.originalLatestDate !== vaccine.latestDate && (
+              <div className="flex items-center gap-2 mt-1 ml-6 text-xs text-slate-500">
+                <History className="w-3 h-3" />
+                <span>
+                  原最晚：
+                  <span className="line-through text-slate-400">
+                    {vaccine.originalLatestDate}
+                  </span>
+                  <span className="mx-1 text-slate-300">→</span>
+                  <span className="text-danger-600 font-medium">
+                    新截止 {formatDate(vaccine.latestDate)}
+                  </span>
+                </span>
+              </div>
+            )}
         </div>
       </div>
 
@@ -148,11 +187,31 @@ export default function VaccineCard({
       )}
 
       {vaccine.delayedCount > 0 && (
-        <div className="mb-4 p-3 rounded-xl bg-danger-50/50 border border-danger-100">
-          <div className="text-xs text-danger-600">
-            已延期 {vaccine.delayedCount} 次
+        <div className="mb-4 p-3 rounded-xl bg-danger-50/50 border border-danger-100 space-y-1.5">
+          <div className="text-xs font-medium text-danger-600">
+            ⚠️ 已延期 {vaccine.delayedCount} 次
             {vaccine.delayedReason && `：${vaccine.delayedReason}`}
           </div>
+          {(vaccine.originalSuggestedDate || vaccine.originalLatestDate) && (
+            <div className="text-[11px] text-danger-500/80 flex items-center gap-3 flex-wrap">
+              {vaccine.originalSuggestedDate &&
+                vaccine.originalSuggestedDate !== vaccine.suggestedDate && (
+                  <span>
+                    原计划{' '}
+                    <span className="line-through">{vaccine.originalSuggestedDate}</span> →{' '}
+                    <span className="font-medium">{formatDate(vaccine.suggestedDate)}</span>
+                  </span>
+                )}
+              {vaccine.originalLatestDate &&
+                vaccine.originalLatestDate !== vaccine.latestDate && (
+                  <span>
+                    原截止{' '}
+                    <span className="line-through">{vaccine.originalLatestDate}</span> →{' '}
+                    <span className="font-medium">{formatDate(vaccine.latestDate)}</span>
+                  </span>
+                )}
+            </div>
+          )}
         </div>
       )}
 
