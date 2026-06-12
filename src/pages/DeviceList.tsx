@@ -2,11 +2,11 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useWarrantyStore } from '../store/warrantyStore'
 import { getWarrantyStatus } from '../utils/dateUtils'
-import { ROOMS } from '../utils/constants'
-import type { DeviceFilters } from '../types'
+import { ROOMS, WARRANTY_STATUS_LABEL } from '../utils/constants'
+import type { DeviceFilters, WarrantyStatus } from '../types'
 import DeviceCard from '../components/DeviceCard'
 
-type TabType = 'in-warranty' | 'expired' | 'all'
+type TabType = WarrantyStatus | 'all'
 
 export default function DeviceList() {
   const [activeTab, setActiveTab] = useState<TabType>('all')
@@ -14,6 +14,7 @@ export default function DeviceList() {
     search: '',
     brand: '',
     room: '',
+    warrantyStatus: 'all',
   })
 
   const devices = useWarrantyStore((state) => state.devices)
@@ -25,26 +26,26 @@ export default function DeviceList() {
 
   const counts = useMemo(() => {
     let inWarranty = 0
+    let expiringSoon = 0
     let expired = 0
     devices.forEach((device) => {
       const status = getWarrantyStatus(device)
-      if (status === 'expired') {
-        expired++
-      } else {
-        inWarranty++
-      }
+      if (status === 'in-warranty') inWarranty++
+      else if (status === 'expiring-soon') expiringSoon++
+      else if (status === 'expired') expired++
     })
-    return { inWarranty, expired, all: devices.length }
+    return { inWarranty, expiringSoon, expired, all: devices.length }
   }, [devices])
 
   const filteredDevices = useMemo(() => {
     return devices.filter((device) => {
       const status = getWarrantyStatus(device)
 
-      if (activeTab === 'in-warranty' && status === 'expired') {
-        return false
-      }
-      if (activeTab === 'expired' && status !== 'expired') {
+      const tabStatus = activeTab === 'all' ? null : activeTab
+      const filterStatus = filters.warrantyStatus === 'all' ? null : filters.warrantyStatus
+      const targetStatus = filterStatus || tabStatus
+
+      if (targetStatus && status !== targetStatus) {
         return false
       }
 
@@ -94,6 +95,12 @@ export default function DeviceList() {
           在保 <span className="badge badge-success">{counts.inWarranty}</span>
         </button>
         <button
+          className={`tab-item ${activeTab === 'expiring-soon' ? 'active' : ''}`}
+          onClick={() => setActiveTab('expiring-soon')}
+        >
+          快过保 <span className="badge badge-warning">{counts.expiringSoon}</span>
+        </button>
+        <button
           className={`tab-item ${activeTab === 'expired' ? 'active' : ''}`}
           onClick={() => setActiveTab('expired')}
         >
@@ -132,6 +139,21 @@ export default function DeviceList() {
               {room}
             </option>
           ))}
+        </select>
+        <select
+          className="form-select"
+          value={filters.warrantyStatus}
+          onChange={(e) =>
+            setFilters((prev) => ({
+              ...prev,
+              warrantyStatus: e.target.value as WarrantyStatus | 'all',
+            }))
+          }
+        >
+          <option value="all">全部状态</option>
+          <option value="in-warranty">{WARRANTY_STATUS_LABEL['in-warranty']}</option>
+          <option value="expiring-soon">{WARRANTY_STATUS_LABEL['expiring-soon']}</option>
+          <option value="expired">{WARRANTY_STATUS_LABEL['expired']}</option>
         </select>
       </div>
 
