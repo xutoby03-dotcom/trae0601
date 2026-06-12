@@ -46,7 +46,7 @@ export default function RepairDetail() {
       `处理人：${repair.handler}`,
       `开始日期：${repair.startDate}`,
       `完成日期：${repair.completeDate || '未完成'}`,
-      `维修费用：¥${repair.cost.toLocaleString()}`,
+      `最终费用：¥${repair.cost.toLocaleString()}`,
       repair.remark ? `备注：${repair.remark}` : '',
     ].filter(Boolean).join('\n');
 
@@ -198,7 +198,7 @@ export default function RepairDetail() {
                 <p className="text-sm font-medium text-rose-600">¥{repair.cost.toLocaleString()}</p>
               </div>
             </div>
-            {repair.afterPhoto && (
+            {repair.afterPhoto ? (
               <div className="md:col-span-2">
                 <p className="text-xs text-slate-400 mb-2">维修完成照片</p>
                 <img
@@ -206,6 +206,14 @@ export default function RepairDetail() {
                   alt="维修完成照片"
                   className="w-full h-48 object-cover rounded-xl bg-slate-100 border border-slate-200"
                 />
+              </div>
+            ) : (
+              <div className="md:col-span-2">
+                <p className="text-xs text-slate-400 mb-2">维修完成照片</p>
+                <div className="w-full h-48 rounded-xl bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center gap-2 text-slate-400">
+                  <ImageIcon className="w-6 h-6" />
+                  <span className="text-sm">无完成照片记录</span>
+                </div>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Eye, Wrench, CheckCircle, Filter, DollarSign, Calendar, User } from 'lucide-react';
+import { Plus, Search, Eye, Wrench, CheckCircle, Filter, DollarSign, Calendar, User, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { REPAIR_STATUS_COLORS, REPAIR_STATUS_LABELS, type RepairStatus, type Repair } from '@/types';
 import CompleteRepairModal from '@/components/CompleteRepairModal';
@@ -160,14 +160,20 @@ export default function RepairList() {
                         <span>¥{repair.cost.toLocaleString()}</span>
                       </div>
                     )}
-                    {repair.status === 'completed' && repair.afterPhoto && (
+                    {repair.status === 'completed' && (
                       <div className="mt-3 pt-3 border-t border-slate-100">
                         <div className="flex items-center gap-2">
-                          <img
-                            src={repair.afterPhoto}
-                            alt="维修后"
-                            className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0"
-                          />
+                          {repair.afterPhoto ? (
+                            <img
+                              src={repair.afterPhoto}
+                              alt="维修后"
+                              className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 shrink-0 flex items-center justify-center text-slate-300">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                          )}
                           <div>
                             <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
                               <CheckCircle className="w-3 h-3" />
