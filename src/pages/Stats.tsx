@@ -36,6 +36,7 @@ export default function Stats() {
 
   const maxCategoryCount = Math.max(...popularCategories.map((c) => c.count), 1);
   const maxBoxCount = Math.max(...boxTurnover.map((b) => b.borrowCount), 1);
+  const fastestBox = boxTurnover.find((b) => b.borrowCount > 0);
 
   const statCards = [
     {
@@ -180,7 +181,7 @@ export default function Stats() {
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">{item.box.location}</p>
                     </div>
-                    {idx === 0 && item.borrowCount > 0 && (
+                    {fastestBox && item.box.id === fastestBox.box.id && (
                       <span className="badge bg-amber-100 text-amber-700 flex items-center gap-1">
                         <ArrowUpRight className="w-3 h-3" />
                         最快

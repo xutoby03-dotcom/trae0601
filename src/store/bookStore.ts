@@ -158,25 +158,35 @@ export const useBookStore = create<BookStore>()(
 
       getBoxTurnoverRate: () => {
         const { books, borrowRecords, boxes } = get();
-        return boxes.map((box) => {
-          const boxBooks = books.filter((b) => b.boxId === box.id);
-          const boxRecords = borrowRecords.filter((r) => boxBooks.some((b) => b.id === r.bookId));
-          let totalDays = 0;
-          let completedCount = 0;
-          boxRecords.forEach((r) => {
-            if (r.actualReturnDate) {
-              const borrow = new Date(r.borrowDate);
-              const ret = new Date(r.actualReturnDate);
-              totalDays += Math.ceil((ret.getTime() - borrow.getTime()) / (1000 * 60 * 60 * 24));
-              completedCount++;
+        return boxes
+          .map((box) => {
+            const boxBooks = books.filter((b) => b.boxId === box.id);
+            const boxRecords = borrowRecords.filter((r) => boxBooks.some((b) => b.id === r.bookId));
+            let totalDays = 0;
+            let completedCount = 0;
+            boxRecords.forEach((r) => {
+              if (r.actualReturnDate) {
+                const borrow = new Date(r.borrowDate);
+                const ret = new Date(r.actualReturnDate);
+                totalDays += Math.ceil((ret.getTime() - borrow.getTime()) / (1000 * 60 * 60 * 24));
+                completedCount++;
+              }
+            });
+            return {
+              box,
+              borrowCount: boxRecords.length,
+              avgDays: completedCount > 0 ? Math.round((totalDays / completedCount) * 10) / 10 : 0,
+            };
+          })
+          .sort((a, b) => {
+            if (b.borrowCount !== a.borrowCount) {
+              return b.borrowCount - a.borrowCount;
             }
+            if (a.avgDays === 0 && b.avgDays === 0) return 0;
+            if (a.avgDays === 0) return 1;
+            if (b.avgDays === 0) return -1;
+            return a.avgDays - b.avgDays;
           });
-          return {
-            box,
-            borrowCount: boxRecords.length,
-            avgDays: completedCount > 0 ? Math.round((totalDays / completedCount) * 10) / 10 : 0,
-          };
-        });
       },
 
       checkAndUpdateOverdue: () => {
