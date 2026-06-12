@@ -15,6 +15,30 @@ export const STATUS_EMOJI: Record<ComplianceStatus, string> = {
   unvaccinated: '🔴',
 };
 
+export const STATUS_PRIORITY: Record<ComplianceStatus, number> = {
+  expired: 3,
+  expiring: 2,
+  compliant: 1,
+  unvaccinated: 0,
+};
+
+export function computeRecordStatus(
+  record: VaccineRecord,
+  todayDate: Date = today()
+): { status: ComplianceStatus; daysUntilDue: number } {
+  const dueDate = parseDate(record.nextDueAt);
+  const daysUntil = diffInDays(dueDate, todayDate);
+  let status: ComplianceStatus;
+  if (daysUntil < 0) {
+    status = 'expired';
+  } else if (daysUntil <= 30) {
+    status = 'expiring';
+  } else {
+    status = 'compliant';
+  }
+  return { status, daysUntilDue: daysUntil };
+}
+
 export function computePetStatus(
   pet: Pet,
   records: VaccineRecord[],
@@ -30,31 +54,46 @@ export function computePetStatus(
     };
   }
 
-  const sorted = [...petRecords].sort(
-    (a, b) => parseDate(b.nextDueAt).getTime() - parseDate(a.nextDueAt).getTime()
-  );
-  const latest = sorted[0];
-  const latestDate = parseDate(latest.nextDueAt);
-  const daysUntil = diffInDays(latestDate, todayDate);
+  let worstStatus: ComplianceStatus = 'compliant';
+  let worstRecord: VaccineRecord | undefined;
+  let worstDays = Infinity;
+  let minDays = Infinity;
 
-  let status: ComplianceStatus;
-  if (daysUntil < 0) {
-    status = 'expired';
-  } else if (daysUntil <= 30) {
-    status = 'expiring';
-  } else {
-    status = 'compliant';
-  }
+  petRecords.forEach((r) => {
+    const { status, daysUntilDue } = computeRecordStatus(r, todayDate);
+    if (STATUS_PRIORITY[status] > STATUS_PRIORITY[worstStatus]) {
+      worstStatus = status;
+      worstRecord = r;
+      worstDays = daysUntilDue;
+    } else if (status === worstStatus && daysUntilDue < minDays) {
+      minDays = daysUntilDue;
+      worstRecord = r;
+      worstDays = daysUntilDue;
+    }
+    if (daysUntilDue < minDays) minDays = daysUntilDue;
+  });
 
   const hasProofPhoto = petRecords.some((r) => r.proofPhotoUrl);
 
   return {
     ...pet,
-    status,
-    latestRecord: latest,
-    daysUntilDue: daysUntil,
+    status: worstStatus,
+    latestRecord: worstRecord,
+    daysUntilDue: worstDays,
     hasProofPhoto,
   };
+}
+
+export function getPetRecordsByStatus(
+  pet: Pet,
+  records: VaccineRecord[],
+  status: ComplianceStatus,
+  todayDate: Date = today()
+): VaccineRecord[] {
+  return records
+    .filter((r) => r.petId === pet.id)
+    .filter((r) => computeRecordStatus(r, todayDate).status === status)
+    .sort((a, b) => a.nextDueAt.localeCompare(b.nextDueAt));
 }
 
 export function computeAllPetsWithStatus(
