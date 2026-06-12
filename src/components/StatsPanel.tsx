@@ -13,6 +13,7 @@ import {
 import { useBatchStore } from '@/store/batchStore';
 import { getLossRanking, getOvenUtilizations, getAverageOvertime } from '@/utils/stats';
 import { TrendingDown, TrendingUp, PieChart as PieIcon, Award } from 'lucide-react';
+import FinishedBatchList from './FinishedBatchList';
 
 export default function StatsPanel() {
   const { batches, ovens } = useBatchStore();
@@ -196,6 +197,8 @@ export default function StatsPanel() {
           </div>
         </div>
       </div>
+
+      <FinishedBatchList />
     </div>
   );
 }
