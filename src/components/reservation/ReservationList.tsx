@@ -40,6 +40,11 @@ export default function ReservationList() {
     const statusParam = searchParams.get('status') as ReservationStatus | 'all' | null;
     if (todayParam === '1') {
       setActiveTab('all');
+      if (statusParam) {
+        const params = new URLSearchParams(searchParams);
+        params.delete('status');
+        setSearchParams(params, { replace: true });
+      }
     } else if (statusParam && ['all', 'pending', 'to_confirm', 'completed', 'cancelled'].includes(statusParam)) {
       setActiveTab(statusParam);
     }
@@ -59,6 +64,8 @@ export default function ReservationList() {
   const clearToday = () => {
     const params = new URLSearchParams(searchParams);
     params.delete('today');
+    params.delete('status');
+    setActiveTab('all');
     setSearchParams(params, { replace: true });
   };
 
