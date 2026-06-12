@@ -1,13 +1,16 @@
 import { create } from 'zustand';
-import { CoffeeBean, BrewRecord, FlavorTag, Statistics } from '../types';
+import { CoffeeBean, BrewRecord, FlavorTag, Statistics, StockStatus } from '../types';
 import { generateId, hasAnyFlavor, getStockStatus, pricePerGram } from '../utils/helpers';
 import { saveToStorage, loadFromStorage } from '../utils/storage';
 import { mockBeans, mockBrewRecords } from '../data/mockData';
+
+type StockFilter = 'all' | StockStatus;
 
 interface CoffeeState {
   beans: CoffeeBean[];
   brewRecords: BrewRecord[];
   activeFlavorFilter: FlavorTag[];
+  activeStockFilter: StockFilter;
 
   initFromStorage: () => void;
 
@@ -23,7 +26,9 @@ interface CoffeeState {
   getRecordsByBeanId: (beanId: string) => BrewRecord[];
 
   toggleFlavorFilter: (tag: FlavorTag) => void;
+  setStockFilter: (filter: StockFilter) => void;
   clearFlavorFilter: () => void;
+  clearAllFilters: () => void;
   getFilteredBeans: () => CoffeeBean[];
 
   getStats: () => Statistics;
@@ -33,6 +38,7 @@ export const useCoffeeStore = create<CoffeeState>((set, get) => ({
   beans: [],
   brewRecords: [],
   activeFlavorFilter: [],
+  activeStockFilter: 'all',
 
   initFromStorage: () => {
     const stored = loadFromStorage();
@@ -160,14 +166,35 @@ export const useCoffeeStore = create<CoffeeState>((set, get) => ({
     });
   },
 
+  setStockFilter: (filter) => {
+    set({ activeStockFilter: filter });
+  },
+
   clearFlavorFilter: () => {
     set({ activeFlavorFilter: [] });
   },
 
+  clearAllFilters: () => {
+    set({ activeFlavorFilter: [], activeStockFilter: 'all' });
+  },
+
   getFilteredBeans: () => {
-    const { beans, activeFlavorFilter } = get();
-    if (activeFlavorFilter.length === 0) return beans;
-    return beans.filter((bean) => hasAnyFlavor(bean.flavorTags, activeFlavorFilter));
+    const { beans, activeFlavorFilter, activeStockFilter } = get();
+    let result = beans;
+
+    if (activeFlavorFilter.length > 0) {
+      result = result.filter((bean) =>
+        hasAnyFlavor(bean.flavorTags, activeFlavorFilter),
+      );
+    }
+
+    if (activeStockFilter !== 'all') {
+      result = result.filter(
+        (bean) => getStockStatus(bean) === activeStockFilter,
+      );
+    }
+
+    return result;
   },
 
   getStats: () => {

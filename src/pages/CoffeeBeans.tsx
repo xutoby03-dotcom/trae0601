@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { useCoffeeStore } from '../store/useCoffeeStore';
 import CoffeeBeanCard from '../components/coffee/CoffeeBeanCard';
 import CoffeeBeanForm from '../components/coffee/CoffeeBeanForm';
-import FlavorFilter from '../components/coffee/FlavorFilter';
+import BeanFilter from '../components/coffee/BeanFilter';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import { CoffeeBean } from '../types';
@@ -62,7 +62,7 @@ const CoffeeBeans = () => {
           </p>
         </div>
 
-        <FlavorFilter />
+        <BeanFilter />
 
         {beans.length === 0 ? (
           <div className="text-center py-16">
