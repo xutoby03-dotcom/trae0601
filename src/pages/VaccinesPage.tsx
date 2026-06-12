@@ -6,8 +6,8 @@ import { FilterBar } from '../components/common/FilterBar';
 import { VaccineItem } from '../components/common/VaccineItem';
 import { Modal } from '../components/common/Modal';
 import { VaccineForm } from '../components/forms/VaccineForm';
-import { computeAllPetsWithStatus } from '../utils/status';
-import { parseDate, today } from '../utils/date';
+import { computeAllPetsWithStatus, computeRecordStatus } from '../utils/status';
+import { today } from '../utils/date';
 
 export default function VaccinesPage() {
   const pets = usePetStore((s) => s.pets);
@@ -56,11 +56,9 @@ export default function VaccinesPage() {
       normal: VaccineRecord[];
     } = { expired: [], expiring: [], normal: [] };
     filteredRecords.forEach((r) => {
-      const diff = Math.ceil(
-        (parseDate(r.nextDueAt).getTime() - t.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (diff < 0) g.expired.push(r);
-      else if (diff <= 30) g.expiring.push(r);
+      const { status } = computeRecordStatus(r, t);
+      if (status === 'expired') g.expired.push(r);
+      else if (status === 'expiring') g.expiring.push(r);
       else g.normal.push(r);
     });
     return g;

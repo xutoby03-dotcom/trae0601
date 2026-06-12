@@ -11,7 +11,7 @@ import {
   Download,
 } from 'lucide-react';
 import { usePetStore } from '../store/usePetStore';
-import { computeAllPetsWithStatus } from '../utils/status';
+import { computeAllPetsWithStatus, computeRecordStatus } from '../utils/status';
 import { ComplianceStatus, Pet, VaccineRecord } from '../../shared/types';
 import { StatCard } from '../components/common/StatCard';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -72,7 +72,6 @@ export default function DashboardPage() {
     const expired: RecordWithPet[] = [];
     const noProof: RecordWithPet[] = [];
     const thisMonthDue: RecordWithPet[] = [];
-    const seenLatest = new Set<string>();
 
     filteredPets.forEach((p) => {
       const petRecords = records.filter((r) => r.petId === p.id);
@@ -81,15 +80,10 @@ export default function DashboardPage() {
         if (!r.proofPhotoUrl) noProof.push(item);
         const due = parseDate(r.nextDueAt);
         if (isSameMonth(due, t)) thisMonthDue.push(item);
+        const { status } = computeRecordStatus(r, t);
+        if (status === 'expiring') expiring.push(item);
+        if (status === 'expired') expired.push(item);
       });
-
-      if (p.latestRecord && !seenLatest.has(p.id)) {
-        const latest = p.latestRecord;
-        const item: RecordWithPet = { ...latest, pet: p };
-        if (p.status === 'expiring') expiring.push(item);
-        if (p.status === 'expired') expired.push(item);
-        seenLatest.add(p.id);
-      }
     });
 
     expiring.sort((a, b) => a.nextDueAt.localeCompare(b.nextDueAt));
