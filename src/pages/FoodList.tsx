@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useBBQStore } from '@/store/useBBQStore';
 import { STATUS_LIST } from '@/types';
@@ -34,6 +34,30 @@ export default function FoodList() {
   const [showReceiptDoneToast, setShowReceiptDoneToast] = useState(false);
   const [fromOverview, setFromOverview] = useState(false);
 
+  const navigateTimerRef = useRef<number | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const clearNavTimer = useCallback(() => {
+    if (navigateTimerRef.current !== null) {
+      clearTimeout(navigateTimerRef.current);
+      navigateTimerRef.current = null;
+    }
+  }, []);
+
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearNavTimer();
+      clearToastTimer();
+    };
+  }, [clearNavTimer, clearToastTimer]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const receiptItemId = searchParams.get('receiptItemId');
@@ -53,12 +77,13 @@ export default function FoodList() {
       cleanParams.delete('receiptItemId');
       setSearchParams(cleanParams, { replace: true });
     }
-  }, [receiptItemId, items]);
+  }, [receiptItemId, items, searchParams, setSearchParams]);
 
-  const handleReceiptClose = () => {
+  const handleReceiptClose = useCallback(() => {
     setReceiptModalOpen(false);
     setFromOverview(false);
-  };
+    clearNavTimer();
+  }, [clearNavTimer]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -110,21 +135,31 @@ export default function FoodList() {
         uploadReceipt(selectedItem.id, receiptPhoto);
         if (fromOverview) {
           setFromOverview(false);
-          setTimeout(() => navigate('/overview?receiptDone=1'), 150);
+          clearNavTimer();
+          navigateTimerRef.current = window.setTimeout(() => {
+            navigateTimerRef.current = null;
+            navigate('/overview?receiptDone=1');
+          }, 150);
         } else {
+          clearToastTimer();
           setShowReceiptDoneToast(true);
-          setTimeout(() => setShowReceiptDoneToast(false), 5000);
+          toastTimerRef.current = window.setTimeout(() => {
+            toastTimerRef.current = null;
+            setShowReceiptDoneToast(false);
+          }, 5000);
         }
       }
     }
   };
 
-  const handleUploadReceipt = (item: FoodItem) => {
+  const handleUploadReceipt = useCallback((item: FoodItem) => {
     setSelectedItem(item);
     setReceiptMode('receipt-only');
     setFromOverview(false);
+    clearNavTimer();
+    clearToastTimer();
     setReceiptModalOpen(true);
-  };
+  }, [clearNavTimer, clearToastTimer]);
 
   const handleMarkOutOfStock = (item: FoodItem) => {
     markOutOfStock(item.id);

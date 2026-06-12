@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
@@ -29,15 +29,32 @@ export default function Overview() {
   const [showDoneToast, setShowDoneToast] = useState(false);
   const receiptDone = searchParams.get('receiptDone');
 
+  const toastTimerRef = useRef<number | null>(null);
+
+  const clearToastTimer = useCallback(() => {
+    if (toastTimerRef.current !== null) {
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => clearToastTimer();
+  }, [clearToastTimer]);
+
   useEffect(() => {
     if (receiptDone === '1') {
+      clearToastTimer();
       setShowDoneToast(true);
       const clean = new URLSearchParams(searchParams);
       clean.delete('receiptDone');
       setSearchParams(clean, { replace: true });
-      setTimeout(() => setShowDoneToast(false), 4000);
+      toastTimerRef.current = window.setTimeout(() => {
+        toastTimerRef.current = null;
+        setShowDoneToast(false);
+      }, 4000);
     }
-  }, [receiptDone]);
+  }, [receiptDone, searchParams, setSearchParams, clearToastTimer]);
 
   const unclaimedItems = getUnclaimedItems();
   const missingReceipts = getMissingReceipts();
