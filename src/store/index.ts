@@ -37,7 +37,7 @@ interface AppState {
 
   addRepair: (repair: Omit<Repair, 'id' | 'status'>) => void;
   updateRepair: (id: string, updates: Partial<Repair>) => void;
-  completeRepair: (id: string, afterPhoto?: string) => void;
+  completeRepair: (id: string, data: { afterPhoto: string; cost?: number }) => void;
   getRepair: (id: string) => Repair | undefined;
   getDeviceRepairs: (deviceId: string) => Repair[];
   getDeviceBorrows: (deviceId: string) => Borrow[];
@@ -156,7 +156,7 @@ export const useAppStore = create<AppState>()(
           repairs: state.repairs.map((r) => (r.id === id ? { ...r, ...updates } : r)),
         })),
 
-      completeRepair: (id, afterPhoto) =>
+      completeRepair: (id, data) =>
         set((state) => {
           const repair = state.repairs.find((r) => r.id === id);
           if (!repair) return state;
@@ -167,7 +167,8 @@ export const useAppStore = create<AppState>()(
                     ...r,
                     status: 'completed' as RepairStatus,
                     completeDate: new Date().toISOString().split('T')[0],
-                    afterPhoto,
+                    afterPhoto: data.afterPhoto,
+                    cost: data.cost ?? r.cost,
                   }
                 : r
             ),

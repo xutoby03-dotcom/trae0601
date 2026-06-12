@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, DollarSign, User, FileText, Calendar, Wrench, CheckCircle, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { REPAIR_STATUS_COLORS, REPAIR_STATUS_LABELS, DEVICE_STATUS_COLORS, DEVICE_STATUS_LABELS, BORROW_STATUS_COLORS, BORROW_STATUS_LABELS } from '@/types';
+import CompleteRepairModal from '@/components/CompleteRepairModal';
 
 export default function RepairDetail() {
   const { id } = useParams<{ id: string }>();
@@ -13,7 +14,7 @@ export default function RepairDetail() {
   const device = repair ? getDevice(repair.deviceId) : undefined;
   const borrow = repair?.borrowId ? getBorrow(repair.borrowId) : undefined;
 
-  const [afterPhoto, setAfterPhoto] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
 
   if (!repair) {
     return (
@@ -29,10 +30,9 @@ export default function RepairDetail() {
 
   const isRepairing = repair.status === 'repairing';
 
-  const handleComplete = () => {
-    if (window.confirm('确认维修已完成？设备状态将恢复为可用。')) {
-      completeRepair(repair.id, afterPhoto || undefined);
-    }
+  const handleConfirmComplete = (data: { afterPhoto: string; cost: number }) => {
+    completeRepair(repair.id, data);
+    setModalOpen(false);
   };
 
   return (
@@ -142,7 +142,7 @@ export default function RepairDetail() {
         </div>
       </div>
 
-      {(repair.beforePhoto || repair.afterPhoto || isRepairing) && (
+      {(repair.beforePhoto || repair.afterPhoto) && (
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <ImageIcon className="w-5 h-5 text-brand-600" />
@@ -166,18 +166,6 @@ export default function RepairDetail() {
                   src={repair.afterPhoto}
                   alt="维修后"
                   className="w-full aspect-video object-cover rounded-xl bg-slate-100 border border-slate-200"
-                />
-              </div>
-            )}
-            {isRepairing && (
-              <div>
-                <p className="text-xs text-slate-500 mb-2">维修完成后照片</p>
-                <input
-                  type="url"
-                  value={afterPhoto}
-                  onChange={(e) => setAfterPhoto(e.target.value)}
-                  placeholder="输入维修完成照片URL（可选）"
-                  className="input mt-1"
                 />
               </div>
             )}
@@ -210,12 +198,19 @@ export default function RepairDetail() {
           返回列表
         </Link>
         {isRepairing && (
-          <button onClick={handleComplete} className="btn-success">
+          <button onClick={() => setModalOpen(true)} className="btn-success">
             <CheckCircle className="w-4 h-4" />
             标记完成
           </button>
         )}
       </div>
+
+      <CompleteRepairModal
+        repair={repair}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirmComplete}
+      />
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Eye, Wrench, CheckCircle, Filter, DollarSign, Calendar, User } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { REPAIR_STATUS_COLORS, REPAIR_STATUS_LABELS, type RepairStatus } from '@/types';
+import { REPAIR_STATUS_COLORS, REPAIR_STATUS_LABELS, type RepairStatus, type Repair } from '@/types';
+import CompleteRepairModal from '@/components/CompleteRepairModal';
 
 export default function RepairList() {
   const { repairs, devices, completeRepair } = useAppStore();
@@ -37,9 +38,17 @@ export default function RepairList() {
     };
   }, [repairs]);
 
-  const handleComplete = (id: string) => {
-    if (window.confirm('确认标记此维修单为已完成？设备状态将恢复为可用。')) {
-      completeRepair(id);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null);
+
+  const handleOpenComplete = (repair: Repair) => {
+    setSelectedRepair(repair);
+    setModalOpen(true);
+  };
+
+  const handleConfirmComplete = (data: { afterPhoto: string; cost: number }) => {
+    if (selectedRepair) {
+      completeRepair(selectedRepair.id, data);
     }
   };
 
@@ -164,7 +173,7 @@ export default function RepairList() {
                   </Link>
                   {isRepairing && (
                     <button
-                      onClick={() => handleComplete(repair.id)}
+                      onClick={() => handleOpenComplete(repair)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 transition-colors font-medium"
                     >
                       <CheckCircle className="w-4 h-4" />
@@ -177,6 +186,15 @@ export default function RepairList() {
           })
         )}
       </div>
+
+      {selectedRepair && (
+        <CompleteRepairModal
+          repair={selectedRepair}
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onConfirm={handleConfirmComplete}
+        />
+      )}
     </div>
   );
 }
