@@ -146,7 +146,7 @@ export default function RecordCard({ record, elder, showRetest = true, isRetest 
                   overdue ? "text-danger-600 animate-pulse-red" : "text-amber-600"
                 )}
               >
-                {overdue ? `已超时！请尽快复测` : `${remaining}分钟内需复测`}
+                {overdue ? `已超时！请尽快复测` : remaining > 0 ? `${remaining}分钟内需复测` : `即将超时，请立即复测`}
               </span>
               <button
                 onClick={() => navigate(`/records/${record.id}/retest`)}

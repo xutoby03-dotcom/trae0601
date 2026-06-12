@@ -78,7 +78,7 @@ export default function RetestAlertBanner() {
                 <Clock className="w-3.5 h-3.5" />
                 {formatTime(record.measureTime)} 测量 ·
                 高压 {record.systolic}/低压 {record.diastolic} ·
-                {overdue ? "请立即复测" : `剩余 ${remaining} 分钟`}
+                {overdue ? "请立即复测" : remaining > 0 ? `剩余 ${remaining} 分钟` : "即将超时"}
               </p>
             </div>
 

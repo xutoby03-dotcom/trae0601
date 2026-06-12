@@ -21,12 +21,12 @@ export const isBloodPressureAbnormal = (
 
 export const isRetestOverdue = (record: BloodPressureRecord): boolean => {
   if (!record.needsRetest || record.retestCompleted) return false;
-  const deadline = addMinutes(parseISO(record.createdAt), 30);
+  const deadline = addMinutes(parseISO(record.measureTime), 30);
   return new Date() > deadline;
 };
 
 export const getRetestRemainingMinutes = (record: BloodPressureRecord): number => {
-  const deadline = addMinutes(parseISO(record.createdAt), 30);
+  const deadline = addMinutes(parseISO(record.measureTime), 30);
   return Math.max(0, differenceInMinutes(deadline, new Date()));
 };
 
