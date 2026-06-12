@@ -11,7 +11,7 @@ export default function Idle() {
 
   const idleItems = useMemo(() => {
     return clothing
-      .map((item) => ({ item, days: getDaysSince(item.lastWornDate) }))
+      .map((item) => ({ item, days: getDaysSince(item.lastWornDate, item.createdAt) }))
       .filter(({ days }) => days > 30)
       .sort((a, b) => b.days - a.days)
   }, [clothing])

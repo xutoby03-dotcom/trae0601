@@ -45,7 +45,7 @@ export default function Stats() {
   const idleItems = useMemo(() => {
     if (clothing.length === 0) return []
     return [...clothing]
-      .sort((a, b) => getDaysSince(b.lastWornDate) - getDaysSince(a.lastWornDate))
+      .sort((a, b) => getDaysSince(b.lastWornDate, b.createdAt) - getDaysSince(a.lastWornDate, a.createdAt))
       .slice(0, 5)
   }, [clothing])
 
@@ -136,7 +136,7 @@ export default function Stats() {
                     <p className="text-xs text-charcoal/40">{CATEGORY_LABELS[item.category]}</p>
                   </div>
                   <span className="text-sm text-warm-500 font-medium shrink-0">
-                    {getDaysSince(item.lastWornDate)}天
+                    {getDaysSince(item.lastWornDate, item.createdAt)}天
                   </span>
                 </div>
               ))}

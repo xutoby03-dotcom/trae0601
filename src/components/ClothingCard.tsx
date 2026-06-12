@@ -10,7 +10,7 @@ interface ClothingCardProps {
 }
 
 export default function ClothingCard({ item, onEdit, onDelete }: ClothingCardProps) {
-  const daysSince = getDaysSince(item.lastWornDate)
+  const daysSince = getDaysSince(item.lastWornDate, item.createdAt)
   const isIdle = daysSince > 30
   const isDirty = item.washStatus === 'dirty'
 
@@ -77,26 +77,42 @@ export default function ClothingCard({ item, onEdit, onDelete }: ClothingCardPro
         </div>
       </div>
 
-      <div className="p-3 flex items-center justify-between">
-        <div className="flex gap-1">
-          {item.seasons.map((s) => (
-            <span
-              key={s}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-warm-100 text-warm-500"
-            >
-              {SEASON_LABELS[s]}
-            </span>
-          ))}
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex gap-1">
+            {item.seasons.map((s) => (
+              <span
+                key={s}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-warm-100 text-warm-500"
+              >
+                {SEASON_LABELS[s]}
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(item.id)
+            }}
+            className="text-[10px] text-charcoal/30 hover:text-red-500 transition-colors px-2 py-1"
+          >
+            删除
+          </button>
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(item.id)
-          }}
-          className="text-[10px] text-charcoal/30 hover:text-red-500 transition-colors px-2 py-1"
-        >
-          删除
-        </button>
+        <div className="flex items-center justify-between text-[10px] text-charcoal/50">
+          <span>
+            {item.lastWornDate ? (
+              <>上次穿：{item.lastWornDate}</>
+            ) : (
+              <>从未穿</>
+            )}
+          </span>
+          {item.lastWornDate && (
+            <span className="text-warm-400">
+              {daysSince}天前
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

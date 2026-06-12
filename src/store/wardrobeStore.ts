@@ -90,9 +90,10 @@ export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9)
 }
 
-export function getDaysSince(dateStr: string): number {
-  if (!dateStr) return 9999
-  const then = new Date(dateStr)
+export function getDaysSince(dateStr: string, fallbackDate?: string): number {
+  const target = dateStr || fallbackDate
+  if (!target) return 0
+  const then = new Date(target)
   const now = new Date()
   const diff = now.getTime() - then.getTime()
   return Math.floor(diff / (1000 * 60 * 60 * 24))

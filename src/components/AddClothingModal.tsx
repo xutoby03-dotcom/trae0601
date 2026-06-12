@@ -23,6 +23,7 @@ export default function AddClothingModal({ editingItem, onClose, onSave }: AddCl
   const [seasons, setSeasons] = useState<Season[]>(editingItem?.seasons ?? [])
   const [occasions, setOccasions] = useState<Occasion[]>(editingItem?.occasions ?? [])
   const [washStatus, setWashStatus] = useState<WashStatus>(editingItem?.washStatus ?? 'clean')
+  const [lastWornDate, setLastWornDate] = useState(editingItem?.lastWornDate ?? '')
   const [photoUrl, setPhotoUrl] = useState(editingItem?.photoUrl ?? '')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -51,7 +52,7 @@ export default function AddClothingModal({ editingItem, onClose, onSave }: AddCl
       color,
       seasons,
       occasions,
-      lastWornDate: editingItem?.lastWornDate ?? '',
+      lastWornDate,
       washStatus,
       photoUrl,
       createdAt: editingItem?.createdAt ?? new Date().toISOString().slice(0, 10),
@@ -200,6 +201,19 @@ export default function AddClothingModal({ editingItem, onClose, onSave }: AddCl
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-charcoal/60 uppercase tracking-wider mb-2 block">上次穿着日期</label>
+            <input
+              type="date"
+              value={lastWornDate}
+              onChange={(e) => setLastWornDate(e.target.value)}
+              className="w-full px-3 py-2 bg-warm-50 border border-warm-200 rounded-xl text-sm focus:outline-none focus:border-warm-500 focus:ring-1 focus:ring-warm-500/20 text-charcoal"
+            />
+            <p className="text-[10px] text-warm-400 mt-1">
+              留空表示从未穿，添加后将显示为"从未穿"
+            </p>
           </div>
         </div>
 
