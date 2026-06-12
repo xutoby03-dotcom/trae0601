@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useStore } from "@/store";
 import Button from "@/components/Button";
 import Drawer from "@/components/Drawer";
 import StatusBadge from "@/components/StatusBadge";
 import { Select, Textarea, Input } from "@/components/FormFields";
-import type { DisposalType } from "@/types";
-import { DISPOSAL_TYPES, formatDateTime, formatDate, daysBetween } from "@/utils";
+import type { DisposalType, VehicleStatus } from "@/types";
+import { DISPOSAL_TYPES, STATUS_LABELS, formatDateTime, formatDate } from "@/utils";
 import { AlertTriangle, Phone, MapPin, Calendar, Camera, User, CheckCircle, Clock } from "lucide-react";
 
 interface DisposalForm {
@@ -33,6 +33,11 @@ export default function DisposalList() {
   const [tab, setTab] = useState<TabKey>("pending");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+
+  const [pendingAreaFilter, setPendingAreaFilter] = useState("");
+  const [pendingStatusFilter, setPendingStatusFilter] = useState("");
+  const [doneAreaFilter, setDoneAreaFilter] = useState("");
+
   const [form, setForm] = useState<DisposalForm>({
     vehicleId: "",
     areaId: "",
@@ -48,6 +53,21 @@ export default function DisposalList() {
     fetchPendingDisposals();
     fetchDisposals();
   }, [fetchAreas, fetchPendingDisposals, fetchDisposals]);
+
+  const filteredPending = useMemo(() => {
+    return pendingDisposals.filter((v) => {
+      if (pendingAreaFilter && v.areaId !== pendingAreaFilter) return false;
+      if (pendingStatusFilter && v.status !== pendingStatusFilter) return false;
+      return true;
+    });
+  }, [pendingDisposals, pendingAreaFilter, pendingStatusFilter]);
+
+  const filteredDone = useMemo(() => {
+    return disposals.filter((d) => {
+      if (doneAreaFilter && d.areaId !== doneAreaFilter) return false;
+      return true;
+    });
+  }, [disposals, doneAreaFilter]);
 
   const openHandle = (vehicleId: string, areaId: string) => {
     setSelectedVehicleId(vehicleId);
@@ -77,59 +97,100 @@ export default function DisposalList() {
     }
   };
 
+  const areaOptions = [
+    { value: "", label: "全部区域" },
+    ...areas.map((a) => ({ value: a.id, label: a.name })),
+  ];
+
+  const statusOptions = [
+    { value: "", label: "全部状态" },
+    ...Object.entries(STATUS_LABELS).map(([v, l]) => ({ value: v, label: l })),
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">处理清单</h2>
           <p className="mt-1 text-sm text-slate-500">
-            超期未挪车辆处理 · 待处理 {pendingDisposals.length} 辆 · 已处理 {disposals.length} 辆
+            超期未挪车辆处理 · 待处理 {filteredPending.length} / 共 {pendingDisposals.length} 辆 · 已处理{" "}
+            {filteredDone.length} / 共 {disposals.length} 辆
           </p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="border-b border-slate-200 flex">
-          <button
-            onClick={() => setTab("pending")}
-            className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === "pending"
-                ? "border-primary-600 text-primary-600 bg-primary-50/50"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <Clock size={15} />
-            待处理
-            <span className="px-2 py-0.5 text-[10px] rounded-full bg-danger-100 text-danger-600 font-semibold">
-              {pendingDisposals.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setTab("done")}
-            className={`flex items-center gap-2 px-6 py-3.5 text-sm font-medium border-b-2 transition-colors ${
-              tab === "done"
-                ? "border-primary-600 text-primary-600 bg-primary-50/50"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            <CheckCircle size={15} />
-            已处理
-            <span className="px-2 py-0.5 text-[10px] rounded-full bg-success-100 text-success-600 font-semibold">
-              {disposals.length}
-            </span>
-          </button>
+        <div className="border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 px-6 py-3">
+          <div className="flex">
+            <button
+              onClick={() => setTab("pending")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-3 transition-colors ${
+                tab === "pending"
+                  ? "border-primary-600 text-primary-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <Clock size={15} />
+              待处理
+              <span className="px-2 py-0.5 text-[10px] rounded-full bg-danger-100 text-danger-600 font-semibold">
+                {filteredPending.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setTab("done")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-3 transition-colors ${
+                tab === "done"
+                  ? "border-primary-600 text-primary-600"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <CheckCircle size={15} />
+              已处理
+              <span className="px-2 py-0.5 text-[10px] rounded-full bg-success-100 text-success-600 font-semibold">
+                {filteredDone.length}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {tab === "pending" ? (
+              <>
+                <Select
+                  value={pendingAreaFilter}
+                  onChange={(e) => setPendingAreaFilter(e.target.value)}
+                  options={areaOptions}
+                  className="w-48"
+                />
+                <Select
+                  value={pendingStatusFilter}
+                  onChange={(e) => setPendingStatusFilter(e.target.value)}
+                  options={statusOptions}
+                  className="w-40"
+                />
+              </>
+            ) : (
+              <Select
+                value={doneAreaFilter}
+                onChange={(e) => setDoneAreaFilter(e.target.value)}
+                options={areaOptions}
+                className="w-48"
+              />
+            )}
+          </div>
         </div>
 
         <div className="p-6">
           {tab === "pending" ? (
-            pendingDisposals.length === 0 ? (
+            filteredPending.length === 0 ? (
               <div className="py-16 text-center">
                 <CheckCircle size={48} className="mx-auto text-success-300" />
-                <p className="mt-3 text-slate-500">暂无待处理车辆，继续保持！</p>
+                <p className="mt-3 text-slate-500">
+                  {pendingDisposals.length === 0 ? "暂无待处理车辆，继续保持！" : "当前筛选条件下暂无车辆"}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {pendingDisposals.map((v) => {
+                {filteredPending.map((v) => {
                   const area = areas.find((a) => a.id === v.areaId);
                   return (
                     <div
@@ -150,7 +211,9 @@ export default function DisposalList() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-bold text-slate-800 text-lg">{v.plateNumber}</span>
+                                <span className="font-mono font-bold text-slate-800 text-lg">
+                                  {v.plateNumber}
+                                </span>
                                 <StatusBadge status={v.status} />
                               </div>
                               <p className="text-xs text-slate-500 mt-0.5">{v.vehicleType}</p>
@@ -184,11 +247,13 @@ export default function DisposalList() {
                 })}
               </div>
             )
-          ) : disposals.length === 0 ? (
-            <div className="py-16 text-center text-slate-400">暂无已处理记录</div>
+          ) : filteredDone.length === 0 ? (
+            <div className="py-16 text-center text-slate-400">
+              {disposals.length === 0 ? "暂无已处理记录" : "当前筛选条件下暂无记录"}
+            </div>
           ) : (
             <div className="space-y-3">
-              {disposals.map((d) => (
+              {filteredDone.map((d) => (
                 <div
                   key={d.id}
                   className="rounded-lg border border-slate-200 bg-white p-4 flex gap-4 hover:border-primary-200 transition-colors"
@@ -242,6 +307,32 @@ export default function DisposalList() {
 
       <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} title="记录处理结果" width="w-[480px]">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="p-3 rounded-md bg-slate-50 border border-slate-200 text-sm space-y-1">
+            {(() => {
+              const target = pendingDisposals.find((v) => v.id === form.vehicleId);
+              const targetArea = areas.find((a) => a.id === form.areaId);
+              return (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">车辆</span>
+                    <span className="font-mono font-medium text-slate-800">
+                      {target?.plateNumber || form.vehicleId}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">停放区域</span>
+                    <span className="text-slate-800">{targetArea?.name || "-"}</span>
+                  </div>
+                  {target && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">未挪天数</span>
+                      <span className="text-danger-600 font-semibold">{target.daysUnmoved} 天</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
           <Select
             label="处理方式"
             required
@@ -289,7 +380,6 @@ export default function DisposalList() {
         </form>
       </Drawer>
 
-      {/* keep unused import to avoid warning */}
       <span className="hidden">{selectedVehicleId}</span>
     </div>
   );
