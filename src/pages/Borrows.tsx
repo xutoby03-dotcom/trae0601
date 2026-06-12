@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, Clock, User, Phone, Calendar, DollarSign, CheckCircle, X, Search } from 'lucide-react';
+import { Plus, Clock, User, Phone, Calendar, DollarSign, CheckCircle, X, Search, Home } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store/appStore.js';
 import { borrowsApi, roomsApi } from '../services/api.js';
 import { format } from 'date-fns';
@@ -17,7 +18,11 @@ const tabs: { key: FilterTab; label: string }[] = [
 
 export default function BorrowsPage() {
   const { borrows, fetchBorrows, rooms, fetchRooms, loading } = useAppStore();
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlRoomId = searchParams.get('roomId');
+  const urlRoomName = searchParams.get('roomName');
+  const urlStatus = searchParams.get('status') as FilterTab | null;
+  const [activeTab, setActiveTab] = useState<FilterTab>(urlStatus && ['all', 'borrowed', 'returned', 'overdue'].includes(urlStatus) ? urlStatus : 'all');
   const [searchText, setSearchText] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -41,6 +46,12 @@ export default function BorrowsPage() {
   useEffect(() => {
     fetchRooms();
   }, [fetchRooms]);
+
+  useEffect(() => {
+    if (urlStatus && ['all', 'borrowed', 'returned', 'overdue'].includes(urlStatus) && urlStatus !== activeTab) {
+      setActiveTab(urlStatus);
+    }
+  }, [urlStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (activeTab === 'all') {
@@ -86,12 +97,14 @@ export default function BorrowsPage() {
 
   const allChecked = returnChecks.door && returnChecks.window && returnChecks.light && returnChecks.aircon;
 
-  const filteredBorrows = borrows.filter(
-    (b) =>
-      b.borrowerName.includes(searchText) ||
-      b.activityName.includes(searchText) ||
-      b.roomName.includes(searchText),
-  );
+  const filteredBorrows = borrows
+    .filter((b) => !urlRoomId || b.roomId === Number(urlRoomId))
+    .filter(
+      (b) =>
+        b.borrowerName.includes(searchText) ||
+        b.activityName.includes(searchText) ||
+        b.roomName.includes(searchText),
+    );
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -145,8 +158,33 @@ export default function BorrowsPage() {
     }
   };
 
+  const clearRoomFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('roomId');
+    newParams.delete('roomName');
+    setSearchParams(newParams);
+  };
+
   return (
     <div className="space-y-5">
+      {urlRoomName && (
+        <div className="flex items-center gap-3 p-4 bg-teal-50 rounded-2xl border border-teal-100">
+          <div className="p-2 bg-teal-100 rounded-xl">
+            <Home className="w-5 h-5 text-teal-600" />
+          </div>
+          <div className="flex-1">
+            <div className="text-sm text-teal-600 font-medium">当前筛选</div>
+            <div className="text-base font-bold text-slate-800">{decodeURIComponent(urlRoomName)}</div>
+          </div>
+          <button
+            onClick={clearRoomFilter}
+            className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-white rounded-lg transition-colors"
+          >
+            清除筛选
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -171,7 +209,12 @@ export default function BorrowsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => {
+              setActiveTab(tab.key);
+              const newParams = new URLSearchParams(searchParams);
+              newParams.set('status', tab.key);
+              setSearchParams(newParams);
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'bg-white text-slate-800 shadow-sm'

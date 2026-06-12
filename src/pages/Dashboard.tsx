@@ -210,15 +210,33 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-4 gap-2">
-                <div className="text-center p-2 bg-slate-50 rounded-xl">
+                <div
+                  className="text-center p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-amber-50 hover:ring-2 hover:ring-amber-200 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/borrows?roomId=${room.roomId}&roomName=${encodeURIComponent(room.roomName)}&status=borrowed`);
+                  }}
+                >
                   <div className="text-xl font-bold text-amber-600">{room.borrowed}</div>
                   <div className="text-xs text-slate-500 mt-0.5">借出中</div>
                 </div>
-                <div className="text-center p-2 bg-slate-50 rounded-xl">
+                <div
+                  className="text-center p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-sky-50 hover:ring-2 hover:ring-sky-200 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/borrows?roomId=${room.roomId}&roomName=${encodeURIComponent(room.roomName)}&status=borrowed&pending=1`);
+                  }}
+                >
                   <div className="text-xl font-bold text-sky-600">{room.pendingReturn}</div>
                   <div className="text-xs text-slate-500 mt-0.5">待归还</div>
                 </div>
-                <div className="text-center p-2 bg-slate-50 rounded-xl">
+                <div
+                  className="text-center p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-red-50 hover:ring-2 hover:ring-red-200 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/borrows?roomId=${room.roomId}&roomName=${encodeURIComponent(room.roomName)}&status=overdue`);
+                  }}
+                >
                   <div className="text-xl font-bold text-red-600">{room.overdue}</div>
                   <div className="text-xs text-slate-500 mt-0.5">逾期</div>
                 </div>
