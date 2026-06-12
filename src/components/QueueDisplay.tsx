@@ -51,7 +51,10 @@ export function QueueDisplay() {
   const handleScanResult = (code: string) => {
     setScannerOpen(false);
     setSearchInput(code);
-    const order = doSearch(code);
+    const order = findOrderByPhoneOrCode(code.trim(), undefined);
+    setFoundOrder(order || null);
+    setEnqueueSuccess(false);
+
     if (!order) {
       setSuccessMessage('未找到对应订单，请检查取货码');
       setEnqueueSuccess(true);
