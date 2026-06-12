@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { Check, AlertTriangle, Droplets, Thermometer, Palette } from 'lucide-react'
-import type { Clothing, Season } from '@/types'
-import { CATEGORY_LABELS, COLOR_LABELS, COLOR_HEX, getColorsThatClash, SEASON_LABELS } from '@/types'
+import { Check, AlertTriangle, Droplets, Thermometer, Palette, Coffee, Briefcase, Heart, Dumbbell, Building, Music, Calendar } from 'lucide-react'
+import type { Clothing, Season, Occasion } from '@/types'
+import { CATEGORY_LABELS, COLOR_LABELS, COLOR_HEX, getColorsThatClash, SEASON_LABELS, OCCASION_LABELS } from '@/types'
 import { useWardrobeStore, generateId, getCurrentSeason } from '@/store/wardrobeStore'
 
 type CategoryKey = 'top' | 'bottom' | 'outerwear' | 'shoes'
@@ -16,9 +16,20 @@ interface SelectedIds {
 }
 
 interface AlertItem {
-  type: 'clash' | 'season' | 'dirty'
+  type: 'clash' | 'season' | 'dirty' | 'occasion'
   title: string
   description: string
+}
+
+const OCCASION_LIST: Occasion[] = ['casual', 'work', 'date', 'sport', 'formal', 'party']
+
+const OCCASION_ICONS: Record<Occasion, typeof Coffee> = {
+  casual: Coffee,
+  work: Briefcase,
+  date: Heart,
+  sport: Dumbbell,
+  formal: Building,
+  party: Music,
 }
 
 export default function Outfit() {
@@ -31,6 +42,7 @@ export default function Outfit() {
     outerwear: '',
     shoes: '',
   })
+  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | ''>('')
 
   const currentSeason = getCurrentSeason() as Season
 
@@ -51,11 +63,14 @@ export default function Outfit() {
     }
     for (const item of clothing) {
       if (item.category in result) {
+        if (selectedOccasion && item.occasions.length > 0 && !item.occasions.includes(selectedOccasion)) {
+          continue
+        }
         result[item.category as CategoryKey].push(item)
       }
     }
     return result
-  }, [clothing])
+  }, [clothing, selectedOccasion])
 
   const selectedItems = useMemo(() => {
     const items: Clothing[] = []
@@ -108,8 +123,20 @@ export default function Outfit() {
       }
     }
 
+    if (selectedOccasion) {
+      for (const item of selectedItems) {
+        if (item.occasions.length > 0 && !item.occasions.includes(selectedOccasion)) {
+          result.push({
+            type: 'occasion',
+            title: '场合不匹配',
+            description: `${item.name} 不适合${OCCASION_LABELS[selectedOccasion]}场合`,
+          })
+        }
+      }
+    }
+
     return result
-  }, [selectedItems, currentSeason])
+  }, [selectedItems, currentSeason, selectedOccasion])
 
   const canConfirm = selectedIds.top && selectedIds.bottom && selectedIds.shoes
 
@@ -129,9 +156,11 @@ export default function Outfit() {
       bottomId: selectedIds.bottom,
       outerwearId: selectedIds.outerwear,
       shoesId: selectedIds.shoes,
+      occasion: selectedOccasion,
       createdAt: new Date().toISOString(),
     })
     setSelectedIds({ top: '', bottom: '', outerwear: '', shoes: '' })
+    setSelectedOccasion('')
   }
 
   return (
@@ -140,6 +169,39 @@ export default function Outfit() {
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold text-charcoal">每日搭配</h1>
           <p className="text-sm text-charcoal/50 mt-1">{dateStr}</p>
+        </div>
+
+        <div className="mb-6">
+          <h2 className="text-xs font-medium text-charcoal/60 uppercase tracking-wider mb-2">今日场合</h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedOccasion('')}
+              className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                selectedOccasion === ''
+                  ? 'bg-warm-500 text-white shadow-sm'
+                  : 'bg-white text-charcoal/60 hover:bg-warm-100 border border-warm-200'
+              }`}
+            >
+              全部场合
+            </button>
+            {OCCASION_LIST.map((occ) => {
+              const Icon = OCCASION_ICONS[occ]
+              return (
+                <button
+                  key={occ}
+                  onClick={() => setSelectedOccasion(occ)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                    selectedOccasion === occ
+                      ? 'bg-sand text-white shadow-sm'
+                      : 'bg-white text-charcoal/60 hover:bg-warm-100 border border-warm-200'
+                  }`}
+                >
+                  <Icon size={14} />
+                  {OCCASION_LABELS[occ]}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -282,6 +344,20 @@ export default function Outfit() {
                       <div>
                         <p className="text-sm font-medium text-red-800">{alert.title}</p>
                         <p className="text-xs text-red-600 mt-0.5">{alert.description}</p>
+                      </div>
+                    </div>
+                  )
+                }
+                if (alert.type === 'occasion') {
+                  return (
+                    <div
+                      key={index}
+                      className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-start gap-3"
+                    >
+                      <Calendar size={18} className="text-purple-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-purple-800">{alert.title}</p>
+                        <p className="text-xs text-purple-600 mt-0.5">{alert.description}</p>
                       </div>
                     </div>
                   )

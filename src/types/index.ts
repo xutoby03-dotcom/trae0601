@@ -33,6 +33,7 @@ export interface OutfitRecord {
   bottomId: string
   outerwearId: string
   shoesId: string
+  occasion: Occasion | ''
   createdAt: string
 }
 
