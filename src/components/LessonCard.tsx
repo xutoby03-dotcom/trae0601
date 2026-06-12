@@ -28,10 +28,21 @@ interface Props {
   onGiveUp: (id: string) => void
 }
 
+function startOfLocalDay(date: Date): number {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function localDayDiff(iso: string): number {
+  const target = startOfLocalDay(new Date(iso))
+  const today = startOfLocalDay(new Date())
+  return Math.round((target - today) / (24 * 60 * 60 * 1000))
+}
+
 function formatDateTime(iso: string): string {
   const d = new Date(iso)
-  const now = new Date()
-  const diffDays = Math.floor((d.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+  const diffDays = localDayDiff(iso)
 
   const dateStr = `${d.getMonth() + 1}月${d.getDate()}日`
   const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
@@ -40,17 +51,18 @@ function formatDateTime(iso: string): string {
   if (diffDays === 0) dayLabel = '今天'
   else if (diffDays === 1) dayLabel = '明天'
   else if (diffDays === 2) dayLabel = '后天'
+  else if (diffDays === 3) dayLabel = '大后天'
   else if (diffDays === -1) dayLabel = '昨天'
-  else if (diffDays > 0 && diffDays <= 7) dayLabel = `${diffDays}天后`
-  else if (diffDays < 0) dayLabel = `${-diffDays}天前`
+  else if (diffDays === -2) dayLabel = '前天'
+  else if (diffDays > 3) dayLabel = `${diffDays}天后`
+  else if (diffDays < -2) dayLabel = `${-diffDays}天前`
 
   return `${dayLabel ? dayLabel + ' · ' : ''}${dateStr} ${timeStr}`
 }
 
 function isUpcomingSoon(iso: string): boolean {
-  const d = new Date(iso).getTime()
-  const now = Date.now()
-  return d > now && d - now <= 3 * 24 * 60 * 60 * 1000
+  const diffDays = localDayDiff(iso)
+  return diffDays >= 0 && diffDays <= 3
 }
 
 export const LessonCard: React.FC<Props> = ({ lesson, onFeedback, onEnroll, onGiveUp }) => {
