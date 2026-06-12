@@ -18,7 +18,7 @@ export default function StatsPanel() {
   const maxPositionCount = Math.max(1, ...Object.values(positionCount))
 
   const pendingBonus = candidates
-    .filter((c) => c.bonusStatus === 'pending' || c.bonusStatus === 'available')
+    .filter((c) => c.bonusStatus === 'pending')
     .reduce((sum, c) => sum + c.bonusAmount, 0)
   const availableBonus = candidates
     .filter((c) => c.bonusStatus === 'available')
