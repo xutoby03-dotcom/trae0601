@@ -20,6 +20,7 @@ export default function WaterChangeForm({ onSuccess }: Props) {
     addMedicine: false,
     medicineName: '',
     cleanFilter: false,
+    photo: '',
     notes: '',
   });
 
@@ -128,6 +129,22 @@ export default function WaterChangeForm({ onSuccess }: Props) {
           />
         </div>
       )}
+
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">现场照片 URL</label>
+        <input
+          type="text"
+          placeholder="输入图片链接..."
+          value={formData.photo}
+          onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+        />
+        {formData.photo && (
+          <div className="mt-2 w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+            <img src={formData.photo} alt="预览" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
 
       <div>
         <label className="text-xs text-gray-500 mb-1 block">备注</label>

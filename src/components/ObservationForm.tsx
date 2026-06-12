@@ -35,6 +35,7 @@ export default function ObservationForm({ onSuccess }: Props) {
     targetId: fishes[0]?.id || '',
     targetName: fishes[0]?.name || '',
     status: 'pending' as const,
+    photo: '',
   });
 
   const handleTypeChange = (type: ObservationType) => {
@@ -80,6 +81,7 @@ export default function ObservationForm({ onSuccess }: Props) {
       targetId: formData.targetId || undefined,
       targetName: formData.targetName,
       status: formData.status,
+      photo: formData.photo || undefined,
     });
     onSuccess?.();
   };
@@ -175,6 +177,22 @@ export default function ObservationForm({ onSuccess }: Props) {
           rows={3}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
         />
+      </div>
+
+      <div>
+        <label className="text-xs text-gray-500 mb-1 block">异常照片 URL</label>
+        <input
+          type="text"
+          placeholder="输入图片链接..."
+          value={formData.photo}
+          onChange={(e) => setFormData({ ...formData, photo: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+        />
+        {formData.photo && (
+          <div className="mt-2 w-24 h-24 rounded-lg overflow-hidden border border-gray-200">
+            <img src={formData.photo} alt="预览" className="w-full h-full object-cover" />
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2">

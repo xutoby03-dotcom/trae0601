@@ -134,6 +134,15 @@ export default function ObservationList() {
             {expandedId === obs.id && (
               <div className="px-4 pb-4 border-t border-white/50 pt-3">
                 <p className="text-sm text-gray-600 mb-3">{obs.description}</p>
+                {obs.photo && (
+                  <div className="mb-3">
+                    <img
+                      src={obs.photo}
+                      alt="异常照片"
+                      className="w-full max-w-xs rounded-lg border border-white/50 shadow-sm hover:scale-[1.02] transition-transform cursor-pointer"
+                    />
+                  </div>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

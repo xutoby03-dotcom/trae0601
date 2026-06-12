@@ -98,8 +98,18 @@ export default function WaterChangeList() {
                       )}
                     </div>
 
+                    {record.photo && (
+                      <div className="mt-3">
+                        <img
+                          src={record.photo}
+                          alt="换水现场"
+                          className="w-32 h-24 object-cover rounded-lg border border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+                        />
+                      </div>
+                    )}
+
                     {record.notes && (
-                      <p className="text-sm text-gray-600 flex items-start gap-2">
+                      <p className="text-sm text-gray-600 flex items-start gap-2 mt-3">
                         <Calendar size={14} className="mt-0.5 flex-shrink-0 text-gray-400" />
                         <span>{record.notes}</span>
                       </p>
