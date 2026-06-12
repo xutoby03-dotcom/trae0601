@@ -208,6 +208,7 @@ export const useAppStore = create<AppState>()(
 
       callNext: () => {
         const state = get();
+        if (state.queueState.calledOrder) return;
         if (state.queueState.waitingQueue.length === 0) return;
 
         const [nextOrder, ...remainingQueue] = state.queueState.waitingQueue;
@@ -217,6 +218,7 @@ export const useAppStore = create<AppState>()(
           ...nextOrder,
           queueStatus: 'called',
           calledAt,
+          callCount: nextOrder.callCount + 1,
         };
 
         set({

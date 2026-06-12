@@ -263,18 +263,23 @@ export function QueueDisplay() {
           </div>
           <button
             onClick={handleCallNext}
-            disabled={queueState.waitingQueue.length === 0}
+            disabled={queueState.calledOrder !== null || queueState.waitingQueue.length === 0}
             className={cn(
               'w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2',
-              queueState.waitingQueue.length === 0
+              queueState.calledOrder !== null || queueState.waitingQueue.length === 0
                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/30 active:scale-95'
             )}
           >
             <SkipForward className="w-5 h-5" />
-            叫下一位
+            {queueState.calledOrder ? '请先完成当前叫号' : '叫下一位'}
           </button>
-          {queueState.waitingQueue.length === 0 && (
+          {queueState.calledOrder && (
+            <p className="text-center text-amber-600 text-sm mt-2">
+              当前有正在叫号的订单，请先标记已取货或等待超时
+            </p>
+          )}
+          {!queueState.calledOrder && queueState.waitingQueue.length === 0 && (
             <p className="text-center text-slate-400 text-sm mt-2">
               等待队列为空
             </p>
