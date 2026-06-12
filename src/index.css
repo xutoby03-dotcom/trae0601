@@ -1,0 +1,66 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:wght@400;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #3e2723;
+  background: #fff8e7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-copper-500 text-white px-6 py-2.5 rounded-full font-medium
+           hover:bg-copper-600 hover:shadow-lg hover:scale-[1.02]
+           active:scale-95 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-copper-400 focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply bg-white text-copper-700 border-2 border-copper-300 px-6 py-2.5 rounded-full font-medium
+           hover:bg-copper-50 hover:border-copper-500 hover:shadow
+           active:scale-95 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-copper-400 focus:ring-offset-2;
+  }
+  .btn-danger {
+    @apply bg-danger text-white px-6 py-2.5 rounded-full font-medium
+           hover:bg-red-600 hover:shadow-lg hover:scale-[1.02]
+           active:scale-95 transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2;
+  }
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-copper-200 bg-white/80
+           text-espresso-800 placeholder-espresso-300 font-medium
+           focus:outline-none focus:border-copper-500 focus:ring-2 focus:ring-copper-200
+           transition-all duration-200;
+  }
+  .card-base {
+    @apply bg-white rounded-2xl shadow-lg border border-copper-100 overflow-hidden;
+  }
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl shadow-xl;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #fef3e2;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d2691e;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b85a18;
+}
