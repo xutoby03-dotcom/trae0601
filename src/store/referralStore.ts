@@ -20,7 +20,6 @@ function deriveBonusStatus(
   confirmedPermanent?: boolean
 ): BonusStatus {
   if (status !== 'hired') return 'pending'
-  if (confirmedPermanent) return 'paid'
   if (onboarded) return 'available'
   return 'pending'
 }
@@ -47,6 +46,7 @@ interface ReferralState {
 
   markOnboarded: (candidateId: string) => void
   markConfirmedPermanent: (candidateId: string) => void
+  markBonusPaid: (candidateId: string) => void
 
   addCandidate: (candidate: Omit<Candidate, 'id' | 'feedbacks' | 'status' | 'bonusStatus'>) => void
 }
@@ -116,11 +116,13 @@ export const useReferralStore = create<ReferralState>()(
           const candidates = state.candidates.map((c) => {
             if (c.id !== candidateId) return c
             const updated: Candidate = { ...c, onboarded: true }
-            updated.bonusStatus = deriveBonusStatus(
-              updated.status,
-              updated.onboarded,
-              updated.confirmedPermanent
-            )
+            if (c.bonusStatus !== 'paid') {
+              updated.bonusStatus = deriveBonusStatus(
+                updated.status,
+                updated.onboarded,
+                updated.confirmedPermanent
+              )
+            }
             return updated
           })
           return { candidates }
@@ -131,12 +133,23 @@ export const useReferralStore = create<ReferralState>()(
           const candidates = state.candidates.map((c) => {
             if (c.id !== candidateId) return c
             const updated: Candidate = { ...c, onboarded: true, confirmedPermanent: true }
-            updated.bonusStatus = deriveBonusStatus(
-              updated.status,
-              updated.onboarded,
-              updated.confirmedPermanent
-            )
+            if (c.bonusStatus !== 'paid') {
+              updated.bonusStatus = deriveBonusStatus(
+                updated.status,
+                updated.onboarded,
+                updated.confirmedPermanent
+              )
+            }
             return updated
+          })
+          return { candidates }
+        }),
+
+      markBonusPaid: (candidateId) =>
+        set((state) => {
+          const candidates = state.candidates.map((c) => {
+            if (c.id !== candidateId) return c
+            return { ...c, bonusStatus: 'paid' }
           })
           return { candidates }
         }),
