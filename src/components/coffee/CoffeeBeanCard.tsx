@@ -113,7 +113,11 @@ const CoffeeBeanCard: FC<CoffeeBeanCardProps> = ({ bean, onEdit, onDelete, onBre
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs text-[#6B5748] mb-4">
+        <div
+          className={`grid gap-3 text-xs text-[#6B5748] mb-4 ${
+            bean.recommendedGrind ? 'grid-cols-3' : 'grid-cols-2'
+          }`}
+        >
           <div>
             <p className="text-[#9B8B7D]">购买日期</p>
             <p className="font-medium text-[#4A3728]">{formatDate(bean.purchaseDate)}</p>
@@ -122,6 +126,12 @@ const CoffeeBeanCard: FC<CoffeeBeanCardProps> = ({ bean, onEdit, onDelete, onBre
             <p className="text-[#9B8B7D]">价格</p>
             <p className="font-medium text-[#4A3728]">¥{bean.price}</p>
           </div>
+          {bean.recommendedGrind && (
+            <div>
+              <p className="text-[#9B8B7D]">推荐研磨</p>
+              <p className="font-medium text-[#4A3728]">{bean.recommendedGrind}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">
