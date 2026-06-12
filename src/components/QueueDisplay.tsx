@@ -56,6 +56,27 @@ export function QueueDisplay() {
       setSuccessMessage('未找到对应订单，请检查取货码');
       setEnqueueSuccess(true);
       setTimeout(() => setEnqueueSuccess(false), 3000);
+      return;
+    }
+
+    const unpaid = order.paymentStatus === 'unpaid';
+    const alreadyQueued = order.queueStatus === 'waiting' || order.queueStatus === 'called';
+
+    if (unpaid || alreadyQueued) {
+      return;
+    }
+
+    if (order.queueStatus === 'not_queued') {
+      enqueue(order.id);
+      const batch = getBatchById(order.batchId);
+      const queueNumber = queueState.currentNumber + 1;
+      setSuccessMessage(
+        `排号成功！${batch?.needRefrigeration ? '冷藏商品，优先处理。' : ''}您的号码是 ${queueNumber} 号`
+      );
+      setEnqueueSuccess(true);
+      setFoundOrder(null);
+      setSearchInput('');
+      setTimeout(() => setEnqueueSuccess(false), 4000);
     }
   };
 
