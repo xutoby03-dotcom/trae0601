@@ -179,9 +179,11 @@ export default function RepairList() {
                               <CheckCircle className="w-3 h-3" />
                               已完成
                             </p>
-                            <p className="text-xs text-slate-400">
-                              完成于 {repair.completeDate}
-                            </p>
+                            {repair.completeDate && (
+                              <p className="text-xs text-slate-400">
+                                完成于 {repair.completeDate}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>

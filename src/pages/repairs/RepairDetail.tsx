@@ -188,7 +188,7 @@ export default function RepairDetail() {
               <Calendar className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs text-slate-400">完成日期</p>
-                <p className="text-sm font-medium text-slate-800">{repair.completeDate}</p>
+                <p className="text-sm font-medium text-slate-800">{repair.completeDate || '—'}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-white border border-slate-200">
