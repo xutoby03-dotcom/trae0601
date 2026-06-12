@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Task, Person, ReviewRecord, ViewType, TaskStatus, Priority, TaskCategory } from '@/types';
+import type { Task, Person, Item, ReviewRecord, ViewType, TaskStatus, Priority, TaskCategory } from '@/types';
 import { mockTasks, mockPeople, mockReviewRecords } from '@/data/mockData';
 
 interface TaskStore {
@@ -21,8 +21,16 @@ interface TaskStore {
   setFilterCategory: (category: 'all' | TaskCategory) => void;
   setCurrentUserId: (id: string) => void;
 
-  addTask: (task: Omit<Task, 'id' | 'changeLogs' | 'isCompleted' | 'isOvertime' | 'itemList' | 'photos'> & { itemList?: string[]; photos?: string[] }) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
+  addTask: (task: Omit<Task, 'id' | 'changeLogs' | 'isCompleted' | 'isOvertime' | 'itemList' | 'photos' | 'status'> & { itemList?: string[]; photos?: string[]; status?: TaskStatus }) => void;
+  updateTask: (id: string, updates: Partial<Omit<Task, 'itemList'>> & { itemList?: string[] | Item[] }) => void;
+  updateTaskWithLog: (
+    id: string,
+    updates: Partial<Task>,
+    logType: 'time' | 'person' | 'location' | 'item' | 'other',
+    reason: string,
+    oldValue?: string,
+    newValue?: string
+  ) => void;
   deleteTask: (id: string) => void;
 
   claimTask: (taskId: string, userId: string) => void;
@@ -83,8 +91,47 @@ export const useTaskStore = create<TaskStore>()(
 
       updateTask: (id, updates) =>
         set((state) => ({
+          tasks: state.tasks.map((task) => {
+            if (task.id !== id) return task;
+            const { itemList, ...restUpdates } = updates;
+            const processedUpdates: Partial<Task> = { ...restUpdates };
+            if (itemList !== undefined) {
+              const isStringArray = itemList.length === 0 || typeof itemList[0] === 'string';
+              if (isStringArray) {
+                processedUpdates.itemList = (itemList as string[]).map((name) => ({
+                  id: generateId(),
+                  name,
+                  isChecked: false,
+                }));
+              } else {
+                processedUpdates.itemList = itemList as Item[];
+              }
+            }
+            return { ...task, ...processedUpdates };
+          }),
+        })),
+
+      updateTaskWithLog: (id, updates, logType, reason, oldValue, newValue) =>
+        set((state) => ({
           tasks: state.tasks.map((task) =>
-            task.id === id ? { ...task, ...updates } : task
+            task.id === id
+              ? {
+                  ...task,
+                  ...updates,
+                  changeLogs: [
+                    ...task.changeLogs,
+                    {
+                      id: generateId(),
+                      type: logType,
+                      reason,
+                      timestamp: new Date().toISOString(),
+                      operatorId: state.currentUserId,
+                      oldValue,
+                      newValue,
+                    },
+                  ],
+                }
+              : task
           ),
         })),
 

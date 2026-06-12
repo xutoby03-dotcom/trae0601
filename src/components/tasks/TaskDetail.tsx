@@ -1,4 +1,4 @@
-import { X, Clock, MapPin, User, Users, Package, Image, History, CheckCircle, AlertTriangle, Check } from 'lucide-react';
+import { X, Clock, MapPin, User, Users, Package, Image, History, CheckCircle, AlertTriangle, Check, Pencil, Edit2 } from 'lucide-react';
 import { useTaskStore } from '@/store/taskStore';
 import { Badge } from '@/components/common/Badge';
 import { Avatar } from '@/components/common/Avatar';
@@ -12,9 +12,14 @@ interface TaskDetailProps {
   onClose: () => void;
 }
 
+type EditModalType = 'time' | 'person' | 'backup' | 'location' | null;
+
 export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
-  const { tasks, people, currentUserId, claimTask, confirmTask, completeTask, toggleItem, deleteTask } = useTaskStore();
+  const { tasks, people, currentUserId, claimTask, confirmTask, completeTask, toggleItem, deleteTask, updateTaskWithLog } = useTaskStore();
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'photos' | 'history'>('info');
+  const [editModal, setEditModal] = useState<EditModalType>(null);
+  const [editValue, setEditValue] = useState('');
+  const [editReason, setEditReason] = useState('');
 
   const task = tasks.find((t) => t.id === taskId);
   const assignee = people.find((p) => p.id === task?.assigneeId);
@@ -49,6 +54,56 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
       deleteTask(taskId);
       onClose();
     }
+  };
+
+  const openEditModal = (type: EditModalType, currentValue: string) => {
+    setEditModal(type);
+    setEditValue(currentValue);
+    setEditReason('');
+  };
+
+  const closeEditModal = () => {
+    setEditModal(null);
+    setEditValue('');
+    setEditReason('');
+  };
+
+  const handleSaveEdit = () => {
+    if (!editReason.trim()) {
+      alert('请填写变更原因');
+      return;
+    }
+
+    let oldValue = '';
+    let newValue = '';
+    let updates: Record<string, any> = {};
+
+    if (editModal === 'time') {
+      oldValue = formatTime(task.startTime) + (task.endTime ? ` - ${formatTime(task.endTime)}` : '');
+      newValue = editValue;
+      const [start, end] = editValue.split(' - ');
+      updates = { startTime: start, endTime: end || undefined };
+    } else if (editModal === 'person') {
+      const oldPerson = people.find((p) => p.id === task.assigneeId);
+      oldValue = oldPerson ? `${oldPerson.name} (${oldPerson.role})` : '待认领';
+      const newPerson = people.find((p) => p.id === editValue);
+      newValue = newPerson ? `${newPerson.name} (${newPerson.role})` : '待认领';
+      updates = { assigneeId: editValue || undefined };
+    } else if (editModal === 'backup') {
+      const oldBackup = people.find((p) => p.id === task.backupId);
+      oldValue = oldBackup ? `${oldBackup.name} (${oldBackup.role})` : '无备用';
+      const newBackup = people.find((p) => p.id === editValue);
+      newValue = newBackup ? `${newBackup.name} (${newBackup.role})` : '无备用';
+      updates = { backupId: editValue || undefined };
+    } else if (editModal === 'location') {
+      oldValue = task.location;
+      newValue = editValue;
+      updates = { location: editValue };
+    }
+
+    const logType = editModal === 'time' ? 'time' : editModal === 'location' ? 'location' : 'person';
+    updateTaskWithLog(taskId, updates, logType, editReason.trim(), oldValue, newValue);
+    closeEditModal();
   };
 
   const tabs = [
@@ -125,10 +180,22 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
             {activeTab === 'info' && (
               <div className="space-y-5">
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-rose-gold/5">
-                  <h4 className="text-sm font-semibold text-warm-900 mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-rose-gold" />
-                    时间安排
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-warm-900 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-rose-gold" />
+                      时间安排
+                    </h4>
+                    <button
+                      onClick={() => {
+                        const currentTime = formatTime(task.startTime) + (task.endTime ? ` - ${formatTime(task.endTime)}` : '');
+                        openEditModal('time', currentTime);
+                      }}
+                      className="p-1.5 text-warm-400 hover:text-rose-gold hover:bg-rose-gold/10 rounded-lg transition-colors"
+                      title="修改时间"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-warm-500">开始时间</span>
@@ -150,18 +217,29 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
                 </div>
 
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-rose-gold/5">
-                  <h4 className="text-sm font-semibold text-warm-900 mb-3 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-rose-gold" />
-                    地点
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-warm-900 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-rose-gold" />
+                      地点
+                    </h4>
+                    <button
+                      onClick={() => openEditModal('location', task.location)}
+                      className="p-1.5 text-warm-400 hover:text-rose-gold hover:bg-rose-gold/10 rounded-lg transition-colors"
+                      title="修改地点"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <p className="text-sm text-warm-700">{task.location}</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-rose-gold/5">
-                  <h4 className="text-sm font-semibold text-warm-900 mb-3 flex items-center gap-2">
-                    <Users className="w-4 h-4 text-rose-gold" />
-                    负责人
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-warm-900 flex items-center gap-2">
+                      <Users className="w-4 h-4 text-rose-gold" />
+                      负责人
+                    </h4>
+                  </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -175,23 +253,39 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
                           </p>
                         </div>
                       </div>
-                      {isAssignedToMe && (
-                        <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">
-                          我负责
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {isAssignedToMe && (
+                          <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">
+                            我负责
+                          </span>
+                        )}
+                        <button
+                          onClick={() => openEditModal('person', task.assigneeId || '')}
+                          className="p-1.5 text-warm-400 hover:text-rose-gold hover:bg-rose-gold/10 rounded-lg transition-colors"
+                          title="修改负责人"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    {backup && (
-                      <div className="flex items-center justify-between opacity-70">
-                        <div className="flex items-center gap-3">
-                          <Avatar person={backup} size="sm" />
-                          <div>
-                            <p className="text-sm font-medium text-warm-700">{backup.name}</p>
-                            <p className="text-xs text-warm-500">{backup.role} · 备用</p>
-                          </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 opacity-90">
+                        <Avatar person={backup} size="sm" />
+                        <div>
+                          <p className="text-sm font-medium text-warm-700">
+                            {backup?.name || '无备用'}
+                          </p>
+                          <p className="text-xs text-warm-500">{backup?.role || '点击设置备用人'}</p>
                         </div>
                       </div>
-                    )}
+                      <button
+                        onClick={() => openEditModal('backup', task.backupId || '')}
+                        className="p-1.5 text-warm-400 hover:text-rose-gold hover:bg-rose-gold/10 rounded-lg transition-colors"
+                        title="修改备用人"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -372,6 +466,135 @@ export function TaskDetail({ taskId, isOpen, onClose }: TaskDetailProps) {
           </div>
         </div>
       </div>
+
+      {editModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center"
+            onClick={closeEditModal}
+          >
+            <div
+              className="bg-ivory rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-slide-up"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-5 border-b border-rose-gold/10 bg-white/50">
+                <h3 className="text-lg font-semibold text-warm-900 font-display">
+                  {editModal === 'time' && '修改时间'}
+                  {editModal === 'person' && '修改负责人'}
+                  {editModal === 'backup' && '修改备用人'}
+                  {editModal === 'location' && '修改地点'}
+                </h3>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {editModal === 'time' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                        开始时间
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editValue.split(' - ')[0].replace(' ', 'T').slice(0, 16)}
+                        onChange={(e) => {
+                          const start = e.target.value.replace('T', ' ');
+                          const end = editValue.split(' - ')[1] || '';
+                          setEditValue(start + (end ? ` - ${end}` : ''));
+                        }}
+                        className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                        结束时间（可选）
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={editValue.split(' - ')[1] ? editValue.split(' - ')[1].replace(' ', 'T').slice(0, 16) : ''}
+                        onChange={(e) => {
+                          const start = editValue.split(' - ')[0];
+                          const end = e.target.value ? e.target.value.replace('T', ' ') : '';
+                          setEditValue(start + (end ? ` - ${end}` : ''));
+                        }}
+                        className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(editModal === 'person' || editModal === 'backup') && (
+                  <div>
+                    <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                      选择人员
+                    </label>
+                    <select
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
+                    >
+                      <option value="">{editModal === 'backup' ? '无备用' : '待认领'}</option>
+                      {people.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} - {p.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {editModal === 'location' && (
+                  <div>
+                    <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                      地点
+                    </label>
+                    <input
+                      type="text"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      placeholder="例如：新娘家 / XX酒店宴会厅"
+                      className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                    <span className="text-wine">*</span> 变更原因
+                  </label>
+                  <textarea
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                    placeholder="请说明变更原因..."
+                    rows={3}
+                    className="w-full px-3 py-2.5 rounded-xl border border-warm-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 p-5 border-t border-rose-gold/10 bg-white/50">
+                <button
+                  onClick={closeEditModal}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-warm-200 text-warm-600 text-sm font-medium hover:bg-warm-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={!editReason.trim()}
+                  className={cn(
+                    'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium shadow-md transition-all',
+                    editReason.trim()
+                      ? 'bg-gradient-to-r from-rose-gold to-rose-goldDark text-white hover:shadow-lg hover:-translate-y-0.5'
+                      : 'bg-warm-200 text-warm-400 cursor-not-allowed'
+                  )}
+                >
+                  保存变更
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

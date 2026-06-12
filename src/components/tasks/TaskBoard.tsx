@@ -2,11 +2,13 @@ import { useTaskStore } from '@/store/taskStore';
 import { TaskCard } from './TaskCard';
 import { TaskFilter } from './TaskFilter';
 import { TaskDetail } from './TaskDetail';
+import { TaskForm } from './TaskForm';
 import { useMemo, useState } from 'react';
 
 export function TaskBoard() {
   const { tasks, filterStatus, filterPriority, filterCategory, selectedTaskId, setSelectedTaskId } = useTaskStore();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -39,7 +41,7 @@ export function TaskBoard() {
 
   return (
     <div className="relative">
-      <TaskFilter />
+      <TaskFilter onAddTask={() => setIsFormOpen(true)} />
 
       {sortedTasks.length === 0 ? (
         <div className="text-center py-16">
@@ -63,6 +65,8 @@ export function TaskBoard() {
       {selectedTaskId && (
         <TaskDetail taskId={selectedTaskId} isOpen={isDetailOpen} onClose={handleCloseDetail} />
       )}
+
+      <TaskForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
     </div>
   );
 }
