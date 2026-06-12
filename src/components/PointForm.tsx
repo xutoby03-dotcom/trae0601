@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Upload, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import type { UploadProps } from 'antd';
+import type { UploadProps, UploadFile } from 'antd';
 import type { Point, PointFormValues, DeviceType } from '../types';
 
 interface PointFormProps {
@@ -14,6 +14,14 @@ interface PointFormProps {
 const deviceTypes: DeviceType[] = ['灭火器', '应急灯', '安全出口贴纸'];
 const areas = ['1楼', '2楼', '3楼', '4楼', '5楼'];
 
+const getBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+
 const PointForm: React.FC<PointFormProps> = ({
   open,
   editingPoint,
@@ -21,6 +29,7 @@ const PointForm: React.FC<PointFormProps> = ({
   onSubmit,
 }) => {
   const [form] = Form.useForm<PointFormValues>();
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   useEffect(() => {
     if (open && editingPoint) {
@@ -33,11 +42,24 @@ const PointForm: React.FC<PointFormProps> = ({
         photo: editingPoint.photo,
         nextInspectionDate: editingPoint.nextInspectionDate,
       });
+      if (editingPoint.photo) {
+        setFileList([
+          {
+            uid: '-1',
+            name: 'photo',
+            status: 'done',
+            url: editingPoint.photo,
+          },
+        ]);
+      } else {
+        setFileList([]);
+      }
     } else if (open) {
       form.resetFields();
       form.setFieldsValue({
         inspectionCycle: 30,
       });
+      setFileList([]);
     }
   }, [open, editingPoint, form]);
 
@@ -50,14 +72,34 @@ const PointForm: React.FC<PointFormProps> = ({
     }
   };
 
+  const handleChange: UploadProps['onChange'] = async ({ fileList: newFileList }) => {
+    if (newFileList.length > 0) {
+      const file = newFileList[newFileList.length - 1];
+      if (file.originFileObj) {
+        try {
+          const base64 = await getBase64(file.originFileObj as File);
+          const updatedFile = { ...file, status: 'done' as const, url: base64 };
+          setFileList([updatedFile]);
+          form.setFieldsValue({ photo: base64 });
+        } catch {
+          message.error('图片读取失败');
+        }
+      } else if (file.url) {
+        setFileList(newFileList);
+      }
+    } else {
+      setFileList([]);
+      form.setFieldsValue({ photo: undefined });
+    }
+  };
+
   const uploadProps: UploadProps = {
     listType: 'picture-card',
     maxCount: 1,
     showUploadList: true,
-    beforeUpload: () => {
-      message.info('演示模式，使用默认图片');
-      return Upload.LIST_IGNORE;
-    },
+    fileList,
+    beforeUpload: () => false,
+    onChange: handleChange,
   };
 
   return (
@@ -151,10 +193,12 @@ const PointForm: React.FC<PointFormProps> = ({
           label="现场照片"
         >
           <Upload {...uploadProps}>
-            <div>
-              <PlusOutlined />
-              <div className="mt-2 text-sm">上传照片</div>
-            </div>
+            {fileList.length < 1 && (
+              <div>
+                <PlusOutlined />
+                <div className="mt-2 text-sm">上传照片</div>
+              </div>
+            )}
           </Upload>
         </Form.Item>
       </Form>

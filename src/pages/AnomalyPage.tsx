@@ -38,7 +38,7 @@ import type { ColumnsType } from 'antd/es/table';
 
 const AnomalyPage: React.FC = () => {
   const navigate = useNavigate();
-  const { points, anomalyTickets, updateAnomalyStatus, currentUser, addInspectionRecord } =
+  const { points, anomalyTickets, inspectionRecords, updateAnomalyStatus, currentUser, addInspectionRecord } =
     useStore();
   const [statusFilter, setStatusFilter] = useState<AnomalyStatus | null>(null);
   const [repairModalOpen, setRepairModalOpen] = useState(false);
@@ -400,6 +400,9 @@ const AnomalyPage: React.FC = () => {
             expandable={{
               expandedRowRender: (record) => {
                 const point = points.find((p) => p.id === record.pointId);
+                const inspectionRecord = inspectionRecords.find(
+                  (r) => r.id === record.inspectionRecordId
+                );
                 return (
                   <div className="py-4 space-y-4">
                     <div className="grid grid-cols-3 gap-4">
@@ -441,17 +444,32 @@ const AnomalyPage: React.FC = () => {
                         </Card>
                       )}
                     </div>
-                    {point?.photo && (
-                      <div>
-                        <p className="text-sm text-gray-600 mb-2">点位照片：</p>
-                        <Image
-                          src={point.photo}
-                          width={200}
-                          className="rounded-lg border border-gray-200"
-                          preview
-                        />
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-6">
+                      {inspectionRecord?.photo && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-2">巡检现场照片：</p>
+                          <Image
+                            src={inspectionRecord.photo}
+                            width={200}
+                            height={150}
+                            className="rounded-lg border border-gray-200 object-cover"
+                            preview
+                          />
+                        </div>
+                      )}
+                      {point?.photo && (
+                        <div>
+                          <p className="text-sm text-gray-600 mb-2">点位档案照片：</p>
+                          <Image
+                            src={point.photo}
+                            width={200}
+                            height={150}
+                            className="rounded-lg border border-gray-200 object-cover"
+                            preview
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               },

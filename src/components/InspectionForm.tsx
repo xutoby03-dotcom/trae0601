@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Upload, Radio, message, Card } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import type { UploadProps } from 'antd';
+import type { UploadProps, UploadFile } from 'antd';
 import type { Point, InspectionFormValues, InspectionStatus, LightingStatus, DeviceType } from '../types';
 import { getDeviceTypeIcon } from '../utils/helpers';
 
@@ -13,6 +13,14 @@ interface InspectionFormProps {
   onSubmit: (values: InspectionFormValues) => void;
 }
 
+const getBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+
 const InspectionForm: React.FC<InspectionFormProps> = ({
   open,
   points,
@@ -23,10 +31,12 @@ const InspectionForm: React.FC<InspectionFormProps> = ({
   const [form] = Form.useForm<InspectionFormValues>();
   const [status, setStatus] = useState<InspectionStatus>('normal');
   const [selectedPoint, setSelectedPoint] = useState<Point | null>(null);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
 
   useEffect(() => {
     if (open) {
       form.resetFields();
+      setFileList([]);
       if (selectedPointId) {
         form.setFieldsValue({ pointId: selectedPointId, inspector: '巡检员' });
         const point = points.find((p) => p.id === selectedPointId);
@@ -61,14 +71,34 @@ const InspectionForm: React.FC<InspectionFormProps> = ({
     }
   };
 
+  const handleChange: UploadProps['onChange'] = async ({ fileList: newFileList }) => {
+    if (newFileList.length > 0) {
+      const file = newFileList[newFileList.length - 1];
+      if (file.originFileObj) {
+        try {
+          const base64 = await getBase64(file.originFileObj as File);
+          const updatedFile = { ...file, status: 'done' as const, url: base64 };
+          setFileList([updatedFile]);
+          form.setFieldsValue({ photo: base64 });
+        } catch {
+          message.error('图片读取失败');
+        }
+      } else if (file.url) {
+        setFileList(newFileList);
+      }
+    } else {
+      setFileList([]);
+      form.setFieldsValue({ photo: undefined });
+    }
+  };
+
   const uploadProps: UploadProps = {
     listType: 'picture-card',
     maxCount: 1,
     showUploadList: true,
-    beforeUpload: () => {
-      message.info('演示模式，使用默认图片');
-      return Upload.LIST_IGNORE;
-    },
+    fileList,
+    beforeUpload: () => false,
+    onChange: handleChange,
   };
 
   const deviceType = selectedPoint?.deviceType as DeviceType;
@@ -212,10 +242,12 @@ const InspectionForm: React.FC<InspectionFormProps> = ({
           label="现场照片"
         >
           <Upload {...uploadProps}>
-            <div>
-              <PlusOutlined />
-              <div className="mt-2 text-sm">上传照片</div>
-            </div>
+            {fileList.length < 1 && (
+              <div>
+                <PlusOutlined />
+                <div className="mt-2 text-sm">上传照片</div>
+              </div>
+            )}
           </Upload>
         </Form.Item>
       </Form>
