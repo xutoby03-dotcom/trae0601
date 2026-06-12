@@ -160,6 +160,26 @@ export default function RepairList() {
                         <span>¥{repair.cost.toLocaleString()}</span>
                       </div>
                     )}
+                    {repair.status === 'completed' && repair.afterPhoto && (
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={repair.afterPhoto}
+                            alt="维修后"
+                            className="w-10 h-10 rounded-lg object-cover bg-slate-100 shrink-0"
+                          />
+                          <div>
+                            <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              已完成
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              完成于 {repair.completeDate}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
