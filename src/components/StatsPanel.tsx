@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BarChart3, TrendingUp, Award, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -19,14 +20,28 @@ import {
   getMostProblematicFish,
   calculatePhStats,
 } from '@/utils/stats';
+import type { WaterChangeRecord } from '@/types';
 
-export default function StatsPanel() {
+interface Props {
+  selectedMonth?: string;
+}
+
+export default function StatsPanel({ selectedMonth = 'all' }: Props) {
   const { waterChanges, observations, fishes } = useFishTankStore();
 
+  const filteredChanges = useMemo<WaterChangeRecord[]>(() => {
+    if (selectedMonth === 'all') return waterChanges;
+    return waterChanges.filter((r) => {
+      const d = new Date(r.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return key === selectedMonth;
+    });
+  }, [waterChanges, selectedMonth]);
+
   const monthlyData = getMonthlyWaterChanges(waterChanges);
-  const qualityTrend = getWaterQualityTrend(waterChanges);
+  const qualityTrend = getWaterQualityTrend(filteredChanges);
   const problematicFish = getMostProblematicFish(observations, fishes);
-  const phStats = calculatePhStats(waterChanges);
+  const phStats = calculatePhStats(filteredChanges);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-purple-100 overflow-hidden hover:shadow-xl transition-all duration-300">
@@ -37,7 +52,9 @@ export default function StatsPanel() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900">数据统计</h3>
-            <p className="text-sm text-gray-500">养护趋势一目了然</p>
+            <p className="text-sm text-gray-500">
+              {selectedMonth === 'all' ? '养护趋势一目了然' : '当前筛选月份统计'}
+            </p>
           </div>
         </div>
       </div>
@@ -63,7 +80,12 @@ export default function StatsPanel() {
                   }}
                   formatter={(value: number) => [`${value} 次`, '换水次数']}
                 />
-                <Bar dataKey="count" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="count"
+                  fill="#0EA5E9"
+                  radius={[4, 4, 0, 0]}
+                  fillOpacity={1}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -74,57 +96,63 @@ export default function StatsPanel() {
             <TrendingUp size={16} className="text-emerald-500" />
             水质波动趋势
           </h4>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={qualityTrend} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#999" />
-                <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="#999" />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#999" />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '8px',
-                    border: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    fontSize: '12px',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="temperature"
-                  stroke="#F97316"
-                  strokeWidth={2}
-                  dot={{ fill: '#F97316', r: 3 }}
-                  name="水温(°C)"
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="ph"
-                  stroke="#8B5CF6"
-                  strokeWidth={2}
-                  dot={{ fill: '#8B5CF6', r: 3 }}
-                  name="PH值"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {filteredChanges.length === 0 ? (
+            <div className="h-40 flex items-center justify-center text-gray-400 text-sm">
+              当前筛选无数据
+            </div>
+          ) : (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={qualityTrend} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#999" />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="#999" />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#999" />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="temperature"
+                    stroke="#F97316"
+                    strokeWidth={2}
+                    dot={{ fill: '#F97316', r: 3 }}
+                    name="水温(°C)"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="ph"
+                    stroke="#8B5CF6"
+                    strokeWidth={2}
+                    dot={{ fill: '#8B5CF6', r: 3 }}
+                    name="PH值"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-sky-50 rounded-xl p-3 text-center">
-            <div className="text-lg font-bold text-sky-700">{phStats.avg}</div>
+            <div className="text-lg font-bold text-sky-700">{phStats.avg || '-'}</div>
             <div className="text-xs text-sky-500">平均PH</div>
           </div>
           <div className="bg-emerald-50 rounded-xl p-3 text-center">
-            <div className="text-lg font-bold text-emerald-700">{phStats.range}</div>
+            <div className="text-lg font-bold text-emerald-700">{phStats.range || '-'}</div>
             <div className="text-xs text-emerald-500">PH波动</div>
           </div>
           <div className="bg-amber-50 rounded-xl p-3 text-center">
-            <div className="text-lg font-bold text-amber-700">{waterChanges.length}</div>
-            <div className="text-xs text-amber-500">总换水次数</div>
+            <div className="text-lg font-bold text-amber-700">{filteredChanges.length}</div>
+            <div className="text-xs text-amber-500">换水次数</div>
           </div>
         </div>
 
@@ -170,5 +198,3 @@ export default function StatsPanel() {
     </div>
   );
 }
-
-

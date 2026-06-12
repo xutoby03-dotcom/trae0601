@@ -1,12 +1,42 @@
-import { useState } from 'react';
-import { Plus, Droplets, Thermometer, FlaskConical, Pill, Sparkles, Calendar } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Droplets, Thermometer, FlaskConical, Pill, Sparkles, Calendar, Filter } from 'lucide-react';
 import { useFishTankStore } from '@/store/useFishTankStore';
+import type { WaterChangeRecord } from '@/types';
 import { cn } from '@/lib/utils';
 import WaterChangeForm from './WaterChangeForm';
 
-export default function WaterChangeList() {
+interface Props {
+  selectedMonth?: string;
+  onMonthChange?: (month: string) => void;
+}
+
+export default function WaterChangeList({ selectedMonth = 'all', onMonthChange }: Props) {
   const { waterChanges } = useFishTankStore();
   const [showForm, setShowForm] = useState(false);
+
+  const monthOptions = useMemo(() => {
+    const months = new Set<string>();
+    waterChanges.forEach((r) => {
+      const d = new Date(r.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.add(key);
+    });
+    return Array.from(months).sort().reverse();
+  }, [waterChanges]);
+
+  const monthLabel = (key: string) => {
+    const [y, m] = key.split('-');
+    return `${y}年${Number(m)}月`;
+  };
+
+  const filteredChanges = useMemo(() => {
+    if (selectedMonth === 'all') return waterChanges;
+    return waterChanges.filter((r) => {
+      const d = new Date(r.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      return key === selectedMonth;
+    });
+  }, [waterChanges, selectedMonth]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -28,7 +58,7 @@ export default function WaterChangeList() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900">换水记录</h3>
-            <p className="text-sm text-gray-500">共 {waterChanges.length} 条记录</p>
+            <p className="text-sm text-gray-500">共 {filteredChanges.length} 条记录</p>
           </div>
         </div>
         <button
@@ -45,6 +75,49 @@ export default function WaterChangeList() {
         </button>
       </div>
 
+      {monthOptions.length > 0 && (
+        <div className="px-6 pt-4 pb-2 border-b border-gray-50">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter size={14} className="text-gray-400" />
+            <span className="text-xs text-gray-500">按月份筛选</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onMonthChange?.('all')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                selectedMonth === 'all'
+                  ? 'bg-sky-100 border-sky-300 text-sky-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+              )}
+            >
+              全部 ({waterChanges.length})
+            </button>
+            {monthOptions.map((m) => {
+              const count = waterChanges.filter((r) => {
+                const d = new Date(r.date);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return key === m;
+              }).length;
+              return (
+                <button
+                  key={m}
+                  onClick={() => onMonthChange?.(m)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                    selectedMonth === m
+                      ? 'bg-sky-100 border-sky-300 text-sky-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  )}
+                >
+                  {monthLabel(m)} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="p-6 bg-sky-50/50 border-b border-sky-100">
           <WaterChangeForm onSuccess={() => setShowForm(false)} />
@@ -56,7 +129,14 @@ export default function WaterChangeList() {
           <div className="absolute left-[22px] top-2 bottom-2 w-0.5 bg-sky-200" />
 
           <div className="space-y-6">
-            {waterChanges.map((record, index) => {
+            {filteredChanges.length === 0 && (
+              <div className="text-center py-8 text-gray-400">
+                <Droplets size={32} className="mx-auto mb-2 opacity-50" />
+                <p>{selectedMonth === 'all' ? '暂无换水记录' : '该月份暂无换水记录'}</p>
+              </div>
+            )}
+
+            {filteredChanges.map((record) => {
               const dateInfo = formatDate(record.date);
               return (
                 <div key={record.id} className="relative pl-14">

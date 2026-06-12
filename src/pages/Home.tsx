@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import TankProfile from '@/components/TankProfile';
 import WaterChangeList from '@/components/WaterChangeList';
 import ObservationList from '@/components/ObservationList';
@@ -7,6 +8,7 @@ import { useFishTankStore } from '@/store/useFishTankStore';
 
 export default function Home() {
   const { tank } = useFishTankStore();
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const today = new Date();
   const dateStr = today.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -42,15 +44,18 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div id="section-tank" className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <TankProfile />
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <WaterChangeList />
+            <div id="section-water-change" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <WaterChangeList
+                selectedMonth={selectedMonth}
+                onMonthChange={setSelectedMonth}
+              />
             </div>
 
-            <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div id="section-observation" className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <ObservationList />
             </div>
           </div>
@@ -61,7 +66,7 @@ export default function Home() {
             </div>
 
             <div className="animate-fade-in" style={{ animationDelay: '0.25s' }}>
-              <StatsPanel />
+              <StatsPanel selectedMonth={selectedMonth} />
             </div>
           </div>
         </div>

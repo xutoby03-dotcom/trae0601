@@ -2,6 +2,7 @@ import { Bell, AlertCircle, AlertTriangle, Clock, Fish } from 'lucide-react';
 import { useFishTankStore } from '@/store/useFishTankStore';
 import { generateReminders } from '@/utils/stats';
 import { cn } from '@/lib/utils';
+import type { ReminderType } from '@/types';
 
 const iconMap = {
   water_change_overdue: <Clock size={18} />,
@@ -10,9 +11,24 @@ const iconMap = {
   sick_fish: <Fish size={18} />,
 };
 
+const sectionIdMap: Record<ReminderType, string> = {
+  water_change_overdue: 'section-water-change',
+  temp_abnormal: 'section-water-change',
+  consecutive_issues: 'section-observation',
+  sick_fish: 'section-observation',
+};
+
 export default function ReminderPanel() {
   const { tank, waterChanges, observations, fishes } = useFishTankStore();
   const reminders = generateReminders(tank, waterChanges, observations, fishes);
+
+  const handleScroll = (type: ReminderType) => {
+    const id = sectionIdMap[type];
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   if (reminders.length === 0) {
     return (
@@ -57,11 +73,12 @@ export default function ReminderPanel() {
         {reminders.map((reminder) => (
           <div
             key={reminder.id}
+            onClick={() => handleScroll(reminder.type)}
             className={cn(
-              'rounded-xl p-4 border transition-all',
+              'rounded-xl p-4 border transition-all cursor-pointer hover:shadow-md active:scale-[0.98]',
               reminder.level === 'danger'
-                ? 'bg-gradient-to-r from-rose-50 to-orange-50 border-rose-200'
-                : 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200'
+                ? 'bg-gradient-to-r from-rose-50 to-orange-50 border-rose-200 hover:border-rose-300'
+                : 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200 hover:border-amber-300'
             )}
           >
             <div className="flex items-start gap-3">
@@ -99,6 +116,14 @@ export default function ReminderPanel() {
                   </div>
                 )}
               </div>
+              <span className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded flex-shrink-0',
+                reminder.level === 'danger'
+                  ? 'bg-rose-200/60 text-rose-600'
+                  : 'bg-amber-200/60 text-amber-600'
+              )}>
+                点击查看
+              </span>
             </div>
           </div>
         ))}

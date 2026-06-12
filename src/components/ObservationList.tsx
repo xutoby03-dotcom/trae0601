@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, AlertTriangle, Fish, Cog, Droplets, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, AlertTriangle, Fish, Cog, Droplets, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useFishTankStore } from '@/store/useFishTankStore';
 import type { ObservationStatus } from '@/types';
 import { cn } from '@/lib/utils';
@@ -27,9 +27,28 @@ const typeColorMap: Record<string, string> = {
 };
 
 export default function ObservationList() {
-  const { observations, updateObservationStatus } = useFishTankStore();
+  const { observations, updateObservationStatus, fishes } = useFishTankStore();
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [filterKey, setFilterKey] = useState<string>('all');
+
+  const filterOptions = useMemo(() => {
+    const targets = new Map<string, { label: string; icon: React.ReactNode }>();
+    observations.forEach((obs) => {
+      if (!targets.has(obs.targetName)) {
+        targets.set(obs.targetName, {
+          label: obs.targetName,
+          icon: targetTypeIcon[obs.targetType],
+        });
+      }
+    });
+    return Array.from(targets.entries()).map(([key, val]) => ({ key, ...val }));
+  }, [observations]);
+
+  const filteredObservations = useMemo(() => {
+    if (filterKey === 'all') return observations;
+    return observations.filter((obs) => obs.targetName === filterKey);
+  }, [observations, filterKey]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -72,6 +91,47 @@ export default function ObservationList() {
         </button>
       </div>
 
+      {filterOptions.length > 0 && (
+        <div className="px-6 pt-4 pb-2 border-b border-gray-50">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter size={14} className="text-gray-400" />
+            <span className="text-xs text-gray-500">按对象筛选</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterKey('all')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                filterKey === 'all'
+                  ? 'bg-amber-100 border-amber-300 text-amber-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+              )}
+            >
+              全部 ({observations.length})
+            </button>
+            {filterOptions.map((opt) => {
+              const count = observations.filter((o) => o.targetName === opt.key).length;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setFilterKey(opt.key)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                    filterKey === opt.key
+                      ? 'bg-amber-100 border-amber-300 text-amber-700'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  )}
+                >
+                  {opt.icon}
+                  <span>{opt.label}</span>
+                  <span className="opacity-60">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="p-6 bg-amber-50/50 border-b border-amber-100">
           <ObservationForm onSuccess={() => setShowForm(false)} />
@@ -79,14 +139,14 @@ export default function ObservationList() {
       )}
 
       <div className="p-6 max-h-[450px] overflow-y-auto space-y-3">
-        {observations.length === 0 && (
+        {filteredObservations.length === 0 && (
           <div className="text-center py-8 text-gray-400">
             <AlertTriangle size={32} className="mx-auto mb-2 opacity-50" />
-            <p>暂无异常观察记录</p>
+            <p>{filterKey === 'all' ? '暂无异常观察记录' : '该对象暂无异常记录'}</p>
           </div>
         )}
 
-        {observations.map((obs) => (
+        {filteredObservations.map((obs) => (
           <div
             key={obs.id}
             className={cn(
