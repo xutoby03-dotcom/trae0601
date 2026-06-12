@@ -75,11 +75,13 @@ export default function Trends() {
   const weeklyAbnormalRecords = useMemo<BloodPressureRecord[]>(() => {
     const today = startOfDay(new Date());
     const weekAgo = addDays(today, -6);
+    const dayAfter = addDays(today, 1);
     return elderRecords.filter(
       (r) =>
         !r.originalRecordId &&
         r.isAbnormal &&
-        parseISO(r.measureTime) >= weekAgo
+        parseISO(r.measureTime) >= weekAgo &&
+        parseISO(r.measureTime) < dayAfter
     );
   }, [elderRecords]);
 
