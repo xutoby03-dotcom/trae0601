@@ -179,6 +179,9 @@ export const useAppStore = create<AppState>()(
         if (!order || order.queueStatus === 'waiting' || order.queueStatus === 'called') {
           return;
         }
+        if (order.paymentStatus === 'unpaid') {
+          return;
+        }
 
         const newNumber = state.queueState.currentNumber + 1;
         const updatedOrder: CustomerOrder = {

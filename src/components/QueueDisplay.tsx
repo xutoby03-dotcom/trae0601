@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   QrCode,
-  Phone,
   UserCheck,
   Clock,
   Snowflake,
@@ -9,49 +8,65 @@ import {
   SkipForward,
   CheckCircle2,
   Volume2,
+  Camera,
+  Ban,
+  CreditCard,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { calculateEstimatedWaitTime } from '../utils/queue';
 import { speakQueueNumber, speakPriorityReminder } from '../utils/speech';
+import { QrScanner } from './QrScanner';
 import { cn } from '@/lib/utils';
 import type { CustomerOrder } from '../types';
 
 export function QueueDisplay() {
-  const {
-    queueState,
-    enqueue,
-    callNext,
-    markPicked,
-    findOrderByPhoneOrCode,
-    getBatchById,
-  } = useAppStore();
+  const queueState = useAppStore((state) => state.queueState);
+  const enqueue = useAppStore((state) => state.enqueue);
+  const callNext = useAppStore((state) => state.callNext);
+  const markPicked = useAppStore((state) => state.markPicked);
+  const findOrderByPhoneOrCode = useAppStore((state) => state.findOrderByPhoneOrCode);
+  const getBatchById = useAppStore((state) => state.getBatchById);
+  const batches = useAppStore((state) => state.batches);
+  const arrivedBatches = batches.filter((b) => b.status === 'arrived');
 
   const [searchInput, setSearchInput] = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState<string | undefined>();
   const [foundOrder, setFoundOrder] = useState<CustomerOrder | null>(null);
   const [enqueueSuccess, setEnqueueSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  const batches = useAppStore((state) => state.batches);
-  const arrivedBatches = batches.filter((b) => b.status === 'arrived');
-
-  const handleSearch = () => {
-    if (!searchInput.trim()) return;
-
-    const order = findOrderByPhoneOrCode(searchInput.trim(), selectedBatchId);
+  const doSearch = (code: string) => {
+    if (!code.trim()) return null;
+    const order = findOrderByPhoneOrCode(code.trim(), selectedBatchId);
     setFoundOrder(order || null);
     setEnqueueSuccess(false);
+    return order;
   };
 
-  const handleEnqueue = () => {
-    if (!foundOrder) return;
+  const handleSearch = () => {
+    doSearch(searchInput);
+  };
 
-    if (foundOrder.queueStatus === 'waiting' || foundOrder.queueStatus === 'called') {
-      setSuccessMessage('该订单已在排队中');
+  const handleScanResult = (code: string) => {
+    setScannerOpen(false);
+    setSearchInput(code);
+    const order = doSearch(code);
+    if (!order) {
+      setSuccessMessage('未找到对应订单，请检查取货码');
       setEnqueueSuccess(true);
       setTimeout(() => setEnqueueSuccess(false), 3000);
-      return;
     }
+  };
+
+  const isUnpaid = foundOrder && foundOrder.paymentStatus === 'unpaid';
+  const isAlreadyQueued =
+    foundOrder &&
+    (foundOrder.queueStatus === 'waiting' || foundOrder.queueStatus === 'called');
+  const canEnqueue = foundOrder && !isUnpaid && !isAlreadyQueued && foundOrder.queueStatus === 'not_queued';
+
+  const handleEnqueue = () => {
+    if (!foundOrder || !canEnqueue) return;
 
     enqueue(foundOrder.id);
     const batch = getBatchById(foundOrder.batchId);
@@ -62,10 +77,6 @@ export function QueueDisplay() {
     setFoundOrder(null);
     setSearchInput('');
     setTimeout(() => setEnqueueSuccess(false), 4000);
-  };
-
-  const handleCallNext = () => {
-    callNext();
   };
 
   const handleMarkPicked = () => {
@@ -85,6 +96,12 @@ export function QueueDisplay() {
 
   return (
     <div className="grid grid-cols-3 gap-6">
+      <QrScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScanResult}
+      />
+
       <div className="col-span-1">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
@@ -125,6 +142,13 @@ export function QueueDisplay() {
                 className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
               />
               <button
+                onClick={() => setScannerOpen(true)}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors flex items-center gap-1"
+                title="扫码取号"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+              <button
                 onClick={handleSearch}
                 className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
               >
@@ -134,16 +158,57 @@ export function QueueDisplay() {
           </div>
 
           {foundOrder && (
-            <div className="bg-slate-50 rounded-lg p-4 mb-4">
+            <div
+              className={cn(
+                'rounded-lg p-4 mb-4 border',
+                isUnpaid
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-slate-50 border-slate-200'
+              )}
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
-                  <UserCheck className="w-5 h-5 text-cyan-600" />
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full flex items-center justify-center',
+                    isUnpaid ? 'bg-red-100' : 'bg-cyan-100'
+                  )}
+                >
+                  {isUnpaid ? (
+                    <Ban className="w-5 h-5 text-red-500" />
+                  ) : (
+                    <UserCheck className="w-5 h-5 text-cyan-600" />
+                  )}
                 </div>
-                <div>
-                  <p className="font-semibold text-slate-900">{foundOrder.customerName}</p>
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">
+                    {foundOrder.customerName}
+                  </p>
                   <p className="text-sm text-slate-500">{foundOrder.phone}</p>
                 </div>
+                <span
+                  className={cn(
+                    'px-2 py-1 rounded-full text-xs font-bold',
+                    foundOrder.paymentStatus === 'paid'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-red-100 text-red-700'
+                  )}
+                >
+                  {foundOrder.paymentStatus === 'paid' ? '已付款' : '未付款'}
+                </span>
               </div>
+
+              {isUnpaid && (
+                <div className="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-lg text-sm flex items-center gap-2 mb-3">
+                  <CreditCard className="w-5 h-5 shrink-0" />
+                  <div>
+                    <p className="font-bold">未付款，无法排号</p>
+                    <p className="text-red-600 text-xs mt-0.5">
+                      请先完成付款后再取号
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                 <div className="bg-white px-3 py-2 rounded">
                   <span className="text-slate-500">商品：</span>
@@ -157,19 +222,31 @@ export function QueueDisplay() {
                 </div>
                 <div className="bg-white px-3 py-2 rounded">
                   <span className="text-slate-500">取货码：</span>
-                  <span className="font-mono font-medium">{foundOrder.pickupCode}</span>
+                  <span className="font-mono font-medium">
+                    {foundOrder.pickupCode}
+                  </span>
                 </div>
                 <div className="bg-white px-3 py-2 rounded">
                   <span className="text-slate-500">状态：</span>
                   <span
                     className={cn(
                       'font-medium',
-                      foundOrder.paymentStatus === 'paid'
-                        ? 'text-emerald-600'
-                        : 'text-red-600'
+                      foundOrder.queueStatus === 'not_queued'
+                        ? 'text-slate-600'
+                        : foundOrder.queueStatus === 'waiting'
+                          ? 'text-amber-600'
+                          : foundOrder.queueStatus === 'called'
+                            ? 'text-cyan-600'
+                            : 'text-emerald-600'
                     )}
                   >
-                    {foundOrder.paymentStatus === 'paid' ? '已付款' : '未付款'}
+                    {foundOrder.queueStatus === 'not_queued'
+                      ? '待排号'
+                      : foundOrder.queueStatus === 'waiting'
+                        ? '排队中'
+                        : foundOrder.queueStatus === 'called'
+                          ? '叫号中'
+                          : '已取货'}
                   </span>
                 </div>
               </div>
@@ -180,31 +257,59 @@ export function QueueDisplay() {
                 </div>
               )}
               {foundOrder.notes && (
-                <div className="bg-amber-50 text-amber-700 px-3 py-2 rounded text-sm">
+                <div className="bg-amber-50 text-amber-700 px-3 py-2 rounded text-sm mb-3">
                   备注：{foundOrder.notes}
                 </div>
               )}
               <button
                 onClick={handleEnqueue}
-                disabled={foundOrder.queueStatus === 'waiting' || foundOrder.queueStatus === 'called'}
+                disabled={!canEnqueue}
                 className={cn(
-                  'w-full mt-3 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2',
-                  foundOrder.queueStatus === 'waiting' || foundOrder.queueStatus === 'called'
-                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                  'w-full mt-1 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2',
+                  canEnqueue
+                    ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                    : 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 )}
               >
-                <QrCode className="w-4 h-4" />
-                {foundOrder.queueStatus === 'waiting' || foundOrder.queueStatus === 'called'
-                  ? '已在排队中'
-                  : '加入排队'}
+                {isUnpaid ? (
+                  <>
+                    <Ban className="w-4 h-4" />
+                    未付款，不可排号
+                  </>
+                ) : isAlreadyQueued ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    已在排队中
+                  </>
+                ) : foundOrder.queueStatus === 'picked' ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    已取货
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="w-4 h-4" />
+                    加入排队
+                  </>
+                )}
               </button>
             </div>
           )}
 
           {enqueueSuccess && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-emerald-700 text-center animate-bounce">
-              <CheckCircle2 className="w-8 h-8 mx-auto mb-2" />
+            <div
+              className={cn(
+                'border rounded-lg p-4 text-center',
+                successMessage.includes('未找到')
+                  ? 'bg-red-50 border-red-200 text-red-700'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              )}
+            >
+              {successMessage.includes('未找到') ? (
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+              ) : (
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 animate-bounce" />
+              )}
               <p className="font-medium">{successMessage}</p>
             </div>
           )}
@@ -219,9 +324,13 @@ export function QueueDisplay() {
               <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl p-6 text-white mb-4 animate-pulse">
                 <p className="text-sm opacity-80 mb-2">请取货</p>
                 <div className="text-7xl font-bold font-mono mb-2">
-                  {queueState.calledOrder.queueNumber?.toString().padStart(3, '0')}
+                  {queueState.calledOrder.queueNumber
+                    ?.toString()
+                    .padStart(3, '0')}
                 </div>
-                <p className="text-xl font-medium">{queueState.calledOrder.customerName}</p>
+                <p className="text-xl font-medium">
+                  {queueState.calledOrder.customerName}
+                </p>
                 {queueState.calledOrder.isPriority && (
                   <div className="mt-2 inline-flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full text-sm">
                     <Snowflake className="w-3 h-3" />
@@ -262,11 +371,15 @@ export function QueueDisplay() {
             </span>
           </div>
           <button
-            onClick={handleCallNext}
-            disabled={queueState.calledOrder !== null || queueState.waitingQueue.length === 0}
+            onClick={callNext}
+            disabled={
+              queueState.calledOrder !== null ||
+              queueState.waitingQueue.length === 0
+            }
             className={cn(
               'w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2',
-              queueState.calledOrder !== null || queueState.waitingQueue.length === 0
+              queueState.calledOrder !== null ||
+              queueState.waitingQueue.length === 0
                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                 : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/30 active:scale-95'
             )}
@@ -324,7 +437,10 @@ export function QueueDisplay() {
                             : 'bg-slate-200 text-slate-700'
                         )}
                       >
-                        {order.queueNumber?.toString().padStart(3, '0').charAt(0)}
+                        {order.queueNumber
+                          ?.toString()
+                          .padStart(3, '0')
+                          .charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
