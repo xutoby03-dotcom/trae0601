@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import TodayPickups from '@/components/dashboard/TodayPickups';
@@ -10,6 +11,7 @@ import { CalendarCheck, AlertTriangle, TrendingUp, Flower2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { reservations, getTodayPickups } = useReservationStore();
   const { bouquets } = useBouquetStore();
 
@@ -56,6 +58,8 @@ export default function Dashboard() {
             icon={<CalendarCheck className="w-6 h-6" />}
             trend={{ value: '15%', isUp: true }}
             color="rose"
+            onClick={() => navigate('/reservations?status=pending')}
+            clickableHint="查看待取"
           />
           <StatCard
             title="保鲜预警"
@@ -63,6 +67,8 @@ export default function Dashboard() {
             subtitle="款花束快到期"
             icon={<AlertTriangle className="w-6 h-6" />}
             color="gold"
+            onClick={() => navigate('/bouquets?filter=expiring')}
+            clickableHint="查看花束"
           />
           <StatCard
             title="成交转化率"
@@ -78,6 +84,8 @@ export default function Dashboard() {
             subtitle="在售款式数"
             icon={<Flower2 className="w-6 h-6" />}
             color="blue"
+            onClick={() => navigate('/bouquets')}
+            clickableHint="全部花束"
           />
         </div>
 

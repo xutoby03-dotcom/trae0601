@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useReservationStore } from '@/store/reservationStore';
 import { ReservationStatus } from '@/types';
 import ReservationCard from './ReservationCard';
@@ -15,7 +16,31 @@ const statusTabs: { key: ReservationStatus | 'all'; label: string; icon: typeof 
 
 export default function ReservationList() {
   const { reservations } = useReservationStore();
-  const [activeTab, setActiveTab] = useState<ReservationStatus | 'all'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status') as ReservationStatus | 'all' | null;
+  
+  const [activeTab, setActiveTab] = useState<ReservationStatus | 'all'>(
+    statusParam && ['all', 'pending', 'to_confirm', 'completed', 'cancelled'].includes(statusParam)
+      ? statusParam
+      : 'all'
+  );
+
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as ReservationStatus | 'all' | null;
+    if (statusParam && ['all', 'pending', 'to_confirm', 'completed', 'cancelled'].includes(statusParam)) {
+      setActiveTab(statusParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: ReservationStatus | 'all') => {
+    setActiveTab(tab);
+    if (tab === 'all') {
+      searchParams.delete('status');
+      setSearchParams(searchParams, { replace: true });
+    } else {
+      setSearchParams({ status: tab }, { replace: true });
+    }
+  };
 
   const filteredReservations = activeTab === 'all'
     ? reservations
@@ -35,7 +60,7 @@ export default function ReservationList() {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-gradient-to-r from-rose-400 to-rose-500 text-white shadow-md'

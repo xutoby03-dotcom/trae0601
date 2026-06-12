@@ -1,25 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Bouquet } from '@/types';
 import { useBouquetStore } from '@/store/bouquetStore';
 import BouquetCard from './BouquetCard';
 import ReserveModal from './ReserveModal';
 import EmptyState from '@/components/common/EmptyState';
-import { Frown, Search } from 'lucide-react';
+import { daysUntil } from '@/utils/date';
+import { Frown, Search, X } from 'lucide-react';
 
 export default function BouquetGrid() {
   const { bouquets } = useBouquetStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParam = searchParams.get('search') || '';
+  const filterParam = searchParams.get('filter');
+
   const [selectedBouquet, setSelectedBouquet] = useState<Bouquet | null>(null);
   const [isReserveModalOpen, setIsReserveModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParam);
   const [activeCategory, setActiveCategory] = useState('全部');
+  const [activeFilter, setActiveFilter] = useState<string | null>(filterParam);
 
   const categories = ['全部', ...Array.from(new Set(bouquets.map(b => b.category)))];
+
+  useEffect(() => {
+    const searchParam = searchParams.get('search') || '';
+    const filterParam = searchParams.get('filter');
+    setSearchQuery(searchParam);
+    setActiveFilter(filterParam);
+  }, [searchParams]);
+
+  const updateSearchQuery = (query: string) => {
+    setSearchQuery(query);
+    if (query) {
+      const params = new URLSearchParams(searchParams);
+      params.set('search', query);
+      setSearchParams(params, { replace: true });
+    } else {
+      const params = new URLSearchParams(searchParams);
+      params.delete('search');
+      setSearchParams(params, { replace: true });
+    }
+  };
+
+  const clearFilter = () => {
+    setActiveFilter(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('filter');
+    setSearchParams(params, { replace: true });
+  };
 
   const filteredBouquets = bouquets.filter(b => {
     const matchesSearch = b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.materials.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === '全部' || b.category === activeCategory;
-    return matchesSearch && matchesCategory;
+    const matchesFilter = activeFilter === 'expiring'
+      ? daysUntil(b.freshUntil) <= 2 && b.stock > 0
+      : true;
+    return matchesSearch && matchesCategory && matchesFilter;
   });
 
   const handleReserve = (bouquet: Bouquet) => {
@@ -30,15 +67,29 @@ export default function BouquetGrid() {
   return (
     <div>
       <div className="mb-6 space-y-4">
-        <div className="relative w-full max-w-md">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-forest-400" />
-          <input
-            type="text"
-            placeholder="搜索花束名称或花材..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white border border-cream-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300/50 focus:border-rose-300 transition-all shadow-sm"
-          />
+        <div className="flex gap-3 flex-wrap items-start">
+          <div className="relative w-full max-w-md">
+            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-forest-400" />
+            <input
+              type="text"
+              placeholder="搜索花束名称或花材..."
+              value={searchQuery}
+              onChange={(e) => updateSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white border border-cream-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-300/50 focus:border-rose-300 transition-all shadow-sm"
+            />
+          </div>
+
+          {activeFilter === 'expiring' && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm font-medium text-amber-700">
+              <span>快到期花束</span>
+              <button
+                onClick={clearFilter}
+                className="p-0.5 rounded hover:bg-amber-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
         
         <div className="flex gap-2 flex-wrap">

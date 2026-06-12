@@ -1,23 +1,33 @@
+import { useNavigate } from 'react-router-dom';
 import { useBouquetStore } from '@/store/bouquetStore';
 import { daysUntil, formatPrice } from '@/utils/date';
 import EmptyState from '@/components/common/EmptyState';
-import { AlertTriangle, MapPin } from 'lucide-react';
+import { AlertTriangle, MapPin, ChevronRight } from 'lucide-react';
 
 export default function FreshWarning() {
+  const navigate = useNavigate();
   const { bouquets } = useBouquetStore();
 
   const warningBouquets = bouquets
     .filter(b => daysUntil(b.freshUntil) <= 2 && b.stock > 0)
     .sort((a, b) => daysUntil(a.freshUntil) - daysUntil(b.freshUntil));
 
+  const goToFreshWarning = () => {
+    navigate('/bouquets?filter=expiring');
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
-      <div className="px-5 py-4 border-b border-cream-200">
+      <div
+        onClick={goToFreshWarning}
+        className="px-5 py-4 border-b border-cream-200 cursor-pointer hover:bg-cream-50 transition-colors"
+      >
         <h3 className="font-semibold font-serif text-forest-700 flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-amber-500" />
           保鲜期预警
-          <span className="ml-auto text-sm font-normal text-forest-400">
-            {warningBouquets.length} 款
+          <span className="ml-auto flex items-center gap-1 text-sm">
+            <span className="font-normal text-forest-400">{warningBouquets.length} 款</span>
+            <ChevronRight className="w-4 h-4 text-rose-400" />
           </span>
         </h3>
       </div>
