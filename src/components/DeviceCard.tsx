@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
-import { Monitor } from 'lucide-react'
+import { Monitor, AlertTriangle, Clock, XCircle } from 'lucide-react'
 import type { Device } from '../types'
-import { getWarrantyStatus, getDaysLeft, formatDate } from '../utils/dateUtils'
+import { getWarrantyStatus, getDaysLeft, getWarrantyEndDate } from '../utils/dateUtils'
 import { WARRANTY_STATUS_LABEL, WARRANTY_STATUS_COLOR } from '../utils/constants'
+import { format } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 
 interface DeviceCardProps {
   device: Device
@@ -11,6 +13,7 @@ interface DeviceCardProps {
 function DeviceCard({ device }: DeviceCardProps) {
   const status = getWarrantyStatus(device)
   const daysLeft = getDaysLeft(device)
+  const endDate = getWarrantyEndDate(device)
 
   const badgeClass =
     status === 'in-warranty'
@@ -21,16 +24,45 @@ function DeviceCard({ device }: DeviceCardProps) {
 
   const statusColor = WARRANTY_STATUS_COLOR[status]
 
+  const cardBorder =
+    status === 'expiring-soon'
+      ? `2px solid ${statusColor}`
+      : status === 'expired'
+      ? `2px solid ${statusColor}`
+      : undefined
+
+  const StatusIcon =
+    status === 'expiring-soon' ? AlertTriangle : status === 'expired' ? XCircle : Clock
+
+  const daysText =
+    status === 'expired'
+      ? `已过期 ${Math.abs(daysLeft)} 天`
+      : daysLeft > 365
+      ? `剩余 ${Math.floor(daysLeft / 365)} 年 ${daysLeft % 365} 天`
+      : `剩余 ${daysLeft} 天`
+
+  const panelBgColor =
+    status === 'in-warranty' ? '#f0fdf4' : status === 'expiring-soon' ? '#fffbeb' : '#fef2f2'
+  const panelBorderColor =
+    status === 'in-warranty' ? '#bbf7d0' : status === 'expiring-soon' ? '#fde68a' : '#fecaca'
+
   return (
     <Link
       to={`/devices/${device.id}`}
       className="card"
-      style={{ display: 'block', transition: 'box-shadow 0.2s ease' }}
+      style={{
+        display: 'block',
+        transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+        border: cardBorder,
+      }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)'
+        e.currentTarget.style.boxShadow =
+          '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = ''
+        e.currentTarget.style.transform = ''
       }}
     >
       <div
@@ -41,6 +73,7 @@ function DeviceCard({ device }: DeviceCardProps) {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          position: 'relative',
         }}
       >
         {device.devicePhoto ? (
@@ -51,6 +84,28 @@ function DeviceCard({ device }: DeviceCardProps) {
           />
         ) : (
           <Monitor style={{ width: 64, height: 64, color: '#9ca3af' }} />
+        )}
+        {status !== 'in-warranty' && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 10px',
+              borderRadius: 999,
+              backgroundColor: statusColor,
+              color: 'white',
+              fontSize: 12,
+              fontWeight: 600,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            }}
+          >
+            <StatusIcon style={{ width: 14, height: 14 }} />
+            {status === 'expiring-soon' ? '即将过保' : '已过保'}
+          </div>
         )}
       </div>
       <div className="card-padding">
@@ -80,20 +135,34 @@ function DeviceCard({ device }: DeviceCardProps) {
         <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 4 }}>
           {device.brand} {device.model}
         </p>
-        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 8 }}>{device.room}</p>
-        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 12 }}>
-          购买日期：{formatDate(device.purchaseDate)}
-        </p>
-        {status === 'expiring-soon' && (
-          <p style={{ fontSize: 14, fontWeight: 500, color: statusColor }}>
-            还有{Math.abs(daysLeft)}天过期
-          </p>
-        )}
-        {status === 'expired' && (
-          <p style={{ fontSize: 14, fontWeight: 500, color: statusColor }}>
-            已过期{Math.abs(daysLeft)}天
-          </p>
-        )}
+        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 12 }}>{device.room}</p>
+
+        <div
+          style={{
+            padding: '10px 12px',
+            borderRadius: 8,
+            backgroundColor: panelBgColor,
+            border: `1px solid ${panelBorderColor}`,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 4,
+              fontWeight: 600,
+              fontSize: 14,
+              color: statusColor,
+            }}
+          >
+            <StatusIcon style={{ width: 16, height: 16 }} />
+            {daysText}
+          </div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>
+            保修截止：{format(endDate, 'yyyy年MM月dd日', { locale: zhCN })}
+          </div>
+        </div>
       </div>
     </Link>
   )
