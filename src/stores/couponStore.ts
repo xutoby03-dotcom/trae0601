@@ -49,7 +49,15 @@ function migrateIssue(issue: CouponIssue): CouponIssue {
 const initialIssues = (): CouponIssue[] => {
   const stored = getFromStorage<CouponIssue[] | null>(STORAGE_KEY, null);
   const rawList = stored && stored.length > 0 ? stored : mockCouponIssues;
-  return rawList.map(migrateIssue);
+
+  const hasMissingSnapshot = rawList.some((i) => !i.snapshot);
+  const migratedList = rawList.map(migrateIssue);
+
+  if (hasMissingSnapshot) {
+    setToStorage(STORAGE_KEY, migratedList);
+  }
+
+  return migratedList;
 };
 
 export const useCouponStore = create<CouponState>((set, get) => ({
