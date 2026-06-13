@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Edit2, Trash2, CheckCircle, AlertCircle, Clock, Sun, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, CheckCircle, AlertCircle, Clock, Sun, ChevronUp, ChevronDown, X, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { bedsApi } from '@/api/client';
 import type { Bed, BunkType, DisinfectionStatus } from '#shared/types';
@@ -20,22 +20,49 @@ function BedCard({ bed, onEdit, onDelete, onUpdateDisinfection }: {
   const dInfo = disinfectionLabels[bed.disinfectionStatus];
 
   return (
-    <div className="glass-card rounded-2xl p-5 hover:shadow-xl transition-all duration-300 group animate-slide-up">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold font-display text-gray-800">{bed.room}室</span>
-            <span className="text-lg font-semibold text-primary-600">#{bed.bedNumber}</span>
+    <div className="glass-card rounded-2xl p-5 hover:shadow-xl transition-all duration-300 group animate-slide-up overflow-hidden">
+      {bed.photoUrl ? (
+        <div className="relative -mx-5 -mt-5 mb-4 h-36 overflow-hidden rounded-t-2xl">
+          <img
+            src={bed.photoUrl}
+            alt={`${bed.room}室 ${bed.bedNumber}号床`}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute bottom-2 left-3 flex items-center gap-2">
+            <span className="text-white font-bold font-display text-lg drop-shadow">{bed.room}室</span>
+            <span className="text-white/90 font-semibold drop-shadow">#{bed.bedNumber}</span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">创建于 {bed.createdAt?.slice(0, 10)}</p>
+          <span className={`absolute top-2 right-2 tag ${dInfo.color} shadow-md`}>
+            {bed.disinfectionStatus === 'completed' && <CheckCircle className="w-3 h-3" />}
+            {bed.disinfectionStatus === 'pending' && <AlertCircle className="w-3 h-3" />}
+            {bed.disinfectionStatus === 'expired' && <Clock className="w-3 h-3" />}
+            {dInfo.label}
+          </span>
         </div>
-        <span className={`tag ${dInfo.color}`}>
-          {bed.disinfectionStatus === 'completed' && <CheckCircle className="w-3 h-3" />}
-          {bed.disinfectionStatus === 'pending' && <AlertCircle className="w-3 h-3" />}
-          {bed.disinfectionStatus === 'expired' && <Clock className="w-3 h-3" />}
-          {dInfo.label}
-        </span>
-      </div>
+      ) : (
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-primary-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold font-display text-gray-800">{bed.room}室</span>
+                <span className="text-lg font-semibold text-primary-600">#{bed.bedNumber}</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">创建于 {bed.createdAt?.slice(0, 10)}</p>
+            </div>
+          </div>
+          <span className={`tag ${dInfo.color}`}>
+            {bed.disinfectionStatus === 'completed' && <CheckCircle className="w-3 h-3" />}
+            {bed.disinfectionStatus === 'pending' && <AlertCircle className="w-3 h-3" />}
+            {bed.disinfectionStatus === 'expired' && <Clock className="w-3 h-3" />}
+            {dInfo.label}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-4">
         <span className="tag bg-sky-100 text-sky-700">
@@ -51,6 +78,12 @@ function BedCard({ bed, onEdit, onDelete, onUpdateDisinfection }: {
         {bed.disinfectionDate && (
           <span className="tag bg-gray-100 text-gray-600">
             消毒: {bed.disinfectionDate}
+          </span>
+        )}
+        {!bed.photoUrl && (
+          <span className="tag bg-gray-50 text-gray-400 border border-dashed border-gray-200">
+            <ImageIcon className="w-3 h-3" />
+            未上传照片
           </span>
         )}
       </div>
@@ -150,6 +183,63 @@ function BedModal({ bed, onClose, onSaved }: {
           <div>
             <label className="label-field">消毒日期</label>
             <input type="date" className="input-field" value={form.disinfectionDate} onChange={(e) => setForm({ ...form, disinfectionDate: e.target.value })} />
+          </div>
+
+          <div>
+            <label className="label-field flex items-center gap-1.5">
+              <ImageIcon className="w-4 h-4" />
+              床位照片地址
+            </label>
+            <input
+              type="url"
+              className="input-field"
+              value={form.photoUrl}
+              onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
+              placeholder="https://example.com/bed-photo.jpg"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">请输入图片 URL 地址（支持 jpg/png/webp 等格式）</p>
+            {form.photoUrl && (
+              <div className="mt-3">
+                <div className="relative w-full h-40 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50">
+                  <img
+                    src={form.photoUrl}
+                    alt="照片预览"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.preview-error')) {
+                        const err = document.createElement('div');
+                        err.className = 'preview-error absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-sm gap-1';
+                        err.innerHTML = '<svg class="w-10 h-10 mb-1 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>图片加载失败，请检查 URL</span>';
+                        parent.appendChild(err);
+                      }
+                    }}
+                    onLoad={(e) => {
+                      const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                      if (parent) {
+                        const err = parent.querySelector('.preview-error');
+                        if (err) err.remove();
+                        (e.currentTarget as HTMLImageElement).style.display = 'block';
+                      }
+                    }}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-xs text-gray-500">实时预览</span>
+                  {form.photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, photoUrl: '' })}
+                      className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1"
+                    >
+                      <X className="w-3 h-3" />清除照片
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 py-2">
