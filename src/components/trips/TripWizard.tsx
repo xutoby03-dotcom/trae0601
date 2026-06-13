@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plane,
@@ -11,11 +11,16 @@ import {
   Sparkles,
   Plus,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Trip } from '@/types';
 import { todayISO } from '@/utils/date';
-import { generateSuggestedTripItems } from '@/utils/medicine';
+import {
+  generateSuggestedTripItems,
+  detectScenes,
+  type TravelScene,
+} from '@/utils/medicine';
 import { CATEGORY_LABELS } from '@/types';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
@@ -36,44 +41,87 @@ export default function TripWizard() {
   const [suggestedItems, setSuggestedItems] = useState<
     { medicineId: string; suggestedQuantity: number; reason: string }[]
   >([]);
+  const [manualIds, setManualIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const prevAutoHash = useRef<string>('');
 
   const selectedCompanions = familyMembers.filter((fm) =>
     form.companionIds.includes(fm.id)
   );
 
-  const stepInfo = [
-    { no: 1, title: '基本信息', icon: Plane },
-    { no: 2, title: '选择同行人', icon: UsersIcon },
-    { no: 3, title: '确认清单', icon: CheckIcon },
-  ];
+  const scenes: TravelScene[] = useMemo(
+    () => detectScenes(form.destination),
+    [form.destination]
+  );
 
-  const canNext = () => {
-    if (step === 1) return form.destination.trim() && form.days > 0;
-    if (step === 2) return form.companionIds.length > 0;
-    return true;
-  };
+  const tempTrip: Trip = useMemo(
+    () => ({
+      id: 'temp',
+      destination: form.destination,
+      startDate: form.startDate,
+      days: form.days,
+      companionIds: form.companionIds,
+      status: 'planning',
+      notes: form.notes,
+      createdAt: new Date().toISOString(),
+    }),
+    [form]
+  );
+
+  const autoHash = useMemo(() => {
+    return `${form.destination}|${form.days}|${form.companionIds.join(',')}|${medicines.length}`;
+  }, [form, medicines.length]);
+
+  useEffect(() => {
+    if (step < 3) return;
+    if (autoHash === prevAutoHash.current) return;
+
+    const manualItems = suggestedItems.filter((si) => manualIds.has(si.medicineId));
+    const autoSuggestions = generateSuggestedTripItems(
+      tempTrip,
+      selectedCompanions,
+      medicines
+    );
+
+    const autoMap = new Map(autoSuggestions.map((a) => [a.medicineId, a]));
+    const merged: typeof suggestedItems = [...autoSuggestions];
+
+    manualItems.forEach((mi) => {
+      if (!autoMap.has(mi.medicineId)) {
+        merged.push(mi);
+      }
+    });
+
+    setSuggestedItems(merged);
+    prevAutoHash.current = autoHash;
+  }, [step, autoHash, tempTrip, selectedCompanions, medicines]);
 
   const handleNext = () => {
     if (step === 2) {
-      const tempTrip: Trip = {
-        id: 'temp',
-        destination: form.destination,
-        startDate: form.startDate,
-        days: form.days,
-        companionIds: form.companionIds,
-        status: 'planning',
-        notes: form.notes,
-        createdAt: new Date().toISOString(),
-      };
-      const suggestions = generateSuggestedTripItems(
+      const autoSuggestions = generateSuggestedTripItems(
         tempTrip,
         selectedCompanions,
         medicines
       );
-      setSuggestedItems(suggestions);
+      setSuggestedItems(autoSuggestions);
+      setManualIds(new Set());
+      prevAutoHash.current = autoHash;
     }
     setStep((s) => Math.min(3, s + 1));
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    const autoSuggestions = generateSuggestedTripItems(
+      tempTrip,
+      selectedCompanions,
+      medicines
+    );
+    setSuggestedItems(autoSuggestions);
+    setManualIds(new Set());
+    prevAutoHash.current = autoHash;
+    setTimeout(() => setIsRefreshing(false), 400);
   };
 
   const handleCreate = () => {
@@ -102,10 +150,16 @@ export default function TripWizard() {
       ...s,
       { medicineId: medId, suggestedQuantity: 1, reason: '手动添加' },
     ]);
+    setManualIds((prev) => new Set(prev).add(medId));
   };
 
   const removeItem = (medId: string) => {
     setSuggestedItems((s) => s.filter((si) => si.medicineId !== medId));
+    setManualIds((prev) => {
+      const n = new Set(prev);
+      n.delete(medId);
+      return n;
+    });
   };
 
   const changeQuantity = (medId: string, delta: number) => {
@@ -116,12 +170,27 @@ export default function TripWizard() {
           : si
       )
     );
+    if (delta !== 0) {
+      setManualIds((prev) => new Set(prev).add(medId));
+    }
   };
 
   const availableToAdd = useMemo(() => {
     const added = new Set(suggestedItems.map((s) => s.medicineId));
     return medicines.filter((m) => !added.has(m.id) && !isExpired(m));
   }, [medicines, suggestedItems]);
+
+  const stepInfo = [
+    { no: 1, title: '基本信息', icon: Plane },
+    { no: 2, title: '选择同行人', icon: UsersIcon },
+    { no: 3, title: '确认清单', icon: CheckIcon },
+  ];
+
+  const canNext = () => {
+    if (step === 1) return form.destination.trim() && form.days > 0;
+    if (step === 2) return form.companionIds.length > 0;
+    return true;
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
@@ -134,7 +203,7 @@ export default function TripWizard() {
         </button>
         <div>
           <h2 className="section-title !mb-0">规划新旅行</h2>
-          <p className="section-desc !mb-0">填写信息，系统自动生成药品清单</p>
+          <p className="section-desc !mb-0">填写信息，系统会根据目的地场景智能推荐药品</p>
         </div>
       </div>
 
@@ -189,10 +258,42 @@ export default function TripWizard() {
               <input
                 required
                 className="input-field text-base"
-                placeholder="如：云南大理、日本东京..."
+                placeholder="如：云南大理、三亚、北海道、Tokyo..."
                 value={form.destination}
                 onChange={(e) => setForm({ ...form, destination: e.target.value })}
               />
+              {form.destination.trim() && (
+                <div className="mt-3">
+                  {scenes.length === 0 ? (
+                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                      <span>💡</span>
+                      未识别到特殊场景，按通用旅行推荐。可试试「三亚」「稻城」「北海道」等关键词
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+                        <Sparkles size={12} className="text-sand-500" />
+                        识别到以下场景，会按规则加权推荐药品：
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {scenes.map((s) => (
+                          <span
+                            key={s.key}
+                            className={clsx(
+                              'badge border text-sm !px-3 !py-1.5 animate-scale-in',
+                              s.color
+                            )}
+                          >
+                            <span className="mr-1">{s.icon}</span>
+                            {s.label}
+                            <span className="opacity-70 ml-1.5 text-[10px]">· {s.description}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -337,6 +438,19 @@ export default function TripWizard() {
                 已选择 <span className="font-bold">{selectedCompanions.length}</span> 位同行人：
                 {selectedCompanions.map((c) => c.name).join('、') || '暂未选择'}
               </p>
+              {scenes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {scenes.map((s) => (
+                    <span
+                      key={s.key}
+                      className={clsx('badge border !text-[10px] !px-2', s.color)}
+                    >
+                      <span className="mr-0.5">{s.icon}</span>
+                      {s.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -351,10 +465,33 @@ export default function TripWizard() {
                 <p className="font-semibold text-slate-900 mb-1">智能推荐清单</p>
                 <p className="text-xs text-slate-600">
                   基于「{form.destination}」{form.days}天行程，为
-                  {selectedCompanions.map((c) => c.name).join('、')}
-                  量身推荐。可手动增删调整。
+                  {selectedCompanions.map((c) => c.name).join('、') || '您'}
+                  量身推荐。
                 </p>
+                {scenes.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {scenes.map((s) => (
+                      <span
+                        key={s.key}
+                        className={clsx('badge border !text-[10px] !px-2', s.color)}
+                      >
+                        <span className="mr-0.5">{s.icon}</span>
+                        {s.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
+              <button
+                onClick={handleRefresh}
+                className={clsx(
+                  'p-2 rounded-xl text-slate-500 hover:bg-white/70 hover:text-brand-600 transition shrink-0',
+                  isRefreshing && 'animate-spin'
+                )}
+                title="根据最新输入重新生成"
+              >
+                <RefreshCw size={16} />
+              </button>
             </div>
 
             {suggestedItems.length === 0 ? (
@@ -367,10 +504,11 @@ export default function TripWizard() {
                   const med = medicines.find((m) => m.id === si.medicineId);
                   if (!med) return null;
                   const cat = CATEGORY_LABELS[med.category];
+                  const isManual = manualIds.has(si.medicineId);
                   return (
                     <div
                       key={si.medicineId}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-100"
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-100 animate-fade-in-up"
                     >
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center ${cat.color}`}
@@ -378,7 +516,14 @@ export default function TripWizard() {
                         💊
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{med.name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-slate-900 truncate">{med.name}</p>
+                          {isManual && (
+                            <Badge variant="info" className="!text-[10px]">
+                              手动
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 flex-wrap mt-0.5">
                           <Badge variant="default" className="!text-[10px]">
                             {cat.label}
