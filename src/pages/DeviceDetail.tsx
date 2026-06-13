@@ -180,14 +180,23 @@ export default function DeviceDetail() {
           <div className="card">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-semibold text-lg text-gray-800">更换记录</h3>
-              <Link
-                to="/records/new"
-                state={{ deviceId: device.id }}
-                className="btn-primary inline-flex items-center gap-2 !py-2 !px-4 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                记录更换
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/records"
+                  state={{ deviceId: device.id }}
+                  className="btn-secondary inline-flex items-center gap-2 !py-2 !px-4 text-sm"
+                >
+                  查看全部
+                </Link>
+                <Link
+                  to="/records/new"
+                  state={{ deviceId: device.id }}
+                  className="btn-primary inline-flex items-center gap-2 !py-2 !px-4 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  记录更换
+                </Link>
+              </div>
             </div>
 
             {records.length === 0 ? (
