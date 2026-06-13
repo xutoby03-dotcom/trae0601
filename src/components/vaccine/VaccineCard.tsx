@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Vaccine, Child } from '@/types';
 import StatusBadge from '../ui/StatusBadge';
 import {
@@ -11,6 +13,8 @@ import {
   CheckCircle,
   AlertOctagon,
   History,
+  Copy,
+  CheckCheck,
 } from 'lucide-react';
 import { formatDate, formatDateTime, friendlyDateDiff } from '@/utils/date';
 
@@ -41,10 +45,64 @@ export default function VaccineCard({
   onDelay,
 }: VaccineCardProps) {
   const showActions = vaccine.status !== 'completed';
+  const [showToast, setShowToast] = useState(false);
+
+  useEffect(() => {
+    if (!showToast) return;
+    const t = setTimeout(() => setShowToast(false), 1800);
+    return () => clearTimeout(t);
+  }, [showToast]);
+
+  const buildCopyText = () => {
+    const lines: string[] = [];
+    if (child?.name) lines.push(`【${child.name}】疫苗提醒`);
+    lines.push(`疫苗：${vaccine.name} 第${vaccine.dose}剂`);
+    lines.push(`推荐接种：${formatDate(vaccine.suggestedDate)}`);
+    lines.push(`最晚接种：${formatDate(vaccine.latestDate)}`);
+    if (child?.vaccinationSite) lines.push(`接种点：${child.vaccinationSite}`);
+    return lines.join('\n');
+  };
+
+  const handleCopy = async () => {
+    const text = buildCopyText();
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setShowToast(true);
+    } catch {
+      alert('复制失败，请手动复制');
+    }
+  };
+
+  const statusBar = (
+    <>
+      <div className={`status-bar ${STATUS_COLORS[vaccine.status]}`} />
+      {showToast &&
+        createPortal(
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-fade-in-up">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/90 text-white text-sm shadow-2xl backdrop-blur-md border border-white/10">
+              <CheckCheck className="w-4 h-4 text-primary-400" />
+              <span>已复制给家人 ✓</span>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
 
   return (
     <div className="relative card card-hover overflow-hidden p-5 pl-6 animate-fade-in-up">
-      <div className={`status-bar ${STATUS_COLORS[vaccine.status]}`} />
+      {statusBar}
 
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -64,6 +122,13 @@ export default function VaccineCard({
           <StatusBadge status={vaccine.status} />
         </div>
         <div className="flex items-center gap-1 ml-2">
+          <button
+            onClick={handleCopy}
+            className="w-8 h-8 rounded-lg text-slate-400 hover:text-accent-600 hover:bg-accent-50 flex items-center justify-center transition-colors"
+            title="复制给家人"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
           <button
             onClick={onEdit}
             className="w-8 h-8 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 flex items-center justify-center transition-colors"

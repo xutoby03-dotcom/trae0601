@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { MonthlyChart, PerChildProgress } from '@/components/statistics/Charts';
 import {
@@ -13,8 +14,13 @@ import {
   Calendar,
   FileWarning,
   History,
+  Copy,
+  CheckCheck,
+  ClipboardList,
+  AlertCircle,
+  BellRing,
 } from 'lucide-react';
-import { formatDate } from '@/utils/date';
+import { formatDate, daysFromToday } from '@/utils/date';
 import type { Vaccine } from '@/types';
 
 interface StatCardProps {
@@ -115,6 +121,110 @@ function DelayedRow({ v, childName }: DelayedRowProps) {
   );
 }
 
+interface FamilyReminderRowProps {
+  v: Vaccine;
+  childName?: string;
+  site?: string;
+  kind: 'overdue' | 'upcoming';
+}
+
+function FamilyReminderRow({ v, childName, site, kind }: FamilyReminderRowProps) {
+  const [toast, setToast] = useState(false);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(false), 1800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const diff = daysFromToday(v.latestDate);
+  const kindLabel = kind === 'overdue' ? `已逾期 ${Math.abs(diff)} 天` : `${daysFromToday(v.suggestedDate) >= 0 ? daysFromToday(v.suggestedDate) + '天后' : '待约'}`;
+
+  const buildText = () => {
+    const lines: string[] = [];
+    if (childName) lines.push(`【${childName}】${kind === 'overdue' ? '逾期提醒' : '即将接种提醒'}`);
+    lines.push(`疫苗：${v.name} 第${v.dose}剂`);
+    lines.push(`推荐接种：${formatDate(v.suggestedDate)}`);
+    lines.push(`最晚接种：${formatDate(v.latestDate)}`);
+    if (site) lines.push(`接种点：${site}`);
+    return lines.join('\n');
+  };
+
+  const copy = async () => {
+    const text = buildText();
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setToast(true);
+    } catch {
+      alert('复制失败，请手动复制');
+    }
+  };
+
+  return (
+    <div className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 hover:border-primary-200 hover:bg-primary-50/40 transition-all">
+      <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+        kind === 'overdue'
+          ? 'bg-danger-100 text-danger-600'
+          : 'bg-info-100 text-info-600'
+      }`}>
+        {kind === 'overdue' ? (
+          <AlertCircle className="w-4 h-4" />
+        ) : (
+          <BellRing className="w-4 h-4" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-slate-800 text-sm">
+            {v.name} · 第{v.dose}剂
+          </span>
+          <span className={`chip text-[11px] ${kind === 'overdue' ? 'bg-danger-50 text-danger-600 border-danger-100' : 'bg-info-50 text-info-600 border-info-100'}`}>
+            {kindLabel}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            建议 {formatDate(v.suggestedDate)}
+          </span>
+          <span className={`flex items-center gap-1 ${kind === 'overdue' ? 'text-danger-600' : ''}`}>
+            <AlertTriangle className="w-3 h-3" />
+            最晚 {formatDate(v.latestDate)}
+          </span>
+        </div>
+      </div>
+      <button
+        onClick={copy}
+        className="shrink-0 w-8 h-8 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white group-hover:shadow-sm flex items-center justify-center transition-all"
+        title="复制给家人"
+      >
+        <Copy className="w-4 h-4" />
+      </button>
+      {toast &&
+        createPortal(
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-fade-in-up">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-900/90 text-white text-sm shadow-2xl backdrop-blur-md border border-white/10">
+              <CheckCheck className="w-4 h-4 text-primary-400" />
+              <span>已复制给家人 ✓</span>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 export default function Statistics() {
   const initialize = useAppStore((s) => s.initialize);
   const getStatistics = useAppStore((s) => s.getStatistics);
@@ -153,6 +263,53 @@ export default function Statistics() {
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [vaccines]);
+
+  // 家庭提醒清单：按孩子分组，逾期 + 未来 30 天待约
+  interface ChildReminder {
+    childId: string;
+    childName: string;
+    site?: string;
+    overdue: Vaccine[];
+    upcoming: Vaccine[];
+  }
+  const familyReminders = useMemo<ChildReminder[]>(() => {
+    const map = new Map<string, ChildReminder>();
+    children.forEach((c) => {
+      map.set(c.id, {
+        childId: c.id,
+        childName: c.name,
+        site: c.vaccinationSite,
+        overdue: [],
+        upcoming: [],
+      });
+    });
+    vaccines.forEach((v) => {
+      if (v.status === 'completed') return;
+      const rem = map.get(v.childId);
+      if (!rem) return;
+      if (v.status === 'appointed') return;
+      const diffLatest = daysFromToday(v.latestDate);
+      if (diffLatest < 0) {
+        rem.overdue.push(v);
+        return;
+      }
+      const diffSuggest = daysFromToday(v.suggestedDate);
+      if (diffSuggest >= 0 && diffSuggest <= 30) {
+        rem.upcoming.push(v);
+      }
+    });
+    return Array.from(map.values())
+      .filter((r) => r.overdue.length + r.upcoming.length > 0)
+      .map((r) => ({
+        ...r,
+        overdue: [...r.overdue].sort(
+          (a, b) => daysFromToday(a.latestDate) - daysFromToday(b.latestDate),
+        ),
+        upcoming: [...r.upcoming].sort(
+          (a, b) => daysFromToday(a.suggestedDate) - daysFromToday(b.suggestedDate),
+        ),
+      }));
+  }, [children, vaccines]);
 
   return (
     <div className="space-y-6 pb-8">
@@ -294,6 +451,83 @@ export default function Statistics() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <h2 className="section-title !mb-0 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-accent-500" />
+            家庭提醒清单
+          </h2>
+          <span className="text-xs text-slate-400">
+            逾期针 + 未来 30 天待约针 · 按孩子分组
+          </span>
+        </div>
+        {familyReminders.length === 0 ? (
+          <div className="text-center py-10 text-slate-400">
+            <div className="w-16 h-16 rounded-3xl bg-primary-50 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-8 h-8 text-primary-400" />
+            </div>
+            <p className="text-sm">太棒了！所有宝贝近期都无需处理</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {familyReminders.map((rem) => (
+              <div
+                key={rem.childId}
+                className="rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50/40 p-4 animate-fade-in-up"
+              >
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-400 to-primary-500 text-white flex items-center justify-center text-sm font-medium">
+                      {rem.childName.slice(0, 1)}
+                    </div>
+                    <span className="font-semibold text-slate-800">
+                      {rem.childName}
+                    </span>
+                    {rem.site && (
+                      <span className="chip bg-slate-100 text-slate-500 text-[11px]">
+                        接种点：{rem.site}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {rem.overdue.length > 0 && (
+                      <span className="chip bg-danger-50 text-danger-600 border-danger-100">
+                        逾期 {rem.overdue.length}
+                      </span>
+                    )}
+                    {rem.upcoming.length > 0 && (
+                      <span className="chip bg-info-50 text-info-600 border-info-100">
+                        即将 {rem.upcoming.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {rem.overdue.map((v) => (
+                    <FamilyReminderRow
+                      key={v.id}
+                      v={v}
+                      childName={rem.childName}
+                      site={rem.site}
+                      kind="overdue"
+                    />
+                  ))}
+                  {rem.upcoming.map((v) => (
+                    <FamilyReminderRow
+                      key={v.id}
+                      v={v}
+                      childName={rem.childName}
+                      site={rem.site}
+                      kind="upcoming"
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
