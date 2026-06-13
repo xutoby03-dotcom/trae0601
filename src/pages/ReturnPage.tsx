@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useLabStore } from '@/store'
 import { DAMAGE_LOCATIONS } from '@/types'
 import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format, differenceInDays } from 'date-fns'
+import OverdueAlert from '@/components/OverdueAlert'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   clean: { label: '已洗净', cls: 'bg-emerald-100 text-emerald-700' },
@@ -13,11 +15,24 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 
 export default function ReturnPage() {
   const { coats, washBatches, washBatchItems, returnItem, checkOverdue } = useLabStore()
+  const location = useLocation()
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [damageForm, setDamageForm] = useState<Record<string, { location: string; note: string }>>({})
 
   useEffect(() => {
     checkOverdue()
+    const state = location.state as { expandBatch?: string } | null
+    if (state?.expandBatch) {
+      setExpandedIds(prev => new Set(prev).add(state.expandBatch!))
+      setTimeout(() => {
+        const el = document.getElementById(`batch-${state.expandBatch}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          el.classList.add('ring-2', 'ring-[#E8590C]', 'ring-offset-2', 'animate-pulse')
+          setTimeout(() => el.classList.remove('ring-2', 'ring-[#E8590C]', 'ring-offset-2', 'animate-pulse'), 2000)
+        }
+      }, 100)
+    }
   }, [])
 
   const activeBatches = washBatches.filter((b) => b.status !== 'returned')
@@ -61,7 +76,19 @@ export default function ReturnPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] p-6">
-      <h1 className="mb-6 text-2xl font-bold text-[#0D7377]">取回登记</h1>
+      <h1 className="mb-4 text-2xl font-bold text-[#0D7377]">取回登记</h1>
+
+      <OverdueAlert onExpand={(batchId) => {
+        setExpandedIds(prev => new Set(prev).add(batchId))
+        setTimeout(() => {
+          const el = document.getElementById(`batch-${batchId}`)
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            el.classList.add('ring-2', 'ring-[#E8590C]', 'ring-offset-2', 'animate-pulse')
+            setTimeout(() => el.classList.remove('ring-2', 'ring-[#E8590C]', 'ring-offset-2', 'animate-pulse'), 2000)
+          }
+        }, 50)
+      }} />
 
       {activeBatches.length === 0 && (
         <p className="text-[#6B7280]">暂无待取回的洗涤批次</p>
@@ -79,7 +106,8 @@ export default function ReturnPage() {
           return (
             <div
               key={batch.id}
-              className="rounded-lg border border-gray-200 bg-white shadow-sm"
+              id={`batch-${batch.id}`}
+              className="rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300"
             >
               <div
                 className="flex cursor-pointer items-center justify-between px-5 py-4"

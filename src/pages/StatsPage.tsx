@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { Users, WashingMachine, Wrench, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { differenceInDays } from 'date-fns'
+import OverdueAlert from '@/components/OverdueAlert'
 
 const CLASS_COLORS = ['#0D7377', '#0891B2', '#0EA5E9', '#6366F1', '#8B5CF6', '#A855F7']
 const DAMAGE_COLORS = ['#0D7377', '#0891B2', '#0EA5E9', '#6366F1', '#8B5CF6', '#E8590C', '#A855F7']
@@ -97,6 +98,8 @@ export default function StatsPage() {
   return (
     <div className="min-h-screen bg-[#F7F8FA] p-6 space-y-6">
       <h1 className="text-2xl font-bold text-gray-800">统计看板</h1>
+
+      <OverdueAlert />
 
       <div className="grid grid-cols-3 gap-4">
         {cards.map((card) => (
