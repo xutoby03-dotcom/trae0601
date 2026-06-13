@@ -25,6 +25,12 @@ export function todayStr(): string {
   return formatDate(new Date());
 }
 
+export function addYears(date: Date, years: number): Date {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
+}
+
 export function daysBetween(date1: string, date2: string): number {
   const d1 = new Date(date1);
   const d2 = new Date(date2);

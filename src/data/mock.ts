@@ -69,11 +69,13 @@ const makeRecord = (
   type: "internal" | "external",
   medicine: string,
   dosage: number,
+  daysUntilExpiry: number,
   hasReaction = false
 ): DewormRecord => {
   const usedDate = addDays(today, -daysAgoUsed);
   const dateUsed = formatDate(usedDate);
   const nextDate = getNextDewormDate(dateUsed, type);
+  const expiryDate = formatDate(addDays(today, daysUntilExpiry));
   return {
     id,
     petId,
@@ -83,6 +85,7 @@ const makeRecord = (
     dosageUnit: type === "external" ? "ml" : "片",
     dateUsed,
     nextDate,
+    expiryDate,
     operator: "妈妈",
     hasAdverseReaction: hasReaction,
     reactionNote: hasReaction ? "用药后出现轻微呕吐，持续4小时后恢复" : "",
@@ -91,10 +94,10 @@ const makeRecord = (
 };
 
 export const mockRecords: DewormRecord[] = [
-  makeRecord("rec-001", "pet-001", 100, "internal", "拜宠清", 0.5),
-  makeRecord("rec-002", "pet-001", 40, "external", "大宠爱", 0.75),
-  makeRecord("rec-003", "pet-001", 5, "internal", "拜宠清", 0.5, true),
-  makeRecord("rec-004", "pet-002", 95, "internal", "犬心保", 1),
-  makeRecord("rec-005", "pet-002", 25, "external", "福来恩", 1.34),
-  makeRecord("rec-006", "pet-002", 1, "external", "福来恩", 1.34),
+  makeRecord("rec-001", "pet-001", 100, "internal", "拜宠清", 0.5, 20),
+  makeRecord("rec-002", "pet-001", 40, "external", "大宠爱", 0.75, -5),
+  makeRecord("rec-003", "pet-001", 5, "internal", "拜宠清", 0.5, 15, true),
+  makeRecord("rec-004", "pet-002", 95, "internal", "犬心保", 1, -10),
+  makeRecord("rec-005", "pet-002", 25, "external", "福来恩", 1.34, 45),
+  makeRecord("rec-006", "pet-002", 1, "external", "福来恩", 1.34, 200),
 ];

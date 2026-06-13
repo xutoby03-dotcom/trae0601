@@ -3,7 +3,7 @@ import { Pill, Syringe } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePetStore } from "../store/petStore";
 import type { DewormFormData, DewormType } from "../types";
-import { todayStr, formatDateDisplay } from "../utils/date";
+import { todayStr, formatDateDisplay, addYears, formatDate } from "../utils/date";
 import {
   getNextDewormDate,
   getSpeciesEmoji,
@@ -24,6 +24,7 @@ export default function DewormForm() {
     dosageUnit: "片",
     dateUsed: todayStr(),
     nextDate: getNextDewormDate(todayStr(), "internal"),
+    expiryDate: formatDate(addYears(new Date(), 1)),
     operator: "",
     hasAdverseReaction: false,
     reactionNote: "",
@@ -42,6 +43,9 @@ export default function DewormForm() {
   );
 
   const sameTypePrev = prevRecords.find((r) => r.type === form.type);
+  const sameMedicinePrev = prevRecords.find(
+    (r) => r.medicineName === form.medicineName && form.medicineName.trim() !== ""
+  );
 
   const updateType = (type: DewormType) => {
     setForm((f) => ({
@@ -229,6 +233,23 @@ export default function DewormForm() {
                 value={form.operator}
                 onChange={(e) => setForm({ ...form, operator: e.target.value })}
                 placeholder="例如：妈妈"
+              />
+            </div>
+
+            <div>
+              <label className="label">
+                药品有效期
+                {sameMedicinePrev && (
+                  <span className="text-ink-300 font-normal ml-2 text-xs">
+                    上次: {formatDateDisplay(sameMedicinePrev.expiryDate)}
+                  </span>
+                )}
+              </label>
+              <input
+                type="date"
+                className="input"
+                value={form.expiryDate}
+                onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
               />
             </div>
           </div>

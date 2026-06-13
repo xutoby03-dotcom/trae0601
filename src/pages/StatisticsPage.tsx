@@ -40,23 +40,24 @@ export default function StatisticsPage() {
 
     const medicineMap = new Map<
       string,
-      { name: string; count: number; latestNextDate: string }
+      { name: string; count: number; earliestExpiryDate: string }
     >();
 
     for (const r of records) {
-      const next = new Date(r.nextDate);
-      if (next <= thirtyDaysLater) {
+      if (!r.expiryDate) continue;
+      const expiry = new Date(r.expiryDate);
+      if (expiry <= thirtyDaysLater) {
         const existing = medicineMap.get(r.medicineName);
         if (existing) {
           existing.count++;
-          if (new Date(r.nextDate) > new Date(existing.latestNextDate)) {
-            existing.latestNextDate = r.nextDate;
+          if (new Date(r.expiryDate) < new Date(existing.earliestExpiryDate)) {
+            existing.earliestExpiryDate = r.expiryDate;
           }
         } else {
           medicineMap.set(r.medicineName, {
             name: r.medicineName,
             count: 1,
-            latestNextDate: r.nextDate,
+            earliestExpiryDate: r.expiryDate,
           });
         }
       }
@@ -64,8 +65,8 @@ export default function StatisticsPage() {
 
     return Array.from(medicineMap.values()).sort(
       (a, b) =>
-        new Date(a.latestNextDate).getTime() -
-        new Date(b.latestNextDate).getTime()
+        new Date(a.earliestExpiryDate).getTime() -
+        new Date(b.earliestExpiryDate).getTime()
     );
   }, [records]);
 
@@ -239,8 +240,8 @@ export default function StatisticsPage() {
       >
         <h2 className="section-title mb-4 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-warm-500" />
-          药品使用提醒
-          <span className="text-xs font-normal text-ink-400">（基于下次用药时间）</span>
+          药品有效期提醒
+          <span className="text-xs font-normal text-ink-400">（显示30天内到期或已过期的药品）</span>
         </h2>
         {upcomingExpiry.length === 0 ? (
           <div className="py-6 text-center">
@@ -254,16 +255,16 @@ export default function StatisticsPage() {
               <thead>
                 <tr className="text-left text-xs text-ink-400 border-b border-ink-100">
                   <th className="py-2 px-3 font-medium">药品名称</th>
-                  <th className="py-2 px-3 font-medium">使用次数</th>
-                  <th className="py-2 px-3 font-medium">下次使用</th>
+                  <th className="py-2 px-3 font-medium">记录次数</th>
+                  <th className="py-2 px-3 font-medium">药品有效期</th>
                   <th className="py-2 px-3 font-medium">状态</th>
                 </tr>
               </thead>
               <tbody>
                 {upcomingExpiry.map((m, i) => {
-                  const days = daysUntil(m.latestNextDate);
+                  const days = daysUntil(m.earliestExpiryDate);
                   const isOverdue = days < 0;
-                  const isUrgent = days >= 0 && days <= 3;
+                  const isUrgent = days >= 0 && days <= 30;
                   return (
                     <tr
                       key={m.name}
@@ -275,20 +276,20 @@ export default function StatisticsPage() {
                       </td>
                       <td className="py-3 px-3 text-ink-500">{m.count} 次</td>
                       <td className="py-3 px-3 text-ink-500">
-                        {formatDateDisplay(m.latestNextDate)}
+                        {formatDateDisplay(m.earliestExpiryDate)}
                       </td>
                       <td className="py-3 px-3">
                         {isOverdue ? (
                           <span className="chip bg-alert-100 text-alert-600">
-                            逾期 {Math.abs(days)} 天
+                            已过期 {Math.abs(days)} 天
                           </span>
                         ) : isUrgent ? (
                           <span className="chip bg-warm-100 text-warm-600">
-                            {days} 天内
+                            {days} 天内到期
                           </span>
                         ) : (
                           <span className="chip bg-mint-100 text-mint-700">
-                            {days} 天内
+                            {days} 天内到期
                           </span>
                         )}
                       </td>

@@ -82,7 +82,7 @@ export default function DewormTimeline({ records, petId }: DewormTimelineProps) 
                       {r.operator}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div className="text-xs">
                       <span className="text-ink-400">使用日期: </span>
                       <span className="text-ink-600 font-medium">
@@ -95,6 +95,14 @@ export default function DewormTimeline({ records, petId }: DewormTimelineProps) 
                         {formatDateDisplay(r.nextDate)}
                       </span>
                     </div>
+                    {r.expiryDate && (
+                      <div className="text-xs">
+                        <span className="text-ink-400">有效期至: </span>
+                        <span className="text-ink-600 font-medium">
+                          {formatDateDisplay(r.expiryDate)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {r.hasAdverseReaction && r.reactionNote && (
                     <p className="mt-2 text-xs text-alert-600 bg-alert-50 rounded-lg p-2">

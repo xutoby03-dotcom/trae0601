@@ -25,6 +25,7 @@ export interface DewormRecord {
   dosageUnit: string;
   dateUsed: string;
   nextDate: string;
+  expiryDate: string;
   operator: string;
   hasAdverseReaction: boolean;
   reactionNote: string;
@@ -63,6 +64,7 @@ export interface DewormFormData {
   dosageUnit: string;
   dateUsed: string;
   nextDate: string;
+  expiryDate: string;
   operator: string;
   hasAdverseReaction: boolean;
   reactionNote: string;
