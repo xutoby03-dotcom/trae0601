@@ -566,45 +566,66 @@ export function LendReturn() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowReturnForm(false);
-                  setSelectedGear(null);
-                }}
-                className="flex-1"
-              >
-                取消
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!selectedGear) return;
-                  await updateGear(selectedGear, { status: 'drying' });
-                  setSuccessMessage('已标记为待晾干，晾干后请确认入柜。');
-                  setShowReturnForm(false);
-                  setSelectedGear(null);
-                  setTimeout(() => setSuccessMessage(null), 4000);
-                }}
-                className="flex-1 bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
-              >
-                <Sun className="w-4 h-4 mr-1.5" />
-                标记待晾干
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!selectedGear) return;
-                  await updateGear(selectedGear, { status: 'in_cabinet' });
-                  setSuccessMessage('已标记为入柜，雨具归位完成。');
-                  setShowReturnForm(false);
-                  setSelectedGear(null);
-                  setTimeout(() => setSuccessMessage(null), 4000);
-                }}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
-              >
-                <Package className="w-4 h-4 mr-1.5" />
-                直接入柜
-              </Button>
+            <div className="space-y-3 pt-2">
+              <div className="flex gap-3">
+                <Button
+                  onClick={async () => {
+                    if (!selectedGear) return;
+                    await updateGear(selectedGear, { status: 'drying' });
+                    setSuccessMessage('已标记为待晾干，晾干后请确认入柜。');
+                    setShowReturnForm(false);
+                    setSelectedGear(null);
+                    setTimeout(() => {
+                      setSuccessMessage(null);
+                      navigate('/statistics');
+                    }, 1500);
+                  }}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+                >
+                  <Sun className="w-4 h-4 mr-1.5" />
+                  标记待晾干
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!selectedGear) return;
+                    await updateGear(selectedGear, { status: 'in_cabinet' });
+                    setSuccessMessage('已标记为入柜，雨具归位完成。');
+                    setShowReturnForm(false);
+                    setSelectedGear(null);
+                    setTimeout(() => {
+                      setSuccessMessage(null);
+                      navigate('/statistics');
+                    }, 1500);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                >
+                  <Package className="w-4 h-4 mr-1.5" />
+                  直接入柜
+                </Button>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowReturnForm(false);
+                    setSelectedGear(null);
+                  }}
+                  className="flex-1"
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowReturnForm(false);
+                    setSelectedGear(null);
+                    navigate('/statistics');
+                  }}
+                  className="flex-1"
+                >
+                  返回统计页
+                </Button>
+              </div>
             </div>
           </div>
         )}
