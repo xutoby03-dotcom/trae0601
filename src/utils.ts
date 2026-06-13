@@ -89,8 +89,9 @@ export const getOverdueRecords = (records: VisitorRecord[]): VisitorRecord[] => 
 };
 
 export const getTodayRevenue = (records: VisitorRecord[]): number => {
-  const todayRecords = getTodayRecords(records);
-  return todayRecords
-    .filter(r => r.paymentStatus === 'paid' && r.exitTime)
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  return records
+    .filter(r => r.exitTime && r.exitTime.startsWith(todayStr) && r.paymentStatus === 'paid')
     .reduce((sum, r) => sum + (r.fee || 0), 0);
 };

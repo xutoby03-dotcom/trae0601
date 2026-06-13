@@ -8,6 +8,12 @@ interface VisitorRegistrationProps {
   onAddRecord: (record: VisitorRecord) => void;
 }
 
+const getDefaultLeaveTime = (): string => {
+  const d = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistrationProps) => {
   const visitorZones = useMemo(() => zones.filter(z => z.visitorAvailable), [zones]);
   const activeRecords = useMemo(() => getActiveRecords(records), [records]);
@@ -17,7 +23,7 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
     building: '',
     contactPerson: '',
     phone: '',
-    estimatedLeaveHours: 2,
+    estimatedLeaveTime: getDefaultLeaveTime(),
     zoneId: visitorZones[0]?.id || '',
     carPhoto: '',
   });
@@ -63,6 +69,14 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
       alert('请选择停车区域');
       return;
     }
+    if (!formData.estimatedLeaveTime) {
+      alert('请选择预计离开时间');
+      return;
+    }
+    if (!formData.carPhoto) {
+      alert('请拍摄或上传车辆照片');
+      return;
+    }
 
     const remaining = getZoneRemaining(formData.zoneId);
     if (remaining <= 0) {
@@ -70,9 +84,12 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
       return;
     }
 
-    const estimatedLeaveTime = new Date(
-      Date.now() + formData.estimatedLeaveHours * 60 * 60 * 1000
-    ).toISOString();
+    const estimatedLeaveTime = new Date(formData.estimatedLeaveTime).toISOString();
+
+    if (new Date(estimatedLeaveTime).getTime() <= Date.now()) {
+      alert('预计离开时间必须晚于当前时间');
+      return;
+    }
 
     const newRecord: VisitorRecord = {
       id: generateId(),
@@ -85,7 +102,7 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
       entryTime: new Date().toISOString(),
       paymentStatus: 'unpaid',
       isOverdue: false,
-      carPhoto: formData.carPhoto || undefined,
+      carPhoto: formData.carPhoto,
     };
 
     onAddRecord(newRecord);
@@ -96,7 +113,7 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
       building: '',
       contactPerson: '',
       phone: '',
-      estimatedLeaveHours: 2,
+      estimatedLeaveTime: getDefaultLeaveTime(),
       zoneId: visitorZones[0]?.id || '',
       carPhoto: '',
     });
@@ -181,21 +198,12 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
             </select>
           </div>
           <div className="form-group">
-            <label>预计停放时长</label>
-            <select
-              value={formData.estimatedLeaveHours}
-              onChange={e => setFormData({ ...formData, estimatedLeaveHours: parseFloat(e.target.value) })}
-            >
-              <option value={0.5}>30分钟</option>
-              <option value={1}>1小时</option>
-              <option value={2}>2小时</option>
-              <option value={3}>3小时</option>
-              <option value={4}>4小时</option>
-              <option value={6}>6小时</option>
-              <option value={8}>8小时</option>
-              <option value={12}>12小时</option>
-              <option value={24}>24小时</option>
-            </select>
+            <label>预计离开时间 *</label>
+            <input
+              type="datetime-local"
+              value={formData.estimatedLeaveTime}
+              onChange={e => setFormData({ ...formData, estimatedLeaveTime: e.target.value })}
+            />
           </div>
         </div>
 
@@ -207,13 +215,13 @@ const VisitorRegistration = ({ zones, records, onAddRecord }: VisitorRegistratio
             </div>
             <div className="fee-row">
               <span>预计离开时间：</span>
-              <span>{formatDateTime(new Date(Date.now() + formData.estimatedLeaveHours * 60 * 60 * 1000))}</span>
+              <span>{formData.estimatedLeaveTime ? formatDateTime(new Date(formData.estimatedLeaveTime)) : '未设置'}</span>
             </div>
           </div>
         )}
 
         <div className="form-group" style={{ marginTop: 16 }}>
-          <label>车辆照片</label>
+          <label>车辆照片 *</label>
           {formData.carPhoto ? (
             <div>
               <img

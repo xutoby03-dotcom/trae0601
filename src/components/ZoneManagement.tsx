@@ -50,6 +50,10 @@ const ZoneManagement = ({ zones, onAddZone, onUpdateZone, onDeleteZone }: ZoneMa
       alert('请输入收费规则说明');
       return;
     }
+    if (!formData.entrancePhoto) {
+      alert('请上传入口照片');
+      return;
+    }
 
     if (editingZone) {
       onUpdateZone({ ...formData, id: editingZone.id });
@@ -219,7 +223,7 @@ const ZoneManagement = ({ zones, onAddZone, onUpdateZone, onDeleteZone }: ZoneMa
               </div>
 
               <div className="form-group">
-                <label>入口照片</label>
+                <label>入口照片 *</label>
                 {formData.entrancePhoto ? (
                   <div>
                     <img
