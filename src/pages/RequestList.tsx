@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   Plus,
   Check,
@@ -10,12 +10,13 @@ import {
   XCircle,
   MapPin,
   Users,
+  Search,
 } from 'lucide-react'
 import { useStore } from '@/store'
 import Modal from '@/components/Modal'
 import { RequestStatusBadge, StatusBadge } from '@/components/StatusBadges'
 import FuelBar from '@/components/FuelBar'
-import { formatDateTime, formatTime } from '@/utils/date'
+import { formatDateTime, formatTime, isSameDay } from '@/utils/date'
 import type { DEPARTMENTS as D } from '@/types'
 import { DEPARTMENTS } from '@/types'
 import type { Request } from '@/types'
@@ -74,6 +75,13 @@ export default function RequestList() {
     title: string
     action: string
     conflict: { department: string; driver: string; startTime: string; endTime: string; status: string }[]
+  } | null>(null)
+
+  const [searchText, setSearchText] = useState('')
+  const [conflictPeekOpen, setConflictPeekOpen] = useState(false)
+  const [conflictPeekData, setConflictPeekData] = useState<{
+    plateNumber: string
+    rows: { department: string; driver: string; startTime: string; endTime: string; status: string }[]
   } | null>(null)
 
   const conflictInfo = useMemo(() => {
@@ -203,18 +211,65 @@ export default function RequestList() {
 
   const [filter, setFilter] = useState<string>('all')
 
-  const filteredRequests = useMemo(() => {
-    if (filter === 'all') return requests
-    return requests.filter((r) => r.status === filter)
-  }, [requests, filter])
+  const lowerSearch = searchText.toLowerCase().trim()
 
-  const tabs: { key: string; label: string }[] = [
-    { key: 'all', label: '全部' },
-    { key: 'pending', label: '待审批' },
-    { key: 'approved', label: '已批准' },
-    { key: 'in_use', label: '使用中' },
-    { key: 'returned', label: '已归还' },
-    { key: 'rejected', label: '已驳回' },
+  function isTodayRequest(r: Request): boolean {
+    const now = new Date()
+    return isSameDay(new Date(r.startTime), now) || isSameDay(new Date(r.endTime), now)
+  }
+
+  function matchSearch(r: Request): boolean {
+    if (!lowerSearch) return true
+    const v = vehicles.find((x) => x.id === r.vehicleId)
+    const plate = v?.plateNumber ?? ''
+    const fields = [plate, r.driver, r.department, r.destination, r.purpose].join(' ').toLowerCase()
+    return fields.includes(lowerSearch)
+  }
+
+  const filteredRequests = useMemo(() => {
+    let list = requests
+    if (filter === 'today') {
+      list = list.filter(isTodayRequest)
+    } else if (filter !== 'all') {
+      list = list.filter((r) => r.status === filter)
+    }
+    if (lowerSearch) {
+      list = list.filter(matchSearch)
+    }
+    return list
+  }, [requests, filter, lowerSearch])
+
+  function getConflictPeek(r: Request) {
+    const conflict = checkConflict(r.vehicleId, r.startTime, r.endTime, r.id)
+    if (!conflict.hasConflict || !conflict.conflictingRequests) return null
+    const v = vehicles.find((x) => x.id === r.vehicleId)
+    return {
+      plateNumber: v?.plateNumber ?? '',
+      rows: conflict.conflictingRequests.map((cr) => ({
+        department: cr.department,
+        driver: cr.driver,
+        startTime: cr.startTime,
+        endTime: cr.endTime,
+        status: REQUEST_STATUS_TEXT[cr.status],
+      })),
+    }
+  }
+
+  function openConflictPeek(r: Request) {
+    const data = getConflictPeek(r)
+    if (!data) return
+    setConflictPeekData(data)
+    setConflictPeekOpen(true)
+  }
+
+  const tabs: { key: string; label: string; count: number }[] = [
+    { key: 'all', label: '全部', count: requests.length },
+    { key: 'today', label: '今日用车', count: requests.filter(isTodayRequest).length },
+    { key: 'pending', label: '待审批', count: requests.filter((r) => r.status === 'pending').length },
+    { key: 'approved', label: '已批准', count: requests.filter((r) => r.status === 'approved').length },
+    { key: 'in_use', label: '使用中', count: requests.filter((r) => r.status === 'in_use').length },
+    { key: 'returned', label: '已归还', count: requests.filter((r) => r.status === 'returned').length },
+    { key: 'rejected', label: '已驳回', count: requests.filter((r) => r.status === 'rejected').length },
   ]
 
   return (
@@ -232,7 +287,25 @@ export default function RequestList() {
         </button>
       </div>
 
-      <div className="card !p-3">
+      <div className="card !p-3 space-y-3">
+        <div className="relative">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="搜索车牌号、驾驶人、部门、目的地..."
+            className="form-input pl-10 py-2 bg-slate-50 border-transparent focus:bg-white"
+          />
+          {searchText && (
+            <button
+              onClick={() => setSearchText('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           {tabs.map((t) => (
             <button
@@ -257,7 +330,7 @@ export default function RequestList() {
                     : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                {requests.filter((r) => t.key === 'all' || r.status === t.key).length}
+                {t.count}
               </span>
             </button>
           ))}
@@ -330,7 +403,23 @@ export default function RequestList() {
                       </div>
                     </td>
                     <td>
-                      <RequestStatusBadge status={r.status} />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <RequestStatusBadge status={r.status} />
+                        {r.status !== 'rejected' && r.status !== 'returned' && (() => {
+                          const peek = getConflictPeek(r)
+                          if (!peek) return null
+                          return (
+                            <button
+                              onClick={() => openConflictPeek(r)}
+                              className="badge bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 cursor-pointer transition-colors"
+                              title="同车时间冲突，点击查看详情"
+                            >
+                              <AlertTriangle size={11} />
+                              冲突 {peek.rows.length}
+                            </button>
+                          )
+                        })()}
+                      </div>
                       {r.status === 'rejected' && r.rejectReason && (
                         <div className="text-xs text-red-500 mt-1 max-w-[180px] line-clamp-2">
                           原因：{r.rejectReason}
@@ -625,6 +714,39 @@ export default function RequestList() {
               </div>
             </div>
             <ConflictDetailList rows={blockInfo.conflict} />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={conflictPeekOpen}
+        onClose={() => setConflictPeekOpen(false)}
+        title={conflictPeekData ? `${conflictPeekData.plateNumber} 同车冲突` : '同车冲突'}
+        width="max-w-lg"
+        footer={
+          <div className="flex items-center justify-end">
+            <button onClick={() => setConflictPeekOpen(false)} className="btn-primary">
+              关闭
+            </button>
+          </div>
+        }
+      >
+        {conflictPeekData && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-3 animate-fade-in">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100 text-amber-600 shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-amber-700">
+                  {conflictPeekData.plateNumber} 存在 {conflictPeekData.rows.length} 条同车冲突
+                </div>
+                <div className="text-sm text-amber-600 mt-1">
+                  以下申请与当前单子的用车时段存在重叠
+                </div>
+              </div>
+            </div>
+            <ConflictDetailList rows={conflictPeekData.rows} />
           </div>
         )}
       </Modal>
