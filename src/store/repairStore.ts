@@ -37,6 +37,11 @@ interface ClassroomStat {
   count: number;
 }
 
+interface MonthlyDurationStat {
+  month: string;
+  days: number;
+}
+
 interface RepeatRepairRank {
   instrumentId: string;
   count: number;
@@ -55,8 +60,11 @@ interface RepairState {
   getRepairDetail: (repairId: string) => RepairOrderWithLogs | undefined;
 
   getStatusStats: () => StatusStats;
-  getClassroomStats: () => ClassroomStat[];
+  getClassroomStats: (
+    instruments: Array<{ id: string; classroom: string }>
+  ) => ClassroomStat[];
   getAverageRepairDuration: () => number;
+  getMonthlyAverageDuration: (months?: number) => MonthlyDurationStat[];
   getRepeatRepairRank: () => RepeatRepairRank[];
   getTodayNewCount: () => number;
 }
@@ -191,32 +199,18 @@ export const useRepairStore = create<RepairState>()(
         };
       },
 
-      getClassroomStats: () => {
+      getClassroomStats: (instruments) => {
         const { repairOrders } = get();
         const classroomMap = new Map<string, number>();
-        const instruments =
-          typeof window !== "undefined"
-            ? (() => {
-                try {
-                  const saved = localStorage.getItem("instrument-store");
-                  if (saved) {
-                    const parsed = JSON.parse(saved);
-                    return parsed.state?.instruments || [];
-                  }
-                } catch {
-                  // ignore
-                }
-                return [];
-              })()
-            : [];
 
-        const getClassroom = (instrumentId: string): string => {
-          const ins = instruments.find((i: { id: string }) => i.id === instrumentId);
-          return ins?.classroom || "未知教室";
-        };
+        const insClassroom = new Map<string, string>();
+        for (const ins of instruments) {
+          insClassroom.set(ins.id, ins.classroom);
+        }
 
         for (const order of repairOrders) {
-          const classroom = getClassroom(order.instrumentId);
+          const classroom =
+            insClassroom.get(order.instrumentId) || "未知教室";
           classroomMap.set(classroom, (classroomMap.get(classroom) || 0) + 1);
         }
         return Array.from(classroomMap.entries())
@@ -236,6 +230,51 @@ export const useRepairStore = create<RepairState>()(
           return sum + (end - start) / (1000 * 60 * 60);
         }, 0);
         return Math.round((totalHours / closed.length) * 10) / 10;
+      },
+
+      getMonthlyAverageDuration: (months = 6) => {
+        const { repairOrders } = get();
+        const now = new Date();
+        const result: MonthlyDurationStat[] = [];
+
+        for (let i = months - 1; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          result.push({
+            month: `${year}/${month}`,
+            days: 0,
+          });
+        }
+
+        const monthTotals = new Map<string, { total: number; count: number }>();
+        const closed = repairOrders.filter(
+          (o) => o.closedAt && o.status !== "pending"
+        );
+
+        for (const order of closed) {
+          const closedDate = new Date(order.closedAt!);
+          const key = `${closedDate.getFullYear()}/${String(
+            closedDate.getMonth() + 1
+          ).padStart(2, "0")}`;
+          const durationDays =
+            (new Date(order.closedAt!).getTime() -
+              new Date(order.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24);
+          const prev = monthTotals.get(key) || { total: 0, count: 0 };
+          monthTotals.set(key, {
+            total: prev.total + durationDays,
+            count: prev.count + 1,
+          });
+        }
+
+        for (const item of result) {
+          const stat = monthTotals.get(item.month);
+          if (stat && stat.count > 0) {
+            item.days = Math.round((stat.total / stat.count) * 10) / 10;
+          }
+        }
+        return result;
       },
 
       getRepeatRepairRank: () => {

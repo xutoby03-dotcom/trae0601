@@ -107,6 +107,9 @@ export default function Statistics() {
   const getAverageRepairDuration = useRepairStore(
     (s) => s.getAverageRepairDuration
   );
+  const getMonthlyAverageDuration = useRepairStore(
+    (s) => s.getMonthlyAverageDuration
+  );
   const getRepeatRepairRank = useRepairStore((s) => s.getRepeatRepairRank);
   const getInstrumentById = useInstrumentStore((s) => s.getInstrumentById);
 
@@ -115,7 +118,7 @@ export default function Statistics() {
     [allOrders, getStatusStats]
   );
   const classroomStats = useMemo(
-    () => getClassroomStats(),
+    () => getClassroomStats(instruments),
     [allOrders, instruments, getClassroomStats]
   );
   const averageDuration = useMemo(
@@ -125,6 +128,10 @@ export default function Statistics() {
   const repeatRepairRank = useMemo(
     () => getRepeatRepairRank(),
     [allOrders, getRepeatRepairRank]
+  );
+  const lineData = useMemo(
+    () => getMonthlyAverageDuration(6),
+    [allOrders, getMonthlyAverageDuration]
   );
 
   const totalCount = allOrders.length;
@@ -151,22 +158,6 @@ export default function Statistics() {
       fill: STATUS_CHART_COLORS[e.key],
     }));
   }, [statusStats]);
-
-  const lineData = useMemo(() => {
-    const result = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const days = Math.floor(Math.random() * 15) + 1;
-      result.push({
-        month: `${year}/${month}`,
-        days,
-      });
-    }
-    return result;
-  }, []);
 
   const repeatTableData = useMemo(() => {
     return repeatRepairRank.slice(0, 10).map((item, idx) => {
