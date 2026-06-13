@@ -66,7 +66,7 @@ export function checkTimeConflict(
   const conflicting = allRequests.filter((r) => {
     if (r.vehicleId !== vehicleId) return false
     if (excludeRequestId && r.id === excludeRequestId) return false
-    if (r.status !== 'approved' && r.status !== 'in_use') return false
+    if (r.status !== 'approved' && r.status !== 'in_use' && r.status !== 'pending') return false
     const rStart = new Date(r.startTime)
     const rEnd = new Date(r.endTime)
     return start.getTime() < rEnd.getTime() && end.getTime() > rStart.getTime()

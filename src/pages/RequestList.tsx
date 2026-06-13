@@ -9,6 +9,7 @@ import {
   KeyRound,
   XCircle,
   MapPin,
+  Users,
 } from 'lucide-react'
 import { useStore } from '@/store'
 import Modal from '@/components/Modal'
@@ -68,6 +69,13 @@ export default function RequestList() {
   const [rejectTarget, setRejectTarget] = useState<Request | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
+  const [blockOpen, setBlockOpen] = useState(false)
+  const [blockInfo, setBlockInfo] = useState<{
+    title: string
+    action: string
+    conflict: { department: string; driver: string; startTime: string; endTime: string; status: string }[]
+  } | null>(null)
+
   const conflictInfo = useMemo(() => {
     if (!form.vehicleId || !form.startTime || !form.endTime) return null
     return checkConflict(form.vehicleId, new Date(form.startTime).toISOString(), new Date(form.endTime).toISOString())
@@ -125,7 +133,38 @@ export default function RequestList() {
     setModalOpen(false)
   }
 
+  const REQUEST_STATUS_TEXT: Record<Request['status'], string> = {
+    pending: '待审批',
+    approved: '已批准',
+    rejected: '已驳回',
+    in_use: '使用中',
+    returned: '已归还',
+  }
+
+  function buildConflictPayload(conflict: ReturnType<typeof checkConflict>) {
+    if (!conflict.hasConflict || !conflict.conflictingRequests) return []
+    return conflict.conflictingRequests.map((r) => ({
+      department: r.department,
+      driver: r.driver,
+      startTime: r.startTime,
+      endTime: r.endTime,
+      status: REQUEST_STATUS_TEXT[r.status],
+    }))
+  }
+
   function handleApprove(id: string) {
+    const req = requests.find((r) => r.id === id)
+    if (!req) return
+    const conflict = checkConflict(req.vehicleId, req.startTime, req.endTime, id)
+    if (conflict.hasConflict) {
+      setBlockInfo({
+        title: '批准被拦截：时间冲突',
+        action: '批准',
+        conflict: buildConflictPayload(conflict),
+      })
+      setBlockOpen(true)
+      return
+    }
     if (confirm('确认批准该用车申请？')) updateRequestStatus(id, 'approved')
   }
 
@@ -147,6 +186,18 @@ export default function RequestList() {
   }
 
   function handlePickup(id: string) {
+    const req = requests.find((r) => r.id === id)
+    if (!req) return
+    const conflict = checkConflict(req.vehicleId, req.startTime, req.endTime, id)
+    if (conflict.hasConflict) {
+      setBlockInfo({
+        title: '取车被拦截：时间冲突',
+        action: '取车登记',
+        conflict: buildConflictPayload(conflict),
+      })
+      setBlockOpen(true)
+      return
+    }
     if (confirm('确认领取钥匙，车辆进入使用中状态？')) updateRequestStatus(id, 'in_use')
   }
 
@@ -372,24 +423,16 @@ export default function RequestList() {
               <div className="text-sm text-red-600 mt-1">
                 所选车辆在该时段已被以下申请占用，请调整时间或更换车辆
               </div>
-              <div className="mt-3 space-y-2">
-                {conflictInfo.conflictingRequests.map((cr) => (
-                  <div
-                    key={cr.id}
-                    className="rounded-xl bg-white border border-red-100 p-3 text-sm"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium text-slate-800">
-                        {cr.department} · {cr.driver}
-                      </div>
-                      <RequestStatusBadge status={cr.status} />
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      {formatDateTime(cr.startTime)} ~ {formatDateTime(cr.endTime)}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">{cr.purpose}</div>
-                  </div>
-                ))}
+              <div className="mt-4">
+                <ConflictDetailList
+                  rows={conflictInfo.conflictingRequests.map((cr) => ({
+                    department: cr.department,
+                    driver: cr.driver,
+                    startTime: cr.startTime,
+                    endTime: cr.endTime,
+                    status: REQUEST_STATUS_TEXT[cr.status],
+                  }))}
+                />
               </div>
             </div>
           </div>
@@ -554,11 +597,86 @@ export default function RequestList() {
           </div>
         )}
       </Modal>
+
+      <Modal
+        open={blockOpen}
+        onClose={() => setBlockOpen(false)}
+        title={blockInfo?.title ?? '时间冲突'}
+        width="max-w-lg"
+        footer={
+          <div className="flex items-center justify-end">
+            <button onClick={() => setBlockOpen(false)} className="btn-primary">
+              我知道了
+            </button>
+          </div>
+        }
+      >
+        {blockInfo && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 flex gap-3 animate-fade-in">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-100 text-red-600 shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-red-700">无法{blockInfo.action}</div>
+                <div className="text-sm text-red-600 mt-1">
+                  该车辆在对应时段已被其他申请占用，无法执行本次操作
+                </div>
+              </div>
+            </div>
+            <ConflictDetailList rows={blockInfo.conflict} />
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
 
 type Err = Partial<Record<keyof RequestForm, string>>
+
+function ConflictDetailList({
+  rows,
+}: {
+  rows: { department: string; driver: string; startTime: string; endTime: string; status: string }[]
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+        <Users size={12} /> 已占用详情
+      </div>
+      {rows.map((row, idx) => (
+        <div
+          key={idx}
+          className="rounded-xl bg-white border border-slate-200 p-3.5 text-sm shadow-sm"
+        >
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 text-xs font-semibold">
+                <Users size={11} /> {row.department}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
+                <KeyRound size={11} /> 驾驶人 {row.driver}
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-600">
+              <Clock size={11} /> {row.status}
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <CalendarClock size={12} className="text-slate-400 shrink-0" />
+            <span className="font-mono">
+              {formatDateTime(row.startTime)}
+            </span>
+            <span className="text-slate-300">—</span>
+            <span className="font-mono">
+              {formatDateTime(row.endTime)}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function Field({
   label, error, children,
