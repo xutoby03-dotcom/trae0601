@@ -33,6 +33,7 @@ export default function Statistics() {
   const issues = useStore((s) => s.issues);
   const suppliers = useStore((s) => s.suppliers);
   const [expandedSupplier, setExpandedSupplier] = useState<string | null>(null);
+  const [onlyUnresponded, setOnlyUnresponded] = useState(false);
 
   const monthlyData = useMemo(() => {
     const months: Record<string, number> = {};
@@ -462,86 +463,127 @@ export default function Statistics() {
 
                   {isOpen && (
                     <div className="border-t border-forest-100 bg-white">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="bg-forest-50/50">
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-5">绿植</th>
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">问题类型</th>
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">责任人</th>
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">截止日期</th>
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">响应 / 处理</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {group.issues.map((issue) => {
-                              const plant = plants.find((p) => p.id === issue.plantId);
-                              const staff = useStore.getState().getStaffById(issue.assignedTo);
-                              const overdue = isOverdue(issue.deadline);
-                              const remain = daysUntilDeadline(issue.deadline);
-                              return (
-                                <tr key={issue.id} className="border-t border-forest-50 hover:bg-cream-50">
-                                  <td className="py-3 px-5">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-cream-100">
-                                        {plant?.photoUrl && (
-                                          <img src={plant.photoUrl} alt="" className="w-full h-full object-cover" />
-                                        )}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-forest-800">{plant?.species}</p>
-                                        <p className="text-xs text-forest-400">{plant?.location}</p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs">
-                                      {issue.type}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-sm text-forest-600">{staff?.name}</td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center gap-2">
-                                      <CalendarClock
-                                        className={`w-4 h-4 ${overdue ? "text-amber-600" : "text-forest-400"}`}
-                                      />
-                                      <div>
-                                        <p className="text-sm text-forest-700">{formatDate(issue.deadline)}</p>
-                                        <p className={`text-xs ${overdue ? "text-amber-600" : "text-forest-400"}`}>
-                                          {overdue ? `已超期 ${Math.abs(remain)} 天` : `还剩 ${remain} 天`}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {issue.responseAt ? (
-                                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-forest-100 text-forest-700">
-                                          已响应
-                                        </span>
-                                      ) : (
-                                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
-                                          <AlertCircle className="w-3 h-3" />
-                                          未响应
-                                        </span>
-                                      )}
-                                      <span
-                                        className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                                          issue.status === "pending"
-                                            ? "bg-amber-100 text-amber-700"
-                                            : "bg-moss-100 text-moss-700"
-                                        }`}
-                                      >
-                                        {issue.status === "pending" ? "待处理" : "处理中"}
-                                      </span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <div className="flex items-center justify-between px-5 py-3 bg-cream-50/70 border-b border-forest-50">
+                        <p className="text-xs text-forest-500">
+                          显示{" "}
+                          <span className="font-semibold text-forest-700">
+                            {onlyUnresponded
+                              ? group.issues.filter((i) => !i.responseAt).length
+                              : group.issues.length}
+                          </span>{" "}
+                          / {group.issues.length} 条问题
+                        </p>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <span className="text-xs text-forest-600">只看未响应</span>
+                          <button
+                            type="button"
+                            onClick={() => setOnlyUnresponded(!onlyUnresponded)}
+                            className={`relative w-9 h-5 rounded-full transition-colors ${
+                              onlyUnresponded ? "bg-forest-600" : "bg-forest-200"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                                onlyUnresponded ? "translate-x-4" : "translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                        </label>
                       </div>
+                      {(() => {
+                        const displayIssues = onlyUnresponded
+                          ? group.issues.filter((i) => !i.responseAt)
+                          : group.issues;
+                        if (displayIssues.length === 0) {
+                          return (
+                            <div className="py-10 text-center text-sm text-forest-400">
+                              没有符合条件的问题
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="bg-forest-50/50">
+                                  <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-5">绿植</th>
+                                  <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">问题类型</th>
+                                  <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">责任人</th>
+                                  <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">截止日期</th>
+                                  <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">响应 / 处理</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {displayIssues.map((issue) => {
+                                  const plant = plants.find((p) => p.id === issue.plantId);
+                                  const staff = useStore.getState().getStaffById(issue.assignedTo);
+                                  const overdue = isOverdue(issue.deadline);
+                                  const remain = daysUntilDeadline(issue.deadline);
+                                  return (
+                                    <tr key={issue.id} className="border-t border-forest-50 hover:bg-cream-50">
+                                      <td className="py-3 px-5">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-8 h-8 rounded-lg overflow-hidden bg-cream-100">
+                                            {plant?.photoUrl && (
+                                              <img src={plant.photoUrl} alt="" className="w-full h-full object-cover" />
+                                            )}
+                                          </div>
+                                          <div>
+                                            <p className="text-sm text-forest-800">{plant?.species}</p>
+                                            <p className="text-xs text-forest-400">{plant?.location}</p>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs">
+                                          {issue.type}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-4 text-sm text-forest-600">{staff?.name}</td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center gap-2">
+                                          <CalendarClock
+                                            className={`w-4 h-4 ${overdue ? "text-amber-600" : "text-forest-400"}`}
+                                          />
+                                          <div>
+                                            <p className="text-sm text-forest-700">{formatDate(issue.deadline)}</p>
+                                            <p className={`text-xs ${overdue ? "text-amber-600" : "text-forest-400"}`}>
+                                              {overdue ? `已超期 ${Math.abs(remain)} 天` : `还剩 ${remain} 天`}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {issue.responseAt ? (
+                                            <span className="px-2 py-1 rounded-lg text-xs font-medium bg-forest-100 text-forest-700">
+                                              已响应
+                                            </span>
+                                          ) : (
+                                            <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
+                                              <AlertCircle className="w-3 h-3" />
+                                              未响应
+                                            </span>
+                                          )}
+                                          <span
+                                            className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                                              issue.status === "pending"
+                                                ? "bg-amber-100 text-amber-700"
+                                                : "bg-moss-100 text-moss-700"
+                                            }`}
+                                          >
+                                            {issue.status === "pending" ? "待处理" : "处理中"}
+                                          </span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
