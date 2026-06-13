@@ -275,7 +275,7 @@ function MemberPanel({ member, highlightSupplyId, onHighlightConsumed }: MemberP
                     key={s.id}
                     onClick={() => {
                       assignSupply(s.id, member.id, 1);
-                      if (isHighlighted) onHighlightConsumed();
+                      onHighlightConsumed();
                       if (remaining <= 1) setShowAssign(false);
                     }}
                     className={`w-full text-left flex items-center gap-2 p-2 rounded-md transition-colors ${
