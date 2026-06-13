@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useGearStore } from '../stores/useGearStore';
 import { RainGearCard } from '../components/RainGearCard';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import type { LendDto, ReturnDto } from '../types';
-import { LogOut, LogIn, User, MapPin, Clock, Sun, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { LogOut, LogIn, User, MapPin, Clock, Sun, AlertTriangle, CheckCircle, XCircle, Package } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { formatDateTime, getDefaultReturnTime } from '../utils/date';
 
 type Mode = 'lend' | 'return';
 
 export function LendReturn() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { gears, records, fetchAll, lendGear, returnGear, loading } = useGearStore();
+  const { gears, records, fetchAll, lendGear, returnGear, updateGear, loading } = useGearStore();
   const [mode, setMode] = useState<Mode>((searchParams.get('mode') as Mode) || 'lend');
   const [selectedGear, setSelectedGear] = useState<string | null>(searchParams.get('gearId'));
   const [showLendForm, setShowLendForm] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
+  const [showDryConfirm, setShowDryConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [lendForm, setLendForm] = useState<LendDto>({
@@ -33,6 +35,11 @@ export function LendReturn() {
     returnNote: '',
   });
 
+  const [dryConfirmForm, setDryConfirmForm] = useState({
+    hasNewDamage: false,
+    damageNote: '',
+  });
+
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -45,15 +52,18 @@ export function LendReturn() {
       setMode(urlMode);
     }
     const gearId = searchParams.get('gearId');
-    if (gearId) {
+    if (gearId && gears.length > 0) {
       setSelectedGear(gearId);
-      if (urlMode === 'lend') {
+      const gear = gears.find((g) => g.id === gearId);
+      if (gear?.status === 'drying') {
+        setShowDryConfirm(true);
+      } else if (urlMode === 'lend') {
         setShowLendForm(true);
       } else if (urlMode === 'return') {
         setShowReturnForm(true);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, gears]);
 
   const availableGears = gears.filter((g) => g.status === 'in_cabinet');
   const lentGears = gears.filter((g) => g.status === 'lent');
@@ -102,6 +112,29 @@ export function LendReturn() {
       setSelectedGear(null);
       setReturnForm({ isDry: true, hasNewDamage: false, returnNote: '' });
       setTimeout(() => setSuccessMessage(null), 4000);
+    }
+  };
+
+  const handleDryConfirm = async () => {
+    if (!selectedGear) return;
+
+    const result = await updateGear(selectedGear, {
+      status: 'in_cabinet',
+      isDamaged: dryConfirmForm.hasNewDamage,
+    });
+    if (result) {
+      let message = '入柜登记成功！雨具已归位。';
+      if (dryConfirmForm.hasNewDamage) {
+        message = '入柜登记成功！已标记为破损，请及时维修。';
+      }
+      setSuccessMessage(message);
+      setShowDryConfirm(false);
+      setSelectedGear(null);
+      setDryConfirmForm({ hasNewDamage: false, damageNote: '' });
+      setTimeout(() => {
+        setSuccessMessage(null);
+        navigate('/statistics');
+      }, 2000);
     }
   };
 
@@ -479,6 +512,109 @@ export function LendReturn() {
               <Button onClick={handleReturn} className="flex-1 bg-green-600 hover:bg-green-700 focus:ring-green-500">
                 <LogIn className="w-4 h-4 mr-1.5" />
                 确认归还
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showDryConfirm}
+        onClose={() => {
+          setShowDryConfirm(false);
+          setSelectedGear(null);
+        }}
+        title="晾干确认入柜"
+      >
+        {selectedGearData && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+              <img
+                src={selectedGearData.photoUrl}
+                alt={selectedGearData.name}
+                className="w-16 h-16 rounded-xl object-cover"
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-slate-900">{selectedGearData.name}</h3>
+                <p className="text-sm text-slate-600">{selectedGearData.location}</p>
+              </div>
+              <StatusBadge status={selectedGearData.status} />
+            </div>
+
+            <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
+              <Sun className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-green-800 font-medium">雨具已晾干</p>
+                <p className="text-sm text-green-600 mt-1">
+                  确认雨具已经晾干，可以放入柜中。请检查是否有损坏。
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-3">
+                是否有损坏？
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDryConfirmForm({ ...dryConfirmForm, hasNewDamage: false })}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
+                    !dryConfirmForm.hasNewDamage
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                  )}
+                >
+                  <CheckCircle className="w-6 h-6" />
+                  <span className="font-medium">无损坏</span>
+                  <span className="text-xs opacity-70">完好可正常使用</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDryConfirmForm({ ...dryConfirmForm, hasNewDamage: true })}
+                  className={cn(
+                    'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
+                    dryConfirmForm.hasNewDamage
+                      ? 'border-red-500 bg-red-50 text-red-700'
+                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                  )}
+                >
+                  <AlertTriangle className="w-6 h-6" />
+                  <span className="font-medium">有损坏</span>
+                  <span className="text-xs opacity-70">需要维修</span>
+                </button>
+              </div>
+              {dryConfirmForm.hasNewDamage && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    损坏说明
+                  </label>
+                  <textarea
+                    value={dryConfirmForm.damageNote}
+                    onChange={(e) => setDryConfirmForm({ ...dryConfirmForm, damageNote: e.target.value })}
+                    placeholder="请描述损坏情况..."
+                    rows={3}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowDryConfirm(false);
+                  setSelectedGear(null);
+                }}
+                className="flex-1"
+              >
+                取消
+              </Button>
+              <Button onClick={handleDryConfirm} className="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">
+                <Package className="w-4 h-4 mr-1.5" />
+                确认入柜
               </Button>
             </div>
           </div>

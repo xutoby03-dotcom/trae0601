@@ -88,8 +88,12 @@ export const updateGear = async (req: Request, res: Response): Promise<void> => 
       ...dto,
       updatedAt: new Date().toISOString(),
     };
-    if (dto.isDamaged !== undefined) {
-      gears[index].status = dto.isDamaged ? 'damaged' : gears[index].status;
+    if (dto.isDamaged !== undefined && dto.status === undefined) {
+      if (dto.isDamaged) {
+        gears[index].status = 'damaged';
+      } else if (gears[index].status === 'damaged') {
+        gears[index].status = 'in_cabinet';
+      }
     }
     writeGears(gears);
     res.status(200).json(gears[index]);

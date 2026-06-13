@@ -22,10 +22,10 @@
     "suitableFor": "妈妈",
     "isDamaged": false,
     "photoUrl": "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pink%20foldable%20umbrella%20product%20photo&image_size=square",
-    "status": "drying",
+    "status": "lent",
     "borrowCount": 23,
     "createdAt": "2024-02-20T09:00:00Z",
-    "updatedAt": "2026-06-13T06:00:06.327Z"
+    "updatedAt": "2026-06-13T06:16:35.574Z"
   },
   {
     "id": "3",
