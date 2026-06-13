@@ -1,13 +1,14 @@
-import { AlertTriangle, Phone, Clock, User, LogOut, Snowflake, Package } from 'lucide-react'
+import { AlertTriangle, Phone, Clock, User, LogOut, Snowflake, Package, Send, MessageSquare } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import { SIZE_LABEL, SIZE_BADGE_COLOR } from '@/utils/constants'
 import { formatDateTime, formatDuration } from '@/utils/helpers'
 
 interface UrgentListProps {
   onCheckOut: (packageId: string) => void
+  onAddReminder: (packageId: string) => void
 }
 
-export default function UrgentList({ onCheckOut }: UrgentListProps) {
+export default function UrgentList({ onCheckOut, onAddReminder }: UrgentListProps) {
   const { getUrgentPackages, getLocker } = useAppStore()
   const packages = getUrgentPackages()
 
@@ -92,22 +93,39 @@ export default function UrgentList({ onCheckOut }: UrgentListProps) {
                       {formatDateTime(pkg.inTime)}
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-warning-500 text-white text-xs font-bold">
                       <Clock size={12} />
                       已滞留 {formatDuration(pkg.inTime)}
                     </span>
+                    {pkg.urgentReminders && pkg.urgentReminders.length > 0 && (() => {
+                      const last = [...pkg.urgentReminders].sort(
+                        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                      )[0]
+                      return (
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-warning-200 text-warning-700 text-xs font-medium">
+                          {last.channel === 'phone' ? <Phone size={11} /> : <MessageSquare size={11} />}
+                          最后催取：{formatDuration(last.createdAt)}前
+                        </span>
+                      )
+                    })()}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                <div className="flex flex-col gap-2 shrink-0 w-[110px]">
+                  <div className="flex items-center justify-end gap-1 text-xs text-slate-500">
                     <User size={12} />
-                    收件人
+                    <span>操作</span>
                   </div>
                   <button
+                    onClick={() => onAddReminder(pkg.id)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-warning-100 text-warning-700 text-sm font-medium hover:bg-warning-200 transition-colors shadow-sm border border-warning-200">
+                    <Send size={14} />
+                    催取
+                  </button>
+                  <button
                     onClick={() => onCheckOut(pkg.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm"
-                  >
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors shadow-sm">
                     <LogOut size={14} />
                     取件
                   </button>

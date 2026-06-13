@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Locker, Package, LockerSize, LockerStatus, DashboardStats } from '@/types'
+import type { Locker, Package, LockerSize, LockerStatus, DashboardStats, ReminderChannel, UrgentReminder } from '@/types'
 import { generateId, isUrgent, isToday } from '@/utils/helpers'
 
 const now = new Date()
@@ -23,12 +23,17 @@ const INITIAL_LOCKERS: Locker[] = [
 ]
 
 const INITIAL_PACKAGES: Package[] = [
-  { id: 'p1', lockerId: 'l2', recipientName: '张伟', phoneLastFour: '1234', expressCompany: '顺丰速运', size: 'medium', isFragile: false, inTime: hoursAgo(2), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(2) },
-  { id: 'p2', lockerId: 'l7', recipientName: '李娜', phoneLastFour: '5678', expressCompany: '京东物流', size: 'small', isFragile: true, inTime: hoursAgo(5), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(5) },
-  { id: 'p3', lockerId: 'l4', recipientName: '王强', phoneLastFour: '9012', expressCompany: '中通快递', size: 'large', isFragile: false, inTime: hoursAgo(52), outTime: null, isPickedUp: false, isUrgent: true, createdAt: hoursAgo(52) },
-  { id: 'p4', lockerId: 'l8', recipientName: '刘芳', phoneLastFour: '3456', expressCompany: '圆通速递', size: 'medium', isFragile: true, inTime: hoursAgo(60), outTime: null, isPickedUp: false, isUrgent: true, createdAt: hoursAgo(60) },
-  { id: 'p5', lockerId: 'l1', recipientName: '陈明', phoneLastFour: '7890', expressCompany: '顺丰速运', size: 'small', isFragile: false, inTime: hoursAgo(1), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(1) },
-  { id: 'p6', lockerId: '', recipientName: '赵磊', phoneLastFour: '2345', expressCompany: '韵达快递', size: 'medium', isFragile: false, inTime: hoursAgo(30), outTime: hoursAgo(10), isPickedUp: true, isUrgent: false, createdAt: hoursAgo(30) },
+  { id: 'p1', lockerId: 'l2', recipientName: '张伟', phoneLastFour: '1234', expressCompany: '顺丰速运', size: 'medium', isFragile: false, inTime: hoursAgo(2), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(2), urgentReminders: [] },
+  { id: 'p2', lockerId: 'l7', recipientName: '李娜', phoneLastFour: '5678', expressCompany: '京东物流', size: 'small', isFragile: true, inTime: hoursAgo(5), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(5), urgentReminders: [] },
+  { id: 'p3', lockerId: 'l4', recipientName: '王强', phoneLastFour: '9012', expressCompany: '中通快递', size: 'large', isFragile: false, inTime: hoursAgo(52), outTime: null, isPickedUp: false, isUrgent: true, createdAt: hoursAgo(52), urgentReminders: [
+    { id: 'r1', channel: 'phone', note: '已打电话告知，说明天上午来取', createdAt: hoursAgo(3) },
+  ]},
+  { id: 'p4', lockerId: 'l8', recipientName: '刘芳', phoneLastFour: '3456', expressCompany: '圆通速递', size: 'medium', isFragile: true, inTime: hoursAgo(60), outTime: null, isPickedUp: false, isUrgent: true, createdAt: hoursAgo(60), urgentReminders: [
+    { id: 'r2', channel: 'wecom', note: '企业微信已发，未回复', createdAt: hoursAgo(10) },
+    { id: 'r3', channel: 'phone', note: '二次电话联系，说今天下班前取', createdAt: hoursAgo(2) },
+  ]},
+  { id: 'p5', lockerId: 'l1', recipientName: '陈明', phoneLastFour: '7890', expressCompany: '顺丰速运', size: 'small', isFragile: false, inTime: hoursAgo(1), outTime: null, isPickedUp: false, isUrgent: false, createdAt: hoursAgo(1), urgentReminders: [] },
+  { id: 'p6', lockerId: '', recipientName: '赵磊', phoneLastFour: '2345', expressCompany: '韵达快递', size: 'medium', isFragile: false, inTime: hoursAgo(30), outTime: hoursAgo(10), isPickedUp: true, isUrgent: false, createdAt: hoursAgo(30), urgentReminders: [] },
 ]
 
 INITIAL_LOCKERS[1].status = 'occupied'; INITIAL_LOCKERS[1].currentPackageId = 'p1'
@@ -52,6 +57,7 @@ interface AppState {
   findPackagesByPhone: (phoneLastFour: string) => Package[]
   getPackageById: (id: string) => Package | undefined
   getPackagesByLockerId: (lockerId: string) => Package[]
+  addUrgentReminder: (packageId: string, data: { channel: ReminderChannel; note: string }) => UrgentReminder | null
 
   getDashboardStats: () => DashboardStats
   getUrgentPackages: () => Package[]
@@ -113,6 +119,7 @@ export const useAppStore = create<AppState>()(
           isPickedUp: false,
           isUrgent: urgent,
           createdAt: new Date().toISOString(),
+          urgentReminders: [],
         }
         const lockerStatus: LockerStatus = urgent ? 'urgent' : 'occupied'
         set((state) => ({
@@ -195,6 +202,26 @@ export const useAppStore = create<AppState>()(
 
       getActivePackages: () => {
         return get().packages.filter((p) => !p.isPickedUp)
+      },
+
+      addUrgentReminder: (packageId, data) => {
+        const state = get()
+        const pkg = state.packages.find((p) => p.id === packageId)
+        if (!pkg) return null
+        const reminder: UrgentReminder = {
+          id: generateId(),
+          channel: data.channel,
+          note: data.note.trim(),
+          createdAt: new Date().toISOString(),
+        }
+        set({
+          packages: state.packages.map((p) =>
+            p.id === packageId
+              ? { ...p, urgentReminders: [...(p.urgentReminders || []), reminder] }
+              : p
+          ),
+        })
+        return reminder
       },
 
       refreshUrgentStatus: () => {

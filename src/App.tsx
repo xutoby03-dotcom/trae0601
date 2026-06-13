@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
-import { PackagePlus, LogOut } from 'lucide-react'
+import { PackagePlus, LogOut, Send } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import PageContainer from '@/components/layout/PageContainer'
@@ -10,9 +10,10 @@ import Lockers from '@/pages/Lockers'
 import Packages from '@/pages/Packages'
 import CheckInForm from '@/components/package/CheckInForm'
 import CheckOutForm from '@/components/package/CheckOutForm'
+import UrgentReminderForm from '@/components/package/UrgentReminderForm'
 import { useAppStore } from '@/store/useAppStore'
 
-type ModalType = 'none' | 'check-in' | 'check-out'
+type ModalType = 'none' | 'check-in' | 'check-out' | 'urgent-reminder'
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
   '/': { title: '数据看板', subtitle: '快递代收柜运营总览与核心指标' },
@@ -29,21 +30,31 @@ function AppContent() {
   const [modal, setModal] = useState<ModalType>('none')
   const [preLockerId, setPreLockerId] = useState<string | undefined>()
   const [prePackageId, setPrePackageId] = useState<string | undefined>()
+  const [reminderPackageId, setReminderPackageId] = useState<string | undefined>()
 
   const openCheckIn = (lockerId?: string) => {
     setPreLockerId(lockerId)
     setPrePackageId(undefined)
+    setReminderPackageId(undefined)
     setModal('check-in')
   }
   const openCheckOut = (packageId?: string) => {
     setPrePackageId(packageId)
     setPreLockerId(undefined)
+    setReminderPackageId(undefined)
     setModal('check-out')
+  }
+  const openUrgentReminder = (packageId: string) => {
+    setReminderPackageId(packageId)
+    setPreLockerId(undefined)
+    setPrePackageId(undefined)
+    setModal('urgent-reminder')
   }
   const closeModal = () => {
     setModal('none')
     setPreLockerId(undefined)
     setPrePackageId(undefined)
+    setReminderPackageId(undefined)
     refreshUrgentStatus()
   }
 
@@ -67,10 +78,10 @@ function AppContent() {
 
         <PageContainer>
           <Routes>
-            <Route path="/" element={<Dashboard onCheckIn={openCheckIn} onCheckOut={openCheckOut} />} />
+            <Route path="/" element={<Dashboard onCheckIn={openCheckIn} onCheckOut={openCheckOut} onAddReminder={openUrgentReminder} />} />
             <Route path="/lockers" element={<Lockers onCheckInFromLocker={openCheckIn} />} />
             <Route path="/packages" element={<Packages />} />
-            <Route path="*" element={<Dashboard onCheckIn={openCheckIn} onCheckOut={openCheckOut} />} />
+            <Route path="*" element={<Dashboard onCheckIn={openCheckIn} onCheckOut={openCheckOut} onAddReminder={openUrgentReminder} />} />
           </Routes>
         </PageContainer>
       </div>
@@ -101,6 +112,22 @@ function AppContent() {
           onSubmit={closeModal}
           onCancel={closeModal}
         />
+      </Modal>
+
+      <Modal
+        isOpen={modal === 'urgent-reminder'}
+        onClose={closeModal}
+        title="登记催取记录"
+        icon={<Send size={20} />}
+        size="md"
+      >
+        {reminderPackageId && (
+          <UrgentReminderForm
+            packageId={reminderPackageId}
+            onClose={closeModal}
+            onDone={refreshUrgentStatus}
+          />
+        )}
       </Modal>
     </div>
   )

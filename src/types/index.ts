@@ -1,5 +1,6 @@
 export type LockerSize = 'small' | 'medium' | 'large' | 'xlarge'
 export type LockerStatus = 'empty' | 'occupied' | 'urgent'
+export type ReminderChannel = 'phone' | 'wecom'
 
 export interface Locker {
   id: string
@@ -10,6 +11,13 @@ export interface Locker {
   photo: string
   status: LockerStatus
   currentPackageId: string | null
+  createdAt: string
+}
+
+export interface UrgentReminder {
+  id: string
+  channel: ReminderChannel
+  note: string
   createdAt: string
 }
 
@@ -26,6 +34,7 @@ export interface Package {
   isPickedUp: boolean
   isUrgent: boolean
   createdAt: string
+  urgentReminders: UrgentReminder[]
 }
 
 export interface DashboardStats {

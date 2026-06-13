@@ -12,9 +12,10 @@ import type { Locker } from '@/types'
 interface DashboardProps {
   onCheckIn: () => void
   onCheckOut: (packageId?: string) => void
+  onAddReminder: (packageId: string) => void
 }
 
-export default function Dashboard({ onCheckIn, onCheckOut }: DashboardProps) {
+export default function Dashboard({ onCheckIn, onCheckOut, onAddReminder }: DashboardProps) {
   const { lockers, getDashboardStats, getPackageById, refreshUrgentStatus } = useAppStore()
   const stats = getDashboardStats()
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -80,7 +81,7 @@ export default function Dashboard({ onCheckIn, onCheckOut }: DashboardProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
-          <UrgentList onCheckOut={(id) => onCheckOut(id)} />
+          <UrgentList onCheckOut={(id) => onCheckOut(id)} onAddReminder={(id) => onAddReminder(id)} />
         </div>
         <div className="space-y-5">
           <ExpressStats />

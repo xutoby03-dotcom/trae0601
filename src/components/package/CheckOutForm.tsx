@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogOut, Search, Check, AlertCircle, Phone, Clock, User, Snowflake } from 'lucide-react'
+import { LogOut, Search, Check, AlertCircle, Phone, Clock, User, Snowflake, MessageSquare, Send } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import type { Package as PackageType } from '@/types'
 import { SIZE_LABEL, SIZE_BADGE_COLOR } from '@/utils/constants'
@@ -262,6 +262,39 @@ export default function CheckOutForm({ onSubmit, onCancel, preSelectedPackageId 
                       </p>
                     )}
                   </div>
+
+                  {selectedPkg.urgentReminders && selectedPkg.urgentReminders.length > 0 && (() => {
+                    const sorted = [...selectedPkg.urgentReminders].sort(
+                      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    )
+                    return (
+                      <div className="mt-4 p-4 rounded-xl border-2 border-warning-200 bg-gradient-to-br from-warning-50 to-orange-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-bold text-warning-800 flex items-center gap-1.5">
+                            <Send size={15} />
+                            催取记录（共 {sorted.length} 次）
+                          </p>
+                          <span className="text-xs text-warning-600 inline-flex items-center gap-1">
+                            最近催取：{formatDuration(sorted[0].createdAt)}前
+                          </span>
+                        </div>
+                        <div className="space-y-2 max-h-40 overflow-y-auto scrollbar-thin pr-1">
+                          {sorted.map((r) => (
+                            <div key={r.id} className="p-2.5 rounded-lg bg-white/90 border border-warning-100">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white border border-warning-200 text-warning-700">
+                                  {r.channel === 'phone' ? <Phone size={11} /> : <MessageSquare size={11} />}
+                                  {r.channel === 'phone' ? '电话催取' : '企业微信'}
+                                </span>
+                                <span className="text-[11px] text-slate-400">{formatDateTime(r.createdAt)}</span>
+                              </div>
+                              <p className="text-sm text-slate-700">「{r.note}」</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             )
