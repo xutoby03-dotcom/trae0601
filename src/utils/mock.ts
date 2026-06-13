@@ -7,7 +7,7 @@ import {
   Reminder,
   OperationType,
 } from "@/types";
-import { generateId } from "./date";
+import { frequencyToDays, generateId } from "./date";
 
 const now = new Date();
 
@@ -214,13 +214,14 @@ export function generateMockReminders(
   plants.forEach((plant) => {
     const plantRecords = records.filter((r) => r.plantId === plant.id);
     const lastRecord = plantRecords[0];
+    const expectedDays = frequencyToDays(plant.maintenanceFrequency);
 
     if (!lastRecord) {
       reminders.push({
         id: generateId(),
         type: "missed_service",
         title: `${plant.location} - ${plant.species} 从未养护`,
-        description: "该绿植尚未有任何养护记录，请尽快安排",
+        description: `该绿植（${plant.maintenanceFrequency}）尚未有任何养护记录，请尽快安排`,
         plantId: plant.id,
         createdAt: now.toISOString(),
         read: false,
@@ -230,17 +231,17 @@ export function generateMockReminders(
         (now.getTime() - new Date(lastRecord.checkinAt).getTime()) /
           (24 * 3600 * 1000)
       );
-      if (daysSince > 10) {
+      if (daysSince > expectedDays) {
         reminders.push({
           id: generateId(),
           type: "missed_service",
           title: `${plant.location} - ${plant.species} 超期未养护`,
-          description: `已超过 ${daysSince} 天未养护，上次养护：${new Date(
+          description: `养护频率${plant.maintenanceFrequency}（应每${expectedDays}天），已超期 ${daysSince - expectedDays} 天，上次养护：${new Date(
             lastRecord.checkinAt
           ).toLocaleDateString("zh-CN")}`,
           plantId: plant.id,
           createdAt: now.toISOString(),
-          read: daysSince < 14,
+          read: daysSince - expectedDays < 3,
         });
       }
     }

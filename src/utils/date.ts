@@ -49,3 +49,27 @@ export function getMonthKey(date: string): string {
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
+
+export function frequencyToDays(frequency: string): number {
+  switch (frequency) {
+    case "每周两次":
+      return 4;
+    case "每周一次":
+      return 7;
+    case "每两周一次":
+      return 14;
+    case "每月一次":
+      return 30;
+    default:
+      return 7;
+  }
+}
+
+export function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}

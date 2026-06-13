@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   BarChart3,
   Leaf,
+  RotateCcw,
 } from "lucide-react";
 import { useStore } from "@/store";
 
@@ -20,6 +21,13 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const unreadCount = useStore((s) => s.unreadReminderCount());
+  const resetData = useStore((s) => s.resetData);
+
+  const handleReset = () => {
+    if (confirm("确定要重置所有示例数据吗？您的修改将会丢失。")) {
+      resetData();
+    }
+  };
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-forest-100 shadow-sm flex flex-col z-50">
@@ -72,7 +80,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-forest-100">
+      <div className="p-4 border-t border-forest-100 space-y-2">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-cream-100">
           <img
             src="https://api.dicebear.com/7.x/initials/svg?seed=AD"
@@ -86,6 +94,13 @@ export default function Sidebar() {
             <p className="text-xs text-forest-500">系统管理</p>
           </div>
         </div>
+        <button
+          onClick={handleReset}
+          className="w-full py-2 px-3 rounded-xl text-xs text-forest-500 hover:bg-forest-50 hover:text-forest-700 transition-colors flex items-center justify-center gap-1.5"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          重置示例数据
+        </button>
       </div>
     </aside>
   );

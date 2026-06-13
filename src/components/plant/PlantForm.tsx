@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Camera } from "lucide-react";
 import { useStore } from "@/store";
 import { Plant } from "@/types";
+import { fileToDataUrl } from "@/utils/date";
 
 interface Props {
   plant?: Plant;
@@ -14,6 +15,7 @@ export default function PlantForm({ plant, mode }: Props) {
   const suppliers = useStore((s) => s.suppliers);
   const addPlant = useStore((s) => s.addPlant);
   const updatePlant = useStore((s) => s.updatePlant);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     location: plant?.location || "",
@@ -25,6 +27,22 @@ export default function PlantForm({ plant, mode }: Props) {
       plant?.photoUrl ||
       "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=green%20pothos%20plant%20in%20white%20ceramic%20pot%20office%20interior%20natural%20light&image_size=square",
   });
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setForm((prev) => ({ ...prev, photoUrl: dataUrl }));
+    } catch (err) {
+      console.error("读取图片失败:", err);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,19 +81,29 @@ export default function PlantForm({ plant, mode }: Props) {
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div>
             <label className={labelClass}>绿植照片</label>
-            <div className="relative w-48 h-48 rounded-2xl overflow-hidden bg-cream-100 border-2 border-dashed border-forest-200">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+            <div
+              onClick={handlePhotoClick}
+              className="relative w-48 h-48 rounded-2xl overflow-hidden bg-cream-100 border-2 border-dashed border-forest-200 cursor-pointer group"
+            >
               <img
                 src={form.photoUrl}
                 alt="预览"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-forest-900/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-forest-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <Camera className="w-6 h-6 text-white" />
                 <span className="text-white text-sm">更换图片</span>
               </div>
             </div>
             <p className="text-xs text-forest-400 mt-2">
-              建议使用清晰的现场照片
+              点击上方区域选择本地图片
             </p>
           </div>
 

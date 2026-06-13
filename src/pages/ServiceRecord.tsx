@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   MapPin,
   Clock,
@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/store";
 import { OperationType, OPERATION_LABELS } from "@/types";
-import { formatDateTime, generateId } from "@/utils/date";
+import { formatDateTime, generateId, fileToDataUrl } from "@/utils/date";
 
 const OPERATION_CONFIG: {
   type: OperationType;
@@ -30,18 +30,13 @@ const OPERATION_CONFIG: {
   { type: "pest_control", icon: Bug, label: "病虫处理", color: "bg-red-50 border-red-200 text-red-700" },
 ];
 
-const SAMPLE_PHOTOS = [
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=plant%20care%20watering%20service%20green%20leaves%20office&image_size=square",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=gardener%20pruning%20indoor%20plant%20professional%20service&image_size=square",
-  "https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=plant%20fertilizing%20nutrient%20soil%20green%20foliage&image_size=square",
-];
-
 export default function ServiceRecordPage() {
   const plants = useStore((s) => s.plants);
   const staffs = useStore((s) => s.staffs.filter((s) => s.role === "maintenance"));
   const records = useStore((s) => s.serviceRecords);
   const getStaffById = useStore((s) => s.getStaffById);
   const addServiceRecord = useStore((s) => s.addServiceRecord);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkinTime, setCheckinTime] = useState("");
@@ -64,8 +59,23 @@ export default function ServiceRecordPage() {
   };
 
   const handleAddPhoto = () => {
-    const sampleUrl = SAMPLE_PHOTOS[photos.length % SAMPLE_PHOTOS.length];
-    setPhotos([...photos, sampleUrl]);
+    photoInputRef.current?.click();
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newPhotos: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const dataUrl = await fileToDataUrl(files[i]);
+        newPhotos.push(dataUrl);
+      } catch (err) {
+        console.error("读取图片失败:", err);
+      }
+    }
+    setPhotos((prev) => [...prev, ...newPhotos]);
+    if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
   const handleRemovePhoto = (idx: number) => {
@@ -220,6 +230,14 @@ export default function ServiceRecordPage() {
                   <label className="block text-sm font-medium text-forest-700 mb-3">
                     现场照片（{photos.length}）
                   </label>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
                   <div className="flex gap-3 flex-wrap">
                     {photos.map((url, idx) => (
                       <div
