@@ -24,7 +24,7 @@ export const Return: React.FC = () => {
   const [selectedRecord, setSelectedRecord] = useState<LendingRecord | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [lastCompensation, setLastCompensation] = useState<{ amount: number; reason: string } | null>(null);
+  const [lastCompensation, setLastCompensation] = useState<{ amount: number; reason: string; details: { name: string; amount: number }[] } | null>(null);
 
   const [checkData, setCheckData] = useState<ReturnCheckData>({
     returnBattery: 100,
@@ -55,7 +55,7 @@ export const Return: React.FC = () => {
   const getDeviceById = (id: string) => devices.find((d) => d.id === id);
 
   const compensationResult = useMemo(() => {
-    if (!selectedDevice) return { amount: 0, reason: '' };
+    if (!selectedDevice) return { amount: 0, reason: '', details: [] };
     return calculateCompensation(
       checkData.missingAccessories,
       checkData.cableOk,
@@ -414,18 +414,32 @@ export const Return: React.FC = () => {
             </div>
 
             {compensationResult.amount > 0 && (
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5" />
+              <div className="bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-orange-100/50 border-b border-orange-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-orange-900">赔付明细预览</p>
+                      <p className="text-xs text-orange-700">共 {compensationResult.details.length} 项</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-orange-900">
-                      预计赔付金额：¥{compensationResult.amount}
-                    </p>
-                    <p className="text-sm text-orange-700">
-                      原因：{compensationResult.reason}
-                    </p>
+                </div>
+                <div className="p-4 space-y-2">
+                  {compensationResult.details.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">{item.name}</span>
+                      <span className="font-medium text-gray-900">¥{item.amount}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-3 bg-orange-100/30 border-t border-orange-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-orange-900">合计赔付</span>
+                    <span className="text-xl font-bold text-orange-600">
+                      ¥{compensationResult.amount}
+                    </span>
                   </div>
                 </div>
               </div>

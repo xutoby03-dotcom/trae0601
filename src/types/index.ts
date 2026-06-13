@@ -35,11 +35,17 @@ export interface LendingRecord {
   missingAccessories?: string[];
 }
 
+export interface CompensationItem {
+  name: string;
+  amount: number;
+}
+
 export interface Compensation {
   id: string;
   lendingRecordId: string;
   amount: number;
   reason: string;
+  details: CompensationItem[];
   status: CompensationStatus;
   createdAt: string;
 }

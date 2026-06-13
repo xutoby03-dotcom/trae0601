@@ -1,4 +1,4 @@
-import { LendingRecord, Device, DailyStats } from '../types';
+import { LendingRecord, Device, DailyStats, CompensationItem } from '../types';
 import { compensationStandards } from './mock';
 
 export function formatDate(dateStr: string): string {
@@ -62,35 +62,45 @@ export function calculateCompensation(
   cableOk: boolean,
   shellOk: boolean,
   returnBattery: number
-): { amount: number; reason: string } {
+): { amount: number; reason: string; details: CompensationItem[] } {
   let amount = 0;
   const reasons: string[] = [];
+  const details: CompensationItem[] = [];
 
   missingAccessories.forEach((item) => {
-    if (compensationStandards[item]) {
-      amount += compensationStandards[item];
+    const price = compensationStandards[item];
+    if (price) {
+      amount += price;
       reasons.push(`缺失${item}`);
+      details.push({ name: `缺失${item}`, amount: price });
     }
   });
 
   if (!cableOk) {
-    amount += compensationStandards['充电线'] || 20;
+    const price = compensationStandards['充电线'] || 20;
+    amount += price;
     reasons.push('充电线损坏');
+    details.push({ name: '充电线损坏', amount: price });
   }
 
   if (!shellOk) {
-    amount += compensationStandards['外壳破损'] || 50;
+    const price = compensationStandards['外壳破损'] || 50;
+    amount += price;
     reasons.push('外壳破损');
+    details.push({ name: '外壳破损', amount: price });
   }
 
   if (returnBattery < 20) {
-    amount += compensationStandards['电量过低'] || 10;
+    const price = compensationStandards['电量过低'] || 10;
+    amount += price;
     reasons.push('电量过低');
+    details.push({ name: '电量过低', amount: price });
   }
 
   return {
     amount,
     reason: reasons.join('、'),
+    details,
   };
 }
 

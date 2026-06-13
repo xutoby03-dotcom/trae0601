@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, DollarSign, Check, X, FileText } from 'lucide-react';
+import { Search, DollarSign, Check, X, FileText, Phone, User, Package } from 'lucide-react';
 import { useAppStore } from '../store';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatDate } from '../utils/helpers';
@@ -119,114 +119,138 @@ export const Compensation: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  设备
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  借用人
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  赔付原因
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  金额
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  日期
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  状态
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filteredCompensations.map((comp) => {
-                const record = getRecordById(comp.lendingRecordId);
-                const device = record ? getDeviceById(record.deviceId) : null;
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {filteredCompensations.map((comp) => {
+          const record = getRecordById(comp.lendingRecordId);
+          const device = record ? getDeviceById(record.deviceId) : null;
 
-                return (
-                  <tr
-                    key={comp.id}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        {device && (
-                          <img
-                            src={device.photoUrl}
-                            alt={device.deviceNumber}
-                            className="w-10 h-10 rounded-lg object-cover"
-                          />
-                        )}
-                        <span className="font-medium text-gray-900">
-                          {device?.deviceNumber || '-'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div>
-                        <p className="text-gray-900">{record?.borrowerName || '-'}</p>
-                        <p className="text-sm text-gray-500">{record?.phone || '-'}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-gray-700">{comp.reason}</td>
-                    <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-900">¥{comp.amount}</span>
-                    </td>
-                    <td className="py-4 px-6 text-gray-600">
-                      {formatDate(comp.createdAt)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <StatusBadge status={comp.status} type="compensation" />
-                    </td>
-                    <td className="py-4 px-6">
-                      {comp.status === 'pending' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleStatusChange(comp.id, 'paid')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors duration-200"
-                          >
-                            <Check className="w-4 h-4" />
-                            已赔付
-                          </button>
-                          <button
-                            onClick={() => handleStatusChange(comp.id, 'waived')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors duration-200"
-                          >
-                            <X className="w-4 h-4" />
-                            豁免
-                          </button>
+          return (
+            <div
+              key={comp.id}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="p-5 border-b border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    {device && (
+                      <img
+                        src={device.photoUrl}
+                        alt={device.deviceNumber}
+                        className="w-14 h-14 rounded-xl object-cover"
+                      />
+                    )}
+                    <div>
+                      <p className="font-bold text-lg text-gray-900">
+                        {device?.deviceNumber || '-'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {device?.capacity?.toLocaleString()} mAh
+                      </p>
+                    </div>
+                  </div>
+                  <StatusBadge status={comp.status} type="compensation" />
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">借用人</p>
+                      <p className="font-medium text-gray-900">
+                        {record?.borrowerName || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-xs text-gray-500">手机号</p>
+                      <p className="font-medium text-gray-900">
+                        {record?.phone || '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Package className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm font-medium text-gray-700">赔付明细</p>
+                  </div>
+                  <div className="space-y-2">
+                    {comp.details && comp.details.length > 0 ? (
+                      comp.details.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-gray-600">{item.name}</span>
+                          <span className="font-medium text-gray-900">
+                            ¥{item.amount}
+                          </span>
                         </div>
-                      )}
-                      {comp.status === 'paid' && (
-                        <span className="text-sm text-green-600 font-medium">已完成</span>
-                      )}
-                      {comp.status === 'waived' && (
-                        <span className="text-sm text-gray-500">已豁免</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500">{comp.reason}</p>
+                    )}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                    <span className="font-medium text-gray-700">合计</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      ¥{comp.amount}
+                    </span>
+                  </div>
+                </div>
 
-        {filteredCompensations.length === 0 && (
-          <div className="py-16 text-center">
-            <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">暂无赔付记录</p>
-          </div>
-        )}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">
+                    日期：{formatDate(comp.createdAt)}
+                  </p>
+                  {comp.status === 'pending' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStatusChange(comp.id, 'paid')}
+                        className="inline-flex items-center gap-1 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        <Check className="w-4 h-4" />
+                        已赔付
+                      </button>
+                      <button
+                        onClick={() => handleStatusChange(comp.id, 'waived')}
+                        className="inline-flex items-center gap-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors duration-200"
+                      >
+                        <X className="w-4 h-4" />
+                        豁免
+                      </button>
+                    </div>
+                  )}
+                  {comp.status === 'paid' && (
+                    <span className="inline-flex items-center gap-1 text-sm text-green-600 font-medium">
+                      <Check className="w-4 h-4" />
+                      已完成
+                    </span>
+                  )}
+                  {comp.status === 'waived' && (
+                    <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                      <X className="w-4 h-4" />
+                      已豁免
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {filteredCompensations.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-16 text-center">
+          <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">暂无赔付记录</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -187,6 +187,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         lendingRecordId: recordId,
         amount: compResult.amount,
         reason: compResult.reason,
+        details: compResult.details,
         status: 'pending',
         createdAt: getTodayString(),
       };
