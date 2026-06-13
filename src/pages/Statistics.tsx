@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { MonthlyChart, PerChildProgress } from '@/components/statistics/Charts';
+import AppointModal from '@/components/vaccine/AppointModal';
 import {
   BarChart3,
   TrendingUp,
@@ -19,6 +20,7 @@ import {
   ClipboardList,
   AlertCircle,
   BellRing,
+  CalendarDays,
 } from 'lucide-react';
 import { formatDate, daysFromToday } from '@/utils/date';
 import type { Vaccine } from '@/types';
@@ -126,9 +128,10 @@ interface FamilyReminderRowProps {
   childName?: string;
   site?: string;
   kind: 'overdue' | 'upcoming';
+  onAppoint?: () => void;
 }
 
-function FamilyReminderRow({ v, childName, site, kind }: FamilyReminderRowProps) {
+function FamilyReminderRow({ v, childName, site, kind, onAppoint }: FamilyReminderRowProps) {
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
@@ -204,13 +207,25 @@ function FamilyReminderRow({ v, childName, site, kind }: FamilyReminderRowProps)
           </span>
         </div>
       </div>
-      <button
-        onClick={copy}
-        className="shrink-0 w-8 h-8 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white group-hover:shadow-sm flex items-center justify-center transition-all"
-        title="复制给家人"
-      >
-        <Copy className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1">
+        {onAppoint && (
+          <button
+            onClick={onAppoint}
+            className="shrink-0 h-8 px-2.5 rounded-lg text-xs font-medium text-accent-600 hover:text-white hover:bg-accent-500 flex items-center gap-1.5 transition-all group-hover:shadow-sm"
+            title="登记预约"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            登记预约
+          </button>
+        )}
+        <button
+          onClick={copy}
+          className="shrink-0 w-8 h-8 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-white group-hover:shadow-sm flex items-center justify-center transition-all"
+          title="复制给家人"
+        >
+          <Copy className="w-4 h-4" />
+        </button>
+      </div>
       {toast &&
         createPortal(
           <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none animate-fade-in-up">
@@ -232,6 +247,24 @@ export default function Statistics() {
   const children = useAppStore((s) => s.children);
   const getChildById = useAppStore((s) => s.getChildById);
   const updateVaccineStatus = useAppStore((s) => s.updateVaccineStatus);
+  const appointVaccine = useAppStore((s) => s.appointVaccine);
+
+  const [showAppointModal, setShowAppointModal] = useState(false);
+  const [targetVaccine, setTargetVaccine] = useState<Vaccine | null>(null);
+  const [targetSite, setTargetSite] = useState<string>('');
+
+  const openAppoint = (v: Vaccine) => {
+    const child = getChildById(v.childId);
+    setTargetVaccine(v);
+    setTargetSite(child?.vaccinationSite || '');
+    setShowAppointModal(true);
+  };
+
+  const closeAppoint = () => {
+    setShowAppointModal(false);
+    setTargetVaccine(null);
+    setTargetSite('');
+  };
 
   useEffect(() => {
     initialize();
@@ -512,6 +545,7 @@ export default function Statistics() {
                       childName={rem.childName}
                       site={rem.site}
                       kind="overdue"
+                      onAppoint={() => openAppoint(v)}
                     />
                   ))}
                   {rem.upcoming.map((v) => (
@@ -521,6 +555,7 @@ export default function Statistics() {
                       childName={rem.childName}
                       site={rem.site}
                       kind="upcoming"
+                      onAppoint={() => openAppoint(v)}
                     />
                   ))}
                 </div>
@@ -529,6 +564,16 @@ export default function Statistics() {
           </div>
         )}
       </div>
+
+      <AppointModal
+        open={showAppointModal}
+        onClose={closeAppoint}
+        vaccine={targetVaccine}
+        defaultLocation={targetSite}
+        onSubmit={(data) => {
+          if (targetVaccine) appointVaccine(targetVaccine.id, data);
+        }}
+      />
     </div>
   );
 }
