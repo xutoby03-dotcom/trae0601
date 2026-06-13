@@ -41,26 +41,51 @@ export default function StatsPage() {
   }, [repairRecords])
 
   const unreturnedList = useMemo(() => {
-    const overdueBatchIds = new Set(
+    const results: { studentName: string; className: string; code: string; overdueDays: number; statusLabel: string; statusType: 'sent' | 'overdue' | 'missing' }[] = []
+
+    const activeBatchIds = new Set(
       washBatches.filter(b => b.status === 'sent' || b.status === 'overdue').map(b => b.id)
     )
-    const itemsInOverdueBatches = washBatchItems.filter(i => overdueBatchIds.has(i.batchId))
-
-    const results = itemsInOverdueBatches.map(item => {
+    washBatchItems.filter(i => activeBatchIds.has(i.batchId)).forEach(item => {
       const coat = coats.find(c => c.id === item.coatId)
-      if (!coat || (coat.status !== 'sent' && coat.status !== 'lost')) return null
+      if (!coat || coat.status !== 'sent') return
       const batch = washBatches.find(b => b.id === item.batchId)
-      if (!batch) return null
+      if (!batch) return
       const overdueDays = Math.max(0, differenceInDays(new Date(), new Date(batch.expectedReturnDate)))
-      return {
+      results.push({
         studentName: coat.studentName,
         className: coat.className,
         code: coat.code,
         overdueDays,
-      }
-    }).filter(Boolean) as { studentName: string; className: string; code: string; overdueDays: number }[]
+        statusLabel: batch.status === 'overdue' ? '未归还（已超期）' : '未归还（送洗中）',
+        statusType: batch.status === 'overdue' ? 'overdue' : 'sent',
+      })
+    })
 
-    return results.sort((a, b) => b.overdueDays - a.overdueDays)
+    const missingItems = washBatchItems.filter(i => i.returnStatus === 'missing')
+    missingItems.forEach(item => {
+      const coat = coats.find(c => c.id === item.coatId)
+      if (!coat) return
+      const batch = washBatches.find(b => b.id === item.batchId)
+      if (!batch) return
+      const overdueDays = Math.max(1, differenceInDays(new Date(), new Date(batch.expectedReturnDate)))
+      results.push({
+        studentName: coat.studentName,
+        className: coat.className,
+        code: coat.code,
+        overdueDays,
+        statusLabel: '少件未归还',
+        statusType: 'missing',
+      })
+    })
+
+    return results.sort((a, b) => {
+      const typeWeight = { missing: 3, overdue: 2, sent: 1 }
+      if (typeWeight[b.statusType] !== typeWeight[a.statusType]) {
+        return typeWeight[b.statusType] - typeWeight[a.statusType]
+      }
+      return b.overdueDays - a.overdueDays
+    })
   }, [coats, washBatches, washBatchItems])
 
   const cards = [
@@ -147,31 +172,46 @@ export default function StatsPage() {
                 <th className="text-left py-2 font-medium">学生姓名</th>
                 <th className="text-left py-2 font-medium">班级</th>
                 <th className="text-left py-2 font-medium">编号</th>
-                <th className="text-right py-2 font-medium">超时天数</th>
+                <th className="text-left py-2 font-medium">状态</th>
+                <th className="text-right py-2 font-medium">失联天数</th>
               </tr>
             </thead>
             <tbody>
-              {unreturnedList.map((row, i) => (
-                <tr
-                  key={i}
-                  className={cn(
-                    'border-b border-gray-50',
-                    row.overdueDays > 0 && 'bg-[#E8590C]',
-                  )}
-                  style={
-                    row.overdueDays > 0
-                      ? { backgroundColor: `rgba(232, 89, 12, ${Math.min(row.overdueDays * 0.04, 0.2)})` }
+              {unreturnedList.map((row, i) => {
+                const rowColor = row.statusType === 'missing'
+                  ? `rgba(239, 68, 68, ${Math.min(row.overdueDays * 0.05, 0.18)})`
+                  : row.statusType === 'overdue'
+                    ? `rgba(232, 89, 12, ${Math.min(row.overdueDays * 0.04, 0.16)})`
+                    : row.overdueDays > 0
+                      ? `rgba(232, 89, 12, ${Math.min(row.overdueDays * 0.03, 0.12)})`
                       : undefined
-                  }
-                >
-                  <td className="py-2.5">{row.studentName}</td>
-                  <td className="py-2.5">{row.className}</td>
-                  <td className="py-2.5 font-[JetBrains_Mono]">{row.code}</td>
-                  <td className="py-2.5 text-right font-[JetBrains_Mono] font-semibold text-[#E8590C]">
-                    {row.overdueDays}天
-                  </td>
-                </tr>
-              ))}
+                const statusColor = row.statusType === 'missing'
+                  ? { bg: 'bg-red-100', text: 'text-red-700' }
+                  : row.statusType === 'overdue'
+                    ? { bg: 'bg-orange-100', text: 'text-orange-700' }
+                    : { bg: 'bg-yellow-100', text: 'text-yellow-700' }
+                const daysColor = row.statusType === 'missing' ? 'text-red-600' : 'text-[#E8590C]'
+                return (
+                  <tr
+                    key={i}
+                    className="border-b border-gray-50"
+                    style={{ backgroundColor: rowColor }}
+                  >
+                    <td className="py-2.5 font-medium text-gray-800">{row.studentName}</td>
+                    <td className="py-2.5 text-gray-700">{row.className}</td>
+                    <td className="py-2.5 font-[JetBrains_Mono] text-gray-800">{row.code}</td>
+                    <td className="py-2.5">
+                      <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium', statusColor.bg, statusColor.text)}>
+                        {row.statusType === 'missing' && (<AlertTriangle className="w-3 h-3" />)}
+                        {row.statusLabel}
+                      </span>
+                    </td>
+                    <td className={cn('py-2.5 text-right font-[JetBrains_Mono] font-semibold', daysColor)}>
+                      {row.overdueDays}天
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

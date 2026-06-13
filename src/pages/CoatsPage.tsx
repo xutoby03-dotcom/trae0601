@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useLabStore } from '@/store'
 import { STAIN_COLORS, CLASSES } from '@/types'
 import type { Coat } from '@/types'
-import { Search, Plus, X, Shirt } from 'lucide-react'
+import { Search, Plus, X, Shirt, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
@@ -50,6 +50,23 @@ export default function CoatsPage() {
   const [selected, setSelected] = useState<Coat | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      setForm(f => ({ ...f, photoUrl: dataUrl }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click()
+  }
 
   const filtered = useMemo(() => {
     return coats.filter(c => {
@@ -115,17 +132,29 @@ export default function CoatsPage() {
 
       <div className="grid grid-cols-4 max-lg:grid-cols-2 max-md:grid-cols-1 gap-4">
         {filtered.map(coat => (
-          <div key={coat.id} onClick={() => setSelected(coat)} className="bg-white rounded-xl p-4 border border-gray-100 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-            <div className="flex items-start justify-between mb-3">
+          <div key={coat.id} onClick={() => setSelected(coat)} className="bg-white rounded-xl p-4 border border-gray-100 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg flex flex-col gap-3">
+            <div className="flex items-start justify-between">
               <span className="font-mono text-sm font-semibold text-gray-900" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{coat.code}</span>
               <StatusTag status={coat.status} />
             </div>
-            <div className="flex items-center gap-2 mb-2">
+            {coat.photoUrl ? (
+              <div className="w-full h-28 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                <img src={coat.photoUrl} alt={coat.code} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="w-full h-28 rounded-lg bg-gradient-to-br from-[#0D7377]/5 to-[#0D7377]/10 flex flex-col items-center justify-center text-[#0D7377]/40">
+                <Shirt className="w-10 h-10 mb-1" />
+                <span className="text-[10px]">暂无照片</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
               <span className="px-1.5 py-0.5 bg-[#0D7377]/8 text-[#0D7377] rounded text-xs font-medium">{coat.size}</span>
               <span className="text-xs text-[#6B7280]">{coat.className}</span>
             </div>
-            <p className="text-sm font-medium text-gray-800 mb-2">{coat.studentName}</p>
-            <StainDots level={coat.stainLevel} />
+            <p className="text-sm font-medium text-gray-800">{coat.studentName}</p>
+            <div className="flex items-center justify-between mt-auto">
+              <StainDots level={coat.stainLevel} />
+            </div>
           </div>
         ))}
       </div>
@@ -139,11 +168,16 @@ export default function CoatsPage() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">实验服详情</h2>
               <button onClick={() => setSelected(null)} className="p-1 hover:bg-gray-100 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
+            {selected.photoUrl && (
+              <div className="w-full mb-5 rounded-xl overflow-hidden border border-gray-100">
+                <img src={selected.photoUrl} alt={selected.code} className="w-full h-48 object-cover" />
+              </div>
+            )}
             <div className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-[#6B7280]">编号</span><span className="font-mono font-semibold" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{selected.code}</span></div>
               <div className="flex justify-between"><span className="text-[#6B7280]">尺码</span><span>{selected.size}</span></div>
@@ -208,9 +242,35 @@ export default function CoatsPage() {
               </div>
               <div>
                 <label className="block text-xs text-[#6B7280] mb-1.5">照片</label>
-                <div className="w-full h-24 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-[#6B7280]">
-                  <Shirt className="w-5 h-5 mr-2 opacity-40" /> 点击上传照片
-                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                {form.photoUrl ? (
+                  <div className="relative w-full h-36 rounded-lg overflow-hidden border border-gray-200 group">
+                    <img src={form.photoUrl} alt="预览" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={triggerFileSelect}
+                      className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100"
+                    >
+                      <Upload className="w-4 h-4 mr-1" /> 更换照片
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={triggerFileSelect}
+                    className="w-full h-36 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:border-[#0D7377]/40 hover:bg-[#0D7377]/5 transition-all flex flex-col items-center justify-center gap-2 text-[#6B7280] hover:text-[#0D7377]"
+                  >
+                    <Upload className="w-6 h-6" />
+                    <span className="text-xs font-medium">点击上传实验服照片</span>
+                    <span className="text-[10px] opacity-60">支持 JPG / PNG 格式</span>
+                  </button>
+                )}
               </div>
               <button onClick={handleAdd} disabled={!form.studentName.trim()} className="w-full py-2.5 bg-[#0D7377] text-white rounded-lg text-sm font-medium hover:bg-[#0D7377]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 确认登记
