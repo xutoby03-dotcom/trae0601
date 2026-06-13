@@ -57,7 +57,8 @@ export default function PackingList() {
     trip?.companionIds.includes(fm.id) || false
   );
 
-  const [filter, setFilter] = useState<'all' | 'packed' | 'unpacked'>('all');
+  const [filter, setFilter] = useState<'all' | 'packed' | 'unpacked' | 'mine'>('all');
+  const [personFilter, setPersonFilter] = useState<string>('');
   const [showAddItem, setShowAddItem] = useState(false);
   const [consumptionTarget, setConsumptionTarget] = useState<TripItem | null>(null);
   const [consumptionForm, setConsumptionForm] = useState({
@@ -65,6 +66,8 @@ export default function PackingList() {
     quantity: 1,
     note: '',
   });
+
+  const selfMember = companions.find((fm) => fm.relation === '本人');
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -83,18 +86,63 @@ export default function PackingList() {
       .filter((ti) => {
         if (filter === 'packed') return ti.isPacked;
         if (filter === 'unpacked') return !ti.isPacked;
+        if (filter === 'mine') return selfMember && ti.packedBy === selfMember.id;
         return true;
+      })
+      .filter((ti) => {
+        if (!personFilter) return true;
+        return ti.packedBy === personFilter;
       })
       .sort((a, b) => {
         if (a.isPacked !== b.isPacked) return a.isPacked ? 1 : -1;
         return 0;
       });
-  }, [items, filter]);
+  }, [items, filter, personFilter, selfMember]);
 
   const availableMeds = useMemo(() => {
     const added = new Set(items.map((i) => i.medicineId));
     return medicines.filter((m) => !added.has(m.id));
   }, [medicines, items]);
+
+  const shortages = useMemo(() => {
+    return items
+      .filter((ti) => {
+        const med = medicines.find((m) => m.id === ti.medicineId);
+        if (!med || isExpired(med)) return false;
+        return ti.packedQuantity < ti.suggestedQuantity;
+      })
+      .map((ti) => {
+        const med = medicines.find((m) => m.id === ti.medicineId)!;
+        return {
+          id: ti.id,
+          name: med.name,
+          category: med.category,
+          needed: ti.suggestedQuantity,
+          packed: ti.packedQuantity,
+          gap: ti.suggestedQuantity - ti.packedQuantity,
+          isPacked: ti.isPacked,
+        };
+      });
+  }, [items, medicines]);
+
+  const dedicatedMissing = useMemo(() => {
+    const result: { memberName: string; memberRelation: string; medicineNames: string[] }[] = [];
+    companions.forEach((member) => {
+      const missing: string[] = [];
+      member.dedicatedMedicineIds.forEach((medId) => {
+        const med = medicines.find((m) => m.id === medId);
+        if (!med || isExpired(med)) return;
+        const ti = items.find((t) => t.medicineId === medId);
+        if (!ti || !ti.isPacked) {
+          missing.push(med.name);
+        }
+      });
+      if (missing.length > 0) {
+        result.push({ memberName: member.name, memberRelation: member.relation, medicineNames: missing });
+      }
+    });
+    return result;
+  }, [companions, medicines, items]);
 
   if (!trip) {
     return (
@@ -192,15 +240,24 @@ export default function PackingList() {
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[
             { k: 'all', label: '全部', count: items.length },
             { k: 'unpacked', label: '待打包', count: items.filter((i) => !i.isPacked).length },
             { k: 'packed', label: '已打包', count: items.filter((i) => i.isPacked).length },
+            ...(selfMember
+              ? [
+                  {
+                    k: 'mine',
+                    label: '我负责的',
+                    count: items.filter((i) => i.packedBy === selfMember.id).length,
+                  },
+                ]
+              : []),
           ].map((f) => (
             <button
               key={f.k}
-              onClick={() => setFilter(f.k as any)}
+              onClick={() => setFilter(f.k as typeof filter)}
               className={clsx(
                 'chip-outline !text-sm',
                 filter === f.k && 'chip-active'
@@ -209,6 +266,18 @@ export default function PackingList() {
               {f.label} ({f.count})
             </button>
           ))}
+          <select
+            className="input-field !w-auto !py-1.5 !text-xs !px-2.5"
+            value={personFilter}
+            onChange={(e) => setPersonFilter(e.target.value)}
+          >
+            <option value="">按负责人筛选</option>
+            {companions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-2 flex-wrap">
           <select
@@ -225,6 +294,54 @@ export default function PackingList() {
           </Button>
         </div>
       </div>
+
+      {(shortages.length > 0 || dedicatedMissing.length > 0) && (
+        <div className="space-y-3">
+          {shortages.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/70 space-y-2.5">
+              <p className="text-sm font-semibold text-amber-800 flex items-center gap-1.5">
+                <AlertTriangle size={14} /> 还差数量的药品（{shortages.length} 项）
+              </p>
+              <div className="space-y-1.5">
+                {shortages.map((s) => {
+                  const cat = CATEGORY_LABELS[s.category];
+                  return (
+                    <div key={s.id} className="flex items-center gap-2 text-xs">
+                      <span className={clsx('badge border !text-[10px] !px-1.5', cat.color)}>
+                        {cat.label}
+                      </span>
+                      <span className="font-medium text-slate-800">{s.name}</span>
+                      <span className="text-amber-700 font-bold">
+                        已 {s.packed}/{s.needed}，差 {s.gap} 份
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {dedicatedMissing.length > 0 && (
+            <div className="p-4 rounded-2xl bg-red-50 border border-red-200/70 space-y-2.5">
+              <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5">
+                <AlertCircle size={14} /> 专用药未打包的同行人
+              </p>
+              <div className="space-y-1.5">
+                {dedicatedMissing.map((d) => (
+                  <div key={d.memberName} className="flex items-center gap-2 text-xs">
+                    <span className="badge bg-red-100 text-red-700 border border-red-200 !text-[10px] !px-1.5 font-bold">
+                      {d.memberRelation}
+                    </span>
+                    <span className="font-semibold text-slate-800">{d.memberName}</span>
+                    <span className="text-red-600">
+                      缺：{d.medicineNames.join('、')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {filteredItems.length === 0 ? (
         <EmptyState
