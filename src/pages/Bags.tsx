@@ -479,7 +479,7 @@ function BagDetailDrawer({
             
             <div className="pt-4 border-t border-gray-100">
               <h4 className="font-semibold text-gray-800 mb-3">使用统计</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-orange-50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-primary-600">{bag.turnoverCount}</p>
                   <p className="text-xs text-gray-500 mt-1">周转次数</p>
@@ -487,6 +487,16 @@ function BagDetailDrawer({
                 <div className="bg-red-50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-red-600">{bag.damageCount}</p>
                   <p className="text-xs text-gray-500 mt-1">损坏次数</p>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-3 text-center">
+                  <p className={`text-2xl font-bold ${
+                    bag.turnoverCount > 0
+                      ? (bag.damageCount / bag.turnoverCount * 100 >= 30 ? 'text-red-600' : bag.damageCount / bag.turnoverCount * 100 >= 15 ? 'text-amber-600' : 'text-green-600')
+                      : 'text-gray-400'
+                  }`}>
+                    {bag.turnoverCount > 0 ? (bag.damageCount / bag.turnoverCount * 100).toFixed(1) : '0.0'}%
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">损坏率</p>
                 </div>
               </div>
             </div>

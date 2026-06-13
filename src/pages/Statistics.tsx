@@ -15,6 +15,7 @@ import {
 import { TrendingUp, AlertTriangle, Wallet, Package } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatCurrency } from '@/utils/helpers';
+import { StatusTag } from '@/components/StatusTag';
 
 export function Statistics() {
   const { bags, records } = useAppStore();
@@ -77,6 +78,26 @@ export function Statistics() {
   }, [records]);
   
   const COLORS = ['#FF7A45', '#3498DB', '#9B59B6', '#2ECC71'];
+  
+  const bagDetailData = useMemo(() => {
+    return bags.map(bag => {
+      const bagRecords = records.filter(r => r.bagId === bag.id);
+      const damageRate = bag.turnoverCount > 0
+        ? (bag.damageCount / bag.turnoverCount * 100).toFixed(1)
+        : '0.0';
+      const unreturnedDepositCount = bagRecords.filter(
+        r => (r.status === 'active' || r.status === 'overdue') && !r.depositRefunded
+      ).length;
+      return {
+        id: bag.id,
+        code: bag.code,
+        turnoverCount: bag.turnoverCount,
+        damageRate,
+        unreturnedDepositCount,
+        status: bag.status,
+      };
+    }).sort((a, b) => b.unreturnedDepositCount - a.unreturnedDepositCount);
+  }, [bags, records]);
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -283,6 +304,57 @@ export function Statistics() {
             bgColor="bg-purple-50"
           />
         </div>
+      </div>
+      
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">袋子明细</h3>
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="px-5 py-3 text-left text-sm font-semibold text-gray-600">袋子编号</th>
+              <th className="px-5 py-3 text-center text-sm font-semibold text-gray-600">周转次数</th>
+              <th className="px-5 py-3 text-center text-sm font-semibold text-gray-600">损坏率</th>
+              <th className="px-5 py-3 text-center text-sm font-semibold text-gray-600">未退押金笔数</th>
+              <th className="px-5 py-3 text-center text-sm font-semibold text-gray-600">当前状态</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {bagDetailData.map(row => {
+              const damagePercent = parseFloat(row.damageRate);
+              const damageColor = damagePercent >= 30
+                ? 'text-red-600'
+                : damagePercent >= 15
+                  ? 'text-amber-600'
+                  : 'text-green-600';
+              
+              return (
+                <tr key={row.id} className="hover:bg-orange-50/30 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <span className="font-semibold text-gray-800">{row.code}</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className="font-medium text-gray-700">{row.turnoverCount}</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className={`font-medium ${damageColor}`}>{row.damageRate}%</span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    {row.unreturnedDepositCount > 0 ? (
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-600 text-sm font-bold">
+                        {row.unreturnedDepositCount}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <StatusTag type="bag" status={row.status} size="sm" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
