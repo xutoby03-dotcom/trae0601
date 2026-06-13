@@ -59,14 +59,18 @@ interface RepairState {
   getRepairsGroupedByStatus: () => Record<RepairStatus, RepairOrder[]>;
   getRepairDetail: (repairId: string) => RepairOrderWithLogs | undefined;
 
-  getStatusStats: () => StatusStats;
+  getStatusStats: (orders?: RepairOrder[]) => StatusStats;
   getClassroomStats: (
-    instruments: Array<{ id: string; classroom: string }>
+    instruments: Array<{ id: string; classroom: string }>,
+    orders?: RepairOrder[]
   ) => ClassroomStat[];
-  getAverageRepairDuration: () => number;
-  getMonthlyAverageDuration: (months?: number) => MonthlyDurationStat[];
-  getRepeatRepairRank: () => RepeatRepairRank[];
-  getTodayNewCount: () => number;
+  getAverageRepairDuration: (orders?: RepairOrder[]) => number;
+  getMonthlyAverageDuration: (
+    months?: number,
+    orders?: RepairOrder[]
+  ) => MonthlyDurationStat[];
+  getRepeatRepairRank: (orders?: RepairOrder[]) => RepeatRepairRank[];
+  getTodayNewCount: (orders?: RepairOrder[]) => number;
 }
 
 const generateRepairId = () =>
@@ -188,19 +192,20 @@ export const useRepairStore = create<RepairState>()(
         return { ...order, logs };
       },
 
-      getStatusStats: () => {
-        const grouped = get().getRepairsGroupedByStatus();
+      getStatusStats: (orders) => {
+        const list = orders ?? get().repairOrders;
         return {
-          pending: grouped.pending.length,
-          processing: grouped.processing.length,
-          waiting_parts: grouped.waiting_parts.length,
-          completed: grouped.completed.length,
-          scrapped: grouped.scrapped.length,
+          pending: list.filter((o) => o.status === "pending").length,
+          processing: list.filter((o) => o.status === "processing").length,
+          waiting_parts: list.filter((o) => o.status === "waiting_parts")
+            .length,
+          completed: list.filter((o) => o.status === "completed").length,
+          scrapped: list.filter((o) => o.status === "scrapped").length,
         };
       },
 
-      getClassroomStats: (instruments) => {
-        const { repairOrders } = get();
+      getClassroomStats: (instruments, orders) => {
+        const list = orders ?? get().repairOrders;
         const classroomMap = new Map<string, number>();
 
         const insClassroom = new Map<string, string>();
@@ -208,7 +213,7 @@ export const useRepairStore = create<RepairState>()(
           insClassroom.set(ins.id, ins.classroom);
         }
 
-        for (const order of repairOrders) {
+        for (const order of list) {
           const classroom =
             insClassroom.get(order.instrumentId) || "未知教室";
           classroomMap.set(classroom, (classroomMap.get(classroom) || 0) + 1);
@@ -218,9 +223,9 @@ export const useRepairStore = create<RepairState>()(
           .sort((a, b) => b.count - a.count);
       },
 
-      getAverageRepairDuration: () => {
-        const { repairOrders } = get();
-        const closed = repairOrders.filter(
+      getAverageRepairDuration: (orders) => {
+        const list = orders ?? get().repairOrders;
+        const closed = list.filter(
           (o) => o.closedAt && o.status !== "pending"
         );
         if (closed.length === 0) return 0;
@@ -232,8 +237,8 @@ export const useRepairStore = create<RepairState>()(
         return Math.round((totalHours / closed.length) * 10) / 10;
       },
 
-      getMonthlyAverageDuration: (months = 6) => {
-        const { repairOrders } = get();
+      getMonthlyAverageDuration: (months = 6, orders) => {
+        const list = orders ?? get().repairOrders;
         const now = new Date();
         const result: MonthlyDurationStat[] = [];
 
@@ -248,7 +253,7 @@ export const useRepairStore = create<RepairState>()(
         }
 
         const monthTotals = new Map<string, { total: number; count: number }>();
-        const closed = repairOrders.filter(
+        const closed = list.filter(
           (o) => o.closedAt && o.status !== "pending"
         );
 
@@ -277,10 +282,10 @@ export const useRepairStore = create<RepairState>()(
         return result;
       },
 
-      getRepeatRepairRank: () => {
-        const { repairOrders } = get();
+      getRepeatRepairRank: (orders) => {
+        const list = orders ?? get().repairOrders;
         const countMap = new Map<string, number>();
-        for (const order of repairOrders) {
+        for (const order of list) {
           countMap.set(
             order.instrumentId,
             (countMap.get(order.instrumentId) || 0) + 1
@@ -292,8 +297,9 @@ export const useRepairStore = create<RepairState>()(
           .sort((a, b) => b.count - a.count);
       },
 
-      getTodayNewCount: () => {
-        return get().repairOrders.filter((o) => isSameDay(o.createdAt)).length;
+      getTodayNewCount: (orders) => {
+        const list = orders ?? get().repairOrders;
+        return list.filter((o) => isSameDay(o.createdAt)).length;
       },
     }),
     {

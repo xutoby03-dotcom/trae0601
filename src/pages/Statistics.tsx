@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -23,6 +23,8 @@ import {
   Clock,
   RefreshCw,
   Trophy,
+  X,
+  MapPin,
 } from "lucide-react";
 
 const WALNUT_COLORS = {
@@ -113,36 +115,52 @@ export default function Statistics() {
   const getRepeatRepairRank = useRepairStore((s) => s.getRepeatRepairRank);
   const getInstrumentById = useInstrumentStore((s) => s.getInstrumentById);
 
+  const [selectedClassroom, setSelectedClassroom] = useState<string | null>(
+    null
+  );
+
+  const filteredOrders = useMemo(() => {
+    if (!selectedClassroom) return allOrders;
+    const idsInClassroom = new Set(
+      instruments
+        .filter((i) => i.classroom === selectedClassroom)
+        .map((i) => i.id)
+    );
+    return allOrders.filter((o) => idsInClassroom.has(o.instrumentId));
+  }, [allOrders, instruments, selectedClassroom]);
+
   const statusStats = useMemo(
-    () => getStatusStats(),
-    [allOrders, getStatusStats]
+    () => getStatusStats(filteredOrders),
+    [filteredOrders, getStatusStats]
   );
   const classroomStats = useMemo(
-    () => getClassroomStats(instruments),
+    () => getClassroomStats(instruments, allOrders),
     [allOrders, instruments, getClassroomStats]
   );
   const averageDuration = useMemo(
-    () => getAverageRepairDuration(),
-    [allOrders, getAverageRepairDuration]
+    () => getAverageRepairDuration(filteredOrders),
+    [filteredOrders, getAverageRepairDuration]
   );
   const repeatRepairRank = useMemo(
-    () => getRepeatRepairRank(),
-    [allOrders, getRepeatRepairRank]
+    () => getRepeatRepairRank(filteredOrders),
+    [filteredOrders, getRepeatRepairRank]
   );
   const lineData = useMemo(
-    () => getMonthlyAverageDuration(6),
-    [allOrders, getMonthlyAverageDuration]
+    () => getMonthlyAverageDuration(6, filteredOrders),
+    [filteredOrders, getMonthlyAverageDuration]
   );
 
-  const totalCount = allOrders.length;
+  const totalCount = filteredOrders.length;
   const completedCount = statusStats.completed;
 
   const barData = useMemo(() => {
     return classroomStats.slice(0, 8).map((item) => ({
       name: item.classroom.replace("音乐教室", ""),
+      classroom: item.classroom,
       count: item.count,
+      isSelected: item.classroom === selectedClassroom,
     }));
-  }, [classroomStats]);
+  }, [classroomStats, selectedClassroom]);
 
   const pieData = useMemo(() => {
     const entries: Array<{ key: RepairStatus; count: number }> = [
@@ -176,10 +194,36 @@ export default function Statistics() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-walnut-800 mb-1">
-          统计分析
-        </h1>
-        <p className="text-walnut-500 text-sm">乐器报修数据可视化总览</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-serif text-2xl font-semibold text-walnut-800 mb-1">
+              统计分析
+            </h1>
+            <p className="text-walnut-500 text-sm">乐器报修数据可视化总览</p>
+          </div>
+          {selectedClassroom && (
+            <div className="flex items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium">
+                  正在查看：{selectedClassroom}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedClassroom(null)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-walnut-100 text-walnut-700 hover:bg-walnut-200 transition-colors text-sm font-medium"
+              >
+                <X className="w-4 h-4" />
+                清空筛选
+              </button>
+            </div>
+          )}
+        </div>
+        {selectedClassroom && (
+          <p className="text-xs text-walnut-400 mt-2">
+            点击左侧教室排行中的柱子切换教室筛选
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -259,10 +303,28 @@ export default function Statistics() {
                 <Bar
                   dataKey="count"
                   name="报修数量"
-                  fill={WALNUT_COLORS[500]}
                   radius={[8, 8, 0, 0]}
                   maxBarSize={48}
-                />
+                  cursor="pointer"
+                  onClick={(data: { classroom?: string }) => {
+                    if (data?.classroom) {
+                      setSelectedClassroom((prev) =>
+                        prev === data.classroom ? null : data.classroom
+                      );
+                    }
+                  }}
+                >
+                  {barData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        entry.isSelected
+                          ? "#FF8F00"
+                          : WALNUT_COLORS[500]
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
