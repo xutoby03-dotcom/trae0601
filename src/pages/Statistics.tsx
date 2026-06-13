@@ -79,9 +79,8 @@ export default function Statistics() {
 
       const overdueCount = supIssues.filter((i) => {
         if (i.status === "closed") return false;
-        const noResponseOver2Days = !i.responseAt && daysBetween(i.createdAt, new Date().toISOString()) > 2;
-        const passedDeadline = isOverdue(i.deadline);
-        return noResponseOver2Days || passedDeadline;
+        if (i.responseAt) return false;
+        return daysBetween(i.createdAt, new Date().toISOString()) > 2;
       }).length;
 
       return {
@@ -471,7 +470,7 @@ export default function Statistics() {
                               <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">问题类型</th>
                               <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">责任人</th>
                               <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">截止日期</th>
-                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">状态</th>
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">响应 / 处理</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -515,15 +514,27 @@ export default function Statistics() {
                                     </div>
                                   </td>
                                   <td className="py-3 px-4">
-                                    <span
-                                      className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                                        issue.status === "pending"
-                                          ? "bg-amber-100 text-amber-700"
-                                          : "bg-forest-100 text-forest-700"
-                                      }`}
-                                    >
-                                      {issue.status === "pending" ? "待处理" : "处理中"}
-                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {issue.responseAt ? (
+                                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-forest-100 text-forest-700">
+                                          已响应
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1">
+                                          <AlertCircle className="w-3 h-3" />
+                                          未响应
+                                        </span>
+                                      )}
+                                      <span
+                                        className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                                          issue.status === "pending"
+                                            ? "bg-amber-100 text-amber-700"
+                                            : "bg-moss-100 text-moss-700"
+                                        }`}
+                                      >
+                                        {issue.status === "pending" ? "待处理" : "处理中"}
+                                      </span>
+                                    </div>
                                   </td>
                                 </tr>
                               );
