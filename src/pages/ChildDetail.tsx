@@ -237,6 +237,7 @@ export default function ChildDetail() {
                         </div>
                         <VaccineCard
                           vaccine={v}
+                          child={child}
                           onEdit={() => {
                             setEditingVaccine(v);
                             setShowVaccineModal(true);
