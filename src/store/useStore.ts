@@ -85,13 +85,18 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
+interface AddOrderResult {
+  success: boolean;
+  insufficientProducts: string[];
+}
+
 interface StoreState {
   products: Product[];
   orders: Order[];
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
-  addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => boolean;
+  addOrder: (order: Omit<Order, 'id' | 'createdAt'>) => AddOrderResult;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   checkOverdueOrders: () => void;
   decreaseStock: (productId: string, quantity: number) => boolean;
@@ -144,13 +149,34 @@ export const useStore = create<StoreState>()(
       },
 
       addOrder: (order) => {
+        const aggregated = new Map<string, { name: string; qty: number }>();
         for (const item of order.items) {
-          const stock = get().getAvailableStock(item.productId);
-          if (stock < item.quantity) return false;
+          const entry = aggregated.get(item.productId);
+          if (entry) {
+            entry.qty += item.quantity;
+          } else {
+            aggregated.set(item.productId, { name: item.productName, qty: item.quantity });
+          }
         }
-        for (const item of order.items) {
-          get().decreaseStock(item.productId, item.quantity);
+
+        const insufficient: string[] = [];
+        for (const [productId, { name, qty }] of aggregated) {
+          const stock = get().getAvailableStock(productId);
+          if (stock < qty) {
+            insufficient.push(`${name}(需${qty}份，仅剩${stock}份)`);
+          }
         }
+        if (insufficient.length > 0) {
+          return { success: false, insufficientProducts: insufficient };
+        }
+
+        for (const [productId, { qty }] of aggregated) {
+          const ok = get().decreaseStock(productId, qty);
+          if (!ok) {
+            return { success: false, insufficientProducts: [`${aggregated.get(productId)!.name}库存扣减失败`] };
+          }
+        }
+
         orderCounter += 1;
         const id = `ORD-${String(orderCounter).padStart(4, '0')}`;
         set((state) => ({
@@ -159,7 +185,7 @@ export const useStore = create<StoreState>()(
             { ...order, id, createdAt: new Date().toISOString() },
           ],
         }));
-        return true;
+        return { success: true, insufficientProducts: [] };
       },
 
       updateOrderStatus: (id, status) => {

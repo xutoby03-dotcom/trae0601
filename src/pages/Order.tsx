@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { ShoppingCart, Minus, Plus, Clock, Phone, MessageSquare, Check } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Clock, Phone, MessageSquare, Check, AlertTriangle } from 'lucide-react';
 import type { OrderItem } from '@/types';
 
 interface ConfigState {
@@ -22,6 +22,7 @@ export default function Order() {
   const [notes, setNotes] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [stockErrors, setStockErrors] = useState<string[]>([]);
 
   const categories = [...new Set(products.map((p) => p.category))];
 
@@ -89,9 +90,12 @@ export default function Order() {
 
   const handleRemoveItem = (itemId: string) => {
     setCart(cart.filter((item) => item.id !== itemId));
+    setStockErrors([]);
   };
 
   const handleSubmit = () => {
+    setStockErrors([]);
+
     if (cart.length === 0) {
       showToast('请至少选择一件商品', 'error');
       return;
@@ -105,7 +109,7 @@ export default function Order() {
       return;
     }
 
-    const success = addOrder({
+    const result = addOrder({
       items: cart,
       pickupTime,
       phoneLastFour,
@@ -114,8 +118,8 @@ export default function Order() {
       orderStatus: 'pending',
     });
 
-    if (!success) {
-      showToast('库存不足，请调整订单', 'error');
+    if (!result.success) {
+      setStockErrors(result.insufficientProducts);
       return;
     }
 
@@ -125,6 +129,7 @@ export default function Order() {
     setPhoneLastFour('');
     setNotes('');
     setPaymentStatus('unpaid');
+    setStockErrors([]);
   };
 
   return (
@@ -214,6 +219,20 @@ export default function Order() {
               </div>
             ))}
           </div>
+
+          {stockErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 animate-slide-in">
+              <div className="flex items-center gap-1.5 text-red-600 font-medium text-sm mb-1.5">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                库存不足，以下商品无法满足：
+              </div>
+              <ul className="space-y-0.5">
+                {stockErrors.map((err, i) => (
+                  <li key={i} className="text-sm text-red-500 pl-6">· {err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="space-y-3 border-t border-brand-100 pt-4">
             <div>
