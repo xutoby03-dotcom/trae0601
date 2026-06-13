@@ -33,7 +33,7 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
   };
 
   const handleReplenish = () => {
-    navigate('/replenishments/new');
+    navigate('/replenishments');
   };
 
   const colorClasses = {

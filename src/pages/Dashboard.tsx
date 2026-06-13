@@ -219,7 +219,7 @@ export default function Dashboard() {
             variant="primary"
             size="sm"
             leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => navigate('/printers/new')}
+            onClick={() => navigate('/printers')}
           >
             新增打印点
           </Button>
@@ -245,7 +245,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
           className="cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => navigate('/consumptions/new')}
+          onClick={() => navigate('/consumptions')}
         >
           <CardContent className="text-center py-8">
             <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/30">
@@ -260,7 +260,7 @@ export default function Dashboard() {
 
         <Card
           className="cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => navigate('/replenishments/new')}
+          onClick={() => navigate('/replenishments')}
         >
           <CardContent className="text-center py-8">
             <div className="w-16 h-16 bg-gradient-to-br from-success-500 to-success-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-success-500/30">
