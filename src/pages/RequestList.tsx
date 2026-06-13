@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Plus,
   Check,
@@ -16,7 +16,7 @@ import { useStore } from '@/store'
 import Modal from '@/components/Modal'
 import { RequestStatusBadge, StatusBadge } from '@/components/StatusBadges'
 import FuelBar from '@/components/FuelBar'
-import { formatDateTime, formatTime, isSameDay } from '@/utils/date'
+import { formatDateTime, formatTime } from '@/utils/date'
 import type { DEPARTMENTS as D } from '@/types'
 import { DEPARTMENTS } from '@/types'
 import type { Request } from '@/types'
@@ -215,7 +215,11 @@ export default function RequestList() {
 
   function isTodayRequest(r: Request): boolean {
     const now = new Date()
-    return isSameDay(new Date(r.startTime), now) || isSameDay(new Date(r.endTime), now)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    const rStart = new Date(r.startTime)
+    const rEnd = new Date(r.endTime)
+    return rStart.getTime() < todayEnd.getTime() && rEnd.getTime() > todayStart.getTime()
   }
 
   function matchSearch(r: Request): boolean {
