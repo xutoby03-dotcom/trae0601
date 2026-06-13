@@ -7,22 +7,34 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import type { Borrow, BorrowForm, ReturnForm } from '../../shared/types.js';
 
-type FilterTab = 'all' | 'borrowed' | 'returned' | 'overdue';
+type FilterStatus = 'all' | 'borrowed' | 'pending' | 'returned' | 'overdue';
 
-const tabs: { key: FilterTab; label: string }[] = [
+const tabs: { key: FilterStatus; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'borrowed', label: '借出中' },
+  { key: 'pending', label: '待归还' },
   { key: 'returned', label: '已归还' },
   { key: 'overdue', label: '逾期' },
 ];
+
+const statusLabels: Record<FilterStatus, string> = {
+  all: '全部记录',
+  borrowed: '借出中',
+  pending: '待归还',
+  returned: '已归还',
+  overdue: '逾期',
+};
 
 export default function BorrowsPage() {
   const { borrows, fetchBorrows, rooms, fetchRooms, loading } = useAppStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlRoomId = searchParams.get('roomId');
   const urlRoomName = searchParams.get('roomName');
-  const urlStatus = searchParams.get('status') as FilterTab | null;
-  const [activeTab, setActiveTab] = useState<FilterTab>(urlStatus && ['all', 'borrowed', 'returned', 'overdue'].includes(urlStatus) ? urlStatus : 'all');
+  const rawStatus = searchParams.get('status') as FilterStatus | null;
+  const currentStatus: FilterStatus =
+    rawStatus && ['all', 'borrowed', 'pending', 'returned', 'overdue'].includes(rawStatus)
+      ? rawStatus
+      : 'all';
   const [searchText, setSearchText] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -48,25 +60,32 @@ export default function BorrowsPage() {
   }, [fetchRooms]);
 
   useEffect(() => {
-    if (urlStatus && ['all', 'borrowed', 'returned', 'overdue'].includes(urlStatus) && urlStatus !== activeTab) {
-      setActiveTab(urlStatus);
-    }
-  }, [urlStatus]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (activeTab === 'all') {
+    if (currentStatus === 'all') {
       fetchBorrows();
     } else {
-      fetchBorrows(activeTab);
+      fetchBorrows(currentStatus);
     }
-  }, [activeTab, fetchBorrows]);
+  }, [currentStatus, fetchBorrows]);
+
+  const handleTabClick = (status: FilterStatus) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('status', status);
+    setSearchParams(newParams);
+  };
+
+  const clearRoomFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('roomId');
+    newParams.delete('roomName');
+    setSearchParams(newParams);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await borrowsApi.create(formData);
       setShowCreateModal(false);
-      fetchBorrows(activeTab === 'all' ? undefined : activeTab);
+      fetchBorrows(currentStatus === 'all' ? undefined : currentStatus);
     } catch (err: any) {
       alert(err.message);
     }
@@ -89,7 +108,7 @@ export default function BorrowsPage() {
       };
       await borrowsApi.returnBorrow(selectedBorrow.id, returnForm);
       setShowReturnModal(false);
-      fetchBorrows(activeTab === 'all' ? undefined : activeTab);
+      fetchBorrows(currentStatus === 'all' ? undefined : currentStatus);
     } catch (err: any) {
       alert(err.message);
     }
@@ -158,32 +177,30 @@ export default function BorrowsPage() {
     }
   };
 
-  const clearRoomFilter = () => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('roomId');
-    newParams.delete('roomName');
-    setSearchParams(newParams);
-  };
-
   return (
     <div className="space-y-5">
-      {urlRoomName && (
-        <div className="flex items-center gap-3 p-4 bg-teal-50 rounded-2xl border border-teal-100">
-          <div className="p-2 bg-teal-100 rounded-xl">
-            <Home className="w-5 h-5 text-teal-600" />
+      <div className="flex items-center gap-3 p-4 bg-teal-50 rounded-2xl border border-teal-100">
+        <div className="p-2 bg-teal-100 rounded-xl">
+          <Home className="w-5 h-5 text-teal-600" />
+        </div>
+        <div className="flex-1">
+          <div className="text-sm text-teal-600 font-medium">
+            {urlRoomName ? `${decodeURIComponent(urlRoomName)} · ` : ''}
+            {statusLabels[currentStatus]}
           </div>
-          <div className="flex-1">
-            <div className="text-sm text-teal-600 font-medium">当前筛选</div>
-            <div className="text-base font-bold text-slate-800">{decodeURIComponent(urlRoomName)}</div>
+          <div className="text-base font-bold text-slate-800">
+            {filteredBorrows.length} 条记录
           </div>
+        </div>
+        {urlRoomName && (
           <button
             onClick={clearRoomFilter}
             className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800 hover:bg-white rounded-lg transition-colors"
           >
-            清除筛选
+            清除房间筛选
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="relative flex-1 max-w-md">
@@ -209,14 +226,9 @@ export default function BorrowsPage() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => {
-              setActiveTab(tab.key);
-              const newParams = new URLSearchParams(searchParams);
-              newParams.set('status', tab.key);
-              setSearchParams(newParams);
-            }}
+            onClick={() => handleTabClick(tab.key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === tab.key
+              currentStatus === tab.key
                 ? 'bg-white text-slate-800 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}

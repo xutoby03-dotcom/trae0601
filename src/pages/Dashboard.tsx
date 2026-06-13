@@ -224,7 +224,7 @@ export default function Dashboard() {
                   className="text-center p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-sky-50 hover:ring-2 hover:ring-sky-200 transition-all"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/borrows?roomId=${room.roomId}&roomName=${encodeURIComponent(room.roomName)}&status=borrowed&pending=1`);
+                    navigate(`/borrows?roomId=${room.roomId}&roomName=${encodeURIComponent(room.roomName)}&status=pending`);
                   }}
                 >
                   <div className="text-xl font-bold text-sky-600">{room.pendingReturn}</div>

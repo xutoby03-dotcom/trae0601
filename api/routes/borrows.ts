@@ -64,6 +64,11 @@ function getBorrowsQuery(status?: string) {
     if (status === 'overdue') {
       sql += ` WHERE b.status = 'borrowed' AND b.end_time < ?`;
       params.push(new Date().toISOString());
+    } else if (status === 'borrowed') {
+      sql += ` WHERE b.status = 'borrowed' AND b.end_time >= ?`;
+      params.push(new Date().toISOString());
+    } else if (status === 'pending') {
+      sql += ` WHERE b.status = 'borrowed'`;
     } else {
       sql += ' WHERE b.status = ?';
       params.push(status);

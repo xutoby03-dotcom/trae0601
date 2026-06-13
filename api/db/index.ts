@@ -92,8 +92,8 @@ export function initDb() {
 
     const borrows = [
       [1, '社区合唱排练', '陈阿姨', '13800138001', now.toISOString(), tomorrow.toISOString(), 'paid', 'borrowed'],
-      [2, '书法培训班', '刘大爷', '13900139002', dayBefore.toISOString(), yesterday.toISOString(), 'paid', 'overdue'],
-      [3, '老年大学课程', '赵老师', '13700137003', yesterday.toISOString(), now.toISOString(), 'unpaid', 'borrowed'],
+      [2, '书法培训班', '刘大爷', '13900139002', dayBefore.toISOString(), yesterday.toISOString(), 'paid', 'borrowed'],
+      [3, '老年大学课程', '赵老师', '13700137003', dayBefore.toISOString(), yesterday.toISOString(), 'unpaid', 'borrowed'],
     ];
 
     const insertBorrows = db.transaction((borrowList: unknown[][]) => {
