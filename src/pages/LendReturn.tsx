@@ -67,7 +67,9 @@ export function LendReturn() {
 
   const availableGears = gears.filter((g) => g.status === 'in_cabinet');
   const lentGears = gears.filter((g) => g.status === 'lent');
-  const displayGears = mode === 'lend' ? availableGears : lentGears;
+  const dryingGears = gears.filter((g) => g.status === 'drying');
+  const returnDisplayGears = [...lentGears, ...dryingGears];
+  const displayGears = mode === 'lend' ? availableGears : returnDisplayGears;
 
   const getActiveRecord = (gearId: string) => {
     return records.find((r) => r.gearId === gearId && r.status === 'active');
@@ -194,7 +196,7 @@ export function LendReturn() {
           <LogIn className="w-5 h-5" />
           归还登记
           <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-white/20">
-            {lentGears.length}
+            {lentGears.length + dryingGears.length}
           </span>
         </button>
       </div>
@@ -250,6 +252,8 @@ export function LendReturn() {
                     setSelectedGear(gear.id);
                     if (mode === 'lend') {
                       setShowLendForm(true);
+                    } else if (gear.status === 'drying') {
+                      setShowDryConfirm(true);
                     } else {
                       setShowReturnForm(true);
                     }
@@ -260,6 +264,24 @@ export function LendReturn() {
                       showFrequency
                     />
                   </div>
+                  {mode === 'return' && gear.status === 'drying' && (
+                    <div className="mt-2 p-3 bg-orange-50 rounded-xl text-sm">
+                      <div className="flex items-center gap-2 text-orange-700 mb-1">
+                        <Sun className="w-4 h-4" />
+                        <span className="font-medium">待晾干</span>
+                      </div>
+                      <p className="text-orange-600 text-xs">晾干后点击确认入柜</p>
+                    </div>
+                  )}
+                  {mode === 'return' && gear.status === 'lent' && !record && (
+                    <div className="mt-2 p-3 bg-amber-50 rounded-xl text-sm">
+                      <div className="flex items-center gap-2 text-amber-700 mb-1">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span className="font-medium">无借出记录</span>
+                      </div>
+                      <p className="text-amber-600 text-xs">状态异常，点击查看详情</p>
+                    </div>
+                  )}
                   {record && (
                     <div className="mt-2 p-3 bg-purple-50 rounded-xl text-sm">
                       <div className="flex items-center gap-2 text-purple-700 mb-1">
@@ -512,6 +534,76 @@ export function LendReturn() {
               <Button onClick={handleReturn} className="flex-1 bg-green-600 hover:bg-green-700 focus:ring-green-500">
                 <LogIn className="w-4 h-4 mr-1.5" />
                 确认归还
+              </Button>
+            </div>
+          </div>
+        )}
+        {selectedGearData && !activeRecord && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <img
+                src={selectedGearData.photoUrl}
+                alt={selectedGearData.name}
+                className="w-16 h-16 rounded-xl object-cover"
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-slate-900">{selectedGearData.name}</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  状态为"借出中"，但未找到对应的借出记录
+                </p>
+              </div>
+              <StatusBadge status={selectedGearData.status} />
+            </div>
+
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-800 font-medium">状态异常</p>
+                <p className="text-sm text-amber-600 mt-1">
+                  该雨具标记为借出中，但系统中找不到对应的借出记录。可能是数据不同步导致的。
+                  你可以将其直接标记为"待晾干"（如果雨具是湿的），或"已入柜"（如果雨具已回到原位）。
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowReturnForm(false);
+                  setSelectedGear(null);
+                }}
+                className="flex-1"
+              >
+                取消
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedGear) return;
+                  await updateGear(selectedGear, { status: 'drying' });
+                  setSuccessMessage('已标记为待晾干，晾干后请确认入柜。');
+                  setShowReturnForm(false);
+                  setSelectedGear(null);
+                  setTimeout(() => setSuccessMessage(null), 4000);
+                }}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+              >
+                <Sun className="w-4 h-4 mr-1.5" />
+                标记待晾干
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!selectedGear) return;
+                  await updateGear(selectedGear, { status: 'in_cabinet' });
+                  setSuccessMessage('已标记为入柜，雨具归位完成。');
+                  setShowReturnForm(false);
+                  setSelectedGear(null);
+                  setTimeout(() => setSuccessMessage(null), 4000);
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+              >
+                <Package className="w-4 h-4 mr-1.5" />
+                直接入柜
               </Button>
             </div>
           </div>
