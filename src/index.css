@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
+
+:root {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1209;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3E2723;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a3d2e;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(0.5) hue-rotate(10deg);
+}
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3E2723 #1a1209;
+  }
+}
