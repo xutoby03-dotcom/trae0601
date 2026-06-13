@@ -1,0 +1,50 @@
+[
+  {
+    "id": "r1",
+    "gearId": "2",
+    "borrower": "妈妈",
+    "destination": "公司",
+    "lendTime": "2024-06-12T08:00:00Z",
+    "expectedReturnTime": "2024-06-12T19:00:00Z",
+    "status": "returned",
+    "isDry": false,
+    "hasNewDamage": false,
+    "actualReturnTime": "2026-06-13T06:00:06.327Z"
+  },
+  {
+    "id": "r2",
+    "gearId": "3",
+    "borrower": "孩子",
+    "destination": "学校",
+    "lendTime": "2024-06-11T07:30:00Z",
+    "expectedReturnTime": "2024-06-11T17:00:00Z",
+    "actualReturnTime": "2024-06-11T18:00:00Z",
+    "isDry": false,
+    "hasNewDamage": true,
+    "returnNote": "袖口磨破了一点",
+    "status": "returned"
+  },
+  {
+    "id": "r3",
+    "gearId": "1",
+    "borrower": "爸爸",
+    "destination": "超市",
+    "lendTime": "2024-06-10T14:30:00Z",
+    "expectedReturnTime": "2024-06-10T17:00:00Z",
+    "actualReturnTime": "2024-06-10T16:50:00Z",
+    "isDry": true,
+    "hasNewDamage": false,
+    "status": "returned"
+  },
+  {
+    "id": "rmqby3d0t076leuibvrn",
+    "gearId": "4",
+    "borrower": "爸爸",
+    "destination": "公司",
+    "lendTime": "2026-06-13T05:59:02.573Z",
+    "expectedReturnTime": "2024-06-12T19:00:00.000Z",
+    "status": "active",
+    "isDry": false,
+    "hasNewDamage": false
+  }
+]
