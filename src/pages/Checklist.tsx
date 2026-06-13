@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -25,6 +27,7 @@ import {
 } from '@/utils/calculations';
 
 export default function Checklist() {
+  const navigate = useNavigate();
   const { members, supplies, assignments, toggleMemberConfirmed, resetAll } = useAppStore();
 
   const confirmedMembers = members.filter((m) => m.confirmed);
@@ -271,9 +274,10 @@ export default function Checklist() {
               {unassignedSupplies.map((s) => {
                 const remaining = getSupplyRemainingQuantity(s, assignments);
                 return (
-                  <div
+                  <button
                     key={s.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-firstaid-50 border border-firstaid-100"
+                    onClick={() => navigate(`/?highlight=${s.id}`)}
+                    className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-firstaid-50 border border-firstaid-100 hover:bg-firstaid-100 hover:border-firstaid-300 hover:shadow-card transition-all group"
                   >
                     {s.photoUrl ? (
                       <img src={s.photoUrl} alt={s.name} className="w-9 h-9 rounded object-cover" />
@@ -289,11 +293,14 @@ export default function Checklist() {
                         <ImportanceTag importance={s.importance} size="sm" />
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm font-bold text-firstaid-600">×{remaining}</div>
-                      <div className="text-[10px] text-earth-500">{formatWeight(s.weightGrams * remaining)}</div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-firstaid-600">×{remaining}</div>
+                        <div className="text-[10px] text-earth-500">{formatWeight(s.weightGrams * remaining)}</div>
+                      </div>
+                      <ArrowRight size={14} className="text-earth-400 group-hover:text-firstaid-600 group-hover:translate-x-0.5 transition-all" />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
