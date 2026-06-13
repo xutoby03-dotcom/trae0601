@@ -21,7 +21,7 @@ const cabinetOptions = ['A柜-01', 'A柜-02', 'A柜-03', 'B柜-01', 'B柜-02', '
 export const DeviceForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEdit = id !== 'new';
+  const isEdit = !!id;
 
   const devices = useAppStore((state) => state.devices);
   const addDevice = useAppStore((state) => state.addDevice);

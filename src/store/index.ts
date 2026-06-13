@@ -75,6 +75,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       lendingRecords = updatedRecords;
     }
 
+    const lentDeviceIds = lendingRecords
+      .filter((r) => r.status === 'active' || r.status === 'overdue')
+      .map((r) => r.deviceId);
+
+    const syncedDevices = devices.map((d) => {
+      const isLent = lentDeviceIds.includes(d.id);
+      if (isLent && d.status !== 'lent') {
+        return { ...d, status: 'lent' as const, updatedAt: getTodayString() };
+      }
+      if (!isLent && d.status === 'lent') {
+        const newStatus: DeviceStatus = d.currentBattery < 20 ? 'low_battery' : 'available';
+        return { ...d, status: newStatus, updatedAt: getTodayString() };
+      }
+      return d;
+    });
+
+    if (JSON.stringify(syncedDevices) !== JSON.stringify(devices)) {
+      saveDevices(syncedDevices);
+      devices = syncedDevices;
+    }
+
     set({
       devices,
       lendingRecords,

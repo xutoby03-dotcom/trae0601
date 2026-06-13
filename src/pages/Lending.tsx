@@ -26,7 +26,13 @@ export const Lending: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const availableDevices = devices.filter((d) => d.status === 'available');
+  const lentDeviceIds = lendingRecords
+    .filter((r) => r.status === 'active' || r.status === 'overdue')
+    .map((r) => r.deviceId);
+
+  const availableDevices = devices.filter(
+    (d) => d.status === 'available' && !lentDeviceIds.includes(d.id)
+  );
 
   const filteredRecords = [...lendingRecords]
     .sort((a, b) => new Date(b.lendDate).getTime() - new Date(a.lendDate).getTime())

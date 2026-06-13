@@ -33,7 +33,7 @@ export const Dashboard: React.FC = () => {
   const devices = useAppStore((state) => state.devices);
   const lendingRecords = useAppStore((state) => state.lendingRecords);
 
-  const availableCount = getAvailableCount(devices);
+  const availableCount = getAvailableCount(devices, lendingRecords);
   const overdueCount = getOverdueCount(lendingRecords);
   const lowBatteryCount = getLowBatteryCount(devices);
   const weeklyCount = getWeeklyLendingCount(lendingRecords);

@@ -118,8 +118,14 @@ export function getWeeklyStats(records: LendingRecord[]): DailyStats[] {
   return stats;
 }
 
-export function getAvailableCount(devices: Device[]): number {
-  return devices.filter((d) => d.status === 'available').length;
+export function getAvailableCount(devices: Device[], records: LendingRecord[]): number {
+  const lentDeviceIds = records
+    .filter((r) => r.status === 'active' || r.status === 'overdue')
+    .map((r) => r.deviceId);
+
+  return devices.filter(
+    (d) => d.status === 'available' && !lentDeviceIds.includes(d.id)
+  ).length;
 }
 
 export function getOverdueCount(records: LendingRecord[]): number {

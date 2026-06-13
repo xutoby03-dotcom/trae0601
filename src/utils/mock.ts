@@ -19,9 +19,9 @@ export const mockDevices: Device[] = [
     accessories: ['充电线', '充电头'],
     storageCabinet: 'A柜-01',
     photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20portable%20power%20bank%2020000mah%20product%20photo%20on%20white%20background&image_size=square',
-    status: 'available',
+    status: 'lent',
     createdAt: daysAgo(30),
-    updatedAt: daysAgo(2),
+    updatedAt: daysAgo(0),
   },
   {
     id: generateId(),
