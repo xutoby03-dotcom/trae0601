@@ -30,7 +30,11 @@ export default function BorrowsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlRoomId = searchParams.get('roomId');
   const urlRoomName = searchParams.get('roomName');
-  const rawStatus = searchParams.get('status') as FilterStatus | null;
+  const urlPending = searchParams.get('pending');
+  const rawStatus =
+    urlPending === '1'
+      ? 'pending'
+      : (searchParams.get('status') as FilterStatus | null);
   const currentStatus: FilterStatus =
     rawStatus && ['all', 'borrowed', 'pending', 'returned', 'overdue'].includes(rawStatus)
       ? rawStatus
@@ -58,6 +62,15 @@ export default function BorrowsPage() {
   useEffect(() => {
     fetchRooms();
   }, [fetchRooms]);
+
+  useEffect(() => {
+    if (urlPending === '1') {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('pending');
+      newParams.set('status', 'pending');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [urlPending, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (currentStatus === 'all') {
