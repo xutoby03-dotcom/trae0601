@@ -76,8 +76,13 @@ export const loadFromStorage = <T>(key: string, defaultValue: T): T => {
 
 export const getTodayRecords = (records: VisitorRecord[]): VisitorRecord[] => {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  return records.filter(r => r.entryTime.startsWith(todayStr));
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+  return records.filter(r => {
+    const entry = new Date(r.entryTime);
+    return entry.getFullYear() === y && entry.getMonth() === m && entry.getDate() === d;
+  });
 };
 
 export const getActiveRecords = (records: VisitorRecord[]): VisitorRecord[] => {
@@ -90,8 +95,14 @@ export const getOverdueRecords = (records: VisitorRecord[]): VisitorRecord[] => 
 
 export const getTodayRevenue = (records: VisitorRecord[]): number => {
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
   return records
-    .filter(r => r.exitTime && r.exitTime.startsWith(todayStr) && r.paymentStatus === 'paid')
+    .filter(r => {
+      if (!r.exitTime || r.paymentStatus !== 'paid') return false;
+      const exit = new Date(r.exitTime);
+      return exit.getFullYear() === y && exit.getMonth() === m && exit.getDate() === d;
+    })
     .reduce((sum, r) => sum + (r.fee || 0), 0);
 };
