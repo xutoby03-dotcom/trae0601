@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { PackagePlus, Save, ChevronRight } from 'lucide-react'
+import { PackagePlus, Save, ChevronRight, Clock, RotateCcw } from 'lucide-react'
 import { useAppStore } from '@/store/useAppStore'
 import type { Locker, LockerSize } from '@/types'
 import { EXPRESS_COMPANIES, LOCKER_SIZE_OPTIONS } from '@/utils/constants'
-import { validatePhoneLastFour } from '@/utils/helpers'
+import { validatePhoneLastFour, toDatetimeLocal, fromDatetimeLocalToISO } from '@/utils/helpers'
 import LockerGrid from '../locker/LockerGrid'
 
 interface CheckInFormProps {
@@ -26,6 +26,7 @@ export default function CheckInForm({ onSubmit, onCancel, preSelectedLockerId }:
   const [expressCompany, setExpressCompany] = useState<string>(EXPRESS_COMPANIES[0])
   const [size, setSize] = useState<LockerSize>('medium')
   const [isFragile, setIsFragile] = useState(false)
+  const [inTimeLocal, setInTimeLocal] = useState<string>(toDatetimeLocal(new Date().toISOString()))
   const [codeSearch, setCodeSearch] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -48,6 +49,13 @@ export default function CheckInForm({ onSubmit, onCancel, preSelectedLockerId }:
     const newErrors: Record<string, string> = {}
     if (!recipientName.trim()) newErrors.recipientName = '请输入收件人姓名'
     if (!validatePhoneLastFour(phoneLastFour)) newErrors.phoneLastFour = '请输入4位数字'
+    if (!inTimeLocal) {
+      newErrors.inTime = '请选择入柜时间'
+    } else {
+      const selected = new Date(inTimeLocal).getTime()
+      if (isNaN(selected)) newErrors.inTime = '入柜时间格式不正确'
+      if (selected > Date.now() + 60000) newErrors.inTime = '入柜时间不能晚于当前时间'
+    }
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return false
@@ -65,6 +73,7 @@ export default function CheckInForm({ onSubmit, onCancel, preSelectedLockerId }:
       expressCompany,
       size,
       isFragile,
+      inTime: fromDatetimeLocalToISO(inTimeLocal),
     })
     onSubmit()
   }
@@ -238,6 +247,38 @@ export default function CheckInForm({ onSubmit, onCancel, preSelectedLockerId }:
                   <option key={opt.value} value={opt.value}>{opt.label} · {opt.volume}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="col-span-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                  <Clock size={14} className="text-slate-500" />
+                  入柜时间 <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setInTimeLocal(toDatetimeLocal(new Date().toISOString()))}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1"
+                >
+                  <RotateCcw size={12} />
+                  重置为现在
+                </button>
+              </div>
+              <div className={`rounded-lg border transition-all ${
+                errors.inTime
+                  ? 'border-red-300 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-100'
+                  : 'border-slate-200 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100'
+              }`}>
+                <input
+                  type="datetime-local"
+                  value={inTimeLocal}
+                  onChange={(e) => setInTimeLocal(e.target.value)}
+                  max={toDatetimeLocal(new Date(Date.now() + 60000).toISOString())}
+                  className="w-full px-4 py-2.5 bg-transparent text-sm focus:outline-none"
+                />
+              </div>
+              {errors.inTime && <p className="mt-1 text-xs text-red-500">{errors.inTime}</p>}
+              <p className="mt-1 text-xs text-slate-400">补录早些时候收到的包裹，请选择实际入柜时间，否则催取和今日入柜统计会不准确</p>
             </div>
           </div>
 

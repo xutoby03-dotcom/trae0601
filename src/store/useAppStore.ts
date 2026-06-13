@@ -47,7 +47,7 @@ interface AppState {
   getLocker: (id: string) => Locker | undefined
   getLockerByCode: (code: string) => Locker | undefined
 
-  checkInPackage: (data: { lockerId: string; recipientName: string; phoneLastFour: string; expressCompany: string; size: LockerSize; isFragile: boolean }) => void
+  checkInPackage: (data: { lockerId: string; recipientName: string; phoneLastFour: string; expressCompany: string; size: LockerSize; isFragile: boolean; inTime: string }) => void
   checkOutPackage: (packageId: string) => void
   findPackagesByPhone: (phoneLastFour: string) => Package[]
   getPackageById: (id: string) => Package | undefined
@@ -98,20 +98,27 @@ export const useAppStore = create<AppState>()(
         return get().lockers.find((l) => l.code === code)
       },
 
-      checkInPackage: (data) => {
+      checkInPackage: (data: { lockerId: string; recipientName: string; phoneLastFour: string; expressCompany: string; size: LockerSize; isFragile: boolean; inTime: string }) => {
+        const urgent = isUrgent(data.inTime)
         const pkg: Package = {
           id: generateId(),
-          ...data,
-          inTime: new Date().toISOString(),
+          lockerId: data.lockerId,
+          recipientName: data.recipientName,
+          phoneLastFour: data.phoneLastFour,
+          expressCompany: data.expressCompany,
+          size: data.size,
+          isFragile: data.isFragile,
+          inTime: data.inTime,
           outTime: null,
           isPickedUp: false,
-          isUrgent: false,
+          isUrgent: urgent,
           createdAt: new Date().toISOString(),
         }
+        const lockerStatus: LockerStatus = urgent ? 'urgent' : 'occupied'
         set((state) => ({
           packages: [...state.packages, pkg],
           lockers: state.lockers.map((l) =>
-            l.id === data.lockerId ? { ...l, status: 'occupied', currentPackageId: pkg.id } : l
+            l.id === data.lockerId ? { ...l, status: lockerStatus, currentPackageId: pkg.id } : l
           ),
         }))
       },
