@@ -78,17 +78,18 @@ function AssignmentItem({ assignment, supply, member }: AssignmentItemProps) {
               <div className="flex flex-wrap gap-1">
                 {segments.map((seg) => {
                   const used = assignment.usedSegments.includes(seg.id);
-                  const segIndex = segments.findIndex((s) => s.id === seg.id);
-                  const isUsedBeyondQty = segIndex >= assignment.quantityAssigned;
+                  const usedCount = assignment.usedSegments.length;
+                  const maxQty = assignment.quantityAssigned;
+                  const isDisabled = !used && usedCount >= maxQty;
                   return (
                     <button
                       key={seg.id}
-                      disabled={isUsedBeyondQty && !used}
+                      disabled={isDisabled}
                       onClick={() => toggleSegmentUsed(assignment.id, seg.id)}
                       className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
                         used
                           ? 'bg-forest-600 text-white line-through opacity-70'
-                          : isUsedBeyondQty
+                          : isDisabled
                             ? 'bg-parchment-200 text-parchment-400 cursor-not-allowed'
                             : 'bg-white text-forest-700 border border-parchment-300 hover:bg-forest-50 hover:border-forest-300'
                       }`}
