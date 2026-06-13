@@ -13,6 +13,7 @@ import {
 import { useBoardGameStore } from "@/store/useBoardGameStore";
 import { GameCard, StatusBadge, SectionTitle, EmptyState } from "@/components/UI";
 import { ComponentIcon } from "@/components/ComponentIcon";
+import { formatDateTime } from "@/lib/utils";
 
 export default function GameDetail() {
   const { id } = useParams<{ id: string }>();
@@ -65,17 +66,24 @@ export default function GameDetail() {
             {game.name}
           </h1>
         </div>
-        <button
-          onClick={() => store.toggleWantToPlay(game.id)}
-          className={`rounded-lg border px-3 py-1.5 text-xs transition-all ${
-            game.wantToPlay
-              ? "border-[#B5544A]/50 bg-[#B5544A]/15 text-[#B5544A]"
-              : "border-[#3E2723]/50 text-[#FAF3E0]/30"
-          }`}
-        >
-          <Heart size={14} className="inline" fill={game.wantToPlay ? "currentColor" : "none"} />
-          {game.wantToPlay ? " 想玩" : " 标记想玩"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => store.toggleWantToPlay(game.id)}
+            className={`rounded-lg border px-3 py-1.5 text-xs transition-all ${
+              game.wantToPlay
+                ? "border-[#B5544A]/50 bg-[#B5544A]/15 text-[#B5544A]"
+                : "border-[#3E2723]/50 text-[#FAF3E0]/30"
+            }`}
+          >
+            <Heart size={14} className="inline" fill={game.wantToPlay ? "currentColor" : "none"} />
+            {game.wantToPlay ? " 想玩" : " 标记想玩"}
+          </button>
+          {game.wantToPlay && game.wantToPlayAt && (
+            <span className="text-[11px] text-[#FAF3E0]/30">
+              {formatDateTime(game.wantToPlayAt)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-6">

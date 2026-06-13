@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useBoardGameStore } from "@/store/useBoardGameStore";
 import { GameCard, StatusBadge, SectionTitle, EmptyState } from "@/components/UI";
+import { formatDate } from "@/lib/utils";
 
 export default function Dashboard() {
   const store = useBoardGameStore();
@@ -234,6 +235,11 @@ export default function Dashboard() {
                     </p>
                     <p className="text-[10px] text-[#FAF3E0]/30">
                       {game.duration}分钟
+                      {game.wantToPlayAt && (
+                        <span className="ml-1 text-[#B5544A]/60">
+                          · {formatDate(game.wantToPlayAt)}
+                        </span>
+                      )}
                     </p>
                   </Link>
                 ))}
