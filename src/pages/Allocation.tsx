@@ -156,9 +156,11 @@ function AssignmentItem({ assignment, supply, member }: AssignmentItemProps) {
 
 interface MemberPanelProps {
   member: Member;
+  highlightSupplyId: string | null;
+  onHighlightConsumed: () => void;
 }
 
-function MemberPanel({ member }: MemberPanelProps) {
+function MemberPanel({ member, highlightSupplyId, onHighlightConsumed }: MemberPanelProps) {
   const { supplies, assignments, assignSupply } = useAppStore();
   const [showAssign, setShowAssign] = useState(false);
 
@@ -168,7 +170,17 @@ function MemberPanel({ member }: MemberPanelProps) {
   const status = getLoadStatus(weight, recommended);
   const ratio = getLoadRatioPercent(weight, recommended);
 
-  const unassignedSupplies = getUnassignedSupplies(supplies, assignments);
+  const unassignedSupplies = useMemo(() => {
+    const list = getUnassignedSupplies(supplies, assignments);
+    if (highlightSupplyId) {
+      const idx = list.findIndex((s) => s.id === highlightSupplyId);
+      if (idx > 0) {
+        const [item] = list.splice(idx, 1);
+        list.unshift(item);
+      }
+    }
+    return list;
+  }, [supplies, assignments, highlightSupplyId]);
 
   return (
     <div
@@ -257,14 +269,20 @@ function MemberPanel({ member }: MemberPanelProps) {
             <div className="space-y-1">
               {unassignedSupplies.map((s) => {
                 const remaining = getSupplyRemainingQuantity(s, assignments);
+                const isHighlighted = s.id === highlightSupplyId;
                 return (
                   <button
                     key={s.id}
                     onClick={() => {
                       assignSupply(s.id, member.id, 1);
+                      if (isHighlighted) onHighlightConsumed();
                       if (remaining <= 1) setShowAssign(false);
                     }}
-                    className="w-full text-left flex items-center gap-2 p-2 rounded-md hover:bg-forest-50 transition-colors"
+                    className={`w-full text-left flex items-center gap-2 p-2 rounded-md transition-colors ${
+                      isHighlighted
+                        ? 'bg-forest-100 border-2 border-forest-500 shadow-card'
+                        : 'hover:bg-forest-50'
+                    }`}
                   >
                     <span className="text-sm text-forest-800 flex-1 truncate">{s.name}</span>
                     <CategoryTag category={s.category} />
@@ -282,7 +300,20 @@ function MemberPanel({ member }: MemberPanelProps) {
 
 export default function Allocation() {
   const { members, supplies, assignments } = useAppStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlight');
+
+  const clearHighlight = () => {
+    setSearchParams({}, { replace: true });
+  };
+
   const unassigned = useMemo(() => getUnassignedSupplies(supplies, assignments), [supplies, assignments]);
+
+  useEffect(() => {
+    if (highlightId && !unassigned.find((s) => s.id === highlightId)) {
+      clearHighlight();
+    }
+  }, [highlightId, unassigned]);
 
   const totalWeight = useMemo(() => {
     return supplies.reduce((sum, s) => sum + s.weightGrams * s.quantity, 0);
@@ -332,10 +363,15 @@ export default function Allocation() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {unassigned.map((s) => {
               const remaining = getSupplyRemainingQuantity(s, assignments);
+              const isHighlighted = s.id === highlightId;
               return (
                 <div
                   key={s.id}
-                  className="p-2.5 rounded-lg bg-parchment-50 border border-parchment-200 hover:border-warn-400 hover:shadow-card transition-all cursor-default"
+                  className={`p-2.5 rounded-lg transition-all cursor-default ${
+                    isHighlighted
+                      ? 'bg-forest-100 border-2 border-forest-500 shadow-card-hover ring-2 ring-forest-300 animate-pulse-warn'
+                      : 'bg-parchment-50 border border-parchment-200 hover:border-warn-400 hover:shadow-card'
+                  }`}
                 >
                   <div className="flex items-center gap-2">
                     {s.photoUrl ? (
@@ -377,7 +413,7 @@ export default function Allocation() {
             style={{ animationDelay: `${i * 80}ms` }}
             className="animate-fade-up opacity-0 min-h-[480px]"
           >
-            <MemberPanel member={member} />
+            <MemberPanel member={member} highlightSupplyId={highlightId} onHighlightConsumed={clearHighlight} />
           </div>
         ))}
       </div>
