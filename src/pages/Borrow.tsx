@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, Phone, Package } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Modal } from '@/components/Modal';
@@ -27,13 +27,16 @@ export function Borrow() {
   const [statusFilter, setStatusFilter] = useState<BorrowStatus | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
+  useEffect(() => {
+    refreshOverdueStatus();
+  }, [refreshOverdueStatus]);
+  
   const availableBags = useMemo(() => 
     bags.filter(b => b.status === 'available'),
     [bags]
   );
   
   const filteredRecords = useMemo(() => {
-    refreshOverdueStatus();
     return records
       .filter(record => {
         const bag = bags.find(b => b.id === record.bagId);
@@ -46,7 +49,7 @@ export function Borrow() {
         return matchesSearch && matchesStatus;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [records, bags, searchQuery, statusFilter, refreshOverdueStatus]);
+  }, [records, bags, searchQuery, statusFilter]);
   
   const handleSubmit = (data: BorrowFormData) => {
     addBorrow(data);

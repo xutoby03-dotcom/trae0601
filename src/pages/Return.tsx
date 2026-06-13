@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, CheckCircle, Phone, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Modal } from '@/components/Modal';
@@ -12,8 +12,11 @@ export function Return() {
   const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const activeRecords = useMemo(() => {
+  useEffect(() => {
     refreshOverdueStatus();
+  }, [refreshOverdueStatus]);
+  
+  const activeRecords = useMemo(() => {
     return records
       .filter(r => r.status === 'active' || r.status === 'overdue')
       .filter(record => {
@@ -32,7 +35,7 @@ export function Return() {
         if (b.status === 'overdue' && a.status !== 'overdue') return 1;
         return bOverdue - aOverdue;
       });
-  }, [records, bags, searchQuery, refreshOverdueStatus]);
+  }, [records, bags, searchQuery]);
   
   const handleReturn = (recordId: string) => {
     setSelectedRecord(recordId);

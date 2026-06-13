@@ -160,12 +160,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   
   refreshOverdueStatus: () => {
-    const records = get().records.map(record => {
+    const currentRecords = get().records;
+    let changed = false;
+    
+    const records = currentRecords.map(record => {
       if (record.status === 'active' && isOverdue(record.expectedReturnTime)) {
+        changed = true;
         return { ...record, status: 'overdue' as const };
       }
       return record;
     });
+    
+    if (!changed) return;
+    
     saveRecords(records);
     set({ records });
   },

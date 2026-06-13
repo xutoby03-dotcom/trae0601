@@ -9,12 +9,23 @@ import { Overdue } from '@/pages/Overdue';
 import { Statistics } from '@/pages/Statistics';
 import { useAppStore } from '@/store/useAppStore';
 
+const OVERDUE_REFRESH_INTERVAL = 60 * 1000;
+
 export default function App() {
   const initData = useAppStore(state => state.initData);
+  const refreshOverdueStatus = useAppStore(state => state.refreshOverdueStatus);
   
   useEffect(() => {
     initData();
   }, [initData]);
+  
+  useEffect(() => {
+    refreshOverdueStatus();
+    const timer = setInterval(() => {
+      refreshOverdueStatus();
+    }, OVERDUE_REFRESH_INTERVAL);
+    return () => clearInterval(timer);
+  }, [refreshOverdueStatus]);
   
   return (
     <Router>

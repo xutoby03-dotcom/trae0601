@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { AlertTriangle, Phone, Clock, Package, User } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { StatusTag } from '@/components/StatusTag';
@@ -7,12 +7,15 @@ import { formatDateTime, formatCurrency, getDaysOverdue } from '@/utils/helpers'
 export function Overdue() {
   const { records, bags, markAsLost, refreshOverdueStatus } = useAppStore();
   
-  const overdueRecords = useMemo(() => {
+  useEffect(() => {
     refreshOverdueStatus();
+  }, [refreshOverdueStatus]);
+  
+  const overdueRecords = useMemo(() => {
     return records
       .filter(r => r.status === 'overdue')
       .sort((a, b) => getDaysOverdue(b.expectedReturnTime) - getDaysOverdue(a.expectedReturnTime));
-  }, [records, refreshOverdueStatus]);
+  }, [records]);
   
   const handleMarkLost = (recordId: string) => {
     if (confirm('确定要将此记录标记为丢失吗？袋子状态将更新为"丢失"。')) {
