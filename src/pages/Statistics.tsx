@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -19,15 +19,20 @@ import {
   Building2,
   Clock,
   BarChart3,
+  ChevronDown,
+  ChevronRight,
+  CalendarClock,
+  AlertCircle,
 } from "lucide-react";
 import { useStore } from "@/store";
-import { getMonthKey, daysBetween, formatDate } from "@/utils/date";
+import { getMonthKey, daysBetween, formatDate, daysUntilDeadline, isOverdue } from "@/utils/date";
 
 export default function Statistics() {
   const plants = useStore((s) => s.plants);
   const records = useStore((s) => s.serviceRecords);
   const issues = useStore((s) => s.issues);
   const suppliers = useStore((s) => s.suppliers);
+  const [expandedSupplier, setExpandedSupplier] = useState<string | null>(null);
 
   const monthlyData = useMemo(() => {
     const months: Record<string, number> = {};
@@ -66,16 +71,43 @@ export default function Statistics() {
 
   const supplierResponseTime = useMemo(() => {
     return suppliers.map((sup) => {
-      const supIssues = issues.filter(
-        (i) => i.responsibleSupplierId === sup.id && i.responseAt
-      );
-      if (supIssues.length === 0) return { name: sup.name.slice(0, 6), days: 0 };
-      const avg =
-        supIssues.reduce((sum, i) => {
-          return sum + daysBetween(i.createdAt, i.responseAt || i.createdAt);
-        }, 0) / supIssues.length;
-      return { name: sup.name.slice(0, 6), days: Math.round(avg * 10) / 10 };
+      const supIssues = issues.filter((i) => i.responsibleSupplierId === sup.id);
+      const responded = supIssues.filter((i) => i.responseAt);
+      const avg = responded.length === 0
+        ? 0
+        : responded.reduce((sum, i) => sum + daysBetween(i.createdAt, i.responseAt!), 0) / responded.length;
+
+      const overdueCount = supIssues.filter((i) => {
+        if (i.status === "closed") return false;
+        const noResponseOver2Days = !i.responseAt && daysBetween(i.createdAt, new Date().toISOString()) > 2;
+        const passedDeadline = isOverdue(i.deadline);
+        return noResponseOver2Days || passedDeadline;
+      }).length;
+
+      return {
+        id: sup.id,
+        name: sup.name.slice(0, 6),
+        days: Math.round(avg * 10) / 10,
+        overdueCount,
+      };
     });
+  }, [suppliers, issues]);
+
+  const openIssuesBySupplier = useMemo(() => {
+    const groups: Record<string, typeof issues> = {};
+    suppliers.forEach((s) => (groups[s.id] = []));
+    issues
+      .filter((i) => i.status !== "closed")
+      .forEach((i) => {
+        if (!groups[i.responsibleSupplierId]) groups[i.responsibleSupplierId] = [];
+        groups[i.responsibleSupplierId].push(i);
+      });
+    return suppliers
+      .map((s) => ({
+        supplier: s,
+        issues: groups[s.id] || [],
+      }))
+      .filter((g) => g.issues.length > 0);
   }, [suppliers, issues]);
 
   const issueStatusData = useMemo(() => {
@@ -327,18 +359,28 @@ export default function Statistics() {
             </h3>
           </div>
           <div className="space-y-4">
-            {supplierResponseTime.map((item, idx) => (
-              <div key={item.name}>
+            {supplierResponseTime.map((item) => (
+              <div key={item.id}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-sm text-forest-700">{item.name}</span>
-                  <span className="text-sm font-semibold text-forest-800">
-                    {item.days} 天
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-forest-800">
+                      平均 {item.days} 天
+                    </span>
+                    {item.overdueCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        超时 {item.overdueCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="h-2 bg-cream-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${
-                      item.days <= 1
+                      item.overdueCount > 0
+                        ? "bg-gradient-to-r from-amber-400 to-amber-600"
+                        : item.days <= 1
                         ? "bg-gradient-to-r from-forest-400 to-forest-600"
                         : item.days <= 2
                         ? "bg-gradient-to-r from-moss-400 to-moss-600"
@@ -356,73 +398,146 @@ export default function Statistics() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-card border border-forest-50 p-6">
-        <h3 className="font-serif text-lg font-semibold text-forest-800 mb-1">
-          未闭环问题一览
-        </h3>
-        <p className="text-sm text-forest-500 mb-5">
-          当前还有 {openIssues.length} 个问题需要跟进处理
-        </p>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-forest-100">
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">绿植</th>
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">位置</th>
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">问题类型</th>
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">责任人</th>
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">截止日期</th>
-                <th className="text-left text-xs font-medium text-forest-500 py-3 px-4">状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {openIssues.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-forest-400">
-                    暂无未闭环问题，做得很好！
-                  </td>
-                </tr>
-              ) : (
-                openIssues.map((issue) => {
-                  const plant = plants.find((p) => p.id === issue.plantId);
-                  const staff = useStore.getState().getStaffById(issue.assignedTo);
-                  return (
-                    <tr key={issue.id} className="border-b border-forest-50 hover:bg-cream-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg overflow-hidden bg-cream-100">
-                            {plant?.photoUrl && (
-                              <img src={plant.photoUrl} alt="" className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <span className="text-sm text-forest-800">{plant?.species}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-forest-600">{plant?.location}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs">
-                          {issue.type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-forest-600">{staff?.name}</td>
-                      <td className="py-3 px-4 text-sm text-forest-600">{formatDate(issue.deadline)}</td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                            issue.status === "pending"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-forest-100 text-forest-700"
-                          }`}
-                        >
-                          {issue.status === "pending" ? "待处理" : "处理中"}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-serif text-lg font-semibold text-forest-800">
+            未闭环问题（按供应商）
+          </h3>
+          <span className="text-sm text-forest-500">
+            共 {openIssues.length} 个待跟进
+          </span>
         </div>
+        <p className="text-sm text-forest-500 mb-5">
+          点击供应商行可展开查看具体问题及截止日
+        </p>
+
+        {openIssuesBySupplier.length === 0 ? (
+          <div className="text-center py-12 text-forest-400">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>暂无未闭环问题，做得很好！</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {openIssuesBySupplier.map((group) => {
+              const isOpen = expandedSupplier === group.supplier.id;
+              const overdueInGroup = group.issues.filter((i) => isOverdue(i.deadline)).length;
+              return (
+                <div key={group.supplier.id} className="border border-forest-100 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() =>
+                      setExpandedSupplier(isOpen ? null : group.supplier.id)
+                    }
+                    className="w-full px-5 py-4 flex items-center justify-between bg-cream-50 hover:bg-cream-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-forest-500 to-forest-700 flex items-center justify-center text-white font-serif font-bold">
+                        {group.supplier.name.charAt(0)}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-forest-800">
+                          {group.supplier.name}
+                        </p>
+                        <p className="text-xs text-forest-500">
+                          {group.supplier.contact} · {group.supplier.phone}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-forest-800">
+                          {group.issues.length} 个未闭环
+                        </p>
+                        {overdueInGroup > 0 && (
+                          <p className="text-xs text-amber-600 flex items-center justify-end gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            已超期 {overdueInGroup} 个
+                          </p>
+                        )}
+                      </div>
+                      {isOpen ? (
+                        <ChevronDown className="w-5 h-5 text-forest-500" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-forest-500" />
+                      )}
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-forest-100 bg-white">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="bg-forest-50/50">
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-5">绿植</th>
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">问题类型</th>
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">责任人</th>
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">截止日期</th>
+                              <th className="text-left text-xs font-medium text-forest-500 py-2.5 px-4">状态</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.issues.map((issue) => {
+                              const plant = plants.find((p) => p.id === issue.plantId);
+                              const staff = useStore.getState().getStaffById(issue.assignedTo);
+                              const overdue = isOverdue(issue.deadline);
+                              const remain = daysUntilDeadline(issue.deadline);
+                              return (
+                                <tr key={issue.id} className="border-t border-forest-50 hover:bg-cream-50">
+                                  <td className="py-3 px-5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-cream-100">
+                                        {plant?.photoUrl && (
+                                          <img src={plant.photoUrl} alt="" className="w-full h-full object-cover" />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <p className="text-sm text-forest-800">{plant?.species}</p>
+                                        <p className="text-xs text-forest-400">{plant?.location}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs">
+                                      {issue.type}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-forest-600">{staff?.name}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-2">
+                                      <CalendarClock
+                                        className={`w-4 h-4 ${overdue ? "text-amber-600" : "text-forest-400"}`}
+                                      />
+                                      <div>
+                                        <p className="text-sm text-forest-700">{formatDate(issue.deadline)}</p>
+                                        <p className={`text-xs ${overdue ? "text-amber-600" : "text-forest-400"}`}>
+                                          {overdue ? `已超期 ${Math.abs(remain)} 天` : `还剩 ${remain} 天`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <span
+                                      className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                                        issue.status === "pending"
+                                          ? "bg-amber-100 text-amber-700"
+                                          : "bg-forest-100 text-forest-700"
+                                      }`}
+                                    >
+                                      {issue.status === "pending" ? "待处理" : "处理中"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
