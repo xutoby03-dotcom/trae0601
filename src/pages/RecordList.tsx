@@ -54,7 +54,7 @@ export default function RecordList() {
       });
     }
     if (onlyZeroStock) {
-      result = result.filter((r) => (r.remainingInventory ?? 0) === 0);
+      result = result.filter((r) => r.remainingInventory === 0);
     }
     return result.sort(
       (a, b) => new Date(b.installDate).getTime() - new Date(a.installDate).getTime()
