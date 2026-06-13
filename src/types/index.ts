@@ -12,6 +12,7 @@ export interface Game {
   boxCondition: BoxCondition;
   coverImage: string;
   wantToPlay: boolean;
+  wantToPlayAt: string | null;
   createdAt: string;
 }
 

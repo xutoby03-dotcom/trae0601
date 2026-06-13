@@ -15,7 +15,13 @@ export default function Dashboard() {
   const store = useBoardGameStore();
   const overdueLendings = store.getOverdueLendings();
   const incompleteGames = store.getIncompleteGames();
-  const wantToPlayGames = store.games.filter((g) => g.wantToPlay);
+  const wantToPlayGames = [...store.games]
+    .filter((g) => g.wantToPlay)
+    .sort((a, b) => {
+      if (!a.wantToPlayAt) return 1;
+      if (!b.wantToPlayAt) return -1;
+      return new Date(b.wantToPlayAt).getTime() - new Date(a.wantToPlayAt).getTime();
+    });
   const topBorrowers = store.getTopBorrowers();
   const mostMissingGames = store.getMostMissingGames();
   const activeLendings = store.lendingRecords.filter(

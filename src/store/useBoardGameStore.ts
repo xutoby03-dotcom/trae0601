@@ -23,7 +23,7 @@ interface BoardGameStore {
   componentChecks: ComponentCheck[];
   repairRecords: RepairRecord[];
 
-  addGame: (game: Omit<Game, "id" | "createdAt">) => string;
+  addGame: (game: Omit<Game, "id" | "createdAt" | "wantToPlayAt">) => string;
   updateGame: (id: string, data: Partial<Game>) => void;
   deleteGame: (id: string) => void;
   toggleWantToPlay: (id: string) => void;
@@ -66,6 +66,7 @@ export const useBoardGameStore = create<BoardGameStore>()(
         const id = generateId();
         const game: Game = {
           ...gameData,
+          wantToPlayAt: null,
           id,
           createdAt: new Date().toISOString(),
         };
@@ -95,9 +96,16 @@ export const useBoardGameStore = create<BoardGameStore>()(
       },
 
       toggleWantToPlay: (id) => {
+        const now = new Date().toISOString();
         set((state) => ({
           games: state.games.map((g) =>
-            g.id === id ? { ...g, wantToPlay: !g.wantToPlay } : g
+            g.id === id
+              ? {
+                  ...g,
+                  wantToPlay: !g.wantToPlay,
+                  wantToPlayAt: !g.wantToPlay ? now : null,
+                }
+              : g
           ),
         }));
       },
