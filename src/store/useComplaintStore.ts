@@ -104,7 +104,9 @@ export const useComplaintStore = create<ComplaintStore>((set, get) => ({
   },
 
   checkOverdue: () => {
-    const complaints = updateOverdueStatus(get().complaints);
+    const currentComplaints = get().complaints;
+    if (currentComplaints.length === 0) return;
+    const complaints = updateOverdueStatus(currentComplaints);
     saveComplaints(complaints);
     set({ complaints });
   },
