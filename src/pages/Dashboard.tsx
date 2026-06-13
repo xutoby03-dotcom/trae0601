@@ -15,13 +15,11 @@ import StatusTag from '@/components/StatusTag';
 import LevelTag from '@/components/LevelTag';
 import { useCouponStore } from '@/stores/couponStore';
 import { useMemberStore } from '@/stores/memberStore';
-import { useCouponTypeStore } from '@/stores/couponTypeStore';
-import { getBirthdayMembers, formatMonthDay, getRealStatus, maskPhone } from '@/utils';
+import { getBirthdayMembers, formatMonthDay, getRealStatus, maskPhone, getIssueCouponName } from '@/utils';
 
 export default function Dashboard() {
   const { issues, getMonthlyStats, getMissedMembers } = useCouponStore();
   const { members } = useMemberStore();
-  const { couponTypes } = useCouponTypeStore();
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -58,11 +56,6 @@ export default function Dashboard() {
   const getMemberName = (id: string) => {
     const m = members.find((mem) => mem.id === id);
     return m ? m.name : '未知';
-  };
-
-  const getCouponName = (id: string) => {
-    const c = couponTypes.find((ct) => ct.id === id);
-    return c ? c.name : '未知券';
   };
 
   return (
@@ -286,7 +279,7 @@ export default function Dashboard() {
                     </div>
                   </td>
                   <td className="py-3 text-gray-700">
-                    {getCouponName(issue.couponTypeId)}
+                    {getIssueCouponName(issue)}
                   </td>
                   <td className="py-3 text-gray-600">{issue.channel}</td>
                   <td className="py-3 text-gray-500">{issue.issueDate}</td>

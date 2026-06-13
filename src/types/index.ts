@@ -28,6 +28,14 @@ export interface CouponType {
   createdAt: string;
 }
 
+export interface CouponSnapshot {
+  couponName: string;
+  couponType: CouponTypeCategory;
+  amount: number;
+  threshold: number;
+  validDays: number;
+}
+
 export interface CouponIssue {
   id: string;
   memberId: string;
@@ -41,6 +49,7 @@ export interface CouponIssue {
   usedDate?: string;
   orderId?: string;
   orderAmount?: number;
+  snapshot: CouponSnapshot;
 }
 
 export interface MonthlyStats {

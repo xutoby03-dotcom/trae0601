@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { CouponIssue, CouponStatus, SendChannel, MonthlyStats } from '@/types';
+import type { CouponIssue, CouponStatus, SendChannel, MonthlyStats, CouponSnapshot } from '@/types';
 import { mockCouponIssues } from '@/data/mockData';
-import { generateId, getExpireDate, isCouponIssuedThisYear, getRealStatus, calculateMonthlyStats, getBirthdayMembers } from '@/utils';
+import { generateId, getExpireDate, isCouponIssuedThisYear, getRealStatus, calculateMonthlyStats, getBirthdayMembers, getSnapshotFromCouponType } from '@/utils';
 import { getFromStorage, setToStorage } from '@/hooks/useLocalStorage';
 import { useMemberStore } from './memberStore';
 import { useCouponTypeStore } from './couponTypeStore';
@@ -26,10 +26,30 @@ interface CouponState {
   getMissedMembers: (month: number, year: number) => string[];
 }
 
+function buildDefaultSnapshot(couponTypeId: string): CouponSnapshot {
+  const ct = useCouponTypeStore.getState().getCouponTypeById(couponTypeId);
+  if (ct) return getSnapshotFromCouponType(ct);
+  return {
+    couponName: '已删除券',
+    couponType: '立减券',
+    amount: 0,
+    threshold: 0,
+    validDays: 30,
+  };
+}
+
+function migrateIssue(issue: CouponIssue): CouponIssue {
+  if (issue.snapshot) return issue;
+  return {
+    ...issue,
+    snapshot: buildDefaultSnapshot(issue.couponTypeId),
+  };
+}
+
 const initialIssues = (): CouponIssue[] => {
   const stored = getFromStorage<CouponIssue[] | null>(STORAGE_KEY, null);
-  if (stored && stored.length > 0) return stored;
-  return mockCouponIssues;
+  const rawList = stored && stored.length > 0 ? stored : mockCouponIssues;
+  return rawList.map(migrateIssue);
 };
 
 export const useCouponStore = create<CouponState>((set, get) => ({
@@ -58,6 +78,7 @@ export const useCouponStore = create<CouponState>((set, get) => ({
       status: 'pending',
       issueDate: today,
       expireDate: getExpireDate(today, couponType.validDays),
+      snapshot: getSnapshotFromCouponType(couponType),
     };
 
     const newIssues = [...issues, newIssue];
@@ -81,6 +102,7 @@ export const useCouponStore = create<CouponState>((set, get) => ({
 
     const today = new Date().toISOString().split('T')[0];
     const newIssues = [...issues];
+    const snapshot = getSnapshotFromCouponType(couponType);
 
     memberIds.forEach((memberId) => {
       const member = useMemberStore.getState().getMemberById(memberId);
@@ -105,6 +127,7 @@ export const useCouponStore = create<CouponState>((set, get) => ({
         status: 'pending',
         issueDate: today,
         expireDate: getExpireDate(today, couponType.validDays),
+        snapshot,
       };
       newIssues.push(newIssue);
       success++;

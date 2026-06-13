@@ -4,13 +4,11 @@ import StatusTag from '@/components/StatusTag';
 import LevelTag from '@/components/LevelTag';
 import { useCouponStore } from '@/stores/couponStore';
 import { useMemberStore } from '@/stores/memberStore';
-import { useCouponTypeStore } from '@/stores/couponTypeStore';
-import { getCouponDisplayText, formatDateCN, maskPhone } from '@/utils';
+import { formatDateCN, maskPhone, getIssueCouponName, getIssueCouponDisplay } from '@/utils';
 
 export default function ExpiredCoupons() {
   const { getExpiredUnused } = useCouponStore();
   const { members } = useMemberStore();
-  const { couponTypes } = useCouponTypeStore();
 
   const expiredList = useMemo(() => {
     const list = getExpiredUnused();
@@ -20,14 +18,13 @@ export default function ExpiredCoupons() {
   }, [getExpiredUnused]);
 
   const getMemberById = (id: string) => members.find((m) => m.id === id);
-  const getCouponTypeById = (id: string) => couponTypes.find((c) => c.id === id);
 
   const totalAmount = expiredList.reduce((sum, issue) => {
-    const ct = getCouponTypeById(issue.couponTypeId);
-    if (ct?.type === '折扣券') {
+    if (!issue.snapshot) return sum;
+    if (issue.snapshot.couponType === '折扣券') {
       return sum;
     }
-    return sum + (ct?.amount || 0);
+    return sum + (issue.snapshot.amount || 0);
   }, 0);
 
   return (
@@ -107,7 +104,6 @@ export default function ExpiredCoupons() {
             <tbody className="text-sm divide-y divide-gray-50">
               {expiredList.map((issue, index) => {
                 const member = getMemberById(issue.memberId);
-                const couponType = getCouponTypeById(issue.couponTypeId);
                 return (
                   <tr
                     key={issue.id}
@@ -134,10 +130,10 @@ export default function ExpiredCoupons() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="text-gray-700 font-medium">
-                          {couponType?.name || '未知券'}
+                          {getIssueCouponName(issue)}
                         </p>
                         <p className="text-xs text-primary-500 font-medium">
-                          {couponType && getCouponDisplayText(couponType)}
+                          {getIssueCouponDisplay(issue)}
                         </p>
                       </div>
                     </td>

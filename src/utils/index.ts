@@ -1,5 +1,5 @@
 import { format, getMonth, getDate, isBefore, isAfter, addDays, startOfMonth, endOfMonth } from 'date-fns';
-import type { Member, CouponIssue, CouponType, CouponStatus, MonthlyStats } from '@/types';
+import type { Member, CouponIssue, CouponType, CouponStatus, MonthlyStats, CouponSnapshot } from '@/types';
 
 export function formatDate(date: string | Date, fmt = 'yyyy-MM-dd'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -129,11 +129,34 @@ export function getExpireDate(issueDate: string, validDays: number): string {
   return format(addDays(date, validDays), 'yyyy-MM-dd');
 }
 
-export function getCouponDisplayText(couponType: CouponType): string {
-  if (couponType.type === '折扣券') {
+export function getCouponDisplayText(couponType: CouponType | CouponSnapshot): string {
+  const typeField = 'type' in couponType ? couponType.type : couponType.couponType;
+  if (typeField === '折扣券') {
     return `${couponType.amount / 10}折`;
   }
   return `¥${couponType.amount}`;
+}
+
+export function getSnapshotFromCouponType(couponType: CouponType): CouponSnapshot {
+  return {
+    couponName: couponType.name,
+    couponType: couponType.type,
+    amount: couponType.amount,
+    threshold: couponType.threshold,
+    validDays: couponType.validDays,
+  };
+}
+
+export function getIssueCouponName(issue: CouponIssue): string {
+  return issue.snapshot?.couponName || '未知券';
+}
+
+export function getIssueCouponDisplay(issue: CouponIssue): string {
+  if (!issue.snapshot) return '--';
+  if (issue.snapshot.couponType === '折扣券') {
+    return `${issue.snapshot.amount / 10}折`;
+  }
+  return `¥${issue.snapshot.amount}`;
 }
 
 export function maskPhone(phone: string): string {

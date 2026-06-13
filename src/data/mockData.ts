@@ -199,6 +199,17 @@ export const mockCouponTypes: CouponType[] = [
 const currentYear = new Date().getFullYear();
 const currentMonth = new Date().getMonth();
 
+const ctSnapshot = (id: string) => {
+  const ct = mockCouponTypes.find((c) => c.id === id)!;
+  return {
+    couponName: ct.name,
+    couponType: ct.type,
+    amount: ct.amount,
+    threshold: ct.threshold,
+    validDays: ct.validDays,
+  };
+};
+
 export const mockCouponIssues: CouponIssue[] = [
   {
     id: 'ci001',
@@ -213,6 +224,7 @@ export const mockCouponIssues: CouponIssue[] = [
     usedDate: `${currentYear}-06-10`,
     orderId: 'ORD20240610001',
     orderAmount: 688,
+    snapshot: ctSnapshot('ct004'),
   },
   {
     id: 'ci002',
@@ -224,6 +236,7 @@ export const mockCouponIssues: CouponIssue[] = [
     issueDate: `${currentYear}-06-05`,
     expireDate: `${currentYear}-07-05`,
     claimedDate: `${currentYear}-06-06`,
+    snapshot: ctSnapshot('ct002'),
   },
   {
     id: 'ci003',
@@ -234,6 +247,7 @@ export const mockCouponIssues: CouponIssue[] = [
     status: 'pending',
     issueDate: `${currentYear}-06-01`,
     expireDate: `${currentYear}-07-01`,
+    snapshot: ctSnapshot('ct001'),
   },
   {
     id: 'ci004',
@@ -248,6 +262,7 @@ export const mockCouponIssues: CouponIssue[] = [
     usedDate: `${currentYear}-06-15`,
     orderId: 'ORD20240615003',
     orderAmount: 1299,
+    snapshot: ctSnapshot('ct004'),
   },
   {
     id: 'ci005',
@@ -258,6 +273,7 @@ export const mockCouponIssues: CouponIssue[] = [
     status: 'pending',
     issueDate: `${currentYear}-06-10`,
     expireDate: `${currentYear}-07-10`,
+    snapshot: ctSnapshot('ct001'),
   },
   {
     id: 'ci006',
@@ -269,6 +285,7 @@ export const mockCouponIssues: CouponIssue[] = [
     issueDate: `${currentYear}-06-01`,
     expireDate: `${currentYear}-06-16`,
     claimedDate: `${currentYear}-06-05`,
+    snapshot: ctSnapshot('ct003'),
   },
   {
     id: 'ci007',
@@ -279,6 +296,7 @@ export const mockCouponIssues: CouponIssue[] = [
     status: 'pending',
     issueDate: `${currentYear}-05-28`,
     expireDate: `${currentYear}-06-27`,
+    snapshot: ctSnapshot('ct002'),
   },
   {
     id: 'ci008',
@@ -290,6 +308,7 @@ export const mockCouponIssues: CouponIssue[] = [
     issueDate: `${currentYear - 1}-09-01`,
     expireDate: `${currentYear - 1}-10-01`,
     claimedDate: `${currentYear - 1}-09-05`,
+    snapshot: ctSnapshot('ct002'),
   },
   {
     id: 'ci009',
@@ -304,6 +323,7 @@ export const mockCouponIssues: CouponIssue[] = [
     usedDate: `${currentYear}-05-20`,
     orderId: 'ORD20240520008',
     orderAmount: 356,
+    snapshot: ctSnapshot('ct001'),
   },
   {
     id: 'ci010',
@@ -314,6 +334,7 @@ export const mockCouponIssues: CouponIssue[] = [
     status: 'expired',
     issueDate: `${currentYear}-03-01`,
     expireDate: `${currentYear}-03-31`,
+    snapshot: ctSnapshot('ct002'),
   },
   {
     id: 'ci011',
@@ -328,6 +349,7 @@ export const mockCouponIssues: CouponIssue[] = [
     usedDate: `${currentYear - 1}-08-20`,
     orderId: 'ORD20230820012',
     orderAmount: 268,
+    snapshot: ctSnapshot('ct001'),
   },
   {
     id: 'ci012',
@@ -339,5 +361,6 @@ export const mockCouponIssues: CouponIssue[] = [
     issueDate: `${currentYear - 1}-12-01`,
     expireDate: `${currentYear - 1}-01-30`,
     claimedDate: `${currentYear - 1}-12-05`,
+    snapshot: ctSnapshot('ct004'),
   },
 ];

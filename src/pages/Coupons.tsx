@@ -24,6 +24,8 @@ import {
   getCouponDisplayText,
   maskPhone,
   formatDateCN,
+  getIssueCouponName,
+  getIssueCouponDisplay,
 } from '@/utils';
 
 const channelOptions: SendChannel[] = ['短信', '微信', 'APP推送', '门店发放'];
@@ -124,7 +126,6 @@ export default function Coupons() {
   };
 
   const getMemberById = (id: string) => members.find((m) => m.id === id);
-  const getCouponTypeById = (id: string) => couponTypes.find((c) => c.id === id);
 
   const missedMembers = birthdayMembers.filter(
     (m) => !memberStatusMap.get(m.id)?.issued
@@ -364,7 +365,6 @@ export default function Coupons() {
                 <tbody className="text-sm divide-y divide-gray-50">
                   {filteredIssues.slice(0, 20).map((issue, index) => {
                     const member = getMemberById(issue.memberId);
-                    const couponType = getCouponTypeById(issue.couponTypeId);
                     const realStatus = getRealStatus(issue);
                     return (
                       <tr
@@ -387,10 +387,10 @@ export default function Coupons() {
                         <td className="px-6 py-4">
                           <div>
                             <p className="text-gray-700 font-medium">
-                              {couponType?.name || '未知券'}
+                              {getIssueCouponName(issue)}
                             </p>
                             <p className="text-xs text-primary-500 font-medium">
-                              {couponType && getCouponDisplayText(couponType)}
+                              {getIssueCouponDisplay(issue)}
                             </p>
                           </div>
                         </td>
