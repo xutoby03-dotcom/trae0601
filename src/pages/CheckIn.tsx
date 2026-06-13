@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ClipboardCheck, CalendarDays, CheckCircle2, XCircle, RefreshCw,
-  User, ArrowLeftRight, X, AlertCircle,
+  User, ArrowLeftRight, X, AlertCircle, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CheckCircle, Clock,
 } from 'lucide-react';
 import { checkInsApi, bedsApi } from '@/api/client';
 import type { Bed, CheckInStatus } from '#shared/types';
@@ -11,6 +11,11 @@ const statusLabels: Record<CheckInStatus, { label: string; color: string }> = {
   pending: { label: '待签到', color: 'bg-sky-100 text-sky-700' },
   checked_in: { label: '已签到', color: 'bg-emerald-100 text-emerald-700' },
   absent: { label: '未到', color: 'bg-red-100 text-red-700' },
+};
+const disinfectionLabels: Record<string, { label: string; color: string }> = {
+  completed: { label: '已消毒', color: 'bg-emerald-100 text-emerald-700' },
+  pending: { label: '待消毒', color: 'bg-accent-100 text-accent-700' },
+  expired: { label: '消毒过期', color: 'bg-red-100 text-red-700' },
 };
 
 function SwapModal({ checkIn, beds, onClose, onSwapped }: {
@@ -52,33 +57,131 @@ function SwapModal({ checkIn, beds, onClose, onSwapped }: {
         </div>
 
         <div className="bg-gray-50 rounded-2xl p-4 mb-5">
-          <p className="text-xs text-gray-500 mb-1">当前床位</p>
-          <p className="font-semibold text-gray-800">
-            {checkIn.reservation.bed?.room}室 #{checkIn.reservation.bed?.bedNumber}
-            （{checkIn.reservation.bed?.bunkType === 'upper' ? '上铺' : '下铺'}）
-          </p>
-          <p className="text-sm text-gray-600 mt-2">
-            学生：<span className="font-medium">{checkIn.reservation.studentName}</span>
-            （{checkIn.reservation.className}）
-          </p>
+          <p className="text-xs text-gray-500 mb-2">当前床位</p>
+          <div className="flex gap-3">
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
+              {checkIn.reservation.bed?.photoUrl ? (
+                <img
+                  src={checkIn.reservation.bed.photoUrl}
+                  alt={`${checkIn.reservation.bed.room}室 ${checkIn.reservation.bed.bedNumber}号床`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-800">
+                {checkIn.reservation.bed?.room}室 #{checkIn.reservation.bed?.bedNumber}
+                （{checkIn.reservation.bed?.bunkType === 'upper' ? '上铺' : '下铺'}）
+                {checkIn.reservation.bed?.isWindowSide ? ' · 靠窗' : ''}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                学生：<span className="font-medium">{checkIn.reservation.studentName}</span>
+                （{checkIn.reservation.className}）
+              </p>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="label-field">更换至床位</label>
-            <select
-              className="input-field"
-              value={toBedId}
-              onChange={(e) => setToBedId(Number(e.target.value))}
-            >
-              <option value={0}>-- 请选择可用床位 --</option>
-              {availableBeds.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.room}室 #{b.bedNumber} ({b.bunkType === 'upper' ? '上铺' : '下铺'})
-                  {b.isWindowSide ? ' - 靠窗' : ''}
-                </option>
-              ))}
-            </select>
+            <div className="max-h-48 overflow-y-auto pr-1 space-y-2 mb-2">
+              {availableBeds.map((b) => {
+                const selected = toBedId === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setToBedId(b.id)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-xl border-2 transition-all text-left ${
+                      selected
+                        ? 'border-accent-500 bg-accent-50 ring-2 ring-accent-200'
+                        : 'border-gray-100 hover:border-accent-200 hover:bg-accent-50/50'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      {b.photoUrl ? (
+                        <img
+                          src={b.photoUrl}
+                          alt={`${b.room}室 ${b.bedNumber}号床`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <ImageIcon className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-gray-800">{b.room}室 #{b.bedNumber}</span>
+                        <span className="text-xs text-gray-500">
+                          {b.bunkType === 'upper' ? '上铺' : '下铺'}
+                          {b.isWindowSide ? ' · 靠窗' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    {selected && (
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-accent-500 flex items-center justify-center">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {toBedId > 0 && (() => {
+              const bed = availableBeds.find(b => b.id === toBedId);
+              if (!bed) return null;
+              const dInfo = disinfectionLabels[bed.disinfectionStatus];
+              return (
+                <div className="rounded-xl border border-accent-200 bg-accent-50/50 p-2.5 mb-2">
+                  <div className="flex gap-2.5">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      {bed.photoUrl ? (
+                        <img
+                          src={bed.photoUrl}
+                          alt={`${bed.room}室 ${bed.bedNumber}号床`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold font-display text-gray-800">{bed.room}室</span>
+                        <span className="text-accent-600 font-semibold">#{bed.bedNumber}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <span className="tag bg-sky-100 text-sky-700 text-[10px]">
+                          {bed.bunkType === 'upper' ? <ChevronUp className="w-2.5 h-2.5 inline mr-0.5" /> : <ChevronDown className="w-2.5 h-2.5 inline mr-0.5" />}
+                          {bed.bunkType === 'upper' ? '上铺' : '下铺'}
+                        </span>
+                        {bed.isWindowSide && (
+                          <span className="tag bg-amber-100 text-amber-700 text-[10px]">
+                            <Sun className="w-2.5 h-2.5 inline mr-0.5" />靠窗
+                          </span>
+                        )}
+                        <span className={`tag ${dInfo.color} text-[10px]`}>
+                          {dInfo.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <div>
             <label className="label-field">换床原因</label>

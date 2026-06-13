@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, CalendarDays, Search, X, AlertTriangle, CheckCircle2, User, AlertCircle, Trash2 } from 'lucide-react';
+import { Plus, CalendarDays, Search, X, AlertTriangle, CheckCircle2, User, AlertCircle, Trash2, Image as ImageIcon, ChevronUp, ChevronDown, Sun, CheckCircle, Clock } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { bedsApi, reservationsApi } from '@/api/client';
 import type { Bed, Reservation, TimeSlot } from '#shared/types';
@@ -10,6 +10,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   checked_in: { label: '已签到', color: 'bg-emerald-100 text-emerald-700' },
   absent: { label: '未到', color: 'bg-red-100 text-red-700' },
   swapped: { label: '已换床', color: 'bg-violet-100 text-violet-700' },
+};
+const disinfectionLabels: Record<string, { label: string; color: string }> = {
+  completed: { label: '已消毒', color: 'bg-emerald-100 text-emerald-700' },
+  pending: { label: '待消毒', color: 'bg-accent-100 text-accent-700' },
+  expired: { label: '消毒过期', color: 'bg-red-100 text-red-700' },
 };
 
 function ReservationModal({ onClose, onSaved, availableBeds }: {
@@ -94,23 +99,118 @@ function ReservationModal({ onClose, onSaved, availableBeds }: {
 
           <div>
             <label className="label-field">选择床位</label>
-            <select
-              className="input-field"
-              value={form.bedId}
-              onChange={(e) => setForm({ ...form, bedId: Number(e.target.value) })}
-              required
-            >
-              <option value={0}>-- 请选择 --</option>
+            <div className="max-h-56 overflow-y-auto pr-1 space-y-2 mb-3">
               {availableBeds.map((bed) => {
                 const disabled = bed.disinfectionStatus !== 'completed';
+                const selected = form.bedId === bed.id;
                 return (
-                  <option key={bed.id} value={bed.id} disabled={disabled}>
-                    {bed.room}室 #{bed.bedNumber} ({bed.bunkType === 'upper' ? '上铺' : '下铺'})
-                    {disabled ? ' - 消毒未完成' : bed.isWindowSide ? ' - 靠窗' : ''}
-                  </option>
+                  <button
+                    key={bed.id}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setForm({ ...form, bedId: bed.id })}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl border-2 transition-all text-left ${
+                      selected
+                        ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-200'
+                        : disabled
+                        ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : 'border-gray-100 hover:border-primary-200 hover:bg-primary-50/50'
+                    }`}
+                  >
+                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                      {bed.photoUrl ? (
+                        <img
+                          src={bed.photoUrl}
+                          alt={`${bed.room}室 ${bed.bedNumber}号床`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold font-display text-gray-800">{bed.room}室</span>
+                        <span className="text-primary-600 font-semibold">#{bed.bedNumber}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-xs text-gray-500">
+                          {bed.bunkType === 'upper' ? '上铺' : '下铺'}
+                          {bed.isWindowSide ? ' · 靠窗' : ''}
+                        </span>
+                        <span className={`tag text-[10px] ${disinfectionLabels[bed.disinfectionStatus].color}`}>
+                          {disinfectionLabels[bed.disinfectionStatus].label}
+                        </span>
+                      </div>
+                    </div>
+                    {selected && (
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    {disabled && (
+                      <span className="flex-shrink-0 text-[10px] text-gray-400 font-medium">不可选</span>
+                    )}
+                  </button>
                 );
               })}
-            </select>
+            </div>
+
+            {form.bedId > 0 && (() => {
+              const bed = availableBeds.find(b => b.id === form.bedId);
+              if (!bed) return null;
+              const dInfo = disinfectionLabels[bed.disinfectionStatus];
+              return (
+                <div className="rounded-2xl border border-primary-200 bg-primary-50/50 p-3 mb-2">
+                  <div className="flex gap-3">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                      {bed.photoUrl ? (
+                        <img
+                          src={bed.photoUrl}
+                          alt={`${bed.room}室 ${bed.bedNumber}号床`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <ImageIcon className="w-8 h-8" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold font-display text-lg text-gray-800">{bed.room}室</span>
+                        <span className="text-primary-600 font-semibold">#{bed.bedNumber}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="tag bg-sky-100 text-sky-700 text-xs">
+                          {bed.bunkType === 'upper' ? <ChevronUp className="w-3 h-3 inline mr-0.5" /> : <ChevronDown className="w-3 h-3 inline mr-0.5" />}
+                          {bed.bunkType === 'upper' ? '上铺' : '下铺'}
+                        </span>
+                        {bed.isWindowSide && (
+                          <span className="tag bg-amber-100 text-amber-700 text-xs">
+                            <Sun className="w-3 h-3 inline mr-0.5" />靠窗
+                          </span>
+                        )}
+                        <span className={`tag ${dInfo.color} text-xs`}>
+                          {bed.disinfectionStatus === 'completed' && <CheckCircle className="w-3 h-3 inline mr-0.5" />}
+                          {bed.disinfectionStatus === 'pending' && <AlertCircle className="w-3 h-3 inline mr-0.5" />}
+                          {bed.disinfectionStatus === 'expired' && <Clock className="w-3 h-3 inline mr-0.5" />}
+                          {dInfo.label}
+                        </span>
+                      </div>
+                      {bed.disinfectionDate && (
+                        <div className="text-xs text-gray-500">最近消毒：{bed.disinfectionDate}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {disabledBeds.length > 0 && (
               <p className="text-xs text-accent-600 mt-1.5 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
