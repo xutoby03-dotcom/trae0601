@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 50%, #f0fdf4 100%);
+  background-attachment: fixed;
+}
+
+.font-display {
+  font-family: "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px -8px rgba(13, 148, 136, 0.15);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-primary-600 text-white font-medium text-sm transition-all duration-200 hover:bg-primary-700 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white text-primary-700 font-medium text-sm border border-primary-200 transition-all duration-200 hover:bg-primary-50 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-red-500 text-white font-medium text-sm transition-all duration-200 hover:bg-red-600 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-accent-500 text-white font-medium text-sm transition-all duration-200 hover:bg-accent-600 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.input-field {
+  @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white/70 backdrop-blur-sm text-sm transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-100 placeholder:text-gray-400;
+}
+
+.label-field {
+  @apply block text-sm font-medium text-gray-700 mb-1.5;
+}
+
+.tag {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-dot {
+  @apply w-2 h-2 rounded-full;
+}
