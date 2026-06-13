@@ -14,7 +14,7 @@ interface FilterStore {
   deleteDevice: (id: string) => void;
   getDeviceById: (id: string) => Device | undefined;
   
-  addRecord: (record: Omit<ReplacementRecord, 'id' | 'createdAt' | 'expectedExpireDate'>) => { success: boolean; message?: string };
+  addRecord: (record: Omit<ReplacementRecord, 'id' | 'createdAt' | 'expectedExpireDate' | 'remainingInventory'>) => { success: boolean; message?: string };
   deleteRecord: (id: string) => void;
   getRecordsByDeviceId: (deviceId: string) => ReplacementRecord[];
   getLatestRecordByDeviceId: (deviceId: string) => ReplacementRecord | undefined;
@@ -77,18 +77,20 @@ export const useFilterStore = create<FilterStore>()(
           return { success: false, message: `滤芯 ${device.filterModel} 库存不足，无法记录更换` };
         }
 
-        const expectedExpireDate = calculateExpectedExpireDate(record.installDate, device.suggestCycleDays);
-        const newRecord: ReplacementRecord = {
-          ...record,
-          expectedExpireDate,
-          id: generateId(),
-          createdAt: new Date().toISOString(),
-        };
-
         const adjusted = get().adjustInventory(device.filterModel, -1);
         if (!adjusted) {
           return { success: false, message: '库存扣减失败' };
         }
+
+        const remainingInventory = inventoryItem.quantity - 1;
+        const expectedExpireDate = calculateExpectedExpireDate(record.installDate, device.suggestCycleDays);
+        const newRecord: ReplacementRecord = {
+          ...record,
+          expectedExpireDate,
+          remainingInventory,
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+        };
 
         set((state) => ({ records: [...state.records, newRecord] }));
         return { success: true };

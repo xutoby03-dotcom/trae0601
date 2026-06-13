@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Trash2, Plus, MapPin, ShoppingBag, Calendar, User, Tag, DollarSign, Clock } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Plus, MapPin, ShoppingBag, Calendar, User, Tag, DollarSign, Clock, Package } from 'lucide-react';
 import { useFilterStore } from '../store';
 import { formatDateDisplay, calculateRemainingDays } from '../utils/dateUtils';
 
@@ -218,7 +218,7 @@ export default function DeviceDetail() {
                                 <span className="badge-success">当前使用</span>
                               )}
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
                               <div className="flex items-center gap-1.5 text-gray-600">
                                 <Tag className="w-4 h-4 text-gray-400" />
                                 批次：{record.batchNumber}
@@ -234,6 +234,16 @@ export default function DeviceDetail() {
                               <div className="flex items-center gap-1.5 text-gray-600">
                                 <Calendar className="w-4 h-4 text-gray-400" />
                                 到期：{formatDateDisplay(record.expectedExpireDate)}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Package className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-600">更换后库存：</span>
+                                <span className={`font-semibold ${
+                                  (record.remainingInventory ?? 0) === 0 ? 'text-danger-500' :
+                                  (record.remainingInventory ?? 0) <= 1 ? 'text-warning-500' : 'text-success-600'
+                                }`}>
+                                  {record.remainingInventory ?? '-'} 件
+                                </span>
                               </div>
                             </div>
                             {record.notes && (

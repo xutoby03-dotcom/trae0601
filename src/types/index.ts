@@ -18,6 +18,7 @@ export interface ReplacementRecord {
   expectedExpireDate: string;
   installer: string;
   cost: number;
+  remainingInventory: number;
   notes?: string;
   createdAt: string;
 }

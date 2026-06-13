@@ -57,7 +57,8 @@ const createMockRecord = (
   daysAgo: number,
   cycleDays: number,
   batchNumber: string,
-  cost: number
+  cost: number,
+  remainingInventory: number
 ): ReplacementRecord => {
   const installDate = new Date(today);
   installDate.setDate(installDate.getDate() - daysAgo);
@@ -70,18 +71,19 @@ const createMockRecord = (
     expectedExpireDate: calculateExpectedExpireDate(installDateStr, cycleDays),
     installer: '张先生',
     cost,
+    remainingInventory,
     notes: '',
     createdAt: installDate.toISOString(),
   };
 };
 
 export const mockRecords: ReplacementRecord[] = [
-  createMockRecord('record-1', 'device-1', 10, 180, 'B202512001', 199),
-  createMockRecord('record-2', 'device-1', 190, 180, 'B202506003', 199),
-  createMockRecord('record-3', 'device-2', 20, 365, '3M20250501', 399),
-  createMockRecord('record-4', 'device-3', 400, 730, 'SM202404015', 899),
-  createMockRecord('record-5', 'device-4', 80, 90, 'QY202601008', 129),
-  createMockRecord('record-6', 'device-4', 175, 90, 'QY202509022', 129),
+  createMockRecord('record-1', 'device-1', 10, 180, 'B202512001', 199, 3),
+  createMockRecord('record-2', 'device-1', 190, 180, 'B202506003', 199, 4),
+  createMockRecord('record-3', 'device-2', 20, 365, '3M20250501', 399, 1),
+  createMockRecord('record-4', 'device-3', 400, 730, 'SM202404015', 899, 0),
+  createMockRecord('record-5', 'device-4', 80, 90, 'QY202601008', 129, 2),
+  createMockRecord('record-6', 'device-4', 175, 90, 'QY202509022', 129, 3),
 ];
 
 export const mockInventory: Inventory[] = [

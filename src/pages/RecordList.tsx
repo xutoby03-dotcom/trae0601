@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, Trash2, Tag, User, DollarSign, Calendar, MapPin, FileText } from 'lucide-react';
+import { Plus, Trash2, Tag, User, DollarSign, Calendar, MapPin, FileText, Package } from 'lucide-react';
 import { useFilterStore } from '../store';
 import { formatDateDisplay } from '../utils/dateUtils';
 
@@ -117,12 +117,24 @@ export default function RecordList() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 lg:w-64 justify-end">
-                    <div className="text-right">
-                      <p className="text-xs text-gray-400">预计到期</p>
-                      <p className="text-sm font-medium text-primary-600">
-                        {formatDateDisplay(record.expectedExpireDate)}
-                      </p>
+                  <div className="flex items-center gap-4 lg:w-72 justify-end">
+                    <div className="text-right space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-400">预计到期</p>
+                        <p className="text-sm font-medium text-primary-600">
+                          {formatDateDisplay(record.expectedExpireDate)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-gray-400" />
+                        <p className="text-xs text-gray-400">更换后库存：</p>
+                        <span className={`text-sm font-semibold ${
+                          (record.remainingInventory ?? 0) === 0 ? 'text-danger-500' :
+                          (record.remainingInventory ?? 0) <= 1 ? 'text-warning-500' : 'text-success-600'
+                        }`}>
+                          {record.remainingInventory ?? '-'} 件
+                        </span>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleDelete(record.id)}
