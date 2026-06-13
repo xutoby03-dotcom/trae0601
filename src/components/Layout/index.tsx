@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileText, PlusCircle, Building2, Menu, X, Volume2 } from 'lucide-react';
 import { useStatistics } from '@/hooks/useStatistics';
-import { useOverdueCheck } from '@/hooks/useOverdueCheck';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: '数据概览' },
@@ -15,7 +14,6 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const statistics = useStatistics();
-  useOverdueCheck();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';

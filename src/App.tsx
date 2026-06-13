@@ -7,10 +7,12 @@ import ComplaintNew from '@/pages/ComplaintNew';
 import ComplaintDetail from '@/pages/ComplaintDetail';
 import Heatmap from '@/pages/Heatmap';
 import { useComplaintStore } from '@/store/useComplaintStore';
+import { useOverdueCheck } from '@/hooks/useOverdueCheck';
 
 export default function App() {
   const initComplaints = useComplaintStore((state) => state.initComplaints);
   const isLoading = useComplaintStore((state) => state.isLoading);
+  useOverdueCheck();
 
   useEffect(() => {
     initComplaints();

@@ -62,7 +62,7 @@ export const useComplaintStore = create<ComplaintStore>((set, get) => ({
       createdAt: now,
     };
 
-    const complaints = get().complaints.map((c): Complaint =>
+    let complaints = get().complaints.map((c): Complaint =>
       c.id === complaintId
         ? {
             ...c,
@@ -72,6 +72,7 @@ export const useComplaintStore = create<ComplaintStore>((set, get) => ({
           }
         : c
     );
+    complaints = updateOverdueStatus(complaints);
     saveComplaints(complaints);
     set({ complaints });
   },

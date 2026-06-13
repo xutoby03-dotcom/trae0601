@@ -52,7 +52,13 @@ export const updateOverdueStatus = (complaints: Complaint[]): Complaint[] => {
 
     const latestRecord = complaint.processRecords[complaint.processRecords.length - 1];
     if (latestRecord && latestRecord.promisedTime && isOverdue(latestRecord.promisedTime) && !latestRecord.actualVisitTime) {
-      return { ...complaint, status: 'overdue' as const };
+      return { ...complaint, status: 'overdue' as const, updatedAt: new Date().toISOString() };
+    }
+    if (complaint.status === 'overdue' && latestRecord && latestRecord.actualVisitTime) {
+      return { ...complaint, status: 'completed' as const, updatedAt: new Date().toISOString() };
+    }
+    if (complaint.status === 'overdue' && latestRecord && latestRecord.promisedTime && !isOverdue(latestRecord.promisedTime)) {
+      return { ...complaint, status: 'processing' as const, updatedAt: new Date().toISOString() };
     }
     return complaint;
   });
