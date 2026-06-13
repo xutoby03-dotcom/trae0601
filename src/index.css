@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Nunito:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Nunito", system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #2d3436;
+  background-color: #fffaf3;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 140, 66, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(78, 205, 196, 0.06), transparent),
+    #fffaf3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all duration-200 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-warm-500 text-white hover:bg-warm-600 hover:-translate-y-0.5 hover:shadow-warm active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply btn bg-mint-500 text-white hover:bg-mint-600 hover:-translate-y-0.5 hover:shadow-soft active:translate-y-0;
+  }
+  .btn-ghost {
+    @apply btn bg-white/60 text-ink-700 hover:bg-white border border-ink-100 hover:shadow-soft;
+  }
+  .btn-danger {
+    @apply btn bg-alert-500 text-white hover:bg-alert-600 hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-ink-50;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft-lg;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border border-ink-100 bg-white text-ink-700 text-sm placeholder:text-ink-300 focus:outline-none focus:ring-2 focus:ring-warm-300 focus:border-warm-400 transition-all;
+  }
+  .label {
+    @apply block text-sm font-semibold text-ink-600 mb-1.5;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+  .section-title {
+    @apply font-display text-xl font-bold text-ink-800;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e3e6e7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c7ced0;
+}
