@@ -136,14 +136,40 @@ export const useStore = create<StoreState>()(
         const newMissing: string[] = [...display.missingAccessories];
 
         if (check.hasScratch) newDamageCount++;
-        if (!check.hasPowerCable && !newMissing.includes('电源线')) newMissing.push('电源线');
+
+        const powerAccessory = display.accessories.find((a) => a.name.includes('电源'));
+        if (!check.hasPowerCable && powerAccessory && !newMissing.includes(powerAccessory.name)) {
+          newMissing.push(powerAccessory.name);
+        }
+
         if (!check.hasAdapter) {
-          const adapters = display.accessories
-            .filter((a) => a.name.includes('转接头') || a.name.includes('线'))
+          const cableAndAdapters = display.accessories
+            .filter(
+              (a) =>
+                (a.name.includes('转接头') || a.name.includes('线')) &&
+                !a.name.includes('电源')
+            )
             .map((a) => a.name);
-          adapters.forEach((a) => {
+          cableAndAdapters.forEach((a) => {
             if (!newMissing.includes(a)) newMissing.push(a);
           });
+        }
+
+        if (check.hasPowerCable && powerAccessory) {
+          const idx = newMissing.indexOf(powerAccessory.name);
+          if (idx >= 0) newMissing.splice(idx, 1);
+        }
+        if (check.hasAdapter) {
+          display.accessories
+            .filter(
+              (a) =>
+                (a.name.includes('转接头') || a.name.includes('线')) &&
+                !a.name.includes('电源')
+            )
+            .forEach((a) => {
+              const idx = newMissing.indexOf(a.name);
+              if (idx >= 0) newMissing.splice(idx, 1);
+            });
         }
 
         let newStatus: DisplayStatus = display.status;
