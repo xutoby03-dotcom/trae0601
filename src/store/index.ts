@@ -19,8 +19,8 @@ interface AppState {
   fetchRegisters: () => Promise<void>;
   fetchHandovers: (params?: Record<string, string>) => Promise<void>;
   fetchTransactions: (params?: Record<string, string>) => Promise<void>;
-  fetchOverview: () => Promise<void>;
-  fetchStatistics: () => Promise<void>;
+  fetchOverview: (params?: Record<string, string>) => Promise<void>;
+  fetchStatistics: (params?: Record<string, string>) => Promise<void>;
 
   createRegister: (data: Partial<Register>) => Promise<Register>;
   updateRegister: (id: string, data: Partial<Register>) => Promise<Register>;
@@ -95,19 +95,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchOverview: async () => {
+  fetchOverview: async (params) => {
     try {
-      const data = await request<OverviewStats>('/statistics/overview');
+      const query = params ? '?' + new URLSearchParams(params).toString() : '';
+      const data = await request<OverviewStats>(`/statistics/overview${query}`);
       set({ overview: data });
     } catch (e) {
       set({ error: (e as Error).message });
     }
   },
 
-  fetchStatistics: async () => {
+  fetchStatistics: async (params) => {
     set({ loading: true });
     try {
-      const data = await request<StatsResponse>('/statistics');
+      const query = params ? '?' + new URLSearchParams(params).toString() : '';
+      const data = await request<StatsResponse>(`/statistics${query}`);
       set({ statistics: data, error: null });
     } catch (e) {
       set({ error: (e as Error).message });

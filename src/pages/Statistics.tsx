@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -14,20 +14,36 @@ import {
   Line,
   Legend,
 } from 'recharts';
-import { TrendingUp, AlertTriangle, Clock, Calculator } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Clock, Calculator, Filter, RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { formatCurrency } from '@/utils/format';
-import type { StatsResponse } from '../../shared/types';
+import { formatCurrency, getShiftLabel } from '@/utils/format';
+import type { StatsResponse, Register } from '../../shared/types';
 
 const PIE_COLORS = ['#0F766E', '#14B8A6', '#2DD4BF', '#99F6E4', '#D97706', '#F59E0B', '#DC2626', '#F87171'];
 
+type ShiftFilterValue = 'all' | 'morning' | 'evening';
+
 export default function Statistics() {
-  const { statistics, fetchStatistics } = useAppStore();
+  const { statistics, fetchStatistics, registers, fetchRegisters } = useAppStore();
   const [loading, setLoading] = useState(true);
+  const [registerFilter, setRegisterFilter] = useState<string>('all');
+  const [shiftFilter, setShiftFilter] = useState<ShiftFilterValue>('all');
+
+  const params = useMemo(() => {
+    const p: Record<string, string> = {};
+    if (registerFilter !== 'all') p.registerId = registerFilter;
+    if (shiftFilter !== 'all') p.shift = shiftFilter;
+    return p;
+  }, [registerFilter, shiftFilter]);
 
   useEffect(() => {
-    fetchStatistics().finally(() => setLoading(false));
-  }, [fetchStatistics]);
+    fetchRegisters();
+  }, [fetchRegisters]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchStatistics(params).finally(() => setLoading(false));
+  }, [fetchStatistics, params]);
 
   if (loading || !statistics) {
     return (
@@ -40,7 +56,7 @@ export default function Statistics() {
   const data: StatsResponse = statistics;
 
   const shiftData = data.shiftDifferences.map((s) => ({
-    name: s.shift === 'morning' ? '早班' : '晚班',
+    name: getShiftLabel(s.shift),
     差额次数: s.count,
     差额总额: Math.abs(Number(s.totalAmount.toFixed(2))),
   }));
@@ -68,11 +84,64 @@ export default function Statistics() {
       交接次数: p.total,
     }));
 
+  const activeFilterCount = (registerFilter !== 'all' ? 1 : 0) + (shiftFilter !== 'all' ? 1 : 0);
+
+  const resetFilters = () => {
+    setRegisterFilter('all');
+    setShiftFilter('all');
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-serif font-bold text-gray-900">统计分析</h1>
-        <p className="text-sm text-gray-500 mt-1">全方位了解备用金交接情况</p>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-serif font-bold text-gray-900">统计分析</h1>
+          <p className="text-sm text-gray-500 mt-1">全方位了解备用金交接情况</p>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="relative">
+            <div className="absolute -top-1 -left-1 flex items-center justify-center">
+              <Filter size={12} className="text-primary-600" />
+            </div>
+            <div className="flex flex-wrap gap-3 p-3 bg-warm-50 rounded-2xl border border-warm-200">
+              <SelectField
+                label="收银台"
+                value={registerFilter}
+                onChange={(v) => setRegisterFilter(v)}
+                options={[
+                  { value: 'all', label: '全部收银台' },
+                  ...registers.map((r: Register) => ({
+                    value: r.id,
+                    label: `${r.code} · ${r.managerName}`,
+                  })),
+                ]}
+              />
+              <SelectField
+                label="班次"
+                value={shiftFilter}
+                onChange={(v) => setShiftFilter(v as ShiftFilterValue)}
+                options={[
+                  { value: 'all', label: '全部班次' },
+                  { value: 'morning', label: '早班' },
+                  { value: 'evening', label: '晚班' },
+                ]}
+              />
+              {(activeFilterCount > 0) && (
+                <button
+                  onClick={resetFilters}
+                  className="self-end h-9 px-3 rounded-lg border border-warm-200 bg-white text-sm text-gray-500 hover:text-gray-700 hover:border-warm-300 transition-colors inline-flex items-center gap-1"
+                >
+                  <RefreshCw size={14} />
+                  重置
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary-100 text-primary-700 text-xs font-semibold">
+                    {activeFilterCount}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -330,5 +399,40 @@ function StatCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-gray-500">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 min-w-[160px] px-3 rounded-lg border border-warm-200 bg-white text-sm text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-400/30 focus:border-primary-400 transition-all appearance-none pr-8"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 8px center',
+        }}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

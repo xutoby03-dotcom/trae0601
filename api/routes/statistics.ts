@@ -11,18 +11,36 @@ import type {
 
 const router = Router();
 
-function getOverviewStats(): OverviewStats {
+type StatsFilter = {
+  registerId?: string;
+  shift?: 'morning' | 'evening' | 'all';
+};
+
+function applyHandoverFilter(
+  handovers: HandoverLike[],
+  filter: StatsFilter
+): HandoverLike[] {
+  return handovers.filter((h) => {
+    if (filter.registerId && h.registerId !== filter.registerId) return false;
+    if (filter.shift && filter.shift !== 'all' && h.shift !== filter.shift) return false;
+    return true;
+  });
+}
+
+function getOverviewStats(filter: StatsFilter): OverviewStats {
   const store = readStore();
   const today = new Date().toISOString().split('T')[0];
 
-  const todayHandovers = store.handovers.filter((h) => h.shiftDate === today).length;
-  const pendingDifferences = store.handovers.filter(
+  const allHandovers = applyHandoverFilter(store.handovers, filter);
+
+  const todayHandovers = allHandovers.filter((h) => h.shiftDate === today).length;
+  const pendingDifferences = allHandovers.filter(
     (h) => h.difference !== 0 && h.status !== 'normal'
   ).length;
 
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  const weekHandovers = store.handovers.filter(
+  const weekHandovers = allHandovers.filter(
     (h) => new Date(h.createdAt) >= oneWeekAgo
   );
   const weeklyPunctuality =
@@ -32,22 +50,28 @@ function getOverviewStats(): OverviewStats {
         )
       : 100;
 
+  const totalRegisters = filter.registerId
+    ? store.registers.filter((r) => r.id === filter.registerId).length
+    : store.registers.length;
+
   return {
     todayHandovers,
     pendingDifferences,
     weeklyPunctuality,
-    totalRegisters: store.registers.length,
+    totalRegisters,
   };
 }
 
-function getShiftDifferences(): ShiftDifferenceStat[] {
+function getShiftDifferences(filter: StatsFilter): ShiftDifferenceStat[] {
   const store = readStore();
   const result: ShiftDifferenceStat[] = [
     { shift: 'morning', count: 0, totalAmount: 0 },
     { shift: 'evening', count: 0, totalAmount: 0 },
   ];
 
-  store.handovers.forEach((h) => {
+  const handovers = applyHandoverFilter(store.handovers, filter);
+
+  handovers.forEach((h) => {
     if (h.difference !== 0) {
       const item = result.find((r) => r.shift === h.shift);
       if (item) {
@@ -57,6 +81,9 @@ function getShiftDifferences(): ShiftDifferenceStat[] {
     }
   });
 
+  if (filter.shift && filter.shift !== 'all') {
+    return result.filter((r) => r.shift === filter.shift);
+  }
   return result;
 }
 
@@ -78,10 +105,15 @@ function getActualCountMap(
 type HandoverLike = {
   id: string;
   registerId: string;
+  registerCode: string;
+  shift: 'morning' | 'evening';
+  shiftDate: string;
   defaultAmount: number;
   difference: number;
   denominations: { denomination: number; count: number }[];
   createdAt: string;
+  status: 'normal' | 'warning' | 'danger';
+  isOnTime: boolean;
 };
 
 function buildBaselineMap(
@@ -144,7 +176,7 @@ function decomposeAmount(absDiff: number): number[] {
   return usedDenoms;
 }
 
-function getDenominationStats(): DenominationStat[] {
+function getDenominationStats(filter: StatsFilter): DenominationStat[] {
   const store = readStore();
   const shortageMap: Record<number, number> = {};
   const surplusMap: Record<number, number> = {};
@@ -155,7 +187,8 @@ function getDenominationStats(): DenominationStat[] {
 
   const baselineMap = buildBaselineMap(store.handovers);
 
-  const diffHandovers = store.handovers.filter(
+  const allFiltered = applyHandoverFilter(store.handovers, filter);
+  const diffHandovers = allFiltered.filter(
     (h) => Math.abs(h.difference) > 0.001
   );
 
@@ -213,9 +246,10 @@ function getDenominationStats(): DenominationStat[] {
   }));
 }
 
-function getPendingDifferences(): PendingDifference[] {
+function getPendingDifferences(filter: StatsFilter): PendingDifference[] {
   const store = readStore();
-  return store.handovers
+  const handovers = applyHandoverFilter(store.handovers, filter);
+  return handovers
     .filter((h) => h.difference !== 0 && h.status !== 'normal')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 10)
@@ -227,16 +261,17 @@ function getPendingDifferences(): PendingDifference[] {
     }));
 }
 
-function getPunctualityRate(): PunctualityDay[] {
+function getPunctualityRate(filter: StatsFilter): PunctualityDay[] {
   const store = readStore();
   const days: PunctualityDay[] = [];
   const today = new Date();
+  const allHandovers = applyHandoverFilter(store.handovers, filter);
 
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
-    const dayHandovers = store.handovers.filter((h) => h.shiftDate === dateStr);
+    const dayHandovers = allHandovers.filter((h) => h.shiftDate === dateStr);
     const onTime = dayHandovers.filter((h) => h.isOnTime).length;
     days.push({
       date: dateStr,
@@ -249,17 +284,33 @@ function getPunctualityRate(): PunctualityDay[] {
   return days;
 }
 
-router.get('/overview', (_req, res) => {
-  res.json(getOverviewStats());
+function parseFilter(query: Record<string, unknown>): StatsFilter {
+  const filter: StatsFilter = {};
+  if (typeof query.registerId === 'string' && query.registerId.trim()) {
+    filter.registerId = query.registerId.trim();
+  }
+  if (
+    typeof query.shift === 'string' &&
+    ['morning', 'evening', 'all'].includes(query.shift)
+  ) {
+    filter.shift = query.shift as StatsFilter['shift'];
+  }
+  return filter;
+}
+
+router.get('/overview', (req, res) => {
+  const filter = parseFilter(req.query as Record<string, unknown>);
+  res.json(getOverviewStats(filter));
 });
 
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
+  const filter = parseFilter(req.query as Record<string, unknown>);
   const response: StatsResponse = {
-    shiftDifferences: getShiftDifferences(),
-    denominationStats: getDenominationStats(),
-    pendingDifferences: getPendingDifferences(),
-    punctualityRate: getPunctualityRate(),
-    overview: getOverviewStats(),
+    shiftDifferences: getShiftDifferences(filter),
+    denominationStats: getDenominationStats(filter),
+    pendingDifferences: getPendingDifferences(filter),
+    punctualityRate: getPunctualityRate(filter),
+    overview: getOverviewStats(filter),
   };
   res.json(response);
 });
