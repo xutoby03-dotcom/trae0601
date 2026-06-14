@@ -88,7 +88,13 @@
             <div class="panel" style="margin-top: 24px;">
                 <div class="panel-header">
                     <h2>🔔 住户提醒记录</h2>
-                    <div style="display: flex; gap: 8px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div class="reminder-filter-tabs" id="reminder-filter-tabs">
+                            <button class="reminder-tab active" data-filter="pending">未处理</button>
+                            <button class="reminder-tab" data-filter="resolved">已处理</button>
+                            <button class="reminder-tab" data-filter="dismissed">已忽略</button>
+                            <button class="reminder-tab" data-filter="all">全部</button>
+                        </div>
                         <span class="badge" id="reminder-count" style="background: var(--warning);">0</span>
                         <button class="btn btn-secondary btn-sm" id="btn-clear-reminders">清空已处理</button>
                     </div>
