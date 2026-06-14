@@ -21,6 +21,7 @@ import {
   CheckOutlined,
   ExclamationCircleOutlined,
   FilterOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
   SearchOutlined,
   UserOutlined,
@@ -162,6 +163,18 @@ export default function RepairList() {
     const start = (page - 1) * pageSize;
     return filteredRepairs.slice(start, start + pageSize);
   }, [filteredRepairs, page]);
+
+  const pendingSelectedIds = useMemo<string[]>(() => {
+    return repairs
+      .filter((r) => selectedRowKeys.includes(r.id) && r.status === 'pending')
+      .map((r) => r.id);
+  }, [repairs, selectedRowKeys]);
+
+  const assignedSelectedIds = useMemo<string[]>(() => {
+    return repairs
+      .filter((r) => selectedRowKeys.includes(r.id) && r.status === 'assigned')
+      .map((r) => r.id);
+  }, [repairs, selectedRowKeys]);
 
   const resetAll = () => {
     setSearchText('');
@@ -322,13 +335,35 @@ export default function RepairList() {
   };
 
   const handleBulkAssignClick = () => {
-    if (selectedRowKeys.length === 0) {
+    if (pendingSelectedIds.length === 0) {
       message.warning('请先勾选待分派的报修单');
       return;
     }
-    setCurrentRepairIds(selectedRowKeys.map((k) => String(k)));
+    setCurrentRepairIds([...pendingSelectedIds]);
     setAssignModalOpen(true);
     assignForm.resetFields();
+  };
+
+  const handleBulkStartRepair = () => {
+    if (assignedSelectedIds.length === 0) {
+      message.warning('请先勾选已分派的报修单');
+      return;
+    }
+    Modal.confirm({
+      title: `确认批量开始维修（${assignedSelectedIds.length} 条）`,
+      content: `确认将这 ${assignedSelectedIds.length} 条报修单的状态变更为「维修中」吗？关联设施将同步变更为维修中状态。`,
+      okText: '确认开始',
+      cancelText: '取消',
+      onOk: () => {
+        assignedSelectedIds.forEach((rid) => startRepair(rid));
+        if (assignedSelectedIds.length === 1) {
+          message.success('已标记开始维修');
+        } else {
+          message.success(`已将 ${assignedSelectedIds.length} 条报修单标记为维修中`);
+        }
+        clearSelection();
+      },
+    });
   };
 
   const clearSelection = () => {
@@ -803,8 +838,18 @@ export default function RepairList() {
                     <Space size={8}>
                       <CheckOutlined style={{ color: '#1677ff' }} />
                       <Text strong style={{ color: '#1677ff' }}>
-                        已选中 {selectedRowKeys.length} 条待分派报修单
+                        已选中 {selectedRowKeys.length} 条
                       </Text>
+                      {pendingSelectedIds.length > 0 && (
+                        <Tag color="orange" style={{ margin: 0 }}>
+                          待分派 {pendingSelectedIds.length} 条
+                        </Tag>
+                      )}
+                      {assignedSelectedIds.length > 0 && (
+                        <Tag color="blue" style={{ margin: 0 }}>
+                          已分派 {assignedSelectedIds.length} 条
+                        </Tag>
+                      )}
                     </Space>
                     <Button
                       type="link"
@@ -816,13 +861,27 @@ export default function RepairList() {
                       清空选择
                     </Button>
                   </Space>
-                  <Button
-                    type="primary"
-                    icon={<UserSwitchOutlined />}
-                    onClick={handleBulkAssignClick}
-                  >
-                    批量分派给…
-                  </Button>
+                  <Space size={8} wrap>
+                    {pendingSelectedIds.length > 0 && (
+                      <Button
+                        type="primary"
+                        icon={<UserSwitchOutlined />}
+                        onClick={handleBulkAssignClick}
+                      >
+                        批量分派（{pendingSelectedIds.length} 条）
+                      </Button>
+                    )}
+                    {assignedSelectedIds.length > 0 && (
+                      <Button
+                        type="primary"
+                        icon={<PlayCircleOutlined />}
+                        onClick={handleBulkStartRepair}
+                        style={{ background: '#FF6B35', borderColor: '#FF6B35' }}
+                      >
+                        批量开始维修（{assignedSelectedIds.length} 条）
+                      </Button>
+                    )}
+                  </Space>
                 </div>
               )}
               <Table
@@ -841,12 +900,12 @@ export default function RepairList() {
                   selectedRowKeys,
                   onChange: (keys) => setSelectedRowKeys(keys),
                   getCheckboxProps: (record: Repair) => ({
-                    disabled: record.status !== 'pending',
+                    disabled: record.status !== 'pending' && record.status !== 'assigned',
                     name: `select-repair-${record.id}`,
                   }),
                   preserveSelectedRowKeys: true,
                   columnTitle: (
-                    <Tooltip title="仅待分派的报修单可选择">
+                    <Tooltip title="仅待分派/已分派的报修单可选择">
                       <span style={{ fontSize: 12 }}>选择</span>
                     </Tooltip>
                   ),
