@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   PenTool,
 } from 'lucide-react';
 import { cn } from '@/utils';
+import { useAppStore } from '@/store';
 
 const navItems = [
   { path: '/', label: '仪表盘', icon: LayoutDashboard },
@@ -19,6 +21,11 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
+  const initializeData = useAppStore((state) => state.initializeData);
+
+  useEffect(() => {
+    initializeData();
+  }, [initializeData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">

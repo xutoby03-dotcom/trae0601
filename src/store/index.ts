@@ -54,11 +54,16 @@ export const useAppStore = create<AppState>()(
 
       initializeData: () => {
         const state = get();
-        if (state.isInitialized) return;
 
-        const rooms = generateMockMeetingRooms();
-        const records = generateMockInspectionRecords(rooms);
-        const supplyItems = generateMockSupplyItems(rooms, records);
+        let rooms = state.meetingRooms;
+        let records = state.inspectionRecords;
+        let supplyItems = state.supplyItems;
+
+        if (!state.isInitialized || state.meetingRooms.length === 0) {
+          rooms = generateMockMeetingRooms();
+          records = generateMockInspectionRecords(rooms);
+          supplyItems = generateMockSupplyItems(rooms, records);
+        }
 
         const recordsWithConsecutive = records.map((record) => ({
           ...record,
@@ -68,10 +73,21 @@ export const useAppStore = create<AppState>()(
           })),
         }));
 
+        const supplyItemsWithConsecutive = supplyItems.map((item) => {
+          if (item.itemType === 'marker' && item.color) {
+            const consecutive = calculateConsecutiveShortage(item.roomId, item.color, recordsWithConsecutive);
+            return {
+              ...item,
+              consecutiveShortage: Math.max(item.consecutiveShortage, consecutive),
+            };
+          }
+          return item;
+        });
+
         set({
           meetingRooms: rooms,
           inspectionRecords: recordsWithConsecutive,
-          supplyItems,
+          supplyItems: supplyItemsWithConsecutive,
           isInitialized: true,
         });
       },

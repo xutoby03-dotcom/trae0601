@@ -16,7 +16,6 @@ import ColorBadge from '@/components/ColorBadge';
 import { formatDateTime, getItemTypeLabel, getStatusLabel } from '@/utils';
 
 export default function Dashboard() {
-  const initializeData = useAppStore((state) => state.initializeData);
   const getDashboardStats = useAppStore((state) => state.getDashboardStats);
   const supplyItems = useAppStore((state) => state.supplyItems);
   const inspectionRecords = useAppStore((state) => state.inspectionRecords);
@@ -27,10 +26,6 @@ export default function Dashboard() {
     shortageAlerts: 0,
     inspectionCompletionRate: 0,
   });
-
-  useEffect(() => {
-    initializeData();
-  }, [initializeData]);
 
   useEffect(() => {
     setStats(getDashboardStats());
