@@ -4,11 +4,17 @@ import { isOverdue, isNightTime, formatDryingDuration } from '../utils/helpers';
 import { WeatherCondition } from '../types';
 
 export const useReminderService = () => {
-  const { addReminder, updateWeather, getDryingRecords, incrementRemindCount } = useStore();
+  const { isLoading, addReminder, updateWeather, getDryingRecords, incrementRemindCount } = useStore();
   const remindedRecordsRef = useRef<Set<string>>(new Set());
   const weatherRemindedRef = useRef<boolean>(false);
   const nightRemindedRef = useRef<boolean>(false);
   const initializedRef = useRef<boolean>(false);
+  const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
+
+  const clearIntervals = useCallback(() => {
+    intervalsRef.current.forEach(id => clearInterval(id));
+    intervalsRef.current = [];
+  }, []);
 
   const addReminderForAllDrying = useCallback((type: 'weather' | 'night', message: string) => {
     const dryingRecords = getDryingRecords();
@@ -23,11 +29,11 @@ export const useReminderService = () => {
 
   const checkTimeoutReminders = useCallback(() => {
     const dryingRecords = getDryingRecords();
-    
+
     dryingRecords.forEach(record => {
       const overdue = isOverdue(record.startTime, record.expectedDuration);
       const reminderKey = `timeout-${record.id}`;
-      
+
       if (overdue && !remindedRecordsRef.current.has(reminderKey)) {
         addReminder(
           'timeout',
@@ -73,28 +79,33 @@ export const useReminderService = () => {
   }, [getDryingRecords, addReminderForAllDrying]);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (isLoading) return;
 
-    const initialWeather = updateWeather();
+    if (!initializedRef.current) {
+      initializedRef.current = true;
 
-    checkTimeoutReminders();
-    checkWeatherReminders(initialWeather.condition);
-    checkNightReminders();
+      const initialWeather = updateWeather();
 
-    const timeoutInterval = setInterval(checkTimeoutReminders, 60000);
-    const weatherInterval = setInterval(() => {
-      const newWeather = updateWeather();
-      checkWeatherReminders(newWeather.condition);
-    }, 30 * 60 * 1000);
-    const nightInterval = setInterval(checkNightReminders, 5 * 60 * 1000);
+      checkTimeoutReminders();
+      checkWeatherReminders(initialWeather.condition);
+      checkNightReminders();
+    }
+
+    clearIntervals();
+
+    intervalsRef.current = [
+      setInterval(checkTimeoutReminders, 60000),
+      setInterval(() => {
+        const newWeather = updateWeather();
+        checkWeatherReminders(newWeather.condition);
+      }, 30 * 60 * 1000),
+      setInterval(checkNightReminders, 5 * 60 * 1000)
+    ];
 
     return () => {
-      clearInterval(timeoutInterval);
-      clearInterval(weatherInterval);
-      clearInterval(nightInterval);
+      clearIntervals();
     };
-  }, [checkTimeoutReminders, checkWeatherReminders, checkNightReminders, updateWeather]);
+  }, [isLoading, checkTimeoutReminders, checkWeatherReminders, checkNightReminders, updateWeather, clearIntervals]);
 
   return {
     checkTimeoutReminders,
