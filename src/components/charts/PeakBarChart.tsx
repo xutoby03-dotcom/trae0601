@@ -18,9 +18,13 @@ interface Props {
 export default function PeakBarChart({ data }: Props) {
   const merged = useMemo(() => {
     const map = new Map<string, { hour: string; rainy: number; normal: number }>();
+    for (let h = 6; h <= 22; h++) {
+      const key = h.toString().padStart(2, '0') + ':00';
+      map.set(key, { hour: key, rainy: 0, normal: 0 });
+    }
     data.forEach((d) => {
-      if (!map.has(d.hour)) map.set(d.hour, { hour: d.hour, rainy: 0, normal: 0 });
-      const row = map.get(d.hour)!;
+      const row = map.get(d.hour);
+      if (!row) return;
       if (d.isRainyDay) row.rainy = d.count;
       else row.normal = d.count;
     });

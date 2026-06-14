@@ -96,14 +96,19 @@ export function computeDamageRate(): DamageRateItem[] {
 const RAINY_HOURS = [8, 9, 12, 13, 17, 18, 19];
 const RANDOM_SEED = [12, 18, 24, 31, 22, 28, 35, 40, 29, 15, 20, 17, 9, 22, 33, 45, 52, 38, 25, 14, 8, 5, 3, 2];
 
+function padHour(h: number): string {
+  return h.toString().padStart(2, '0') + ':00';
+}
+
 export function computeRainyDayPeak(): DailyPeakItem[] {
   const arr: DailyPeakItem[] = [];
   for (let h = 6; h <= 22; h++) {
+    const hourKey = padHour(h);
     const baseRainy = RAINY_HOURS.includes(h) ? 35 : 10;
     const rainy = Math.round(baseRainy + RANDOM_SEED[h % RANDOM_SEED.length] * 0.6);
     const normal = Math.round(baseRainy * 0.35);
-    arr.push({ hour: formatTime(`${h}:00`).slice(0, 5), count: rainy, isRainyDay: true });
-    arr.push({ hour: formatTime(`${h}:00`).slice(0, 5), count: normal, isRainyDay: false });
+    arr.push({ hour: hourKey, count: rainy, isRainyDay: true });
+    arr.push({ hour: hourKey, count: normal, isRainyDay: false });
   }
   return arr;
 }

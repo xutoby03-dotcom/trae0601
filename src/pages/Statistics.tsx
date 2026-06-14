@@ -45,10 +45,19 @@ export default function Statistics() {
     : 0;
 
   const peakHour = useMemo(() => {
-    const mp = new Map<string, number>();
-    rainyPeak.filter((x) => x.isRainyDay).forEach((x) => mp.set(x.hour, (mp.get(x.hour) ?? 0) + x.count));
-    let max = { hour: '-', count: 0 };
-    mp.forEach((c, h) => { if (c > max.count) max = { hour: h, count: c }; });
+    const byHour = new Map<string, number>();
+    for (let h = 6; h <= 22; h++) {
+      byHour.set(h.toString().padStart(2, '0') + ':00', 0);
+    }
+    rainyPeak
+      .filter((x) => x.isRainyDay)
+      .forEach((x) => {
+        if (byHour.has(x.hour)) byHour.set(x.hour, (byHour.get(x.hour) ?? 0) + x.count);
+      });
+    let max = { hour: '06:00', count: 0 };
+    byHour.forEach((c, h) => {
+      if (c > max.count) max = { hour: h, count: c };
+    });
     return max;
   }, [rainyPeak]);
 
