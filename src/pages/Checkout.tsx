@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
-import { ClipboardList, Search, AlertTriangle, Check, X, Calendar, User, Clock, ShieldAlert } from 'lucide-react'
+import { ClipboardList, Search, AlertTriangle, Check, X, Calendar, User, Clock, ShieldAlert, CheckSquare, Square, ListChecks } from 'lucide-react'
 import type { Sample, CheckoutRecord } from '@/types'
 
 type TabKey = 'register' | 'records'
@@ -323,6 +323,9 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
   const [onlyPendingHighHazard, setOnlyPendingHighHazard] = useState(false)
   const [confirmTeacherName, setConfirmTeacherName] = useState<Record<string, string>>({})
   const [stockErrors, setStockErrors] = useState<Record<string, boolean>>({})
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchTeacherName, setBatchTeacherName] = useState('')
+  const [batchResult, setBatchResult] = useState<{ approved: number; failed: number } | null>(null)
 
   const sampleMap = useMemo(() => {
     const m = new Map<string, Sample>()
@@ -330,16 +333,24 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
     return m
   }, [samples])
 
+  const pendingHighHazardIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const c of checkouts) {
+      const s = sampleMap.get(c.sampleId)
+      if (c.status === 'pending' && (s?.hazardLevel ?? 0) >= 4) {
+        ids.add(c.id)
+      }
+    }
+    return ids
+  }, [checkouts, sampleMap])
+
   const filteredCheckouts = useMemo(() => {
     let list = checkouts
     if (statusFilter !== 'all') {
       list = list.filter((c) => c.status === statusFilter)
     }
     if (onlyPendingHighHazard) {
-      list = list.filter((c) => {
-        const s = sampleMap.get(c.sampleId)
-        return c.status === 'pending' && (s?.hazardLevel ?? 0) >= 4
-      })
+      list = list.filter((c) => pendingHighHazardIds.has(c.id))
     }
     if (searchTerm.trim()) {
       const kw = searchTerm.trim().toLowerCase()
@@ -354,7 +365,7 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
       })
     }
     return list
-  }, [checkouts, statusFilter, searchTerm, onlyPendingHighHazard, sampleMap])
+  }, [checkouts, statusFilter, searchTerm, onlyPendingHighHazard, sampleMap, pendingHighHazardIds])
 
   const sortedCheckouts = useMemo(() => {
     return [...filteredCheckouts].sort((a, b) => new Date(b.checkoutTime).getTime() - new Date(a.checkoutTime).getTime())
@@ -378,6 +389,64 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
       return next
     })
   }
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const selectAllPendingHighHazard = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      const visibleIds = sortedCheckouts
+        .filter((c) => pendingHighHazardIds.has(c.id))
+        .map((c) => c.id)
+      const allSelected = visibleIds.every((id) => next.has(id))
+      for (const id of visibleIds) {
+        if (allSelected) next.delete(id)
+        else next.add(id)
+      }
+      return next
+    })
+  }, [sortedCheckouts, pendingHighHazardIds])
+
+  const handleBatchApprove = () => {
+    const name = batchTeacherName.trim()
+    if (!name || selectedIds.size === 0) return
+    let approved = 0
+    let failed = 0
+    for (const id of selectedIds) {
+      const ok = confirmCheckout(id, name)
+      if (ok) approved++
+      else {
+        failed++
+        setStockErrors((prev) => ({ ...prev, [id]: true }))
+      }
+    }
+    setBatchResult({ approved, failed })
+    setBatchTeacherName('')
+    setSelectedIds(new Set())
+    setTimeout(() => {
+      setBatchResult(null)
+      setStockErrors({})
+    }, 5000)
+  }
+
+  const handleBatchReject = () => {
+    if (selectedIds.size === 0) return
+    for (const id of selectedIds) {
+      rejectCheckout(id)
+    }
+    setSelectedIds(new Set())
+  }
+
+  const hasVisibleSelected = useMemo(() => {
+    return sortedCheckouts.some((c) => selectedIds.has(c.id))
+  }, [sortedCheckouts, selectedIds])
 
   return (
     <div className="animate-fade-in">
@@ -411,48 +480,125 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
             <option value="disposed">已废弃</option>
           </select>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={onlyPendingHighHazard}
-            onClick={() => setOnlyPendingHighHazard((v) => !v)}
-            className={cn(
-              'relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2',
-              onlyPendingHighHazard ? 'bg-amber-600' : 'bg-gray-300'
-            )}
-          >
-            <span
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={onlyPendingHighHazard}
+              onClick={() => setOnlyPendingHighHazard((v) => !v)}
               className={cn(
-                'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow',
-                onlyPendingHighHazard && 'translate-x-5'
+                'relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2',
+                onlyPendingHighHazard ? 'bg-amber-600' : 'bg-gray-300'
               )}
-            />
-          </button>
-          <span className="text-sm text-gray-700">只看待审批高危样本</span>
-        </label>
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow',
+                  onlyPendingHighHazard && 'translate-x-5'
+                )}
+              />
+            </button>
+            <span className="text-sm text-gray-700">只看待审批高危样本</span>
+          </label>
+          {pendingHighHazardIds.size > 0 && (
+            <button
+              type="button"
+              onClick={selectAllPendingHighHazard}
+              className="flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-800 font-medium transition-colors"
+            >
+              <ListChecks className="w-3.5 h-3.5" />
+              全选/取消高危待审批
+            </button>
+          )}
+        </div>
       </div>
+
+      {hasVisibleSelected && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg animate-fade-in">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-medium text-amber-800">
+              已选 {selectedIds.size} 条待审批记录
+            </span>
+            <input
+              type="text"
+              placeholder="教师姓名（批量通过用）"
+              value={batchTeacherName}
+              onChange={(e) => setBatchTeacherName(e.target.value)}
+              className="px-2.5 py-1.5 border border-amber-300 rounded text-sm w-40 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 bg-white"
+            />
+            <button
+              onClick={handleBatchApprove}
+              disabled={!batchTeacherName.trim()}
+              className={cn(
+                'flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                batchTeacherName.trim()
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              )}
+            >
+              <Check className="w-4 h-4" />
+              批量通过
+            </button>
+            <button
+              onClick={handleBatchReject}
+              className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              批量驳回
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs text-amber-700 hover:text-amber-900 ml-auto font-medium"
+            >
+              取消选择
+            </button>
+          </div>
+          {batchResult && (
+            <div className={cn(
+              'mt-2 text-xs font-medium',
+              batchResult.failed > 0 ? 'text-amber-800' : 'text-green-800'
+            )}>
+              批量处理完成：{batchResult.approved} 条已通过
+              {batchResult.failed > 0 && `，${batchResult.failed} 条因库存不足保留待审批`}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-3">
         {sortedCheckouts.map((c) => {
           const sample = sampleMap.get(c.sampleId)
           const badge = STATUS_BADGES[c.status]
-          const isPendingHighHazard =
-            c.status === 'pending' && (sample?.hazardLevel ?? 0) >= 4
+          const isPendingHighHazard = pendingHighHazardIds.has(c.id)
           const isStockInsufficient =
             isPendingHighHazard && sample && sample.remainingQuantity < c.quantity
+          const isSelected = selectedIds.has(c.id)
 
           return (
             <div
               key={c.id}
               className={cn(
                 'p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow',
-                isPendingHighHazard ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'
+                isPendingHighHazard ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200',
+                isSelected && 'ring-2 ring-amber-400 ring-offset-1'
               )}
             >
               <div className="flex items-start justify-between">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {isPendingHighHazard && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(c.id)}
+                        className="shrink-0 text-amber-600 hover:text-amber-700 transition-colors"
+                      >
+                        {isSelected
+                          ? <CheckSquare className="w-4.5 h-4.5" />
+                          : <Square className="w-4.5 h-4.5" />
+                        }
+                      </button>
+                    )}
                     <span className="font-mono text-sm font-semibold text-gray-900">
                       {sample?.code ?? '未知样本'}
                     </span>
@@ -495,7 +641,7 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
 
                 {isPendingHighHazard && (
                   <div className="flex flex-col items-end gap-2 ml-4">
-                    <p className="text-xs font-medium text-amber-700">教师审批</p>
+                    <p className="text-xs font-medium text-amber-700">单条审批</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
