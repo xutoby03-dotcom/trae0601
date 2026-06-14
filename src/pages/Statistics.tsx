@@ -18,14 +18,26 @@ import {
   AlertTriangle,
   Download,
   Trophy,
+  Search,
+  X,
+  Filter,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { COLOR_OPTIONS } from '@/types';
+import type { PurchaseSuggestion } from '@/types';
 import ColorBadge from '@/components/ColorBadge';
 import StatusBadge from '@/components/StatusBadge';
 import { getItemTypeLabel, downloadCSV, cn } from '@/utils';
 
 type TabType = 'consumption' | 'department' | 'purchase';
+
+const ITEM_TYPE_OPTIONS = [
+  { value: '', label: '全部类型' },
+  { value: 'marker', label: '白板笔' },
+  { value: 'eraser', label: '橡皮' },
+  { value: 'spray', label: '清洁喷雾' },
+  { value: 'magnet', label: '磁贴' },
+];
 
 export default function Statistics() {
   const [activeTab, setActiveTab] = useState<TabType>('consumption');
@@ -50,21 +62,43 @@ export default function Statistics() {
     [getPurchaseSuggestions, supplyItems, meetingRooms, inspectionRecords]
   );
 
+  const [roomSearch, setRoomSearch] = useState('');
+
+  const filteredConsumption = useMemo(() => {
+    if (!roomSearch.trim()) return consumptionStats;
+    const q = roomSearch.trim().toLowerCase();
+    return consumptionStats.filter((s) => s.roomName.toLowerCase().includes(q));
+  }, [consumptionStats, roomSearch]);
+
   const chartData = useMemo(() => {
-    return consumptionStats.slice(0, 6).map((stat) => ({
+    return filteredConsumption.slice(0, 6).map((stat) => ({
       name: stat.roomName.length > 6 ? stat.roomName.slice(0, 6) + '...' : stat.roomName,
       fullName: stat.roomName,
       每周消耗: stat.averageConsumptionPerWeek,
       缺货率: stat.shortageRate,
     }));
-  }, [consumptionStats]);
+  }, [filteredConsumption]);
 
-  const totalSuggestionTotal = useMemo(() => {
-    return purchaseSuggestions.reduce((sum, s) => sum + s.suggestedPurchase, 0);
-  }, [purchaseSuggestions]);
+  const [purchaseColorFilter, setPurchaseColorFilter] = useState('');
+  const [purchaseTypeFilter, setPurchaseTypeFilter] = useState('');
+
+  const filteredPurchase = useMemo(() => {
+    return purchaseSuggestions.filter((s) => {
+      if (purchaseColorFilter && s.color !== purchaseColorFilter) return false;
+      if (purchaseTypeFilter && s.itemType !== purchaseTypeFilter) return false;
+      return true;
+    });
+  }, [purchaseSuggestions, purchaseColorFilter, purchaseTypeFilter]);
+
+  const filteredPurchaseTotals = useMemo(() => {
+    const total = filteredPurchase.reduce((sum, s) => sum + s.suggestedPurchase, 0);
+    const required = filteredPurchase.reduce((sum, s) => sum + s.totalRequired, 0);
+    const buffer = filteredPurchase.reduce((sum, s) => sum + s.bufferStock, 0);
+    return { total, required, buffer };
+  }, [filteredPurchase]);
 
   const handleExportPurchase = () => {
-    const csvData = purchaseSuggestions.map((s) => ({
+    const csvData = filteredPurchase.map((s) => ({
       物品类型: getItemTypeLabel(s.itemType),
       颜色: s.colorName || '-',
       总需求: s.totalRequired,
@@ -72,7 +106,8 @@ export default function Statistics() {
       建议采购: s.suggestedPurchase,
       涉及会议室: s.roomsNeeding.join('、'),
     }));
-    downloadCSV(csvData, `采购建议_${new Date().toISOString().split('T')[0]}`);
+    const suffix = [purchaseTypeFilter, purchaseColorFilter].filter(Boolean).join('_');
+    downloadCSV(csvData, `采购建议_${new Date().toISOString().split('T')[0]}${suffix ? '_' + suffix : ''}`);
   };
 
   const tabs: { key: TabType; label: string; icon: typeof BarChart3 }[] = [
@@ -134,7 +169,7 @@ export default function Statistics() {
             <div>
               <p className="text-sm text-slate-500">建议采购总数</p>
               <p className="mt-1 text-xl font-bold text-slate-800">
-                {totalSuggestionTotal} 件
+                {purchaseSuggestions.reduce((s, p) => s + p.suggestedPurchase, 0)} 件
               </p>
               <p className="text-xs text-slate-400 mt-1">
                 含 {purchaseSuggestions.length} 种物品
@@ -167,33 +202,61 @@ export default function Statistics() {
       <div className="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden">
         <div className="flex border-b border-slate-100">
           {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all duration-200 border-b-2',
-                activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600 bg-blue-50/50'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          );
-        })}
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all duration-200 border-b-2',
+                  activeTab === tab.key
+                    ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <div className="p-6">
           {activeTab === 'consumption' && (
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="text-lg font-semibold text-slate-800">
                   会议室消耗速度排名
                 </h3>
-                <div className="h-80">
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={roomSearch}
+                    onChange={(e) => setRoomSearch(e.target.value)}
+                    placeholder="搜索会议室..."
+                    className="w-full pl-9 pr-9 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                  />
+                  {roomSearch && (
+                    <button
+                      onClick={() => setRoomSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="h-80">
+                {filteredConsumption.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-slate-400">
+                    <div className="text-center">
+                      <Search className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                      <p>未找到匹配的会议室</p>
+                    </div>
+                  </div>
+                ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -227,13 +290,20 @@ export default function Statistics() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
+                )}
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                  详细数据
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    详细数据
+                  </h3>
+                  {roomSearch && (
+                    <span className="text-sm text-slate-500">
+                      筛选结果：{filteredConsumption.length} / {consumptionStats.length} 个会议室
+                    </span>
+                  )}
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50">
@@ -259,50 +329,58 @@ export default function Statistics() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {consumptionStats.map((stat, index) => (
-                        <tr key={stat.roomId} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-4">
-                            <span
-                              className={cn(
-                                'inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold',
-                                index === 0
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : index === 1
-                                  ? 'bg-slate-200 text-slate-600'
-                                  : index === 2
-                                  ? 'bg-orange-100 text-orange-700'
-                                  : 'bg-slate-100 text-slate-500'
-                              )}
-                            >
-                              {index + 1}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 font-medium text-slate-800">{stat.roomName}</td>
-                          <td className="px-4 py-4 text-center font-mono text-slate-700">
-                            {stat.totalInspections}
-                          </td>
-                          <td className="px-4 py-4 text-center font-mono text-slate-700">
-                            {stat.totalShortages}
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span
-                              className={cn(
-                                'font-mono font-bold',
-                                stat.shortageRate > 50
-                                  ? 'text-red-600'
-                                  : stat.shortageRate > 30
-                                  ? 'text-amber-600'
-                                  : 'text-emerald-600'
-                              )}
-                            >
-                              {stat.shortageRate}%
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center font-mono font-bold text-slate-800">
-                            {stat.averageConsumptionPerWeek} 件
+                      {filteredConsumption.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                            未找到匹配的会议室
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredConsumption.map((stat, index) => (
+                          <tr key={stat.roomId} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-4">
+                              <span
+                                className={cn(
+                                  'inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold',
+                                  index === 0
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : index === 1
+                                    ? 'bg-slate-200 text-slate-600'
+                                    : index === 2
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : 'bg-slate-100 text-slate-500'
+                                )}
+                              >
+                                {index + 1}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 font-medium text-slate-800">{stat.roomName}</td>
+                            <td className="px-4 py-4 text-center font-mono text-slate-700">
+                              {stat.totalInspections}
+                            </td>
+                            <td className="px-4 py-4 text-center font-mono text-slate-700">
+                              {stat.totalShortages}
+                            </td>
+                            <td className="px-4 py-4 text-center">
+                              <span
+                                className={cn(
+                                  'font-mono font-bold',
+                                  stat.shortageRate > 50
+                                    ? 'text-red-600'
+                                    : stat.shortageRate > 30
+                                    ? 'text-amber-600'
+                                    : 'text-emerald-600'
+                                )}
+                              >
+                                {stat.shortageRate}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-center font-mono font-bold text-slate-800">
+                              {stat.averageConsumptionPerWeek} 件
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -399,7 +477,7 @@ export default function Statistics() {
 
           {activeTab === 'purchase' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-semibold text-slate-800">
                   下次采购建议
                 </h3>
@@ -410,6 +488,47 @@ export default function Statistics() {
                   <Download className="w-5 h-5" />
                   导出采购清单
                 </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Filter className="w-4 h-4" />
+                  <span className="font-medium">筛选</span>
+                </div>
+                <select
+                  value={purchaseTypeFilter}
+                  onChange={(e) => setPurchaseTypeFilter(e.target.value)}
+                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition-colors"
+                >
+                  {ITEM_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={purchaseColorFilter}
+                  onChange={(e) => setPurchaseColorFilter(e.target.value)}
+                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white transition-colors"
+                >
+                  <option value="">全部颜色</option>
+                  {COLOR_OPTIONS.map((c) => (
+                    <option key={c.color} value={c.color}>{c.colorName}</option>
+                  ))}
+                </select>
+                {(purchaseTypeFilter || purchaseColorFilter) && (
+                  <button
+                    onClick={() => {
+                      setPurchaseTypeFilter('');
+                      setPurchaseColorFilter('');
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                    清除筛选
+                  </button>
+                )}
+                <span className="ml-auto text-sm text-slate-500">
+                  {filteredPurchase.length} / {purchaseSuggestions.length} 项
+                </span>
               </div>
 
               <div className="overflow-x-auto">
@@ -437,43 +556,51 @@ export default function Statistics() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {purchaseSuggestions.map((suggestion, index) => (
-                      <tr key={`${suggestion.itemType}-${suggestion.color || 'none'}`} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-4 font-medium text-slate-800">
-                          {getItemTypeLabel(suggestion.itemType)}
-                        </td>
-                        <td className="px-4 py-4">
-                          {suggestion.color ? (
-                            <ColorBadge color={suggestion.color} colorName={suggestion.colorName} />
-                          ) : (
-                            <span className="text-slate-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-center font-mono text-slate-700">
-                          {suggestion.totalRequired}
-                        </td>
-                        <td className="px-4 py-4 text-center font-mono text-slate-500">
-                          {suggestion.bufferStock}
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="font-mono font-bold text-lg text-blue-600">
-                            {suggestion.suggestedPurchase}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {suggestion.roomsNeeding.map((room) => (
-                              <span
-                                key={room}
-                                className="inline-block px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded"
-                              >
-                                {room}
-                              </span>
-                            ))}
-                          </div>
+                    {filteredPurchase.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                          当前筛选条件下无采购项
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredPurchase.map((suggestion) => (
+                        <tr key={`${suggestion.itemType}-${suggestion.color || 'none'}`} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-4 font-medium text-slate-800">
+                            {getItemTypeLabel(suggestion.itemType)}
+                          </td>
+                          <td className="px-4 py-4">
+                            {suggestion.color ? (
+                              <ColorBadge color={suggestion.color} colorName={suggestion.colorName} />
+                            ) : (
+                              <span className="text-slate-500">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-center font-mono text-slate-700">
+                            {suggestion.totalRequired}
+                          </td>
+                          <td className="px-4 py-4 text-center font-mono text-slate-500">
+                            {suggestion.bufferStock}
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="font-mono font-bold text-lg text-blue-600">
+                              {suggestion.suggestedPurchase}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {suggestion.roomsNeeding.map((room) => (
+                                <span
+                                  key={room}
+                                  className="inline-block px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded"
+                                >
+                                  {room}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                   <tfoot className="bg-blue-50 border-t-2 border-blue-200">
                     <tr>
@@ -481,13 +608,13 @@ export default function Statistics() {
                         合计
                       </td>
                       <td className="px-4 py-4 text-center font-mono font-bold text-slate-800">
-                        {purchaseSuggestions.reduce((sum, s) => sum + s.totalRequired, 0)}
+                        {filteredPurchaseTotals.required}
                       </td>
                       <td className="px-4 py-4 text-center font-mono font-bold text-slate-500">
-                        {purchaseSuggestions.reduce((sum, s) => sum + s.bufferStock, 0)}
+                        {filteredPurchaseTotals.buffer}
                       </td>
                       <td className="px-4 py-4 text-center font-mono font-bold text-lg text-blue-600">
-                        {totalSuggestionTotal}
+                        {filteredPurchaseTotals.total}
                       </td>
                       <td></td>
                     </tr>
@@ -500,6 +627,11 @@ export default function Statistics() {
                   <span className="font-medium">采购说明：</span>
                   建议采购数量 = 当前缺口数量 + 2周缓冲库存。
                   缓冲库存根据各会议室历史消耗速度计算，确保2周内不缺货。
+                  {filteredPurchase.length < purchaseSuggestions.length && (
+                    <span className="ml-1 text-blue-600 font-medium">
+                      当前为筛选结果，导出文件仅包含筛选后数据。
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
