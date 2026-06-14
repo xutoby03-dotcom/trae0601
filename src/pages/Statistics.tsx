@@ -33,11 +33,22 @@ export default function Statistics() {
   const getConsumptionStats = useAppStore((state) => state.getConsumptionStats);
   const getDepartmentStats = useAppStore((state) => state.getDepartmentStats);
   const getPurchaseSuggestions = useAppStore((state) => state.getPurchaseSuggestions);
+  const meetingRooms = useAppStore((state) => state.meetingRooms);
+  const inspectionRecords = useAppStore((state) => state.inspectionRecords);
   const supplyItems = useAppStore((state) => state.supplyItems);
 
-  const consumptionStats = useMemo(() => getConsumptionStats(), [getConsumptionStats]);
-  const departmentStats = useMemo(() => getDepartmentStats(), [getDepartmentStats]);
-  const purchaseSuggestions = useMemo(() => getPurchaseSuggestions(), [getPurchaseSuggestions]);
+  const consumptionStats = useMemo(
+    () => getConsumptionStats(),
+    [getConsumptionStats, meetingRooms, inspectionRecords, supplyItems]
+  );
+  const departmentStats = useMemo(
+    () => getDepartmentStats(),
+    [getDepartmentStats, inspectionRecords]
+  );
+  const purchaseSuggestions = useMemo(
+    () => getPurchaseSuggestions(),
+    [getPurchaseSuggestions, supplyItems, meetingRooms, inspectionRecords]
+  );
 
   const chartData = useMemo(() => {
     return consumptionStats.slice(0, 6).map((stat) => ({
