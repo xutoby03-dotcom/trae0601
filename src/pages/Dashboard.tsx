@@ -6,31 +6,57 @@ import {
   Users,
   FileCheck,
   Clock,
+  Filter,
+  X,
 } from 'lucide-react';
+import { useState } from 'react';
 import Header from '@/components/Header';
 import StatCard from '@/components/StatCard';
 import ProgressRing from '@/components/ProgressRing';
 import PersonCard from '@/components/PersonCard';
 import { useTripStore, getTeamCompletionRate, getMissingItemsCount, getPersonsNeedingReminder } from '@/store/useTripStore';
 import { getDocumentStatus, getDaysUntil, formatDate } from '@/utils/dateUtils';
-import { Document } from '@/types';
+import { Document, Person } from '@/types';
 
 export default function Dashboard() {
   const { trip, persons, documents } = useTripStore();
+  const [filterPending, setFilterPending] = useState(false);
 
-  const completionRate = getTeamCompletionRate(documents);
-  const missingItems = getMissingItemsCount(documents);
-  const expiredCount = documents.filter(
+  const personNeedsAttention = (person: Person, docs: Document[]): boolean => {
+    const personDocs = docs.filter((d) => d.personId === person.id);
+    return personDocs.some(
+      (d) =>
+        !d.photoBackup ||
+        !d.inLuggage ||
+        getDocumentStatus(d.expiryDate) !== 'normal'
+    );
+  };
+
+  const filteredPersons = filterPending
+    ? persons.filter((p) => personNeedsAttention(p, documents))
+    : persons;
+
+  const filteredPersonIds = new Set(filteredPersons.map((p) => p.id));
+  const filteredDocuments = documents.filter((d) =>
+    filteredPersonIds.has(d.personId)
+  );
+
+  const completionRate = getTeamCompletionRate(filteredDocuments);
+  const missingItems = getMissingItemsCount(filteredDocuments);
+  const expiredCount = filteredDocuments.filter(
     (d) => getDocumentStatus(d.expiryDate) === 'expired'
   ).length;
-  const warningCount = documents.filter(
+  const warningCount = filteredDocuments.filter(
     (d) => getDocumentStatus(d.expiryDate) === 'warning'
   ).length;
   const personsNeedingReminder = getPersonsNeedingReminder(
-    persons,
+    filteredPersons,
     documents,
     getDocumentStatus
   );
+
+  const totalDocs = documents.filter(d => d.photoBackup && d.inLuggage).length;
+  const filteredConfirmed = filteredDocuments.filter(d => d.photoBackup && d.inLuggage).length;
 
   const daysToDeparture = getDaysUntil(trip.departureTime);
 
@@ -137,8 +163,8 @@ export default function Dashboard() {
                 size={140}
                 strokeWidth={10}
                 color={expiredCount > 0 ? '#ef4444' : completionRate === 1 ? '#10b981' : '#f97316'}
-                label="证件确认"
-                sublabel={`${documents.filter(d => d.photoBackup && d.inLuggage).length}/${documents.length}`}
+                label={filterPending ? '筛选范围' : '证件确认'}
+                sublabel={`${filteredConfirmed}/${filteredDocuments.length}${filterPending ? ` · 全队 ${totalDocs}` : ''}`}
               />
             </div>
           </div>
@@ -300,26 +326,63 @@ export default function Dashboard() {
         {/* 证件清单 */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-800">证件清单</h3>
-            <span className="text-sm text-gray-500">
-              共 {documents.length} 份证件
-            </span>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-gray-800">证件清单</h3>
+              {filterPending && (
+                <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 font-medium">
+                  仅看待提醒
+                </span>
+              )}
+              <span className="text-sm text-gray-500">
+                {filteredPersons.length}/{persons.length} 人 · {filteredDocuments.length}/{documents.length} 份证件
+              </span>
+            </div>
+            <button
+              onClick={() => setFilterPending(!filterPending)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                filterPending
+                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {filterPending ? (
+                <>
+                  <X size={16} />
+                  显示全部
+                </>
+              ) : (
+                <>
+                  <Filter size={16} />
+                  只看待提醒
+                </>
+              )}
+            </button>
           </div>
 
           <div className="space-y-4">
-            {persons.map((person) => {
-              const personDocs = documents.filter(
-                (d) => d.personId === person.id
-              );
-              return (
-                <PersonCard
-                  key={person.id}
-                  person={person}
-                  documents={personDocs}
-                  defaultExpanded={false}
-                />
-              );
-            })}
+            {filteredPersons.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+                <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <FileCheck size={28} className="text-emerald-500" />
+                </div>
+                <p className="text-gray-700 font-medium">所有人证件都已准备就绪！</p>
+                <p className="text-sm text-gray-400 mt-1">点击「显示全部」查看完整清单</p>
+              </div>
+            ) : (
+              filteredPersons.map((person) => {
+                const personDocs = documents.filter(
+                  (d) => d.personId === person.id
+                );
+                return (
+                  <PersonCard
+                    key={person.id}
+                    person={person}
+                    documents={personDocs}
+                    defaultExpanded={filterPending}
+                  />
+                );
+              })
+            )}
           </div>
         </div>
       </main>
