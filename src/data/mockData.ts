@@ -9,7 +9,7 @@ const now = new Date();
 const daysAgo = (d: number, offsetHours = 0) => {
   const n = new Date(now);
   n.setDate(n.getDate() - d);
-  n.setHours(n.getHours() + offsetHours);
+  n.setHours(n.getHours() - offsetHours);
   return n.toISOString();
 };
 const daysLater = (d: number) => {
