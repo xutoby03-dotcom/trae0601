@@ -25,6 +25,8 @@ export default function BorrowReturn() {
   const [selectedRecord, setSelectedRecord] = useState<string | null>(initialRecordId || null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
   
   const [borrowForm, setBorrowForm] = useState({
     borrower: '',
@@ -63,9 +65,14 @@ export default function BorrowReturn() {
         remote?.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         record.conferenceRoom.includes(searchQuery);
       const matchesStatus = statusFilter === 'all' || record.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesDepartment = departmentFilter === 'all' || record.department === departmentFilter;
+      const matchesOverdue = !overdueOnly || record.status === 'overdue';
+      return matchesSearch && matchesStatus && matchesDepartment && matchesOverdue;
     })
     .sort((a, b) => new Date(b.borrowTime).getTime() - new Date(a.borrowTime).getTime());
+
+  const overdueCountInFilter = filteredRecords.filter(r => r.status === 'overdue').length;
+  const hasActiveFilter = departmentFilter !== 'all' || statusFilter !== 'all' || overdueOnly || searchQuery.trim() !== '';
 
   const handleBorrow = () => {
     if (!selectedRemote) return;
@@ -348,11 +355,19 @@ export default function BorrowReturn() {
         <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <div className="card-base p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">全部借用记录</h2>
-                <p className="text-sm text-gray-500">共 {filteredRecords.length} 条记录</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-800">全部借用记录</h2>
+                  <p className="text-sm text-gray-500">共 {filteredRecords.length} 条记录</p>
+                </div>
+                {overdueCountInFilter > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-medium">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                    逾期 {overdueCountInFilter} 条
+                  </span>
+                )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -364,6 +379,16 @@ export default function BorrowReturn() {
                   />
                 </div>
                 <select
+                  value={departmentFilter}
+                  onChange={(e) => setDepartmentFilter(e.target.value)}
+                  className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="all">全部部门</option>
+                  {DEPARTMENTS.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+                <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -374,6 +399,28 @@ export default function BorrowReturn() {
                   <option value="overdue">已逾期</option>
                   <option value="lost">已丢失</option>
                 </select>
+                <label className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={overdueOnly}
+                    onChange={(e) => setOverdueOnly(e.target.checked)}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-gray-700">只看逾期</span>
+                </label>
+                {hasActiveFilter && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                      setDepartmentFilter('all');
+                      setOverdueOnly(false);
+                    }}
+                    className="px-3 py-2 text-sm text-gray-600 hover:text-primary-700 hover:bg-primary-50 border border-gray-200 rounded-lg transition-colors"
+                  >
+                    清空筛选
+                  </button>
+                )}
               </div>
             </div>
 
