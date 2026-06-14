@@ -265,15 +265,64 @@ export default function Returns() {
 
             <div className="flex-1 overflow-y-auto p-6">
               {hasIssues() && (
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-6">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-yellow-800">检测到异常情况</p>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        以下服装存在配件缺失、污渍或损坏，将自动记录到缺损档案
+                <div className="bg-red-50 border-2 border-red-200 p-4 rounded-xl mb-6">
+                  <div className="flex items-start gap-3 mb-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-medium text-red-800">
+                        检测到异常情况 - 共 {returnItemsState.filter(item => {
+                          const m = getMissingAccessories(item);
+                          return m.length > 0 || item.hasStain || item.damageNote.trim() !== '';
+                        }).length} 件服装存在问题
+                      </p>
+                      <p className="text-sm text-red-700 mt-1">
+                        将自动记录到缺损档案，请老师确认
                       </p>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    {returnItemsState.map((itemState, index) => {
+                      const originalItem = selectedRecord.items.find(
+                        i => i.costumeId === itemState.costumeId
+                      );
+                      const missing = getMissingAccessories(itemState);
+                      const hasItemIssues = missing.length > 0 || itemState.hasStain || itemState.damageNote.trim() !== '';
+                      if (!hasItemIssues) return null;
+
+                      const issues: string[] = [];
+                      if (missing.length > 0) issues.push(`缺${missing.join('、')}`);
+                      if (itemState.hasStain) issues.push('有污渍');
+                      if (itemState.damageNote.trim()) issues.push(itemState.damageNote.trim());
+
+                      return (
+                        <div
+                          key={itemState.costumeId}
+                          className="bg-white border border-red-100 p-3 rounded-lg"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 bg-red-100 text-red-700 rounded text-xs font-bold flex items-center justify-center">
+                                {index + 1}
+                              </span>
+                              <span className="font-medium text-gray-800 text-sm">
+                                {originalItem?.costume?.type} - {originalItem?.costume?.size}
+                              </span>
+                              <span className="text-xs text-gray-500">#{itemState.costumeId}</span>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {issues.map((issue, i) => (
+                              <span
+                                key={i}
+                                className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded"
+                              >
+                                {issue}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

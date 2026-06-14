@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowRightLeft, RefreshCw, Calendar, Clock, Users, MapPin, User, Phone, Search, Check, ChevronDown, ChevronUp, AlertTriangle, Package } from 'lucide-react';
 import { useStore } from '../store';
-import { STATUS_COLORS, COSTUME_SIZES } from '../../shared/types';
+import { STATUS_COLORS, COSTUME_SIZES, ACCESSORY_LABELS } from '../../shared/types';
 
 interface LendingPreview {
   canLend: boolean;
@@ -249,30 +249,89 @@ export default function Lendings() {
                   </div>
                   
                   {expandedRecordId === record.id && (
-                    <div className="border-t border-gray-100 p-4 bg-gray-50">
-                      <div className="mb-3 text-sm">
-                        <span className="text-gray-500">预计归还日期：</span>
-                        <span className="text-gray-800">{record.expectedReturnDate}</span>
+                    <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-3">
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">预计归还日期：</span>
+                          <span className="text-gray-800">{record.expectedReturnDate}</span>
+                        </div>
+                        {(() => {
+                          const returned = record.items.filter(i => i.returned).length;
+                          const total = record.items.length;
+                          const withDamage = record.items.filter(i => {
+                            if (!i.returned || !i.accessoryCheck) return false;
+                            return Object.values(i.accessoryCheck).some(v => !v) || i.hasStain || i.damageNote;
+                          }).length;
+                          return (
+                            <>
+                              <div>
+                                <span className="text-gray-500">归还进度：</span>
+                                <span className="text-gray-800">{returned}/{total} 件</span>
+                              </div>
+                              {withDamage > 0 && (
+                                <div>
+                                  <span className="text-gray-500">缺损记录：</span>
+                                  <span className="text-red-600 font-medium">{withDamage} 件有问题</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="space-y-2">
-                        {record.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between p-2 bg-white rounded-lg text-sm"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={`status-badge ${STATUS_COLORS[item.costume?.status || '']}`}>
-                                {item.returned ? '已归还' : '借出中'}
-                              </span>
-                              <span className="text-gray-600">
-                                {item.costume?.type} - {item.costume?.size}
-                              </span>
+                        {record.items.map((item) => {
+                          const missingLabels: string[] = [];
+                          if (item.returned && item.accessoryCheck) {
+                            (Object.keys(item.accessoryCheck) as Array<keyof Accessory>).forEach(key => {
+                              if (!item.accessoryCheck![key]) {
+                                missingLabels.push(ACCESSORY_LABELS[key]);
+                              }
+                            });
+                          }
+                          const hasDamage = item.returned && (missingLabels.length > 0 || item.hasStain || item.damageNote);
+                          return (
+                            <div
+                              key={item.id}
+                              className={`p-3 rounded-lg text-sm ${hasDamage ? 'bg-red-50 border border-red-100' : 'bg-white'}`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className={`status-badge ${STATUS_COLORS[item.costume?.status || '']}`}>
+                                    {item.returned ? '已归还' : '借出中'}
+                                  </span>
+                                  <span className="text-gray-600 font-medium">
+                                    {item.costume?.type} - {item.costume?.size}
+                                  </span>
+                                  <span className="text-gray-400 text-xs">
+                                    #{item.costumeId}
+                                  </span>
+                                </div>
+                                {item.returnDate && (
+                                  <span className="text-gray-400 text-xs">归还于 {item.returnDate}</span>
+                                )}
+                              </div>
+                              {hasDamage && (
+                                <div className="mt-2 pt-2 border-t border-red-100 flex flex-wrap gap-1">
+                                  {missingLabels.map((label, idx) => (
+                                    <span key={idx} className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
+                                      缺{label}
+                                    </span>
+                                  ))}
+                                  {item.hasStain && (
+                                    <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
+                                      有污渍
+                                    </span>
+                                  )}
+                                  {item.damageNote && (
+                                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
+                                      {item.damageNote}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <span className="text-gray-400 text-xs">
-                              #{item.costumeId}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

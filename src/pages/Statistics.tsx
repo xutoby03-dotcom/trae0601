@@ -75,7 +75,7 @@ export default function Statistics() {
               <Package className="w-6 h-6 text-white" />
             </div>
             <div>
-              <p className="text-yellow-600 text-sm">缺配件记录</p>
+              <p className="text-yellow-600 text-sm">缺损记录</p>
               <p className="text-2xl font-bold text-yellow-800">{statistics?.missingAccessoryCount || 0}</p>
             </div>
           </div>

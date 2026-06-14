@@ -42,7 +42,11 @@ router.get('/', (req: Request, res: Response) => {
     const missingAccessoryCount = db.prepare(`
       SELECT COUNT(*) as count 
       FROM damage_records 
-      WHERE resolved = 0 AND missing_accessories_json != '{}'
+      WHERE resolved = 0 AND (
+        missing_accessories_json != '{}' 
+        OR has_stain = 1 
+        OR (damage_description IS NOT NULL AND damage_description != '')
+      )
     `).get() as { count: number };
 
     const cleaningQueueCount = db.prepare(`
@@ -160,7 +164,12 @@ router.get('/overdue', (req: Request, res: Response) => {
 
     const getLendingWithDetails = (recordId: string): LendingRecord | null => {
       const recordRow = db.prepare(`
-        SELECT lr.*, r.* 
+        SELECT lr.id AS lr_id, 
+               lr.reservation_id, lr.lender_name, lr.lend_date, lr.expected_return_date, lr.created_at AS lr_created_at,
+               r.id AS r_id, r.class_name, r.class_contact, r.contact_phone, r.shoot_date, r.time_slot,
+               r.head_count, r.size_breakdown_json, r.teacher_in_charge, r.pickup_location,
+               r.status AS r_status, r.reject_reason, r.remark AS r_remark,
+               r.created_at AS r_created_at, r.updated_at AS r_updated_at
         FROM lending_records lr
         LEFT JOIN reservations r ON lr.reservation_id = r.id
         WHERE lr.id = ?
@@ -197,16 +206,16 @@ router.get('/overdue', (req: Request, res: Response) => {
       }));
     
       return {
-        id: recordRow.id,
+        id: recordRow.lr_id,
         reservationId: recordRow.reservation_id,
         lenderName: recordRow.lender_name,
         lendDate: recordRow.lend_date,
         expectedReturnDate: recordRow.expected_return_date,
-        createdAt: recordRow.created_at,
+        createdAt: recordRow.lr_created_at,
         isOverdue: true,
         items,
         reservation: {
-          id: recordRow.reservation_id,
+          id: recordRow.r_id,
           className: recordRow.class_name,
           classContact: recordRow.class_contact,
           contactPhone: recordRow.contact_phone,
@@ -216,11 +225,11 @@ router.get('/overdue', (req: Request, res: Response) => {
           sizeBreakdown: JSON.parse(recordRow.size_breakdown_json),
           teacherInCharge: recordRow.teacher_in_charge,
           pickupLocation: recordRow.pickup_location,
-          status: recordRow.status,
+          status: recordRow.r_status,
           rejectReason: recordRow.reject_reason,
-          remark: recordRow.remark,
-          createdAt: recordRow.created_at,
-          updatedAt: recordRow.updated_at
+          remark: recordRow.r_remark,
+          createdAt: recordRow.r_created_at,
+          updatedAt: recordRow.r_updated_at
         }
       };
     };
