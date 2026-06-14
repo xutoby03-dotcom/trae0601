@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电梯维保公告看板</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="header">
+        <h1>🏢 电梯维保公告看板</h1>
+        <nav class="nav">
+            <button class="nav-btn active" data-tab="dashboard">📊 统计看板</button>
+            <button class="nav-btn" data-tab="announcements">📢 公告列表</button>
+            <button class="nav-btn" data-tab="elevators">🛗 电梯档案</button>
+        </nav>
+    </header>
+
+    <div id="notification-container"></div>
+
+    <main class="container">
+        <section id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-info">
+                        <div class="stat-label">本月停梯次数</div>
+                        <div class="stat-value" id="stat-monthly-count">0</div>
+                        <div class="stat-sub">次</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-info">
+                        <div class="stat-label">平均恢复时长</div>
+                        <div class="stat-value" id="stat-avg-recovery">0</div>
+                        <div class="stat-sub">分钟</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👁️</div>
+                    <div class="stat-info">
+                        <div class="stat-label">公告阅读率</div>
+                        <div class="stat-value" id="stat-read-rate">0</div>
+                        <div class="stat-sub">%</div>
+                    </div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-info">
+                        <div class="stat-label">投诉最多楼栋</div>
+                        <div class="stat-value" id="stat-complaint-building">-</div>
+                        <div class="stat-sub" id="stat-complaint-count">0 起</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-row">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>🔥 异常告警</h2>
+                        <span class="badge" id="alert-count">0</span>
+                    </div>
+                    <div class="panel-body" id="alert-list">
+                        <div class="empty-state">暂无异常</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>⏰ 即将停梯提醒</h2>
+                    </div>
+                    <div class="panel-body" id="upcoming-list">
+                        <div class="empty-state">暂无即将停梯的电梯</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>📈 楼栋投诉排行</h2>
+                </div>
+                <div class="panel-body" id="complaint-chart">
+                    <div class="empty-state">暂无数据</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="announcements" class="tab-content">
+            <div class="toolbar">
+                <button class="btn btn-primary" id="btn-add-announcement">
+                    <span class="btn-icon">➕</span> 发布新公告
+                </button>
+                <div class="filters">
+                    <select id="filter-status">
+                        <option value="">全部状态</option>
+                        <option value="upcoming">即将停梯</option>
+                        <option value="ongoing">停梯中</option>
+                        <option value="overdue">超时未恢复</option>
+                        <option value="completed">已恢复</option>
+                    </select>
+                    <select id="filter-building">
+                        <option value="">全部楼栋</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="announcement-list" id="announcement-list">
+                <div class="empty-state">暂无公告</div>
+            </div>
+        </section>
+
+        <section id="elevators" class="tab-content">
+            <div class="toolbar">
+                <button class="btn btn-primary" id="btn-add-elevator">
+                    <span class="btn-icon">➕</span> 添加电梯档案
+                </button>
+                <input type="text" id="search-elevator" placeholder="搜索楼栋、梯号、维保公司..." class="search-input">
+            </div>
+
+            <div class="elevator-grid" id="elevator-grid">
+                <div class="empty-state">暂无电梯档案，请先添加</div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal" id="modal">
+        <div class="modal-overlay" data-close="modal"></div>
+        <div class="modal-content">
+            <button class="modal-close" data-close="modal">✕</button>
+            <h2 id="modal-title">标题</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
