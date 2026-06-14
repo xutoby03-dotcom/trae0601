@@ -6,9 +6,10 @@ export const BASKET_PLACEHOLDER_IMG = (color: string, size: string) =>
   )}&image_size=square`;
 
 const now = new Date();
-const daysAgo = (d: number) => {
+const daysAgo = (d: number, offsetHours = 0) => {
   const n = new Date(now);
   n.setDate(n.getDate() - d);
+  n.setHours(n.getHours() + offsetHours);
   return n.toISOString();
 };
 const daysLater = (d: number) => {
@@ -446,6 +447,6 @@ export const mockReminders: ReminderRecord[] = [
     channel: "phone",
     note: "电话接通，对方表示明天上午送还",
     operator: "行政管理员",
-    remindTime: daysAgo(0) + 3600 * 1000 * 2,
+    remindTime: daysAgo(0, 2),
   },
 ];
