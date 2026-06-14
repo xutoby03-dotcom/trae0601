@@ -6,6 +6,7 @@ import {
   Card,
   Descriptions,
   Form,
+  Image,
   Input,
   Modal,
   Select,
@@ -50,6 +51,7 @@ import {
   type Severity,
 } from '@/types';
 import { formatDate, formatDateTime, fromNow } from '@/utils/date';
+import { fileListToUrls, urlsToFileList } from '@/utils/photos';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -101,11 +103,114 @@ const ASSIGNEES = [
   '专业电气维修周工', '专业焊接队', '工程部钱经理', '物业主管卫经理',
 ];
 
-const fileListToUrls = (fileList: UploadFile[]): string[] => {
-  return fileList
-    .map((f) => f.url || (f.response as string) || '')
-    .filter((url) => url && url.length > 0);
-};
+function ReportPhotosPanel({ photos }: { photos: string[] }) {
+  if (photos.length === 0) {
+    return (
+      <div
+        style={{
+          flex: 1,
+          border: '1px solid rgba(22, 119, 255, 0.25)',
+          borderRadius: 12,
+          overflow: 'hidden',
+          background: '#fff',
+          minHeight: 200,
+        }}
+      >
+        <div
+          style={{
+            padding: '12px 20px',
+            background: 'rgba(22, 119, 255, 0.08)',
+            borderBottom: '1px solid rgba(22, 119, 255, 0.12)',
+            fontSize: 14,
+            fontWeight: 600,
+            color: '#1677ff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1677ff' }} />
+          现场照片
+          <span style={{ color: '#999', fontSize: 12, fontWeight: 400, marginLeft: 'auto' }}>
+            共 0 张
+          </span>
+        </div>
+        <div style={{ padding: 16 }}>
+          <EmptyState title="未上传现场照片" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      style={{
+        flex: 1,
+        border: '1px solid rgba(22, 119, 255, 0.25)',
+        borderRadius: 12,
+        overflow: 'hidden',
+        background: '#fff',
+        minHeight: 200,
+      }}
+    >
+      <div
+        style={{
+          padding: '12px 20px',
+          background: 'rgba(22, 119, 255, 0.08)',
+          borderBottom: '1px solid rgba(22, 119, 255, 0.12)',
+          fontSize: 14,
+          fontWeight: 600,
+          color: '#1677ff',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1677ff' }} />
+        现场照片
+        <span style={{ color: '#999', fontSize: 12, fontWeight: 400, marginLeft: 'auto' }}>
+          共 {photos.length} 张
+        </span>
+      </div>
+      <div style={{ padding: 16 }}>
+        <Image.PreviewGroup items={photos}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: 12,
+            }}
+          >
+            {photos.map((url, index) => (
+              <div
+                key={index}
+                style={{
+                  width: '100%',
+                  aspectRatio: '1',
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  border: '1px solid #f0f0f0',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <Image
+                  src={url}
+                  alt={`现场照片-${index + 1}`}
+                  width="100%"
+                  height="100%"
+                  style={{ objectFit: 'cover' }}
+                  preview={{ mask: '点击查看大图' }}
+                />
+              </div>
+            ))}
+          </div>
+        </Image.PreviewGroup>
+      </div>
+    </div>
+  );
+}
 
 export default function RepairDetail() {
   const navigate = useNavigate();
@@ -148,7 +253,9 @@ export default function RepairDetail() {
   }, [repair, facilities]);
 
   const photos = useMemo(() => {
-    return repair ? getPhotosByRepairId(repair.id) : { before: [], after: [] };
+    return repair
+      ? getPhotosByRepairId(repair.id)
+      : { report: [], before: [], after: [] };
   }, [repair, repairPhotos]);
 
   const logs = useMemo<MaintenanceLog[]>(() => {
@@ -161,6 +268,18 @@ export default function RepairDetail() {
       setTimeout(() => setLoading(false), 300);
     }
   }, [repair, repairs.length]);
+
+  useEffect(() => {
+    if (photos.before.length > 0 && beforePhotoList.length === 0) {
+      setBeforePhotoList(urlsToFileList(photos.before.map((p) => p.photo_url), 'before'));
+    }
+  }, [photos.before, beforePhotoList.length]);
+
+  useEffect(() => {
+    if (photos.after.length > 0 && afterPhotoList.length === 0) {
+      setAfterPhotoList(urlsToFileList(photos.after.map((p) => p.photo_url), 'after'));
+    }
+  }, [photos.after, afterPhotoList.length]);
 
   const currentStep = useMemo(() => {
     if (!repair) return 0;
@@ -240,8 +359,9 @@ export default function RepairDetail() {
     }));
   }, [logs]);
 
-  const beforePhotos = photos.before.map((p) => p.photo_url);
-  const afterPhotos = photos.after.map((p) => p.photo_url);
+  const reportPhotoUrls = photos.report.map((p) => p.photo_url);
+  const beforePhotoUrls = photos.before.map((p) => p.photo_url);
+  const afterPhotoUrls = photos.after.map((p) => p.photo_url);
 
   const handleAssignClick = () => {
     setAssignModalOpen(true);
@@ -411,12 +531,21 @@ export default function RepairDetail() {
           <Card style={{ borderRadius: 10 }} styles={{ body: { padding: 24 } }}>
             <Title level={5} style={{ marginBottom: 20 }}>
               <ExclamationCircleOutlined style={{ color: '#FFB703', marginRight: 8 }} />
-              照片对比
+              照片记录
             </Title>
-            <PhotoCompare
-              beforePhotos={beforePhotos}
-              afterPhotos={afterPhotos}
-            />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 20,
+              }}
+            >
+              <ReportPhotosPanel photos={reportPhotoUrls} />
+              <PhotoCompare
+                beforePhotos={beforePhotoUrls}
+                afterPhotos={afterPhotoUrls}
+              />
+            </div>
           </Card>
         );
 
@@ -537,7 +666,7 @@ export default function RepairDetail() {
 
                 <div style={{ marginBottom: 24 }}>
                   <Title level={5} style={{ fontSize: 14, marginBottom: 12 }}>维修前后对比</Title>
-                  <PhotoCompare beforePhotos={beforePhotos} afterPhotos={afterPhotos} />
+                  <PhotoCompare beforePhotos={beforePhotoUrls} afterPhotos={afterPhotoUrls} />
                 </div>
 
                 {showReviewForm && (
@@ -812,7 +941,7 @@ export default function RepairDetail() {
               key: 'photos',
               label: (
                 <span>
-                  <ExclamationCircleOutlined /> 照片对比
+                  <ExclamationCircleOutlined /> 照片记录
                 </span>
               ),
               children: renderTabContent('photos'),

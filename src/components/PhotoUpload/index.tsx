@@ -11,6 +11,15 @@ interface PhotoUploadProps {
   accept?: string;
 }
 
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function PhotoUpload({
   maxCount = 6,
   listType = 'picture-card',
@@ -18,7 +27,7 @@ export default function PhotoUpload({
   onChange,
   accept = 'image/*',
 }: PhotoUploadProps) {
-  const beforeUpload: UploadProps['beforeUpload'] = (file) => {
+  const beforeUpload: UploadProps['beforeUpload'] = async (file) => {
     const isImage = file.type?.startsWith('image/');
     if (!isImage) {
       message.error('只能上传图片文件!');
@@ -29,11 +38,26 @@ export default function PhotoUpload({
       message.error('图片大小不能超过 5MB!');
       return Upload.LIST_IGNORE;
     }
+    try {
+      const base64 = await fileToBase64(file as unknown as File);
+      (file as any).url = base64;
+    } catch {
+      message.error('图片读取失败，请重试');
+      return Upload.LIST_IGNORE;
+    }
     return false;
   };
 
   const handleChange: UploadProps['onChange'] = (info) => {
-    onChange?.(info.fileList);
+    let list = [...info.fileList];
+    list = list.slice(-maxCount);
+    list = list.map((f) => {
+      if (f.originFileObj && !f.url) {
+        return f;
+      }
+      return f;
+    });
+    onChange?.(list);
   };
 
   const uploadButton = (

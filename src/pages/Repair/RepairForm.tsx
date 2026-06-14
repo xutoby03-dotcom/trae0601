@@ -33,6 +33,7 @@ import {
   type Severity,
 } from '@/types';
 import { dayjs } from '@/utils/date';
+import { fileListToUrls } from '@/utils/photos';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -54,12 +55,6 @@ const severityOptions: { label: string; value: Severity; color: string }[] = [
   { label: SEVERITY_CONFIG.high.label, value: 'high', color: SEVERITY_CONFIG.high.color },
   { label: SEVERITY_CONFIG.critical.label, value: 'critical', color: SEVERITY_CONFIG.critical.color },
 ];
-
-const fileListToUrls = (fileList: UploadFile[]): string[] => {
-  return fileList
-    .map((f) => f.url || (f.response as string) || '')
-    .filter((url) => url && url.length > 0);
-};
 
 export default function RepairForm() {
   const navigate = useNavigate();
@@ -133,7 +128,7 @@ export default function RepairForm() {
         setLoading(false);
         return;
       }
-      (addRepair as any)({
+      addRepair({
         facility_id: values.facility_id,
         problem_type: values.problem_type,
         severity: values.severity,

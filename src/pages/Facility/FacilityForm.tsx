@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import type { Facility } from '@/types';
 import { useFacilityStore } from '@/store';
 import { PhotoUpload } from '@/components';
+import { fileListToUrls } from '@/utils/photos';
 
 const ageRangeOptions = [
   { value: '0-3岁', label: '0-3岁' },
@@ -36,12 +37,6 @@ interface FormValues {
   responsible_person: string;
   responsible_phone?: string;
 }
-
-const fileListToUrls = (fileList: UploadFile[]): string[] => {
-  return fileList
-    .map((f) => f.url || (f.response as string) || '')
-    .filter((url) => url && url.length > 0);
-};
 
 export default function FacilityForm() {
   const navigate = useNavigate();

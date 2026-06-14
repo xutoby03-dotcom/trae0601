@@ -10,7 +10,7 @@ interface RepairState {
   repairPhotos: RepairPhoto[];
   maintenanceLogs: MaintenanceLog[];
   addRepair: (
-    data: Omit<Repair, 'id' | 'created_at' | 'status'> & { severity: Severity }
+    data: Omit<Repair, 'id' | 'created_at' | 'status'> & { severity: Severity; _reportPhotos?: string[] }
   ) => void;
   assignRepair: (id: string, assigned_to: string) => void;
   startRepair: (id: string) => void;
@@ -31,7 +31,7 @@ interface RepairState {
   getRepairById: (id: string) => Repair | undefined;
   getPhotosByRepairId: (
     repairId: string
-  ) => { before: RepairPhoto[]; after: RepairPhoto[] };
+  ) => { report: RepairPhoto[]; before: RepairPhoto[]; after: RepairPhoto[] };
   getLogsByRepairId: (repairId: string) => MaintenanceLog[];
 }
 
@@ -44,12 +44,20 @@ export const useRepairStore = create<RepairState>()(
       addRepair: (data) => {
         const now = new Date().toISOString();
         const id = generateId();
+        const reportUrls = data._reportPhotos || [];
         const newRepair: Repair = {
           ...data,
           id,
           status: 'pending',
           created_at: now,
-        };
+        } as Repair;
+        const reportPhotos: RepairPhoto[] = reportUrls.map((url) => ({
+          id: generateId(),
+          repair_id: id,
+          photo_type: 'report',
+          photo_url: url,
+          uploaded_at: now,
+        }));
         const createLog: MaintenanceLog = {
           id: generateId(),
           repair_id: id,
@@ -73,6 +81,7 @@ export const useRepairStore = create<RepairState>()(
         }
         set({
           repairs: [...get().repairs, newRepair],
+          repairPhotos: [...get().repairPhotos, ...reportPhotos],
           maintenanceLogs: [...get().maintenanceLogs, ...newLogs],
         });
       },
@@ -237,6 +246,7 @@ export const useRepairStore = create<RepairState>()(
       getPhotosByRepairId: (repairId) => {
         const photos = get().repairPhotos.filter((p) => p.repair_id === repairId);
         return {
+          report: photos.filter((p) => p.photo_type === 'report'),
           before: photos.filter((p) => p.photo_type === 'before'),
           after: photos.filter((p) => p.photo_type === 'after'),
         };
