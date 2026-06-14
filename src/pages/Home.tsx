@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, CalendarDays, Package, RefreshCw, ChevronDown, User, Clock } from 'lucide-react';
+import { Plus, CalendarDays, Package, RefreshCw, ChevronDown, Clock } from 'lucide-react';
 import StatsOverview from '@/components/StatsOverview';
 import DeptStats from '@/components/DeptStats';
 import VisitorBoard from '@/components/VisitorBoard';
@@ -67,20 +67,93 @@ export default function Home() {
     setDetailOpen(true);
   }
 
+  function handleRestockClick() {
+    setRestockOpen((v) => !v);
+  }
+
+  function handleRestockSuccess() {
+    setRefreshVersion((v) => v + 1);
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
-      <TopNav
-        todayLabel={todayLabel}
-        inventory={inventory}
-        currentUserName={currentUser?.name || '管理员'}
-        lastRestock={lastRestock}
-        lastRestockOperatorName={lastRestockOperator?.name}
-        onNewBooking={() => setBookingOpen(true)}
-        onReset={resetMock}
-        restockAnchorRef={restockAnchorRef}
-        onRestockClick={() => setRestockOpen((v) => !v)}
-        restockOpen={restockOpen}
-      />
+      <header className="sticky top-0 z-40 backdrop-blur-soft bg-white/80 border-b border-neutral-100">
+        <div className="container mx-auto px-4 lg:px-6 max-w-[1440px] py-3.5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-700 to-primary-800 shadow-md flex items-center justify-center shrink-0">
+              <span className="text-white font-bold text-lg">P</span>
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base lg:text-lg font-bold text-neutral-800 leading-tight truncate">
+                访客停车券管理
+              </h1>
+              <p className="text-[11px] lg:text-xs text-neutral-500 flex items-center gap-1.5 mt-0.5">
+                <CalendarDays size={12} className="text-primary-500" />
+                <span>{todayLabel}</span>
+                <span className="text-neutral-300">·</span>
+                <span>你好，{currentUser?.name || '管理员'}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+            <div className="relative flex items-center gap-2">
+              {lastRestock && lastRestockOperator && (
+                <div className="hidden min-[480px]:flex items-center gap-1 text-[11px] text-neutral-400 max-w-[220px]">
+                  <Clock size={11} className="shrink-0" />
+                  <span className="truncate">
+                    <span className="hidden sm:inline">{lastRestockOperator.name} </span>
+                    +{lastRestock.amount}张
+                    <span className="hidden md:inline"> · {formatDate(lastRestock.operatedAt, true)}</span>
+                  </span>
+                </div>
+              )}
+
+              <button
+                ref={restockAnchorRef}
+                onClick={handleRestockClick}
+                className={
+                  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all ' +
+                  (restockOpen
+                    ? 'border-primary-400 bg-primary-50 shadow-sm'
+                    : 'border-neutral-200 bg-white hover:border-primary-300 hover:bg-primary-50/50')
+                }
+              >
+                <div className={'relative w-2 h-2 rounded-full shrink-0 ' + (inventory.total - inventory.used < 20 ? 'bg-accent-500 animate-pulse-dot' : 'bg-mint-500')} />
+                <Package size={13} className="text-neutral-400 shrink-0" />
+                <span className={'font-mono text-sm font-bold leading-none ' + (inventory.total - inventory.used < 20 ? 'text-accent-600' : 'text-neutral-800')}>
+                  {inventory.total - inventory.used}
+                </span>
+                <ChevronDown size={12} className={'text-neutral-400 shrink-0 transition-transform ' + (restockOpen ? 'rotate-180' : '')} />
+              </button>
+
+              <RestockPopover
+                open={restockOpen}
+                onClose={() => setRestockOpen(false)}
+                anchorRef={restockAnchorRef}
+                onSuccess={handleRestockSuccess}
+              />
+            </div>
+
+            <button
+              onClick={resetMock}
+              title="重置为演示数据"
+              className="w-9 h-9 rounded-lg border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition flex items-center justify-center shrink-0"
+            >
+              <RefreshCw size={16} />
+            </button>
+
+            <button
+              onClick={() => setBookingOpen(true)}
+              className="inline-flex items-center gap-2 px-4 lg:px-5 py-2 lg:py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-button hover:shadow-lg hover:-translate-y-0.5 transition-all"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">新增预约 & 发券</span>
+              <span className="sm:hidden">发券</span>
+            </button>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1 w-full">
         <div className="container mx-auto px-4 lg:px-6 py-5 lg:py-6 space-y-5 lg:space-y-6 max-w-[1440px]">
@@ -118,15 +191,6 @@ export default function Home() {
         </div>
       </footer>
 
-      <div className="relative">
-        <RestockPopover
-          open={restockOpen}
-          onClose={() => setRestockOpen(false)}
-          anchorRef={restockAnchorRef}
-          onSuccess={() => setRefreshVersion((v) => v + 1)}
-        />
-      </div>
-
       <BookingModal
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}
@@ -142,110 +206,5 @@ export default function Home() {
         onRedeem={() => setRefreshVersion((v) => v + 1)}
       />
     </div>
-  );
-}
-
-interface TopNavProps {
-  todayLabel: string;
-  inventory: { total: number; used: number; restockHistory?: { operatedAt: string; amount: number }[] };
-  currentUserName: string;
-  lastRestock?: { operatedAt: string; amount: number };
-  lastRestockOperatorName?: string;
-  onNewBooking: () => void;
-  onReset: () => void;
-  restockAnchorRef: React.RefObject<HTMLButtonElement>;
-  onRestockClick: () => void;
-  restockOpen: boolean;
-}
-
-function TopNav({
-  todayLabel,
-  inventory,
-  currentUserName,
-  lastRestock,
-  lastRestockOperatorName,
-  onNewBooking,
-  onReset,
-  restockAnchorRef,
-  onRestockClick,
-  restockOpen,
-}: TopNavProps) {
-  const remaining = inventory.total - inventory.used;
-  const lowStock = remaining < 20;
-
-  return (
-    <motion.header
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="sticky top-0 z-30 backdrop-blur-soft bg-white/80 border-b border-neutral-100"
-    >
-      <div className="container mx-auto px-4 lg:px-6 max-w-[1440px] py-3.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-700 to-primary-800 shadow-md flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-lg">P</span>
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-base lg:text-lg font-bold text-neutral-800 leading-tight truncate">
-              访客停车券管理
-            </h1>
-            <p className="text-[11px] lg:text-xs text-neutral-500 flex items-center gap-1.5 mt-0.5">
-              <CalendarDays size={12} className="text-primary-500" />
-              <span>{todayLabel}</span>
-              <span className="text-neutral-300">·</span>
-              <span>你好，{currentUserName}</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-          <div className="flex items-center gap-2">
-            {lastRestock && lastRestockOperatorName && (
-              <div className="hidden md:flex items-center gap-1.5 text-[11px] text-neutral-400 max-w-[220px]">
-                <Clock size={11} />
-                <span className="truncate">
-                  {lastRestockOperatorName} +{lastRestock.amount}张 · {formatDate(lastRestock.operatedAt, true)}
-                </span>
-              </div>
-            )}
-
-            <button
-              ref={restockAnchorRef}
-              onClick={onRestockClick}
-              className={
-                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ' +
-                (restockOpen
-                  ? 'border-primary-400 bg-primary-50 shadow-sm'
-                  : 'border-neutral-200 bg-white hover:border-primary-300 hover:bg-primary-50/50')
-              }
-            >
-              <div className={'relative w-2 h-2 rounded-full shrink-0 ' + (lowStock ? 'bg-accent-500 animate-pulse-dot' : 'bg-mint-500')} />
-              <Package size={13} className="text-neutral-400 shrink-0" />
-              <span className={'font-mono text-sm font-bold leading-none ' + (lowStock ? 'text-accent-600' : 'text-neutral-800')}>
-                {remaining}
-              </span>
-              <ChevronDown size={12} className={'text-neutral-400 shrink-0 transition-transform ' + (restockOpen ? 'rotate-180' : '')} />
-            </button>
-          </div>
-
-          <button
-            onClick={onReset}
-            title="重置为演示数据"
-            className="w-9 h-9 rounded-lg border border-neutral-200 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition flex items-center justify-center shrink-0"
-          >
-            <RefreshCw size={16} />
-          </button>
-
-          <button
-            onClick={onNewBooking}
-            className="inline-flex items-center gap-2 px-4 lg:px-5 py-2 lg:py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 shadow-button hover:shadow-lg hover:-translate-y-0.5 transition-all"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">新增预约 & 发券</span>
-            <span className="sm:hidden">发券</span>
-          </button>
-        </div>
-      </div>
-    </motion.header>
   );
 }

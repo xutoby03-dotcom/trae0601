@@ -9,6 +9,9 @@ export default {
       padding: "1.5rem",
     },
     extend: {
+      screens: {
+        xs: '480px',
+      },
       colors: {
         primary: {
           50: "#F0F4F9",
