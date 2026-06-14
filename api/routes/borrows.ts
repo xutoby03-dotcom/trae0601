@@ -7,6 +7,7 @@ import {
   getOverdueRecords,
   getActiveBorrowByCostume,
   markReminderSent,
+  markAllOverdueReminderSent,
 } from '../services/borrowService';
 
 const router = Router();
@@ -81,6 +82,15 @@ router.put('/:id/remind', (req, res) => {
   try {
     const record = markReminderSent(parseInt(req.params.id));
     res.json(record);
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.put('/overdue/remind-all', (_req, res) => {
+  try {
+    const result = markAllOverdueReminderSent();
+    res.json(result);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }

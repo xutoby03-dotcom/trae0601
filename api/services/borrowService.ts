@@ -256,3 +256,22 @@ export function markReminderSent(borrowId: number) {
 
   return getBorrowRecordById(borrowId);
 }
+
+export function markAllOverdueReminderSent() {
+  const today = new Date().toISOString().split('T')[0];
+
+  db.prepare(`
+    UPDATE borrow_records
+    SET status = 'overdue'
+    WHERE status = 'borrowed' AND expected_return_date < ?
+  `).run(today);
+
+  const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+  const result = db.prepare(`
+    UPDATE borrow_records
+    SET reminder_sent = 1, reminder_at = ?
+    WHERE status = 'overdue' AND reminder_sent = 0
+  `).run(now);
+
+  return { updated: result.changes };
+}
