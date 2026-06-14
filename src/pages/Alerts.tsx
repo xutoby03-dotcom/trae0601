@@ -35,11 +35,13 @@ export default function Alerts() {
 
   const handleOpenReplenish = (alert: Alert) => {
     const printer = printers.find((p) => p.id === alert.printerId);
-    const gap = printer ? Math.max(0, printer.minStock - printer.currentStock) : 10;
+    if (!printer) return;
+
+    const gap = Math.max(1, printer.minStock - printer.currentStock);
     const defaultBoxes = Math.max(1, Math.ceil(gap / 10));
-    
+
     setFormData({
-      printerId: alert.printerId,
+      printerId: printer.id,
       supplier: '',
       boxCount: defaultBoxes,
       unitPrice: 0,
@@ -219,7 +221,12 @@ export default function Alerts() {
       ) : (
         <div className="space-y-4">
           {sortedAlerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} onReplenish={handleOpenReplenish} />
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              onReplenish={handleOpenReplenish}
+              canReplenish={printers.some((p) => p.id === alert.printerId)}
+            />
           ))}
         </div>
       )}

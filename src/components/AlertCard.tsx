@@ -10,9 +10,10 @@ import { useNavigate } from 'react-router-dom';
 interface AlertCardProps {
   alert: Alert;
   onReplenish?: (alert: Alert) => void;
+  canReplenish?: boolean;
 }
 
-export const AlertCard: React.FC<AlertCardProps> = ({ alert, onReplenish }) => {
+export const AlertCard: React.FC<AlertCardProps> = ({ alert, onReplenish, canReplenish = true }) => {
   const { resolveAlert } = useAppStore();
   const navigate = useNavigate();
 
@@ -102,8 +103,10 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert, onReplenish }) => {
                   size="sm"
                   variant="primary"
                   onClick={handleReplenish}
+                  disabled={!canReplenish}
+                  loading={!canReplenish}
                 >
-                  去补货
+                  {canReplenish ? '去补货' : '加载中'}
                 </Button>
               )}
               <Button
