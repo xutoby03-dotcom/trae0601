@@ -64,6 +64,32 @@ export default function Statistics() {
       .sort((a, b) => new Date(a.visitTime).getTime() - new Date(b.visitTime).getTime());
   }, [visits]);
 
+  const visitsByCompanion = useMemo(() => {
+    const now = new Date();
+    const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const nextMonthVisits = visits.filter((v) => {
+      if (v.status === 'completed' || v.status === 'cancelled') return false;
+      const visitDate = new Date(v.visitTime);
+      return visitDate >= now && visitDate <= oneMonthLater;
+    });
+
+    const grouped: Record<string, typeof nextMonthVisits> = {};
+    nextMonthVisits.forEach((visit) => {
+      const key = visit.companion || '待分配';
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(visit);
+    });
+
+    Object.keys(grouped).forEach((key) => {
+      grouped[key].sort((a, b) => new Date(a.visitTime).getTime() - new Date(b.visitTime).getTime());
+    });
+
+    return grouped;
+  }, [visits]);
+
   const getPatientName = (patientId: string) => {
     return patients.find((p) => p.id === patientId)?.name || '未知';
   };
@@ -296,6 +322,109 @@ export default function Statistics() {
               );
             })}
         </div>
+      </div>
+
+      <div className="card p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary-500" />
+          未来30天陪同安排
+          <span className="text-sm font-normal text-gray-500 ml-1">（按陪同人分组）</span>
+        </h3>
+
+        {Object.keys(visitsByCompanion).length === 0 ? (
+          <p className="text-gray-500 text-center py-8">未来30天暂无复诊安排</p>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(visitsByCompanion).map(([companion, companionVisits]) => {
+              const unconfirmedCount = companionVisits.filter((v) => !v.confirmed).length;
+
+              return (
+                <div key={companion}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary-600">
+                          {companion.charAt(0)}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-gray-800">{companion}</span>
+                      <span className="text-sm text-gray-500">
+                        共 {companionVisits.length} 次
+                      </span>
+                    </div>
+                    {unconfirmedCount > 0 && (
+                      <span className="tag bg-red-100 text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {unconfirmedCount} 次待确认
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 ml-2 pl-4 border-l-2 border-primary-100">
+                    {companionVisits.map((visit) => {
+                      const unpreparedCount = visit.materials.filter((m) => !m.prepared).length;
+                      const isUrgent = getDaysUntil(visit.visitTime) <= 3;
+
+                      return (
+                        <Link
+                          key={visit.id}
+                          to={`/visits/${visit.id}`}
+                          className={cn(
+                            'block p-3 rounded-xl transition-all border',
+                            visit.confirmed
+                              ? 'bg-warm-50 hover:bg-warm-100 border-warm-100'
+                              : 'bg-red-50 hover:bg-red-100 border-red-200'
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-gray-800">
+                                  {getPatientName(visit.patientId)}
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                  · {visit.department}
+                                </span>
+                                {!visit.confirmed && (
+                                  <span className="tag bg-red-500 text-white text-xs">
+                                    待确认
+                                  </span>
+                                )}
+                                {isUrgent && visit.confirmed && (
+                                  <span className="tag bg-amber-100 text-amber-700 text-xs">
+                                    临近
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-gray-500">
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  {formatDate(visit.visitTime)}
+                                </span>
+                                {unpreparedCount > 0 ? (
+                                  <span className="flex items-center gap-1 text-amber-600">
+                                    <FileText className="w-3.5 h-3.5" />
+                                    待带 {unpreparedCount} 项材料
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1 text-green-600">
+                                    <FileText className="w-3.5 h-3.5" />
+                                    材料已备齐
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
