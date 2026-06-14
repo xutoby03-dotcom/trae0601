@@ -13,12 +13,16 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { today } from '@/utils/date';
+import { computeMaintenanceStatus } from '@/utils/maintenance';
 import type { SportType, IntensityLevel } from '@/types';
 import {
   SPORT_TYPE_LABELS,
   INTENSITY_LABELS,
+  MAINTENANCE_ACTION_LABELS,
 } from '@/types';
 import { SportIcon } from '@/components/SportIcon';
+import { MaintenanceIcon } from '@/components/MaintenanceIcon';
+import { StatusBadge } from '@/components/StatusBadge';
 import { cn } from '@/lib/utils';
 
 const intensityOptions: { value: IntensityLevel; label: string; desc: string; color: string }[] = [
@@ -64,6 +68,10 @@ export default function UsageForm() {
 
   const selectedEquipment = equipment.find((e) => e.id === form.equipmentId);
   const selectedSport = selectedEquipment?.sportType as SportType | undefined;
+  const usageRecords = useAppStore((s) => s.usageRecords);
+  const selectedMaintenanceStatus = selectedEquipment
+    ? computeMaintenanceStatus(selectedEquipment, usageRecords)
+    : null;
 
   useEffect(() => {
     if (selectedSport && !form.location) {
@@ -214,6 +222,61 @@ export default function UsageForm() {
             )}
           </div>
         </div>
+
+        {/* Maintenance Status Alert */}
+        {selectedEquipment && selectedMaintenanceStatus && (
+          <div
+            className={cn(
+              'mt-3 p-3 rounded-xl border flex items-center gap-3 animate-fade-in-up',
+              selectedMaintenanceStatus.isMaintenanceOverdue || selectedMaintenanceStatus.isLifespanOverdue
+                ? 'bg-red-50 border-red-200'
+                : selectedMaintenanceStatus.isMaintenanceUpcoming || selectedMaintenanceStatus.isLifespanUpcoming
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-emerald-50 border-emerald-200'
+            )}
+            style={{ opacity: 0, animationDelay: '20ms' }}
+          >
+            <div
+              className={cn(
+                'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                selectedMaintenanceStatus.isMaintenanceOverdue || selectedMaintenanceStatus.isLifespanOverdue
+                  ? 'bg-red-100 text-red-600'
+                  : selectedMaintenanceStatus.isMaintenanceUpcoming || selectedMaintenanceStatus.isLifespanUpcoming
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'bg-emerald-100 text-emerald-600'
+              )}
+            >
+              <MaintenanceIcon action={selectedMaintenanceStatus.suggestedAction} size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusBadge status={selectedEquipment.status} />
+                <span className="text-xs font-medium">
+                  {MAINTENANCE_ACTION_LABELS[selectedMaintenanceStatus.suggestedAction]}
+                </span>
+              </div>
+              <p className="text-xs text-warm-600 mt-0.5 truncate">
+                {selectedMaintenanceStatus.isLifespanOverdue
+                  ? `使用寿命已超期 ${Math.abs(selectedMaintenanceStatus.lifespanDaysRemaining)} 天，建议退役`
+                  : selectedMaintenanceStatus.isLifespanUpcoming
+                  ? `距离使用寿命还有 ${selectedMaintenanceStatus.lifespanDaysRemaining} 天`
+                  : selectedMaintenanceStatus.isMaintenanceOverdue
+                  ? `保养已超期 ${Math.abs(selectedMaintenanceStatus.daysUntilNextMaintenance)} 天`
+                  : selectedMaintenanceStatus.isMaintenanceUpcoming
+                  ? `还剩 ${selectedMaintenanceStatus.daysUntilNextMaintenance} 天需要保养`
+                  : `保养状态良好，还剩 ${selectedMaintenanceStatus.daysUntilNextMaintenance} 天`}
+                {selectedMaintenanceStatus.kmUntilNextMaintenance !== null &&
+                  selectedEquipment.maintenanceCycleKm && (
+                    <span className="ml-1">
+                      · {selectedMaintenanceStatus.kmUntilNextMaintenance > 0
+                        ? `还剩 ${selectedMaintenanceStatus.kmUntilNextMaintenance.toFixed(0)} km`
+                        : `里程已超 ${Math.abs(selectedMaintenanceStatus.kmUntilNextMaintenance).toFixed(0)} km`}
+                    </span>
+                  )}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Date + Duration */}
         <div className="card-base p-6 animate-fade-in-up" style={{ opacity: 0, animationDelay: '50ms' }}>
