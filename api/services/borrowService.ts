@@ -241,7 +241,7 @@ export function getOverdueRecords() {
   });
 }
 
-export function markReminderSent(borrowId: number) {
+export function markReminderSent(borrowId: number, note?: string) {
   const record = db.prepare('SELECT * FROM borrow_records WHERE id = ?').get(borrowId) as BorrowRecord | undefined;
   if (!record) {
     throw new Error('借用记录不存在');
@@ -250,9 +250,9 @@ export function markReminderSent(borrowId: number) {
   const now = new Date().toISOString().replace('T', ' ').split('.')[0];
   db.prepare(`
     UPDATE borrow_records
-    SET reminder_sent = 1, reminder_at = ?
+    SET reminder_sent = 1, reminder_at = ?, reminder_note = ?
     WHERE id = ?
-  `).run(now, borrowId);
+  `).run(now, note || null, borrowId);
 
   return getBorrowRecordById(borrowId);
 }
@@ -267,11 +267,12 @@ export function markAllOverdueReminderSent() {
   `).run(today);
 
   const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+  const defaultNote = '已电话提醒社长催收';
   const result = db.prepare(`
     UPDATE borrow_records
-    SET reminder_sent = 1, reminder_at = ?
+    SET reminder_sent = 1, reminder_at = ?, reminder_note = ?
     WHERE status = 'overdue' AND reminder_sent = 0
-  `).run(now);
+  `).run(now, defaultNote);
 
   return { updated: result.changes };
 }

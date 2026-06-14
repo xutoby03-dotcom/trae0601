@@ -42,6 +42,7 @@ export interface BorrowRecord {
   club_leader_contact?: string;
   reminder_sent?: boolean;
   reminder_at?: string;
+  reminder_note?: string;
   created_at?: string;
   costume?: Costume;
 }
@@ -119,5 +120,6 @@ export interface OverdueNotification {
   club_leader_contact?: string;
   reminder_sent?: boolean;
   reminder_at?: string;
+  reminder_note?: string;
   deposit?: number;
 }

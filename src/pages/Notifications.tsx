@@ -1,9 +1,25 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, User, Building2, ArrowRight, Phone, Crown, CheckCircle, Loader2, BellOff } from 'lucide-react';
+import {
+  Bell,
+  AlertTriangle,
+  Clock,
+  User,
+  Building2,
+  ArrowRight,
+  Phone,
+  Crown,
+  CheckCircle,
+  Loader2,
+  BellOff,
+  X,
+  MessageSquare,
+  StickyNote,
+} from 'lucide-react';
 import { borrowApi } from '../services/borrowService';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 interface OverdueRecord {
   id: number;
@@ -21,9 +37,12 @@ interface OverdueRecord {
   club_leader_contact?: string;
   reminder_sent?: boolean;
   reminder_at?: string;
+  reminder_note?: string;
 }
 
 type TabType = 'unreminded' | 'reminded';
+
+const DEFAULT_BATCH_NOTE = '已电话提醒社长催收';
 
 export default function Notifications() {
   const [overdueList, setOverdueList] = useState<OverdueRecord[]>([]);
@@ -31,6 +50,11 @@ export default function Notifications() {
   const [remindingIds, setRemindingIds] = useState<number[]>([]);
   const [markAllLoading, setMarkAllLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('unreminded');
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [targetRecord, setTargetRecord] = useState<OverdueRecord | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadOverdue();
@@ -59,11 +83,26 @@ export default function Notifications() {
 
   const displayList = activeTab === 'unreminded' ? unremindedList : remindedList;
 
-  const handleMarkReminder = async (id: number) => {
-    if (remindingIds.includes(id)) return;
+  const openReminderModal = (record: OverdueRecord) => {
+    setTargetRecord(record);
+    setNoteText('');
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (submitting) return;
+    setModalOpen(false);
+    setTargetRecord(null);
+    setNoteText('');
+  };
+
+  const submitReminder = async () => {
+    if (!targetRecord || submitting) return;
+    const id = targetRecord.id;
+    setSubmitting(true);
     setRemindingIds((prev) => [...prev, id]);
     try {
-      await borrowApi.markReminder(id);
+      await borrowApi.markReminder(id, noteText.trim() || undefined);
       const nowStr = new Date().toISOString().replace('T', ' ').split('.')[0];
       setOverdueList((prev) =>
         prev.map((r) =>
@@ -72,13 +111,16 @@ export default function Notifications() {
                 ...r,
                 reminder_sent: true,
                 reminder_at: nowStr,
+                reminder_note: noteText.trim() || undefined,
               }
             : r
         )
       );
+      closeModal();
     } catch (error) {
       alert((error as Error).message);
     } finally {
+      setSubmitting(false);
       setRemindingIds((prev) => prev.filter((rid) => rid !== id));
     }
   };
@@ -91,7 +133,14 @@ export default function Notifications() {
       const nowStr = new Date().toISOString().replace('T', ' ').split('.')[0];
       setOverdueList((prev) =>
         prev.map((r) =>
-          r.reminder_sent ? r : { ...r, reminder_sent: true, reminder_at: nowStr }
+          r.reminder_sent
+            ? r
+            : {
+                ...r,
+                reminder_sent: true,
+                reminder_at: nowStr,
+                reminder_note: DEFAULT_BATCH_NOTE,
+              }
         )
       );
     } catch (error) {
@@ -102,10 +151,7 @@ export default function Notifications() {
   };
 
   const renderCard = (record: OverdueRecord) => (
-    <div
-      key={record.id}
-      className="p-5 hover:bg-gray-50 transition-colors"
-    >
+    <div key={record.id} className="p-5 hover:bg-gray-50 transition-colors">
       <div className="flex items-start gap-4">
         <div className="w-14 h-14 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
           {record.costume_photo ? (
@@ -164,7 +210,9 @@ export default function Notifications() {
             <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <Crown className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-xs font-medium text-amber-700">社团负责人</span>
+                <span className="text-xs font-medium text-amber-700">
+                  社团负责人
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-1.5 text-gray-700">
@@ -184,10 +232,23 @@ export default function Notifications() {
             </div>
           )}
 
-          {record.reminder_sent && record.reminder_at && (
-            <p className="mt-2 text-xs text-emerald-600">
-              提醒时间：{record.reminder_at}
-            </p>
+          {record.reminder_sent && (
+            <div className="mt-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+              <div className="flex items-start gap-2">
+                <StickyNote className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm flex-1 min-w-0">
+                  <p className="text-emerald-700">
+                    提醒时间：{record.reminder_at}
+                  </p>
+                  {record.reminder_note && (
+                    <p className="mt-1 text-gray-700 break-words">
+                      <span className="text-gray-500">社长反馈：</span>
+                      {record.reminder_note}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           <div className="mt-4 flex items-center justify-between gap-3">
@@ -197,7 +258,10 @@ export default function Notifications() {
               </p>
               {typeof record.deposit === 'number' && record.deposit > 0 && (
                 <p className="text-gray-500 mt-0.5">
-                  押金：<span className="font-medium text-gray-700">¥{record.deposit}</span>
+                  押金：
+                  <span className="font-medium text-gray-700">
+                    ¥{record.deposit}
+                  </span>
                 </p>
               )}
             </div>
@@ -206,13 +270,13 @@ export default function Notifications() {
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => handleMarkReminder(record.id)}
+                  onClick={() => openReminderModal(record)}
                   disabled={remindingIds.includes(record.id)}
                 >
                   {remindingIds.includes(record.id) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Bell className="w-4 h-4 mr-1" />
+                    <MessageSquare className="w-4 h-4 mr-1" />
                   )}
                   标记已提醒
                 </Button>
@@ -256,7 +320,8 @@ export default function Notifications() {
               <div>
                 <h2 className="font-semibold text-gray-800">逾期提醒</h2>
                 <p className="text-sm text-gray-500">
-                  共 {overdueList.length} 套服装逾期，其中 {unremindedList.length} 套未提醒
+                  共 {overdueList.length} 套服装逾期，其中{' '}
+                  {unremindedList.length} 套未提醒
                 </p>
               </div>
             </div>
@@ -355,13 +420,112 @@ export default function Notifications() {
               <Bell className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-800 font-medium">欢迎使用社团服装借还系统</p>
-              <p className="text-xs text-gray-500 mt-1">系统已初始化，您可以开始管理服装档案了。</p>
+              <p className="text-sm text-gray-800 font-medium">
+                欢迎使用社团服装借还系统
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                系统已初始化，您可以开始管理服装档案了。
+              </p>
               <p className="text-xs text-gray-400 mt-2">刚刚</p>
             </div>
           </div>
         </div>
       </div>
+
+      {modalOpen && targetRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeModal}
+          />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-primary-600" />
+                <h3 className="font-semibold text-gray-800">标记已提醒</h3>
+              </div>
+              <button
+                onClick={closeModal}
+                disabled={submitting}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                <p className="font-medium text-gray-800">
+                  {targetRecord.costume_name}
+                </p>
+                <p className="text-gray-500 mt-1">
+                  编号：{targetRecord.costume_id} · 尺码：
+                  {targetRecord.costume_size || '-'} · 逾期{' '}
+                  {targetRecord.overdue_days} 天
+                </p>
+                {targetRecord.club_leader_name && (
+                  <p className="text-amber-600 mt-1.5 flex items-center gap-1">
+                    <Crown className="w-3.5 h-3.5" />
+                    社长：{targetRecord.club_leader_name}
+                    {targetRecord.club_leader_contact && (
+                      <>
+                        <span className="text-gray-300 mx-1">·</span>
+                        <a
+                          href={`tel:${targetRecord.club_leader_contact}`}
+                          className="underline hover:text-amber-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {targetRecord.club_leader_contact}
+                        </a>
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  催还备注（社长反馈）
+                </label>
+                <textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  rows={4}
+                  placeholder="例：社长说今晚联系学生明早送回；或已沟通明天下午社团室归还..."
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition-all text-sm resize-none placeholder:text-gray-400"
+                  autoFocus
+                  disabled={submitting}
+                />
+                <p className="text-xs text-gray-400 mt-1.5">
+                  可不填，留空仅记录提醒时间
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={closeModal}
+                disabled={submitting}
+              >
+                取消
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={submitReminder}
+                disabled={submitting}
+              >
+                {submitting && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                )}
+                确认标记
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

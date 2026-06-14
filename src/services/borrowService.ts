@@ -66,8 +66,8 @@ export const borrowApi = {
   returnCostume: (id: number, data: ReturnData) =>
     api.put<BorrowDetail>(`/borrows/${id}/return`, data),
 
-  markReminder: (id: number) =>
-    api.put<BorrowDetail>(`/borrows/${id}/remind`, {}),
+  markReminder: (id: number, note?: string) =>
+    api.put<BorrowDetail>(`/borrows/${id}/remind`, { note }),
 
   markAllReminder: () =>
     api.put<{ updated: number }>('/borrows/overdue/remind-all', {}),

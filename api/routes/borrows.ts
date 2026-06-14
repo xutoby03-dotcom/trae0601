@@ -80,7 +80,8 @@ router.put('/:id/return', (req, res) => {
 
 router.put('/:id/remind', (req, res) => {
   try {
-    const record = markReminderSent(parseInt(req.params.id));
+    const { note } = req.body || {};
+    const record = markReminderSent(parseInt(req.params.id), note as string | undefined);
     res.json(record);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });

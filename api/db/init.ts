@@ -28,6 +28,9 @@ function migrateDatabase() {
     if (!colNames.includes("reminder_at")) {
       db.exec("ALTER TABLE borrow_records ADD COLUMN reminder_at TEXT");
     }
+    if (!colNames.includes("reminder_note")) {
+      db.exec("ALTER TABLE borrow_records ADD COLUMN reminder_note TEXT");
+    }
   } catch (e) {
     console.log("Migration skipped:", (e as Error).message);
   }
@@ -91,6 +94,7 @@ export function initDatabase() {
       club_leader_contact TEXT,
       reminder_sent INTEGER NOT NULL DEFAULT 0,
       reminder_at TEXT,
+      reminder_note TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (costume_id) REFERENCES costumes(id)
     );
