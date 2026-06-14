@@ -118,3 +118,12 @@ export function friendlyDateLabel(dateStr: string): string {
   if (isSameDay(dateStr, tomorrow)) return `明天 ${formatTime(dateStr)}`;
   return formatDate(dateStr, true);
 }
+
+export function formatDateShort(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${m}/${day} ${hh}:${mm}`;
+}

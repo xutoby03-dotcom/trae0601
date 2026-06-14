@@ -10,7 +10,7 @@ import DetailModal from '@/components/DetailModal';
 import RestockPopover from '@/components/RestockPopover';
 import { useAppStore } from '@/store/useAppStore';
 import type { VisitorWithRelations } from '@/types';
-import { formatDate } from '@/utils/dateUtils';
+import { formatDate, formatDateShort } from '@/utils/dateUtils';
 
 export default function Home() {
   const getVisitorsByGroup = useAppStore((s) => s.getVisitorsByGroup);
@@ -99,12 +99,15 @@ export default function Home() {
           <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             <div className="relative flex items-center gap-2">
               {lastRestock && lastRestockOperator && (
-                <div className="hidden min-[480px]:flex items-center gap-1 text-[11px] text-neutral-400 max-w-[220px]">
-                  <Clock size={11} className="shrink-0" />
+                <div className="hidden min-[480px]:flex items-center gap-1 text-[11px] text-neutral-400 max-w-[200px]">
+                  <Clock size={10} className="shrink-0" />
                   <span className="truncate">
-                    <span className="hidden sm:inline">{lastRestockOperator.name} </span>
+                    {lastRestockOperator.name}
+                    <span className="text-neutral-300 mx-1">·</span>
                     +{lastRestock.amount}张
-                    <span className="hidden md:inline"> · {formatDate(lastRestock.operatedAt, true)}</span>
+                    <span className="text-neutral-300 mx-1 hidden md:inline">·</span>
+                    <span className="hidden md:inline">{formatDate(lastRestock.operatedAt, true)}</span>
+                    <span className="md:hidden">{formatDateShort(lastRestock.operatedAt)}</span>
                   </span>
                 </div>
               )}
