@@ -30,7 +30,6 @@ export function RecordForm({ onSuccess }: RecordFormProps) {
     removedAt: existingRecord?.removedAt || formatISO(new Date(), { representation: 'date' }),
     dustLevel: existingRecord?.dustLevel || 'medium',
     dryingStatus: existingRecord?.dryingStatus || 'drying',
-    installedBackAt: existingRecord?.installedBackAt || undefined,
     ventWiped: existingRecord?.ventWiped || false,
     notes: existingRecord?.notes || '',
   });
@@ -76,6 +75,17 @@ export function RecordForm({ onSuccess }: RecordFormProps) {
   const handleInstallBack = () => {
     if (!existingRecord) return;
 
+    if (formData.dryingStatus !== 'dried') {
+      setInstallError('滤网未晾干，不能装回！请先将晾干状态改为"已晾干"。');
+      setShakeError(true);
+      setTimeout(() => setShakeError(false), 500);
+      return;
+    }
+
+    updateCleaningRecord(existingRecord.id, {
+      dryingStatus: formData.dryingStatus,
+    });
+
     const result = installBack(existingRecord.id, formatISO(new Date()));
     if (!result.success) {
       setInstallError(result.error || '操作失败');
@@ -84,7 +94,6 @@ export function RecordForm({ onSuccess }: RecordFormProps) {
     } else {
       setFormData((prev) => ({
         ...prev,
-        installedBackAt: formatISO(new Date()),
         dryingStatus: 'dried',
       }));
       setShowInstallBack(false);
@@ -149,33 +158,60 @@ export function RecordForm({ onSuccess }: RecordFormProps) {
                 <li>拆下滤网，记录拆下时间和灰尘程度</li>
                 <li>清洗滤网后选择晾干状态</li>
                 <li>
-                  <strong>必须等滤网完全晾干后才能装回</strong>，系统会自动校验
+                  <strong>滤网已晾干后，必须点击"标记装回"按钮</strong>才能完成
                 </li>
-                <li>记录装回时间，完成清洗流程</li>
+                <li>系统自动记录装回时间，完成清洗流程</li>
               </ol>
             </div>
           </div>
         </div>
 
         {existingRecord && showInstallBack && (
-          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+          <div className={cn(
+            'p-4 rounded-xl border',
+            formData.dryingStatus === 'dried'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-amber-50 border-amber-200'
+          )}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Sun className="w-5 h-5 text-amber-500" />
+                {formData.dryingStatus === 'dried' ? (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                ) : (
+                  <Sun className="w-5 h-5 text-amber-500" />
+                )}
                 <div>
-                  <p className="font-medium text-amber-800">滤网晾干状态</p>
-                  <p className="text-sm text-amber-700">
-                    当前状态：{DRYING_STATUS_LABELS[existingRecord.dryingStatus]}
+                  <p className={cn(
+                    'font-medium',
+                    formData.dryingStatus === 'dried' ? 'text-green-800' : 'text-amber-800'
+                  )}>
+                    滤网晾干状态
                   </p>
+                  <p className={cn(
+                    'text-sm',
+                    formData.dryingStatus === 'dried' ? 'text-green-700' : 'text-amber-700'
+                  )}>
+                    当前状态：{DRYING_STATUS_LABELS[formData.dryingStatus as DryingStatus]}
+                  </p>
+                  {formData.dryingStatus === 'dried' && (
+                    <p className="text-xs text-green-600 mt-1">
+                      滤网已晾干，点击"标记装回"完成清洗流程
+                    </p>
+                  )}
+                  {formData.dryingStatus !== 'dried' && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      请等待滤网完全晾干后再装回
+                    </p>
+                  )}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleInstallBack}
-                disabled={!canInstallBack(existingRecord)}
+                disabled={formData.dryingStatus !== 'dried'}
                 className={cn(
                   'px-5 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2',
-                  canInstallBack(existingRecord)
+                  formData.dryingStatus === 'dried'
                     ? 'bg-green-500 hover:bg-green-600 text-white'
                     : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 )}

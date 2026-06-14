@@ -22,17 +22,6 @@ function getACStatus(
   const unfinishedRecord = acRecords.find((r) => !r.installedBackAt);
 
   if (hasUnfinishedRecord && unfinishedRecord) {
-    if (unfinishedRecord.dryingStatus === 'dried') {
-      return {
-        status: 'completed',
-        lastCleanDate,
-        daysSinceLastClean: lastCleanDateObj ? differenceInDays(now, lastCleanDateObj) : 0,
-        nextCleanDate: lastCleanDateObj
-          ? addDays(lastCleanDateObj, ac.cleaningCycle).toISOString()
-          : addDays(now, ac.cleaningCycle).toISOString(),
-        latestRecord,
-      };
-    }
     return {
       status: 'drying',
       lastCleanDate,

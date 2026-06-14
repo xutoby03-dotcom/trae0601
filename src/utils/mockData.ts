@@ -122,9 +122,9 @@ export const mockCleaningRecords: CleaningRecord[] = [
     cleaner: '妈妈',
     removedAt: formatISO(subDays(now, 2)),
     dustLevel: 'heavy',
-    dryingStatus: 'drying',
+    dryingStatus: 'dried',
     ventWiped: true,
-    notes: '油烟比较多，清洗了很久',
+    notes: '油烟比较多，清洗了很久，滤网已晾干但还没装回',
     createdAt: formatISO(subDays(now, 2)),
   },
   {
