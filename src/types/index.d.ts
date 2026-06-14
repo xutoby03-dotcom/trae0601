@@ -93,6 +93,14 @@ interface CleaningRecord {
   operator?: string;
 }
 
+interface UnavailableCostume {
+  id: string;
+  type: string;
+  size: string;
+  status: string;
+  cleaningStatus: string;
+}
+
 interface Statistics {
   sizeDemand: Record<CostumeSize, number>;
   overdueCount: number;

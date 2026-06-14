@@ -33,7 +33,7 @@ interface AppState {
   cancelReservation: (id: string) => Promise<boolean>;
   
   previewLending: (reservationId: string) => Promise<any>;
-  createLending: (reservationId: string, lenderName: string) => Promise<LendingRecord | null>;
+  createLending: (reservationId: string, lenderName: string, costumeIds: string[]) => Promise<{ success: boolean; record?: LendingRecord; error?: string; unavailableCostumes?: UnavailableCostume[] }>;
   returnItems: (id: string, items: any[]) => Promise<boolean>;
   
   startCleaning: (id: string, operator: string) => Promise<boolean>;
@@ -242,18 +242,28 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  createLending: async (reservationId, lenderName) => {
+  createLending: async (reservationId, lenderName, costumeIds) => {
     try {
       set({ loading: true });
-      const result = await api.lendings.create({ reservationId, lenderName });
-      await get().fetchLendings();
-      await get().fetchCostumes();
-      await get().fetchReservations();
+      const record = await api.lendings.create({ reservationId, lenderName, costumeIds });
+      await Promise.all([get().fetchReservations(), get().fetchLendings()]);
       set({ toast: { message: '借出成功', type: 'success' }, loading: false });
-      return result;
+      return { success: true, record };
     } catch (error) {
-      set({ error: (error as Error).message, toast: { message: (error as Error).message, type: 'error' }, loading: false });
-      return null;
+      const errMsg = (error as Error).message;
+      set({ error: errMsg, loading: false });
+      try {
+        if (errMsg.startsWith('{')) {
+          const errData = JSON.parse(errMsg);
+          if (errData.unavailableCostumes) {
+            set({ toast: { message: errData.error || '部分服装已无法借出', type: 'error' } });
+            return { success: false, error: errData.error, unavailableCostumes: errData.unavailableCostumes };
+          }
+        }
+      } catch {
+      }
+      set({ toast: { message: errMsg, type: 'error' } });
+      return { success: false, error: errMsg };
     }
   },
 

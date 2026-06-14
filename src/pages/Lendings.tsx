@@ -11,6 +11,19 @@ interface LendingPreview {
   insufficient: { size: string; needed: number; available: number }[];
 }
 
+interface UnavailableCostume {
+  id: string;
+  type: string;
+  size: string;
+  status: string;
+  cleaningStatus: string;
+}
+
+interface LendingError {
+  message: string;
+  unavailableCostumes?: UnavailableCostume[];
+}
+
 export default function Lendings() {
   const { reservations, lendingRecords, fetchReservations, fetchLendings, previewLending, createLending, loading } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +33,7 @@ export default function Lendings() {
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
   const [preview, setPreview] = useState<LendingPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [lendingError, setLendingError] = useState<LendingError | null>(null);
 
   useEffect(() => {
     fetchReservations();
@@ -39,6 +53,7 @@ export default function Lendings() {
     setPreview(null);
     setPreviewLoading(true);
     setLenderName('');
+    setLendingError(null);
     
     const result = await previewLending(reservation.id);
     setPreview(result);
@@ -47,11 +62,20 @@ export default function Lendings() {
 
   const handleLend = async () => {
     if (selectedReservation && lenderName.trim() && preview?.canLend) {
-      await createLending(selectedReservation.id, lenderName.trim());
-      setShowLendModal(false);
-      setSelectedReservation(null);
-      setLenderName('');
-      setPreview(null);
+      const costumeIds = preview.allocatedCostumes.flatMap(group => group.costumes.map(c => c.id));
+      setLendingError(null);
+      const result = await createLending(selectedReservation.id, lenderName.trim(), costumeIds);
+      if (result.success && result.record) {
+        setShowLendModal(false);
+        setSelectedReservation(null);
+        setLenderName('');
+        setPreview(null);
+      } else if (result.unavailableCostumes && result.unavailableCostumes.length > 0) {
+        setLendingError({
+          message: result.error || '部分服装已无法借出',
+          unavailableCostumes: result.unavailableCostumes
+        });
+      }
     }
   };
 
@@ -292,6 +316,41 @@ export default function Lendings() {
                     <div>老师：{selectedReservation.teacherInCharge}</div>
                   </div>
                 </div>
+
+                {lendingError?.unavailableCostumes && lendingError.unavailableCostumes.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-red-800">{lendingError.message}</p>
+                        <p className="text-sm text-red-600 mt-1">
+                          以下 {lendingError.unavailableCostumes.length} 件服装在您确认前已被借出或状态变化
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+                      {lendingError.unavailableCostumes.map((item, idx) => (
+                        <div key={idx} className="text-sm text-red-700 flex items-center justify-between bg-red-100 px-3 py-2 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">#{item.id}</span>
+                            <span className="text-red-500">{item.type} · {item.size}码</span>
+                          </div>
+                          <span className="text-xs">
+                            {item.status}
+                            {item.cleaningStatus !== '干净' ? ` · ${item.cleaningStatus}` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => selectedReservation && handleOpenLendModal(selectedReservation)}
+                      className="mt-3 w-full btn-gold text-sm py-2"
+                    >
+                      <RefreshCw className="w-4 h-4 inline-block mr-1" />
+                      重新分配服装
+                    </button>
+                  </div>
+                )}
 
                 <div className="border-t border-gray-100 pt-4">
                   <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">

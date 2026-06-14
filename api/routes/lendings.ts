@@ -155,7 +155,15 @@ router.post('/preview', (req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { reservationId, lenderName } = req.body;
+    const { reservationId, lenderName, costumeIds } = req.body as {
+      reservationId: string;
+      lenderName: string;
+      costumeIds: string[];
+    };
+
+    if (!costumeIds || costumeIds.length === 0) {
+      return res.status(400).json({ error: '请选择要借出的服装' });
+    }
 
     const reservation = db.prepare('SELECT * FROM reservations WHERE id = ?').get(reservationId) as any;
     if (!reservation) {
@@ -166,27 +174,32 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: '预约未通过审核，无法借出' });
     }
 
-    const sizeBreakdown = JSON.parse(reservation.size_breakdown_json) as Record<CostumeSize, number>;
-    const costumeIds: string[] = [];
+    const unavailableCostumes: { id: string; type: string; size: string; status: string; cleaningStatus: string }[] = [];
+    for (const cid of costumeIds) {
+      const costume = db.prepare('SELECT id, type, size, status, cleaning_status FROM costumes WHERE id = ?').get(cid) as any;
+      if (!costume) {
+        unavailableCostumes.push({ id: cid, type: '未知', size: '-', status: '不存在', cleaningStatus: '-' });
+      } else if (costume.status !== '在库' || costume.cleaning_status !== '干净') {
+        unavailableCostumes.push({
+          id: costume.id,
+          type: costume.type,
+          size: costume.size,
+          status: costume.status,
+          cleaningStatus: costume.cleaning_status
+        });
+      }
+    }
+
+    if (unavailableCostumes.length > 0) {
+      return res.status(400).json({
+        error: '以下服装已无法借出，请重新分配',
+        unavailableCostumes
+      });
+    }
 
     const tx = db.transaction(() => {
-      for (const [size, count] of Object.entries(sizeBreakdown)) {
-        if (count > 0) {
-          const costumes = db.prepare(`
-            SELECT id FROM costumes 
-            WHERE size = ? AND status = '在库' AND cleaning_status = '干净'
-            LIMIT ?
-          `).all(size, count) as { id: string }[];
-
-          if (costumes.length < count) {
-            throw new Error(`${size}码服装库存不足，需要${count}套，仅余${costumes.length}套`);
-          }
-
-          for (const c of costumes) {
-            costumeIds.push(c.id);
-            db.prepare("UPDATE costumes SET status = '借出中' WHERE id = ?").run(c.id);
-          }
-        }
+      for (const cid of costumeIds) {
+        db.prepare("UPDATE costumes SET status = '借出中' WHERE id = ?").run(cid);
       }
 
       const lendDate = new Date().toISOString();

@@ -10,8 +10,11 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: '请求失败' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    const errorData = await response.json().catch(() => ({ error: '请求失败' }));
+    if (errorData.unavailableCostumes) {
+      throw new Error(JSON.stringify(errorData));
+    }
+    throw new Error(errorData.error || `HTTP ${response.status}`);
   }
 
   return response.json();
@@ -60,7 +63,7 @@ export const api = {
         allocatedCostumes: { size: string; costumes: { id: string; type: string; color: string; rfidTag: string }[] }[];
         insufficient: { size: string; needed: number; available: number }[];
       }>('/lendings/preview', { method: 'POST', body: JSON.stringify({ reservationId }) }),
-    create: (data: { reservationId: string; lenderName: string }) =>
+    create: (data: { reservationId: string; lenderName: string; costumeIds: string[] }) =>
       request<LendingRecord>('/lendings', { method: 'POST', body: JSON.stringify(data) }),
   },
 
