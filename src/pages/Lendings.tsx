@@ -1,15 +1,25 @@
 import { useEffect, useState } from 'react';
-import { ArrowRightLeft, RefreshCw, Calendar, Clock, Users, MapPin, User, Phone, Search, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRightLeft, RefreshCw, Calendar, Clock, Users, MapPin, User, Phone, Search, Check, ChevronDown, ChevronUp, AlertTriangle, Package } from 'lucide-react';
 import { useStore } from '../store';
 import { STATUS_COLORS, COSTUME_SIZES } from '../../shared/types';
 
+interface LendingPreview {
+  canLend: boolean;
+  totalNeeded: number;
+  totalAvailable: number;
+  allocatedCostumes: { size: string; costumes: { id: string; type: string; color: string; rfidTag: string }[] }[];
+  insufficient: { size: string; needed: number; available: number }[];
+}
+
 export default function Lendings() {
-  const { reservations, lendingRecords, fetchReservations, fetchLendings, createLending, loading } = useStore();
+  const { reservations, lendingRecords, fetchReservations, fetchLendings, previewLending, createLending, loading } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [lenderName, setLenderName] = useState('');
   const [showLendModal, setShowLendModal] = useState(false);
   const [expandedRecordId, setExpandedRecordId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<LendingPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     fetchReservations();
@@ -23,13 +33,33 @@ export default function Lendings() {
      r.classContact.includes(searchTerm))
   );
 
+  const handleOpenLendModal = async (reservation: Reservation) => {
+    setSelectedReservation(reservation);
+    setShowLendModal(true);
+    setPreview(null);
+    setPreviewLoading(true);
+    setLenderName('');
+    
+    const result = await previewLending(reservation.id);
+    setPreview(result);
+    setPreviewLoading(false);
+  };
+
   const handleLend = async () => {
-    if (selectedReservation && lenderName.trim()) {
+    if (selectedReservation && lenderName.trim() && preview?.canLend) {
       await createLending(selectedReservation.id, lenderName.trim());
       setShowLendModal(false);
       setSelectedReservation(null);
       setLenderName('');
+      setPreview(null);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowLendModal(false);
+    setSelectedReservation(null);
+    setLenderName('');
+    setPreview(null);
   };
 
   return (
@@ -126,10 +156,7 @@ export default function Lendings() {
                     </div>
                     
                     <button
-                      onClick={() => {
-                        setSelectedReservation(reservation);
-                        setShowLendModal(true);
-                      }}
+                      onClick={() => handleOpenLendModal(reservation)}
                       className="btn-gold flex items-center gap-1 text-sm py-2 px-3 flex-shrink-0"
                     >
                       <ArrowRightLeft className="w-4 h-4" />
@@ -239,11 +266,19 @@ export default function Lendings() {
 
       {showLendModal && selectedReservation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full animate-slide-up">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
             <div className="p-6">
-              <h3 className="font-serif text-xl font-semibold text-gray-800 mb-4">
-                确认借出
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-serif text-xl font-semibold text-gray-800">
+                  借出确认
+                </h3>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  ×
+                </button>
+              </div>
               
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-xl">
@@ -256,60 +291,127 @@ export default function Lendings() {
                     <div>人数：{selectedReservation.headCount} 人</div>
                     <div>老师：{selectedReservation.teacherInCharge}</div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {COSTUME_SIZES.map(size => (
-                      selectedReservation.sizeBreakdown[size] > 0 && (
-                        <span
-                          key={size}
-                          className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded"
-                        >
-                          {size}: {selectedReservation.sizeBreakdown[size]}套
-                        </span>
-                      )
-                    ))}
-                  </div>
                 </div>
 
-                <div>
-                  <label className="label">领用人姓名</label>
-                  <input
-                    type="text"
-                    value={lenderName}
-                    onChange={(e) => setLenderName(e.target.value)}
-                    className="input"
-                    placeholder="请输入领用人姓名"
-                  />
+                <div className="border-t border-gray-100 pt-4">
+                  <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary-500" />
+                    服装分配预览
+                  </h4>
+                  
+                  {previewLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="w-6 h-6 text-primary-500 animate-spin" />
+                      <span className="ml-2 text-gray-500">正在分配服装...</span>
+                    </div>
+                  ) : preview ? (
+                    <div className="space-y-4">
+                      {!preview.canLend ? (
+                        <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-red-800">库存不足</p>
+                              <p className="text-sm text-red-600 mt-1">
+                                共需要 {preview.totalNeeded} 套，可用 {preview.totalAvailable} 套
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 space-y-1">
+                            {preview.insufficient.map((item, idx) => (
+                              <div key={idx} className="text-sm text-red-700 flex items-center justify-between bg-red-100 px-3 py-2 rounded-lg">
+                                <span>{item.size}码</span>
+                                <span>需要 {item.needed} 套，差 {item.needed - item.available} 套</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-green-50 border border-green-200 p-3 rounded-xl mb-3">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Check className="w-5 h-5" />
+                            <span className="font-medium">库存充足，共 {preview.totalAvailable} 套可用</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                        {preview.allocatedCostumes.map((group, groupIdx) => (
+                          group.costumes.length > 0 && (
+                            <div key={groupIdx} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                              <div className="bg-primary-50 px-4 py-2 flex items-center justify-between">
+                                <span className="font-medium text-primary-700">
+                                  {group.size} 码
+                                </span>
+                                <span className="text-sm text-primary-600">
+                                  {group.costumes.length} 套
+                                </span>
+                              </div>
+                              <div className="p-3 grid grid-cols-2 gap-2">
+                                {group.costumes.map((costume, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="text-sm p-2 bg-gray-50 rounded-lg"
+                                  >
+                                    <div className="font-medium text-gray-800">
+                                      #{costume.id}
+                                    </div>
+                                    <div className="text-gray-500 text-xs">
+                                      {costume.color} · {costume.type}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
-                <div className="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800">
-                  <p className="font-medium">⚠️ 注意事项：</p>
-                  <ul className="list-disc list-inside mt-1 space-y-0.5">
-                    <li>系统将按尺码自动分配可用服装</li>
-                    <li>请核对分配的服装数量和尺码是否正确</li>
-                    <li>请提醒领用人按时归还</li>
-                  </ul>
-                </div>
+                {preview?.canLend && (
+                  <>
+                    <div className="border-t border-gray-100 pt-4">
+                      <label className="label">领用人姓名</label>
+                      <input
+                        type="text"
+                        value={lenderName}
+                        onChange={(e) => setLenderName(e.target.value)}
+                        className="input"
+                        placeholder="请输入领用人姓名"
+                      />
+                    </div>
+
+                    <div className="bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800">
+                      <p className="font-medium">⚠️ 注意事项：</p>
+                      <ul className="list-disc list-inside mt-1 space-y-0.5">
+                        <li>请核对分配的服装ID和尺码是否正确</li>
+                        <li>请提醒领用人按时归还</li>
+                        <li>归还时请检查配件是否齐全</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button
-                  onClick={() => {
-                    setShowLendModal(false);
-                    setSelectedReservation(null);
-                    setLenderName('');
-                  }}
+                  onClick={handleCloseModal}
                   className="btn-secondary"
                 >
                   取消
                 </button>
-                <button
-                  onClick={handleLend}
-                  disabled={!lenderName.trim() || loading}
-                  className="btn-gold flex items-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  确认借出
-                </button>
+                {preview?.canLend && (
+                  <button
+                    onClick={handleLend}
+                    disabled={!lenderName.trim() || loading}
+                    className="btn-gold flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    确认借出
+                  </button>
+                )}
               </div>
             </div>
           </div>

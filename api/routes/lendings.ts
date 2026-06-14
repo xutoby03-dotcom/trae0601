@@ -93,6 +93,66 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
+router.post('/preview', (req: Request, res: Response) => {
+  try {
+    const { reservationId } = req.body;
+
+    const reservation = db.prepare('SELECT * FROM reservations WHERE id = ?').get(reservationId) as any;
+    if (!reservation) {
+      return res.status(404).json({ error: '预约不存在' });
+    }
+
+    if (reservation.status !== '已通过') {
+      return res.status(400).json({ error: '预约未通过审核，无法借出' });
+    }
+
+    const sizeBreakdown = JSON.parse(reservation.size_breakdown_json) as Record<CostumeSize, number>;
+    const allocatedCostumes: { size: string; costumes: { id: string; type: string; color: string; rfidTag: string }[] }[] = [];
+    const insufficient: { size: string; needed: number; available: number }[] = [];
+
+    for (const [size, count] of Object.entries(sizeBreakdown)) {
+      if (count > 0) {
+        const costumes = db.prepare(`
+          SELECT id, type, color, rfid_tag
+          FROM costumes 
+          WHERE size = ? AND status = '在库' AND cleaning_status = '干净'
+          LIMIT ?
+        `).all(size, count) as any[];
+
+        const costumeList = costumes.map((c: any) => ({
+          id: c.id,
+          type: c.type,
+          color: c.color,
+          rfidTag: c.rfid_tag
+        }));
+
+        if (costumeList.length < count) {
+          insufficient.push({
+            size,
+            needed: count,
+            available: costumeList.length
+          });
+        }
+
+        allocatedCostumes.push({
+          size,
+          costumes: costumeList
+        });
+      }
+    }
+
+    res.json({
+      canLend: insufficient.length === 0,
+      totalNeeded: Object.values(sizeBreakdown).reduce((sum, n) => sum + (n as number), 0),
+      totalAvailable: allocatedCostumes.reduce((sum, group) => sum + group.costumes.length, 0),
+      allocatedCostumes,
+      insufficient
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 router.post('/', (req: Request, res: Response) => {
   try {
     const { reservationId, lenderName } = req.body;

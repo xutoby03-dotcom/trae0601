@@ -52,6 +52,14 @@ export const api = {
   lendings: {
     getAll: () => request<LendingRecord[]>('/lendings'),
     get: (id: string) => request<LendingRecord>(`/lendings/${id}`),
+    preview: (reservationId: string) =>
+      request<{
+        canLend: boolean;
+        totalNeeded: number;
+        totalAvailable: number;
+        allocatedCostumes: { size: string; costumes: { id: string; type: string; color: string; rfidTag: string }[] }[];
+        insufficient: { size: string; needed: number; available: number }[];
+      }>('/lendings/preview', { method: 'POST', body: JSON.stringify({ reservationId }) }),
     create: (data: { reservationId: string; lenderName: string }) =>
       request<LendingRecord>('/lendings', { method: 'POST', body: JSON.stringify(data) }),
   },

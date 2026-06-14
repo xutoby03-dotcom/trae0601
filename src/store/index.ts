@@ -32,6 +32,7 @@ interface AppState {
   rejectReservation: (id: string, reason: string) => Promise<boolean>;
   cancelReservation: (id: string) => Promise<boolean>;
   
+  previewLending: (reservationId: string) => Promise<any>;
   createLending: (reservationId: string, lenderName: string) => Promise<LendingRecord | null>;
   returnItems: (id: string, items: any[]) => Promise<boolean>;
   
@@ -226,6 +227,18 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       set({ error: (error as Error).message, toast: { message: (error as Error).message, type: 'error' }, loading: false });
       return false;
+    }
+  },
+
+  previewLending: async (reservationId) => {
+    try {
+      set({ loading: true });
+      const result = await api.lendings.preview(reservationId);
+      set({ loading: false });
+      return result;
+    } catch (error) {
+      set({ error: (error as Error).message, toast: { message: (error as Error).message, type: 'error' }, loading: false });
+      return null;
     }
   },
 
