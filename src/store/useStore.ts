@@ -1,12 +1,22 @@
 import { create } from "zustand";
-import type { Basket, BasketStatus, LendRecord, LendStatus, ReturnCheck, ItemEntry } from "@/types";
-import { mockBaskets, mockLendRecords, mockReturnChecks } from "@/data/mockData";
+import type {
+  Basket,
+  BasketStatus,
+  LendRecord,
+  LendStatus,
+  ReturnCheck,
+  ItemEntry,
+  ReminderRecord,
+  ReminderChannel,
+} from "@/types";
+import { mockBaskets, mockLendRecords, mockReturnChecks, mockReminders } from "@/data/mockData";
+import { overdueDays } from "@/utils/format";
 
 interface AppState {
   baskets: Basket[];
   lendRecords: LendRecord[];
   returnChecks: ReturnCheck[];
-  reminders: Record<string, number>;
+  reminderRecords: ReminderRecord[];
 
   addBasket: (b: Omit<Basket, "id" | "createdAt">) => void;
   updateBasket: (id: string, b: Partial<Basket>) => void;
@@ -16,6 +26,7 @@ interface AppState {
   createLendRecord: (record: {
     basketIds: string[];
     borrowerName: string;
+    borrowerPhone: string;
     department: string;
     purpose: string;
     destination: string;
@@ -35,7 +46,12 @@ interface AppState {
   }) => void;
 
   refreshOverdueStatus: () => void;
-  sendReminder: (lendRecordId: string) => void;
+  sendReminder: (payload: {
+    lendRecordId: string;
+    channel: ReminderChannel;
+    note?: string;
+    operator?: string;
+  }) => ReminderRecord | null;
 }
 
 const genId = (prefix: string) =>
@@ -59,7 +75,7 @@ export const useStore = create<AppState>((set, get) => ({
   baskets: [...mockBaskets],
   lendRecords: initialRecords,
   returnChecks: [...mockReturnChecks],
-  reminders: {},
+  reminderRecords: [...mockReminders],
 
   addBasket: (b) =>
     set((s) => ({
@@ -84,6 +100,7 @@ export const useStore = create<AppState>((set, get) => ({
   createLendRecord: ({
     basketIds,
     borrowerName,
+    borrowerPhone,
     department,
     purpose,
     destination,
@@ -99,6 +116,7 @@ export const useStore = create<AppState>((set, get) => ({
         basketId: bid,
         basketCode: b?.code,
         borrowerName,
+        borrowerPhone,
         department,
         purpose,
         destination,
@@ -164,11 +182,27 @@ export const useStore = create<AppState>((set, get) => ({
       })),
     })),
 
-  sendReminder: (lendRecordId) =>
+  sendReminder: ({ lendRecordId, channel, note, operator = "行政管理员" }) => {
+    const record = get().lendRecords.find((r) => r.id === lendRecordId);
+    if (!record) return null;
+    const newReminder: ReminderRecord = {
+      id: genId("rm"),
+      lendRecordId: record.id,
+      basketCode: record.basketCode || "",
+      borrowerName: record.borrowerName,
+      borrowerPhone: record.borrowerPhone,
+      department: record.department,
+      expectedReturnTime: record.expectedReturnTime,
+      destination: record.destination,
+      overdueDays: overdueDays(record.expectedReturnTime),
+      channel,
+      note,
+      operator,
+      remindTime: nowISO(),
+    };
     set((s) => ({
-      reminders: {
-        ...s.reminders,
-        [lendRecordId]: (s.reminders[lendRecordId] || 0) + 1,
-      },
-    })),
+      reminderRecords: [newReminder, ...s.reminderRecords],
+    }));
+    return newReminder;
+  },
 }));

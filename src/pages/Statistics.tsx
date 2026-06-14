@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   BarChart3,
   PieChart as PieChartIcon,
@@ -9,6 +9,8 @@ import {
   Star,
   ArrowUpRight,
   TrendingDown,
+  Phone,
+  History,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { useNavigate } from "react-router-dom";
@@ -19,11 +21,14 @@ import {
   overdueDays,
   lendStatusLabel,
 } from "@/utils/format";
-import type { BasketStatus } from "@/types";
+import type { BasketStatus, LendRecord, ReminderChannel } from "@/types";
+import ReminderModal from "@/components/ReminderModal";
 
 export default function Statistics() {
   const navigate = useNavigate();
-  const { baskets, lendRecords, returnChecks, sendReminder, reminders } = useStore();
+  const { baskets, lendRecords, returnChecks, sendReminder, reminderRecords } = useStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<LendRecord | null>(null);
 
   const stockCounts = useMemo(() => {
     const counts: Record<BasketStatus, number> = {
@@ -408,6 +413,9 @@ export default function Statistics() {
                       借用人
                     </th>
                     <th className="text-left font-semibold px-4 py-3 whitespace-nowrap">
+                      联系方式
+                    </th>
+                    <th className="text-left font-semibold px-4 py-3 whitespace-nowrap">
                       部门
                     </th>
                     <th className="text-center font-semibold px-4 py-3 whitespace-nowrap">
@@ -424,7 +432,9 @@ export default function Statistics() {
                 <tbody className="divide-y divide-slate2-100">
                   {overdueList.map((r) => {
                     const days = overdueDays(r.expectedReturnTime);
-                    const remindCount = reminders[r.id] || 0;
+                    const remindCount = reminderRecords.filter(
+                      (rm) => rm.lendRecordId === r.id
+                    ).length;
                     return (
                       <tr
                         key={r.id}
@@ -442,6 +452,12 @@ export default function Statistics() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-slate2-700 font-medium">
                           {r.borrowerName}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-slate2-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {r.borrowerPhone}
+                          </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-slate2-600">
                           {r.department}
@@ -465,12 +481,24 @@ export default function Statistics() {
                         <td className="px-4 py-3 whitespace-nowrap text-center">
                           <div className="inline-flex items-center gap-1">
                             <button
-                              onClick={() => sendReminder(r.id)}
+                              onClick={() => {
+                                setSelectedRecord(r);
+                                setModalOpen(true);
+                              }}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-steel-50 text-steel-700 border border-steel-200 hover:bg-steel-600 hover:text-white hover:border-steel-600 transition-all"
-                              title="发送催还提醒"
+                              title="打开催还详情"
                             >
-                              <Send className="w-3 h-3" />
-                              {remindCount > 0 ? `催(${remindCount})` : "催还"}
+                              {remindCount > 0 ? (
+                                <>
+                                  <History className="w-3 h-3" />
+                                  催({remindCount})
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-3 h-3" />
+                                  催还
+                                </>
+                              )}
                             </button>
                             <button
                               onClick={() => navigate("/return")}
@@ -587,6 +615,20 @@ export default function Statistics() {
           </table>
         </div>
       </div>
+      <ReminderModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        record={selectedRecord}
+        reminders={reminderRecords}
+        onConfirm={({ channel, note }) => {
+          if (!selectedRecord) return;
+          sendReminder({
+            lendRecordId: selectedRecord.id,
+            channel: channel as ReminderChannel,
+            note,
+          });
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Basket, LendRecord, ReturnCheck } from "@/types";
+import type { Basket, LendRecord, ReturnCheck, ReminderRecord } from "@/types";
 
 export const BASKET_PLACEHOLDER_IMG = (color: string, size: string) =>
   `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
@@ -221,6 +221,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-002",
     basketCode: "STB-2024-002",
     borrowerName: "张晓雯",
+    borrowerPhone: "138****8821",
     department: "市场部",
     purpose: "季度营销会议活动物料",
     destination: "B305 路演厅",
@@ -240,6 +241,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-004",
     basketCode: "STB-2024-004",
     borrowerName: "李明翰",
+    borrowerPhone: "139****2345",
     department: "产品部",
     purpose: "用户调研访谈资料",
     destination: "A101 会议室",
@@ -258,6 +260,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-008",
     basketCode: "STB-2024-008",
     borrowerName: "王思琪",
+    borrowerPhone: "135****6789",
     department: "人力资源部",
     purpose: "新员工入职培训资料",
     destination: "培训中心",
@@ -276,6 +279,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-001",
     basketCode: "STB-2024-001",
     borrowerName: "陈俊杰",
+    borrowerPhone: "137****4455",
     department: "销售部",
     purpose: "客户答谢晚宴物料",
     destination: "多功能厅",
@@ -294,6 +298,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-003",
     basketCode: "STB-2024-003",
     borrowerName: "刘芳",
+    borrowerPhone: "136****3321",
     department: "行政部",
     purpose: "公司年会物资",
     destination: "多功能厅",
@@ -311,6 +316,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-006",
     basketCode: "STB-2024-006",
     borrowerName: "赵磊",
+    borrowerPhone: "133****9988",
     department: "技术部",
     purpose: "技术分享会设备",
     destination: "A203 创新室",
@@ -328,6 +334,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-007",
     basketCode: "STB-2024-007",
     borrowerName: "孙雅静",
+    borrowerPhone: "131****7766",
     department: "财务部",
     purpose: "审计资料搬运",
     destination: "A101 会议室",
@@ -345,6 +352,7 @@ export const mockLendRecords: LendRecord[] = [
     basketId: "b-005",
     basketCode: "STB-2024-005",
     borrowerName: "周宇恒",
+    borrowerPhone: "130****5544",
     department: "运营部",
     purpose: "线下活动物料",
     destination: "员工活动区",
@@ -406,5 +414,38 @@ export const mockReturnChecks: ReturnCheck[] = [
     actualLocation: "维修间",
     checker: "系统管理员",
     checkTime: daysAgo(27),
+  },
+];
+
+export const mockReminders: ReminderRecord[] = [
+  {
+    id: "rm-001",
+    lendRecordId: "l-001",
+    basketCode: "STB-2024-002",
+    borrowerName: "张晓雯",
+    borrowerPhone: "138****8821",
+    department: "市场部",
+    expectedReturnTime: daysAgo(2),
+    destination: "B305 路演厅",
+    overdueDays: 1,
+    channel: "wechat",
+    note: "客户反馈会议物料已清场，请尽快送还储物篮",
+    operator: "行政管理员",
+    remindTime: daysAgo(1),
+  },
+  {
+    id: "rm-002",
+    lendRecordId: "l-001",
+    basketCode: "STB-2024-002",
+    borrowerName: "张晓雯",
+    borrowerPhone: "138****8821",
+    department: "市场部",
+    expectedReturnTime: daysAgo(2),
+    destination: "B305 路演厅",
+    overdueDays: 2,
+    channel: "phone",
+    note: "电话接通，对方表示明天上午送还",
+    operator: "行政管理员",
+    remindTime: daysAgo(0) + 3600 * 1000 * 2,
   },
 ];

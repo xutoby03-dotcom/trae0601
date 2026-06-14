@@ -29,6 +29,7 @@ export interface LendRecord {
   basketId: string;
   basketCode?: string;
   borrowerName: string;
+  borrowerPhone: string;
   department: string;
   purpose: string;
   destination: string;
@@ -50,6 +51,24 @@ export interface ReturnCheck {
   actualLocation?: string;
   checker: string;
   checkTime: string;
+}
+
+export type ReminderChannel = "sms" | "phone" | "wechat" | "email";
+
+export interface ReminderRecord {
+  id: string;
+  lendRecordId: string;
+  basketCode: string;
+  borrowerName: string;
+  borrowerPhone: string;
+  department: string;
+  expectedReturnTime: string;
+  destination: string;
+  overdueDays: number;
+  channel: ReminderChannel;
+  note?: string;
+  operator: string;
+  remindTime: string;
 }
 
 export const DEPARTMENTS = [
@@ -93,4 +112,11 @@ export const BASKET_COLORS: { name: string; hex: string }[] = [
   { name: "明黄", hex: "#f59e0b" },
   { name: "浅蓝", hex: "#38bdf8" },
   { name: "墨黑", hex: "#1f2937" },
+];
+
+export const REMINDER_CHANNELS: { value: ReminderChannel; label: string }[] = [
+  { value: "sms", label: "短信通知" },
+  { value: "phone", label: "电话提醒" },
+  { value: "wechat", label: "企业微信" },
+  { value: "email", label: "邮件通知" },
 ];

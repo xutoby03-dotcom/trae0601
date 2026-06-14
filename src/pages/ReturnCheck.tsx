@@ -14,6 +14,7 @@ import {
   FileCheck,
   CheckCircle2,
   Clock,
+  Phone,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import type { LendRecord } from "@/types";
@@ -212,6 +213,12 @@ export default function ReturnCheck() {
                           </div>
                           <p className="text-sm font-medium text-slate2-700 truncate">
                             {r.borrowerName} · {r.department}
+                          </p>
+                          <p className="text-xs font-mono text-steel-600 mt-0.5">
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {r.borrowerPhone}
+                            </span>
                           </p>
                           <div className="flex items-center gap-3 mt-1 flex-wrap text-xs text-slate2-500">
                             <span className="inline-flex items-center gap-1">

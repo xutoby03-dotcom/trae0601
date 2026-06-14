@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Boxes,
@@ -12,6 +12,7 @@ import {
   Send,
   CheckCircle2,
   TrendingUp,
+  History,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import {
@@ -22,9 +23,13 @@ import {
   lendStatusClass,
   overdueDays,
 } from "@/utils/format";
+import type { LendRecord, ReminderChannel } from "@/types";
+import ReminderModal from "@/components/ReminderModal";
 
 export default function Dashboard() {
-  const { baskets, lendRecords, reminders, sendReminder } = useStore();
+  const { baskets, lendRecords, reminderRecords, sendReminder } = useStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<LendRecord | null>(null);
 
   const stats = useMemo(() => {
     const available = baskets.filter((b) => b.status === "available").length;
@@ -237,7 +242,9 @@ export default function Dashboard() {
               overdueRecords.map((r) => {
                 const days = overdueDays(r.expectedReturnTime);
                 const basket = baskets.find((b) => b.id === r.basketId);
-                const count = reminders[r.id] || 0;
+                const count = reminderRecords.filter(
+                  (rm) => rm.lendRecordId === r.id
+                ).length;
                 return (
                   <div
                     key={r.id}
@@ -259,6 +266,9 @@ export default function Dashboard() {
                           {r.borrowerName} · {r.department}
                         </p>
                         <p className="text-xs text-slate2-500 mt-0.5 truncate">
+                          📱 {r.borrowerPhone}
+                        </p>
+                        <p className="text-xs text-slate2-500 mt-0.5 truncate">
                           目的地：{r.destination}
                         </p>
                       </div>
@@ -272,19 +282,22 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <button
-                          onClick={() => sendReminder(r.id)}
+                          onClick={() => {
+                            setSelectedRecord(r);
+                            setModalOpen(true);
+                          }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white border border-signal-200 text-signal-600 hover:bg-signal-500 hover:text-white hover:border-signal-500 transition-all"
-                          title="发送提醒"
+                          title="打开催还详情"
                         >
                           {count > 0 ? (
                             <>
-                              <Send className="w-3 h-3" />
-                              催 ({count})
+                              <History className="w-3 h-3" />
+                              催还 ({count})
                             </>
                           ) : (
                             <>
                               <Phone className="w-3 h-3" />
-                              提醒
+                              催还
                             </>
                           )}
                         </button>
@@ -387,6 +400,20 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <ReminderModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        record={selectedRecord}
+        reminders={reminderRecords}
+        onConfirm={({ channel, note }) => {
+          if (!selectedRecord) return;
+          sendReminder({
+            lendRecordId: selectedRecord.id,
+            channel: channel as ReminderChannel,
+            note,
+          });
+        }}
+      />
     </div>
   );
 }

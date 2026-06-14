@@ -15,6 +15,7 @@ import {
   ShoppingBasket,
   Trash2,
   ArrowRight,
+  Phone,
 } from "lucide-react";
 import { useStore } from "@/store/useStore";
 import { DEPARTMENTS, MEETING_ROOMS, LOCATIONS } from "@/types";
@@ -38,6 +39,7 @@ export default function LendForm() {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [borrowerName, setBorrowerName] = useState("");
+  const [borrowerPhone, setBorrowerPhone] = useState("");
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [purpose, setPurpose] = useState("");
   const [destination, setDestination] = useState(MEETING_ROOMS[0]);
@@ -84,6 +86,9 @@ export default function LendForm() {
   const validate = () => {
     if (selectedIds.length === 0) return "请至少选择一只篮子";
     if (!borrowerName.trim()) return "请填写借用人姓名";
+    if (!borrowerPhone.trim()) return "请填写借用人联系方式";
+    if (!/^1[3-9]\d{9}$/.test(borrowerPhone.trim()))
+      return "请填写有效的手机号";
     if (!purpose.trim()) return "请填写借出用途";
     if (!expectedReturnTime) return "请选择预计归还时间";
     if (items.every((i) => !i.itemName.trim())) return "请至少填写一项物品";
@@ -102,6 +107,7 @@ export default function LendForm() {
     createLendRecord({
       basketIds: selectedIds,
       borrowerName: borrowerName.trim(),
+      borrowerPhone: borrowerPhone.trim(),
       department,
       purpose: purpose.trim(),
       destination,
@@ -339,6 +345,21 @@ export default function LendForm() {
                 onChange={(e) => setBorrowerName(e.target.value)}
                 placeholder="请输入姓名"
                 className="input-base"
+              />
+            </div>
+
+            <div>
+              <label className="label-base flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5" />
+                联系方式 <span className="text-signal-500">*</span>
+              </label>
+              <input
+                type="tel"
+                value={borrowerPhone}
+                onChange={(e) => setBorrowerPhone(e.target.value)}
+                placeholder="请输入 11 位手机号"
+                maxLength={11}
+                className="input-base font-mono"
               />
             </div>
 
