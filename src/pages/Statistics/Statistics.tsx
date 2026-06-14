@@ -79,8 +79,8 @@ export default function Statistics() {
   }, [batches]);
 
   const productRanking = useMemo(
-    () => calculateProductRanking(records, products, batchesMap),
-    [records, products, batchesMap]
+    () => calculateProductRanking(records, products, batchesMap, orders),
+    [records, products, batchesMap, orders]
   );
 
   const totalStats = useMemo(() => {

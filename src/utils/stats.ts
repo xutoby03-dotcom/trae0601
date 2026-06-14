@@ -31,6 +31,11 @@ export function calculateDailyStats(
   const stats: DailyStat[] = [];
   const today = new Date();
 
+  const tastingDateMap = new Map<string, string>();
+  records.forEach((r) => {
+    tastingDateMap.set(r.id, new Date(r.startTime).toISOString().split('T')[0]);
+  });
+
   for (let i = days - 1; i >= 0; i--) {
     const date = addDays(today, -i);
     const dateStr = date.toISOString().split('T')[0];
@@ -51,12 +56,14 @@ export function calculateDailyStats(
       (sum, r) => sum + r.remainingPortion,
       0
     );
-    const convertedOrders = completedRecords.reduce(
-      (sum, r) => sum + r.convertedOrders,
-      0
-    );
 
-    const conversionRate = dayRecords.length > 0 ? convertedOrders / dayRecords.length : 0;
+    const dayConvertedOrders = orders.filter((o) => {
+      if (!o.tastingId) return false;
+      const tastingDate = tastingDateMap.get(o.tastingId);
+      return tastingDate === dateStr;
+    }).length;
+
+    const conversionRate = dayRecords.length > 0 ? dayConvertedOrders / dayRecords.length : 0;
     const wasteRate = totalPortion > 0 ? wastedPortion / totalPortion : 0;
 
     stats.push({
@@ -65,7 +72,7 @@ export function calculateDailyStats(
       completedCount: completedRecords.length,
       totalPortion: Number(totalPortion.toFixed(2)),
       wastedPortion: Number(wastedPortion.toFixed(2)),
-      convertedOrders,
+      convertedOrders: dayConvertedOrders,
       conversionRate: Number(conversionRate.toFixed(2)),
       wasteRate: Number(wasteRate.toFixed(2)),
     });
@@ -77,8 +84,26 @@ export function calculateDailyStats(
 export function calculateProductRanking(
   records: TastingRecord[],
   products: Product[],
-  batchesMap: Map<string, { productId: string }>
+  batchesMap: Map<string, { productId: string }>,
+  orders: Order[]
 ): ProductRank[] {
+  const tastingProductMap = new Map<string, string>();
+  records.forEach((r) => {
+    const batch = batchesMap.get(r.batchId);
+    if (batch) {
+      tastingProductMap.set(r.id, batch.productId);
+    }
+  });
+
+  const orderCountByProduct = new Map<string, number>();
+  orders.forEach((o) => {
+    const productId = o.tastingId
+      ? tastingProductMap.get(o.tastingId)
+      : o.productId;
+    if (!productId) return;
+    orderCountByProduct.set(productId, (orderCountByProduct.get(productId) || 0) + 1);
+  });
+
   const productMap = new Map<string, {
     productId: string;
     productName: string;
@@ -90,10 +115,10 @@ export function calculateProductRanking(
 
   for (const record of records) {
     if (record.status === 'active') continue;
-    
+
     const batch = batchesMap.get(record.batchId);
     if (!batch) continue;
-    
+
     const product = products.find((p) => p.id === batch.productId);
     if (!product) continue;
 
@@ -107,11 +132,17 @@ export function calculateProductRanking(
     };
 
     existing.tastingCount++;
-    existing.convertedOrders += record.convertedOrders;
     existing.totalPortion += record.portion;
     existing.wastedPortion += record.remainingPortion;
 
     productMap.set(batch.productId, existing);
+  }
+
+  for (const [productId, count] of orderCountByProduct) {
+    const existing = productMap.get(productId);
+    if (existing) {
+      existing.convertedOrders = count;
+    }
   }
 
   const rankings: ProductRank[] = [];
@@ -144,7 +175,7 @@ export function getTotalWaste(records: TastingRecord[]): number {
 export function getTodayWaste(records: TastingRecord[]): number {
   const todayStart = startOfDay(new Date()).getTime();
   const todayEnd = endOfDay(new Date()).getTime();
-  
+
   return records
     .filter((r) => {
       if (r.status === 'active') return false;
