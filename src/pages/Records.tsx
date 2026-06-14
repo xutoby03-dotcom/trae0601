@@ -1,38 +1,35 @@
 import { useMemo, useState } from 'react';
 import {
   FileText,
-  CalendarClock,
   User,
   Building2,
-  Clock,
   LogOut,
   MoveRight,
   CalendarX,
   Filter,
   ChevronDown,
+  Search,
+  CalendarRange,
+  RotateCcw,
+  Users,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { DataTable } from '../components/DataTable';
 import { StatusBadge } from '../components/StatusBadge';
 import type { ChangeRecord } from '../types';
-import { TIME_SLOTS } from '../types';
+import { CLASS_LIST } from '../types';
 import { cn } from '@/lib/utils';
 import { formatDateTime, formatDate } from '../utils/helpers';
 
 export default function Records() {
   const { changeRecords, classrooms, seats, reservations } = useStore();
-  const [filterType, setFilterType] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredRecords = useMemo(() => {
-    let result = [...changeRecords].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    if (filterType !== 'all') {
-      result = result.filter((r) => r.changeType === filterType);
-    }
-    return result;
-  }, [changeRecords, filterType]);
+  const [showFilters, setShowFilters] = useState(true);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterName, setFilterName] = useState('');
+  const [filterClass, setFilterClass] = useState('');
+  const [filterDateStart, setFilterDateStart] = useState('');
+  const [filterDateEnd, setFilterDateEnd] = useState('');
 
   const getReservationInfo = (reservationId: string) => {
     return reservations.find((r) => r.id === reservationId);
@@ -47,6 +44,72 @@ export default function Records() {
     return seat?.seatNumber || '-';
   };
 
+  const filteredRecords = useMemo(() => {
+    let result = [...changeRecords].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    if (filterType !== 'all') {
+      result = result.filter((r) => r.changeType === filterType);
+    }
+
+    if (filterName.trim()) {
+      const keyword = filterName.trim();
+      result = result.filter((r) => {
+        const reservation = getReservationInfo(r.reservationId);
+        return reservation?.studentName?.includes(keyword);
+      });
+    }
+
+    if (filterClass) {
+      result = result.filter((r) => {
+        const reservation = getReservationInfo(r.reservationId);
+        return reservation?.className === filterClass;
+      });
+    }
+
+    if (filterDateStart) {
+      const start = new Date(filterDateStart);
+      start.setHours(0, 0, 0, 0);
+      result = result.filter((r) => new Date(r.createdAt) >= start);
+    }
+
+    if (filterDateEnd) {
+      const end = new Date(filterDateEnd);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((r) => new Date(r.createdAt) <= end);
+    }
+
+    return result;
+  }, [changeRecords, filterType, filterName, filterClass, filterDateStart, filterDateEnd, reservations]);
+
+  const statistics = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecords = filteredRecords.filter((r) => r.createdAt.startsWith(today));
+    return {
+      total: filteredRecords.length,
+      today: todayRecords.length,
+      leave: filteredRecords.filter((r) => r.changeType === 'leave').length,
+      seatChange: filteredRecords.filter((r) => r.changeType === 'seat_change').length,
+      earlyLeave: filteredRecords.filter((r) => r.changeType === 'early_leave').length,
+    };
+  }, [filteredRecords]);
+
+  const hasActiveFilters =
+    filterType !== 'all' ||
+    filterName.trim() !== '' ||
+    filterClass !== '' ||
+    filterDateStart !== '' ||
+    filterDateEnd !== '';
+
+  const resetFilters = () => {
+    setFilterType('all');
+    setFilterName('');
+    setFilterClass('');
+    setFilterDateStart('');
+    setFilterDateEnd('');
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'leave':
@@ -59,18 +122,6 @@ export default function Records() {
         return <FileText className="w-4 h-4 text-slate-600" />;
     }
   };
-
-  const statistics = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayRecords = changeRecords.filter((r) => r.createdAt.startsWith(today));
-    return {
-      total: changeRecords.length,
-      today: todayRecords.length,
-      leave: changeRecords.filter((r) => r.changeType === 'leave').length,
-      seatChange: changeRecords.filter((r) => r.changeType === 'seat_change').length,
-      earlyLeave: changeRecords.filter((r) => r.changeType === 'early_leave').length,
-    };
-  }, [changeRecords]);
 
   const columns = [
     {
@@ -167,6 +218,13 @@ export default function Records() {
     { value: 'early_leave', label: '提前离开', count: statistics.earlyLeave },
   ];
 
+  const getEmptyMessage = () => {
+    if (hasActiveFilters) {
+      return '当前筛选条件下没有记录';
+    }
+    return '暂无异动记录';
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -177,16 +235,27 @@ export default function Records() {
           </h1>
           <p className="text-slate-500">查看请假、换座和提前离开的历史记录</p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-        >
-          <Filter className="w-4 h-4" />
-          筛选
-          <ChevronDown
-            className={cn('w-4 h-4 transition-transform', showFilters && 'rotate-180')}
-          />
-        </button>
+        <div className="flex gap-2">
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              <RotateCcw className="w-4 h-4" />
+              重置
+            </button>
+          )}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <Filter className="w-4 h-4" />
+            筛选
+            <ChevronDown
+              className={cn('w-4 h-4 transition-transform', showFilters && 'rotate-180')}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -211,32 +280,95 @@ export default function Records() {
       </div>
 
       {showFilters && (
-        <div className="bg-white rounded-2xl shadow-card p-4 animate-scale-in">
-          <div className="flex flex-wrap gap-2">
-            {filterTypes.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => setFilterType(type.value)}
-                className={cn(
-                  'px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2',
-                  filterType === type.value
-                    ? 'bg-gradient-primary text-white shadow-lg'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
-              >
-                {type.label}
-                <span
+        <div className="bg-white rounded-2xl shadow-card p-6 animate-scale-in space-y-6">
+          <div>
+            <div className="flex flex-wrap gap-2 mb-6">
+              {filterTypes.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => setFilterType(type.value)}
                   className={cn(
-                    'px-2 py-0.5 rounded-full text-xs',
+                    'px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2',
                     filterType === type.value
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 text-slate-600'
+                      ? 'bg-gradient-primary text-white shadow-lg'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   )}
                 >
-                  {type.count}
-                </span>
-              </button>
-            ))}
+                  {type.label}
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-xs',
+                      filterType === type.value
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    )}
+                  >
+                    {type.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                  <Search className="w-4 h-4 text-primary-500" />
+                  学生姓名
+                </label>
+                <input
+                  type="text"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  placeholder="输入姓名搜索"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                  <Users className="w-4 h-4 text-primary-500" />
+                  班级
+                </label>
+                <select
+                  value={filterClass}
+                  onChange={(e) => setFilterClass(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all bg-white"
+                >
+                  <option value="">全部班级</option>
+                  {CLASS_LIST.map((cls) => (
+                    <option key={cls} value={cls}>
+                      {cls}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                  <CalendarRange className="w-4 h-4 text-primary-500" />
+                  开始日期
+                </label>
+                <input
+                  type="date"
+                  value={filterDateStart}
+                  onChange={(e) => setFilterDateStart(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                  <CalendarRange className="w-4 h-4 text-primary-500" />
+                  结束日期
+                </label>
+                <input
+                  type="date"
+                  value={filterDateEnd}
+                  onChange={(e) => setFilterDateEnd(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all bg-white"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -245,7 +377,7 @@ export default function Records() {
         <DataTable
           columns={columns}
           data={filteredRecords}
-          emptyMessage="暂无异动记录"
+          emptyMessage={getEmptyMessage()}
         />
       </div>
     </div>
