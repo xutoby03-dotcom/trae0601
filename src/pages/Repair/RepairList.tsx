@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Button,
   Card,
+  Checkbox,
   Form,
   Input,
   Modal,
@@ -11,16 +12,25 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
-import { PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  ClearOutlined,
+  ExclamationCircleOutlined,
+  FilterOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  UserOutlined,
+  UserSwitchOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { useRepairStore, useFacilityStore } from '@/store';
 import { SeverityTag, RepairStatusTag, EmptyState } from '@/components';
 import { SEVERITY_CONFIG, REPAIR_STATUS_CONFIG, type Repair, type Severity, type RepairStatus } from '@/types';
-import { formatDate, fromNow } from '@/utils/date';
+import { formatDate, fromNow, dayjs } from '@/utils/date';
 
 const { Text } = Typography;
 
@@ -59,6 +69,19 @@ const ASSIGNEES = [
   '专业电气维修周工', '专业焊接队', '工程部钱经理',
 ];
 
+const isRepairOverdue = (r: Repair) => {
+  if (!r.expected_fix_date) return false;
+  if (r.status === 'completed' || r.status === 'cancelled') return false;
+  return dayjs(r.expected_fix_date).endOf('day').isBefore(dayjs().startOf('day'));
+};
+
+interface ActiveFilterTag {
+  key: string;
+  label: React.ReactNode;
+  onClose: () => void;
+  color?: string;
+}
+
 export default function RepairList() {
   const navigate = useNavigate();
   const { repairs, assignRepair, startRepair } = useRepairStore();
@@ -71,6 +94,10 @@ export default function RepairList() {
   const [facilityFilter, setFacilityFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  const [todoClosure, setTodoClosure] = useState(false);
+  const [todoOverdue, setTodoOverdue] = useState(false);
+  const [todoAssigned, setTodoAssigned] = useState(false);
 
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [currentRepairId, setCurrentRepairId] = useState<string | null>(null);
@@ -112,15 +139,179 @@ export default function RepairList() {
       result = result.filter((r) => r.facility_id === facilityFilter);
     }
 
+    if (todoClosure) {
+      result = result.filter((r) => r.need_closure);
+    }
+
+    if (todoOverdue) {
+      result = result.filter(isRepairOverdue);
+    }
+
+    if (todoAssigned) {
+      result = result.filter((r) => r.assigned_to && r.assigned_to.length > 0);
+    }
+
     result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return result;
-  }, [repairs, searchText, severityFilter, statusFilter, facilityFilter]);
+  }, [repairs, searchText, severityFilter, statusFilter, facilityFilter, todoClosure, todoOverdue, todoAssigned]);
 
   const pagedRepairs = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filteredRepairs.slice(start, start + pageSize);
   }, [filteredRepairs, page]);
+
+  const resetAll = () => {
+    setSearchText('');
+    setSeverityFilter('all');
+    setStatusFilter('all');
+    setFacilityFilter('all');
+    setTodoClosure(false);
+    setTodoOverdue(false);
+    setTodoAssigned(false);
+    setPage(1);
+  };
+
+  const activeFilterCount =
+    (searchText.trim() ? 1 : 0) +
+    (severityFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (facilityFilter !== 'all' ? 1 : 0) +
+    (todoClosure ? 1 : 0) +
+    (todoOverdue ? 1 : 0) +
+    (todoAssigned ? 1 : 0);
+
+  const activeTags: ActiveFilterTag[] = [];
+
+  if (searchText.trim()) {
+    activeTags.push({
+      key: 'search',
+      label: (
+        <Space size={4}>
+          <SearchOutlined />
+          <span>关键词：</span>
+          <Text strong>{searchText.trim()}</Text>
+        </Space>
+      ),
+      onClose: () => {
+        setSearchText('');
+        setPage(1);
+      },
+    });
+  }
+
+  if (severityFilter !== 'all') {
+    const config = SEVERITY_CONFIG[severityFilter];
+    activeTags.push({
+      key: 'severity',
+      label: (
+        <Space size={4}>
+          <span
+            style={{
+              width: 6,
+              height: 14,
+              background: config.color,
+              borderRadius: 3,
+              display: 'inline-block',
+            }}
+          />
+          <span>严重程度：</span>
+          <Text strong>{config.label}</Text>
+        </Space>
+      ),
+      color: config.color,
+      onClose: () => {
+        setSeverityFilter('all');
+        setPage(1);
+      },
+    });
+  }
+
+  if (statusFilter !== 'all') {
+    const config = REPAIR_STATUS_CONFIG[statusFilter];
+    activeTags.push({
+      key: 'status',
+      label: (
+        <Space size={4}>
+          <span>状态：</span>
+          <Text strong>{config.label}</Text>
+        </Space>
+      ),
+      color: config.color,
+      onClose: () => {
+        setStatusFilter('all');
+        setPage(1);
+      },
+    });
+  }
+
+  if (facilityFilter !== 'all') {
+    const f = facilityMap.get(facilityFilter);
+    activeTags.push({
+      key: 'facility',
+      label: (
+        <Space size={4}>
+          <span>设施：</span>
+          <Text strong>{f ? `${f.name} (${f.location})` : facilityFilter}</Text>
+        </Space>
+      ),
+      onClose: () => {
+        setFacilityFilter('all');
+        setPage(1);
+      },
+    });
+  }
+
+  if (todoClosure) {
+    activeTags.push({
+      key: 'todoClosure',
+      label: (
+        <Space size={4}>
+          <ExclamationCircleOutlined />
+          <span>临时封闭</span>
+        </Space>
+      ),
+      color: '#E63946',
+      onClose: () => {
+        setTodoClosure(false);
+        setPage(1);
+      },
+    });
+  }
+
+  if (todoOverdue) {
+    activeTags.push({
+      key: 'todoOverdue',
+      label: (
+        <Space size={4}>
+          <ExclamationCircleOutlined />
+          <span>超预计维修时间</span>
+        </Space>
+      ),
+      color: '#E63946',
+      onClose: () => {
+        setTodoOverdue(false);
+        setPage(1);
+      },
+    });
+  }
+
+  if (todoAssigned) {
+    activeTags.push({
+      key: 'todoAssigned',
+      label: (
+        <Space size={4}>
+          <UserSwitchOutlined />
+          <span>已分派责任人</span>
+        </Space>
+      ),
+      color: '#219EBC',
+      onClose: () => {
+        setTodoAssigned(false);
+        setPage(1);
+      },
+    });
+  }
 
   const handleAssignClick = (repairId: string) => {
     setCurrentRepairId(repairId);
@@ -238,10 +429,29 @@ export default function RepairList() {
       render: (s: RepairStatus) => <RepairStatusTag status={s} />,
     },
     {
+      title: '维修责任人',
+      dataIndex: 'assigned_to',
+      key: 'assigned_to',
+      width: 140,
+      render: (assigned: string | null) =>
+        assigned ? (
+          <Tooltip title={`分派给 ${assigned}`}>
+            <span>
+              <UserSwitchOutlined style={{ color: '#219EBC', marginRight: 4 }} />
+              <Text strong>{assigned}</Text>
+            </span>
+          </Tooltip>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            未分派
+          </Text>
+        ),
+    },
+    {
       title: '发现人',
       dataIndex: 'reporter',
       key: 'reporter',
-      width: 140,
+      width: 120,
       render: (reporter: string) => (
         <span>
           <UserOutlined style={{ color: '#8c8c8c', marginRight: 4 }} />
@@ -269,8 +479,30 @@ export default function RepairList() {
       title: '预计维修日期',
       dataIndex: 'expected_fix_date',
       key: 'expected_date',
-      width: 130,
-      render: (date: string) => formatDate(date),
+      width: 140,
+      render: (date: string, record: Repair) => {
+        const overdue = isRepairOverdue(record);
+        const dateStr = formatDate(date);
+        if (overdue) {
+          return (
+            <Tooltip title={`超过预计维修日期，请加快处理`}>
+              <span
+                style={{
+                  color: '#E63946',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <ExclamationCircleOutlined />
+                {dateStr || '-'}
+              </span>
+            </Tooltip>
+          );
+        }
+        return dateStr || <Text type="secondary">未设置</Text>;
+      },
     },
     {
       title: '创建时间',
@@ -356,6 +588,11 @@ export default function RepairList() {
             <Space>
               <span style={{ fontSize: 18, fontWeight: 600 }}>报修管理</span>
               <Tag color="blue">共 {filteredRepairs.length} 条</Tag>
+              {activeFilterCount > 0 && (
+                <Tag color="orange" icon={<FilterOutlined />}>
+                  已选条件 {activeFilterCount}
+                </Tag>
+              )}
             </Space>
           }
           extra={
@@ -370,55 +607,160 @@ export default function RepairList() {
           style={{ borderRadius: 12 }}
           styles={{ body: { padding: 0 } }}
         >
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
-            <Space wrap size="middle">
-              <Input
-                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="搜索报修单号/问题描述/发现人"
-                value={searchText}
-                onChange={(e) => {
-                  setSearchText(e.target.value);
-                  setPage(1);
-                }}
-                style={{ width: 280 }}
-                allowClear
-              />
-              <Select
-                value={severityFilter}
-                onChange={(v) => {
-                  setSeverityFilter(v);
-                  setPage(1);
-                }}
-                options={severityOptions}
-                style={{ width: 130 }}
-              />
-              <Select
-                value={statusFilter}
-                onChange={(v) => {
-                  setStatusFilter(v);
-                  setPage(1);
-                }}
-                options={statusOptions}
-                style={{ width: 130 }}
-              />
-              <Select
-                showSearch
-                value={facilityFilter}
-                onChange={(v) => {
-                  setFacilityFilter(v);
-                  setPage(1);
-                }}
-                options={facilityOptions}
-                style={{ width: 260 }}
-                placeholder="选择设施"
-                optionFilterProp="label"
-              />
-            </Space>
+          <div
+            style={{
+              padding: '16px 24px',
+              borderBottom: '1px solid #f0f0f0',
+              display: 'flex',
+              gap: 16,
+              alignItems: 'flex-start',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Space wrap size="middle" style={{ width: '100%' }}>
+                <Input
+                  prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                  placeholder="搜索报修单号/问题描述/发现人"
+                  value={searchText}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setPage(1);
+                  }}
+                  style={{ width: 280 }}
+                  allowClear
+                />
+                <Select
+                  value={severityFilter}
+                  onChange={(v) => {
+                    setSeverityFilter(v);
+                    setPage(1);
+                  }}
+                  options={severityOptions}
+                  style={{ width: 130 }}
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={(v) => {
+                    setStatusFilter(v);
+                    setPage(1);
+                  }}
+                  options={statusOptions}
+                  style={{ width: 130 }}
+                />
+                <Select
+                  showSearch
+                  value={facilityFilter}
+                  onChange={(v) => {
+                    setFacilityFilter(v);
+                    setPage(1);
+                  }}
+                  options={facilityOptions}
+                  style={{ width: 260 }}
+                  placeholder="选择设施"
+                  optionFilterProp="label"
+                />
+                <Space size={12} style={{ paddingLeft: 4, borderLeft: '1px dashed #e0e0e0' }}>
+                  <Checkbox
+                    checked={todoClosure}
+                    onChange={(e) => {
+                      setTodoClosure(e.target.checked);
+                      setPage(1);
+                    }}
+                  >
+                    <span style={{ color: todoClosure ? '#E63946' : undefined }}>
+                      临时封闭
+                    </span>
+                  </Checkbox>
+                  <Checkbox
+                    checked={todoOverdue}
+                    onChange={(e) => {
+                      setTodoOverdue(e.target.checked);
+                      setPage(1);
+                    }}
+                  >
+                    <span style={{ color: todoOverdue ? '#E63946' : undefined }}>
+                      超预计维修时间
+                    </span>
+                  </Checkbox>
+                  <Checkbox
+                    checked={todoAssigned}
+                    onChange={(e) => {
+                      setTodoAssigned(e.target.checked);
+                      setPage(1);
+                    }}
+                  >
+                    <span style={{ color: todoAssigned ? '#219EBC' : undefined }}>
+                      已分派责任人
+                    </span>
+                  </Checkbox>
+                </Space>
+              </Space>
+            </div>
+            <Button
+              danger={activeFilterCount > 0}
+              type={activeFilterCount > 0 ? 'primary' : 'default'}
+              icon={<ClearOutlined />}
+              onClick={resetAll}
+              disabled={activeFilterCount === 0}
+            >
+              清空筛选
+            </Button>
           </div>
+
+          {activeTags.length > 0 && (
+            <div
+              style={{
+                padding: '12px 24px',
+                background: '#FFFBF0',
+                borderBottom: '1px solid #FFF3D6',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Text type="secondary" style={{ fontSize: 13, marginRight: 8 }}>
+                <FilterOutlined style={{ marginRight: 4 }} />
+                当前筛选：
+              </Text>
+              {activeTags.map((tag) => (
+                <Tag
+                  key={tag.key}
+                  color={tag.color || 'blue'}
+                  closable
+                  onClose={tag.onClose}
+                  style={{
+                    margin: 0,
+                    padding: '4px 10px',
+                    fontSize: 13,
+                    borderRadius: 6,
+                  }}
+                >
+                  {tag.label}
+                </Tag>
+              ))}
+            </div>
+          )}
 
           {filteredRepairs.length === 0 ? (
             <div style={{ padding: '60px 0' }}>
-              <EmptyState title="暂无报修记录" description="点击右上角「发起报修」创建新的报修单" />
+              <EmptyState
+                title={activeFilterCount > 0 ? '筛选结果为空' : '暂无报修记录'}
+                description={
+                  activeFilterCount > 0
+                    ? '试试减少筛选条件或点击右上角「清空筛选」'
+                    : '点击右上角「发起报修」创建新的报修单'
+                }
+                action={
+                  activeFilterCount > 0 ? (
+                    <Button type="primary" icon={<ClearOutlined />} onClick={resetAll}>
+                      清空筛选条件
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
           ) : (
             <>
@@ -427,10 +769,21 @@ export default function RepairList() {
                 dataSource={pagedRepairs}
                 rowKey="id"
                 pagination={false}
-                scroll={{ x: 1400 }}
+                scroll={{ x: 1600 }}
                 size="middle"
                 style={{ padding: '8px 0' }}
+                rowClassName={(record) =>
+                  isRepairOverdue(record) ? 'repair-row-overdue' : ''
+                }
               />
+              <style>{`
+                .repair-row-overdue > td {
+                  background-color: #FFF5F5 !important;
+                }
+                .repair-row-overdue:hover > td {
+                  background-color: #FFEBEB !important;
+                }
+              `}</style>
               <div
                 style={{
                   padding: '16px 24px',
