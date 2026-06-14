@@ -105,7 +105,9 @@ export const calculateStats = (records: ClothesRecord[]): StatsData => {
     personId: member.id,
     personName: member.name,
     personAvatar: member.avatar,
-    count: records.filter(r => r.responsiblePersonId === member.id && r.remindCount > 0).length
+    count: records
+      .filter(r => r.responsiblePersonId === member.id)
+      .reduce((sum, r) => sum + (r.remindCount || 0), 0)
   })).sort((a, b) => b.count - a.count);
 
   const thickClothesPending = dryingRecords.filter(r => r.isThick);

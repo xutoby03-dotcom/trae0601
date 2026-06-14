@@ -1,12 +1,25 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import { isOverdue, isNightTime, formatDryingDuration } from '../utils/helpers';
+import { WeatherCondition } from '../types';
 
 export const useReminderService = () => {
-  const { weather, addReminder, updateWeather, getDryingRecords } = useStore();
+  const { addReminder, updateWeather, getDryingRecords, incrementRemindCount } = useStore();
   const remindedRecordsRef = useRef<Set<string>>(new Set());
   const weatherRemindedRef = useRef<boolean>(false);
   const nightRemindedRef = useRef<boolean>(false);
+  const initializedRef = useRef<boolean>(false);
+
+  const addReminderForAllDrying = useCallback((type: 'weather' | 'night', message: string) => {
+    const dryingRecords = getDryingRecords();
+    if (dryingRecords.length === 0) return;
+
+    addReminder(type, message);
+
+    dryingRecords.forEach(record => {
+      incrementRemindCount(record.id);
+    });
+  }, [getDryingRecords, addReminder, incrementRemindCount]);
 
   const checkTimeoutReminders = useCallback(() => {
     const dryingRecords = getDryingRecords();
@@ -26,30 +39,30 @@ export const useReminderService = () => {
     });
   }, [getDryingRecords, addReminder]);
 
-  const checkWeatherReminders = useCallback(() => {
+  const checkWeatherReminders = useCallback((currentCondition?: WeatherCondition) => {
     const dryingRecords = getDryingRecords();
-    
     if (dryingRecords.length === 0) return;
 
-    if ((weather.condition === 'rainy' || weather.condition === 'foggy') && !weatherRemindedRef.current) {
-      const conditionText = weather.condition === 'rainy' ? '下雨' : '起雾';
-      addReminder(
+    const condition = currentCondition || useStore.getState().weather.condition;
+
+    if ((condition === 'rainy' || condition === 'foggy') && !weatherRemindedRef.current) {
+      const conditionText = condition === 'rainy' ? '下雨' : '起雾';
+      addReminderForAllDrying(
         'weather',
         `⚠️ 天气变化：当前${conditionText}，阳台上还有${dryingRecords.length}批衣物，请尽快收取！`
       );
       weatherRemindedRef.current = true;
-    } else if (weather.condition === 'sunny' || weather.condition === 'cloudy') {
+    } else if (condition === 'sunny' || condition === 'cloudy') {
       weatherRemindedRef.current = false;
     }
-  }, [weather, getDryingRecords, addReminder]);
+  }, [getDryingRecords, addReminderForAllDrying]);
 
   const checkNightReminders = useCallback(() => {
     const dryingRecords = getDryingRecords();
-    
     if (dryingRecords.length === 0) return;
 
     if (isNightTime() && !nightRemindedRef.current) {
-      addReminder(
+      addReminderForAllDrying(
         'night',
         `🌙 已到夜间，阳台上还有${dryingRecords.length}批衣物未收取，夜间降温易返潮，请及时收衣！`
       );
@@ -57,30 +70,22 @@ export const useReminderService = () => {
     } else if (!isNightTime()) {
       nightRemindedRef.current = false;
     }
-  }, [getDryingRecords, addReminder]);
+  }, [getDryingRecords, addReminderForAllDrying]);
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     const initialWeather = updateWeather();
-    
-    if (initialWeather.condition === 'rainy' || initialWeather.condition === 'foggy') {
-      weatherRemindedRef.current = true;
-    }
-    if (isNightTime()) {
-      nightRemindedRef.current = true;
-    }
-  }, [updateWeather]);
 
-  useEffect(() => {
     checkTimeoutReminders();
-    checkWeatherReminders();
+    checkWeatherReminders(initialWeather.condition);
     checkNightReminders();
 
     const timeoutInterval = setInterval(checkTimeoutReminders, 60000);
     const weatherInterval = setInterval(() => {
       const newWeather = updateWeather();
-      if (newWeather.condition === 'rainy' || newWeather.condition === 'foggy') {
-        checkWeatherReminders();
-      }
+      checkWeatherReminders(newWeather.condition);
     }, 30 * 60 * 1000);
     const nightInterval = setInterval(checkNightReminders, 5 * 60 * 1000);
 
