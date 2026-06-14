@@ -76,9 +76,18 @@ export default function VisitDetail() {
     }
   };
 
+  const canComplete = allPrepared && visit.confirmed;
+
   const handleComplete = () => {
-    if (confirm('确定标记此次复诊为已完成吗？')) {
-      completeVisit(visit.id);
+    if (!canComplete) {
+      if (!allPrepared) {
+        alert('材料未全部准备齐全，无法标记完成！');
+      } else if (!visit.confirmed) {
+        alert('请先确认陪同人，再标记复诊完成！');
+      }
+      return;
+    }
+    if (confirm('确定标记此次复诊为已完成吗？请填写复诊记录。')) {
       setIsRecordModalOpen(true);
       if (record) {
         setRecordForm(record);
@@ -92,6 +101,7 @@ export default function VisitDetail() {
       updateRecord(record.id, recordForm);
     } else {
       addRecord(recordForm);
+      completeVisit(visit.id);
     }
     setIsRecordModalOpen(false);
   };
@@ -348,9 +358,22 @@ export default function VisitDetail() {
 
       {isUpcoming && (
         <div className="flex flex-col sm:flex-row gap-3 justify-end">
-          <button onClick={handleComplete} className="btn-secondary">
+          <button
+            onClick={handleComplete}
+            disabled={!canComplete}
+            className={`btn-secondary ${!canComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             标记为已完成
           </button>
+          {!canComplete && (
+            <p className="text-sm text-gray-500 text-right">
+              {!allPrepared
+                ? '请先准备好所有材料'
+                : !visit.confirmed
+                ? '请先确认陪同人'
+                : ''}
+            </p>
+          )}
         </div>
       )}
 
