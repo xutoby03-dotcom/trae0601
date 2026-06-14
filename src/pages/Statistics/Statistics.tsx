@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
   BarChart3,
   TrendingDown,
@@ -13,6 +13,8 @@ import {
   DollarSign,
   MapPin,
   Clock,
+  Filter,
+  X as XIcon,
 } from 'lucide-react';
 import { useTastingStore } from '@/store/tastingStore';
 import { useProductStore } from '@/store/productStore';
@@ -79,6 +81,7 @@ export default function Statistics() {
 
   const [timeRange, setTimeRange] = useState<7 | 14 | 30>(7);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
+  const [expandedFilters, setExpandedFilters] = useState<Map<string, { station: string; product: string }>>(new Map());
 
   const dailyStats = useMemo(
     () => calculateDailyStats(records, products, orders, timeRange),
@@ -185,12 +188,39 @@ export default function Statistics() {
       const next = new Set(prev);
       if (next.has(date)) {
         next.delete(date);
+        setExpandedFilters((pf) => {
+          const nf = new Map(pf);
+          nf.delete(date);
+          return nf;
+        });
       } else {
         next.add(date);
+        setExpandedFilters((pf) => {
+          const nf = new Map(pf);
+          nf.set(date, { station: '', product: '' });
+          return nf;
+        });
       }
       return next;
     });
   };
+
+  const updateFilter = useCallback((date: string, key: 'station' | 'product', value: string) => {
+    setExpandedFilters((prev) => {
+      const next = new Map(prev);
+      const current = next.get(date) || { station: '', product: '' };
+      next.set(date, { ...current, [key]: value });
+      return next;
+    });
+  }, []);
+
+  const clearFilter = useCallback((date: string) => {
+    setExpandedFilters((prev) => {
+      const next = new Map(prev);
+      next.set(date, { station: '', product: '' });
+      return next;
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -206,6 +236,7 @@ export default function Statistics() {
               onClick={() => {
                 setTimeRange(days as 7 | 14 | 30);
                 setExpandedDates(new Set());
+                setExpandedFilters(new Map());
               }}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 timeRange === days
@@ -508,7 +539,17 @@ export default function Statistics() {
               {dailyStats.map((stat, index) => {
                 const expanded = expandedDates.has(stat.date);
                 const dayOrders = ordersByDate.get(stat.date) || [];
+                const dayFilter = expandedFilters.get(stat.date) || { station: '', product: '' };
+                const hasFilter = dayFilter.station || dayFilter.product;
+                const filteredOrders = dayOrders.filter((o) => {
+                  if (dayFilter.station && o.stationLocation !== dayFilter.station) return false;
+                  if (dayFilter.product && o.productName !== dayFilter.product) return false;
+                  return true;
+                });
+                const filteredAmount = filteredOrders.reduce((s, o) => s + o.amount, 0);
                 const dayAmount = dayOrders.reduce((s, o) => s + o.amount, 0);
+                const stationOptions = [...new Set(dayOrders.map((o) => o.stationLocation))];
+                const productOptions = [...new Set(dayOrders.map((o) => o.productName))];
                 return (
                   <>
                     <tr
@@ -599,58 +640,142 @@ export default function Statistics() {
                               </p>
                             </div>
                           ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               <div className="flex items-center justify-between px-3 pb-2 border-b border-stone-200">
-                                <div className="flex items-center gap-2 text-xs text-stone-500">
-                                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>共 {dayOrders.length} 笔订单</span>
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2 text-xs text-stone-500">
+                                    <Filter className="w-3.5 h-3.5 text-stone-400" />
+                                    <span>筛选</span>
+                                  </div>
+                                  <select
+                                    value={dayFilter.station}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateFilter(stat.date, 'station', e.target.value);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none cursor-pointer pr-6"
+                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
+                                  >
+                                    <option value="">全部位置</option>
+                                    {stationOptions.map((s) => (
+                                      <option key={s} value={s}>{s}</option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={dayFilter.product}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateFilter(stat.date, 'product', e.target.value);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-2.5 py-1.5 bg-white border border-stone-200 rounded-lg text-xs text-stone-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 appearance-none cursor-pointer pr-6"
+                                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
+                                  >
+                                    <option value="">全部商品</option>
+                                    {productOptions.map((p) => (
+                                      <option key={p} value={p}>{p}</option>
+                                    ))}
+                                  </select>
+                                  {hasFilter && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearFilter(stat.date);
+                                      }}
+                                      className="inline-flex items-center gap-1 px-2 py-1 text-xs text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors"
+                                    >
+                                      <XIcon className="w-3 h-3" />
+                                      清除
+                                    </button>
+                                  )}
                                 </div>
                                 <div className="text-sm font-semibold text-stone-800">
-                                  合计金额：
-                                  <span className="text-emerald-700 ml-1">
-                                    ¥{dayAmount.toLocaleString('zh-CN', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </span>
+                                  {hasFilter ? (
+                                    <>
+                                      筛选合计：
+                                      <span className="text-emerald-700 ml-1">
+                                        ¥{filteredAmount.toLocaleString('zh-CN', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
+                                      </span>
+                                      <span className="text-stone-400 font-normal mx-1.5">/</span>
+                                      <span className="text-stone-500 font-normal text-xs">
+                                        全部 ¥{dayAmount.toLocaleString('zh-CN', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      合计金额：
+                                      <span className="text-emerald-700 ml-1">
+                                        ¥{dayAmount.toLocaleString('zh-CN', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
+                                      </span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {dayOrders.map((order) => (
-                                  <div
-                                    key={order.id}
-                                    className="flex items-center gap-3 p-3 bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow transition-shadow"
+
+                              {filteredOrders.length === 0 ? (
+                                <div className="text-center py-6">
+                                  <Filter className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+                                  <p className="text-sm text-stone-400">
+                                    当前筛选条件下没有匹配的订单
+                                  </p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      clearFilter(stat.date);
+                                    }}
+                                    className="mt-2 text-xs text-orange-600 hover:text-orange-700 font-medium"
                                   >
-                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                      <ShoppingCart className="w-5 h-5 text-emerald-600" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-stone-800 text-sm truncate">
-                                        {order.productName}
-                                      </p>
-                                      <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500 flex-wrap">
-                                        <span className="inline-flex items-center gap-1">
-                                          <MapPin className="w-3 h-3" />
-                                          {order.stationLocation}
-                                        </span>
-                                        <span className="text-stone-300">·</span>
-                                        <span className="inline-flex items-center gap-1">
-                                          <Clock className="w-3 h-3" />
-                                          {formatTime(order.tastingStartTime)}
-                                        </span>
+                                    清除筛选
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {filteredOrders.map((order) => (
+                                    <div
+                                      key={order.id}
+                                      className="flex items-center gap-3 p-3 bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow transition-shadow"
+                                    >
+                                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-stone-800 text-sm truncate">
+                                          {order.productName}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500 flex-wrap">
+                                          <span className="inline-flex items-center gap-1">
+                                            <MapPin className="w-3 h-3" />
+                                            {order.stationLocation}
+                                          </span>
+                                          <span className="text-stone-300">·</span>
+                                          <span className="inline-flex items-center gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            {formatTime(order.tastingStartTime)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="text-right flex-shrink-0 pl-2">
+                                        <p className="font-semibold text-emerald-700">
+                                          ¥{order.amount.toFixed(2)}
+                                        </p>
+                                        <p className="text-xs text-stone-500 mt-0.5">
+                                          × {order.quantity} 件
+                                        </p>
                                       </div>
                                     </div>
-                                    <div className="text-right flex-shrink-0 pl-2">
-                                      <p className="font-semibold text-emerald-700">
-                                        ¥{order.amount.toFixed(2)}
-                                      </p>
-                                      <p className="text-xs text-stone-500 mt-0.5">
-                                        × {order.quantity} 件
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </td>
