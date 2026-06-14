@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Calculator,
@@ -18,8 +19,8 @@ import { cn } from '@/lib/utils';
 
 export default function Settlement() {
   const { id } = useParams();
-  const getTrip = useTripStore(state => state.getTrip);
-  const trip = getTrip(id!);
+  const trips = useTripStore(state => state.trips);
+  const trip = useMemo(() => trips.find(t => t.id === id), [trips, id]);
 
   if (!trip) {
     return (

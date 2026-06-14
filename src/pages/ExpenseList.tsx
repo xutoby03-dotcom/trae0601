@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   MapPin,
@@ -67,7 +67,7 @@ const ExpenseIcon = ({ type, size = 20 }: { type: ExpenseType; size?: number }) 
 export default function ExpenseList() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const getTrip = useTripStore(state => state.getTrip);
+  const trips = useTripStore(state => state.trips);
   const deleteExpense = useTripStore(state => state.deleteExpense);
   const isLoaded = useTripStore(state => state.isLoaded);
   const loadTrips = useTripStore(state => state.loadTrips);
@@ -80,7 +80,7 @@ export default function ExpenseList() {
     }
   }, [isLoaded, loadTrips]);
 
-  const trip = getTrip(id!);
+  const trip = useMemo(() => trips.find(t => t.id === id), [trips, id]);
 
   if (!trip) {
     return (

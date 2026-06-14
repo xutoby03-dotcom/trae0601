@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   MapPin,
@@ -22,7 +22,7 @@ export default function TripEdit() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id && id !== 'new';
-  const getTrip = useTripStore(state => state.getTrip);
+  const trips = useTripStore(state => state.trips);
   const addTrip = useTripStore(state => state.addTrip);
   const updateTrip = useTripStore(state => state.updateTrip);
   const addPassenger = useTripStore(state => state.addPassenger);
@@ -30,7 +30,10 @@ export default function TripEdit() {
   const deletePassenger = useTripStore(state => state.deletePassenger);
   const updateSettings = useTripStore(state => state.updateSettings);
 
-  const existingTrip = isEdit ? getTrip(id!) : undefined;
+  const existingTrip = useMemo(
+    () => (isEdit ? trips.find(t => t.id === id) : undefined),
+    [isEdit, id, trips]
+  );
 
   const [formData, setFormData] = useState({
     destination: '',

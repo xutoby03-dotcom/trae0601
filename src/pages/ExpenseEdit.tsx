@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Fuel,
@@ -31,12 +31,12 @@ export default function ExpenseEdit() {
   const { id, expenseId } = useParams();
   const navigate = useNavigate();
   const isEdit = expenseId && expenseId !== 'new';
-  const getTrip = useTripStore(state => state.getTrip);
+  const trips = useTripStore(state => state.trips);
   const addExpense = useTripStore(state => state.addExpense);
   const updateExpense = useTripStore(state => state.updateExpense);
   const deleteExpense = useTripStore(state => state.deleteExpense);
 
-  const trip = getTrip(id!);
+  const trip = useMemo(() => trips.find(t => t.id === id), [trips, id]);
 
   const [type, setType] = useState<ExpenseType>('fuel');
   const [amount, setAmount] = useState('');
