@@ -118,6 +118,10 @@ export default function Recheck() {
       alert('请填写联系人');
       return;
     }
+    if (!batchPhone) {
+      alert('请填写联系电话');
+      return;
+    }
     const deadline = addDaysFromNow(batchDeadlineDays);
     const idArray = Array.from(selectedIds);
     idArray.forEach((id) => {
@@ -701,7 +705,7 @@ export default function Recheck() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">联系人</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">联系人 <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={batchContact}
@@ -711,12 +715,12 @@ export default function Recheck() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">联系电话</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">联系电话 <span className="text-red-500">*</span></label>
               <input
-                type="text"
+                type="tel"
                 value={batchPhone}
                 onChange={(e) => setBatchPhone(e.target.value)}
-                placeholder="选填"
+                placeholder="手机号码"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

@@ -131,7 +131,8 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     const now = new Date().toISOString();
     const inspection = get().getInspectionById(inspectionId);
     const currentNotifications = get().getNotificationsByInspectionId(inspectionId);
-    
+    const isFirstNotice = currentNotifications.length === 0;
+
     const newNotification: Notification = {
       id: generateId(),
       inspectionId,
@@ -143,16 +144,23 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       createdAt: now,
       noticeCount: currentNotifications.length + 1,
     };
-    
+
     addNotificationToStorage(newNotification);
-    
-    const newStatus: InspectionStatus = currentNotifications.length === 0 ? 'notified' : 'notified';
-    updateInspectionInStorage(inspectionId, { status: newStatus });
-    
-    if (inspection?.recheckCount !== undefined) {
-      updateInspectionInStorage(inspectionId, { status: 'notified' });
+
+    let newStatus: InspectionStatus;
+    const updates: Partial<Inspection> = {};
+
+    if (isFirstNotice) {
+      newStatus = 'notified';
+      updates.status = newStatus;
+    } else {
+      newStatus = 'recheck';
+      updates.status = newStatus;
+      const currentRecheckCount = inspection?.recheckCount || 0;
+      updates.recheckCount = currentRecheckCount + 1;
     }
-    
+
+    updateInspectionInStorage(inspectionId, updates);
     get().refreshData();
   },
 
