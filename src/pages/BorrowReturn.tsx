@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRightLeft, ArrowUpRight, ArrowDownLeft, CheckCircle, XCircle, Battery, Package, Clock, User, Building, Search } from 'lucide-react';
+import { ArrowRightLeft, ArrowUpRight, ArrowDownLeft, CheckCircle, XCircle, Battery, Package, Clock, User, Building, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { StatusBadge } from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
@@ -27,6 +27,20 @@ export default function BorrowReturn() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [overdueOnly, setOverdueOnly] = useState<boolean>(false);
+
+  type SortField = 'borrowTime' | 'expectedReturn';
+  type SortDir = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('borrowTime');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
   
   const [borrowForm, setBorrowForm] = useState({
     borrower: '',
@@ -69,7 +83,11 @@ export default function BorrowReturn() {
       const matchesOverdue = !overdueOnly || record.status === 'overdue';
       return matchesSearch && matchesStatus && matchesDepartment && matchesOverdue;
     })
-    .sort((a, b) => new Date(b.borrowTime).getTime() - new Date(a.borrowTime).getTime());
+    .sort((a, b) => {
+      const aVal = new Date(a[sortField]).getTime();
+      const bVal = new Date(b[sortField]).getTime();
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
 
   const overdueCountInFilter = filteredRecords.filter(r => r.status === 'overdue').length;
   const hasActiveFilter = departmentFilter !== 'all' || statusFilter !== 'all' || overdueOnly || searchQuery.trim() !== '';
@@ -415,6 +433,8 @@ export default function BorrowReturn() {
                       setStatusFilter('all');
                       setDepartmentFilter('all');
                       setOverdueOnly(false);
+                      setSortField('borrowTime');
+                      setSortDir('desc');
                     }}
                     className="px-3 py-2 text-sm text-gray-600 hover:text-primary-700 hover:bg-primary-50 border border-gray-200 rounded-lg transition-colors"
                   >
@@ -431,8 +451,26 @@ export default function BorrowReturn() {
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">遥控器</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">借用人</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">会议室</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">借出时间</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">预计归还</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
+                      <button onClick={() => toggleSort('borrowTime')} className="inline-flex items-center gap-1 hover:text-gray-800 transition-colors">
+                        借出时间
+                        {sortField === 'borrowTime' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">
+                      <button onClick={() => toggleSort('expectedReturn')} className="inline-flex items-center gap-1 hover:text-gray-800 transition-colors">
+                        预计归还
+                        {sortField === 'expectedReturn' ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </button>
+                    </th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">实际归还</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">状态</th>
                     <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">操作</th>
