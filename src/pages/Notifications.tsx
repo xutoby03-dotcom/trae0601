@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, User, Building2, ArrowRight } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, User, Building2, ArrowRight, Phone, Crown, CheckCircle, Loader2 } from 'lucide-react';
 import { borrowApi } from '../services/borrowService';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Button } from '../components/ui/Button';
@@ -9,17 +9,24 @@ interface OverdueRecord {
   id: number;
   costume_id: string;
   costume_name?: string;
+  costume_size?: string;
   costume_photo?: string;
   student_name: string;
   club_name: string;
   activity_name?: string;
   expected_return_date: string;
   overdue_days: number;
+  deposit?: number;
+  club_leader_name?: string;
+  club_leader_contact?: string;
+  reminder_sent?: boolean;
+  reminder_at?: string;
 }
 
 export default function Notifications() {
   const [overdueList, setOverdueList] = useState<OverdueRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [remindingIds, setRemindingIds] = useState<number[]>([]);
 
   useEffect(() => {
     loadOverdue();
@@ -34,6 +41,29 @@ export default function Notifications() {
       console.error('Failed to load overdue list:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkReminder = async (id: number) => {
+    if (remindingIds.includes(id)) return;
+    setRemindingIds((prev) => [...prev, id]);
+    try {
+      await borrowApi.markReminder(id);
+      setOverdueList((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                reminder_sent: true,
+                reminder_at: new Date().toISOString().replace('T', ' ').split('.')[0],
+              }
+            : r
+        )
+      );
+    } catch (error) {
+      alert((error as Error).message);
+    } finally {
+      setRemindingIds((prev) => prev.filter((rid) => rid !== id));
     }
   };
 
@@ -92,7 +122,7 @@ export default function Notifications() {
                           {record.costume_name}
                         </h3>
                         <p className="text-sm text-gray-500 mt-0.5">
-                          编号：{record.costume_id}
+                          编号：{record.costume_id} · 尺码：{record.costume_size || '-'}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -100,7 +130,14 @@ export default function Notifications() {
                           <Clock className="w-3 h-3" />
                           逾期 {record.overdue_days} 天
                         </span>
-                        <StatusBadge status="overdue" type="borrow" />
+                        {record.reminder_sent ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                            <CheckCircle className="w-3 h-3" />
+                            已提醒
+                          </span>
+                        ) : (
+                          <StatusBadge status="overdue" type="borrow" />
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
@@ -117,16 +154,71 @@ export default function Notifications() {
                         <span className="truncate">{record.activity_name || '-'}</span>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-sm text-gray-500">
-                        应还日期：{record.expected_return_date?.split('T')[0]}
+
+                    {(record.club_leader_name || record.club_leader_contact) && (
+                      <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Crown className="w-3.5 h-3.5 text-amber-600" />
+                          <span className="text-xs font-medium text-amber-700">社团负责人</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-1.5 text-gray-700">
+                            <User className="w-3.5 h-3.5 text-gray-400" />
+                            <span>{record.club_leader_name || '-'}</span>
+                          </div>
+                          {record.club_leader_contact && (
+                            <a
+                              href={`tel:${record.club_leader_contact}`}
+                              className="flex items-center gap-1.5 text-primary-600 hover:text-primary-700 transition-colors"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>{record.club_leader_contact}</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {record.reminder_sent && record.reminder_at && (
+                      <p className="mt-2 text-xs text-emerald-600">
+                        提醒时间：{record.reminder_at}
                       </p>
-                      <Link to="/return">
-                        <Button size="sm" variant="outline">
-                          去归还
-                          <ArrowRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div className="text-sm">
+                        <p className="text-gray-500">
+                          应还日期：{record.expected_return_date?.split('T')[0]}
+                        </p>
+                        {typeof record.deposit === 'number' && record.deposit > 0 && (
+                          <p className="text-gray-500 mt-0.5">
+                            押金：<span className="font-medium text-gray-700">¥{record.deposit}</span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!record.reminder_sent && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleMarkReminder(record.id)}
+                            disabled={remindingIds.includes(record.id)}
+                          >
+                            {remindingIds.includes(record.id) ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Bell className="w-4 h-4 mr-1" />
+                            )}
+                            标记已提醒
+                          </Button>
+                        )}
+                        <Link to="/return">
+                          <Button size="sm" variant="outline">
+                            去归还
+                            <ArrowRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>

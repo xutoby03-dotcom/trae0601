@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, Building2, Calendar, DollarSign, FileText, Check, ArrowLeft } from 'lucide-react';
+import { Search, User, Building2, Calendar, DollarSign, FileText, Check, ArrowLeft, Phone, Crown } from 'lucide-react';
 import { costumeApi } from '../services/costumeService';
 import { borrowApi } from '../services/borrowService';
 import { Button } from '../components/ui/Button';
@@ -27,6 +27,8 @@ export default function BorrowForm() {
     expected_return_date: '',
     deposit: 0,
     notes: '',
+    club_leader_name: '',
+    club_leader_contact: '',
   });
 
   useEffect(() => {
@@ -231,6 +233,30 @@ export default function BorrowForm() {
                 required
               />
             </div>
+            <div className="border-t border-dashed border-gray-200 pt-4 mt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-gray-700">社团负责人（逾期联系）</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="社长姓名"
+                  name="club_leader_name"
+                  value={formData.club_leader_name}
+                  onChange={handleInputChange}
+                  placeholder="请输入社长姓名"
+                  leftIcon={<User className="w-4 h-4" />}
+                />
+                <Input
+                  label="联系电话"
+                  name="club_leader_contact"
+                  value={formData.club_leader_contact}
+                  onChange={handleInputChange}
+                  placeholder="请输入联系电话"
+                  leftIcon={<Phone className="w-4 h-4" />}
+                />
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">备注</label>
               <textarea
@@ -293,6 +319,25 @@ export default function BorrowForm() {
                   <span className="font-medium text-gray-800">{formData.expected_return_date}</span>
                 </div>
               </div>
+
+              {(formData.club_leader_name || formData.club_leader_contact) && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-xs font-medium text-amber-600">社团负责人</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">社长姓名：</span>
+                      <span className="font-medium text-gray-800">{formData.club_leader_name || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">联系电话：</span>
+                      <span className="font-medium text-gray-800">{formData.club_leader_contact || '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {formData.notes && (
                 <div className="mt-4 pt-4 border-t border-gray-200">

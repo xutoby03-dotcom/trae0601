@@ -38,6 +38,10 @@ export interface BorrowRecord {
   deposit: number;
   status: BorrowStatus;
   notes?: string;
+  club_leader_name?: string;
+  club_leader_contact?: string;
+  reminder_sent?: boolean;
+  reminder_at?: string;
   created_at?: string;
   costume?: Costume;
 }
@@ -104,9 +108,16 @@ export interface OverdueNotification {
   id: number;
   costume_id: string;
   costume_name: string;
+  costume_size: string;
+  costume_photo?: string;
   student_name: string;
   club_name: string;
   activity_name: string;
   expected_return_date: string;
   overdue_days: number;
+  club_leader_name?: string;
+  club_leader_contact?: string;
+  reminder_sent?: boolean;
+  reminder_at?: string;
+  deposit?: number;
 }

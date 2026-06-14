@@ -6,6 +6,7 @@ import {
   returnCostume,
   getOverdueRecords,
   getActiveBorrowByCostume,
+  markReminderSent,
 } from '../services/borrowService';
 
 const router = Router();
@@ -70,6 +71,15 @@ router.post('/', (req, res) => {
 router.put('/:id/return', (req, res) => {
   try {
     const record = returnCostume(parseInt(req.params.id), req.body);
+    res.json(record);
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.put('/:id/remind', (req, res) => {
+  try {
+    const record = markReminderSent(parseInt(req.params.id));
     res.json(record);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });

@@ -26,6 +26,8 @@ export interface CreateBorrowData {
   expected_return_date: string;
   deposit: number;
   notes?: string;
+  club_leader_name?: string;
+  club_leader_contact?: string;
 }
 
 export interface ReturnData {
@@ -63,4 +65,7 @@ export const borrowApi = {
 
   returnCostume: (id: number, data: ReturnData) =>
     api.put<BorrowDetail>(`/borrows/${id}/return`, data),
+
+  markReminder: (id: number) =>
+    api.put<BorrowDetail>(`/borrows/${id}/remind`, {}),
 };

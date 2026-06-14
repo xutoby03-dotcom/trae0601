@@ -11,6 +11,28 @@ export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+function migrateDatabase() {
+  try {
+    const columns = db.pragma("table_info(borrow_records)") as { name: string }[];
+    const colNames = columns.map(c => c.name);
+
+    if (!colNames.includes("club_leader_name")) {
+      db.exec("ALTER TABLE borrow_records ADD COLUMN club_leader_name TEXT");
+    }
+    if (!colNames.includes("club_leader_contact")) {
+      db.exec("ALTER TABLE borrow_records ADD COLUMN club_leader_contact TEXT");
+    }
+    if (!colNames.includes("reminder_sent")) {
+      db.exec("ALTER TABLE borrow_records ADD COLUMN reminder_sent INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!colNames.includes("reminder_at")) {
+      db.exec("ALTER TABLE borrow_records ADD COLUMN reminder_at TEXT");
+    }
+  } catch (e) {
+    console.log("Migration skipped:", (e as Error).message);
+  }
+}
+
 export function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS costumes (
@@ -65,6 +87,10 @@ export function initDatabase() {
       deposit REAL NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'borrowed',
       notes TEXT,
+      club_leader_name TEXT,
+      club_leader_contact TEXT,
+      reminder_sent INTEGER NOT NULL DEFAULT 0,
+      reminder_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (costume_id) REFERENCES costumes(id)
     );
@@ -93,6 +119,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_accessory_items_costume ON accessory_items(costume_id);
   `);
 
+  migrateDatabase();
   seedInitialData();
 }
 
@@ -185,6 +212,9 @@ function seedInitialData() {
       expected_return_date: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       deposit: 200,
       status: 'overdue',
+      club_leader_name: '王美琪',
+      club_leader_contact: '13800138001',
+      reminder_sent: 0,
     },
     {
       costume_id: 'COST-008',
@@ -195,12 +225,15 @@ function seedInitialData() {
       expected_return_date: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       deposit: 300,
       status: 'borrowed',
+      club_leader_name: '陈浩然',
+      club_leader_contact: '13900139002',
+      reminder_sent: 0,
     },
   ];
 
   const insertBorrow = db.prepare(`
-    INSERT INTO borrow_records (costume_id, student_name, club_name, activity_name, borrow_date, expected_return_date, deposit, status)
-    VALUES (@costume_id, @student_name, @club_name, @activity_name, @borrow_date, @expected_return_date, @deposit, @status)
+    INSERT INTO borrow_records (costume_id, student_name, club_name, activity_name, borrow_date, expected_return_date, deposit, status, club_leader_name, club_leader_contact, reminder_sent)
+    VALUES (@costume_id, @student_name, @club_name, @activity_name, @borrow_date, @expected_return_date, @deposit, @status, @club_leader_name, @club_leader_contact, @reminder_sent)
   `);
 
   for (const record of borrowRecords) {

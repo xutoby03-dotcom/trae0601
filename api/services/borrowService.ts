@@ -109,8 +109,8 @@ export function createBorrowRecord(data: Omit<BorrowRecord, 'id' | 'status' | 'c
 
   const tx = db.transaction(() => {
     const result = db.prepare(`
-      INSERT INTO borrow_records (costume_id, student_name, club_name, activity_name, borrow_date, expected_return_date, deposit, notes)
-      VALUES (@costume_id, @student_name, @club_name, @activity_name, @borrow_date, @expected_return_date, @deposit, @notes)
+      INSERT INTO borrow_records (costume_id, student_name, club_name, activity_name, borrow_date, expected_return_date, deposit, notes, club_leader_name, club_leader_contact)
+      VALUES (@costume_id, @student_name, @club_name, @activity_name, @borrow_date, @expected_return_date, @deposit, @notes, @club_leader_name, @club_leader_contact)
     `).run({
       costume_id: data.costume_id,
       student_name: data.student_name,
@@ -120,6 +120,8 @@ export function createBorrowRecord(data: Omit<BorrowRecord, 'id' | 'status' | 'c
       expected_return_date: data.expected_return_date,
       deposit: data.deposit || 0,
       notes: data.notes || null,
+      club_leader_name: data.club_leader_name || null,
+      club_leader_contact: data.club_leader_contact || null,
     });
 
     db.prepare("UPDATE costumes SET status = 'borrowed', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(data.costume_id);
@@ -225,12 +227,32 @@ export function getOverdueRecords() {
     LEFT JOIN costumes c ON br.costume_id = c.id
     WHERE br.status = 'overdue'
     ORDER BY br.expected_return_date ASC
-  `).all() as (BorrowRecord & { costume_name?: string; costume_size?: string; costume_photo?: string })[];
+  `).all() as (BorrowRecord & { costume_name?: string; costume_size?: string; costume_photo?: string; reminder_sent?: number })[];
 
   return records.map((r) => {
     const expected = new Date(r.expected_return_date);
     const todayDate = new Date();
     const overdueDays = Math.floor((todayDate.getTime() - expected.getTime()) / (1000 * 60 * 60 * 24));
-    return { ...r, overdue_days: overdueDays };
+    return { 
+      ...r, 
+      overdue_days: overdueDays,
+      reminder_sent: !!r.reminder_sent,
+    };
   });
+}
+
+export function markReminderSent(borrowId: number) {
+  const record = db.prepare('SELECT * FROM borrow_records WHERE id = ?').get(borrowId) as BorrowRecord | undefined;
+  if (!record) {
+    throw new Error('借用记录不存在');
+  }
+
+  const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+  db.prepare(`
+    UPDATE borrow_records
+    SET reminder_sent = 1, reminder_at = ?
+    WHERE id = ?
+  `).run(now, borrowId);
+
+  return getBorrowRecordById(borrowId);
 }
