@@ -312,7 +312,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
 interface RecordsTabProps {
   samples: Sample[]
   checkouts: CheckoutRecord[]
-  confirmCheckout: (id: string, teacherName: string) => void
+  confirmCheckout: (id: string, teacherName: string) => boolean
   rejectCheckout: (id: string) => void
   onSwitchToRegister: () => void
 }
@@ -320,6 +320,7 @@ interface RecordsTabProps {
 function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwitchToRegister }: RecordsTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [confirmTeacherName, setConfirmTeacherName] = useState<Record<string, string>>({})
+  const [stockErrors, setStockErrors] = useState<Record<string, boolean>>({})
 
   const sampleMap = useMemo(() => {
     const m = new Map<string, Sample>()
@@ -339,7 +340,15 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
   const handleConfirm = (id: string) => {
     const name = confirmTeacherName[id]?.trim()
     if (!name) return
-    confirmCheckout(id, name)
+    const ok = confirmCheckout(id, name)
+    if (!ok) {
+      setStockErrors((prev) => ({ ...prev, [id]: true }))
+      setTimeout(() => setStockErrors((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      }), 4000)
+    }
     setConfirmTeacherName((prev) => {
       const next = { ...prev }
       delete next[id]
@@ -373,6 +382,8 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
           const badge = STATUS_BADGES[c.status]
           const isPendingHighHazard =
             c.status === 'pending' && (sample?.hazardLevel ?? 0) >= 4
+          const isStockInsufficient =
+            isPendingHighHazard && sample && sample.remainingQuantity < c.quantity
 
           return (
             <div
@@ -407,7 +418,22 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
                     {c.status === 'rejected' && (
                       <p className="text-red-600 font-medium">教师已驳回出库申请</p>
                     )}
+                    {isPendingHighHazard && sample && (
+                      <p className={cn(
+                        'text-xs font-medium',
+                        isStockInsufficient ? 'text-red-600' : 'text-gray-500'
+                      )}>
+                        当前库存: {sample.remainingQuantity} | 需求: {c.quantity}
+                        {isStockInsufficient && ' · 库存不足，无法通过'}
+                      </p>
+                    )}
                   </div>
+                  {stockErrors[c.id] && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      库存不足，无法通过审批。当前库存已被其他审批占用。
+                    </div>
+                  )}
                 </div>
 
                 {isPendingHighHazard && (
@@ -428,10 +454,10 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
                       />
                       <button
                         onClick={() => handleConfirm(c.id)}
-                        disabled={!confirmTeacherName[c.id]?.trim()}
+                        disabled={!confirmTeacherName[c.id]?.trim() || isStockInsufficient}
                         className={cn(
                           'flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors',
-                          confirmTeacherName[c.id]?.trim()
+                          confirmTeacherName[c.id]?.trim() && !isStockInsufficient
                             ? 'bg-green-600 text-white hover:bg-green-700'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         )}

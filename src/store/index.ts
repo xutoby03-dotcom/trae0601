@@ -101,7 +101,7 @@ interface StoreState {
   deleteSample: (id: string) => void
 
   addCheckout: (checkout: Omit<CheckoutRecord, 'id'>) => CheckoutRecord | null
-  confirmCheckout: (id: string, teacherName: string) => void
+  confirmCheckout: (id: string, teacherName: string) => boolean
   rejectCheckout: (id: string) => void
 
   addReturn: (ret: Omit<ReturnRecord, 'id'>) => void
@@ -196,7 +196,12 @@ export const useStore = create<StoreState>((set, get) => ({
 
   confirmCheckout: (id, teacherName) => {
     const existing = get().checkouts.find((c) => c.id === id)
-    if (!existing || existing.status !== 'pending') return
+    if (!existing || existing.status !== 'pending') return false
+
+    const sample = get().samples.find((s) => s.id === existing.sampleId)
+    if (!sample) return false
+
+    if (sample.remainingQuantity < existing.quantity) return false
 
     const checkouts = get().checkouts.map((c) =>
       c.id === id ? { ...c, teacherConfirmed: true, teacherName, status: 'confirmed' as const } : c
@@ -205,7 +210,7 @@ export const useStore = create<StoreState>((set, get) => ({
     if (checkout) {
       const samples = get().samples.map((s) =>
         s.id === checkout.sampleId
-          ? { ...s, remainingQuantity: Math.max(0, s.remainingQuantity - checkout.quantity), updatedAt: new Date().toISOString() }
+          ? { ...s, remainingQuantity: s.remainingQuantity - checkout.quantity, updatedAt: new Date().toISOString() }
           : s
       )
       const updatedSamples = samples.map((s) => ({ ...s, status: computeSampleStatus(s) }))
@@ -213,6 +218,7 @@ export const useStore = create<StoreState>((set, get) => ({
       saveToStorage('checkouts', checkouts)
       set({ samples: updatedSamples, checkouts })
     }
+    return true
   },
 
   rejectCheckout: (id) => {
