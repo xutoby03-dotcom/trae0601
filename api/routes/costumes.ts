@@ -82,8 +82,8 @@ router.get('/availability', (req: Request, res: Response) => {
     const totalSql = `
       SELECT size, COUNT(*) as count 
       FROM costumes 
-      WHERE status IN ('在库', '已预约', '借出中') 
-        AND cleaning_status != '待清洗'
+      WHERE status = '在库' 
+        AND cleaning_status = '干净'
       GROUP BY size
     `;
     const totalRows = db.prepare(totalSql).all() as { size: string; count: number }[];

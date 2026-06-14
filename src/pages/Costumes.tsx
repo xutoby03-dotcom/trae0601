@@ -171,7 +171,7 @@ export default function Costumes() {
                           <Eye className="w-4 h-4 text-gray-500" />
                         </button>
                         <button
-                          onClick={() => navigate(`/costumes/${costume.id}`)}
+                          onClick={() => navigate(`/costumes/${costume.id}/edit`)}
                           className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
                           title="编辑"
                         >
@@ -281,7 +281,7 @@ export default function Costumes() {
                 </button>
                 <button
                   onClick={() => {
-                    navigate(`/costumes/${selectedCostume.id}`);
+                    navigate(`/costumes/${selectedCostume.id}/edit`);
                     setSelectedCostume(null);
                   }}
                   className="btn-primary"
