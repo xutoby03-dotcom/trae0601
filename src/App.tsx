@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Menu, Badge, Button, Modal } from 'antd';
+import { Layout, Menu, Badge, Button, Modal, Spin, App as AntdApp } from 'antd';
 import {
   HomeOutlined,
   AppstoreOutlined,
@@ -21,20 +21,38 @@ const { Header, Sider, Content } = Layout;
 type PageKey = 'dashboard' | 'ingredients' | 'openRecords' | 'usageHistory' | 'statistics';
 
 function App() {
+  const { message } = AntdApp.useApp();
   const [activeKey, setActiveKey] = useState<PageKey>('dashboard');
   const [alertModalOpen, setAlertModalOpen] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const alerts = useStore((s) => s.alerts);
   const acknowledgeAllAlerts = useStore((s) => s.acknowledgeAllAlerts);
-  const refreshAlerts = useStore((s) => s.refreshAlerts);
+  const fetchAlerts = useStore((s) => s.fetchAlerts);
+  const fetchAll = useStore((s) => s.fetchAll);
 
   const unacknowledgedAlerts = alerts.filter((a) => !a.acknowledged);
 
   useEffect(() => {
+    const load = async () => {
+      try {
+        setInitialLoading(true);
+        await fetchAll();
+      } catch (e) {
+        console.error('Failed to load initial data:', e);
+        message.error('加载数据失败，请检查后端服务是否启动');
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    load();
+  }, [fetchAll, message]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      refreshAlerts();
+      fetchAlerts();
     }, 60000);
     return () => clearInterval(timer);
-  }, [refreshAlerts]);
+  }, [fetchAlerts]);
 
   useEffect(() => {
     if (unacknowledgedAlerts.length > 0) {
@@ -105,11 +123,19 @@ function App() {
         </Header>
         <Content>
           <div className="page-container">
-            {activeKey === 'dashboard' && <Dashboard onNavigate={setActiveKey} />}
-            {activeKey === 'ingredients' && <Ingredients />}
-            {activeKey === 'openRecords' && <OpenRecords />}
-            {activeKey === 'usageHistory' && <UsageHistory />}
-            {activeKey === 'statistics' && <Statistics />}
+            {initialLoading ? (
+              <div style={{ textAlign: 'center', padding: '120px 0' }}>
+                <Spin size="large" tip="正在从后端加载数据..." />
+              </div>
+            ) : (
+              <>
+                {activeKey === 'dashboard' && <Dashboard onNavigate={setActiveKey} />}
+                {activeKey === 'ingredients' && <Ingredients />}
+                {activeKey === 'openRecords' && <OpenRecords />}
+                {activeKey === 'usageHistory' && <UsageHistory />}
+                {activeKey === 'statistics' && <Statistics />}
+              </>
+            )}
           </div>
         </Content>
       </Layout>

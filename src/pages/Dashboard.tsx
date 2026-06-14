@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Row, Col, Card, Statistic, List, Tag, Button, Progress, App } from 'antd';
+import { useEffect, useState } from 'react';
+import { Row, Col, Card, Statistic, List, Tag, Button, Progress, App, Spin, Empty } from 'antd';
 import {
   ExperimentOutlined,
   WarningOutlined,
@@ -9,8 +9,10 @@ import {
   AlertOutlined,
 } from '@ant-design/icons';
 import { useStore } from '../store/useStore';
-import { daysUntilExpiry, formatDate } from '../utils/dateUtils';
+import { formatDate } from '../utils/dateUtils';
 import dayjs from 'dayjs';
+import type { PurchaseSuggestion } from '../types';
+import type { ExpiringSoonItem } from '../api/stats';
 
 type PageKey = 'dashboard' | 'ingredients' | 'openRecords' | 'usageHistory' | 'statistics';
 
@@ -26,16 +28,38 @@ function Dashboard({ onNavigate }: Props) {
   const alerts = useStore((s) => s.alerts);
   const getExpiringSoon = useStore((s) => s.getExpiringSoon);
   const getPurchaseSuggestions = useStore((s) => s.getPurchaseSuggestions);
-  const refreshAlerts = useStore((s) => s.refreshAlerts);
+  const fetchAlerts = useStore((s) => s.fetchAlerts);
+
+  const [expiringSoon, setExpiringSoon] = useState<ExpiringSoonItem[]>([]);
+  const [suggestions, setSuggestions] = useState<PurchaseSuggestion[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    refreshAlerts();
-  }, [refreshAlerts]);
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [exp, sug] = await Promise.all([
+          getExpiringSoon(7),
+          getPurchaseSuggestions(),
+        ]);
+        setExpiringSoon(exp);
+        setSuggestions(sug);
+      } catch (e: unknown) {
+        const err = e as Error;
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [getExpiringSoon, getPurchaseSuggestions]);
 
   const activeOpenRecords = openRecords.filter((r) => !r.isDiscarded);
   const discardedRecords = openRecords.filter((r) => r.isDiscarded);
-  const expiringSoon = getExpiringSoon(7);
-  const suggestions = getPurchaseSuggestions();
 
   const todayUsages = usageRecords.filter(
     (u) => u.usageDate === dayjs().format('YYYY-MM-DD')
@@ -55,6 +79,10 @@ function Dashboard({ onNavigate }: Props) {
       return <span className="expiry-tag-danger">已超期 {Math.abs(daysLeft)} 天</span>;
     if (daysLeft <= 1) return <span className="expiry-tag-warning">剩余 {daysLeft} 天</span>;
     return <span className="expiry-tag-normal">剩余 {daysLeft} 天</span>;
+  };
+
+  const daysUntilExpiryLocal = (item: ExpiringSoonItem) => {
+    return item.daysLeft;
   };
 
   return (
@@ -140,15 +168,17 @@ function Dashboard({ onNavigate }: Props) {
             }
             style={{ height: '100%' }}
           >
-            {expiringSoon.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: '#8c8c8c' }}>
-                ✅ 所有原料状态正常
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <Spin />
               </div>
+            ) : expiringSoon.length === 0 ? (
+              <Empty description="✅ 所有原料状态正常" style={{ padding: '32px 0' }} />
             ) : (
               <List
                 dataSource={expiringSoon.slice(0, 6)}
                 renderItem={(item) => {
-                  const daysLeft = daysUntilExpiry(item, item.ingredient);
+                  const daysLeft = daysUntilExpiryLocal(item);
                   const percent = Math.max(
                     0,
                     Math.min(100, Math.round((daysLeft / item.ingredient.openedDays) * 100))
@@ -230,57 +260,63 @@ function Dashboard({ onNavigate }: Props) {
             }
             style={{ height: '100%' }}
           >
-            <List
-              dataSource={suggestions.slice(0, 6)}
-              renderItem={(item) => {
-                const urgencyColor =
-                  item.urgency === 'high' ? 'red' : item.urgency === 'medium' ? 'orange' : 'green';
-                const urgencyText =
-                  item.urgency === 'high' ? '紧急' : item.urgency === 'medium' ? '建议' : '充足';
-                return (
-                  <List.Item key={item.ingredientId}>
-                    <List.Item.Meta
-                      title={
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <span>
-                            <strong>{item.ingredientName}</strong>
-                            <Tag style={{ marginLeft: 8 }} color="default">
-                              {item.brand}
-                            </Tag>
-                          </span>
-                          <Tag color={urgencyColor}>{urgencyText}</Tag>
-                        </div>
-                      }
-                      description={
-                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                          <Row gutter={8}>
-                            <Col span={8}>
-                              当前库存：
-                              <span style={{ color: item.currentStock <= 0 ? '#cf1322' : '#262626', fontWeight: 500 }}>
-                                {item.currentStock}
-                              </span>
-                              {item.unit}
-                            </Col>
-                            <Col span={8}>
-                              日均用量：{item.avgDailyUsage}{item.unit}
-                            </Col>
-                            <Col span={8}>
-                              建议采购：<strong style={{ color: '#fa8c16' }}>{item.suggestedQuantity}</strong>{item.unit}
-                            </Col>
-                          </Row>
-                        </div>
-                      }
-                    />
-                  </List.Item>
-                );
-              }}
-            />
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                <Spin />
+              </div>
+            ) : (
+              <List
+                dataSource={suggestions.slice(0, 6)}
+                renderItem={(item) => {
+                  const urgencyColor =
+                    item.urgency === 'high' ? 'red' : item.urgency === 'medium' ? 'orange' : 'green';
+                  const urgencyText =
+                    item.urgency === 'high' ? '紧急' : item.urgency === 'medium' ? '建议' : '充足';
+                  return (
+                    <List.Item key={item.ingredientId}>
+                      <List.Item.Meta
+                        title={
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span>
+                              <strong>{item.ingredientName}</strong>
+                              <Tag style={{ marginLeft: 8 }} color="default">
+                                {item.brand}
+                              </Tag>
+                            </span>
+                            <Tag color={urgencyColor}>{urgencyText}</Tag>
+                          </div>
+                        }
+                        description={
+                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            <Row gutter={8}>
+                              <Col span={8}>
+                                当前库存：
+                                <span style={{ color: item.currentStock <= 0 ? '#cf1322' : '#262626', fontWeight: 500 }}>
+                                  {item.currentStock}
+                                </span>
+                                {item.unit}
+                              </Col>
+                              <Col span={8}>
+                                日均用量：{item.avgDailyUsage}{item.unit}
+                              </Col>
+                              <Col span={8}>
+                                建议采购：<strong style={{ color: '#fa8c16' }}>{item.suggestedQuantity}</strong>{item.unit}
+                              </Col>
+                            </Row>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  );
+                }}
+              />
+            )}
           </Card>
         </Col>
       </Row>
@@ -307,7 +343,10 @@ function Dashboard({ onNavigate }: Props) {
                 activeOpenRecords.map((r) => {
                   const ing = ingredients.find((i) => i.id === r.ingredientId);
                   if (!ing) return null;
-                  const daysLeft = daysUntilExpiry(r, ing);
+                  const daysLeft = expiringSoon.find((e) => e.id === r.id)?.daysLeft ??
+                    Math.floor(
+                      (dayjs(r.openDate).add(ing.openedDays, 'day').valueOf() - Date.now()) / (24 * 3600 * 1000)
+                    );
                   const percent = Math.max(
                     0,
                     Math.min(100, Math.round((r.remainingWeight / ing.totalWeight) * 100))

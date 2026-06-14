@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   Row,
@@ -11,9 +11,10 @@ import {
   Space,
   Progress,
   Button,
-  message,
   Tooltip,
   Empty,
+  Spin,
+  App,
 } from 'antd';
 import {
   FireOutlined,
@@ -40,11 +41,13 @@ import {
 } from 'recharts';
 import { useStore } from '../store/useStore';
 import type { Ingredient, PurchaseSuggestion } from '../types';
+import type { DiscardStat, ExpiringSoonItem, DailyUsageItem } from '../api/stats';
 import { formatDate } from '../utils/dateUtils';
 
 const COLORS = ['#fa8c16', '#1677ff', '#52c41a', '#722ed1', '#13c2c2', '#eb2f96', '#faad14', '#2f54eb'];
 
 function Statistics() {
+  const { message: msg } = App.useApp();
   const ingredients = useStore((s) => s.ingredients);
   const openRecords = useStore((s) => s.openRecords);
   const usageRecords = useStore((s) => s.usageRecords);
@@ -58,10 +61,35 @@ function Statistics() {
   const [chartRange, setChartRange] = useState<7 | 14 | 30>(14);
   const [activeTab, setActiveTab] = useState('loss');
 
-  const discardStats = getDiscardStats();
-  const expiringSoon = getExpiringSoon(7);
-  const dailyUsages = getDailyUsage(chartRange);
-  const suggestions = getPurchaseSuggestions();
+  const [discardStats, setDiscardStats] = useState<DiscardStat[]>([]);
+  const [expiringSoon, setExpiringSoon] = useState<ExpiringSoonItem[]>([]);
+  const [dailyUsages, setDailyUsages] = useState<DailyUsageItem[]>([]);
+  const [suggestions, setSuggestions] = useState<PurchaseSuggestion[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAll = async () => {
+      try {
+        setStatsLoading(true);
+        const [ds, es, du, ps] = await Promise.all([
+          getDiscardStats(),
+          getExpiringSoon(7),
+          getDailyUsage(chartRange),
+          getPurchaseSuggestions(),
+        ]);
+        setDiscardStats(ds);
+        setExpiringSoon(es);
+        setDailyUsages(du as unknown as DailyUsageItem[]);
+        setSuggestions(ps);
+      } catch (e: unknown) {
+        const err = e as Error;
+        console.error('Failed to load statistics:', err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    loadAll();
+  }, [getDiscardStats, getExpiringSoon, getDailyUsage, getPurchaseSuggestions, chartRange]);
 
   // Discarded total
   const discardedRecords = openRecords.filter((r) => r.isDiscarded);
@@ -85,8 +113,8 @@ function Statistics() {
 
   // Daily usage chart data
   const usageChartData = useMemo(() => {
+    if (dailyUsages.length === 0) return [];
     const dateMap = new Map<string, Record<string, number | string>>();
-    // Get unique ingredients from daily usages (top 5)
     const ingredientTotals = new Map<string, number>();
     dailyUsages.forEach((u) => {
       const current = ingredientTotals.get(u.ingredientId) || 0;
@@ -224,7 +252,7 @@ function Statistics() {
     a.download = `采购建议_${formatDate(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('采购建议已导出');
+    msg.success('采购建议已导出');
   };
 
   const expiryColumns = [
@@ -232,7 +260,7 @@ function Statistics() {
       title: '原料',
       key: 'name',
       width: 140,
-      render: (_: unknown, r: (typeof expiringSoon)[number]) => (
+      render: (_: unknown, r: ExpiringSoonItem) => (
         <Space direction="vertical" size={0}>
           <strong>{r.ingredient.name}</strong>
           <span style={{ fontSize: 12, color: '#8c8c8c' }}>{r.ingredient.brand}</span>
@@ -249,7 +277,7 @@ function Statistics() {
       title: '状态',
       key: 'status',
       width: 120,
-      render: (_: unknown, r: (typeof expiringSoon)[number]) => {
+      render: (_: unknown, r: ExpiringSoonItem) => {
         if (r.daysLeft < 0)
           return <span className="expiry-tag-danger">超期 {Math.abs(r.daysLeft)} 天</span>;
         if (r.daysLeft <= 1) return <span className="expiry-tag-warning">剩余 {r.daysLeft} 天</span>;
@@ -267,13 +295,13 @@ function Statistics() {
       title: '开封后可用',
       key: 'openedDays',
       width: 110,
-      render: (_: unknown, r: (typeof expiringSoon)[number]) => `${r.ingredient.openedDays} 天`,
+      render: (_: unknown, r: ExpiringSoonItem) => `${r.ingredient.openedDays} 天`,
     },
     {
       title: '剩余量',
       key: 'remaining',
       width: 100,
-      render: (_: unknown, r: (typeof expiringSoon)[number]) => (
+      render: (_: unknown, r: ExpiringSoonItem) => (
         <span>
           {r.remainingWeight}
           {r.ingredient.unit}
@@ -293,6 +321,15 @@ function Statistics() {
       width: 80,
     },
   ];
+
+  const withLoading = (content: React.ReactNode, extraPadding = false) =>
+    statsLoading ? (
+      <div style={{ textAlign: 'center', padding: extraPadding ? '80px 0' : '40px 0' }}>
+        <Spin />
+      </div>
+    ) : (
+      content
+    );
 
   return (
     <div>
@@ -380,50 +417,52 @@ function Statistics() {
                 </span>
               }
             >
-              {discardStats.length === 0 ? (
-                <Empty description="暂无报废数据" style={{ padding: '40px 0' }} />
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <PieChart>
-                      <Pie
-                        data={discardStats}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ reason, percent }) => `${reason} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="count"
-                        nameKey="reason"
-                      >
-                        {discardStats.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <Row gutter={[8, 8]} style={{ marginTop: 16 }}>
-                    {discardStats.map((s, i) => (
-                      <Col span={12} key={s.reason}>
-                        <div
-                          style={{
-                            padding: 8,
-                            borderRadius: 6,
-                            background: '#fafafa',
-                            borderLeft: `4px solid ${COLORS[i % COLORS.length]}`,
-                          }}
+              {withLoading(
+                discardStats.length === 0 ? (
+                  <Empty description="暂无报废数据" style={{ padding: '40px 0' }} />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie
+                          data={discardStats}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ reason, percent }) => `${reason} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="count"
+                          nameKey="reason"
                         >
-                          <div style={{ fontSize: 12, color: '#8c8c8c' }}>{s.reason}</div>
-                          <div style={{ fontWeight: 600 }}>
-                            {s.count} 次 · {s.weight} 单位
+                          {discardStats.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <Row gutter={[8, 8]} style={{ marginTop: 16 }}>
+                      {discardStats.map((s, i) => (
+                        <Col span={12} key={s.reason}>
+                          <div
+                            style={{
+                              padding: 8,
+                              borderRadius: 6,
+                              background: '#fafafa',
+                              borderLeft: `4px solid ${COLORS[i % COLORS.length]}`,
+                            }}
+                          >
+                            <div style={{ fontSize: 12, color: '#8c8c8c' }}>{s.reason}</div>
+                            <div style={{ fontWeight: 600 }}>
+                              {s.count} 次 · {s.weight} 单位
+                            </div>
                           </div>
-                        </div>
-                      </Col>
-                    ))}
-                  </Row>
-                </>
+                        </Col>
+                      ))}
+                    </Row>
+                  </>
+                )
               )}
             </Card>
           </Col>
@@ -439,56 +478,58 @@ function Statistics() {
                 </span>
               }
             >
-              {ingredientLossData.every((d) => d.lossRate === 0) ? (
-                <Empty description="暂无损耗数据" style={{ padding: '40px 0' }} />
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={320}>
-                    <BarChart data={lossChartData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" unit="%" />
-                      <YAxis dataKey="name" type="category" width={80} />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="损耗率(%)" fill="#fa8c16" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div style={{ marginTop: 16 }}>
-                    {ingredientLossData.map((d) => (
-                      <div
-                        key={d.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 0',
-                          borderBottom: '1px solid #f0f0f0',
-                        }}
-                      >
-                        <span>{d.name}</span>
-                        <Space>
-                          <Progress
-                            percent={Math.min(d.lossRate, 100)}
-                            size="small"
-                            showInfo={false}
-                            style={{ width: 100 }}
-                            strokeColor={d.lossRate > 20 ? '#cf1322' : d.lossRate > 10 ? '#faad14' : '#52c41a'}
-                          />
-                          <span
-                            style={{
-                              color: d.lossRate > 20 ? '#cf1322' : d.lossRate > 10 ? '#faad14' : '#389e0d',
-                              fontWeight: 600,
-                              width: 70,
-                              textAlign: 'right',
-                            }}
-                          >
-                            {d.lossRate}% ({d.totalDiscarded})
-                          </span>
-                        </Space>
-                      </div>
-                    ))}
-                  </div>
-                </>
+              {withLoading(
+                ingredientLossData.every((d) => d.lossRate === 0) ? (
+                  <Empty description="暂无损耗数据" style={{ padding: '40px 0' }} />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={lossChartData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" unit="%" />
+                        <YAxis dataKey="name" type="category" width={80} />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Bar dataKey="损耗率(%)" fill="#fa8c16" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div style={{ marginTop: 16 }}>
+                      {ingredientLossData.map((d) => (
+                        <div
+                          key={d.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '8px 0',
+                            borderBottom: '1px solid #f0f0f0',
+                          }}
+                        >
+                          <span>{d.name}</span>
+                          <Space>
+                            <Progress
+                              percent={Math.min(d.lossRate, 100)}
+                              size="small"
+                              showInfo={false}
+                              style={{ width: 100 }}
+                              strokeColor={d.lossRate > 20 ? '#cf1322' : d.lossRate > 10 ? '#faad14' : '#52c41a'}
+                            />
+                            <span
+                              style={{
+                                color: d.lossRate > 20 ? '#cf1322' : d.lossRate > 10 ? '#faad14' : '#389e0d',
+                                fontWeight: 600,
+                                width: 70,
+                                textAlign: 'right',
+                              }}
+                            >
+                              {d.lossRate}% ({d.totalDiscarded})
+                            </span>
+                          </Space>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
               )}
             </Card>
           </Col>
@@ -516,31 +557,34 @@ function Statistics() {
                 </Space>
               }
             >
-              {usageChartData.length === 0 ? (
-                <Empty description="暂无用量数据" style={{ padding: '80px 0' }} />
-              ) : (
-                <ResponsiveContainer width="100%" height={380}>
-                  <LineChart data={usageChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Legend />
-                    {Array.from(
-                      new Set(usageChartData.flatMap((d) => Object.keys(d).filter((k) => k !== 'date')))
-                    ).map((name, idx) => (
-                      <Line
-                        key={name}
-                        type="monotone"
-                        dataKey={name}
-                        stroke={COLORS[idx % COLORS.length]}
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
+              {withLoading(
+                usageChartData.length === 0 ? (
+                  <Empty description="暂无用量数据" style={{ padding: '80px 0' }} />
+                ) : (
+                  <ResponsiveContainer width="100%" height={380}>
+                    <LineChart data={usageChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Legend />
+                      {Array.from(
+                        new Set(usageChartData.flatMap((d) => Object.keys(d).filter((k) => k !== 'date')))
+                      ).map((name, idx) => (
+                        <Line
+                          key={name}
+                          type="monotone"
+                          dataKey={name}
+                          stroke={COLORS[idx % COLORS.length]}
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                ),
+                true
               )}
             </Card>
           </Col>
@@ -564,19 +608,22 @@ function Statistics() {
               <Tag color="green">7天内 {expiringSoon.filter((e) => e.daysLeft > 3).length}</Tag>
             </Space>
           </div>
-          {expiringSoon.length === 0 ? (
-            <Empty description="✅ 未来 7 天内没有临期原料" style={{ padding: '60px 0' }} />
-          ) : (
-            <Table
-              columns={expiryColumns}
-              dataSource={expiringSoon}
-              rowKey="id"
-              pagination={{
-                pageSize: 15,
-                showSizeChanger: true,
-                showTotal: (total) => `共 ${total} 条临期记录`,
-              }}
-            />
+          {withLoading(
+            expiringSoon.length === 0 ? (
+              <Empty description="✅ 未来 7 天内没有临期原料" style={{ padding: '60px 0' }} />
+            ) : (
+              <Table
+                columns={expiryColumns}
+                dataSource={expiringSoon}
+                rowKey="id"
+                pagination={{
+                  pageSize: 15,
+                  showSizeChanger: true,
+                  showTotal: (total) => `共 ${total} 条临期记录`,
+                }}
+              />
+            ),
+            true
           )}
         </div>
       )}
@@ -608,16 +655,19 @@ function Statistics() {
               导出采购清单
             </Button>
           </div>
-          <Table
-            columns={purchaseColumns}
-            dataSource={suggestions}
-            rowKey="ingredientId"
-            pagination={{
-              pageSize: 15,
-              showSizeChanger: true,
-              showTotal: (total) => `共 ${total} 项原料`,
-            }}
-          />
+          {withLoading(
+            <Table
+              columns={purchaseColumns}
+              dataSource={suggestions}
+              rowKey="ingredientId"
+              pagination={{
+                pageSize: 15,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 项原料`,
+              }}
+            />,
+            true
+          )}
         </div>
       )}
     </div>
