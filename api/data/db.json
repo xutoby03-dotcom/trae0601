@@ -1,0 +1,236 @@
+{
+  "registers": [
+    {
+      "id": "reg001",
+      "code": "A01",
+      "shift": "morning",
+      "defaultAmount": 500,
+      "managerName": "张敏",
+      "managerPhoto": "",
+      "threshold": 30,
+      "createdAt": "2026-06-14T11:06:44.339Z",
+      "updatedAt": "2026-06-14T11:06:44.339Z"
+    },
+    {
+      "id": "reg002",
+      "code": "A02",
+      "shift": "evening",
+      "defaultAmount": 500,
+      "managerName": "李强",
+      "managerPhoto": "",
+      "threshold": 30,
+      "createdAt": "2026-06-14T11:06:44.339Z",
+      "updatedAt": "2026-06-14T11:06:44.339Z"
+    },
+    {
+      "id": "reg003",
+      "code": "B01",
+      "shift": "all",
+      "defaultAmount": 800,
+      "managerName": "王芳",
+      "managerPhoto": "",
+      "threshold": 50,
+      "createdAt": "2026-06-14T11:06:44.339Z",
+      "updatedAt": "2026-06-14T11:06:44.339Z"
+    }
+  ],
+  "handovers": [
+    {
+      "id": "mqdoiwvpstxmuz3bp",
+      "registerId": "reg001",
+      "registerCode": "A01",
+      "shift": "morning",
+      "shiftDate": "2026-06-14",
+      "defaultAmount": 500,
+      "denominations": [
+        {
+          "denomination": 100,
+          "count": 2
+        },
+        {
+          "denomination": 50,
+          "count": 4
+        },
+        {
+          "denomination": 20,
+          "count": 5
+        },
+        {
+          "denomination": 10,
+          "count": 10
+        },
+        {
+          "denomination": 5,
+          "count": 20
+        },
+        {
+          "denomination": 1,
+          "count": 50
+        },
+        {
+          "denomination": 0.5,
+          "count": 40
+        },
+        {
+          "denomination": 0.1,
+          "count": 100
+        }
+      ],
+      "actualAmount": 500,
+      "difference": 0,
+      "scanCodeStatus": "normal",
+      "pendingItems": "无",
+      "handoverPerson": "张敏",
+      "handoverSignature": "",
+      "successorPerson": "刘晨",
+      "successorSignature": "",
+      "handoverTime": "2026-06-14T11:06:44.341Z",
+      "scheduledTime": "2026-06-14T08:30:00",
+      "isOnTime": true,
+      "status": "normal",
+      "createdAt": "2026-06-14T11:06:44.339Z"
+    },
+    {
+      "id": "mqdoiwvpj3tma6xff",
+      "registerId": "reg002",
+      "registerCode": "A02",
+      "shift": "evening",
+      "shiftDate": "2026-06-13",
+      "defaultAmount": 500,
+      "denominations": [
+        {
+          "denomination": 100,
+          "count": 2
+        },
+        {
+          "denomination": 50,
+          "count": 3
+        },
+        {
+          "denomination": 20,
+          "count": 5
+        },
+        {
+          "denomination": 10,
+          "count": 8
+        },
+        {
+          "denomination": 5,
+          "count": 18
+        },
+        {
+          "denomination": 1,
+          "count": 45
+        },
+        {
+          "denomination": 0.5,
+          "count": 30
+        },
+        {
+          "denomination": 0.1,
+          "count": 80
+        }
+      ],
+      "actualAmount": 480,
+      "difference": -20,
+      "differenceReason": "找零时少了两张10元，可能是顾客多拿了",
+      "scanCodeStatus": "normal",
+      "pendingItems": "记得补充10元零钱",
+      "handoverPerson": "李强",
+      "handoverSignature": "",
+      "successorPerson": "赵雪",
+      "successorSignature": "",
+      "handoverTime": "2026-06-13T11:06:44.341Z",
+      "scheduledTime": "2026-06-13T18:30:00",
+      "isOnTime": false,
+      "status": "warning",
+      "createdAt": "2026-06-13T11:06:44.341Z"
+    },
+    {
+      "id": "mqdoiwvpziko9qxlm",
+      "registerId": "reg003",
+      "registerCode": "B01",
+      "shift": "morning",
+      "shiftDate": "2026-06-12",
+      "defaultAmount": 800,
+      "denominations": [
+        {
+          "denomination": 100,
+          "count": 3
+        },
+        {
+          "denomination": 50,
+          "count": 6
+        },
+        {
+          "denomination": 20,
+          "count": 10
+        },
+        {
+          "denomination": 10,
+          "count": 15
+        },
+        {
+          "denomination": 5,
+          "count": 30
+        },
+        {
+          "denomination": 1,
+          "count": 80
+        },
+        {
+          "denomination": 0.5,
+          "count": 60
+        },
+        {
+          "denomination": 0.1,
+          "count": 150
+        }
+      ],
+      "actualAmount": 730,
+      "difference": -70,
+      "differenceReason": "昨日晚班有一笔临时借出未登记，金额70元",
+      "scanCodeStatus": "damaged",
+      "scanCodeNote": "收款码边缘有磨损，建议更换",
+      "pendingItems": "1. 需申请更换收款码\n2. 追查70元借出情况",
+      "handoverPerson": "王芳",
+      "handoverSignature": "",
+      "successorPerson": "陈浩",
+      "successorSignature": "",
+      "handoverTime": "2026-06-12T11:06:44.341Z",
+      "scheduledTime": "2026-06-12T08:45:00",
+      "isOnTime": true,
+      "status": "danger",
+      "createdAt": "2026-06-12T11:06:44.341Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "mqdoiwvp235m5dp8r",
+      "type": "replenish",
+      "registerId": "reg001",
+      "amount": 100,
+      "operator": "张敏",
+      "note": "补充1元和5角零钱",
+      "createdAt": "2026-06-13T11:06:44.341Z"
+    },
+    {
+      "id": "mqdoiwvpl6e234889",
+      "type": "loan",
+      "registerId": "reg003",
+      "amount": 70,
+      "operator": "王芳",
+      "note": "临时借出去买办公用品，待报销",
+      "createdAt": "2026-06-12T11:06:44.341Z"
+    },
+    {
+      "id": "mqdoiwvpr103j94ds",
+      "type": "deposit",
+      "registerId": "reg002",
+      "amount": 2000,
+      "operator": "李强",
+      "note": "昨日营业款存入银行",
+      "createdAt": "2026-06-14T11:06:44.341Z"
+    }
+  ]
+}

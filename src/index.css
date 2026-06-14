@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: #FAF9F6;
+  color: #1F2937;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Noto Serif SC', serif;
+}
+
+@layer utilities {
+  .font-serif-sc {
+    font-family: 'Noto Serif SC', serif;
+  }
+}
+
+@keyframes pulse-danger {
+  0%, 100% {
+    background-color: rgba(220, 38, 38, 0.1);
+  }
+  50% {
+    background-color: rgba(220, 38, 38, 0.25);
+  }
+}
+
+.animate-pulse-danger {
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count-up {
+  animation: count-up 0.8s ease-out forwards;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
