@@ -56,6 +56,7 @@ interface AppState {
   cancelReservation: (id: string) => void;
   checkin: (reservationId: string) => void;
   handleNoShow: (reservationId: string) => void;
+  batchMarkNoShow: (reservationIds: string[]) => void;
   releaseExpiredReservations: () => void;
 
   recordChange: (data: Omit<ChangeRecord, 'id' | 'createdAt'>) => void;
@@ -312,6 +313,34 @@ export const useStore = create<AppState>((set, get) => {
       );
       const updatedStudents = get().students.map(s =>
         s.id === reservation.studentId ? { ...s, noShowCount: s.noShowCount + 1 } : s
+      );
+
+      set({
+        reservations: updatedReservations,
+        students: updatedStudents,
+      });
+      setStorageItem(STORAGE_KEYS.RESERVATIONS, updatedReservations);
+      setStorageItem(STORAGE_KEYS.STUDENTS, updatedStudents);
+    },
+
+    batchMarkNoShow: (reservationIds) => {
+      const { reservations, students } = get();
+      const noShowReservations = reservations.filter(r => reservationIds.includes(r.id));
+      if (noShowReservations.length === 0) return;
+
+      const studentIds = new Set(noShowReservations.map(r => r.studentId));
+      const studentNoShowCount: Record<string, number> = {};
+      noShowReservations.forEach(r => {
+        studentNoShowCount[r.studentId] = (studentNoShowCount[r.studentId] || 0) + 1;
+      });
+
+      const updatedReservations = reservations.map(r =>
+        reservationIds.includes(r.id) ? { ...r, status: 'no_show' as const } : r
+      );
+      const updatedStudents = students.map(s =>
+        studentIds.has(s.id)
+          ? { ...s, noShowCount: s.noShowCount + (studentNoShowCount[s.id] || 0) }
+          : s
       );
 
       set({

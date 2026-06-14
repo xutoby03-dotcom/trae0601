@@ -10,6 +10,7 @@ import {
   MoveRight,
   CalendarClock,
   CalendarX,
+  UserX,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { DataTable } from '../components/DataTable';
@@ -35,6 +36,7 @@ export default function Checkin() {
     earlyLeave,
     changeSeat,
     requestLeave,
+    batchMarkNoShow,
     getPendingReservations,
     getCheckedInReservations,
     getSeatsWithStatus,
@@ -52,6 +54,8 @@ export default function Checkin() {
   });
   const [selectedNewSeat, setSelectedNewSeat] = useState<string | null>(null);
   const [reason, setReason] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   const pendingReservations = useMemo(() => getPendingReservations(), [getPendingReservations]);
   const checkedInReservations = useMemo(() => getCheckedInReservations(), [getCheckedInReservations]);
@@ -189,7 +193,48 @@ export default function Checkin() {
     },
   ];
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredPending.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredPending.map((r) => r.id));
+    }
+  };
+
+  const handleBatchNoShow = () => {
+    if (selectedIds.length === 0) return;
+    batchMarkNoShow(selectedIds);
+    setSelectedIds([]);
+    setShowBatchModal(false);
+  };
+
   const pendingColumns = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          checked={selectedIds.length > 0 && selectedIds.length === filteredPending.length}
+          onChange={toggleSelectAll}
+          className="w-4 h-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500 cursor-pointer"
+        />
+      ),
+      cell: (item: Reservation) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(item.id)}
+          onChange={() => toggleSelect(item.id)}
+          className="w-4 h-4 rounded border-slate-300 text-primary-500 focus:ring-primary-500 cursor-pointer"
+        />
+      ),
+      className: 'w-12',
+    },
     ...commonColumns,
     {
       key: 'status',
@@ -352,14 +397,32 @@ export default function Checkin() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-card p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-amber-100 rounded-xl">
-            <CalendarClock className="w-5 h-5 text-amber-600" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-amber-100 rounded-xl">
+              <CalendarClock className="w-5 h-5 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800 font-display">待签到</h2>
+            <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
+              {filteredPending.length}人
+            </span>
+            {selectedIds.length > 0 && (
+              <span className="px-2.5 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full">
+                已选 {selectedIds.length} 人
+              </span>
+            )}
           </div>
-          <h2 className="text-lg font-bold text-slate-800 font-display">待签到</h2>
-          <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
-            {filteredPending.length}人
-          </span>
+          <div className="flex gap-2">
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => setShowBatchModal(true)}
+                className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
+              >
+                <UserX className="w-4 h-4" />
+                批量标记爽约
+              </button>
+            )}
+          </div>
         </div>
         <DataTable
           columns={pendingColumns}
@@ -558,6 +621,48 @@ export default function Checkin() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={showBatchModal}
+        onClose={() => setShowBatchModal(false)}
+        title="批量标记爽约"
+        size="md"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-100">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <UserX className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <p className="font-medium text-red-800">确认批量标记为爽约？</p>
+              <p className="text-sm text-red-600">
+                将为选中的 <span className="font-bold">{selectedIds.length}</span> 名学生累加爽约次数
+              </p>
+            </div>
+          </div>
+
+          <div className="text-sm text-slate-500">
+            <p>⚠️ 此操作不可撤销，学生爽约次数将永久累加。</p>
+          </div>
+
+          <div className="flex justify-end gap-4 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowBatchModal(false)}
+              className="px-6 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors font-medium"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleBatchNoShow}
+              className="px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 bg-red-500 text-white hover:bg-red-600"
+            >
+              <UserX className="w-4 h-4" />
+              确认标记爽约
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
