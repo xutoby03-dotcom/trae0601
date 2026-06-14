@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   QrCode,
   Check,
@@ -32,13 +32,12 @@ export default function Checkin() {
   const {
     classrooms,
     seats,
+    reservations,
     checkin,
     earlyLeave,
     changeSeat,
     requestLeave,
     batchMarkNoShow,
-    getPendingReservations,
-    getCheckedInReservations,
     getSeatsWithStatus,
     selectedClassroomId,
     selectedTimeSlot,
@@ -57,8 +56,16 @@ export default function Checkin() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBatchModal, setShowBatchModal] = useState(false);
 
-  const pendingReservations = useMemo(() => getPendingReservations(), [getPendingReservations]);
-  const checkedInReservations = useMemo(() => getCheckedInReservations(), [getCheckedInReservations]);
+  const todayStr = getTodayDateString();
+
+  const pendingReservations = useMemo(
+    () => reservations.filter((r) => r.reservationDate === todayStr && r.status === 'pending'),
+    [reservations, todayStr]
+  );
+  const checkedInReservations = useMemo(
+    () => reservations.filter((r) => r.reservationDate === todayStr && r.status === 'checked_in'),
+    [reservations, todayStr]
+  );
 
   const filteredPending = useMemo(() => {
     let result = pendingReservations;
@@ -81,6 +88,11 @@ export default function Checkin() {
     }
     return result;
   }, [checkedInReservations, selectedClassroomId, selectedTimeSlot]);
+
+  useEffect(() => {
+    const validIds = new Set(filteredPending.map((r) => r.id));
+    setSelectedIds((prev) => prev.filter((id) => validIds.has(id)));
+  }, [filteredPending]);
 
   const availableSeats = useMemo(() => {
     if (!modalState.reservation || modalState.action !== 'change_seat') return [];
