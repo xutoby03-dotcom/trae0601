@@ -101,8 +101,8 @@ export default function VisitDetail() {
       updateRecord(record.id, recordForm);
     } else {
       addRecord(recordForm);
-      completeVisit(visit.id);
     }
+    completeVisit(visit.id);
     setIsRecordModalOpen(false);
   };
 
