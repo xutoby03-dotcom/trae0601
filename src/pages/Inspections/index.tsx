@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, ChangeEvent } from 'react';
-import { Plus, Search, Filter, MoreVertical, Eye, Bell, CheckCircle, Trash2, MapPin, User, Ruler, Calendar, Flame, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Eye, Bell, CheckCircle, Trash2, MapPin, User, Ruler, Calendar, Flame, Upload, X, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { useInspectionStore } from '@/store/inspectionStore';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -26,6 +26,21 @@ export default function Inspections() {
   const [showCleanupPhotoModal, setShowCleanupPhotoModal] = useState(false);
   const [cleanupPhotoUrl, setCleanupPhotoUrl] = useState('');
   const [cleanupPreviewError, setCleanupPreviewError] = useState(false);
+
+  const residentRepeatCount = useMemo(() => {
+    const map = new Map<string, number>();
+    inspections.forEach((i) => {
+      if (i.suspectedResident) {
+        map.set(i.suspectedResident, (map.get(i.suspectedResident) || 0) + 1);
+      }
+    });
+    return map;
+  }, [inspections]);
+
+  const getSelectedResidentRepeat = () => {
+    if (!selectedInspection?.suspectedResident) return 0;
+    return residentRepeatCount.get(selectedInspection.suspectedResident) || 0;
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cleanupFileInputRef = useRef<HTMLInputElement>(null);
@@ -289,7 +304,14 @@ export default function Inspections() {
                       <div className="flex items-center gap-2 text-gray-600">
                         <User className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-500">疑似住户：</span>
-                        <span>{inspection.suspectedResident}</span>
+                        <span className="flex items-center gap-1">
+                          {inspection.suspectedResident}
+                          {(residentRepeatCount.get(inspection.suspectedResident) || 0) >= 2 && (
+                            <span className="inline-flex items-center justify-center w-4.5 h-4.5 min-w-[18px] px-1 bg-amber-500 text-white text-[10px] font-bold rounded-full" title={`重复堆放 ${residentRepeatCount.get(inspection.suspectedResident)} 次`}>
+                              {residentRepeatCount.get(inspection.suspectedResident)}
+                            </span>
+                          )}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
                         <Calendar className="w-4 h-4 text-gray-400" />
@@ -546,9 +568,32 @@ export default function Inspections() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-500 mb-1">疑似住户</p>
-                <p className="font-medium text-gray-800">{selectedInspection.suspectedResident}</p>
+              <div className={cn(
+                'rounded-lg p-4',
+                getSelectedResidentRepeat() >= 2
+                  ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300'
+                  : 'bg-gray-50'
+              )}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className={cn(
+                    'text-sm font-medium',
+                    getSelectedResidentRepeat() >= 2 ? 'text-amber-700' : 'text-gray-500'
+                  )}>疑似住户</p>
+                  {getSelectedResidentRepeat() >= 2 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-bold rounded-full shadow-sm">
+                      <AlertTriangle className="w-3 h-3" />
+                      重复堆放 {getSelectedResidentRepeat()} 次
+                    </span>
+                  )}
+                </div>
+                <p className={cn(
+                  'font-medium',
+                  getSelectedResidentRepeat() >= 2 ? 'text-amber-900 text-base' : 'text-gray-800'
+                )}>{selectedInspection.suspectedResident}</p>
+                {getSelectedResidentRepeat() >= 2 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    该住户多次出现，请重点关注</p>
+                )}
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-500 mb-1">创建时间</p>

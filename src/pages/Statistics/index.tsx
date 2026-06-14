@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart3,
   Users,
@@ -8,10 +8,18 @@ import {
   AlertTriangle,
   Flame,
   Building2,
+  Calendar,
+  ChevronRight,
+  X,
+  Home,
+  Layers,
+  Activity,
 } from 'lucide-react';
 import { useInspectionStore } from '@/store/inspectionStore';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
+import Modal from '@/components/ui/Modal';
 import {
   calculateBuildingStats,
   calculateResidentStats,
@@ -19,6 +27,7 @@ import {
   calculateRiskPoints,
 } from '@/utils/helpers';
 import { formatDate } from '@/utils/date';
+import { Inspection, ResidentStats } from '@/types';
 import {
   BarChart,
   Bar,
@@ -34,8 +43,12 @@ import {
 
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
+const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop';
+
 export default function Statistics() {
   const { inspections } = useInspectionStore();
+  const [selectedResident, setSelectedResident] = useState<ResidentStats | null>(null);
+  const [showResidentModal, setShowResidentModal] = useState(false);
 
   const buildingStats = useMemo(() => calculateBuildingStats(inspections), [inspections]);
   const residentStats = useMemo(() => calculateResidentStats(inspections), [inspections]);
@@ -61,6 +74,29 @@ export default function Statistics() {
     { name: '7天内', value: cleanupStats.within7Days, color: '#f59e0b' },
     { name: '7天以上', value: cleanupStats.over7Days, color: '#ef4444' },
   ];
+
+  const residentDetailRecords = useMemo(() => {
+    if (!selectedResident) return [];
+    return inspections
+      .filter((i) => i.suspectedResident === selectedResident.resident)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [selectedResident, inspections]);
+
+  const residentSummary = useMemo(() => {
+    if (!selectedResident || residentDetailRecords.length === 0) return null;
+    const records = residentDetailRecords;
+    const buildings = Array.from(new Set(records.map((r) => r.building))).join('、');
+    const floors = Array.from(new Set(records.map((r) => `${r.building}${r.floor}`)));
+    const itemTypes = Array.from(new Set(records.map((r) => r.itemType)));
+    const pendingCount = records.filter((r) => r.status !== 'cleaned').length;
+    const latestRecord = records[0];
+    return { buildings, floors, itemTypes, pendingCount, latestRecord };
+  }, [selectedResident, residentDetailRecords]);
+
+  const handleResidentClick = (resident: ResidentStats) => {
+    setSelectedResident(resident);
+    setShowResidentModal(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -216,31 +252,31 @@ export default function Statistics() {
                 {residentStats.map((resident, index) => (
                   <div
                     key={resident.resident}
-                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    onClick={() => handleResidentClick(resident)}
+                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-amber-50 hover:border-amber-200 border border-transparent cursor-pointer transition-all group"
                   >
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
                         index === 0
-                          ? 'bg-amber-500 text-white'
+                          ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-sm'
                           : index === 1
-                          ? 'bg-gray-400 text-white'
+                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-sm'
                           : index === 2
-                          ? 'bg-amber-700 text-white'
+                          ? 'bg-gradient-to-br from-amber-700 to-amber-900 text-white shadow-sm'
                           : 'bg-gray-200 text-gray-600'
                       }`}
                     >
                       {index + 1}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{resident.resident}</p>
-                      <p className="text-xs text-gray-500">{resident.building}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 group-hover:text-amber-700 transition-colors">{resident.resident}</p>
+                      <p className="text-xs text-gray-500 truncate">{resident.building} · 累计 {resident.count} 次</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-800">{resident.count} 次</p>
-                      <p className="text-xs text-gray-500">
-                        最近：{formatDate(resident.lastOccurrence, 'MM-dd')}
-                      </p>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-gray-500 mb-1">最近堆放</p>
+                      <p className="text-sm font-medium text-gray-700">{formatDate(resident.lastOccurrence, 'MM-dd')}</p>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                   </div>
                 ))}
               </div>
@@ -347,6 +383,150 @@ export default function Statistics() {
           )}
         </CardBody>
       </Card>
+
+      <Modal
+        isOpen={showResidentModal && selectedResident !== null}
+        onClose={() => setShowResidentModal(false)}
+        title={`重复堆放住户详情 - ${selectedResident?.resident || ''}`}
+        size="xl"
+        footer={
+          <div className="flex justify-between w-full">
+            <div className="text-sm text-gray-500">
+              共 <span className="font-semibold text-gray-700">{selectedResident?.count}</span> 条历史记录
+            </div>
+            <Button variant="secondary" onClick={() => setShowResidentModal(false)}>关闭</Button>
+          </div>
+        }
+      >
+        {selectedResident && residentSummary && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="text-xl font-bold text-gray-800">{selectedResident.resident}</h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
+                      <Activity className="w-3 h-3" />
+                      重复堆放 {selectedResident.count} 次
+                    </span>
+                    {residentSummary.pendingCount > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+                        {residentSummary.pendingCount} 条待处理
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-amber-100">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Building2 className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs text-amber-700 font-medium">涉及楼栋</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">{residentSummary.buildings}</p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-amber-100">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Home className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs text-amber-700 font-medium">涉及楼层</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">{residentSummary.floors.length} 处</p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-amber-100">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Layers className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs text-amber-700 font-medium">物品类型</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {residentSummary.itemTypes.slice(0, 3).join('、')}
+                    {residentSummary.itemTypes.length > 3 && ` +${residentSummary.itemTypes.length - 3}`}
+                  </p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 border border-amber-100">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Calendar className="w-4 h-4 text-amber-600" />
+                    <span className="text-xs text-amber-700 font-medium">最近一次</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800">{formatDate(residentSummary.latestRecord.createdAt, 'MM-dd')}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 mt-4">
+                {residentSummary.floors.map((f) => (
+                  <span key={f} className="inline-block px-2 py-1 bg-white/80 text-amber-800 text-xs rounded-md border border-amber-200">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-amber-500" />
+                  历史堆放记录
+                </h4>
+                <span className="text-xs text-gray-500">按时间倒序排列</span>
+              </div>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin pr-1">
+                {residentDetailRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className={`border rounded-xl overflow-hidden bg-white hover:shadow-sm transition-all ${
+                      record.isFireExit ? 'border-red-200' : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      <div className="relative w-full sm:w-28 h-28 flex-shrink-0 bg-gray-100">
+                        <img
+                          src={record.photo || DEFAULT_PHOTO}
+                          alt={record.location}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PHOTO; }}
+                        />
+                        {record.isFireExit && (
+                          <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-red-600 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+                            <Flame className="w-2.5 h-2.5" />
+                            消防
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 p-3 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-800 text-sm">
+                              {record.building} {record.floor} {record.location}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                              <Layers className="w-3 h-3" />
+                              {record.itemType} · {record.area}㎡
+                            </p>
+                          </div>
+                          <StatusBadge type="inspection" status={record.status} size="sm" />
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(record.createdAt, 'yyyy-MM-dd')}
+                          </span>
+                          {record.recheckCount && record.recheckCount > 0 ? (
+                            <span className="text-amber-600 font-medium">复查 {record.recheckCount} 次</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
