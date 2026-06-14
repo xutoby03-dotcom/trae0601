@@ -6,7 +6,6 @@ import {
   Users,
   FileCheck,
   Clock,
-  Filter,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -20,21 +19,45 @@ import { Document, Person } from '@/types';
 
 export default function Dashboard() {
   const { trip, persons, documents } = useTripStore();
-  const [filterPending, setFilterPending] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<
+    null | 'expired' | 'warning' | 'pending'
+  >(null);
 
-  const personNeedsAttention = (person: Person, docs: Document[]): boolean => {
-    const personDocs = docs.filter((d) => d.personId === person.id);
-    return personDocs.some(
-      (d) =>
-        !d.photoBackup ||
-        !d.inLuggage ||
-        getDocumentStatus(d.expiryDate) !== 'normal'
-    );
+  const toggleFilter = (filter: 'expired' | 'warning' | 'pending') => {
+    setActiveFilter((prev) => (prev === filter ? null : filter));
   };
 
-  const filteredPersons = filterPending
-    ? persons.filter((p) => personNeedsAttention(p, documents))
-    : persons;
+  const personHasExpired = (person: Person, docs: Document[]): boolean => {
+    return docs
+      .filter((d) => d.personId === person.id)
+      .some((d) => getDocumentStatus(d.expiryDate) === 'expired');
+  };
+
+  const personHasWarning = (person: Person, docs: Document[]): boolean => {
+    return docs
+      .filter((d) => d.personId === person.id)
+      .some((d) => getDocumentStatus(d.expiryDate) === 'warning');
+  };
+
+  const personHasPending = (person: Person, docs: Document[]): boolean => {
+    return docs
+      .filter((d) => d.personId === person.id)
+      .some((d) => !d.photoBackup || !d.inLuggage);
+  };
+
+  const personMatchesFilter = (person: Person): boolean => {
+    if (!activeFilter) return true;
+    switch (activeFilter) {
+      case 'expired':
+        return personHasExpired(person, documents);
+      case 'warning':
+        return personHasWarning(person, documents);
+      case 'pending':
+        return personHasPending(person, documents);
+    }
+  };
+
+  const filteredPersons = persons.filter(personMatchesFilter);
 
   const filteredPersonIds = new Set(filteredPersons.map((p) => p.id));
   const filteredDocuments = documents.filter((d) =>
@@ -55,8 +78,22 @@ export default function Dashboard() {
     getDocumentStatus
   );
 
-  const totalDocs = documents.filter(d => d.photoBackup && d.inLuggage).length;
-  const filteredConfirmed = filteredDocuments.filter(d => d.photoBackup && d.inLuggage).length;
+  const totalDocs = documents.filter((d) => d.photoBackup && d.inLuggage).length;
+  const filteredConfirmed = filteredDocuments.filter(
+    (d) => d.photoBackup && d.inLuggage
+  ).length;
+
+  const filterLabel = {
+    expired: '已过期',
+    warning: '即将过期',
+    pending: '待确认',
+  } as const;
+
+  const filterColorClass = {
+    expired: 'bg-red-500 text-white shadow-lg shadow-red-500/25',
+    warning: 'bg-orange-500 text-white shadow-lg shadow-orange-500/25',
+    pending: 'bg-amber-500 text-white shadow-lg shadow-amber-500/25',
+  } as const;
 
   const daysToDeparture = getDaysUntil(trip.departureTime);
 
@@ -163,8 +200,8 @@ export default function Dashboard() {
                 size={140}
                 strokeWidth={10}
                 color={expiredCount > 0 ? '#ef4444' : completionRate === 1 ? '#10b981' : '#f97316'}
-                label={filterPending ? '筛选范围' : '证件确认'}
-                sublabel={`${filteredConfirmed}/${filteredDocuments.length}${filterPending ? ` · 全队 ${totalDocs}` : ''}`}
+                label={activeFilter ? filterLabel[activeFilter] : '证件确认'}
+                sublabel={`${filteredConfirmed}/${filteredDocuments.length}${activeFilter ? ` · 全队 ${totalDocs}` : ''}`}
               />
             </div>
           </div>
@@ -192,38 +229,137 @@ export default function Dashboard() {
             <h3 className="text-sm font-medium text-gray-500 mb-4">需要关注</h3>
             <div className="space-y-3">
               {expiredCount > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-                    <AlertTriangle size={16} className="text-red-500" />
+                <div
+                  onClick={() => toggleFilter('expired')}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    activeFilter === 'expired'
+                      ? 'bg-red-100 ring-2 ring-red-300 scale-[1.01]'
+                      : 'bg-red-50 hover:bg-red-100'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeFilter === 'expired' ? 'bg-red-200' : 'bg-red-100'
+                  }`}>
+                    <AlertTriangle
+                      size={16}
+                      className={
+                        activeFilter === 'expired' ? 'text-red-700' : 'text-red-500'
+                      }
+                    />
                   </div>
-                  <div>
-                    <p className="font-bold text-red-600">{expiredCount} 个已过期</p>
-                    <p className="text-xs text-red-400">请尽快补办</p>
+                  <div className="flex-1">
+                    <p
+                      className={`font-bold ${
+                        activeFilter === 'expired' ? 'text-red-700' : 'text-red-600'
+                      }`}
+                    >
+                      {expiredCount} 个已过期
+                    </p>
+                    <p
+                      className={`text-xs ${
+                        activeFilter === 'expired' ? 'text-red-500' : 'text-red-400'
+                      }`}
+                    >
+                      请尽快补办
+                    </p>
                   </div>
+                  {activeFilter === 'expired' && (
+                    <X size={16} className="text-red-600" />
+                  )}
                 </div>
               )}
 
               {warningCount > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                    <Clock size={16} className="text-orange-500" />
+                <div
+                  onClick={() => toggleFilter('warning')}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    activeFilter === 'warning'
+                      ? 'bg-orange-100 ring-2 ring-orange-300 scale-[1.01]'
+                      : 'bg-orange-50 hover:bg-orange-100'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeFilter === 'warning' ? 'bg-orange-200' : 'bg-orange-100'
+                  }`}>
+                    <Clock
+                      size={16}
+                      className={
+                        activeFilter === 'warning'
+                          ? 'text-orange-700'
+                          : 'text-orange-500'
+                      }
+                    />
                   </div>
-                  <div>
-                    <p className="font-bold text-orange-600">{warningCount} 个即将过期</p>
-                    <p className="text-xs text-orange-400">30天内到期</p>
+                  <div className="flex-1">
+                    <p
+                      className={`font-bold ${
+                        activeFilter === 'warning'
+                          ? 'text-orange-700'
+                          : 'text-orange-600'
+                      }`}
+                    >
+                      {warningCount} 个即将过期
+                    </p>
+                    <p
+                      className={`text-xs ${
+                        activeFilter === 'warning'
+                          ? 'text-orange-500'
+                          : 'text-orange-400'
+                      }`}
+                    >
+                      30天内到期
+                    </p>
                   </div>
+                  {activeFilter === 'warning' && (
+                    <X size={16} className="text-orange-600" />
+                  )}
                 </div>
               )}
 
               {missingItems > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                    <FileCheck size={16} className="text-amber-500" />
+                <div
+                  onClick={() => toggleFilter('pending')}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    activeFilter === 'pending'
+                      ? 'bg-amber-100 ring-2 ring-amber-300 scale-[1.01]'
+                      : 'bg-amber-50 hover:bg-amber-100'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeFilter === 'pending' ? 'bg-amber-200' : 'bg-amber-100'
+                  }`}>
+                    <FileCheck
+                      size={16}
+                      className={
+                        activeFilter === 'pending'
+                          ? 'text-amber-700'
+                          : 'text-amber-500'
+                      }
+                    />
                   </div>
-                  <div>
-                    <p className="font-bold text-amber-600">{missingItems} 项待确认</p>
-                    <p className="text-xs text-amber-400">照片备份或行李放置</p>
+                  <div className="flex-1">
+                    <p
+                      className={`font-bold ${
+                        activeFilter === 'pending'
+                          ? 'text-amber-700'
+                          : 'text-amber-600'
+                      }`}
+                    >
+                      {missingItems} 项待确认
+                    </p>
+                    <p
+                      className={`text-xs ${
+                        activeFilter === 'pending'
+                          ? 'text-amber-500'
+                          : 'text-amber-400'
+                      }`}
+                    >
+                      照片备份或行李放置
+                    </p>
                   </div>
+                  {activeFilter === 'pending' && (
+                    <X size={16} className="text-amber-600" />
+                  )}
                 </div>
               )}
 
@@ -328,35 +464,33 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-bold text-gray-800">证件清单</h3>
-              {filterPending && (
-                <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 font-medium">
-                  仅看待提醒
+              {activeFilter && (
+                <span
+                  className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    activeFilter === 'expired'
+                      ? 'bg-red-100 text-red-600'
+                      : activeFilter === 'warning'
+                      ? 'bg-orange-100 text-orange-600'
+                      : 'bg-amber-100 text-amber-600'
+                  }`}
+                >
+                  仅看{filterLabel[activeFilter]}
                 </span>
               )}
               <span className="text-sm text-gray-500">
-                {filteredPersons.length}/{persons.length} 人 · {filteredDocuments.length}/{documents.length} 份证件
+                {filteredPersons.length}/{persons.length} 人 ·{' '}
+                {filteredDocuments.length}/{documents.length} 份证件
               </span>
             </div>
-            <button
-              onClick={() => setFilterPending(!filterPending)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                filterPending
-                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {filterPending ? (
-                <>
-                  <X size={16} />
-                  显示全部
-                </>
-              ) : (
-                <>
-                  <Filter size={16} />
-                  只看待提醒
-                </>
-              )}
-            </button>
+            {activeFilter && (
+              <button
+                onClick={() => setActiveFilter(null)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${filterColorClass[activeFilter]}`}
+              >
+                <X size={16} />
+                显示全部
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -365,8 +499,12 @@ export default function Dashboard() {
                 <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <FileCheck size={28} className="text-emerald-500" />
                 </div>
-                <p className="text-gray-700 font-medium">所有人证件都已准备就绪！</p>
-                <p className="text-sm text-gray-400 mt-1">点击「显示全部」查看完整清单</p>
+                <p className="text-gray-700 font-medium">
+                  筛选范围内没有匹配的人员
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  点击「显示全部」查看完整清单
+                </p>
               </div>
             ) : (
               filteredPersons.map((person) => {
@@ -378,7 +516,7 @@ export default function Dashboard() {
                     key={person.id}
                     person={person}
                     documents={personDocs}
-                    defaultExpanded={filterPending}
+                    defaultExpanded={!!activeFilter}
                   />
                 );
               })

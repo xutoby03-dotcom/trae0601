@@ -31,6 +31,15 @@ export default function PersonCard({
     (d) => !d.photoBackup || !d.inLuggage
   ).length;
 
+  const expiredCount = documents.filter(
+    (d) => getDocumentStatus(d.expiryDate) === 'expired'
+  ).length;
+  const warningCount = documents.filter(
+    (d) => getDocumentStatus(d.expiryDate) === 'warning'
+  ).length;
+  const noBackupCount = documents.filter((d) => !d.photoBackup).length;
+  const notInLuggageCount = documents.filter((d) => !d.inLuggage).length;
+
   const urgentDocs = documents.filter(
     (d) => getDocumentStatus(d.expiryDate) !== 'normal'
   );
@@ -55,17 +64,27 @@ export default function PersonCard({
               {person.avatar || <User size={24} className="text-gray-400" />}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-bold text-gray-800 text-lg">{person.name}</h3>
-                {hasIssues && (
+                {expiredCount > 0 && (
                   <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
                     <AlertCircle size={12} />
-                    有问题
+                    {expiredCount} 过期
                   </span>
                 )}
-                {pendingCount > 0 && !hasIssues && (
+                {warningCount > 0 && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 font-medium">
-                    {pendingCount} 项待确认
+                    {warningCount} 快过期
+                  </span>
+                )}
+                {noBackupCount > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 font-medium">
+                    {noBackupCount} 没备份
+                  </span>
+                )}
+                {notInLuggageCount > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-600 font-medium">
+                    {notInLuggageCount} 没放行李
                   </span>
                 )}
               </div>
