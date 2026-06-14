@@ -167,15 +167,26 @@ export default function UsageForm() {
                   >
                     <div
                       className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+                        'w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
                         isSelected ? 'bg-white shadow-sm' : 'bg-white/60'
                       )}
                     >
-                      <SportIcon
-                        type={sport}
-                        size={18}
-                        className={isSelected ? 'text-brand-600' : 'text-warm-500'}
-                      />
+                      {eq.photoUrl ? (
+                        <img
+                          src={eq.photoUrl}
+                          alt={eq.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <SportIcon
+                          type={sport}
+                          size={18}
+                          className={isSelected ? 'text-brand-600' : 'text-warm-500'}
+                        />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p
