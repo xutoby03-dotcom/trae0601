@@ -18,19 +18,39 @@ import { useBatchStore } from '@/store/batchStore';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { formatDateTime, formatDate } from '@/utils/date';
 import { getOperationLabel, getDamageLabel } from '@/utils/alert';
-import { DamageReason } from '@/types';
+import { DamageReason, RefillSourceType } from '@/types';
 
 type ModalType = 'open' | 'sale' | 'refill' | 'damage' | null;
 
 export default function JarDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { getJar, getJarOperations, openJar, sellFromJar, refillJar, damageJar } = useJarStore();
+  const { getJar, getJarOperations, openJar, sellFromJar, refillJar, damageJar, jars } = useJarStore();
   const { batches } = useBatchStore();
 
   const jar = id ? getJar(id) : undefined;
   const operations = id ? getJarOperations(id) : [];
   const batch = useMemo(() => batches.find((b) => b.id === jar?.batchId), [batches, jar]);
+
+  const availableSourceJars = useMemo(() => {
+    if (!jar) return [];
+    return jars
+      .filter(
+        (j) =>
+          j.id !== jar.id &&
+          j.status !== 'sold' &&
+          j.status !== 'damaged' &&
+          j.currentWeight > 0
+      )
+      .map((j) => {
+        const b = batches.find((bt) => bt.id === j.batchId);
+        return { jar: j, batch: b };
+      });
+  }, [jar, jars, batches]);
+
+  const availableSourceBatches = useMemo(() => {
+    return batches.filter((b) => b.remainingWeight > 0);
+  }, [batches]);
 
   const [modalType, setModalType] = useState<ModalType>(null);
   const [form, setForm] = useState({
@@ -38,7 +58,9 @@ export default function JarDetail() {
     operator: '张店长',
     reason: 'moisture' as DamageReason,
     remark: '',
-    source: '',
+    refillSourceType: 'jar' as RefillSourceType,
+    refillSourceId: '',
+    refillRemark: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -71,7 +93,15 @@ export default function JarDetail() {
 
   const closeModal = () => {
     setModalType(null);
-    setForm({ weight: 0, operator: '张店长', reason: 'moisture', remark: '', source: '' });
+    setForm({
+      weight: 0,
+      operator: '张店长',
+      reason: 'moisture',
+      remark: '',
+      refillSourceType: 'jar',
+      refillSourceId: '',
+      refillRemark: '',
+    });
     setErrors({});
   };
 
@@ -85,6 +115,21 @@ export default function JarDetail() {
     }
     if (modalType === 'damage' && form.weight > jar.currentWeight) {
       newErrors.weight = `不能超过当前重量（${jar.currentWeight}g）`;
+    }
+    if (modalType === 'refill') {
+      if (!form.refillSourceId) {
+        newErrors.refillSourceId = '请选择补入来源';
+      } else if (form.refillSourceType === 'jar') {
+        const sourceJar = jars.find((j) => j.id === form.refillSourceId);
+        if (sourceJar && form.weight > sourceJar.currentWeight) {
+          newErrors.weight = `超过来源罐可转出重量（${sourceJar.currentWeight}g）`;
+        }
+      } else if (form.refillSourceType === 'batch') {
+        const sourceBatch = batches.find((b) => b.id === form.refillSourceId);
+        if (sourceBatch && form.weight > sourceBatch.remainingWeight) {
+          newErrors.weight = `超过批次剩余重量（${sourceBatch.remainingWeight}g）`;
+        }
+      }
     }
     if (!form.operator.trim()) {
       newErrors.operator = '请输入操作人';
@@ -104,7 +149,14 @@ export default function JarDetail() {
         sellFromJar(id, form.weight, form.operator);
         break;
       case 'refill':
-        refillJar(id, form.weight, form.operator, form.source);
+        refillJar(
+          id,
+          form.weight,
+          form.operator,
+          form.refillSourceType,
+          form.refillSourceId,
+          form.refillRemark
+        );
         break;
       case 'damage':
         damageJar(id, form.weight, form.operator, form.reason, form.remark);
@@ -214,17 +266,33 @@ export default function JarDetail() {
                     <div className="bg-tea-50/50 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-800">{getOperationLabel(op.type)}</span>
-                          {op.weight > 0 && (
-                            <span
-                              className={`text-sm font-semibold ${
-                                op.type === 'refill' ? 'text-teaGreen-600' : 'text-gray-600'
-                              }`}
-                            >
-                              {op.type === 'refill' ? '+' : '-'}
-                              {op.weight}g
-                            </span>
-                          )}
+                          <span className="font-medium text-gray-800">
+                            {op.type === 'refill' &&
+                            (op.reason.startsWith('转出到') ||
+                              (op.sourceType === 'jar' && op.sourceId === jar.id))
+                              ? '转出'
+                              : getOperationLabel(op.type)}
+                          </span>
+                          {op.weight > 0 &&
+                            (() => {
+                              const isTransferOut =
+                                op.type === 'refill' && op.reason.startsWith('转出到');
+                              const sign = op.type === 'refill' && !isTransferOut ? '+' : '-';
+                              const colorClass =
+                                op.type === 'refill'
+                                  ? isTransferOut
+                                    ? 'text-orange-600'
+                                    : 'text-teaGreen-600'
+                                  : op.type === 'damage'
+                                  ? 'text-red-500'
+                                  : 'text-gray-600';
+                              return (
+                                <span className={`text-sm font-semibold ${colorClass}`}>
+                                  {sign}
+                                  {op.weight}g
+                                </span>
+                              );
+                            })()}
                         </div>
                         <span className="text-xs text-gray-400">{formatDateTime(op.operatedAt)}</span>
                       </div>
@@ -236,7 +304,11 @@ export default function JarDetail() {
                         </p>
                       )}
                       {op.reason && op.type === 'refill' && (
-                        <p className="text-sm text-gray-500 mt-1">备注：{op.reason}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {op.reason.startsWith('转出到') || op.reason.startsWith('从罐') || op.reason.startsWith('从批次')
+                            ? op.reason
+                            : `备注：${op.reason}`}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -389,16 +461,67 @@ export default function JarDetail() {
               </div>
 
               {modalType === 'refill' && (
-                <div>
-                  <label className="label-field">来源备注</label>
-                  <input
-                    type="text"
-                    value={form.source}
-                    onChange={(e) => setForm({ ...form, source: e.target.value })}
-                    className="input-field"
-                    placeholder="如：从 LJ-2026-003 补入"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="label-field">补入来源</label>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      {(['jar', 'batch'] as RefillSourceType[]).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() =>
+                            setForm({ ...form, refillSourceType: t, refillSourceId: '' })
+                          }
+                          className={`p-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                            form.refillSourceType === t
+                              ? 'border-purple-300 bg-purple-50 text-purple-700'
+                              : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                          }`}
+                        >
+                          {t === 'jar' ? '🫙 其他罐转出' : '📦 批次库存转入'}
+                        </button>
+                      ))}
+                    </div>
+                    <select
+                      value={form.refillSourceId}
+                      onChange={(e) =>
+                        setForm({ ...form, refillSourceId: e.target.value })
+                      }
+                      className={`input-field ${
+                        errors.refillSourceId ? 'border-red-300' : ''
+                      }`}
+                    >
+                      <option value="">
+                        请选择{form.refillSourceType === 'jar' ? '来源罐' : '来源批次'}
+                      </option>
+                      {form.refillSourceType === 'jar' &&
+                        availableSourceJars.map(({ jar: sj, batch: sb }) => (
+                          <option key={sj.id} value={sj.id}>
+                            {sj.jarNo} - {sb?.name || '未知茶品'}（剩{sj.currentWeight}g）
+                          </option>
+                        ))}
+                      {form.refillSourceType === 'batch' &&
+                        availableSourceBatches.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}（剩{b.remainingWeight}g）
+                          </option>
+                        ))}
+                    </select>
+                    {errors.refillSourceId && (
+                      <p className="text-xs text-dangerRed mt-1">{errors.refillSourceId}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="label-field">备注（可选）</label>
+                    <input
+                      type="text"
+                      value={form.refillRemark}
+                      onChange={(e) => setForm({ ...form, refillRemark: e.target.value })}
+                      className="input-field"
+                      placeholder="如：拼配调茶、同批次归并"
+                    />
+                  </div>
+                </>
               )}
 
               {modalType === 'damage' && (

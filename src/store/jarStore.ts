@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { TeaJar, JarOperation, DamageReason, SealRingStatus } from '@/types';
+import { TeaJar, JarOperation, DamageReason, SealRingStatus, RefillSourceType } from '@/types';
 import { mockJars, mockOperations } from '@/data/mockData';
 import { generateId } from '@/utils/storage';
 import { nowISO } from '@/utils/date';
@@ -21,7 +21,7 @@ interface JarState {
   getJarOperations: (jarId: string) => JarOperation[];
   openJar: (jarId: string, operator: string) => void;
   sellFromJar: (jarId: string, weight: number, operator: string) => void;
-  refillJar: (jarId: string, weight: number, operator: string, reason: string) => void;
+  refillJar: (jarId: string, weight: number, operator: string, sourceType: RefillSourceType, sourceId: string, remark?: string) => void;
   damageJar: (jarId: string, weight: number, operator: string, reason: DamageReason, remark: string) => void;
   getJarsByBatch: (batchId: string) => TeaJar[];
 }
@@ -125,15 +125,62 @@ export const useJarStore = create<JarState>()(
         }));
       },
 
-      refillJar: (jarId, weight, operator, reason) => {
-        const newOp: JarOperation = {
+      refillJar: (jarId, weight, operator, sourceType, sourceId, remark) => {
+        const targetJar = get().jars.find((j) => j.id === jarId);
+        if (!targetJar) return;
+
+        let sourceLabel = '';
+        const sourceOps: JarOperation[] = [];
+
+        if (sourceType === 'jar') {
+          const sourceJar = get().jars.find((j) => j.id === sourceId);
+          if (!sourceJar || sourceJar.currentWeight < weight) return;
+
+          const sourceNewWeight = Math.max(0, sourceJar.currentWeight - weight);
+          const sourceNewStatus: typeof sourceJar.status =
+            sourceNewWeight <= 0 && sourceJar.status !== 'damaged' ? 'sold' : sourceJar.status;
+
+          sourceLabel = `从罐 ${sourceJar.jarNo} 转入`;
+
+          const sourceOutOp: JarOperation = {
+            id: generateId(),
+            jarId: sourceJar.id,
+            type: 'refill',
+            weight,
+            operator,
+            reason: `转出到罐 ${targetJar.jarNo}`,
+            operatedAt: nowISO(),
+            sourceType: 'jar',
+            sourceId: targetJar.id,
+          };
+
+          sourceOps.push(sourceOutOp);
+
+          set((state) => ({
+            jars: state.jars.map((j) =>
+              j.id === sourceJar.id
+                ? { ...j, currentWeight: sourceNewWeight, status: sourceNewStatus, updatedAt: nowISO() }
+                : j
+            ),
+          }));
+        } else if (sourceType === 'batch') {
+          const batch = useBatchStore.getState().batches.find((b) => b.id === sourceId);
+          if (!batch || batch.remainingWeight < weight) return;
+
+          sourceLabel = `从批次 ${batch.name} 转入`;
+          useBatchStore.getState().decrementWeight(sourceId, weight);
+        }
+
+        const targetOp: JarOperation = {
           id: generateId(),
           jarId,
           type: 'refill',
           weight,
           operator,
-          reason,
+          reason: remark ? `${sourceLabel} · ${remark}` : sourceLabel,
           operatedAt: nowISO(),
+          sourceType,
+          sourceId,
         };
 
         set((state) => ({
@@ -142,7 +189,7 @@ export const useJarStore = create<JarState>()(
               ? { ...j, currentWeight: j.currentWeight + weight, updatedAt: nowISO() }
               : j
           ),
-          operations: [newOp, ...state.operations],
+          operations: [targetOp, ...sourceOps, ...state.operations],
         }));
       },
 

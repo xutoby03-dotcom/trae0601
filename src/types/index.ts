@@ -38,6 +38,8 @@ export interface TeaJar {
   updatedAt: string;
 }
 
+export type RefillSourceType = 'jar' | 'batch';
+
 export interface JarOperation {
   id: string;
   jarId: string;
@@ -46,6 +48,8 @@ export interface JarOperation {
   operator: string;
   reason: string;
   operatedAt: string;
+  sourceType?: RefillSourceType;
+  sourceId?: string;
 }
 
 export interface AlertItem {
