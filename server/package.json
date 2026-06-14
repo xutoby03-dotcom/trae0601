@@ -1,0 +1,19 @@
+{
+  "name": "bakery-ingredient-server",
+  "version": "1.0.0",
+  "description": "烘焙原料开封管理系统后端",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js",
+    "init-db": "node scripts/initDb.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
+    "express": "^4.21.0",
+    "morgan": "^1.10.0"
+  }
+}
