@@ -11,6 +11,7 @@ import {
   X,
   Camera,
   AlertCircle,
+  Image,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import type { MatStatus } from '@/types';
@@ -37,6 +38,7 @@ export default function Tasks() {
   const [layMatStatus, setLayMatStatus] = useState<MatStatus>('good');
   const [layHasWarningSign, setLayHasWarningSign] = useState(false);
   const [layPhoto, setLayPhoto] = useState('');
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
 
   const currentTask = tasks.find((t) => t.id === currentTaskId);
   const currentRecords = layingRecords.filter((r) => r.taskId === currentTaskId);
@@ -298,6 +300,24 @@ export default function Tasks() {
                               </span>
                             )}
                           </div>
+                          {record.photo && (
+                            <div
+                              className="relative w-full h-24 bg-slate-100 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all group"
+                              onClick={() => setPreviewPhoto(record.photo)}
+                            >
+                              <img
+                                src={record.photo}
+                                alt="现场照片"
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                <Image className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                              </div>
+                              <span className="absolute bottom-1.5 right-2 text-[10px] text-white bg-black/60 px-1.5 py-0.5 rounded">
+                                点击放大
+                              </span>
+                            </div>
+                          )}
                           {issueCount > 0 && (
                             <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
                               <AlertTriangle className="w-3.5 h-3.5" />
@@ -524,6 +544,25 @@ export default function Tasks() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {previewPhoto && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-8"
+          onClick={() => setPreviewPhoto(null)}
+        >
+          <button
+            className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+            onClick={() => setPreviewPhoto(null)}
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={previewPhoto}
+            alt="现场照片"
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
         </div>
       )}
     </div>
