@@ -322,6 +322,17 @@ body {
     transform: none;
 }
 
+.btn-outline {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.btn-outline:hover {
+    background: var(--primary-light);
+    color: white;
+}
+
 .btn-icon {
     font-size: 14px;
 }
@@ -986,7 +997,82 @@ select:focus, input:focus, textarea:focus {
 }
 
 .reminder-item.dismissed {
-    display: none;
+    border-left-color: var(--text-muted);
+    background: #F9FAFB;
+    opacity: 0.75;
+}
+
+.reminder-item.dismissed .reminder-title {
+    color: var(--text-muted);
+}
+
+.dismissed-tag {
+    background: #E5E7EB !important;
+    color: var(--text-muted) !important;
+}
+
+.reminder-filter-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.reminder-tab {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reminder-tab:hover {
+    color: var(--text-primary);
+}
+
+.reminder-tab.active {
+    background: white;
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.reminder-tab .tab-count {
+    background: rgba(0, 0, 0, 0.06);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+}
+
+.reminder-tab.active .tab-count {
+    background: var(--primary-light);
+    color: white;
+}
+
+.card-highlight {
+    animation: cardFlash 1s ease-in-out 2;
+    box-shadow: 0 0 0 3px var(--primary-light), 0 0 20px rgba(59, 130, 246, 0.5);
+    position: relative;
+    z-index: 10;
+}
+
+@keyframes cardFlash {
+    0%, 100% {
+        box-shadow: 0 0 0 3px var(--primary-light), 0 0 20px rgba(59, 130, 246, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 3px var(--primary), 0 0 35px rgba(59, 130, 246, 0.7);
+    }
 }
 
 .reminder-header {

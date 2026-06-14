@@ -1136,6 +1136,8 @@ const AnnouncementUI = {
 };
 
 const DashboardUI = {
+    reminderFilter: 'pending',
+
     render() {
         StatusHelper.refreshAllStatus();
         const announcements = AnnouncementStore.all();
@@ -1282,14 +1284,56 @@ const DashboardUI = {
     renderResidentReminders() {
         const list = document.getElementById('reminder-list');
         const badge = document.getElementById('reminder-count');
+        const tabs = document.getElementById('reminder-filter-tabs');
         if (!list || !badge) return;
 
-        const reminders = ResidentReminderStore.getActive();
-        const pending = reminders.filter(r => !r.resolved);
+        const allReminders = ResidentReminderStore.all();
+        const pending = allReminders.filter(r => !r.resolved && !r.dismissed);
+        const resolved = allReminders.filter(r => r.resolved);
+        const dismissed = allReminders.filter(r => r.dismissed);
+
+        const counts = { pending: pending.length, resolved: resolved.length, dismissed: dismissed.length, all: allReminders.length };
         badge.textContent = pending.length;
 
+        if (tabs) {
+            tabs.querySelectorAll('.reminder-tab').forEach(tab => {
+                const filter = tab.dataset.filter;
+                tab.classList.toggle('active', filter === this.reminderFilter);
+                const count = counts[filter] || 0;
+                if (!tab.querySelector('.tab-count')) {
+                    tab.innerHTML = `${tab.textContent} <span class="tab-count">${count}</span>`;
+                } else {
+                    tab.querySelector('.tab-count').textContent = count;
+                }
+            });
+        }
+
+        let reminders = [];
+        switch (this.reminderFilter) {
+            case 'pending':
+                reminders = pending;
+                break;
+            case 'resolved':
+                reminders = resolved;
+                break;
+            case 'dismissed':
+                reminders = dismissed;
+                break;
+            case 'all':
+                reminders = allReminders;
+                break;
+        }
+        reminders.sort((a, b) => b.createdAt - a.createdAt);
+
+        const emptyText = {
+            pending: '暂无未处理的提醒',
+            resolved: '暂无已处理的提醒',
+            dismissed: '暂无已忽略的提醒',
+            all: '暂无提醒记录。公告到停梯前 1 小时或超时时会自动生成住户提醒。'
+        };
+
         if (reminders.length === 0) {
-            list.innerHTML = `<div class="empty-state">暂无提醒记录。公告到停梯前 1 小时或超时时会自动生成住户提醒。</div>`;
+            list.innerHTML = `<div class="empty-state">${emptyText[this.reminderFilter] || '暂无数据'}</div>`;
             return;
         }
 
@@ -1298,10 +1342,15 @@ const DashboardUI = {
     },
 
     renderResidentReminderItem(r) {
-        const typeClass = r.type === 'overdue' ? 'overdue' : (r.resolved ? 'resolved' : '');
+        let typeClass = '';
+        if (r.dismissed) typeClass = 'dismissed';
+        else if (r.resolved) typeClass = 'resolved';
+        else if (r.type === 'overdue') typeClass = 'overdue';
+
         const typeIcon = r.type === 'overdue' ? '🔴' : '⏰';
         const typeLabel = r.type === 'overdue' ? '超时未恢复' : '停梯前1小时提醒';
         const resolvedTag = r.resolved ? '<span class="reminder-tag resolved">已处理</span>' : '';
+        const dismissedTag = r.dismissed ? '<span class="reminder-tag dismissed-tag">已忽略</span>' : '';
 
         let titleExtra = '';
         if (r.type === 'reminder_60' && r.minutesToStart != null) {
@@ -1398,7 +1447,19 @@ const DashboardUI = {
         const paperHtml = `<span class="reminder-paper ${r.paperPosted ? 'yes' : 'no'}">${r.paperPosted ? '✅' : '❌'} 纸质通知${r.paperPosted ? '已张贴' : '未张贴'}</span>`;
 
         let actionsHtml = '';
-        if (!r.resolved) {
+        if (r.dismissed) {
+            actionsHtml = `
+                <div class="reminder-actions">
+                    <button class="btn btn-outline btn-sm" data-action="restore-reminder" data-id="${r.id}">取消忽略</button>
+                </div>
+            `;
+        } else if (r.resolved) {
+            actionsHtml = `
+                <div class="reminder-actions">
+                    <button class="btn btn-outline btn-sm" data-action="unresolve-reminder" data-id="${r.id}">重新打开</button>
+                </div>
+            `;
+        } else {
             actionsHtml = `
                 <div class="reminder-actions">
                     <button class="btn btn-success btn-sm" data-action="resolve-reminder" data-id="${r.id}">标记已处理</button>
@@ -1408,14 +1469,20 @@ const DashboardUI = {
         }
 
         return `
-            <div class="reminder-item ${typeClass}" data-id="${r.id}">
+            <div class="reminder-item ${typeClass}" data-id="${r.id}" data-announcement-id="${r.announcementId}">
                 <div class="reminder-header">
                     <div class="reminder-title">
                         ${typeIcon} ${Utils.escapeHtml(r.location)} ${titleExtra}
                         <span class="reminder-tag ${r.type}">${typeLabel}</span>
                         ${resolvedTag}
+                        ${dismissedTag}
                     </div>
-                    <div class="reminder-time">创建于 ${Utils.formatDateTime(r.createdAt)}</div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-outline btn-sm" data-action="view-announcement" data-id="${r.id}" data-announcement-id="${r.announcementId}">
+                            📋 查看公告
+                        </button>
+                        <div class="reminder-time">创建于 ${Utils.formatDateTime(r.createdAt)}</div>
+                    </div>
                 </div>
                 ${unreadBoxHtml}
                 ${infoGridHtml}
@@ -1429,11 +1496,26 @@ const DashboardUI = {
     },
 
     bindReminderEvents() {
+        document.querySelectorAll('#reminder-filter-tabs .reminder-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.reminderFilter = tab.dataset.filter;
+                this.renderResidentReminders();
+            });
+        });
+
+        document.querySelectorAll('[data-action="view-announcement"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.jumpToAnnouncement(btn.dataset.announcementId);
+            });
+        });
+
         document.querySelectorAll('[data-action="resolve-reminder"]').forEach(btn => {
             btn.addEventListener('click', () => {
                 ResidentReminderStore.update(btn.dataset.id, {
                     resolved: true,
-                    resolvedAt: Date.now()
+                    resolvedAt: Date.now(),
+                    dismissed: false
                 });
                 this.renderResidentReminders();
                 Notification.show('已处理', '提醒已标记为已处理', 'success');
@@ -1442,11 +1524,61 @@ const DashboardUI = {
 
         document.querySelectorAll('[data-action="dismiss-reminder"]').forEach(btn => {
             btn.addEventListener('click', () => {
-                ResidentReminderStore.dismiss(btn.dataset.id);
+                ResidentReminderStore.update(btn.dataset.id, {
+                    dismissed: true,
+                    dismissedAt: Date.now()
+                });
                 this.renderResidentReminders();
-                Notification.show('已忽略', '提醒已从列表移除', 'info');
+                Notification.show('已忽略', '提醒已标记为忽略', 'info');
             });
         });
+
+        document.querySelectorAll('[data-action="restore-reminder"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ResidentReminderStore.update(btn.dataset.id, {
+                    dismissed: false
+                });
+                this.renderResidentReminders();
+                Notification.show('已恢复', '提醒已从忽略中恢复', 'success');
+            });
+        });
+
+        document.querySelectorAll('[data-action="unresolve-reminder"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ResidentReminderStore.update(btn.dataset.id, {
+                    resolved: false,
+                    resolvedAt: null
+                });
+                this.renderResidentReminders();
+                Notification.show('已重新打开', '提醒已重新标记为未处理', 'info');
+            });
+        });
+    },
+
+    jumpToAnnouncement(announcementId) {
+        const announcement = AnnouncementStore.find(announcementId);
+        if (!announcement) {
+            Notification.show('提示', '找不到对应公告', 'warning');
+            return;
+        }
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === 'announcements');
+        });
+        document.querySelectorAll('.tab-content').forEach(panel => {
+            panel.classList.toggle('active', panel.id === 'announcements');
+        });
+
+        setTimeout(() => {
+            const card = document.querySelector(`#announcement-list .announcement-card[data-id="${announcementId}"]`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('card-highlight');
+                setTimeout(() => {
+                    card.classList.remove('card-highlight');
+                }, 2500);
+            }
+        }, 80);
     }
 };
 
