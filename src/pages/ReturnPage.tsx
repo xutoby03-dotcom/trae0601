@@ -147,14 +147,12 @@ export default function ReturnPage() {
   };
 
   const getMissingAccessories = (rId: string, displayAccessories: Accessory[]): string[] => {
-    const state = checkStates[rId];
-    if (!state) return [];
+    const state = ensureCheckState(rId, displayAccessories);
     return displayAccessories.filter((a) => !state.accessories[a.name]).map((a) => a.name);
   };
 
   const getTotalCheckCount = (rId: string, displayAccessories: Accessory[]): { pass: number; total: number } => {
-    const state = checkStates[rId];
-    if (!state) return { pass: 0, total: displayAccessories.length + FIXED_CHECK_ITEMS.length };
+    const state = ensureCheckState(rId, displayAccessories);
     let pass = 0;
     const total = displayAccessories.length + FIXED_CHECK_ITEMS.length;
     displayAccessories.forEach((a) => {
@@ -167,8 +165,7 @@ export default function ReturnPage() {
   };
 
   const handleReturn = async (r: Reservation, displayAccessories: Accessory[]) => {
-    const state = checkStates[r.id];
-    if (!state) return;
+    const state = ensureCheckState(r.id, displayAccessories);
     const missingAccessories = getMissingAccessories(r.id, displayAccessories);
     setSubmitting(r.id);
     await new Promise((x) => setTimeout(x, 600));
