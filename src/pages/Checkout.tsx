@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '@/store'
 import { cn } from '@/lib/utils'
-import { ClipboardList, Search, AlertTriangle, Check, X, Calendar, User } from 'lucide-react'
+import { ClipboardList, Search, AlertTriangle, Check, X, Calendar, User, Clock, ShieldAlert } from 'lucide-react'
 import type { Sample, CheckoutRecord } from '@/types'
 
 type TabKey = 'register' | 'records'
 
 const STATUS_BADGES: Record<CheckoutRecord['status'], { label: string; className: string }> = {
-  pending: { label: '待确认', className: 'bg-amber-100 text-amber-800' },
-  confirmed: { label: '已确认', className: 'bg-green-100 text-green-800' },
-  rejected: { label: '已拒绝', className: 'bg-red-100 text-red-800' },
+  pending: { label: '待教师审批', className: 'bg-amber-100 text-amber-800' },
+  confirmed: { label: '已出库', className: 'bg-green-100 text-green-800' },
+  rejected: { label: '已驳回', className: 'bg-red-100 text-red-800' },
   returned: { label: '已归还', className: 'bg-blue-100 text-blue-800' },
   disposed: { label: '已废弃', className: 'bg-gray-100 text-gray-600' },
 }
@@ -57,7 +57,7 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (t: TabKey) =>
           className={cn(
             'flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors',
             active === key
-              ? 'border-blue-600 text-blue-600'
+              ? 'border-teal-600 text-teal-700'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           )}
         >
@@ -83,9 +83,8 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
   const [studentName, setStudentName] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [checkoutTime, setCheckoutTime] = useState(toLocalDatetimeString(new Date()))
-  const [teacherConfirmed, setTeacherConfirmed] = useState(false)
-  const [teacherName, setTeacherName] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [successType, setSuccessType] = useState<'direct' | 'pending'>('direct')
 
   const eligibleSamples = useMemo(
     () => samples.filter((s) => s.status !== 'expired' && s.remainingQuantity > 0),
@@ -114,17 +113,11 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
     studentName.trim() &&
     quantity > 0 &&
     !isExpired &&
-    !quantityExceeded &&
-    (!isHighHazard || teacherConfirmed)
+    !quantityExceeded
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedSample || !canSubmit) return
-
-    let status: CheckoutRecord['status'] = 'confirmed'
-    if (isHighHazard && !teacherConfirmed) {
-      status = 'pending'
-    }
 
     const result = addCheckout({
       sampleId: selectedSample.id,
@@ -133,13 +126,18 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
       studentName: studentName.trim(),
       quantity,
       checkoutTime: new Date(checkoutTime).toISOString(),
-      teacherConfirmed: isHighHazard ? teacherConfirmed : false,
-      teacherName: isHighHazard && teacherConfirmed ? teacherName.trim() : '',
-      status,
+      teacherConfirmed: false,
+      teacherName: '',
+      status: isHighHazard ? 'pending' : 'confirmed',
     })
 
     if (result) {
-      setSuccessMsg('领用登记成功！')
+      setSuccessType(isHighHazard ? 'pending' : 'direct')
+      setSuccessMsg(
+        isHighHazard
+          ? '领用申请已提交，等待教师审批后方可出库'
+          : '领用登记成功，样本已出库'
+      )
       setSelectedSampleId('')
       setSearchTerm('')
       setClassName('')
@@ -147,19 +145,24 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
       setStudentName('')
       setQuantity(1)
       setCheckoutTime(toLocalDatetimeString(new Date()))
-      setTeacherConfirmed(false)
-      setTeacherName('')
-      setTimeout(() => setSuccessMsg(''), 3000)
+      setTimeout(() => setSuccessMsg(''), 4000)
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto animate-fade-in">
       <TabBar active="register" onChange={(t) => t === 'records' && onSwitchToRecords()} />
 
       {successMsg && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-2">
-          <Check className="w-4 h-4" />
+        <div
+          className={cn(
+            'mb-4 p-3 rounded-lg flex items-center gap-2 border',
+            successType === 'direct'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          )}
+        >
+          {successType === 'direct' ? <Check className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
           {successMsg}
         </div>
       )}
@@ -172,9 +175,12 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
       )}
 
       {isHighHazard && !isExpired && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4" />
-          该样本为高危险等级，需教师确认方可出库
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg flex items-start gap-2">
+          <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium">该样本为高危险等级（{selectedSample?.hazardLevel}级）</p>
+            <p className="mt-0.5 text-amber-700">提交后需教师审批通过方可出库，库存将在审批通过后扣减</p>
+          </div>
         </div>
       )}
 
@@ -188,7 +194,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
               placeholder="搜索样本编号或类型..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
           <select
@@ -196,10 +202,8 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
             onChange={(e) => {
               setSelectedSampleId(e.target.value)
               setQuantity(1)
-              setTeacherConfirmed(false)
-              setTeacherName('')
             }}
-            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           >
             <option value="">请选择样本</option>
             {filteredSamples.map((s) => (
@@ -209,10 +213,11 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
             ))}
           </select>
           {selectedSample && (
-            <p className="mt-1 text-xs text-gray-500">
-              危险等级: {selectedSample.hazardLevel} | 库存: {selectedSample.remainingQuantity} | 状态:{' '}
-              {selectedSample.status}
-            </p>
+            <div className="mt-2 flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+              <span>危险等级: {selectedSample.hazardLevel}级</span>
+              <span>库存: {selectedSample.remainingQuantity}</span>
+              <span>状态: {STATUS_BADGES[selectedSample.status as keyof typeof STATUS_BADGES]?.label || selectedSample.status}</span>
+            </div>
           )}
         </div>
 
@@ -224,7 +229,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               placeholder="请输入班级"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
           <div>
@@ -234,7 +239,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
               value={labBench}
               onChange={(e) => setLabBench(e.target.value)}
               placeholder="请输入实验台号"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
         </div>
@@ -250,7 +255,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
               value={studentName}
               onChange={(e) => setStudentName(e.target.value)}
               placeholder="请输入学生姓名"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             />
           </div>
           <div>
@@ -262,7 +267,7 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
               className={cn(
-                'w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500',
                 quantityExceeded ? 'border-red-500' : 'border-gray-300'
               )}
             />
@@ -281,38 +286,9 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
             type="datetime-local"
             value={checkoutTime}
             onChange={(e) => setCheckoutTime(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           />
         </div>
-
-        {isHighHazard && !isExpired && (
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={teacherConfirmed}
-                onChange={(e) => {
-                  setTeacherConfirmed(e.target.checked)
-                  if (!e.target.checked) setTeacherName('')
-                }}
-                className="w-4 h-4 text-amber-600 border-amber-300 rounded focus:ring-amber-500"
-              />
-              <span className="text-sm font-medium text-amber-900">教师确认</span>
-            </label>
-            {teacherConfirmed && (
-              <div>
-                <label className="block text-sm font-medium text-amber-800 mb-1">确认教师姓名</label>
-                <input
-                  type="text"
-                  value={teacherName}
-                  onChange={(e) => setTeacherName(e.target.value)}
-                  placeholder="请输入确认教师姓名"
-                  className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
-                />
-              </div>
-            )}
-          </div>
-        )}
 
         <button
           type="submit"
@@ -320,11 +296,13 @@ function RegisterTab({ samples, addCheckout, onSwitchToRecords }: RegisterTabPro
           className={cn(
             'w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-colors',
             canSubmit
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              ? isHighHazard
+                ? 'bg-amber-600 text-white hover:bg-amber-500'
+                : 'bg-teal-600 text-white hover:bg-teal-500'
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           )}
         >
-          提交领用
+          {isHighHazard ? '提交审批申请' : '确认领用出库'}
         </button>
       </form>
     </div>
@@ -354,6 +332,10 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
     return checkouts.filter((c) => c.status === statusFilter)
   }, [checkouts, statusFilter])
 
+  const sortedCheckouts = useMemo(() => {
+    return [...filteredCheckouts].sort((a, b) => new Date(b.checkoutTime).getTime() - new Date(a.checkoutTime).getTime())
+  }, [filteredCheckouts])
+
   const handleConfirm = (id: string) => {
     const name = confirmTeacherName[id]?.trim()
     if (!name) return
@@ -366,7 +348,7 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <TabBar active="records" onChange={(t) => t === 'register' && onSwitchToRegister()} />
 
       <div className="flex items-center justify-between mb-4">
@@ -374,19 +356,19 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
         >
           <option value="all">全部状态</option>
-          <option value="pending">待确认</option>
-          <option value="confirmed">已确认</option>
-          <option value="rejected">已拒绝</option>
+          <option value="pending">待教师审批</option>
+          <option value="confirmed">已出库</option>
+          <option value="rejected">已驳回</option>
           <option value="returned">已归还</option>
           <option value="disposed">已废弃</option>
         </select>
       </div>
 
       <div className="space-y-3">
-        {filteredCheckouts.map((c) => {
+        {sortedCheckouts.map((c) => {
           const sample = sampleMap.get(c.sampleId)
           const badge = STATUS_BADGES[c.status]
           const isPendingHighHazard =
@@ -395,30 +377,42 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
           return (
             <div
               key={c.id}
-              className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              className={cn(
+                'p-4 bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow',
+                isPendingHighHazard ? 'border-amber-200 bg-amber-50/30' : 'border-gray-200'
+              )}
             >
               <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-semibold text-gray-900">
                       {sample?.code ?? '未知样本'}
                     </span>
                     <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', badge.className)}>
                       {badge.label}
                     </span>
+                    {sample && sample.hazardLevel >= 4 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        {sample.hazardLevel}级高危
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm text-gray-600 space-y-0.5">
                     <p>班级: {c.className} | 实验台号: {c.labBench}</p>
                     <p>领用学生: {c.studentName} | 数量: {c.quantity}</p>
                     <p>领取时间: {formatDateTime(c.checkoutTime)}</p>
                     {c.teacherConfirmed && c.teacherName && (
-                      <p>确认教师: {c.teacherName}</p>
+                      <p className="text-teal-700 font-medium">审批教师: {c.teacherName}</p>
+                    )}
+                    {c.status === 'rejected' && (
+                      <p className="text-red-600 font-medium">教师已驳回出库申请</p>
                     )}
                   </div>
                 </div>
 
                 {isPendingHighHazard && (
                   <div className="flex flex-col items-end gap-2 ml-4">
+                    <p className="text-xs font-medium text-amber-700">教师审批</p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -430,27 +424,27 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
                             [c.id]: e.target.value,
                           }))
                         }
-                        className="px-2 py-1 border border-gray-300 rounded text-xs w-24 focus:ring-1 focus:ring-blue-500"
+                        className="px-2.5 py-1.5 border border-gray-300 rounded text-xs w-28 focus:ring-1 focus:ring-teal-500 bg-white"
                       />
                       <button
                         onClick={() => handleConfirm(c.id)}
                         disabled={!confirmTeacherName[c.id]?.trim()}
                         className={cn(
-                          'flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors',
+                          'flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium transition-colors',
                           confirmTeacherName[c.id]?.trim()
                             ? 'bg-green-600 text-white hover:bg-green-700'
                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         )}
                       >
-                        <Check className="w-3 h-3" />
-                        确认
+                        <Check className="w-3.5 h-3.5" />
+                        通过
                       </button>
                       <button
                         onClick={() => rejectCheckout(c.id)}
-                        className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 rounded text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
                       >
-                        <X className="w-3 h-3" />
-                        拒绝
+                        <X className="w-3.5 h-3.5" />
+                        驳回
                       </button>
                     </div>
                   </div>

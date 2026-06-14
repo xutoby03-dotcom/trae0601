@@ -162,15 +162,21 @@ export const useStore = create<StoreState>((set, get) => ({
   addCheckout: (checkoutData) => {
     const sample = get().samples.find((s) => s.id === checkoutData.sampleId)
     if (!sample) return null
-
     if (sample.status === 'expired') return null
-    if (sample.hazardLevel >= 4 && !checkoutData.teacherConfirmed) return null
     if (sample.remainingQuantity < checkoutData.quantity) return null
 
-    const checkout: CheckoutRecord = { ...checkoutData, id: generateId() }
+    const isHighHazard = sample.hazardLevel >= 4
+    const status: CheckoutRecord['status'] = isHighHazard ? 'pending' : 'confirmed'
+    const checkout: CheckoutRecord = {
+      ...checkoutData,
+      id: generateId(),
+      status,
+      teacherConfirmed: isHighHazard ? false : true,
+      teacherName: isHighHazard ? '' : checkoutData.teacherName || '',
+    }
     const checkouts = [...get().checkouts, checkout]
 
-    if (checkout.status === 'confirmed' || checkout.teacherConfirmed) {
+    if (status === 'confirmed') {
       const samples = get().samples.map((s) =>
         s.id === sample.id
           ? { ...s, remainingQuantity: s.remainingQuantity - checkout.quantity, updatedAt: new Date().toISOString() }
@@ -189,6 +195,9 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   confirmCheckout: (id, teacherName) => {
+    const existing = get().checkouts.find((c) => c.id === id)
+    if (!existing || existing.status !== 'pending') return
+
     const checkouts = get().checkouts.map((c) =>
       c.id === id ? { ...c, teacherConfirmed: true, teacherName, status: 'confirmed' as const } : c
     )
