@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import {
   ClearOutlined,
+  CheckOutlined,
   ExclamationCircleOutlined,
   FilterOutlined,
   PlusOutlined,
@@ -100,7 +101,8 @@ export default function RepairList() {
   const [todoAssigned, setTodoAssigned] = useState(false);
 
   const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [currentRepairId, setCurrentRepairId] = useState<string | null>(null);
+  const [currentRepairIds, setCurrentRepairIds] = useState<string[]>([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [assignForm] = Form.useForm();
   const [assignLoading, setAssignLoading] = useState(false);
 
@@ -314,22 +316,41 @@ export default function RepairList() {
   }
 
   const handleAssignClick = (repairId: string) => {
-    setCurrentRepairId(repairId);
+    setCurrentRepairIds([repairId]);
     setAssignModalOpen(true);
     assignForm.resetFields();
+  };
+
+  const handleBulkAssignClick = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先勾选待分派的报修单');
+      return;
+    }
+    setCurrentRepairIds(selectedRowKeys.map((k) => String(k)));
+    setAssignModalOpen(true);
+    assignForm.resetFields();
+  };
+
+  const clearSelection = () => {
+    setSelectedRowKeys([]);
   };
 
   const handleAssignConfirm = async () => {
     try {
       const values = await assignForm.validateFields();
       setAssignLoading(true);
-      if (currentRepairId) {
-        assignRepair(currentRepairId, values.assignee);
-        message.success('分派成功');
+      if (currentRepairIds.length > 0) {
+        currentRepairIds.forEach((rid) => assignRepair(rid, values.assignee));
+        if (currentRepairIds.length === 1) {
+          message.success(`已分派给 ${values.assignee}`);
+        } else {
+          message.success(`已将 ${currentRepairIds.length} 条报修分派给 ${values.assignee}`);
+        }
       }
       setAssignModalOpen(false);
       setAssignLoading(false);
-      setCurrentRepairId(null);
+      setCurrentRepairIds([]);
+      clearSelection();
     } catch (err) {
       setAssignLoading(false);
     }
@@ -764,6 +785,46 @@ export default function RepairList() {
             </div>
           ) : (
             <>
+              {selectedRowKeys.length > 0 && (
+                <div
+                  style={{
+                    margin: '8px 16px 0',
+                    padding: '12px 20px',
+                    background: '#E6F4FF',
+                    border: '1px solid #91CAFF',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <Space size={16} wrap>
+                    <Space size={8}>
+                      <CheckOutlined style={{ color: '#1677ff' }} />
+                      <Text strong style={{ color: '#1677ff' }}>
+                        已选中 {selectedRowKeys.length} 条待分派报修单
+                      </Text>
+                    </Space>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ClearOutlined />}
+                      onClick={clearSelection}
+                      style={{ padding: 0 }}
+                    >
+                      清空选择
+                    </Button>
+                  </Space>
+                  <Button
+                    type="primary"
+                    icon={<UserSwitchOutlined />}
+                    onClick={handleBulkAssignClick}
+                  >
+                    批量分派给…
+                  </Button>
+                </div>
+              )}
               <Table
                 columns={columns}
                 dataSource={pagedRepairs}
@@ -775,6 +836,22 @@ export default function RepairList() {
                 rowClassName={(record) =>
                   isRepairOverdue(record) ? 'repair-row-overdue' : ''
                 }
+                rowSelection={{
+                  type: 'checkbox',
+                  selectedRowKeys,
+                  onChange: (keys) => setSelectedRowKeys(keys),
+                  getCheckboxProps: (record: Repair) => ({
+                    disabled: record.status !== 'pending',
+                    name: `select-repair-${record.id}`,
+                  }),
+                  preserveSelectedRowKeys: true,
+                  columnTitle: (
+                    <Tooltip title="仅待分派的报修单可选择">
+                      <span style={{ fontSize: 12 }}>选择</span>
+                    </Tooltip>
+                  ),
+                  columnWidth: 60,
+                }}
               />
               <style>{`
                 .repair-row-overdue > td {
@@ -808,15 +885,24 @@ export default function RepairList() {
       </Spin>
 
       <Modal
-        title="分派维修人员"
+        title={
+          <Space size={8}>
+            <UserSwitchOutlined />
+            <span>
+              {currentRepairIds.length <= 1
+                ? '分派维修人员'
+                : `批量分派（${currentRepairIds.length} 条）`}
+            </span>
+          </Space>
+        }
         open={assignModalOpen}
         onOk={handleAssignConfirm}
         onCancel={() => {
           setAssignModalOpen(false);
-          setCurrentRepairId(null);
+          setCurrentRepairIds([]);
         }}
         confirmLoading={assignLoading}
-        okText="确认分派"
+        okText={currentRepairIds.length <= 1 ? '确认分派' : '确认批量分派'}
         cancelText="取消"
         destroyOnClose
       >
