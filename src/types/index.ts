@@ -75,6 +75,7 @@ export interface OverdueItem {
   lendTime: string;
   dueTime: string;
   overdueDays: number;
+  lentStoreId: string;
   lentStoreName: string;
   expectedStoreName: string;
   reminded: boolean;

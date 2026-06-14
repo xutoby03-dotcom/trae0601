@@ -61,11 +61,11 @@ export function computeOverdueList(): OverdueItem[] {
         lendTime: r.lendTime,
         dueTime: r.dueTime,
         overdueDays,
+        lentStoreId: u?.storeId ?? '',
         lentStoreName: storeMap.get(u?.storeId ?? '') ?? '?',
         expectedStoreName: storeMap.get(r.expectedStoreId) ?? '?',
         reminded: !!r.reminded,
-        _storeId: u?.storeId,
-      } as OverdueItem & { _storeId?: string };
+      };
     })
     .filter((x) => x.overdueDays > 0)
     .sort((a, b) => b.overdueDays - a.overdueDays);
