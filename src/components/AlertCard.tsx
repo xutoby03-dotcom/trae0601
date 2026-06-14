@@ -9,9 +9,10 @@ import { useNavigate } from 'react-router-dom';
 
 interface AlertCardProps {
   alert: Alert;
+  onReplenish?: (alert: Alert) => void;
 }
 
-export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
+export const AlertCard: React.FC<AlertCardProps> = ({ alert, onReplenish }) => {
   const { resolveAlert } = useAppStore();
   const navigate = useNavigate();
 
@@ -33,7 +34,11 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
   };
 
   const handleReplenish = () => {
-    navigate('/replenishments');
+    if (onReplenish) {
+      onReplenish(alert);
+    } else {
+      navigate('/replenishments');
+    }
   };
 
   const colorClasses = {
@@ -92,13 +97,15 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
 
           {!alert.isResolved && (
             <div className="flex flex-col gap-2">
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={handleReplenish}
-              >
-                去补货
-              </Button>
+              {alert.type === 'low_stock' && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleReplenish}
+                >
+                  去补货
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
