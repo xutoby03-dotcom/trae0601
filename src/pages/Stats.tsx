@@ -949,7 +949,7 @@ const Stats: React.FC = () => {
                             <span className="mx-1">·</span>
                             <span>🗓️ 距上次整换 {item.metrics.daysSinceFullChange} 天</span>
                             <span className="mx-1">·</span>
-                            <span>🔢 累计 {item.metrics.totalCleans} 次清理</span>
+                            <span>🔢 本轮 {item.metrics.totalCleans} 次清理</span>
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">

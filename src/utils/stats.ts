@@ -109,31 +109,37 @@ export const getDeepCleanList = (
   const results: DeepCleanItem[] = [];
 
   boxes.forEach((box) => {
-    const boxRecords = records
+    const fullCutoffTime = new Date(box.lastFullChange).getTime();
+
+    const boxRecordsAll = records
       .filter((r) => r.litterBoxId === box.id)
       .sort((a, b) => new Date(b.cleanTime).getTime() - new Date(a.cleanTime).getTime());
 
-    const totalCleans = boxRecords.length;
-    const avgSmell = totalCleans > 0
-      ? boxRecords.reduce((s, r) => s + r.smellLevel, 0) / totalCleans
+    const recentRecords = boxRecordsAll.filter(
+      (r) => new Date(r.cleanTime).getTime() > fullCutoffTime && !r.isFullChange
+    );
+
+    const totalCleansSinceFullChange = recentRecords.length;
+    const avgSmell = totalCleansSinceFullChange > 0
+      ? recentRecords.reduce((s, r) => s + r.smellLevel, 0) / totalCleansSinceFullChange
       : 0;
 
     const daysSinceFullChange = Math.floor(
-      (new Date(nowISO).getTime() - new Date(box.lastFullChange).getTime()) / 86400000
+      (new Date(nowISO).getTime() - fullCutoffTime) / 86400000
     );
 
     const fullChangeRatio = daysSinceFullChange / box.fullChangeIntervalDays;
 
     let highSmellStreak = 0;
-    for (const record of boxRecords) {
-      if (record.smellLevel >= 4 && !record.isFullChange) {
+    for (const record of recentRecords) {
+      if (record.smellLevel >= 4) {
         highSmellStreak++;
       } else {
         break;
       }
     }
 
-    const lastCleanTime = boxRecords[0]?.cleanTime || box.lastFullChange;
+    const lastCleanTime = recentRecords[0]?.cleanTime || box.lastFullChange;
     const hoursSinceLastClean = (new Date(nowISO).getTime() - new Date(lastCleanTime).getTime()) / 3600000;
 
     let score = 0;
@@ -164,15 +170,15 @@ export const getDeepCleanList = (
       reasons.push(`连续 ${highSmellStreak} 次异味≥4 级`);
     }
 
-    if (totalCleans > 200) {
+    if (totalCleansSinceFullChange > 200) {
       score += 3;
-      reasons.push(`累计清洁 ${totalCleans} 次`);
-    } else if (totalCleans > 120) {
+      reasons.push(`本轮已清洁 ${totalCleansSinceFullChange} 次`);
+    } else if (totalCleansSinceFullChange > 120) {
       score += 2;
-      reasons.push(`累计清洁 ${totalCleans} 次`);
-    } else if (totalCleans > 60) {
+      reasons.push(`本轮已清洁 ${totalCleansSinceFullChange} 次`);
+    } else if (totalCleansSinceFullChange > 60) {
       score += 1;
-      reasons.push(`累计清洁 ${totalCleans} 次`);
+      reasons.push(`本轮已清洁 ${totalCleansSinceFullChange} 次`);
     }
 
     if (avgSmell >= 4) {
@@ -205,7 +211,7 @@ export const getDeepCleanList = (
           daysSinceFullChange,
           fullChangeRatio,
           highSmellStreak,
-          totalCleans,
+          totalCleans: totalCleansSinceFullChange,
           averageSmell: Number(avgSmell.toFixed(2)),
           hoursSinceLastClean: Number(hoursSinceLastClean.toFixed(1)),
         },

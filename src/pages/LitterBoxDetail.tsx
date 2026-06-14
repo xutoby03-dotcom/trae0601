@@ -329,7 +329,7 @@ export default function LitterBoxDetail() {
                 </div>
               </div>
               <div className="p-3 rounded-2xl" style={{ backgroundColor: '#FAF6F0' }}>
-                <div className="text-xs mb-1" style={{ color: '#A89880' }}>累计清洁</div>
+                <div className="text-xs mb-1" style={{ color: '#A89880' }}>本轮清洁</div>
                 <div className="text-sm font-bold" style={{ color: '#5D4E37' }}>
                   {deepCleanStatus.metrics.totalCleans} 次
                 </div>
