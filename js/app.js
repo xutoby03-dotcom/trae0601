@@ -582,8 +582,18 @@ const AnnouncementUI = {
 
         const totalResidents = a.totalResidents || 50;
         const readCount = (a.readBy || []).length;
+        const unreadCount = Math.max(0, totalResidents - readCount);
         const readRate = Math.round((readCount / totalResidents) * 100);
         const readProgress = Math.min(100, readRate);
+
+        const existingReminder60 = ResidentReminderStore.findByAnnouncementId(a.id, 'reminder_60');
+        const existingReminderOverdue = ResidentReminderStore.findByAnnouncementId(a.id, 'overdue');
+        let lastReminderTime = null;
+        if (existingReminder60) lastReminderTime = existingReminder60.createdAt;
+        if (existingReminderOverdue && (!lastReminderTime || existingReminderOverdue.createdAt > lastReminderTime)) {
+            lastReminderTime = existingReminderOverdue.createdAt;
+        }
+        const hasExistingReminder = !!(existingReminder60 || existingReminderOverdue);
 
         const statusClass = `status-${a.status}`;
         const overdueSection = a.status === 'overdue' && a.overdueReason
@@ -683,7 +693,12 @@ const AnnouncementUI = {
                         <div class="progress-fill" style="width: ${readProgress}%"></div>
                     </div>
                     <div class="read-count">${readCount}/${totalResidents} 已读 (${readRate}%)</div>
+                    <button class="btn btn-warning btn-sm" data-action="remind" data-id="${a.id}" title="查看未读住户并发送提醒">
+                        🔔 催未读
+                        <span class="unread-badge">${unreadCount}</span>
+                    </button>
                 </div>
+                ${hasExistingReminder ? `<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">上次提醒：${lastReminderTime ? Utils.formatDateTime(lastReminderTime) : '-'}</div>` : ''}
                 <div class="announcement-actions">${actions}</div>
             </div>
         `;
@@ -701,8 +716,211 @@ const AnnouncementUI = {
                 else if (action === 'read') this.markRead(id);
                 else if (action === 'complaint') this.complaint(id);
                 else if (action === 'reason') this.updateOverdueReason(id);
+                else if (action === 'remind') this.showUnreadReminderModal(id);
             });
         });
+    },
+
+    showUnreadReminderModal(id) {
+        const announcement = AnnouncementStore.find(id);
+        if (!announcement) return;
+
+        const elevator = ElevatorStore.find(announcement.elevatorId);
+        const building = elevator ? elevator.building : '-';
+        const unit = elevator ? elevator.unit : '-';
+        const eleNo = elevator ? elevator.elevatorNo : '-';
+        const loc = elevator ? `${building}栋${unit}单元${eleNo}号梯` : '电梯';
+
+        const totalResidents = announcement.totalResidents || 0;
+        const readCount = (announcement.readBy || []).length;
+        const unreadCount = Math.max(0, totalResidents - readCount);
+        const readRate = totalResidents > 0 ? Math.round((readCount / totalResidents) * 100) : 0;
+
+        const existing60 = ResidentReminderStore.findByAnnouncementId(id, 'reminder_60');
+        const existingOverdue = ResidentReminderStore.findByAnnouncementId(id, 'overdue');
+        let lastReminderTime = null;
+        let lastReminderType = '';
+        if (existing60) {
+            lastReminderTime = existing60.createdAt;
+            lastReminderType = 'reminder_60';
+        }
+        if (existingOverdue && (!lastReminderTime || existingOverdue.createdAt > lastReminderTime)) {
+            lastReminderTime = existingOverdue.createdAt;
+            lastReminderType = 'overdue';
+        }
+        const hasExisting = !!(existing60 || existingOverdue);
+
+        const status = StatusHelper.computeStatus(announcement);
+        const now = Date.now();
+        const startTime = new Date(announcement.startTime).getTime();
+        const minutesToStart = Math.round((startTime - now) / 60000);
+
+        let canPush = true;
+        let pushDisabledReason = '';
+        if (hasExisting) {
+            canPush = false;
+            pushDisabledReason = '已有提醒记录（可查看「住户提醒记录」面板）';
+        } else if (status === 'completed') {
+            canPush = false;
+            pushDisabledReason = '该公告已完成';
+        }
+
+        const typeLabel = {
+            reminder_60: '停梯前1小时提醒',
+            overdue: '超时未恢复提醒'
+        };
+
+        const body = `
+            <div class="unread-modal">
+                <div class="unread-summary">
+                    <h3 style="font-size: 16px; margin-bottom: 16px; color: var(--text-primary);">${Utils.escapeHtml(loc)} 维保通知</h3>
+                    <div class="unread-stats-row">
+                        <div class="unread-stat-card">
+                            <div class="unread-stat-num" style="color: var(--text-primary);">${totalResidents}</div>
+                            <div class="unread-stat-label">总户数</div>
+                        </div>
+                        <div class="unread-stat-card">
+                            <div class="unread-stat-num" style="color: var(--success);">${readCount}</div>
+                            <div class="unread-stat-label">已阅读</div>
+                        </div>
+                        <div class="unread-stat-card">
+                            <div class="unread-stat-num" style="color: var(--danger);">${unreadCount}</div>
+                            <div class="unread-stat-label">未阅读</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span style="color: var(--text-secondary);">阅读率</span>
+                            <span style="font-weight: 600; color: var(--primary);">${readRate}%</span>
+                        </div>
+                        <div style="height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; width: ${readRate}%; background: var(--primary); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="unread-info-section">
+                    <div class="unread-info-row">
+                        <span class="unread-info-label">公告状态</span>
+                        <span class="status-tag ${status}">${StatusHelper.getStatusLabel(status)}</span>
+                    </div>
+                    <div class="unread-info-row">
+                        <span class="unread-info-label">停梯时间</span>
+                        <span class="unread-info-value">${Utils.formatDateTime(announcement.startTime)}</span>
+                    </div>
+                    <div class="unread-info-row">
+                        <span class="unread-info-label">预计恢复</span>
+                        <span class="unread-info-value">${Utils.formatDateTime(announcement.expectedResumeTime)}</span>
+                    </div>
+                    <div class="unread-info-row">
+                        <span class="unread-info-label">影响楼层</span>
+                        <span class="unread-info-value">${Utils.escapeHtml(announcement.affectedFloors || '全部楼层')}</span>
+                    </div>
+                    ${lastReminderTime ? `
+                    <div class="unread-info-row">
+                        <span class="unread-info-label">最近提醒时间</span>
+                        <span class="unread-info-value">${Utils.formatDateTime(lastReminderTime)} <span class="unread-type-tag">${typeLabel[lastReminderType] || ''}</span></span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                ${!canPush ? `
+                <div class="unread-warning">
+                    ⚠️ ${Utils.escapeHtml(pushDisabledReason)}
+                </div>
+                ` : ''}
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" data-close="modal">关闭</button>
+                    <button type="button" class="btn btn-warning" id="btn-push-reminder" ${!canPush ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                        🔔 一键塞入住户提醒记录
+                    </button>
+                </div>
+            </div>
+        `;
+
+        Modal.open('未读住户提醒', body);
+
+        const pushBtn = document.getElementById('btn-push-reminder');
+        if (pushBtn && canPush) {
+            pushBtn.addEventListener('click', () => {
+                this.pushToReminders(id);
+            });
+        }
+    },
+
+    pushToReminders(id) {
+        const announcement = AnnouncementStore.find(id);
+        if (!announcement) return;
+
+        const status = StatusHelper.computeStatus(announcement);
+        if (status === 'completed') {
+            Notification.show('提示', '已完成的公告不能再塞提醒', 'info');
+            return;
+        }
+
+        const now = Date.now();
+        const elevator = ElevatorStore.find(announcement.elevatorId);
+        const building = elevator ? elevator.building : '-';
+        const unit = elevator ? elevator.unit : '-';
+        const elevatorNo = elevator ? elevator.elevatorNo : '-';
+        const loc = elevator ? `${building}栋${unit}单元${elevatorNo}号梯` : '电梯';
+        const propertyCompany = elevator ? elevator.propertyCompany : '';
+        const maintenanceCompany = elevator ? elevator.maintenanceCompany : '';
+
+        const readCount = (announcement.readBy || []).length;
+        const totalResidents = announcement.totalResidents || 0;
+        const unreadCount = Math.max(0, totalResidents - readCount);
+
+        let type = 'reminder_60';
+        let extraData = {};
+        const start = new Date(announcement.startTime).getTime();
+        const minutesToStart = Math.round((start - now) / 60000);
+
+        if (status === 'overdue') {
+            type = 'overdue';
+            extraData = {
+                expectedResumeTime: announcement.expectedResumeTime,
+                overdueMinutes: Utils.diffMinutes(announcement.expectedResumeTime, now),
+                overdueReason: announcement.overdueReason || ''
+            };
+        } else {
+            extraData = {
+                minutesToStart: Math.max(0, minutesToStart)
+            };
+        }
+
+        const existing = ResidentReminderStore.findByAnnouncementId(id, type);
+        if (existing) {
+            Notification.show('提示', '该类型提醒已存在，请勿重复塞入', 'warning');
+            return;
+        }
+
+        ResidentReminderStore.create({
+            type,
+            announcementId: id,
+            building,
+            unit,
+            elevatorNo,
+            location: loc,
+            startTime: announcement.startTime,
+            affectedFloors: announcement.affectedFloors || '全部楼层',
+            alternativeElevator: announcement.alternativeElevator || '',
+            contactPhone: announcement.contactPhone || '',
+            paperPosted: !!announcement.paperPosted,
+            propertyCompany,
+            maintenanceCompany,
+            snapshotReadCount: readCount,
+            snapshotUnreadCount: unreadCount,
+            snapshotTotal: totalResidents,
+            snapshotAt: now,
+            ...extraData
+        });
+
+        Modal.close();
+        this.render(document.getElementById('filter-status').value, document.getElementById('filter-building').value);
+        DashboardUI.render();
+        Notification.show('成功', '已塞入住户提醒记录', 'success');
     },
 
     showForm(id = null, elevatorId = null) {
