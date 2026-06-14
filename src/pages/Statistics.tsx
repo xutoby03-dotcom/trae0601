@@ -10,6 +10,7 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
+  AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
@@ -17,6 +18,9 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable } from '@/components/DataTable';
+import { Modal } from '@/components/ui/Modal';
+import { Input, Select } from '@/components/ui/Input';
+import { PhotoUpload } from '@/components/PhotoUpload';
 import {
   BarChart,
   Bar,
@@ -32,25 +36,74 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import type { ConsumptionRate, ReplenishmentForecast, DepartmentUsage } from '../../shared/types';
+import type { CreateReplenishmentRequest, ConsumptionRate, ReplenishmentForecast, DepartmentUsage } from '../../shared/types';
 
 const COLORS = ['#0F4C81', '#1E88E5', '#42A5F5', '#90CAF9', '#BBDEFB', '#E3F2FD'];
 
 export default function Statistics() {
   const navigate = useNavigate();
   const {
+    printers,
     consumptionRates,
     departmentUsage,
     replenishmentForecast,
     dailyTrend,
     loading,
     fetchStatistics,
+    fetchPrinters,
+    addReplenishment,
   } = useAppStore();
   const [activeTab, setActiveTab] = useState<'consumption' | 'department' | 'forecast'>('consumption');
+  const [showReplenishModal, setShowReplenishModal] = useState(false);
+  const [formData, setFormData] = useState<CreateReplenishmentRequest>({
+    printerId: '',
+    supplier: '',
+    boxCount: 1,
+    unitPrice: 0,
+    photoUrl: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const suppliers = ['亚太森博', 'Double A', '天章纸业', '金光纸业', 'UPM', '其他'];
 
   useEffect(() => {
     fetchStatistics();
+    fetchPrinters();
   }, []);
+
+  const handleOpenReplenish = (forecast: ReplenishmentForecast) => {
+    const suggestedBoxes = Math.max(1, Math.ceil(forecast.suggestedQuantity / 10));
+    setFormData({
+      printerId: forecast.printerId,
+      supplier: '',
+      boxCount: suggestedBoxes,
+      unitPrice: 0,
+      photoUrl: '',
+    });
+    setErrors({});
+    setShowReplenishModal(true);
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.printerId) newErrors.printerId = '请选择打印点';
+    if (!formData.supplier.trim()) newErrors.supplier = '请输入供应商';
+    if (!formData.boxCount || formData.boxCount <= 0) newErrors.boxCount = '请输入有效箱数';
+    if (!formData.unitPrice || formData.unitPrice <= 0) newErrors.unitPrice = '请输入有效单价';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmitReplenish = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      await addReplenishment(formData);
+      setShowReplenishModal(false);
+    } catch (err) {
+      setErrors({ submit: (err as Error).message });
+    }
+  };
 
   const totalDailyConsumption = consumptionRates.reduce((sum, r) => sum + r.dailyAverage, 0);
   const totalWeeklyConsumption = consumptionRates.reduce((sum, r) => sum + r.weeklyAverage, 0);
@@ -188,7 +241,7 @@ export default function Statistics() {
         <Button
           size="sm"
           variant="primary"
-          onClick={() => navigate('/replenishments')}
+          onClick={() => handleOpenReplenish(row)}
         >
           去补货
         </Button>
@@ -608,7 +661,7 @@ export default function Statistics() {
                         <Button
                           size="sm"
                           variant="danger"
-                          onClick={() => navigate('/replenishments')}
+                          onClick={() => handleOpenReplenish(f)}
                         >
                           立即补货
                         </Button>
@@ -653,7 +706,7 @@ export default function Statistics() {
                         <Button
                           size="sm"
                           variant="primary"
-                          onClick={() => navigate('/replenishments')}
+                          onClick={() => handleOpenReplenish(f)}
                         >
                           安排补货
                         </Button>
@@ -680,6 +733,122 @@ export default function Statistics() {
           </Card>
         </div>
       )}
+
+      <Modal
+        isOpen={showReplenishModal}
+        onClose={() => setShowReplenishModal(false)}
+        title="登记补货"
+        className="max-w-lg"
+      >
+        <form onSubmit={handleSubmitReplenish} className="space-y-5">
+          <Select
+            label="选择打印点"
+            value={formData.printerId}
+            onChange={(e) => setFormData({ ...formData, printerId: e.target.value })}
+            options={[
+              { value: '', label: '请选择打印点' },
+              ...printers.map((p) => ({
+                value: p.id,
+                label: `${p.location} (当前库存: ${p.currentStock}包)`,
+              })),
+            ]}
+            error={errors.printerId}
+          />
+
+          <Select
+            label="供应商"
+            value={formData.supplier}
+            onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+            options={[
+              { value: '', label: '请选择供应商' },
+              ...suppliers.map((s) => ({ value: s, label: s })),
+            ]}
+            error={errors.supplier}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="箱数"
+              type="number"
+              min="1"
+              value={formData.boxCount}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  boxCount: parseInt(e.target.value) || 1,
+                })
+              }
+              error={errors.boxCount}
+            />
+            <Input
+              label="单价（元/箱）"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.unitPrice}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  unitPrice: parseFloat(e.target.value) || 0,
+                })
+              }
+              error={errors.unitPrice}
+            />
+          </div>
+
+          {formData.boxCount > 0 && formData.unitPrice > 0 && (
+            <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-medium text-primary-700">补货信息</p>
+                  <p className="text-xs text-primary-600 mt-1">
+                    {formData.boxCount} 箱 × ¥{formData.unitPrice.toFixed(2)}/箱
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-primary-700">
+                    ¥{(formData.boxCount * formData.unitPrice).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-primary-600">
+                    共 {formData.boxCount * 10} 包纸
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <PhotoUpload
+            label="入库照片"
+            value={formData.photoUrl}
+            onChange={(url) => setFormData({ ...formData, photoUrl: url })}
+          />
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-blue-700">换算说明</p>
+              <p className="text-xs text-blue-600">
+                系统默认每箱 = 10 包纸，入库后库存将自动增加
+              </p>
+            </div>
+          </div>
+
+          {errors.submit && (
+            <p className="text-sm text-danger-500">{errors.submit}</p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowReplenishModal(false)}
+            >
+              取消
+            </Button>
+            <Button type="submit">确认补货</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

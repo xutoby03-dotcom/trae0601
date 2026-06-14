@@ -206,6 +206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().fetchReplenishments(),
         get().fetchPrinters(),
         get().fetchAlerts(undefined, false),
+        get().fetchStatistics(),
       ]);
     } catch (err) {
       set({ error: (err as Error).message });
