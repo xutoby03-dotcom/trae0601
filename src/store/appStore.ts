@@ -18,7 +18,7 @@ interface AppState {
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
-  borrowRemote: (remoteId: string, borrower: string, department: string, conferenceRoom: string, expectedReturn: string, purpose: string) => void;
+  borrowRemote: (remoteId: string, borrower: string, department: string, conferenceRoom: string, borrowTime: string, expectedReturn: string, purpose: string) => void;
   returnRemote: (recordId: string, returnBatteryLevel: number, hasDamage: boolean, inOriginalBox: boolean, notes?: string) => void;
   markRemoteLost: (remoteId: string, reason: string) => void;
   resetData: () => void;
@@ -74,19 +74,18 @@ export const useAppStore = create<AppState>()(
         notifications: state.notifications.map(n => ({ ...n, read: true }))
       })),
 
-      borrowRemote: (remoteId, borrower, department, conferenceRoom, expectedReturn, purpose) => {
+      borrowRemote: (remoteId, borrower, department, conferenceRoom, borrowTime, expectedReturn, purpose) => {
         const state = get();
         const remote = state.remotes.find(r => r.id === remoteId);
         if (!remote || remote.status !== 'available') return;
 
-        const now = new Date().toISOString();
         const newRecord: BorrowRecord = {
           id: generateId(),
           remoteId,
           borrower,
           department,
           conferenceRoom,
-          borrowTime: now,
+          borrowTime,
           expectedReturn,
           purpose,
           status: 'borrowing'

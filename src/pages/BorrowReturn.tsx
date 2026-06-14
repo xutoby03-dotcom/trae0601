@@ -31,6 +31,7 @@ export default function BorrowReturn() {
     department: DEPARTMENTS[0],
     conferenceRoom: CONFERENCE_ROOMS[0],
     purpose: '',
+    borrowTime: '',
     expectedReturn: '',
   });
   
@@ -86,6 +87,7 @@ export default function BorrowReturn() {
       borrowForm.borrower,
       borrowForm.department,
       borrowForm.conferenceRoom,
+      borrowForm.borrowTime || new Date().toISOString(),
       borrowForm.expectedReturn,
       borrowForm.purpose
     );
@@ -97,6 +99,7 @@ export default function BorrowReturn() {
       department: DEPARTMENTS[0],
       conferenceRoom: CONFERENCE_ROOMS[0],
       purpose: '',
+      borrowTime: '',
       expectedReturn: '',
     });
   };
@@ -495,6 +498,16 @@ export default function BorrowReturn() {
                   <option key={room} value={room}>{room}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">借出时间</label>
+              <input
+                type="datetime-local"
+                value={borrowForm.borrowTime}
+                onChange={(e) => setBorrowForm({ ...borrowForm, borrowTime: e.target.value })}
+                className="input-field"
+              />
+              <p className="text-xs text-gray-400 mt-1">留空则默认为当前时间</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">预计归还时间 *</label>
