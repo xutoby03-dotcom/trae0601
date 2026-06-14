@@ -207,6 +207,10 @@ function generatePastReservations(): Reservation[] {
     const missingAdapter = Math.random() < 0.1;
     const wrongLocation = Math.random() < 0.12;
 
+    const missingOnReturn: string[] = [];
+    if (missingCable) missingOnReturn.push('电源线');
+    if (missingAdapter) missingOnReturn.push('Type-C转接头');
+
     reservations.push({
       id: `r${idCounter++}`,
       displayId,
@@ -219,8 +223,7 @@ function generatePastReservations(): Reservation[] {
       status: 'returned',
       borrowTime: formatISO(setMinutes(setHours(useDate, 9), 0)),
       returnTime: formatISO(setMinutes(setHours(useDate, 18), 0)),
-      hasPowerCable: !missingCable,
-      hasAdapter: !missingAdapter,
+      missingAccessoriesOnReturn: missingOnReturn.length > 0 ? missingOnReturn : undefined,
       hasScratch,
       inCorrectLocation: !wrongLocation,
       returnNotes: hasScratch ? '发现屏幕有新划痕' : missingCable ? '归还时缺少电源线' : undefined,

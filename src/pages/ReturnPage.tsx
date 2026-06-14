@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   CheckSquare,
   Search,
-  Power,
-  Cable,
   ScanFace,
   MapPinCheck,
   Send,
@@ -14,30 +12,50 @@ import {
   ChevronDown,
   ChevronUp,
   PackageCheck,
+  Power,
+  Cable,
+  Plug,
+  AlertTriangle,
 } from 'lucide-react';
 import { useStore } from '../store';
 import { useToast } from '../components/Toast';
 import { ReservationStatusBadge } from '../components/Badges';
 import { TIME_SLOT_LABEL, RESERVATION_STATUS_LABEL } from '../types';
-import type { Reservation } from '../types';
+import type { Reservation, Accessory } from '../types';
 import { format, parseISO, isSameDay, isBefore } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 
-type CheckItemKey = 'hasPowerCable' | 'hasAdapter' | 'hasScratch' | 'inCorrectLocation';
-
-const CHECK_ITEMS: {
-  key: CheckItemKey;
+const FIXED_CHECK_ITEMS: {
+  key: 'hasScratch' | 'inCorrectLocation';
   label: string;
   desc: string;
-  icon: typeof Power;
+  icon: typeof ScanFace;
   positive: boolean;
 }[] = [
-  { key: 'hasPowerCable', label: '电源线齐全', desc: '检查电源线是否随设备归还', icon: Power, positive: true },
-  { key: 'hasAdapter', label: '转接头/数据线齐全', desc: '检查 HDMI/DP/Type-C 等转接线', icon: Cable, positive: true },
   { key: 'hasScratch', label: '屏幕无新增划痕', desc: '仔细检查屏幕是否有物理损伤', icon: ScanFace, positive: false },
   { key: 'inCorrectLocation', label: '放回指定位置', desc: '确认设备已放回到设备柜原位', icon: MapPinCheck, positive: true },
 ];
+
+function getAccessoryIcon(name: string) {
+  if (name.includes('电源')) return Power;
+  if (name.includes('转接头')) return Plug;
+  return Cable;
+}
+
+interface AccessoryCheckState {
+  [accessoryName: string]: boolean;
+}
+
+interface FixedCheckState {
+  hasScratch: boolean;
+  inCorrectLocation: boolean;
+}
+
+interface ReturnCheckState {
+  accessories: AccessoryCheckState;
+  fixed: FixedCheckState;
+}
 
 export default function ReturnPage() {
   const toast = useToast();
@@ -47,7 +65,7 @@ export default function ReturnPage() {
 
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [checks, setChecks] = useState<Record<string, Record<CheckItemKey, boolean>>>({});
+  const [checkStates, setCheckStates] = useState<Record<string, ReturnCheckState>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
 
@@ -82,44 +100,90 @@ export default function ReturnPage() {
   const overdueCount = toReturn.filter((r) => isBefore(parseISO(r.useDate), today) && !isSameDay(parseISO(r.useDate), today)).length;
   const todayCount = toReturn.filter((r) => isSameDay(parseISO(r.useDate), today)).length;
 
-  const ensureCheck = (id: string) => {
-    if (!checks[id]) {
-      checks[id] = { hasPowerCable: true, hasAdapter: true, hasScratch: false, inCorrectLocation: true };
+  const ensureCheckState = (rId: string, displayAccessories: Accessory[]): ReturnCheckState => {
+    if (!checkStates[rId]) {
+      const accState: AccessoryCheckState = {};
+      displayAccessories.forEach((a) => {
+        accState[a.name] = true;
+      });
+      return {
+        accessories: accState,
+        fixed: { hasScratch: false, inCorrectLocation: true },
+      };
     }
-    return checks[id];
+    return checkStates[rId];
   };
 
-  const toggleCheck = (rId: string, key: CheckItemKey) => {
-    setChecks((c) => {
-      const current = { ...ensureCheck(rId), ...c[rId] };
-      return { ...c, [rId]: { ...current, [key]: !current[key] } };
+  const toggleAccessory = (rId: string, name: string, displayAccessories: Accessory[]) => {
+    setCheckStates((prev) => {
+      const current = ensureCheckState(rId, displayAccessories);
+      return {
+        ...prev,
+        [rId]: {
+          ...current,
+          accessories: {
+            ...current.accessories,
+            [name]: !current.accessories[name],
+          },
+        },
+      };
     });
   };
 
-  const allChecked = (rId: string) => {
-    const c = checks[rId];
-    return c && CHECK_ITEMS.every((i) => c[i.key] !== undefined && c[i.key] !== null);
+  const toggleFixed = (rId: string, key: 'hasScratch' | 'inCorrectLocation', displayAccessories: Accessory[]) => {
+    setCheckStates((prev) => {
+      const current = ensureCheckState(rId, displayAccessories);
+      return {
+        ...prev,
+        [rId]: {
+          ...current,
+          fixed: {
+            ...current.fixed,
+            [key]: !current.fixed[key],
+          },
+        },
+      };
+    });
   };
 
-  const handleReturn = async (r: Reservation) => {
-    const c = checks[r.id];
-    if (!c) return;
+  const getMissingAccessories = (rId: string, displayAccessories: Accessory[]): string[] => {
+    const state = checkStates[rId];
+    if (!state) return [];
+    return displayAccessories.filter((a) => !state.accessories[a.name]).map((a) => a.name);
+  };
+
+  const getTotalCheckCount = (rId: string, displayAccessories: Accessory[]): { pass: number; total: number } => {
+    const state = checkStates[rId];
+    if (!state) return { pass: 0, total: displayAccessories.length + FIXED_CHECK_ITEMS.length };
+    let pass = 0;
+    const total = displayAccessories.length + FIXED_CHECK_ITEMS.length;
+    displayAccessories.forEach((a) => {
+      if (state.accessories[a.name]) pass++;
+    });
+    FIXED_CHECK_ITEMS.forEach((item) => {
+      if (item.positive ? state.fixed[item.key] : !state.fixed[item.key]) pass++;
+    });
+    return { pass, total };
+  };
+
+  const handleReturn = async (r: Reservation, displayAccessories: Accessory[]) => {
+    const state = checkStates[r.id];
+    if (!state) return;
+    const missingAccessories = getMissingAccessories(r.id, displayAccessories);
     setSubmitting(r.id);
     await new Promise((x) => setTimeout(x, 600));
     completeReturn(r.id, {
-      hasPowerCable: c.hasPowerCable,
-      hasAdapter: c.hasAdapter,
-      hasScratch: c.hasScratch,
-      inCorrectLocation: c.inCorrectLocation,
+      missingAccessoriesOnReturn: missingAccessories,
+      hasScratch: state.fixed.hasScratch,
+      inCorrectLocation: state.fixed.inCorrectLocation,
       returnNotes: notes[r.id]?.trim() || undefined,
     });
     const issues: string[] = [];
-    if (!c.hasPowerCable) issues.push('电源线缺失');
-    if (!c.hasAdapter) issues.push('转接头缺失');
-    if (c.hasScratch) issues.push('新增划痕');
-    if (!c.inCorrectLocation) issues.push('未放回原位');
+    if (missingAccessories.length > 0) issues.push(`缺少${missingAccessories.join('、')}`);
+    if (state.fixed.hasScratch) issues.push('新增划痕');
+    if (!state.fixed.inCorrectLocation) issues.push('未放回原位');
     if (issues.length > 0) {
-      toast.show(`归还完成，已记录问题：${issues.join('、')}`, 'warning');
+      toast.show(`归还完成，已记录问题：${issues.join('；')}`, 'warning');
     } else {
       toast.show('归还完成，设备状态良好', 'success');
     }
@@ -206,9 +270,12 @@ export default function ReturnPage() {
             const d = displayMap.get(r.displayId);
             const isOverdue = isBefore(parseISO(r.useDate), today) && !isSameDay(parseISO(r.useDate), today);
             const isExpanded = expandedId === r.id;
-            const currentChecks = ensureCheck(r.id);
-            const c = checks[r.id] || currentChecks;
-            const passCount = CHECK_ITEMS.filter((i) => (i.positive ? c[i.key] : !c[i.key])).length;
+            const accessories = d?.accessories ?? [];
+            const state = ensureCheckState(r.id, accessories);
+            const missingAcc = getMissingAccessories(r.id, accessories);
+            const { pass: passCount, total: totalCount } = getTotalCheckCount(r.id, accessories);
+            const allPass = passCount === totalCount;
+
             return (
               <div
                 key={r.id}
@@ -259,11 +326,22 @@ export default function ReturnPage() {
                   <div className="hidden sm:flex flex-col items-end shrink-0">
                     <div className="flex items-center gap-1 mb-1">
                       <div className="flex gap-1">
-                        {CHECK_ITEMS.map((i) => {
-                          const ok = i.positive ? c[i.key] : !c[i.key];
+                        {accessories.map((a, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              'w-2.5 h-2.5 rounded-full',
+                              isExpanded
+                                ? (state.accessories[a.name] ? 'bg-emerald-500' : 'bg-rose-500')
+                                : 'bg-zinc-300'
+                            )}
+                          />
+                        ))}
+                        {FIXED_CHECK_ITEMS.map((item) => {
+                          const ok = item.positive ? state.fixed[item.key] : !state.fixed[item.key];
                           return (
                             <div
-                              key={i.key}
+                              key={item.key}
                               className={cn(
                                 'w-2.5 h-2.5 rounded-full',
                                 isExpanded ? (ok ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-zinc-300'
@@ -275,7 +353,7 @@ export default function ReturnPage() {
                     </div>
                     {isExpanded && (
                       <span className="text-xs font-medium text-zinc-500">
-                        {passCount}/{CHECK_ITEMS.length} 项通过
+                        {passCount}/{totalCount} 项通过
                       </span>
                     )}
                   </div>
@@ -283,55 +361,128 @@ export default function ReturnPage() {
 
                 {isExpanded && d && (
                   <div className="p-5 border-t border-zinc-100 bg-gradient-to-b from-zinc-50/40 to-white space-y-5 animate-fade-in-up">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {CHECK_ITEMS.map((item) => {
-                        const checked = c[item.key];
-                        const passed = item.positive ? checked : !checked;
-                        const Icon = item.icon;
-                        return (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); toggleCheck(r.id, item.key); }}
-                            className={cn(
-                              'p-4 rounded-xl border-2 transition-all text-left flex gap-4 items-start',
-                              passed
-                                ? 'bg-emerald-50/60 border-emerald-300'
-                                : 'bg-white border-zinc-200 hover:border-brand-300 hover:bg-brand-50/30'
-                            )}
-                          >
-                            <div className={cn(
-                              'w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-all',
-                              passed ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-zinc-100 text-zinc-500'
-                            )}>
-                              <Icon size={20} />
-                            </div>
-                            <div className="flex-1 pt-0.5">
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <span className="font-bold text-zinc-800">{item.label}</span>
-                                <div className={cn(
-                                  'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
-                                  passed
-                                    ? 'bg-emerald-500 border-emerald-500'
-                                    : checked && !item.positive
-                                      ? 'bg-rose-500 border-rose-500'
-                                      : 'border-zinc-300'
-                                )}>
-                                  <CheckSquare size={14} className={cn('text-white', !passed && !checked && 'opacity-0')} />
-                                </div>
-                              </div>
-                              <p className="text-xs text-zinc-500">{item.desc}</p>
-                              <p className={cn(
-                                'text-xs font-medium mt-1.5',
-                                passed ? 'text-emerald-700' : 'text-zinc-400'
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-800 mb-3 flex items-center gap-2">
+                        <PackageCheck size={16} className="text-brand-600" />
+                        配件明细检查
+                        <span className="text-xs font-normal text-zinc-500">（默认全部齐全，点掉未带回的配件）</span>
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {accessories.map((a, idx) => {
+                          const present = state.accessories[a.name] ?? true;
+                          const Icon = getAccessoryIcon(a.name);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleAccessory(r.id, a.name, accessories); }}
+                              className={cn(
+                                'p-3.5 rounded-xl border-2 transition-all text-left flex gap-3 items-center',
+                                present
+                                  ? 'bg-emerald-50/60 border-emerald-300'
+                                  : 'bg-rose-50/60 border-rose-300'
+                              )}
+                            >
+                              <div className={cn(
+                                'w-9 h-9 shrink-0 rounded-lg flex items-center justify-center transition-all',
+                                present
+                                  ? 'bg-emerald-500 text-white shadow-sm'
+                                  : 'bg-rose-500 text-white shadow-sm'
                               )}>
-                                当前状态：{passed ? '通过 ✓' : checked && !item.positive ? '存在问题' : '待检查'}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                                <Icon size={18} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-sm text-zinc-800 truncate">{a.name}</span>
+                                  <span className={cn(
+                                    'text-[11px] font-bold px-2 py-0.5 rounded-full',
+                                    present
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-rose-100 text-rose-700'
+                                  )}>
+                                    {present ? '齐全 ✓' : '缺失 ✗'}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 mt-0.5">× {a.quantity}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-800 mb-3 flex items-center gap-2">
+                        <ScanFace size={16} className="text-brand-600" />
+                        设备外观与位置
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {FIXED_CHECK_ITEMS.map((item) => {
+                          const checked = state.fixed[item.key];
+                          const passed = item.positive ? checked : !checked;
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleFixed(r.id, item.key, accessories); }}
+                              className={cn(
+                                'p-4 rounded-xl border-2 transition-all text-left flex gap-4 items-start',
+                                passed
+                                  ? 'bg-emerald-50/60 border-emerald-300'
+                                  : 'bg-white border-zinc-200 hover:border-brand-300 hover:bg-brand-50/30'
+                              )}
+                            >
+                              <div className={cn(
+                                'w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-all',
+                                passed ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-zinc-100 text-zinc-500'
+                              )}>
+                                <Icon size={20} />
+                              </div>
+                              <div className="flex-1 pt-0.5">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="font-bold text-zinc-800">{item.label}</span>
+                                  <div className={cn(
+                                    'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
+                                    passed
+                                      ? 'bg-emerald-500 border-emerald-500'
+                                      : checked && !item.positive
+                                        ? 'bg-rose-500 border-rose-500'
+                                        : 'border-zinc-300'
+                                  )}>
+                                    <CheckSquare size={14} className={cn('text-white', !passed && !checked && 'opacity-0')} />
+                                  </div>
+                                </div>
+                                <p className="text-xs text-zinc-500">{item.desc}</p>
+                                <p className={cn(
+                                  'text-xs font-medium mt-1.5',
+                                  passed ? 'text-emerald-700' : 'text-zinc-400'
+                                )}>
+                                  当前状态：{passed ? '通过 ✓' : checked && !item.positive ? '存在问题' : '待检查'}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {missingAcc.length > 0 && (
+                      <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+                        <AlertTriangle size={20} className="text-rose-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-rose-800 mb-1">以下配件未归还</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {missingAcc.map((name) => (
+                              <span key={name} className="chip bg-rose-100 text-rose-700 border border-rose-200">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs text-rose-600 mt-2">这些配件将标记为缺失，设备状态自动变为"配件缺失"，在补齐前不可借出。</p>
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label className="label">归还备注（可选）</label>
@@ -350,22 +501,28 @@ export default function ReturnPage() {
                           检查完成情况：
                           <span className={cn(
                             'ml-1.5',
-                            passCount === CHECK_ITEMS.length ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'
+                            allPass ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'
                           )}>
-                            {passCount} / {CHECK_ITEMS.length} 项通过
+                            {passCount} / {totalCount} 项通过
                           </span>
                         </p>
-                        <p className="text-xs text-zinc-500">
-                          {RESERVATION_STATUS_LABEL[r.status]} · {d?.code} · 归还后设备状态将自动更新
-                        </p>
+                        {missingAcc.length > 0 ? (
+                          <p className="text-xs text-rose-600 font-medium">
+                            缺失配件：{missingAcc.join('、')}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-zinc-500">
+                            {RESERVATION_STATUS_LABEL[r.status]} · {d?.code} · 归还后设备状态将自动更新
+                          </p>
+                        )}
                       </div>
                       <button
                         className={cn(
                           'btn-success gap-2 min-w-[140px]',
                           submitting === r.id && 'opacity-70'
                         )}
-                        disabled={submitting === r.id || !allChecked(r.id)}
-                        onClick={(e) => { e.stopPropagation(); handleReturn(r); }}
+                        disabled={submitting === r.id}
+                        onClick={(e) => { e.stopPropagation(); handleReturn(r, accessories); }}
                       >
                         {submitting === r.id ? (
                           <>

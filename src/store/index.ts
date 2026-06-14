@@ -27,8 +27,7 @@ interface StoreState {
   completeReturn: (
     reservationId: string,
     check: {
-      hasPowerCable: boolean;
-      hasAdapter: boolean;
+      missingAccessoriesOnReturn: string[];
       hasScratch: boolean;
       inCorrectLocation: boolean;
       returnNotes?: string;
@@ -133,44 +132,21 @@ export const useStore = create<StoreState>()(
         if (!display) return;
 
         let newDamageCount = display.damageCount;
-        const newMissing: string[] = [...display.missingAccessories];
-
         if (check.hasScratch) newDamageCount++;
 
-        const powerAccessory = display.accessories.find((a) => a.name.includes('电源'));
-        if (!check.hasPowerCable && powerAccessory && !newMissing.includes(powerAccessory.name)) {
-          newMissing.push(powerAccessory.name);
-        }
+        const returnedMissing = new Set(check.missingAccessoriesOnReturn);
+        const existingMissing = new Set(display.missingAccessories);
 
-        if (!check.hasAdapter) {
-          const cableAndAdapters = display.accessories
-            .filter(
-              (a) =>
-                (a.name.includes('转接头') || a.name.includes('线')) &&
-                !a.name.includes('电源')
-            )
-            .map((a) => a.name);
-          cableAndAdapters.forEach((a) => {
-            if (!newMissing.includes(a)) newMissing.push(a);
-          });
-        }
+        display.accessories.forEach((a) => {
+          existingMissing.delete(a.name);
+        });
 
-        if (check.hasPowerCable && powerAccessory) {
-          const idx = newMissing.indexOf(powerAccessory.name);
-          if (idx >= 0) newMissing.splice(idx, 1);
-        }
-        if (check.hasAdapter) {
-          display.accessories
-            .filter(
-              (a) =>
-                (a.name.includes('转接头') || a.name.includes('线')) &&
-                !a.name.includes('电源')
-            )
-            .forEach((a) => {
-              const idx = newMissing.indexOf(a.name);
-              if (idx >= 0) newMissing.splice(idx, 1);
-            });
-        }
+        const newMissing: string[] = [];
+        display.accessories.forEach((a) => {
+          if (existingMissing.has(a.name) || returnedMissing.has(a.name)) {
+            newMissing.push(a.name);
+          }
+        });
 
         let newStatus: DisplayStatus = display.status;
         if (newMissing.length > 0) newStatus = 'missing';

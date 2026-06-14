@@ -36,8 +36,7 @@ export interface Reservation {
   status: ReservationStatus;
   borrowTime?: string;
   returnTime?: string;
-  hasPowerCable?: boolean;
-  hasAdapter?: boolean;
+  missingAccessoriesOnReturn?: string[];
   hasScratch?: boolean;
   inCorrectLocation?: boolean;
   returnNotes?: string;
