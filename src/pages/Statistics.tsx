@@ -297,6 +297,41 @@ function Statistics() {
     msg.success(`已导出 ${filteredSuggestions.length} 条采购建议`);
   };
 
+  const exportExpiry = () => {
+    const lines = ['原料,品牌,批次,状态,开封日期,剩余量,存放位置,操作人'];
+    filteredExpiringSoon.forEach((r) => {
+      let statusText = '';
+      if (r.daysLeft < 0) statusText = `超期 ${Math.abs(r.daysLeft)} 天`;
+      else if (r.daysLeft <= 1) statusText = `剩余 ${r.daysLeft} 天`;
+      else statusText = `剩余 ${r.daysLeft} 天`;
+      lines.push(
+        `${r.ingredient.name},${r.ingredient.brand},${r.ingredient.batch},${statusText},${formatDate(r.openDate)},${r.remainingWeight}${r.ingredient.unit},${r.freezerLocation},${r.operator}`
+      );
+    });
+    const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const suffixParts: string[] = [];
+    if (expiryStatusFilter !== 'all') {
+      const statusMap: Record<string, string> = {
+        expired: '已超期',
+        '1day': '1天内到期',
+        '3days': '3天内到期',
+        '7days': '7天内到期',
+      };
+      suffixParts.push(statusMap[expiryStatusFilter] || '');
+    }
+    if (expiryFreezerFilter !== 'all') {
+      suffixParts.push(expiryFreezerFilter);
+    }
+    const filterSuffix = suffixParts.length > 0 ? '_' + suffixParts.join('_') : '';
+    a.download = `临期清单${filterSuffix}_${formatDate(new Date())}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    msg.success(`已导出 ${filteredExpiringSoon.length} 条临期记录`);
+  };
+
   const expiryColumns = [
     {
       title: '原料',
@@ -676,6 +711,13 @@ function Statistics() {
                   ...freezerOptions.map((loc) => ({ value: loc, label: `❄️ ${loc}` })),
                 ]}
               />
+              <Button
+                type="primary"
+                icon={<FileExcelOutlined />}
+                onClick={exportExpiry}
+              >
+                导出临期清单 {filteredExpiringSoon.length > 0 && `(${filteredExpiringSoon.length})`}
+              </Button>
             </Space>
           </div>
           {withLoading(
