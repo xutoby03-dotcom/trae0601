@@ -9,9 +9,13 @@
           {{ device.machineNo }} {{ device.name }}
         </p>
       </div>
-      <div>
-        <el-tag v-if="record.hasMissed" type="danger" effect="dark" size="large" style="margin-right: 8px;">存在漏做/异常</el-tag>
-        <el-tag v-else type="success" effect="light" size="large">全部完成</el-tag>
+      <div class="header-right-tags">
+        <el-tag v-if="abnormalPhotos.length" type="danger" effect="dark" size="large" style="margin-right: 8px; cursor: pointer;" @click="scrollToAbnormal">
+          <el-icon style="margin-right: 4px;"><WarningFilled /></el-icon>
+          异常照片 {{ abnormalPhotos.length }} 张 →
+        </el-tag>
+        <el-tag v-if="record.hasMissed" type="danger" effect="light" size="large" style="margin-right: 8px;">存在漏做/异常</el-tag>
+        <el-tag v-else type="success" effect="light" size="large" style="margin-right: 8px;">全部完成</el-tag>
         <el-tag
           :type="record.reviewStatus === 'approved' ? 'success' : record.reviewStatus === 'rectified' ? 'warning' : 'info'"
           size="large"
@@ -53,39 +57,59 @@
                 </p>
 
                 <div class="step-photos" v-if="getItemPhotos(item.partId).length">
-                  <el-image
+                  <div
                     v-for="(ph, idx) in getItemPhotos(item.partId)"
                     :key="idx"
-                    :src="ph.url"
-                    :preview-src-list="getAllPhotoUrls()"
-                    :initial-index="getPhotoInitialIndex(ph.url)"
-                    fit="cover"
-                    class="step-photo"
-                    :preview-teleported="true"
-                  />
+                    class="step-photo-wrap"
+                    @click="openPreview(ph)"
+                  >
+                    <el-image
+                      :src="ph.url"
+                      fit="cover"
+                      class="step-photo"
+                      :preview-src-list="[]"
+                      :initial-index="0"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </el-card>
 
-        <el-card v-if="abnormalPhotos.length" class="card-shadow mt-20" shadow="never">
+        <el-card v-if="abnormalPhotos.length" id="abnormal-photos-anchor" class="card-shadow mt-20 abnormal-card" shadow="never">
           <template #header>
-            <span class="card-title"><el-icon><Warning /></el-icon>&nbsp;异常照片 ({{ abnormalPhotos.length }})</span>
+            <span class="card-title"><el-icon><WarningFilled /></el-icon>&nbsp;异常照片 ({{ abnormalPhotos.length }})</span>
+            <span style="color: #f5222d; font-size: 12px; font-weight: 400; margin-left: 8px;">需店长重点核查</span>
           </template>
           <div class="photo-grid">
-            <el-image
+            <div
               v-for="(ph, idx) in abnormalPhotos"
               :key="idx"
-              :src="ph.url"
-              :preview-src-list="abnormalPhotos.map(p => p.url)"
-              :initial-index="idx"
-              fit="cover"
-              class="grid-photo"
-              :preview-teleported="true"
+              class="photo-card abnormal"
+              @click="openPreview(ph)"
             >
-              <div class="abnormal-badge">异常</div>
-            </el-image>
+              <div class="photo-img-wrap">
+                <el-image
+                  :src="ph.url"
+                  fit="cover"
+                  class="card-img"
+                  :preview-src-list="[]"
+                  :initial-index="0"
+                />
+                <div class="abnormal-corner">异常</div>
+              </div>
+              <div class="photo-meta">
+                <div class="photo-part" :title="getPartName(ph.partId)">
+                  <el-icon size="12"><Tools /></el-icon>
+                  <span>{{ getPartName(ph.partId) }}</span>
+                </div>
+                <div class="photo-time">
+                  <el-icon size="12"><Clock /></el-icon>
+                  <span>{{ formatTime(ph.uploadedAt) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </el-card>
 
@@ -94,16 +118,32 @@
             <span class="card-title"><el-icon><Picture /></el-icon>&nbsp;完成照片 ({{ normalPhotos.length }})</span>
           </template>
           <div class="photo-grid">
-            <el-image
+            <div
               v-for="(ph, idx) in normalPhotos"
               :key="idx"
-              :src="ph.url"
-              :preview-src-list="normalPhotos.map(p => p.url)"
-              :initial-index="idx"
-              fit="cover"
-              class="grid-photo"
-              :preview-teleported="true"
-            />
+              class="photo-card"
+              @click="openPreview(ph)"
+            >
+              <div class="photo-img-wrap">
+                <el-image
+                  :src="ph.url"
+                  fit="cover"
+                  class="card-img"
+                  :preview-src-list="[]"
+                  :initial-index="0"
+                />
+              </div>
+              <div class="photo-meta">
+                <div class="photo-part" :title="getPartName(ph.partId)">
+                  <el-icon size="12"><Tools /></el-icon>
+                  <span>{{ getPartName(ph.partId) }}</span>
+                </div>
+                <div class="photo-time">
+                  <el-icon size="12"><Clock /></el-icon>
+                  <span>{{ formatTime(ph.uploadedAt) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -190,6 +230,46 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <el-dialog
+      v-model="previewVisible"
+      :title="''"
+      width="auto"
+      align-center
+      destroy-on-close
+      class="photo-lightbox-dialog"
+      :show-close="false"
+      top="5vh"
+    >
+      <div class="lightbox-wrap" v-if="previewPhoto">
+        <div class="lightbox-close" @click="previewVisible = false">
+          <el-icon :size="20"><Close /></el-icon>
+        </div>
+        <div class="lightbox-nav lightbox-prev" @click="navigatePhoto(-1)" v-if="previewList.length > 1">
+          <el-icon :size="28"><ArrowLeft /></el-icon>
+        </div>
+        <div class="lightbox-nav lightbox-next" @click="navigatePhoto(1)" v-if="previewList.length > 1">
+          <el-icon :size="28"><ArrowRight /></el-icon>
+        </div>
+        <div class="lightbox-img">
+          <img :src="previewPhoto.url" :alt="getPartName(previewPhoto.partId)" />
+        </div>
+        <div class="lightbox-info">
+          <div class="lightbox-info-left">
+            <el-tag :type="previewPhoto.type === 'abnormal' ? 'danger' : 'success'" effect="dark" size="small" style="margin-right: 10px;">
+              {{ previewPhoto.type === 'abnormal' ? '异常照片' : '完成照片' }}
+            </el-tag>
+            <span class="lightbox-part">
+              <el-icon><Tools /></el-icon>&nbsp;零件：{{ getPartName(previewPhoto.partId) }}
+            </span>
+          </div>
+          <div class="lightbox-info-right">
+            <el-icon><Clock /></el-icon>&nbsp;上传时间：{{ formatTime(previewPhoto.uploadedAt) }}
+            <span class="lightbox-counter" v-if="previewList.length > 1">&nbsp;&nbsp;{{ previewIndex + 1 }} / {{ previewList.length }}</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
   <el-empty v-else description="记录不存在" />
 </template>
@@ -200,12 +280,12 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import {
-  ArrowLeft, List as CheckList, Warning, Picture, InfoFilled, DataLine, MagicStick,
-  EditPen, Stamp, Refresh, Check, CircleCheckFilled, CircleCloseFilled
+  ArrowLeft, List as CheckList, WarningFilled, Warning, Picture, InfoFilled, DataLine, MagicStick,
+  EditPen, Stamp, Refresh, Check, CircleCheckFilled, CircleCloseFilled, Tools, Clock, Close, ArrowRight
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
-import type { Record as DisinfectionRecord, Device } from '@/types'
+import type { Record as DisinfectionRecord, Device, RecordPhoto } from '@/types'
 import { TIME_SLOT_LABELS } from '@/types'
 
 const route = useRoute()
@@ -219,6 +299,11 @@ const device = computed<Device | null>(() => (record.value ? appStore.getDevice(
 const operatorName = computed(() => record.value ? appStore.getUser(record.value.operatorId)?.name : '-')
 const disinfectantUnit = computed(() => device.value ? appStore.getDisinfectant(device.value.disinfectantId)?.unitConsumption || 0 : 0)
 
+const previewVisible = ref(false)
+const previewIndex = ref(0)
+const previewList = ref<RecordPhoto[]>([])
+const previewPhoto = computed<RecordPhoto | null>(() => previewList.value[previewIndex.value] || null)
+
 const sortedItems = computed(() => record.value?.items ? [...record.value.items].sort((a, b) => a.sortOrder - b.sortOrder) : [])
 const devicePartsMap = computed(() => {
   const map: { [key: string]: any } = {}
@@ -231,6 +316,31 @@ function categoryColor(cat: string) {
   return map[cat] || '#f0f0f0'
 }
 function formatTime(s: string) { return dayjs(s).format('YYYY-MM-DD HH:mm:ss') }
+
+function getPartName(pid?: string) {
+  if (!pid || !record.value) return '未关联零件'
+  const item = record.value.items.find(i => i.partId === pid)
+  if (item) return item.partName
+  const p = device.value?.parts.find(pp => pp.id === pid)
+  return p?.name || '未知零件'
+}
+
+function scrollToAbnormal() {
+  const el = document.getElementById('abnormal-photos-anchor')
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function openPreview(photo: RecordPhoto) {
+  if (!record.value) return
+  previewList.value = record.value.photos
+  const idx = previewList.value.findIndex(p => p.url === photo.url)
+  previewIndex.value = idx >= 0 ? idx : 0
+  previewVisible.value = true
+}
+function navigatePhoto(delta: number) {
+  if (!previewList.value.length) return
+  previewIndex.value = (previewIndex.value + delta + previewList.value.length) % previewList.value.length
+}
 
 const photosByPart = computed(() => {
   const map: { [key: string]: any[] } = {}
@@ -246,8 +356,6 @@ function getItemPhotos(pid: string) { return photosByPart.value[pid] || [] }
 
 const abnormalPhotos = computed(() => record.value?.photos.filter(p => p.type === 'abnormal') || [])
 const normalPhotos = computed(() => record.value?.photos.filter(p => p.type !== 'abnormal') || [])
-function getAllPhotoUrls() { return (record.value?.photos || []).map(p => p.url) }
-function getPhotoInitialIndex(url: string) { return getAllPhotoUrls().findIndex(u => u === url) }
 
 const reviewRemark = ref('')
 function handleApprove() {
@@ -269,6 +377,7 @@ function handleRectify() {
 <style scoped lang="css">
 .card-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .mt-20 { margin-top: 20px; }
+.header-right-tags { display: flex; align-items: center; }
 
 .step-list { display: flex; flex-direction: column; gap: 10px; }
 .step-item {
@@ -294,30 +403,85 @@ function handleRectify() {
   margin-top: 10px;
   display: flex; flex-wrap: wrap; gap: 8px;
 }
-.step-photo {
+.step-photo-wrap {
   width: 90px; height: 90px;
   border-radius: 6px; overflow: hidden;
   border: 1px solid var(--border-color);
   cursor: zoom-in;
+  transition: all 0.2s;
+}
+.step-photo-wrap:hover { transform: scale(1.03); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.step-photo {
+  width: 100%; height: 100%;
+  display: block;
+}
+
+.abnormal-card {
+  border: 1.5px solid #ffa39e;
+  background: linear-gradient(to bottom, #fff2f0, #fff);
 }
 
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
 }
-.grid-photo {
-  width: 100%; height: 120px;
-  border-radius: 8px;
-  position: relative;
+.photo-card {
+  border: 1px solid #ebeef5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
   cursor: zoom-in;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
 }
-.abnormal-badge {
-  position: absolute; top: 4px; right: 4px;
+.photo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: var(--primary-color);
+}
+.photo-card.abnormal {
+  border-color: #ffccc7;
+}
+.photo-card.abnormal:hover {
+  border-color: #f5222d;
+}
+.photo-img-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 75%;
+  overflow: hidden;
+  background: #fafafa;
+}
+.card-img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+.abnormal-corner {
+  position: absolute; top: 6px; right: 6px;
   background: #f5222d; color: white;
-  padding: 1px 8px; border-radius: 10px;
-  font-size: 10px; font-weight: 600;
+  padding: 2px 10px; border-radius: 10px;
+  font-size: 11px; font-weight: 600;
   z-index: 2;
+  box-shadow: 0 1px 4px rgba(245, 34, 45, 0.4);
+}
+.photo-meta {
+  padding: 8px 10px 10px;
+  background: white;
+  border-top: 1px solid #f5f5f5;
+}
+.photo-part {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.photo-time {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: #909399;
 }
 
 .info-list { padding: 4px 0; }
@@ -359,5 +523,97 @@ function handleRectify() {
 .review-actions {
   margin-top: 12px;
   display: flex; justify-content: flex-end; gap: 10px;
+}
+
+:deep(.photo-lightbox-dialog) {
+  max-width: 95vw;
+  background: transparent;
+  box-shadow: none;
+  --el-dialog-bg-color: transparent;
+  --el-dialog-box-shadow: none;
+}
+:deep(.photo-lightbox-dialog .el-dialog__body) {
+  padding: 0;
+}
+.lightbox-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 95vw;
+}
+.lightbox-close {
+  position: absolute;
+  top: -36px; right: 0;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+.lightbox-close:hover { background: rgba(0, 0, 0, 0.85); transform: scale(1.1); }
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  user-select: none;
+}
+.lightbox-nav:hover { background: rgba(0, 0, 0, 0.85); transform: translateY(-50%) scale(1.1); }
+.lightbox-prev { left: -60px; }
+.lightbox-next { right: -60px; }
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 75vh;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  background: #1a1a1a;
+}
+.lightbox-img img {
+  max-width: 90vw;
+  max-height: 75vh;
+  display: block;
+  object-fit: contain;
+}
+.lightbox-info {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+}
+.lightbox-info-left {
+  display: flex; align-items: center;
+}
+.lightbox-part {
+  display: flex; align-items: center; gap: 4px;
+  font-weight: 500; color: var(--text-primary);
+}
+.lightbox-info-right {
+  display: flex; align-items: center;
+  color: #606266;
+}
+.lightbox-counter {
+  color: #909399;
+  font-size: 12px;
+  padding-left: 10px;
+  border-left: 1px solid #e4e7ed;
+  margin-left: 8px;
 }
 </style>
