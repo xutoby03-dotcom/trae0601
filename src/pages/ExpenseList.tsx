@@ -239,6 +239,18 @@ export default function ExpenseList() {
                           {getPayerName(expense.payerId)} 支付
                         </span>
                         <div className="flex items-center gap-2">
+                          {expense.receiptUrl && (
+                            <div className="relative group">
+                              <img
+                                src={expense.receiptUrl}
+                                alt="票据"
+                                className="w-10 h-10 rounded-lg object-cover border border-stone-200"
+                              />
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
+                                <Receipt size={10} className="text-white" />
+                              </div>
+                            </div>
+                          )}
                           {expense.isSplit && (
                             <span className="text-xs text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
                               均摊

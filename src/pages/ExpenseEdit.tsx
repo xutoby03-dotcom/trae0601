@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Fuel,
@@ -11,11 +11,13 @@ import {
   FileText,
   Trash2,
   Save,
+  Camera,
 } from 'lucide-react';
 import { useTripStore } from '@/store/useTripStore';
 import { EXPENSE_TYPE_LABELS, type ExpenseType } from '@/types';
 import PageLayout from '@/components/PageLayout';
 import { cn } from '@/lib/utils';
+import { handleImageUpload } from '@/utils/image';
 
 const EXPENSE_TYPES: { key: ExpenseType; label: string; icon: typeof Fuel; color: string }[] = [
   { key: 'fuel', label: '油费', icon: Fuel, color: 'orange' },
@@ -41,6 +43,22 @@ export default function ExpenseEdit() {
   const [payerId, setPayerId] = useState('');
   const [isSplit, setIsSplit] = useState(true);
   const [note, setNote] = useState('');
+  const [receiptUrl, setReceiptUrl] = useState('');
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const result = await handleImageUpload(e);
+    if (result) {
+      setReceiptUrl(result);
+    }
+    if (receiptInputRef.current) {
+      receiptInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptUrl('');
+  };
 
   useEffect(() => {
     if (isEdit && trip) {
@@ -51,6 +69,7 @@ export default function ExpenseEdit() {
         setPayerId(expense.payerId);
         setIsSplit(expense.isSplit);
         setNote(expense.note || '');
+        setReceiptUrl(expense.receiptUrl || '');
       }
     } else if (trip && trip.passengers.length > 0) {
       setPayerId(trip.passengers[0].id);
@@ -82,6 +101,7 @@ export default function ExpenseEdit() {
       amount: amountNum,
       payerId,
       isSplit,
+      receiptUrl: receiptUrl || undefined,
       note: note || undefined,
     };
 
@@ -257,6 +277,54 @@ export default function ExpenseEdit() {
               />
             </div>
           </label>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-amber-100">
+          <h2 className="text-base font-bold text-stone-800 mb-4 flex items-center gap-2">
+            <Receipt size={18} className="text-orange-500" />
+            票据照片
+          </h2>
+          <input
+            ref={receiptInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleReceiptUpload}
+            className="hidden"
+          />
+          {receiptUrl ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img
+                src={receiptUrl}
+                alt="票据照片"
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-between p-3">
+                <button
+                  onClick={() => receiptInputRef.current?.click()}
+                  className="px-3 py-1.5 bg-white/90 text-stone-700 rounded-lg text-sm font-medium"
+                >
+                  重新上传
+                </button>
+                <button
+                  onClick={handleRemoveReceipt}
+                  className="px-3 py-1.5 bg-red-500/90 text-white rounded-lg text-sm font-medium"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => receiptInputRef.current?.click()}
+              className="aspect-video bg-stone-100 rounded-xl flex items-center justify-center text-stone-400 border-2 border-dashed border-stone-200 cursor-pointer hover:bg-stone-50 hover:border-teal-300 transition-colors"
+            >
+              <div className="text-center">
+                <Camera size={32} className="mx-auto mb-2 opacity-50" />
+                <p className="text-sm">点击上传票据</p>
+                <p className="text-xs text-stone-400 mt-1">支持拍照或选择图片</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-amber-100">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   MapPin,
@@ -16,6 +16,7 @@ import {
 import { useTripStore } from '@/store/useTripStore';
 import PageLayout from '@/components/PageLayout';
 import { cn } from '@/lib/utils';
+import { handleImageUpload } from '@/utils/image';
 
 export default function TripEdit() {
   const navigate = useNavigate();
@@ -42,6 +43,21 @@ export default function TripEdit() {
 
   const [newPassengerName, setNewPassengerName] = useState('');
   const [showAddPassenger, setShowAddPassenger] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const result = await handleImageUpload(e);
+    if (result) {
+      setFormData(prev => ({ ...prev, photoUrl: result }));
+    }
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setFormData(prev => ({ ...prev, photoUrl: '' }));
+  };
 
   useEffect(() => {
     if (existingTrip) {
@@ -204,12 +220,47 @@ export default function TripEdit() {
             <Camera size={18} className="text-orange-500" />
             行程合照
           </h2>
-          <div className="aspect-video bg-stone-100 rounded-xl flex items-center justify-center text-stone-400 border-2 border-dashed border-stone-200">
-            <div className="text-center">
-              <Camera size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">点击上传合照</p>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+          {formData.photoUrl ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img
+                src={formData.photoUrl}
+                alt="行程合照"
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity flex items-end justify-between p-3">
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  className="px-3 py-1.5 bg-white/90 text-stone-700 rounded-lg text-sm font-medium"
+                >
+                  重新上传
+                </button>
+                <button
+                  onClick={handleRemovePhoto}
+                  className="px-3 py-1.5 bg-red-500/90 text-white rounded-lg text-sm font-medium"
+                >
+                  删除
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div
+              onClick={() => photoInputRef.current?.click()}
+              className="aspect-video bg-stone-100 rounded-xl flex items-center justify-center text-stone-400 border-2 border-dashed border-stone-200 cursor-pointer hover:bg-stone-50 hover:border-teal-300 transition-colors"
+            >
+              <div className="text-center">
+                <Camera size={32} className="mx-auto mb-2 opacity-50" />
+                <p className="text-sm">点击上传合照</p>
+                <p className="text-xs text-stone-400 mt-1">支持 JPG、PNG 格式</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {isEdit && (
