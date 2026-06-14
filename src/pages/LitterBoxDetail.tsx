@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Edit3, Save, Sparkles, X, Plus } from 'lucide-react';
 import useAppStore from '../store/useAppStore';
 import StatusBadge from '../components/common/StatusBadge';
+import DeepCleanBadge from '../components/common/DeepCleanBadge';
 import StarRating from '../components/common/StarRating';
 import { getBoxStatus } from '../utils/alerts';
+import { getBoxDeepCleanStatus } from '../utils/stats';
 import { formatDate, formatRelativeTime, formatDateTime } from '../utils/date';
 import { cn } from '../lib/utils';
 import { LitterBox, LitterType } from '../types';
@@ -29,6 +31,7 @@ export default function LitterBoxDetail() {
 
   const box = litterBoxes.find((b) => b.id === id);
   const statusInfo = box ? getBoxStatus(box, records) : null;
+  const deepCleanStatus = box ? getBoxDeepCleanStatus(box.id, records, litterBoxes) : null;
   const boxCats = box ? cats.filter((c) => box.catIds.includes(c.id)) : [];
   const boxRecords = box
     ? records
@@ -152,8 +155,9 @@ export default function LitterBoxDetail() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
               <div>
-                <div className="mb-3">
+                <div className="mb-2 flex gap-2 flex-wrap">
                   <StatusBadge status={statusInfo?.status || 'normal'} size="md" />
+                  {deepCleanStatus && <DeepCleanBadge status={deepCleanStatus} size="md" />}
                 </div>
                 <h1 className="text-3xl font-bold text-white mb-1">{box.name}</h1>
                 <p className="text-white/80 text-sm">📍 {box.location}</p>
@@ -255,6 +259,96 @@ export default function LitterBoxDetail() {
             )}
           </div>
         </div>
+
+        {deepCleanStatus && (
+          <div
+            className="rounded-3xl shadow-md p-6 border-l-4 transition-all"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderLeftColor: deepCleanStatus.priority === 'high' ? '#D4896A' : deepCleanStatus.priority === 'medium' ? '#E8C77A' : '#C4C4A8',
+            }}
+          >
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#5D4E37' }}>
+              <span
+                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{
+                  backgroundColor:
+                    deepCleanStatus.priority === 'high'
+                      ? '#FCE4DC'
+                      : deepCleanStatus.priority === 'medium'
+                      ? '#FBF0D6'
+                      : '#F0F0E8',
+                }}
+              >
+                <span className="text-base">
+                  {deepCleanStatus.priority === 'high' ? '⚠️' : deepCleanStatus.priority === 'medium' ? '💧' : '✨'}
+                </span>
+              </span>
+              {deepCleanStatus.priority === 'high'
+                ? '急需深度清洗'
+                : deepCleanStatus.priority === 'medium'
+                ? '建议深度清洗'
+                : '深度清洗将到期'}
+              <span
+                className="ml-auto text-xs font-medium px-2 py-1 rounded-full"
+                style={{
+                  backgroundColor:
+                    deepCleanStatus.priority === 'high'
+                      ? '#FCE4DC'
+                      : deepCleanStatus.priority === 'medium'
+                      ? '#FBF0D6'
+                      : '#F0F0E8',
+                  color:
+                    deepCleanStatus.priority === 'high'
+                      ? '#B84A2A'
+                      : deepCleanStatus.priority === 'medium'
+                      ? '#8B6B1A'
+                      : '#6B6B5A',
+                }}
+              >
+                {deepCleanStatus.score} 分
+              </span>
+            </h2>
+
+            <div className="space-y-2.5 mb-5">
+              {deepCleanStatus.reasons.map((reason, idx) => (
+                <div key={idx} className="flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ backgroundColor: '#D4B896' }} />
+                  <p className="text-sm leading-relaxed" style={{ color: '#6B5A4A' }}>
+                    {reason}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#FAF6F0' }}>
+                <div className="text-xs mb-1" style={{ color: '#A89880' }}>距上次整换</div>
+                <div className="text-sm font-bold" style={{ color: '#5D4E37' }}>
+                  {deepCleanStatus.metrics.daysSinceFullChange} 天
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#FAF6F0' }}>
+                <div className="text-xs mb-1" style={{ color: '#A89880' }}>累计清洁</div>
+                <div className="text-sm font-bold" style={{ color: '#5D4E37' }}>
+                  {deepCleanStatus.metrics.totalCleans} 次
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#FAF6F0' }}>
+                <div className="text-xs mb-1" style={{ color: '#A89880' }}>平均异味</div>
+                <div className="text-sm font-bold" style={{ color: '#5D4E37' }}>
+                  {deepCleanStatus.metrics.averageSmell} / 5
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#FAF6F0' }}>
+                <div className="text-xs mb-1" style={{ color: '#A89880' }}>连续高异味</div>
+                <div className="text-sm font-bold" style={{ color: '#5D4E37' }}>
+                  {deepCleanStatus.metrics.highSmellStreak} 次
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="rounded-3xl shadow-md p-6" style={{ backgroundColor: '#FFFFFF' }}>
           <h2 className="text-lg font-bold mb-5 flex items-center gap-2" style={{ color: '#5D4E37' }}>

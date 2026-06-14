@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { X, Plus, Edit3, Trash2, Sparkles } from 'lucide-react';
 import useAppStore from '../store/useAppStore';
 import StatusBadge from '../components/common/StatusBadge';
+import DeepCleanBadge from '../components/common/DeepCleanBadge';
 import { getBoxStatus } from '../utils/alerts';
+import { getBoxDeepCleanStatus } from '../utils/stats';
 import { formatRelativeTime } from '../utils/date';
 import { cn, generateId } from '../lib/utils';
 import { LitterBox, LitterType } from '../types';
@@ -162,8 +164,9 @@ export default function LitterBoxList() {
                         <Sparkles size={48} style={{ color: '#D4B896' }} />
                       </div>
                     )}
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 flex flex-col gap-2">
                       <StatusBadge status={statusInfo.status} size="sm" />
+                      <DeepCleanBadge status={getBoxDeepCleanStatus(box.id, records, litterBoxes)} size="sm" />
                     </div>
                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-1.5">
                       <button

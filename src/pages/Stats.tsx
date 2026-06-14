@@ -33,6 +33,7 @@ import {
 import { formatDate, hoursBetween } from '../utils/date';
 import { cn } from '../lib/utils';
 import StarRating from '../components/common/StarRating';
+import DeepCleanBadge from '../components/common/DeepCleanBadge';
 
 const Stats: React.FC = () => {
   const { members, litterBoxes, records } = useAppStore();
@@ -848,21 +849,28 @@ const Stats: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-3xl p-6 lg:p-8 border border-[#E8DFD2] shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 rounded-2xl bg-[#C48E9F]/15">
-                <Sparkles size={22} className="text-[#A46B80]" strokeWidth={2} />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-[#C48E9F]/15">
+                  <Sparkles size={22} className="text-[#A46B80]" strokeWidth={2} />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-semibold text-[#5C5040]"
+                    style={{ fontFamily: 'LXGW WenKai, serif' }}
+                  >
+                    深度清洗清单
+                  </h2>
+                  <p className="text-sm text-[#A09484] mt-0.5">
+                    按整换间隔·异味情况·使用频次综合排序
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2
-                  className="text-xl font-semibold text-[#5C5040]"
-                  style={{ fontFamily: 'LXGW WenKai, serif' }}
-                >
-                  深度清洗清单
-                </h2>
-                <p className="text-sm text-[#A09484] mt-0.5">
-                  需要彻底清洁的猫砂盆
-                </p>
-              </div>
+              {deepCleanList.length > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-[#A09484]">共 {deepCleanList.length} 盆待处理</span>
+                </div>
+              )}
             </div>
 
             {deepCleanList.length === 0 ? (
@@ -876,15 +884,27 @@ const Stats: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+              <div className="space-y-4">
                 {deepCleanList.map((item, index) => {
                   const box = getBox(item.boxId);
-                  const scoreColor =
-                    item.score >= 6
-                      ? 'bg-[#D4896A] text-white'
-                      : item.score >= 4
-                      ? 'bg-[#E8C77A] text-[#8B6B2A]'
-                      : 'bg-[#8BA4B8]/30 text-[#6B8698]';
+                  const priorityLabel =
+                    item.priority === 'high'
+                      ? '高优'
+                      : item.priority === 'medium'
+                      ? '中优'
+                      : '低优';
+                  const priorityBg =
+                    item.priority === 'high'
+                      ? 'bg-[#FCE4DC]'
+                      : item.priority === 'medium'
+                      ? 'bg-[#FBF0D6]'
+                      : 'bg-[#F0F0E8]';
+                  const priorityText =
+                    item.priority === 'high'
+                      ? 'text-[#B84A2A]'
+                      : item.priority === 'medium'
+                      ? 'text-[#8B6B1A]'
+                      : 'text-[#6B6B5A]';
                   return (
                     <div
                       key={item.boxId}
@@ -895,50 +915,138 @@ const Stats: React.FC = () => {
                       }}
                     >
                       <div className="flex items-start gap-4">
-                        <img
-                          src={box?.photo}
-                          alt={box?.name}
-                          className="w-16 h-16 rounded-2xl object-cover shadow-sm flex-shrink-0"
-                        />
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm bg-[#F0DFC8] flex items-center justify-center">
+                          {box?.photo ? (
+                            <img
+                              src={box.photo}
+                              alt={box.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl">🐾</span>
+                          )}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-[#5C5040]">
-                              {box?.name || '未知猫砂盆'}
-                            </h3>
+                          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-[#5C5040]">
+                                {box?.name || '未知猫砂盆'}
+                              </h3>
+                              <DeepCleanBadge status={item} size="sm" />
+                            </div>
                             <span
                               className={cn(
                                 'px-2.5 py-1 rounded-full text-xs font-bold',
-                                scoreColor
+                                priorityBg,
+                                priorityText
                               )}
                             >
-                              优先级 {item.score}
+                              {priorityLabel} · {item.score} 分
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-[#A09484] mb-2">
-                            <span>📍</span>
-                            <span>{box?.location}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-[#A09484] mb-3 flex-wrap">
+                            <span>📍 {box?.location}</span>
                             <span className="mx-1">·</span>
-                            <span>上次整换：</span>
-                            <span>
-                              {box?.lastFullChange
-                                ? formatDate(box.lastFullChange)
-                                : '无记录'}
-                            </span>
+                            <span>🗓️ 距上次整换 {item.metrics.daysSinceFullChange} 天</span>
+                            <span className="mx-1">·</span>
+                            <span>🔢 累计 {item.metrics.totalCleans} 次清理</span>
                           </div>
-                          <div className="flex items-start gap-2 text-sm text-[#8B7E6B] bg-white rounded-xl px-3 py-2 border border-[#F0E8DB]">
-                            <AlertTriangle
-                              size={14}
-                              className="text-[#D4896A] flex-shrink-0 mt-0.5"
-                              strokeWidth={2}
-                            />
-                            <span>{item.reason}</span>
+
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                            <div className="p-2 rounded-xl bg-white border border-[#F0E8DB]">
+                              <div className="text-[11px] text-[#A09484] mb-0.5">
+                                整换进度
+                              </div>
+                              <div className="text-sm font-bold text-[#5C5040]">
+                                {Math.round(item.metrics.fullChangeRatio * 100)}%
+                              </div>
+                              <div className="mt-1 h-1.5 rounded-full bg-[#F0E8DB] overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${Math.min(item.metrics.fullChangeRatio * 100, 100)}%`,
+                                    backgroundColor:
+                                      item.metrics.fullChangeRatio >= 1.2
+                                        ? '#D4896A'
+                                        : item.metrics.fullChangeRatio >= 1
+                                        ? '#E8C77A'
+                                        : '#A8C5A0',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-white border border-[#F0E8DB]">
+                              <div className="text-[11px] text-[#A09484] mb-0.5">
+                                平均异味
+                              </div>
+                              <div className="text-sm font-bold text-[#5C5040]">
+                                {item.metrics.averageSmell} / 5
+                              </div>
+                              <div className="mt-1 flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map((n) => (
+                                  <div
+                                    key={n}
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                      backgroundColor:
+                                        n <= Math.round(item.metrics.averageSmell)
+                                          ? '#E8C77A'
+                                          : '#F0E8DB',
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-white border border-[#F0E8DB]">
+                              <div className="text-[11px] text-[#A09484] mb-0.5">
+                                连续高异味
+                              </div>
+                              <div className="text-sm font-bold text-[#5C5040]">
+                                {item.metrics.highSmellStreak} 次
+                              </div>
+                              <div className="mt-1 text-[10px]">
+                                {item.metrics.highSmellStreak >= 3 ? (
+                                  <span className="text-[#D4896A] font-medium">⚠️ 需注意</span>
+                                ) : (
+                                  <span className="text-[#A8C5A0]">正常</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-2 rounded-xl bg-white border border-[#F0E8DB]">
+                              <div className="text-[11px] text-[#A09484] mb-0.5">
+                                距上次清理
+                              </div>
+                              <div className="text-sm font-bold text-[#5C5040]">
+                                {Math.floor(item.metrics.hoursSinceLastClean)}h
+                              </div>
+                              <div className="mt-1 text-[10px]">
+                                {item.metrics.hoursSinceLastClean > 24 ? (
+                                  <span className="text-[#D4896A]">超过1天</span>
+                                ) : (
+                                  <span className="text-[#A8C5A0]">正常</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
+
+                          <div className="space-y-1.5">
+                            {item.reasons.map((reason, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-2 text-xs text-[#8B7E6B]"
+                              >
+                                <span className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0 bg-[#D4B896]" />
+                                <span>{reason}</span>
+                              </div>
+                            ))}
+                          </div>
+
                           <div className="mt-3 flex items-center gap-2 text-xs">
-                            <span className="px-2 py-1 rounded-lg bg-[#A8C5A0]/15 text-[#6B8E7A]">
-                              💡 建议
+                            <span className="px-2 py-1 rounded-lg bg-[#A8C5A0]/15 text-[#6B8E7A] font-medium">
+                              💡 清洗建议
                             </span>
                             <span className="text-[#A09484]">
-                              倒空猫砂 → 温水浸泡 → 中性洗涤剂刷洗 → 彻底晾干 → 重新装砂
+                              倒空猫砂 → 温水浸泡30分钟 → 中性洗涤剂刷洗 → 阳光晾干 → 重新装砂
                             </span>
                           </div>
                         </div>
