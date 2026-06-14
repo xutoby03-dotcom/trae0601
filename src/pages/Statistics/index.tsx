@@ -27,6 +27,8 @@ export default function Statistics() {
   const { batches } = useBatchStore();
   const { jars, operations } = useJarStore();
   const [onlyRefill, setOnlyRefill] = useState(false);
+  const [sourceTypeFilter, setSourceTypeFilter] = useState<'all' | 'jar' | 'batch'>('all');
+  const [refillKeyword, setRefillKeyword] = useState('');
 
   const refillFlows = useMemo(() => {
     function parseRefillReason(reason: string): {
@@ -148,6 +150,30 @@ export default function Statistics() {
       })
       .sort((a, b) => new Date(b.operatedAt).getTime() - new Date(a.operatedAt).getTime());
   }, [operations, jars, batches]);
+
+  const filteredRefillFlows = useMemo(() => {
+    return refillFlows.filter((f) => {
+      if (sourceTypeFilter !== 'all' && f.sourceType !== sourceTypeFilter) {
+        return false;
+      }
+      if (refillKeyword.trim()) {
+        const kw = refillKeyword.trim().toLowerCase();
+        const haystack = [
+          f.teaName,
+          f.sourceJarNo,
+          f.sourceBatchName,
+          f.targetJarNo,
+          f.sourceLabel,
+          f.remark,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(kw)) return false;
+      }
+      return true;
+    });
+  }, [refillFlows, sourceTypeFilter, refillKeyword]);
 
   const remainingByTea = useMemo(() => {
     const map = new Map<string, number>();
@@ -455,14 +481,66 @@ export default function Statistics() {
       </div>
 
       <div className="card">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-serif text-lg font-bold text-gray-800 flex items-center gap-2">
-            <ArrowLeftRight className="w-5 h-5 text-purple-600" />
-            补罐流向记录
-            <span className="text-xs font-sans font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-              共 {refillFlows.length} 条
-            </span>
-          </h3>
+        <div className="flex flex-col gap-4 mb-5">
+          <div className="flex items-center justify-between">
+            <h3 className="font-serif text-lg font-bold text-gray-800 flex items-center gap-2">
+              <ArrowLeftRight className="w-5 h-5 text-purple-600" />
+              补罐流向记录
+              <span className="text-xs font-sans font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                {filteredRefillFlows.length} / {refillFlows.length} 条
+              </span>
+            </h3>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 p-1 bg-gray-50/50">
+              {(['all', 'jar', 'batch'] as const).map((t) => {
+                const labels: Record<typeof t, string> = {
+                  all: '全部',
+                  jar: '🫙 罐→罐',
+                  batch: '📦 批次→罐',
+                };
+                const isActive = sourceTypeFilter === t;
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setSourceTypeFilter(t)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-all font-medium ${
+                      isActive
+                        ? 'bg-white text-purple-700 shadow-sm border border-purple-200'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {labels[t]}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  value={refillKeyword}
+                  onChange={(e) => setRefillKeyword(e.target.value)}
+                  placeholder="搜索茶品名、罐号..."
+                  className="w-full pl-10 pr-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition-all bg-white"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {refillFlows.length === 0 ? (
@@ -472,6 +550,20 @@ export default function Statistics() {
             </div>
             <p className="text-gray-400">暂无补罐记录</p>
             <p className="text-xs text-gray-300 mt-1">罐详情页 → 补罐操作 后，记录会展示在这里</p>
+          </div>
+        ) : filteredRefillFlows.length === 0 ? (
+          <div className="py-12 text-center">
+            <Package className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <p className="text-gray-400">没有匹配的补罐记录</p>
+            <button
+              onClick={() => {
+                setSourceTypeFilter('all');
+                setRefillKeyword('');
+              }}
+              className="mt-3 text-sm text-purple-600 hover:text-purple-700 underline underline-offset-2"
+            >
+              清除筛选
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6">
@@ -502,7 +594,7 @@ export default function Statistics() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-tea-50">
-                {refillFlows.map((flow) => (
+                {filteredRefillFlows.map((flow) => (
                   <tr
                     key={flow.id}
                     onClick={() => flow.targetJarId && navigate(`/jars/${flow.targetJarId}`)}
