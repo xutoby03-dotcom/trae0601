@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
@@ -13,11 +13,11 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { Package, AlertTriangle, TrendingDown, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, ShoppingBag, ArrowRight, ArrowLeftRight, Filter } from 'lucide-react';
 import { useBatchStore } from '@/store/batchStore';
 import { useJarStore } from '@/store/jarStore';
 import { getDamageLabel } from '@/utils/alert';
-import { addDays, nowISO } from '@/utils/date';
+import { formatDateTime, addDays, nowISO } from '@/utils/date';
 
 const PIE_COLORS = ['#E67E22', '#C0392B', '#7A6B3C'];
 const SAFE_STOCK_WEIGHT = 500;
@@ -26,6 +26,54 @@ export default function Statistics() {
   const navigate = useNavigate();
   const { batches } = useBatchStore();
   const { jars, operations } = useJarStore();
+  const [onlyRefill, setOnlyRefill] = useState(false);
+
+  const refillFlows = useMemo(() => {
+    return operations
+      .filter(
+        (o) =>
+          o.type === 'refill' &&
+          o.sourceId &&
+          o.sourceType &&
+          !o.reason.startsWith('转出到')
+      )
+      .map((op) => {
+        const targetJar = jars.find((j) => j.id === op.jarId);
+        const targetBatch = batches.find((b) => b.id === targetJar?.batchId);
+
+        let sourceLabel = '';
+        let sourceJarNo = '';
+        let sourceBatchName = '';
+
+        if (op.sourceType === 'jar') {
+          const sJar = jars.find((j) => j.id === op.sourceId);
+          const sBatch = batches.find((b) => b.id === sJar?.batchId);
+          sourceLabel = sJar?.jarNo || '未知罐';
+          sourceJarNo = sJar?.jarNo || '';
+          sourceBatchName = sBatch?.name || '';
+        } else if (op.sourceType === 'batch') {
+          const sBatch = batches.find((b) => b.id === op.sourceId);
+          sourceLabel = sBatch?.name || '未知批次';
+          sourceBatchName = sBatch?.name || '';
+        }
+
+        return {
+          id: op.id,
+          teaName: targetBatch?.name || '未知茶品',
+          sourceType: op.sourceType,
+          sourceLabel,
+          sourceJarNo,
+          sourceBatchName,
+          targetJarNo: targetJar?.jarNo || '未知罐',
+          targetJarId: targetJar?.id,
+          weight: op.weight,
+          operator: op.operator,
+          operatedAt: op.operatedAt,
+          remark: op.reason.includes(' · ') ? op.reason.split(' · ')[1] : '',
+        };
+      })
+      .sort((a, b) => new Date(b.operatedAt).getTime() - new Date(a.operatedAt).getTime());
+  }, [operations, jars, batches]);
 
   const remainingByTea = useMemo(() => {
     const map = new Map<string, number>();
@@ -136,7 +184,22 @@ export default function Statistics() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-5">
+      <div className="flex items-center justify-between">
+        <div></div>
+        <button
+          onClick={() => setOnlyRefill(!onlyRefill)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all text-sm font-medium ${
+            onlyRefill
+              ? 'bg-purple-50 border-purple-300 text-purple-700 shadow-sm'
+              : 'bg-white border-gray-200 text-gray-500 hover:border-purple-200 hover:text-purple-600'
+          }`}
+        >
+          <Filter className="w-4 h-4" />
+          只看补罐记录
+        </button>
+      </div>
+
+      <div className={`grid grid-cols-4 gap-5 ${onlyRefill ? 'hidden' : ''}`}>
         {statCards.map((card) => (
           <div key={card.label} className="card !p-0 overflow-hidden group hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between p-5">
@@ -152,7 +215,7 @@ export default function Statistics() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className={`grid grid-cols-2 gap-6 ${onlyRefill ? 'hidden' : ''}`}>
         <div className="card">
           <h3 className="font-serif text-lg font-bold text-gray-800 mb-5">各茶品剩余重量</h3>
           <ResponsiveContainer width="100%" height={320}>
@@ -211,7 +274,7 @@ export default function Statistics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className={`grid grid-cols-2 gap-6 ${onlyRefill ? 'hidden' : ''}`}>
         <div className="card">
           <h3 className="font-serif text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
             <TrendingDown className="w-5 h-5 text-warnOrange" />
@@ -315,6 +378,119 @@ export default function Statistics() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-serif text-lg font-bold text-gray-800 flex items-center gap-2">
+            <ArrowLeftRight className="w-5 h-5 text-purple-600" />
+            补罐流向记录
+            <span className="text-xs font-sans font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              共 {refillFlows.length} 条
+            </span>
+          </h3>
+        </div>
+
+        {refillFlows.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-50 flex items-center justify-center">
+              <ArrowLeftRight className="w-8 h-8 text-purple-300" />
+            </div>
+            <p className="text-gray-400">暂无补罐记录</p>
+            <p className="text-xs text-gray-300 mt-1">罐详情页 → 补罐操作 后，记录会展示在这里</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-tea-100">
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3 pl-3">
+                    茶品
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
+                    流向
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
+                    来源罐/批次
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
+                    转入重量
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
+                    操作人
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
+                    转入时间
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3 pr-3">
+                    备注
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-tea-50">
+                {refillFlows.map((flow) => (
+                  <tr
+                    key={flow.id}
+                    onClick={() => flow.targetJarId && navigate(`/jars/${flow.targetJarId}`)}
+                    className={`group transition-colors ${
+                      flow.targetJarId ? 'cursor-pointer hover:bg-purple-50/40' : ''
+                    }`}
+                  >
+                    <td className="py-4 pl-3">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-tea-50 text-teaGreen-700 text-sm font-medium">
+                        {flow.teaName}
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
+                            flow.sourceType === 'jar'
+                              ? 'bg-blue-50 text-blue-600'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {flow.sourceType === 'jar' ? '🫙 罐→罐' : '📦 批次→罐'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-700">{flow.sourceLabel}</p>
+                        {flow.sourceJarNo && flow.sourceBatchName && (
+                          <p className="text-xs text-gray-400 mt-0.5">{flow.sourceBatchName}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                          <ArrowLeftRight className="w-3 h-3" />
+                          <span className="font-mono">{flow.targetJarNo}</span>
+                        </p>
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <span className="inline-flex items-center text-teaGreen-600 font-bold font-serif text-lg">
+                        +{flow.weight}
+                        <span className="text-xs font-normal text-gray-400 ml-0.5">g</span>
+                      </span>
+                    </td>
+                    <td className="py-4">
+                      <span className="text-sm text-gray-600">{flow.operator}</span>
+                    </td>
+                    <td className="py-4">
+                      <span className="text-sm text-gray-500 font-mono text-xs">
+                        {formatDateTime(flow.operatedAt)}
+                      </span>
+                    </td>
+                    <td className="py-4 pr-3">
+                      <span className="text-sm text-gray-400">
+                        {flow.remark || '—'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
