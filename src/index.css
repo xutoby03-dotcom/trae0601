@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@600;700;900&display=swap');
+
+:root {
+  --color-primary: #0F766E;
+  --color-primary-light: #14B8A6;
+  --color-primary-dark: #0D5E58;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-success: #16A34A;
+  --sidebar-width: 260px;
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif-title {
+  font-family: 'Noto Serif SC', serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-teal-700 text-white px-4 py-2 rounded-lg font-medium
+    hover:bg-teal-600 hover:shadow-md hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0 active:shadow-sm;
+  }
+  .btn-secondary {
+    @apply bg-white text-teal-700 border border-teal-300 px-4 py-2 rounded-lg font-medium
+    hover:bg-teal-50 hover:shadow-md hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0 active:shadow-sm;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium
+    hover:bg-red-500 hover:shadow-md hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0 active:shadow-sm;
+  }
+  .btn-warning {
+    @apply bg-amber-600 text-white px-4 py-2 rounded-lg font-medium
+    hover:bg-amber-500 hover:shadow-md hover:-translate-y-0.5
+    transition-all duration-200 active:translate-y-0 active:shadow-sm;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100
+    hover:shadow-md transition-shadow duration-200;
+  }
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+    focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+    transition-all duration-200 bg-white;
+  }
+  .select-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+    focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+    transition-all duration-200 bg-white appearance-none;
+  }
+  .label-field {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
