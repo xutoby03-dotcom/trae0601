@@ -172,30 +172,69 @@ export default function EquipmentDetail() {
       {/* Hero Card + Maintenance Alert */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Hero */}
-        <div className="card-base p-8 lg:col-span-2 animate-fade-in-up relative overflow-hidden" style={{ opacity: 0 }}>
-          <div className="absolute top-0 right-0 w-64 h-64 -translate-y-24 translate-x-24 rounded-full bg-gradient-to-br from-brand-200/40 to-teal-200/30 blur-3xl" />
-          <div className="relative">
-            <div className="flex items-start gap-5">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-50 to-teal-50 border border-warm-200 flex items-center justify-center shrink-0 shadow-sm">
-                <SportIcon type={eq.sportType} size={40} className="text-warm-700" />
-              </div>
-              <div className="flex-1 min-w-0">
+        <div className="card-base lg:col-span-2 animate-fade-in-up relative overflow-hidden" style={{ opacity: 0 }}>
+          {eq.photoUrl ? (
+            <div className="relative h-48 overflow-hidden rounded-t-2xl">
+              <img
+                src={eq.photoUrl}
+                alt={eq.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
                 <div className="flex items-center gap-2 mb-2">
                   <StatusBadge status={eq.status} />
-                  <span className="badge bg-warm-100 text-warm-600 border border-warm-200">
+                  <span className="badge bg-white/20 text-white border border-white/30 backdrop-blur-sm">
                     已使用 {status.daysSincePurchase} 天
                   </span>
                 </div>
-                <h2 className="font-display text-2xl font-bold text-warm-900 mb-1">
+                <h2 className="font-display text-2xl font-bold text-white">
                   {eq.name}
                 </h2>
-                {eq.notes && (
-                  <p className="text-warm-600 text-sm mt-2 leading-relaxed">
-                    {eq.notes}
-                  </p>
-                )}
+                <div className="flex items-center gap-2 mt-1 text-white/80 text-sm">
+                  <SportIcon type={eq.sportType} size={14} />
+                  <span>{SPORT_TYPE_LABELS[eq.sportType]}</span>
+                  <span className="text-white/40">·</span>
+                  <span>购入于 {formatDate(eq.purchaseDate)}</span>
+                </div>
               </div>
             </div>
+          ) : null}
+          <div className={`relative ${eq.photoUrl ? 'p-6' : 'p-8'}`}>
+            {!eq.photoUrl && (
+              <div className="absolute top-0 right-0 w-64 h-64 -translate-y-24 translate-x-24 rounded-full bg-gradient-to-br from-brand-200/40 to-teal-200/30 blur-3xl" />
+            )}
+            <div className="relative">
+              {!eq.photoUrl ? (
+                <div className="flex items-start gap-5 mb-0">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-50 to-teal-50 border border-warm-200 flex items-center justify-center shrink-0 shadow-sm">
+                    <SportIcon type={eq.sportType} size={40} className="text-warm-700" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <StatusBadge status={eq.status} />
+                      <span className="badge bg-warm-100 text-warm-600 border border-warm-200">
+                        已使用 {status.daysSincePurchase} 天
+                      </span>
+                    </div>
+                    <h2 className="font-display text-2xl font-bold text-warm-900 mb-1">
+                      {eq.name}
+                    </h2>
+                    {eq.notes && (
+                      <p className="text-warm-600 text-sm mt-2 leading-relaxed">
+                        {eq.notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : eq.notes ? (
+                <p className="text-warm-600 text-sm leading-relaxed bg-warm-50 rounded-xl px-4 py-3 mb-0">
+                  {eq.notes}
+                </p>
+              ) : null}
 
             {/* Progress Bars */}
             <div className="mt-8 space-y-5">
@@ -259,6 +298,7 @@ export default function EquipmentDetail() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 

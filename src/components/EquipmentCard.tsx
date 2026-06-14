@@ -39,15 +39,26 @@ export const EquipmentCard = ({
       style={{ animationDelay: `${delay}ms`, opacity: 0 }}
     >
       <div className="relative h-32 bg-gradient-to-br from-warm-100 via-warm-50 to-white overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-            <SportIcon
-              type={equipment.sportType}
-              size={32}
-              className="text-warm-600 group-hover:text-brand-500 transition-colors"
-            />
+        {equipment.photoUrl ? (
+          <img
+            src={equipment.photoUrl}
+            alt={equipment.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+              <SportIcon
+                type={equipment.sportType}
+                size={32}
+                className="text-warm-600 group-hover:text-brand-500 transition-colors"
+              />
+            </div>
           </div>
-        </div>
+        )}
         <div className="absolute top-3 right-3">
           <StatusBadge status={equipment.status} />
         </div>
@@ -57,6 +68,9 @@ export const EquipmentCard = ({
             style={{ width: `${lifespanPct}%` }}
           />
         </div>
+        {equipment.photoUrl && (
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        )}
       </div>
 
       <div className="p-5 space-y-4">

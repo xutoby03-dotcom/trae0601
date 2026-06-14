@@ -13,7 +13,7 @@ export const mockEquipment: Equipment[] = [
     maintenanceCycleKm: 100,
     lastMaintenanceDate: getDaysAgo(45),
     status: 'attention',
-    photoUrl: null,
+    photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=professional%20running%20shoes%20on%20white%20background%20product%20photo&image_size=square_hd',
     createdAt: getDaysAgo(280),
     notes: '日常训练用，缓震不错',
   },

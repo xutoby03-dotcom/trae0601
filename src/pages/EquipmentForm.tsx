@@ -49,6 +49,7 @@ const defaultForm = {
   maintenanceCycleKm: '' as number | string,
   lastMaintenanceDate: today(),
   status: 'excellent' as EquipmentStatus,
+  photoUrl: '',
   notes: '',
 };
 
@@ -78,6 +79,7 @@ export default function EquipmentForm() {
           maintenanceCycleKm: eq.maintenanceCycleKm ?? '',
           lastMaintenanceDate: eq.lastMaintenanceDate ?? eq.purchaseDate,
           status: eq.status,
+          photoUrl: eq.photoUrl ?? '',
           notes: eq.notes,
         });
       }
@@ -125,7 +127,7 @@ export default function EquipmentForm() {
         form.maintenanceCycleKm !== '' ? Number(form.maintenanceCycleKm) : null,
       lastMaintenanceDate: form.lastMaintenanceDate || null,
       status: form.status,
-      photoUrl: null,
+      photoUrl: form.photoUrl.trim() !== '' ? form.photoUrl.trim() : null,
       notes: form.notes.trim(),
     };
 
@@ -160,16 +162,59 @@ export default function EquipmentForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Photo Section */}
         <div className="card-base p-6 animate-fade-in-up" style={{ opacity: 0 }}>
-          <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-warm-200 bg-warm-50 flex flex-col items-center justify-center text-warm-400 hover:border-brand-300 hover:bg-brand-50/30 transition-colors cursor-pointer">
-              <Camera size={24} />
-              <span className="text-xs mt-1">上传照片</span>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
+              <Camera size={14} className="text-orange-600" />
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-warm-800">装备照片</p>
-              <p className="text-sm text-warm-500 mt-1">
-                上传装备照片能让管理更直观（当前版本暂未开放上传功能）
-              </p>
+            <h2 className="font-display text-lg font-semibold text-warm-900">
+              装备照片
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="md:col-span-2 space-y-3">
+              <div>
+                <label className="label-base">图片链接</label>
+                <input
+                  type="url"
+                  value={form.photoUrl}
+                  onChange={(e) => handleChange('photoUrl', e.target.value)}
+                  placeholder="粘贴图片 URL，例如 https://example.com/photo.jpg"
+                  className="input-base"
+                />
+                <p className="text-xs text-warm-400 mt-1.5">
+                  支持 https 图片链接，粘贴后自动预览
+                </p>
+              </div>
+              {form.photoUrl.trim() !== '' && (
+                <button
+                  type="button"
+                  onClick={() => handleChange('photoUrl', '')}
+                  className="text-xs text-warm-500 hover:text-red-500 flex items-center gap-1"
+                >
+                  <X size={12} />
+                  清除图片
+                </button>
+              )}
+            </div>
+            <div>
+              <div className="aspect-square rounded-2xl border-2 border-dashed border-warm-200 bg-warm-50 flex items-center justify-center overflow-hidden">
+                {form.photoUrl.trim() !== '' ? (
+                  <img
+                    src={form.photoUrl.trim()}
+                    alt="预览"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-warm-400">
+                    <Camera size={28} />
+                    <span className="text-xs mt-1.5">预览区域</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
