@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Layers,
   Sparkles,
@@ -373,10 +374,13 @@ const Dashboard: React.FC = () => {
                         <Plus size={16} strokeWidth={2.5} />
                         快速记录
                       </button>
-                      <button className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-2xl border border-[#E8DFD2] text-[#8B7E6B] text-sm font-medium transition-all duration-300 hover:bg-[#FAF6F0] hover:text-[#5C5040]">
+                      <Link
+                        to={`/litter-boxes/${box.id}`}
+                        className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-2xl border border-[#E8DFD2] text-[#8B7E6B] text-sm font-medium transition-all duration-300 hover:bg-[#FAF6F0] hover:text-[#5C5040]"
+                      >
                         <span>详情</span>
                         <ArrowRight size={14} strokeWidth={2} />
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

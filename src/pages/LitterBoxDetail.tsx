@@ -240,14 +240,10 @@ export default function LitterBoxDetail() {
                     className="flex items-center gap-4 p-4 rounded-2xl transition-all hover:shadow-md"
                     style={{ backgroundColor: '#FAF6F0' }}
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
-                      {cat.avatar ? (
-                        <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-lg font-bold" style={{ color: '#8B7355' }}>
-                          {cat.name.charAt(0)}
-                        </span>
-                      )}
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
+                      <span className="text-2xl leading-none">
+                        {cat.avatar || cat.name.charAt(0)}
+                      </span>
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold" style={{ color: '#5D4E37' }}>{cat.name}</p>
@@ -326,14 +322,12 @@ export default function LitterBoxDetail() {
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                              className="w-9 h-9 rounded-full flex items-center justify-center text-lg flex-shrink-0"
                               style={{ backgroundColor: member?.color || '#C48E6B' }}
                             >
-                              {member?.avatar ? (
-                                <img src={member.avatar} alt={member.name} className="w-full h-full object-cover rounded-full" />
-                              ) : (
-                                member?.name.charAt(0) || '?'
-                              )}
+                              <span className="leading-none">
+                                {member?.avatar || member?.name.charAt(0) || '?'}
+                              </span>
                             </div>
                             <span className="text-sm font-medium" style={{ color: '#5D4E37' }}>
                               {member?.name || '未知成员'}
@@ -520,14 +514,10 @@ export default function LitterBoxDetail() {
                           className="w-4 h-4 rounded"
                           style={{ accentColor: '#C48E6B' }}
                         />
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
-                          {cat.avatar ? (
-                            <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xs font-medium" style={{ color: '#8B7355' }}>
-                              {cat.name.charAt(0)}
-                            </span>
-                          )}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
+                          <span className="text-base leading-none">
+                            {cat.avatar || cat.name.charAt(0)}
+                          </span>
                         </div>
                         <span className="text-sm font-medium truncate" style={{ color: '#5D4E37' }}>
                           {cat.name}

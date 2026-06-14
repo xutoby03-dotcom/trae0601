@@ -7,8 +7,8 @@ import {
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
+import Sidebar from './components/Layout/Sidebar';
+import Header from './components/Layout/Header';
 import Dashboard from './pages/Dashboard';
 import LitterBoxList from './pages/LitterBoxList';
 import LitterBoxDetail from './pages/LitterBoxDetail';

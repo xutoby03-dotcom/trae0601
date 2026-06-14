@@ -211,17 +211,13 @@ export default function LitterBoxList() {
                           {boxCats.slice(0, 4).map((cat) => (
                             <div
                               key={cat.id}
-                              className="w-9 h-9 rounded-full border-2 flex items-center justify-center overflow-hidden"
+                              className="w-9 h-9 rounded-full border-2 flex items-center justify-center"
                               style={{ borderColor: '#FFFFFF', backgroundColor: '#F5EDE0' }}
                               title={cat.name}
                             >
-                              {cat.avatar ? (
-                                <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-xs font-medium" style={{ color: '#8B7355' }}>
-                                  {cat.name.charAt(0)}
-                                </span>
-                              )}
+                              <span className="text-lg leading-none">
+                                {cat.avatar || cat.name.charAt(0)}
+                              </span>
                             </div>
                           ))}
                           {boxCats.length > 4 && (
@@ -417,14 +413,10 @@ export default function LitterBoxList() {
                           className="w-4 h-4 rounded"
                           style={{ accentColor: '#C48E6B' }}
                         />
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
-                          {cat.avatar ? (
-                            <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xs font-medium" style={{ color: '#8B7355' }}>
-                              {cat.name.charAt(0)}
-                            </span>
-                          )}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#F5EDE0' }}>
+                          <span className="text-base leading-none">
+                            {cat.avatar || cat.name.charAt(0)}
+                          </span>
                         </div>
                         <span className="text-sm font-medium truncate" style={{ color: '#5D4E37' }}>
                           {cat.name}
