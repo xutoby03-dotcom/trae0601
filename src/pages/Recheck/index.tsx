@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, ChangeEvent } from 'react';
 import {
   RotateCcw,
   AlertTriangle,
@@ -11,6 +11,8 @@ import {
   FileText,
   Flame,
   Bell,
+  Upload,
+  X,
 } from 'lucide-react';
 import { useInspectionStore } from '@/store/inspectionStore';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
@@ -21,6 +23,8 @@ import { formatDate } from '@/utils/date';
 import { Inspection } from '@/types';
 import { cn } from '@/utils/helpers';
 
+const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop';
+
 export default function Recheck() {
   const { inspections, addRecheckRecord, markAsCleaned, addNotification } = useInspectionStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +34,10 @@ export default function Recheck() {
   const [recheckResult, setRecheckResult] = useState('');
   const [needsSecondNotice, setNeedsSecondNotice] = useState(true);
   const [remark, setRemark] = useState('');
+  const [showCleanupPhotoModal, setShowCleanupPhotoModal] = useState(false);
+  const [cleanupPhotoUrl, setCleanupPhotoUrl] = useState('');
+  const cleanupFileInputRef = useRef<HTMLInputElement>(null);
+  const [cleanupPreviewError, setCleanupPreviewError] = useState(false);
 
   const overdueInspections = useMemo(() => {
     return inspections.filter((i) => i.status === 'overdue' || i.status === 'recheck');
@@ -49,6 +57,28 @@ export default function Recheck() {
       return true;
     });
   }, [overdueInspections, buildingFilter, searchQuery]);
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleCleanupPhotoSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const dataUrl = await readFileAsDataURL(file);
+        setCleanupPhotoUrl(dataUrl);
+        setCleanupPreviewError(false);
+      } catch {
+        alert('读取图片失败，请重试');
+      }
+    }
+  };
 
   const handleRecheck = (inspection: Inspection) => {
     setSelectedInspection(inspection);
@@ -72,9 +102,24 @@ export default function Recheck() {
     setSelectedInspection(null);
   };
 
-  const handleMarkCleaned = (id: string) => {
-    if (confirm('确认标记为已清理？')) {
-      markAsCleaned(id);
+  const handleMarkCleaned = (inspection: Inspection) => {
+    setSelectedInspection(inspection);
+    setCleanupPhotoUrl('');
+    setCleanupPreviewError(false);
+    if (cleanupFileInputRef.current) cleanupFileInputRef.current.value = '';
+    setShowCleanupPhotoModal(true);
+  };
+
+  const handleConfirmCleaned = () => {
+    if (!cleanupPhotoUrl) {
+      alert('请上传清理后的照片');
+      return;
+    }
+    if (selectedInspection) {
+      markAsCleaned(selectedInspection.id, cleanupPhotoUrl);
+      setShowCleanupPhotoModal(false);
+      setCleanupPhotoUrl('');
+      setSelectedInspection(null);
     }
   };
 
@@ -224,7 +269,7 @@ export default function Recheck() {
                         variant="outline"
                         size="sm"
                         leftIcon={<CheckCircle className="w-4 h-4" />}
-                        onClick={() => handleMarkCleaned(inspection.id)}
+                        onClick={() => handleMarkCleaned(inspection)}
                       >
                         已清理
                       </Button>
@@ -316,6 +361,78 @@ export default function Recheck() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={showCleanupPhotoModal}
+        onClose={() => setShowCleanupPhotoModal(false)}
+        title="确认清理 - 上传清理后照片"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowCleanupPhotoModal(false)}>取消</Button>
+            <Button leftIcon={<CheckCircle className="w-4 h-4" />} onClick={handleConfirmCleaned}>
+              确认已清理
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-800">
+              <strong>请确认：</strong>现场杂物已清理完毕，上传清理后的照片作为归档凭证。
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">清理后照片 <span className="text-red-500">*</span></label>
+            <input
+              ref={cleanupFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCleanupPhotoSelect}
+            />
+            {cleanupPhotoUrl ? (
+              <div className="relative">
+                <img
+                  src={cleanupPreviewError ? DEFAULT_PHOTO : cleanupPhotoUrl}
+                  alt="清理后照片预览"
+                  className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                  onError={() => setCleanupPreviewError(true)}
+                />
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cleanupFileInputRef.current?.click()}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-blue-600 transition-colors"
+                    title="更换照片"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCleanupPhotoUrl(''); setCleanupPreviewError(false); if (cleanupFileInputRef.current) cleanupFileInputRef.current.value = ''; }}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-red-600 transition-colors"
+                    title="移除照片"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => cleanupFileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-green-400 hover:bg-green-50/30 transition-all cursor-pointer group"
+              >
+                <div className="w-16 h-16 bg-gray-100 group-hover:bg-green-100 rounded-xl mx-auto mb-3 flex items-center justify-center transition-colors">
+                  <Upload className="w-7 h-7 text-gray-400 group-hover:text-green-500 transition-colors" />
+                </div>
+                <p className="text-sm text-gray-600 group-hover:text-green-600 font-medium">点击上传清理后照片</p>
+                <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG 格式</p>
+              </div>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );

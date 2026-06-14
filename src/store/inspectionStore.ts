@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Inspection, Notification, RecheckRecord, InspectionStatus, NotificationMethod } from '@/types';
 import {
   getInspections,
+  saveInspections,
   addInspection as addInspectionToStorage,
   updateInspection as updateInspectionInStorage,
   deleteInspection as deleteInspectionFromStorage,
@@ -12,7 +13,7 @@ import {
   addRecheckRecord as addRecheckRecordToStorage,
   initializeStorage,
 } from '@/services/storageService';
-import { generateId, addDaysFromNow } from '@/utils/date';
+import { generateId, addDaysFromNow, isOverdue } from '@/utils/date';
 import { DEFAULT_NOTICE_DAYS } from '@/constants';
 
 interface InspectionState {
@@ -49,6 +50,26 @@ interface InspectionState {
   getRecheckRecordsByInspectionId: (inspectionId: string) => RecheckRecord[];
 }
 
+const checkOverdueStatus = (inspections: Inspection[], notifications: Notification[]): Inspection[] => {
+  let hasChanges = false;
+  const updatedInspections = inspections.map((inspection) => {
+    if (inspection.status === 'notified') {
+      const latestNotification = notifications
+        .filter((n) => n.inspectionId === inspection.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      if (latestNotification?.deadline && isOverdue(latestNotification.deadline)) {
+        hasChanges = true;
+        return { ...inspection, status: 'overdue' as InspectionStatus, updatedAt: new Date().toISOString() };
+      }
+    }
+    return inspection;
+  });
+  if (hasChanges) {
+    saveInspections(updatedInspections);
+  }
+  return updatedInspections;
+};
+
 export const useInspectionStore = create<InspectionState>((set, get) => ({
   inspections: [],
   notifications: [],
@@ -62,9 +83,12 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
   },
 
   refreshData: () => {
+    const rawInspections = getInspections();
+    const notifications = getNotifications();
+    const inspections = checkOverdueStatus(rawInspections, notifications);
     set({
-      inspections: getInspections(),
-      notifications: getNotifications(),
+      inspections,
+      notifications,
       recheckRecords: getRecheckRecords(),
     });
   },

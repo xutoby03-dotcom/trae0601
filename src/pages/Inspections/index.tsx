@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Filter, MoreVertical, Eye, Bell, CheckCircle, Trash2, MapPin, User, Ruler, Calendar, Flame } from 'lucide-react';
+import { useState, useMemo, useRef, ChangeEvent } from 'react';
+import { Plus, Search, Filter, MoreVertical, Eye, Bell, CheckCircle, Trash2, MapPin, User, Ruler, Calendar, Flame, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useInspectionStore } from '@/store/inspectionStore';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -11,6 +11,8 @@ import { formatDate } from '@/utils/date';
 import { Inspection, ItemType, InspectionStatus } from '@/types';
 import { cn } from '@/utils/helpers';
 
+const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop';
+
 export default function Inspections() {
   const { inspections, addInspection, deleteInspection, markAsCleaned } = useInspectionStore();
   const [buildingFilter, setBuildingFilter] = useState<string>('all');
@@ -21,6 +23,24 @@ export default function Inspections() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showCleanupPhotoModal, setShowCleanupPhotoModal] = useState(false);
+  const [cleanupPhotoUrl, setCleanupPhotoUrl] = useState('');
+  const [cleanupPreviewError, setCleanupPreviewError] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cleanupFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState({
+    building: '1号楼',
+    floor: '1层',
+    location: '',
+    itemType: '纸箱' as ItemType,
+    area: 1,
+    photo: '',
+    suspectedResident: '',
+    isFireExit: false,
+  });
+  const [photoPreviewError, setPhotoPreviewError] = useState(false);
 
   const filteredInspections = useMemo(() => {
     return filterInspections(inspections, {
@@ -32,34 +52,68 @@ export default function Inspections() {
     });
   }, [inspections, buildingFilter, statusFilter, itemTypeFilter, searchQuery, fireExitOnly]);
 
-  const [formData, setFormData] = useState({
-    building: '1号楼',
-    floor: '1层',
-    location: '',
-    itemType: '纸箱' as ItemType,
-    area: 1,
-    photo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop',
-    suspectedResident: '',
-    isFireExit: false,
-  });
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePhotoSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const dataUrl = await readFileAsDataURL(file);
+        setFormData({ ...formData, photo: dataUrl });
+        setPhotoPreviewError(false);
+      } catch {
+        alert('读取图片失败，请重试');
+      }
+    }
+  };
+
+  const handleCleanupPhotoSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const dataUrl = await readFileAsDataURL(file);
+        setCleanupPhotoUrl(dataUrl);
+        setCleanupPreviewError(false);
+      } catch {
+        alert('读取图片失败，请重试');
+      }
+    }
+  };
 
   const handleAddInspection = () => {
     if (!formData.location || !formData.suspectedResident) {
       alert('请填写完整信息');
       return;
     }
+    if (!formData.photo) {
+      alert('请上传现场照片');
+      return;
+    }
     addInspection(formData);
     setShowAddModal(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setFormData({
       building: '1号楼',
       floor: '1层',
       location: '',
       itemType: '纸箱',
       area: 1,
-      photo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&h=300&fit=crop',
+      photo: '',
       suspectedResident: '',
       isFireExit: false,
     });
+    setPhotoPreviewError(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleViewDetail = (inspection: Inspection) => {
@@ -67,10 +121,23 @@ export default function Inspections() {
     setShowDetailModal(true);
   };
 
-  const handleMarkCleaned = (id: string) => {
-    if (confirm('确认标记为已清理？')) {
-      markAsCleaned(id);
+  const openCleanupPhotoModal = () => {
+    setCleanupPhotoUrl('');
+    setCleanupPreviewError(false);
+    if (cleanupFileInputRef.current) cleanupFileInputRef.current.value = '';
+    setShowCleanupPhotoModal(true);
+  };
+
+  const handleConfirmCleaned = () => {
+    if (!cleanupPhotoUrl) {
+      alert('请上传清理后的照片');
+      return;
+    }
+    if (selectedInspection) {
+      markAsCleaned(selectedInspection.id, cleanupPhotoUrl);
+      setShowCleanupPhotoModal(false);
       setShowDetailModal(false);
+      setCleanupPhotoUrl('');
     }
   };
 
@@ -79,6 +146,11 @@ export default function Inspections() {
       deleteInspection(id);
       setShowDetailModal(false);
     }
+  };
+
+  const displayPhoto = (photo: string, onErrorFlag: boolean) => {
+    if (onErrorFlag) return DEFAULT_PHOTO;
+    return photo || DEFAULT_PHOTO;
   };
 
   return (
@@ -92,7 +164,7 @@ export default function Inspections() {
                 共 {filteredInspections.length} 条记录
               </p>
             </div>
-            <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => setShowAddModal(true)}>
+            <Button leftIcon={<Plus className="w-4 h-4" />} onClick={() => { resetForm(); setShowAddModal(true); }}>
               新增巡查
             </Button>
           </div>
@@ -171,9 +243,10 @@ export default function Inspections() {
                 >
                   <div className="relative">
                     <img
-                      src={inspection.photo}
+                      src={displayPhoto(inspection.photo, false)}
                       alt={inspection.location}
                       className="w-full h-40 object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PHOTO; }}
                     />
                     <div className="absolute top-3 right-3">
                       <StatusBadge type="inspection" status={inspection.status} size="sm" />
@@ -331,14 +404,57 @@ export default function Inspections() {
           </label>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">现场照片</label>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
-                <span className="text-gray-400 text-2xl">📷</span>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">现场照片 <span className="text-red-500">*</span></label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
+            {formData.photo ? (
+              <div className="relative">
+                <img
+                  src={displayPhoto(formData.photo, photoPreviewError)}
+                  alt="现场照片预览"
+                  className="w-full h-56 object-cover rounded-lg border border-gray-200"
+                  onError={() => setPhotoPreviewError(true)}
+                />
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-blue-600 transition-colors"
+                    title="更换照片"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setFormData({ ...formData, photo: '' }); setPhotoPreviewError(false); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-red-600 transition-colors"
+                    title="移除照片"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" />
+                  已选择照片，可更换
+                </p>
               </div>
-              <p className="text-sm text-gray-500">点击或拖拽上传照片</p>
-              <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG 格式</p>
-            </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer group"
+              >
+                <div className="w-16 h-16 bg-gray-100 group-hover:bg-blue-100 rounded-xl mx-auto mb-3 flex items-center justify-center transition-colors">
+                  <Upload className="w-7 h-7 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                </div>
+                <p className="text-sm text-gray-600 group-hover:text-blue-600 font-medium">点击上传现场照片</p>
+                <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG 格式</p>
+              </div>
+            )}
           </div>
         </div>
       </Modal>
@@ -362,12 +478,20 @@ export default function Inspections() {
               <Button
                 variant="outline"
                 leftIcon={<Bell className="w-4 h-4" />}
+                onClick={() => {
+                  const w = window as any;
+                  if (w.__navToNotifications && selectedInspection) {
+                    w.__navToNotifications(selectedInspection.id);
+                  } else {
+                    window.location.hash = '#/notifications';
+                  }
+                }}
               >
                 发起通知
               </Button>
               <Button
                 leftIcon={<CheckCircle className="w-4 h-4" />}
-                onClick={() => selectedInspection && handleMarkCleaned(selectedInspection.id)}
+                onClick={openCleanupPhotoModal}
               >
                 标记已清理
               </Button>
@@ -379,20 +503,27 @@ export default function Inspections() {
       >
         {selectedInspection && (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <img
-                src={selectedInspection.photo}
-                alt={selectedInspection.location}
-                className="w-full h-48 object-cover rounded-lg"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <ImageIcon className="w-4 h-4 text-gray-400" />
+                  现场照片
+                </p>
+                <img
+                  src={displayPhoto(selectedInspection.photo, false)}
+                  alt={selectedInspection.location}
+                  className="w-full h-56 object-cover rounded-lg border border-gray-200"
+                  onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_PHOTO; }}
+                />
+              </div>
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">位置</p>
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-gray-800 text-lg">
                     {selectedInspection.building} {selectedInspection.floor} {selectedInspection.location}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <StatusBadge type="inspection" status={selectedInspection.status} />
                   {selectedInspection.isFireExit && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
@@ -401,13 +532,15 @@ export default function Inspections() {
                     </span>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">物品类型</p>
-                  <p className="text-gray-800">{selectedInspection.itemType}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">占用面积</p>
-                  <p className="text-gray-800">{selectedInspection.area} 平方米</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1">物品类型</p>
+                    <p className="text-gray-800 font-medium">{selectedInspection.itemType}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1">占用面积</p>
+                    <p className="text-gray-800 font-medium">{selectedInspection.area} 平方米</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -423,15 +556,24 @@ export default function Inspections() {
               </div>
             </div>
 
-            {selectedInspection.cleanedAt && (
+            {selectedInspection.cleanedPhoto && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="font-medium text-green-800">已清理</span>
+                  <span className="font-medium text-green-800">已清理归档</span>
+                  {selectedInspection.cleanedAt && (
+                    <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                      {formatDate(selectedInspection.cleanedAt, 'yyyy-MM-dd HH:mm')}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm text-green-700">
-                  清理时间：{formatDate(selectedInspection.cleanedAt, 'yyyy-MM-dd HH:mm')}
-                </p>
+                <p className="text-xs text-green-700 mb-2">清理后现场照片：</p>
+                <img
+                  src={selectedInspection.cleanedPhoto}
+                  alt="清理后照片"
+                  className="w-full max-w-md h-64 object-cover rounded-lg border-2 border-green-200"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
               </div>
             )}
 
@@ -444,6 +586,78 @@ export default function Inspections() {
             )}
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={showCleanupPhotoModal}
+        onClose={() => setShowCleanupPhotoModal(false)}
+        title="确认清理 - 上传清理后照片"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowCleanupPhotoModal(false)}>取消</Button>
+            <Button leftIcon={<CheckCircle className="w-4 h-4" />} onClick={handleConfirmCleaned}>
+              确认已清理
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-800">
+              <strong>请确认：</strong>现场杂物已清理完毕，上传清理后的照片作为归档凭证。
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">清理后照片 <span className="text-red-500">*</span></label>
+            <input
+              ref={cleanupFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCleanupPhotoSelect}
+            />
+            {cleanupPhotoUrl ? (
+              <div className="relative">
+                <img
+                  src={cleanupPreviewError ? DEFAULT_PHOTO : cleanupPhotoUrl}
+                  alt="清理后照片预览"
+                  className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                  onError={() => setCleanupPreviewError(true)}
+                />
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => cleanupFileInputRef.current?.click()}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-blue-600 transition-colors"
+                    title="更换照片"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCleanupPhotoUrl(''); setCleanupPreviewError(false); if (cleanupFileInputRef.current) cleanupFileInputRef.current.value = ''; }}
+                    className="p-2 bg-white/90 hover:bg-white rounded-lg shadow-md text-gray-600 hover:text-red-600 transition-colors"
+                    title="移除照片"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => cleanupFileInputRef.current?.click()}
+                className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center hover:border-green-400 hover:bg-green-50/30 transition-all cursor-pointer group"
+              >
+                <div className="w-16 h-16 bg-gray-100 group-hover:bg-green-100 rounded-xl mx-auto mb-3 flex items-center justify-center transition-colors">
+                  <Upload className="w-7 h-7 text-gray-400 group-hover:text-green-500 transition-colors" />
+                </div>
+                <p className="text-sm text-gray-600 group-hover:text-green-600 font-medium">点击上传清理后照片</p>
+                <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG 格式</p>
+              </div>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );
