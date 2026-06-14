@@ -10,11 +10,21 @@ import {
   Package,
   X,
   TrendingUp,
+  ShoppingCart,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTastingStore } from '@/store/tastingStore';
 import { useProductStore } from '@/store/productStore';
+import { useOrderStore } from '@/store/orderStore';
 import { formatTime, formatDateTime, getMinutesUntil, formatDuration } from '@/utils/date';
 import type { TastingRecord } from '@/types';
+
+interface Toast {
+  id: string;
+  type: 'success' | 'error';
+  message: string;
+}
 
 function getStatusInfo(status: string, minutesLeft: number) {
   if (status !== 'active') {
@@ -56,16 +66,30 @@ export default function TastingMonitor() {
   const endTasting = useTastingStore((state) => state.endTasting);
   const getProductById = useProductStore((state) => state.getProductById);
   const getBatchById = useProductStore((state) => state.getBatchById);
+  const addOrder = useOrderStore((state) => state.addOrder);
 
   const [, setTick] = useState(0);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [showEndModal, setShowEndModal] = useState<TastingRecord | null>(null);
   const [remainingPortion, setRemainingPortion] = useState(0);
+  const [showOrderModal, setShowOrderModal] = useState<TastingRecord | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState(1);
+  const [orderAmount, setOrderAmount] = useState('');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setTick((t) => t + 1), 1000 * 60);
     return () => clearInterval(timer);
   }, []);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3000);
+  };
 
   const filteredRecords = records.filter((r) => {
     if (filter === 'active') return r.status === 'active';
@@ -83,16 +107,68 @@ export default function TastingMonitor() {
 
   const confirmEndTasting = (status: 'completed' | 'expired') => {
     if (!showEndModal) return;
-    endTasting(showEndModal.id, remainingPortion, status);
-    setShowEndModal(null);
+    try {
+      endTasting(showEndModal.id, remainingPortion, status);
+      setShowEndModal(null);
+      showToast('success', '撤台登记成功');
+    } catch {
+      showToast('error', '撤台登记失败，请重试');
+    }
+  };
+
+  const handleOpenOrderModal = (record: TastingRecord) => {
+    setShowOrderModal(record);
+    setOrderQuantity(1);
+    setOrderAmount('');
+  };
+
+  const handleSubmitOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showOrderModal) return;
+
+    const batch = getBatchById(showOrderModal.batchId);
+    const product = batch ? getProductById(batch.productId) : null;
+    const amountNum = parseFloat(orderAmount);
+
+    if (orderQuantity <= 0) {
+      showToast('error', '请填写有效的数量');
+      return;
+    }
+    if (isNaN(amountNum) || amountNum <= 0) {
+      showToast('error', '请填写有效的金额');
+      return;
+    }
+    if (!product) {
+      showToast('error', '关联商品信息缺失');
+      return;
+    }
+
+    setIsSubmittingOrder(true);
+
+    try {
+      addOrder({
+        tastingId: showOrderModal.id,
+        productId: product.id,
+        productName: product.name,
+        quantity: orderQuantity,
+        amount: amountNum,
+      });
+
+      showToast('success', `订单记录成功：${product.name} × ${orderQuantity}`);
+      setShowOrderModal(null);
+      setIsSubmittingOrder(false);
+    } catch {
+      showToast('error', '订单记录失败，请重试');
+      setIsSubmittingOrder(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">试吃台监控</h1>
-          <p className="text-stone-500 mt-1">实时监控所有试吃台状态</p>
+          <p className="text-stone-500 mt-1">实时监控所有试吃台状态，点击卡片记订单</p>
         </div>
         <button
           onClick={() => navigate('/tasting/new')}
@@ -265,11 +341,11 @@ export default function TastingMonitor() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1">
                       <TrendingUp className="w-4 h-4 text-emerald-500" />
                       <span className="text-sm text-stone-600">
-                        已转化 <strong className="text-stone-800">{record.convertedOrders}</strong> 单
+                        已转化 <strong className="text-stone-800 text-base">{record.convertedOrders}</strong> 单
                       </span>
                     </div>
                     <span className="text-sm text-stone-500">
@@ -277,15 +353,24 @@ export default function TastingMonitor() {
                     </span>
                   </div>
 
-                  {record.status === 'active' && (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => handleEndTasting(record)}
-                      className="w-full mt-4 py-2.5 bg-stone-800 text-white rounded-xl font-medium hover:bg-stone-900 transition-colors flex items-center justify-center gap-2"
+                      onClick={() => handleOpenOrderModal(record)}
+                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 text-sm"
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      确认撤台
+                      <ShoppingCart className="w-4 h-4" />
+                      记订单
                     </button>
-                  )}
+                    {record.status === 'active' && (
+                      <button
+                        onClick={() => handleEndTasting(record)}
+                        className="flex-1 py-2.5 bg-stone-800 text-white rounded-xl font-medium hover:bg-stone-900 transition-colors flex items-center justify-center gap-2 text-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        撤台
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -374,6 +459,171 @@ export default function TastingMonitor() {
           </div>
         </div>
       )}
+
+      {showOrderModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-stone-800 flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                记录转化订单
+              </h3>
+              <button
+                onClick={() => !isSubmittingOrder && setShowOrderModal(null)}
+                disabled={isSubmittingOrder}
+                className="p-1 text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {(() => {
+              const batch = getBatchById(showOrderModal.batchId);
+              const product = batch ? getProductById(batch.productId) : null;
+              return (
+                <form onSubmit={handleSubmitOrder} className="space-y-5">
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-emerald-100/50 rounded-xl border border-emerald-200">
+                    <div className="w-14 h-14 bg-white rounded-xl overflow-hidden shadow-sm">
+                      {product?.photo ? (
+                        <img src={product.photo} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Package className="w-7 h-7 text-stone-400 m-auto" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-stone-800 truncate">{product?.name || '未知商品'}</p>
+                      <p className="text-sm text-stone-500 mt-0.5">
+                        {showOrderModal.stationLocation} · {showOrderModal.operatorName}
+                      </p>
+                      <p className="text-xs text-emerald-700 mt-1 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        试吃ID关联后将计入转化统计
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-2">
+                        数量（件）<span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setOrderQuantity((q) => Math.max(1, q - 1))}
+                          className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-l-xl transition-colors"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={orderQuantity}
+                          onChange={(e) => setOrderQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full px-10 py-3 bg-stone-50 border border-stone-200 rounded-xl text-center text-stone-800 font-medium text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setOrderQuantity((q) => q + 1)}
+                          className="absolute right-0 top-0 bottom-0 w-10 flex items-center justify-center text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-r-xl transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-stone-700 mb-2">
+                        金额（元）<span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500 font-medium">¥</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={orderAmount}
+                          onChange={(e) => setOrderAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-medium text-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {orderQuantity > 0 && orderAmount && !isNaN(parseFloat(orderAmount)) && (
+                    <div className="p-3 bg-stone-50 rounded-xl flex items-center justify-between">
+                      <span className="text-sm text-stone-500">预估单价</span>
+                      <span className="text-sm font-semibold text-stone-700">
+                        ¥ {(parseFloat(orderAmount) / orderQuantity).toFixed(2)} / 件
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => !isSubmittingOrder && setShowOrderModal(null)}
+                      disabled={isSubmittingOrder}
+                      className="flex-1 py-3 border border-stone-200 text-stone-600 rounded-xl font-medium hover:bg-stone-50 transition-colors disabled:opacity-50"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingOrder}
+                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-medium shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/35 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                    >
+                      {isSubmittingOrder ? (
+                        <span className="animate-pulse">保存中...</span>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          确认记录
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      <div className="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] ${
+              toast.type === 'success'
+                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white'
+                : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white'
+            }`}
+          >
+            {toast.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            )}
+            <span className="font-medium text-sm">{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
