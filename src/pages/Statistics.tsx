@@ -8,6 +8,7 @@ import {
   Tag,
   Tabs,
   Radio,
+  Select,
   Space,
   Progress,
   Button,
@@ -66,6 +67,10 @@ function Statistics() {
   const [dailyUsages, setDailyUsages] = useState<DailyUsageItem[]>([]);
   const [suggestions, setSuggestions] = useState<PurchaseSuggestion[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
+
+  const [expiryStatusFilter, setExpiryStatusFilter] = useState<'all' | 'expired' | '1day' | '3days' | '7days'>('all');
+  const [expiryFreezerFilter, setExpiryFreezerFilter] = useState<string>('all');
+  const [purchaseUrgencyFilter, setPurchaseUrgencyFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
 
   useEffect(() => {
     const loadAll = async () => {
@@ -162,6 +167,39 @@ function Statistics() {
     '报废量': d.totalDiscarded,
   }));
 
+  // Freezer location options from expiring soon data
+  const freezerOptions = useMemo(() => {
+    const locations = new Set(expiringSoon.map((e) => e.freezerLocation));
+    return Array.from(locations).sort();
+  }, [expiringSoon]);
+
+  // Filtered expiring soon list
+  const filteredExpiringSoon = useMemo(() => {
+    return expiringSoon.filter((e) => {
+      const statusMatch =
+        expiryStatusFilter === 'all'
+          ? true
+          : expiryStatusFilter === 'expired'
+          ? e.daysLeft < 0
+          : expiryStatusFilter === '1day'
+          ? e.daysLeft >= 0 && e.daysLeft <= 1
+          : expiryStatusFilter === '3days'
+          ? e.daysLeft > 1 && e.daysLeft <= 3
+          : e.daysLeft > 3 && e.daysLeft <= 7;
+
+      const freezerMatch = expiryFreezerFilter === 'all' ? true : e.freezerLocation === expiryFreezerFilter;
+
+      return statusMatch && freezerMatch;
+    });
+  }, [expiringSoon, expiryStatusFilter, expiryFreezerFilter]);
+
+  // Filtered purchase suggestions list
+  const filteredSuggestions = useMemo(() => {
+    return suggestions.filter((s) => {
+      return purchaseUrgencyFilter === 'all' ? true : s.urgency === purchaseUrgencyFilter;
+    });
+  }, [suggestions, purchaseUrgencyFilter]);
+
   // Suggestions grouped by urgency
   const highSuggestions = suggestions.filter((s) => s.urgency === 'high');
   const mediumSuggestions = suggestions.filter((s) => s.urgency === 'medium');
@@ -238,7 +276,7 @@ function Statistics() {
 
   const exportPurchase = () => {
     const lines = ['原料名称,品牌,紧急度,当前库存,日均用量,可用天数,建议采购量'];
-    suggestions.forEach((s) => {
+    filteredSuggestions.forEach((s) => {
       const urgencyText = s.urgency === 'high' ? '紧急' : s.urgency === 'medium' ? '建议' : '充足';
       const daysText = s.daysLeft >= 999 ? '充足' : s.daysLeft.toString();
       lines.push(
@@ -249,10 +287,14 @@ function Statistics() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `采购建议_${formatDate(new Date())}.csv`;
+    const filterSuffix =
+      purchaseUrgencyFilter !== 'all'
+        ? `_${purchaseUrgencyFilter === 'high' ? '紧急' : purchaseUrgencyFilter === 'medium' ? '建议采购' : '库存充足'}`
+        : '';
+    a.download = `采购建议${filterSuffix}_${formatDate(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    msg.success('采购建议已导出');
+    msg.success(`已导出 ${filteredSuggestions.length} 条采购建议`);
   };
 
   const expiryColumns = [
@@ -599,22 +641,53 @@ function Statistics() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
             }}
           >
-            <Space>
+            <Space wrap>
               <Tag color="red">已超期 {expiringSoon.filter((e) => e.daysLeft < 0).length}</Tag>
               <Tag color="orange">1天内 {expiringSoon.filter((e) => e.daysLeft >= 0 && e.daysLeft <= 1).length}</Tag>
               <Tag color="gold">3天内 {expiringSoon.filter((e) => e.daysLeft > 1 && e.daysLeft <= 3).length}</Tag>
               <Tag color="green">7天内 {expiringSoon.filter((e) => e.daysLeft > 3).length}</Tag>
             </Space>
+            <Space>
+              <Select
+                value={expiryStatusFilter}
+                onChange={setExpiryStatusFilter}
+                style={{ width: 140 }}
+                size="small"
+                options={[
+                  { value: 'all', label: '全部状态' },
+                  { value: 'expired', label: '已超期' },
+                  { value: '1day', label: '1天内到期' },
+                  { value: '3days', label: '3天内到期' },
+                  { value: '7days', label: '7天内到期' },
+                ]}
+              />
+              <Select
+                value={expiryFreezerFilter}
+                onChange={setExpiryFreezerFilter}
+                style={{ width: 160 }}
+                size="small"
+                placeholder="选择冰柜"
+                options={[
+                  { value: 'all', label: '全部冰柜' },
+                  ...freezerOptions.map((loc) => ({ value: loc, label: `❄️ ${loc}` })),
+                ]}
+              />
+            </Space>
           </div>
           {withLoading(
-            expiringSoon.length === 0 ? (
-              <Empty description="✅ 未来 7 天内没有临期原料" style={{ padding: '60px 0' }} />
+            filteredExpiringSoon.length === 0 ? (
+              <Empty
+                description={expiryStatusFilter === 'all' && expiryFreezerFilter === 'all' ? '✅ 未来 7 天内没有临期原料' : '没有符合筛选条件的记录'}
+                style={{ padding: '60px 0' }}
+              />
             ) : (
               <Table
                 columns={expiryColumns}
-                dataSource={expiringSoon}
+                dataSource={filteredExpiringSoon}
                 rowKey="id"
                 pagination={{
                   pageSize: 15,
@@ -636,9 +709,11 @@ function Statistics() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
             }}
           >
-            <Space>
+            <Space wrap>
               <Tag color="red" icon={<FireOutlined />}>
                 紧急 {highSuggestions.length}
               </Tag>
@@ -647,25 +722,46 @@ function Statistics() {
                 库存充足 {suggestions.length - highSuggestions.length - mediumSuggestions.length}
               </Tag>
             </Space>
-            <Button
-              type="primary"
-              icon={<FileExcelOutlined />}
-              onClick={exportPurchase}
-            >
-              导出采购清单
-            </Button>
+            <Space>
+              <Select
+                value={purchaseUrgencyFilter}
+                onChange={setPurchaseUrgencyFilter}
+                style={{ width: 140 }}
+                size="small"
+                options={[
+                  { value: 'all', label: '全部紧急度' },
+                  { value: 'high', label: '🔥 紧急' },
+                  { value: 'medium', label: '⚠️ 建议采购' },
+                  { value: 'low', label: '✅ 库存充足' },
+                ]}
+              />
+              <Button
+                type="primary"
+                icon={<FileExcelOutlined />}
+                onClick={exportPurchase}
+              >
+                导出采购清单 {filteredSuggestions.length > 0 && `(${filteredSuggestions.length})`}
+              </Button>
+            </Space>
           </div>
           {withLoading(
-            <Table
-              columns={purchaseColumns}
-              dataSource={suggestions}
-              rowKey="ingredientId"
-              pagination={{
-                pageSize: 15,
-                showSizeChanger: true,
-                showTotal: (total) => `共 ${total} 项原料`,
-              }}
-            />,
+            filteredSuggestions.length === 0 ? (
+              <Empty
+                description={purchaseUrgencyFilter === 'all' ? '暂无采购建议' : '没有符合筛选条件的记录'}
+                style={{ padding: '60px 0' }}
+              />
+            ) : (
+              <Table
+                columns={purchaseColumns}
+                dataSource={filteredSuggestions}
+                rowKey="ingredientId"
+                pagination={{
+                  pageSize: 15,
+                  showSizeChanger: true,
+                  showTotal: (total) => `共 ${total} 项原料`,
+                }}
+              />
+            ),
             true
           )}
         </div>
