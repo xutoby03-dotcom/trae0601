@@ -24,7 +24,6 @@ export default function Tasks() {
     currentTaskId,
     setCurrentTask,
     updateLayingRecord,
-    markLaid,
     addIssue,
   } = useAppStore();
 
@@ -35,6 +34,9 @@ export default function Tasks() {
   const [issueType, setIssueType] = useState<'curled' | 'water' | 'dirty'>('curled');
   const [issueDesc, setIssueDesc] = useState('');
   const [layerName, setLayerName] = useState('');
+  const [layMatStatus, setLayMatStatus] = useState<MatStatus>('good');
+  const [layHasWarningSign, setLayHasWarningSign] = useState(false);
+  const [layPhoto, setLayPhoto] = useState('');
 
   const currentTask = tasks.find((t) => t.id === currentTaskId);
   const currentRecords = layingRecords.filter((r) => r.taskId === currentTaskId);
@@ -95,12 +97,25 @@ export default function Tasks() {
     const record = currentRecords.find((r) => r.id === recordId);
     const point = getPointById(record?.pointId || '');
     setLayerName(point?.cleaner || '');
+    setLayMatStatus(record?.matStatus || 'good');
+    setLayHasWarningSign(record?.hasWarningSign || false);
+    setLayPhoto(record?.photo || '');
     setShowLayModal(true);
   };
 
   const handleConfirmLay = () => {
     if (selectedRecord && layerName) {
-      markLaid(selectedRecord, layerName);
+      updateLayingRecord(selectedRecord, {
+        status: 'laid',
+        layer: layerName,
+        layTime: new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        matStatus: layMatStatus,
+        hasWarningSign: layHasWarningSign,
+        photo: layPhoto,
+      });
       setShowLayModal(false);
       setSelectedRecord(null);
     }
@@ -352,13 +367,63 @@ export default function Tasks() {
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-xs text-slate-500 mb-2">提示</p>
-                <ul className="text-xs text-slate-400 space-y-1">
-                  <li>• 请确保垫子平铺整齐，无卷边</li>
-                  <li>• 放置"小心地滑"警示牌</li>
-                  <li>• 拍照记录铺设情况</li>
-                </ul>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  垫子状态
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {([
+                    { value: 'good', label: '完好' },
+                    { value: 'curled', label: '卷边' },
+                    { value: 'wet', label: '积水' },
+                    { value: 'dirty', label: '脏污' },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      onClick={() => setLayMatStatus(item.value)}
+                      className={`py-2 text-xs font-medium rounded-lg border transition-colors ${
+                        layMatStatus === item.value
+                          ? 'bg-blue-50 border-blue-500 text-blue-700'
+                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  警示牌
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setLayHasWarningSign(!layHasWarningSign)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                    layHasWarningSign
+                      ? 'bg-green-50 border-green-500 text-green-700'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {layHasWarningSign ? (
+                    <CheckCircle2 className="w-4 h-4" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4" />
+                  )}
+                  {layHasWarningSign ? '已放置警示牌' : '未放置警示牌'}
+                </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  现场照片链接
+                </label>
+                <input
+                  type="text"
+                  value={layPhoto}
+                  onChange={(e) => setLayPhoto(e.target.value)}
+                  placeholder="请输入现场照片URL"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100">
