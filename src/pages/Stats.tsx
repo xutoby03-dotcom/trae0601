@@ -36,7 +36,7 @@ import StarRating from '../components/common/StarRating';
 import DeepCleanBadge from '../components/common/DeepCleanBadge';
 
 const Stats: React.FC = () => {
-  const { members, litterBoxes, records } = useAppStore();
+  const { members, litterBoxes, records, addRecord, currentMemberId } = useAppStore();
 
   const memberStats = useMemo(
     () => calculateMemberStats(records, members),
@@ -1041,13 +1041,37 @@ const Stats: React.FC = () => {
                             ))}
                           </div>
 
-                          <div className="mt-3 flex items-center gap-2 text-xs">
-                            <span className="px-2 py-1 rounded-lg bg-[#A8C5A0]/15 text-[#6B8E7A] font-medium">
-                              💡 清洗建议
-                            </span>
-                            <span className="text-[#A09484]">
-                              倒空猫砂 → 温水浸泡30分钟 → 中性洗涤剂刷洗 → 阳光晾干 → 重新装砂
-                            </span>
+                          <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="px-2 py-1 rounded-lg bg-[#A8C5A0]/15 text-[#6B8E7A] font-medium">
+                                💡 清洗建议
+                              </span>
+                              <span className="text-[#A09484]">
+                                倒空猫砂 → 温水浸泡30分钟 → 中性洗涤剂刷洗 → 阳光晾干 → 重新装砂
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const box = litterBoxes.find((b) => b.id === item.boxId);
+                                if (!box) return;
+                                addRecord({
+                                  litterBoxId: box.id,
+                                  memberId: currentMemberId,
+                                  cleanTime: new Date().toISOString(),
+                                  smellLevel: 1,
+                                  clumpLevel: '少',
+                                  addedLitter: true,
+                                  addedAmount: box.capacity,
+                                  note: '深度清洗后整盆换砂',
+                                  isFullChange: true,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 flex-shrink-0"
+                              style={{ backgroundColor: '#6B8E6B' }}
+                            >
+                              <Sparkles size={14} strokeWidth={2} />
+                              记录整盆换砂
+                            </button>
                           </div>
                         </div>
                       </div>

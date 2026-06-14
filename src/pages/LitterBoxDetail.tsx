@@ -347,6 +347,17 @@ export default function LitterBoxDetail() {
                 </div>
               </div>
             </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={handleFullChange}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                style={{ backgroundColor: '#6B8E6B' }}
+              >
+                <Sparkles size={16} />
+                已完成深洗，记录整盆换砂
+              </button>
+            </div>
           </div>
         )}
 
