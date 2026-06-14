@@ -62,6 +62,9 @@
                       {{ part.category }}
                     </el-tag>
                     <el-tag v-if="part.required" type="danger" size="small" effect="dark" style="margin-left: 6px;">必检</el-tag>
+                    <el-tag v-if="isPartDone(part.id) && (!photosMap[part.id] || photosMap[part.id].length === 0)" type="danger" size="small" effect="light" style="margin-left: 6px;">
+                      <el-icon style="margin-right: 2px;"><Warning /></el-icon>缺照片
+                    </el-tag>
                   </div>
                   <p class="part-desc" v-if="part.description">{{ part.description }}</p>
                 </div>
@@ -78,7 +81,7 @@
               <div class="part-upload" v-show="activePartId === part.id">
                 <div class="upload-header">
                   <span><el-icon><Camera /></el-icon>&nbsp;上传照片</span>
-                  <span style="color: #909399; font-size: 12px;">(可选，上传完成/异常情况照片)</span>
+                  <span style="color: #f5222d; font-size: 12px;">(必传，勾选后至少上传1张完成/异常照片)</span>
                 </div>
                 <el-upload
                   list-type="picture-card"
@@ -136,13 +139,20 @@
           <el-icon color="#f5222d"><CircleCloseFilled /></el-icon>
           <span style="color: #f5222d; font-weight: 600;">消毒液已过期，请更换消毒液后再提交！</span>
         </template>
+        <template v-else-if="hasMissingPhoto">
+          <el-icon color="#f5222d"><CircleCloseFilled /></el-icon>
+          <span style="color: #f5222d; font-weight: 600;">
+            以下 {{ partsMissingPhoto.length }} 项已勾选但未上传照片：
+            <strong>{{ partsMissingPhoto.map(p => p.name).join('、') }}</strong>，请先上传照片！
+          </span>
+        </template>
         <template v-else-if="completionRate < 100">
           <el-icon color="#fa8c16"><Warning /></el-icon>
           <span>尚有 <strong>{{ device.parts.length - completedCount }}</strong> 项未完成，提交后将记录漏做并通知店长</span>
         </template>
         <template v-else>
           <el-icon color="#52c41a"><CircleCheckFilled /></el-icon>
-          <span>所有项目已完成，可以提交记录</span>
+          <span>所有项目已完成，照片齐全，可以提交记录</span>
         </template>
       </div>
       <div class="submit-actions">
@@ -150,7 +160,7 @@
         <el-button
           type="primary" size="large"
           :loading="submitting"
-          :disabled="!checkRes.valid"
+          :disabled="!checkRes.valid || hasMissingPhoto"
           :icon="Check"
           @click="handleSubmit"
         >
@@ -208,6 +218,12 @@ const completedCount = computed(() => completedParts.size)
 const completionRate = computed(() => device.value ? Math.round((completedCount.value / device.value.parts.length) * 100) : 0)
 const checkRes = computed(() => disinfectant.value ? appStore.checkDisinfectantValid(disinfectant.value.id) : { valid: false, warning: true, daysLeft: -1 })
 
+const partsMissingPhoto = computed(() => {
+  if (!device.value) return []
+  return device.value.parts.filter(p => isPartDone(p.id) && (!photosMap[p.id] || photosMap[p.id].length === 0))
+})
+const hasMissingPhoto = computed(() => partsMissingPhoto.value.length > 0)
+
 function getShiftRange(sid: string) {
   const s = appStore.getShift(sid)
   return s ? `${s.startTime} ~ ${s.endTime}` : '-'
@@ -250,6 +266,10 @@ function handlePhotoRemove(pid: string, file: UploadFile) {
 async function handleSubmit() {
   if (!task.value || !device.value || !disinfectant.value) return
   if (!checkRes.value.valid) { ElMessage.error('消毒液已过期，无法提交'); return }
+  if (hasMissingPhoto.value) {
+    ElMessage.error(`以下项目已勾选但未上传照片：${partsMissingPhoto.value.map(p => p.name).join('、')}`)
+    return
+  }
 
   const hasMissed = completionRate.value < 100
   const confirmMsg = hasMissed

@@ -5,7 +5,7 @@ import type { Device, Shift, Disinfectant, Task, Record, Notification, Disinfect
 import { storage, genId } from '@/services/storage'
 
 export const useAppStore = defineStore('app', () => {
-  const devices = ref<Device[]>(storage.devices.getAll())
+  const devices = ref<Device[]>(storage.devices.getAll().map(d => ({ ...d, photos: d.photos || [] })))
   const shifts = ref<Shift[]>(storage.shifts.getAll())
   const disinfectants = ref<Disinfectant[]>(storage.disinfectants.getAll())
   const disinfectantLogs = ref<DisinfectantLog[]>(storage.disinfectantLogs.getAll())
@@ -41,19 +41,21 @@ export const useAppStore = defineStore('app', () => {
   function getRecord(id: string) { return records.value.find(r => r.id === id) }
   function getUser(id: string) { return users.value.find(u => u.id === id) }
 
-  function addDevice(device: Omit<Device, 'id' | 'createdAt' | 'parts'> & { parts: Omit<import('@/types').Part, 'id' | 'deviceId'>[] }) {
+  function addDevice(device: Omit<Device, 'id' | 'createdAt' | 'parts' | 'photos'> & { parts: Omit<import('@/types').Part, 'id' | 'deviceId'>[]; photos?: Omit<import('@/types').DevicePhoto, 'id' | 'deviceId'>[] }) {
     const id = genId()
     const parts = device.parts.map(p => ({ ...p, id: genId(), deviceId: id }))
-    devices.value.push({ ...device, id, createdAt: new Date().toISOString(), parts } as Device)
+    const photos = (device.photos || []).map(p => ({ ...p, id: genId(), deviceId: id }))
+    devices.value.push({ ...device, id, createdAt: new Date().toISOString(), parts, photos } as Device)
     persist()
     return id
   }
 
-  function updateDevice(id: string, data: Partial<Device> & { parts?: Omit<import('@/types').Part, 'id'>[] }) {
+  function updateDevice(id: string, data: Partial<Device> & { parts?: Omit<import('@/types').Part, 'id'>[]; photos?: Omit<import('@/types').DevicePhoto, 'id' | 'deviceId'>[] }) {
     const idx = devices.value.findIndex(d => d.id === id)
     if (idx >= 0) {
       const parts = data.parts?.map(p => ({ ...p, id: p.id || genId(), deviceId: id }))
-      devices.value[idx] = { ...devices.value[idx], ...data, parts: parts || devices.value[idx].parts }
+      const photos = data.photos?.map(p => ({ ...p, id: p.id || genId(), deviceId: id }))
+      devices.value[idx] = { ...devices.value[idx], ...data, parts: parts || devices.value[idx].parts, photos: photos ?? devices.value[idx].photos }
       persist()
     }
   }

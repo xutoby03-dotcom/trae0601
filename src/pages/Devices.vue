@@ -22,8 +22,14 @@
       <el-col v-for="dev in filteredDevices" :key="dev.id" :xs="24" :sm="12" :lg="8" :xl="6">
         <el-card class="device-card card-shadow card-hover" shadow="never">
           <div class="device-header">
-            <div class="device-icon-wrap">
+            <div class="device-icon-wrap" v-if="!dev.photos || !dev.photos.length">
               <el-icon :size="32" color="#fff"><IceCreamSquare /></el-icon>
+            </div>
+            <div class="device-photo-cover" v-else @click.stop="previewPhoto(dev.photos![0].url)">
+              <img :src="dev.photos![0].url" :alt="dev.name" />
+              <div class="photo-count-tip" v-if="dev.photos!.length > 1">
+                <el-icon><Picture /></el-icon> {{ dev.photos!.length }}
+              </div>
             </div>
             <el-tag :type="dev.status === 'active' ? 'success' : 'warning'" effect="dark" size="small">
               {{ dev.status === 'active' ? '运行中' : dev.status === 'maintenance' ? '维护中' : '停用' }}
@@ -102,6 +108,36 @@
         </el-table-column>
         <el-table-column prop="description" label="操作说明" />
       </el-table>
+
+      <el-divider content-position="left">设备照片档案</el-divider>
+      <div v-if="currentDevice && currentDevice.photos && currentDevice.photos.length" class="photo-grid">
+        <div
+          v-for="(photo, idx) in currentDevice.photos"
+          :key="photo.id"
+          class="photo-item"
+          @click="previewPhoto(photo.url)"
+        >
+          <img :src="photo.url" :alt="`照片${idx + 1}`" />
+          <div class="photo-desc" v-if="photo.description">{{ photo.description }}</div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无设备照片，请在编辑中上传" :image-size="60" />
+    </el-dialog>
+
+    <el-dialog
+      v-model="previewVisible"
+      :title="'照片预览'"
+      width="auto"
+      align-center
+      destroy-on-close
+      class="photo-preview-dialog"
+    >
+      <div class="photo-preview-wrap">
+        <img :src="previewUrl" alt="照片预览" />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="previewVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
 
     <el-dialog v-model="formVisible" :title="formMode === 'create' ? '新增设备' : '编辑设备'" width="760px" destroy-on-close>
@@ -154,6 +190,35 @@
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-divider content-position="left">
+          设备照片
+          <span style="color: #f5222d; font-size: 12px; font-weight: 400; margin-left: 8px;">用于设备档案留痕，建议上传整机、铭牌、内部结构等照片</span>
+        </el-divider>
+        <el-upload
+          list-type="picture-card"
+          :auto-upload="false"
+          :show-file-list="true"
+          :file-list="formPhotoFileList"
+          :on-change="handleDevicePhotoChange"
+          :on-remove="handleDevicePhotoRemove"
+          accept="image/*"
+          multiple
+          style="max-width: 620px;"
+        >
+          <el-icon><Plus /></el-icon>
+        </el-upload>
+        <div class="photo-desc-tip" v-if="form.photos.length">
+          <div v-for="(p, idx) in form.photos" :key="idx" class="photo-desc-row">
+            <span class="photo-index">照片{{ idx + 1 }}</span>
+            <el-input
+              v-model="p.description"
+              size="small"
+              placeholder="输入照片说明（可选），例如：设备正面照、铭牌编号、内部结构"
+              style="flex: 1;"
+            />
+          </div>
+        </div>
 
         <el-divider content-position="left">
           零件清单
@@ -210,11 +275,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Plus, Search, View, Edit, Delete, IceCreamSquare, IceCreamRound } from '@element-plus/icons-vue'
+import { Plus, Search, View, Edit, Delete, IceCreamSquare, IceCreamRound, Picture, Close } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { genId } from '@/services/storage'
-import type { Device, Part } from '@/types'
+import type { Device, Part, DevicePhoto } from '@/types'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -251,9 +316,15 @@ function categoryColor(cat: string) {
 
 const detailVisible = ref(false)
 const currentDevice = ref<Device | null>(null)
+const previewVisible = ref(false)
+const previewUrl = ref('')
 function openDetailDialog(dev: Device) {
   currentDevice.value = dev
   detailVisible.value = true
+}
+function previewPhoto(url: string) {
+  previewUrl.value = url
+  previewVisible.value = true
 }
 
 const formVisible = ref(false)
@@ -262,9 +333,11 @@ const editingId = ref('')
 const submitting = ref(false)
 const formRef = ref<FormInstance>()
 
+type FormPhoto = Omit<DevicePhoto, 'id' | 'deviceId' | 'sortOrder'>
 const createEmptyForm = () => ({
   machineNo: '', name: '', flavorSlots: 3, disinfectantId: appStore.disinfectants[0]?.id || '',
   shiftIds: [], location: '', status: 'active' as Device['status'],
+  photos: [] as FormPhoto[],
   parts: [
     { name: '', category: '缸体', required: true, description: '', sortOrder: 1 },
     { name: '', category: '出料', required: true, description: '', sortOrder: 2 },
@@ -281,6 +354,20 @@ const rules: FormRules = {
   flavorSlots: [{ required: true, message: '请输入口味槽数', trigger: 'change' }],
   disinfectantId: [{ required: true, message: '请选择消毒液', trigger: 'change' }],
   shiftIds: [{ type: 'array', required: true, min: 1, message: '请至少选择一个班次', trigger: 'change' }]
+}
+
+const formPhotoFileList = computed(() => form.photos.map((p, i) => ({ name: `照片${i + 1}`, url: p.url })))
+interface UploadFile { name: string; raw: File; url?: string }
+function handleDevicePhotoChange(file: UploadFile) {
+  const reader = new FileReader()
+  reader.onload = (e: ProgressEvent<FileReader>) => {
+    form.photos.push({ url: e.target?.result as string, description: '' })
+  }
+  reader.readAsDataURL(file.raw)
+}
+function handleDevicePhotoRemove(file: UploadFile) {
+  const idx = form.photos.findIndex(p => p.url === file.url)
+  if (idx >= 0) form.photos.splice(idx, 1)
 }
 
 function resetForm() {
@@ -301,6 +388,7 @@ function openEditDialog(dev: Device) {
     machineNo: dev.machineNo, name: dev.name, flavorSlots: dev.flavorSlots,
     disinfectantId: dev.disinfectantId, shiftIds: [...dev.shiftIds],
     location: dev.location || '', status: dev.status,
+    photos: (dev.photos || []).map(p => ({ url: p.url, description: p.description || '' })),
     parts: dev.parts.map(p => ({ name: p.name, category: p.category, required: p.required, description: p.description || '', sortOrder: p.sortOrder }))
   })
   formVisible.value = true
@@ -325,11 +413,16 @@ async function submitForm() {
     submitting.value = true
     try {
       const parts = form.parts.map((p, i) => ({ ...p, sortOrder: i + 1, id: genId(), deviceId: formMode.value === 'edit' ? editingId.value : '' }))
+      const photos = form.photos.map((p, i) => ({
+        id: genId(), deviceId: formMode.value === 'edit' ? editingId.value : '',
+        url: p.url, description: p.description, sortOrder: i + 1
+      }))
       if (formMode.value === 'create') {
         appStore.addDevice({
           machineNo: form.machineNo, name: form.name, flavorSlots: form.flavorSlots,
           disinfectantId: form.disinfectantId, shiftIds: form.shiftIds,
           location: form.location, status: form.status,
+          photos,
           parts: form.parts.map((p, i) => ({ ...p, sortOrder: i + 1 }))
         })
         ElMessage.success('设备档案创建成功')
@@ -338,6 +431,7 @@ async function submitForm() {
           machineNo: form.machineNo, name: form.name, flavorSlots: form.flavorSlots,
           disinfectantId: form.disinfectantId, shiftIds: form.shiftIds,
           location: form.location, status: form.status,
+          photos,
           parts
         })
         ElMessage.success('设备档案已更新')
@@ -443,5 +537,104 @@ function removeDevice(dev: Device) {
   gap: 4px;
   padding-top: 4px;
   border-top: 1px dashed var(--border-color);
+}
+
+.device-photo-cover {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  border: 1px solid #f0f0f0;
+}
+.device-photo-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photo-count-tip {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.photo-item {
+  border: 1px solid #ebeef5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafbfc;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.photo-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+.photo-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+.photo-desc {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #606266;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  line-height: 1.5;
+}
+
+.photo-desc-tip {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 620px;
+}
+.photo-desc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.photo-index {
+  font-size: 12px;
+  color: #909399;
+  font-weight: 600;
+  width: 56px;
+  flex-shrink: 0;
+}
+
+:deep(.photo-preview-dialog) {
+  max-width: 90vw;
+}
+.photo-preview-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-height: 75vh;
+}
+.photo-preview-wrap img {
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 8px;
 }
 </style>
