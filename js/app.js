@@ -2,7 +2,8 @@ const STORAGE_KEYS = {
     ELEVATORS: 'elevator_maintenance_elevators',
     ANNOUNCEMENTS: 'elevator_maintenance_announcements',
     READ_RECORDS: 'elevator_maintenance_read_records',
-    NOTIFIED: 'elevator_maintenance_notified'
+    NOTIFIED: 'elevator_maintenance_notified',
+    RESIDENT_REMINDERS: 'elevator_maintenance_resident_reminders'
 };
 
 const Utils = {
@@ -197,6 +198,88 @@ const AnnouncementStore = {
     hasNotified(id, key) {
         const notified = this.getNotified();
         return !!(notified[id] && notified[id][key]);
+    }
+};
+
+const ResidentReminderStore = {
+    all() {
+        return Storage.get(STORAGE_KEYS.RESIDENT_REMINDERS, []);
+    },
+
+    findByAnnouncementId(announcementId, type) {
+        return this.all().find(r => r.announcementId === announcementId && r.type === type);
+    },
+
+    create(data) {
+        const reminders = this.all();
+        const reminder = {
+            id: Utils.uid(),
+            createdAt: Date.now(),
+            dismissed: false,
+            resolved: false,
+            ...data
+        };
+        reminders.push(reminder);
+        Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, reminders);
+        return reminder;
+    },
+
+    update(id, data) {
+        const reminders = this.all();
+        const idx = reminders.findIndex(r => r.id === id);
+        if (idx >= 0) {
+            reminders[idx] = { ...reminders[idx], ...data };
+            Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, reminders);
+            return reminders[idx];
+        }
+        return null;
+    },
+
+    updateByAnnouncement(announcementId, type, data) {
+        const reminders = this.all();
+        const idx = reminders.findIndex(r => r.announcementId === announcementId && r.type === type);
+        if (idx >= 0) {
+            reminders[idx] = { ...reminders[idx], ...data };
+            Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, reminders);
+            return reminders[idx];
+        }
+        return null;
+    },
+
+    refreshSnapshot(announcementId, type) {
+        const reminders = this.all();
+        const idx = reminders.findIndex(r => r.announcementId === announcementId && r.type === type);
+        if (idx < 0) return null;
+        const announcement = AnnouncementStore.find(announcementId);
+        if (!announcement) return null;
+        const readCount = (announcement.readBy || []).length;
+        const total = announcement.totalResidents || 0;
+        const unreadCount = Math.max(0, total - readCount);
+        reminders[idx].snapshotReadCount = readCount;
+        reminders[idx].snapshotUnreadCount = unreadCount;
+        reminders[idx].snapshotTotal = total;
+        reminders[idx].snapshotAt = Date.now();
+        Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, reminders);
+        return reminders[idx];
+    },
+
+    getActive() {
+        return this.all()
+            .filter(r => !r.dismissed)
+            .sort((a, b) => b.createdAt - a.createdAt);
+    },
+
+    dismiss(id) {
+        this.update(id, { dismissed: true });
+    },
+
+    remove(id) {
+        const reminders = this.all().filter(r => r.id !== id);
+        Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, reminders);
+    },
+
+    clearAll() {
+        Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, []);
     }
 };
 
@@ -753,6 +836,8 @@ const AnnouncementUI = {
     markRead(id) {
         const updated = AnnouncementStore.markAsRead(id);
         if (updated) {
+            ResidentReminderStore.refreshSnapshot(id, 'reminder_60');
+            ResidentReminderStore.refreshSnapshot(id, 'overdue');
             this.render(document.getElementById('filter-status').value, document.getElementById('filter-building').value);
             DashboardUI.render();
             Notification.show('已标记', '感谢您的阅读', 'success');
@@ -889,6 +974,7 @@ const DashboardUI = {
         this.renderAlerts(announcements, now);
         this.renderUpcoming(announcements, now);
         this.renderComplaintChart(sortedComplaints);
+        this.renderResidentReminders();
     },
 
     renderAlerts(announcements, now) {
@@ -973,6 +1059,176 @@ const DashboardUI = {
                 </div>
             `;
         }).join('');
+    },
+
+    renderResidentReminders() {
+        const list = document.getElementById('reminder-list');
+        const badge = document.getElementById('reminder-count');
+        if (!list || !badge) return;
+
+        const reminders = ResidentReminderStore.getActive();
+        const pending = reminders.filter(r => !r.resolved);
+        badge.textContent = pending.length;
+
+        if (reminders.length === 0) {
+            list.innerHTML = `<div class="empty-state">暂无提醒记录。公告到停梯前 1 小时或超时时会自动生成住户提醒。</div>`;
+            return;
+        }
+
+        list.innerHTML = reminders.map(r => this.renderResidentReminderItem(r)).join('');
+        this.bindReminderEvents();
+    },
+
+    renderResidentReminderItem(r) {
+        const typeClass = r.type === 'overdue' ? 'overdue' : (r.resolved ? 'resolved' : '');
+        const typeIcon = r.type === 'overdue' ? '🔴' : '⏰';
+        const typeLabel = r.type === 'overdue' ? '超时未恢复' : '停梯前1小时提醒';
+        const resolvedTag = r.resolved ? '<span class="reminder-tag resolved">已处理</span>' : '';
+
+        let titleExtra = '';
+        if (r.type === 'reminder_60' && r.minutesToStart != null) {
+            titleExtra = `（还有 ${r.minutesToStart} 分钟停梯）`;
+        } else if (r.type === 'overdue' && r.overdueMinutes != null) {
+            titleExtra = `（已超时 ${Utils.formatDuration(r.overdueMinutes)}）`;
+        }
+
+        const snapshotTotal = r.snapshotTotal || 0;
+        const snapshotUnread = r.snapshotUnreadCount || 0;
+        const snapshotRead = r.snapshotReadCount || 0;
+        const readRate = snapshotTotal > 0 ? Math.round((snapshotRead / snapshotTotal) * 100) : 0;
+
+        const unreadBoxHtml = `
+            <div class="reminder-unread-box">
+                <div class="unread-stats">
+                    <div class="stat-group">
+                        <span class="big-num">${snapshotUnread}</span>
+                        <span class="small-label">未读户数</span>
+                    </div>
+                    <div class="stat-group read">
+                        <span class="big-num">${snapshotRead}</span>
+                        <span class="small-label">已读户数</span>
+                    </div>
+                    <div class="stat-group">
+                        <span class="big-num" style="color: var(--text-primary);">${snapshotTotal}</span>
+                        <span class="small-label">总户数</span>
+                    </div>
+                </div>
+                <div class="reminder-mini-progress">
+                    <div class="bar"><div class="bar-fill" style="width: ${readRate}%;"></div></div>
+                    <div class="pct">阅读率 ${readRate}% ｜ 数据快照时间 ${Utils.formatDateTime(r.snapshotAt || r.createdAt)}</div>
+                </div>
+            </div>
+        `;
+
+        let infoGridHtml = `
+            <div class="reminder-info-grid">
+                <div class="reminder-info-item">
+                    <span class="label">停梯时间</span>
+                    <span class="value">${Utils.formatDateTime(r.startTime)}</span>
+                </div>
+                <div class="reminder-info-item">
+                    <span class="label">影响楼层</span>
+                    <span class="value">${Utils.escapeHtml(r.affectedFloors || '全部楼层')}</span>
+                </div>
+        `;
+        if (r.type === 'overdue') {
+            infoGridHtml += `
+                <div class="reminder-info-item">
+                    <span class="label">预计恢复</span>
+                    <span class="value">${Utils.formatDateTime(r.expectedResumeTime)}</span>
+                </div>
+            `;
+        }
+        if (r.alternativeElevator) {
+            infoGridHtml += `
+                <div class="reminder-info-item">
+                    <span class="label">替代电梯</span>
+                    <span class="value">${Utils.escapeHtml(r.alternativeElevator)}</span>
+                </div>
+            `;
+        }
+        if (r.contactPhone) {
+            infoGridHtml += `
+                <div class="reminder-info-item">
+                    <span class="label">联系电话</span>
+                    <span class="value">${Utils.escapeHtml(r.contactPhone)}</span>
+                </div>
+            `;
+        }
+        if (r.maintenanceCompany) {
+            infoGridHtml += `
+                <div class="reminder-info-item">
+                    <span class="label">维保公司</span>
+                    <span class="value">${Utils.escapeHtml(r.maintenanceCompany)}</span>
+                </div>
+            `;
+        }
+        if (r.propertyCompany) {
+            infoGridHtml += `
+                <div class="reminder-info-item">
+                    <span class="label">责任物业</span>
+                    <span class="value">${Utils.escapeHtml(r.propertyCompany)}</span>
+                </div>
+            `;
+        }
+        infoGridHtml += `</div>`;
+
+        const reasonHtml = (r.type === 'overdue' && r.overdueReason)
+            ? `<div class="reminder-reason">⚠️ 超时原因：${Utils.escapeHtml(r.overdueReason)}</div>`
+            : '';
+
+        const paperHtml = `<span class="reminder-paper ${r.paperPosted ? 'yes' : 'no'}">${r.paperPosted ? '✅' : '❌'} 纸质通知${r.paperPosted ? '已张贴' : '未张贴'}</span>`;
+
+        let actionsHtml = '';
+        if (!r.resolved) {
+            actionsHtml = `
+                <div class="reminder-actions">
+                    <button class="btn btn-success btn-sm" data-action="resolve-reminder" data-id="${r.id}">标记已处理</button>
+                    <button class="btn btn-secondary btn-sm" data-action="dismiss-reminder" data-id="${r.id}">忽略</button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="reminder-item ${typeClass}" data-id="${r.id}">
+                <div class="reminder-header">
+                    <div class="reminder-title">
+                        ${typeIcon} ${Utils.escapeHtml(r.location)} ${titleExtra}
+                        <span class="reminder-tag ${r.type}">${typeLabel}</span>
+                        ${resolvedTag}
+                    </div>
+                    <div class="reminder-time">创建于 ${Utils.formatDateTime(r.createdAt)}</div>
+                </div>
+                ${unreadBoxHtml}
+                ${infoGridHtml}
+                ${reasonHtml}
+                <div class="reminder-footer">
+                    ${paperHtml}
+                    ${actionsHtml}
+                </div>
+            </div>
+        `;
+    },
+
+    bindReminderEvents() {
+        document.querySelectorAll('[data-action="resolve-reminder"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ResidentReminderStore.update(btn.dataset.id, {
+                    resolved: true,
+                    resolvedAt: Date.now()
+                });
+                this.renderResidentReminders();
+                Notification.show('已处理', '提醒已标记为已处理', 'success');
+            });
+        });
+
+        document.querySelectorAll('[data-action="dismiss-reminder"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                ResidentReminderStore.dismiss(btn.dataset.id);
+                this.renderResidentReminders();
+                Notification.show('已忽略', '提醒已从列表移除', 'info');
+            });
+        });
     }
 };
 
@@ -983,39 +1239,120 @@ const ReminderChecker = {
         const now = Date.now();
 
         announcements.forEach(a => {
-            if (a.status === 'completed') return;
+            if (a.status === 'completed') {
+                this.resolveExisting(a.id, 'reminder_60');
+                this.resolveExisting(a.id, 'overdue');
+                return;
+            }
 
             const elevator = ElevatorStore.find(a.elevatorId);
-            const loc = elevator ? `${elevator.building}栋${elevator.unit}单元${elevator.elevatorNo}号梯` : '电梯';
+            const building = elevator ? elevator.building : '-';
+            const unit = elevator ? elevator.unit : '-';
+            const elevatorNo = elevator ? elevator.elevatorNo : '-';
+            const loc = elevator ? `${building}栋${unit}单元${elevatorNo}号梯` : '电梯';
+            const propertyCompany = elevator ? elevator.propertyCompany : '';
+            const maintenanceCompany = elevator ? elevator.maintenanceCompany : '';
+
+            const readCount = (a.readBy || []).length;
+            const totalResidents = a.totalResidents || 0;
+            const unreadCount = Math.max(0, totalResidents - readCount);
 
             const start = new Date(a.startTime).getTime();
             const minutesToStart = Math.round((start - now) / 60000);
 
             if (minutesToStart <= 60 && minutesToStart > 0 && a.status === 'upcoming') {
-                if (!AnnouncementStore.hasNotified(a.id, 'reminder_60')) {
-                    const readCount = (a.readBy || []).length;
-                    const total = a.totalResidents || 50;
-                    const unread = Math.max(0, total - readCount);
-                    Notification.show(
-                        '⏰ 停梯提醒',
-                        `${loc} 将在 ${minutesToStart} 分钟后停梯，还有 ${unread} 户未阅读公告`,
-                        'warning',
-                        8000
-                    );
-                    AnnouncementStore.setNotified(a.id, 'reminder_60');
+                if (!ResidentReminderStore.findByAnnouncementId(a.id, 'reminder_60')) {
+                    ResidentReminderStore.create({
+                        type: 'reminder_60',
+                        announcementId: a.id,
+                        building,
+                        unit,
+                        elevatorNo,
+                        location: loc,
+                        startTime: a.startTime,
+                        minutesToStart,
+                        affectedFloors: a.affectedFloors || '全部楼层',
+                        alternativeElevator: a.alternativeElevator || '',
+                        contactPhone: a.contactPhone || '',
+                        paperPosted: !!a.paperPosted,
+                        propertyCompany,
+                        maintenanceCompany,
+                        snapshotReadCount: readCount,
+                        snapshotUnreadCount: unreadCount,
+                        snapshotTotal: totalResidents,
+                        snapshotAt: now
+                    });
+                    if (unreadCount > 0) {
+                        Notification.show(
+                            '⏰ 停梯提醒',
+                            `${loc} 将在 ${minutesToStart} 分钟后停梯，还有 ${unreadCount} 户未阅读公告`,
+                            'warning',
+                            8000
+                        );
+                    } else {
+                        Notification.show(
+                            '⏰ 停梯提醒',
+                            `${loc} 将在 ${minutesToStart} 分钟后停梯`,
+                            'warning',
+                            6000
+                        );
+                    }
+                } else {
+                    ResidentReminderStore.refreshSnapshot(a.id, 'reminder_60');
+                    ResidentReminderStore.updateByAnnouncement(a.id, 'reminder_60', {
+                        minutesToStart,
+                        resolved: false
+                    });
                 }
             }
 
-            if (a.status === 'overdue' && !AnnouncementStore.hasNotified(a.id, 'overdue')) {
+            if (a.status === 'overdue') {
                 const overdueMinutes = Utils.diffMinutes(a.expectedResumeTime, now);
-                Notification.show(
-                    '🔴 超时告警',
-                    `${loc} 已超时 ${Utils.formatDuration(overdueMinutes)} 未恢复，请及时处理`,
-                    'danger',
-                    10000
-                );
-                AnnouncementStore.setNotified(a.id, 'overdue');
+                if (!ResidentReminderStore.findByAnnouncementId(a.id, 'overdue')) {
+                    ResidentReminderStore.create({
+                        type: 'overdue',
+                        announcementId: a.id,
+                        building,
+                        unit,
+                        elevatorNo,
+                        location: loc,
+                        startTime: a.startTime,
+                        expectedResumeTime: a.expectedResumeTime,
+                        overdueMinutes,
+                        overdueReason: a.overdueReason || '',
+                        affectedFloors: a.affectedFloors || '全部楼层',
+                        alternativeElevator: a.alternativeElevator || '',
+                        contactPhone: a.contactPhone || '',
+                        paperPosted: !!a.paperPosted,
+                        propertyCompany,
+                        maintenanceCompany,
+                        snapshotReadCount: readCount,
+                        snapshotUnreadCount: unreadCount,
+                        snapshotTotal: totalResidents,
+                        snapshotAt: now
+                    });
+                    Notification.show(
+                        '🔴 超时告警',
+                        `${loc} 已超时 ${Utils.formatDuration(overdueMinutes)} 未恢复，请及时处理`,
+                        'danger',
+                        10000
+                    );
+                } else {
+                    ResidentReminderStore.refreshSnapshot(a.id, 'overdue');
+                    ResidentReminderStore.updateByAnnouncement(a.id, 'overdue', {
+                        overdueMinutes,
+                        overdueReason: a.overdueReason || '',
+                        resolved: false
+                    });
+                }
             }
+        });
+    },
+
+    resolveExisting(announcementId, type) {
+        ResidentReminderStore.updateByAnnouncement(announcementId, type, {
+            resolved: true,
+            resolvedAt: Date.now()
         });
     }
 };
@@ -1096,6 +1433,29 @@ const App = {
 
         document.getElementById('filter-building')?.addEventListener('change', () => {
             AnnouncementUI.render(document.getElementById('filter-status').value, document.getElementById('filter-building').value);
+        });
+
+        document.getElementById('btn-clear-reminders')?.addEventListener('click', () => {
+            const reminders = ResidentReminderStore.all();
+            if (reminders.length === 0) {
+                Notification.show('提示', '暂无可清理的提醒', 'info');
+                return;
+            }
+            Modal.open('清空提醒记录', `
+                <p>将清理所有已处理或已忽略的提醒记录。</p>
+                <p style="color: var(--text-secondary); margin-top: 6px; font-size: 13px;">未处理的提醒会保留</p>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" data-close="modal">取消</button>
+                    <button class="btn btn-danger" id="confirm-clear-reminders">确认清理</button>
+                </div>
+            `);
+            document.getElementById('confirm-clear-reminders')?.addEventListener('click', () => {
+                const kept = ResidentReminderStore.all().filter(r => !r.resolved && !r.dismissed);
+                Storage.set(STORAGE_KEYS.RESIDENT_REMINDERS, kept);
+                Modal.close();
+                DashboardUI.renderResidentReminders();
+                Notification.show('已清理', '已清理已处理/已忽略的提醒', 'success');
+            });
         });
     },
 

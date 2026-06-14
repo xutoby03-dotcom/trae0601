@@ -849,6 +849,192 @@ select:focus, input:focus, textarea:focus {
     transition: width 0.5s ease;
 }
 
+.reminder-item {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    border-left: 4px solid var(--warning);
+    background: #FFFBEB;
+    position: relative;
+}
+
+.reminder-item.overdue {
+    border-left-color: var(--danger);
+    background: #FEF2F2;
+}
+
+.reminder-item.resolved {
+    border-left-color: var(--success);
+    background: #F0FDF4;
+    opacity: 0.8;
+}
+
+.reminder-item.dismissed {
+    display: none;
+}
+
+.reminder-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reminder-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reminder-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.reminder-tag.reminder-60 { background: #FEF3C7; color: #92400E; }
+.reminder-tag.overdue { background: #FEE2E2; color: #991B1B; }
+.reminder-tag.resolved { background: #D1FAE5; color: #065F46; }
+
+.reminder-time {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.reminder-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.reminder-info-item {
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.reminder-info-item .label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.reminder-info-item .value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.reminder-unread-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.reminder-unread-box .unread-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.reminder-unread-box .stat-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.reminder-unread-box .stat-group .big-num {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--danger);
+    line-height: 1.1;
+}
+
+.reminder-unread-box .stat-group.read .big-num {
+    color: var(--success);
+}
+
+.reminder-unread-box .stat-group .small-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.reminder-mini-progress {
+    flex: 1;
+    min-width: 100px;
+}
+
+.reminder-mini-progress .bar {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.reminder-mini-progress .bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.reminder-mini-progress .pct {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.reminder-reason {
+    background: #FEE2E2;
+    border: 1px solid #FECACA;
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #991B1B;
+}
+
+.reminder-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reminder-paper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.reminder-paper.yes { background: #D1FAE5; color: #065F46; }
+.reminder-paper.no { background: #FEE2E2; color: #991B1B; }
+
+.reminder-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
     .header {
         padding: 16px 20px;

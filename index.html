@@ -84,6 +84,19 @@
                     <div class="empty-state">暂无数据</div>
                 </div>
             </div>
+
+            <div class="panel" style="margin-top: 24px;">
+                <div class="panel-header">
+                    <h2>🔔 住户提醒记录</h2>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="badge" id="reminder-count" style="background: var(--warning);">0</span>
+                        <button class="btn btn-secondary btn-sm" id="btn-clear-reminders">清空已处理</button>
+                    </div>
+                </div>
+                <div class="panel-body" id="reminder-list">
+                    <div class="empty-state">暂无提醒记录</div>
+                </div>
+            </div>
         </section>
 
         <section id="announcements" class="tab-content">
