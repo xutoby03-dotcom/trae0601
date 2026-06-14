@@ -57,7 +57,7 @@ function getACStatus(
   }
 
   return {
-    status: 'pending',
+    status: 'completed',
     lastCleanDate,
     daysSinceLastClean,
     nextCleanDate: nextCleanDate.toISOString(),
