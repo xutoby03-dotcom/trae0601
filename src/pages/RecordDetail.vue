@@ -12,7 +12,11 @@
       <div class="header-right-tags">
         <el-tag v-if="abnormalPhotos.length" type="danger" effect="dark" size="large" style="margin-right: 8px; cursor: pointer;" @click="scrollToAbnormal">
           <el-icon style="margin-right: 4px;"><WarningFilled /></el-icon>
-          异常照片 {{ abnormalPhotos.length }} 张 →
+          异常照片 {{ abnormalPhotos.length }} 张
+          <span v-if="unreviewedAbnormalCount > 0" style="margin-left: 6px; padding: 1px 8px; background: #fff; color: #f5222d; border-radius: 10px; font-size: 12px;">
+            {{ unreviewedAbnormalCount }} 待核查
+          </span>
+          <span style="margin-left: 4px;">→</span>
         </el-tag>
         <el-tag v-if="record.hasMissed" type="danger" effect="light" size="large" style="margin-right: 8px;">存在漏做/异常</el-tag>
         <el-tag v-else type="success" effect="light" size="large" style="margin-right: 8px;">全部完成</el-tag>
@@ -79,14 +83,25 @@
 
         <el-card v-if="abnormalPhotos.length" id="abnormal-photos-anchor" class="card-shadow mt-20 abnormal-card" shadow="never">
           <template #header>
-            <span class="card-title"><el-icon><WarningFilled /></el-icon>&nbsp;异常照片 ({{ abnormalPhotos.length }})</span>
-            <span style="color: #f5222d; font-size: 12px; font-weight: 400; margin-left: 8px;">需店长重点核查</span>
+            <div class="abnormal-header">
+              <div class="abnormal-header-left">
+                <span class="card-title"><el-icon><WarningFilled /></el-icon>&nbsp;异常照片 ({{ abnormalPhotos.length }})</span>
+                <el-tag v-if="unreviewedAbnormalCount > 0" type="danger" effect="dark" size="small" style="margin-left: 10px;">
+                  {{ unreviewedAbnormalCount }} 张待核查
+                </el-tag>
+                <el-tag v-else type="success" effect="light" size="small" style="margin-left: 10px;">
+                  <el-icon><CircleCheckFilled /></el-icon>&nbsp;全部已核查
+                </el-tag>
+              </div>
+              <span style="color: #f5222d; font-size: 12px; font-weight: 400;">店长：请逐张核查并标记</span>
+            </div>
           </template>
           <div class="photo-grid">
             <div
               v-for="(ph, idx) in abnormalPhotos"
-              :key="idx"
+              :key="ph.id"
               class="photo-card abnormal"
+              :class="{ reviewed: ph.reviewed }"
               @click="openPreview(ph)"
             >
               <div class="photo-img-wrap">
@@ -98,6 +113,10 @@
                   :initial-index="0"
                 />
                 <div class="abnormal-corner">异常</div>
+                <div v-if="ph.reviewed" class="reviewed-badge">
+                  <el-icon><CircleCheckFilled /></el-icon>
+                  已核查
+                </div>
               </div>
               <div class="photo-meta">
                 <div class="photo-part" :title="getPartName(ph.partId)">
@@ -108,6 +127,42 @@
                   <el-icon size="12"><Clock /></el-icon>
                   <span>{{ formatTime(ph.uploadedAt) }}</span>
                 </div>
+              </div>
+
+              <div class="review-section" @click.stop v-if="authStore.isManager">
+                <template v-if="ph.reviewed">
+                  <div class="reviewed-info">
+                    <div class="reviewed-row">
+                      <el-icon size="12" color="#52c41a"><UserFilled /></el-icon>
+                      <span>{{ getReviewerName(ph.reviewedBy) }}</span>
+                      <span class="review-dot">·</span>
+                      <el-icon size="12" color="#909399"><Clock /></el-icon>
+                      <span>{{ formatTime(ph.reviewedAt) }}</span>
+                    </div>
+                    <div class="reviewed-remark" v-if="ph.reviewRemark">
+                      {{ ph.reviewRemark }}
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <el-input
+                    v-model="reviewRemarks[ph.id]"
+                    size="small"
+                    placeholder="核查备注（可选）"
+                    maxlength="100"
+                    class="review-input"
+                    @click.stop
+                  />
+                  <el-button
+                    type="success"
+                    size="small"
+                    :icon="CircleCheckFilled"
+                    class="review-btn"
+                    @click.stop="handleReviewPhoto(ph)"
+                  >
+                    标记已核查
+                  </el-button>
+                </template>
               </div>
             </div>
           </div>
@@ -262,10 +317,26 @@
             <span class="lightbox-part">
               <el-icon><Tools /></el-icon>&nbsp;零件：{{ getPartName(previewPhoto.partId) }}
             </span>
+            <el-tag v-if="previewPhoto.type === 'abnormal' && previewPhoto.reviewed" type="success" effect="light" size="small" style="margin-left: 10px;">
+              <el-icon><CircleCheckFilled /></el-icon>&nbsp;已核查
+            </el-tag>
+            <el-tag v-else-if="previewPhoto.type === 'abnormal'" type="warning" effect="light" size="small" style="margin-left: 10px;">
+              待核查
+            </el-tag>
           </div>
           <div class="lightbox-info-right">
             <el-icon><Clock /></el-icon>&nbsp;上传时间：{{ formatTime(previewPhoto.uploadedAt) }}
             <span class="lightbox-counter" v-if="previewList.length > 1">&nbsp;&nbsp;{{ previewIndex + 1 }} / {{ previewList.length }}</span>
+          </div>
+        </div>
+        <div v-if="previewPhoto.type === 'abnormal' && previewPhoto.reviewed" class="lightbox-review-info">
+          <div class="lightbox-review-row">
+            <el-icon color="#52c41a"><UserFilled /></el-icon>&nbsp;核查人：{{ getReviewerName(previewPhoto.reviewedBy) }}
+            <span class="review-dot">·</span>
+            <el-icon color="#909399"><Clock /></el-icon>&nbsp;核查时间：{{ formatTime(previewPhoto.reviewedAt) }}
+          </div>
+          <div v-if="previewPhoto.reviewRemark" class="lightbox-review-remark">
+            📝 核查备注：{{ previewPhoto.reviewRemark }}
           </div>
         </div>
       </div>
@@ -281,7 +352,7 @@ import dayjs from 'dayjs'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft, List as CheckList, WarningFilled, Warning, Picture, InfoFilled, DataLine, MagicStick,
-  EditPen, Stamp, Refresh, Check, CircleCheckFilled, CircleCloseFilled, Tools, Clock, Close, ArrowRight
+  EditPen, Stamp, Refresh, Check, CircleCheckFilled, CircleCloseFilled, Tools, Clock, Close, ArrowRight, UserFilled
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
@@ -315,7 +386,7 @@ function categoryColor(cat: string) {
   const map: { [key: string]: string } = { '缸体': '#bae7ff', '出料': '#d9f7be', '搅拌': '#ffd591', '接水': '#ffe7ba', '外壳': '#e0e0e0' }
   return map[cat] || '#f0f0f0'
 }
-function formatTime(s: string) { return dayjs(s).format('YYYY-MM-DD HH:mm:ss') }
+function formatTime(s?: string) { return s ? dayjs(s).format('YYYY-MM-DD HH:mm:ss') : '-' }
 
 function getPartName(pid?: string) {
   if (!pid || !record.value) return '未关联零件'
@@ -356,6 +427,32 @@ function getItemPhotos(pid: string) { return photosByPart.value[pid] || [] }
 
 const abnormalPhotos = computed(() => record.value?.photos.filter(p => p.type === 'abnormal') || [])
 const normalPhotos = computed(() => record.value?.photos.filter(p => p.type !== 'abnormal') || [])
+const unreviewedAbnormalCount = computed(() => abnormalPhotos.value.filter(p => !p.reviewed).length)
+const reviewRemarks = reactive<{ [pid: string]: string }>({})
+
+function getReviewerName(uid?: string) {
+  if (!uid) return '-'
+  return appStore.getUser(uid)?.name || '未知核查人'
+}
+
+function handleReviewPhoto(photo: RecordPhoto) {
+  if (!record.value || !authStore.currentUser) return
+  const updatedPhotos = record.value.photos.map(p => {
+    if (p.id !== photo.id) return p
+    return {
+      ...p,
+      reviewed: true,
+      reviewedBy: authStore.currentUser!.id,
+      reviewedAt: new Date().toISOString(),
+      reviewRemark: reviewRemarks[p.id] || ''
+    }
+  })
+  appStore.updateRecord(record.value.id, { photos: updatedPhotos })
+  const updated = appStore.getRecord(recordId)
+  if (updated) record.value = updated
+  delete reviewRemarks[photo.id]
+  ElMessage.success('已标记为核查完成')
+}
 
 const reviewRemark = ref('')
 function handleApprove() {
@@ -615,5 +712,100 @@ function handleRectify() {
   padding-left: 10px;
   border-left: 1px solid #e4e7ed;
   margin-left: 8px;
+}
+.lightbox-review-info {
+  margin-top: 10px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  padding: 10px 16px;
+  min-width: 500px;
+  font-size: 13px;
+  color: #389e0d;
+}
+.lightbox-review-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+.lightbox-review-remark {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #d9f7be;
+  color: #52c41a;
+}
+
+.abnormal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.abnormal-header-left {
+  display: flex;
+  align-items: center;
+}
+.review-dot {
+  margin: 0 4px;
+  color: #d0d0d0;
+}
+
+.photo-card.reviewed {
+  border-color: #b7eb8f;
+}
+.photo-card.reviewed:hover {
+  border-color: #52c41a;
+}
+.reviewed-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #52c41a;
+  color: white;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(82, 196, 26, 0.4);
+}
+
+.review-section {
+  padding: 10px 10px 12px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  cursor: default;
+}
+.review-input {
+  margin-bottom: 8px;
+}
+.review-btn {
+  width: 100%;
+}
+.reviewed-info {
+  font-size: 12px;
+}
+.reviewed-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #606266;
+  margin-bottom: 4px;
+}
+.reviewed-row span:first-of-type {
+  font-weight: 600;
+  color: #52c41a;
+  margin-right: 2px;
+}
+.reviewed-remark {
+  background: #f6ffed;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: #389e0d;
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>

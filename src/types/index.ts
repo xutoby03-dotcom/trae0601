@@ -120,6 +120,10 @@ export interface RecordPhoto {
   type: RecordPhotoType
   description?: string
   uploadedAt: string
+  reviewed?: boolean
+  reviewedBy?: string
+  reviewedAt?: string
+  reviewRemark?: string
 }
 
 export type ReviewStatus = 'pending' | 'approved' | 'rectified'

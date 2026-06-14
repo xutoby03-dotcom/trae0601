@@ -5,6 +5,19 @@ import type {
   Task, Record, Notification, NotificationSettings, RecordItem, RecordPhoto
 } from '@/types'
 
+function svgImg(bg: string, label: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="${bg}"/><text x="50%" y="50%" font-family="Arial" font-size="36" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="middle">${label}</text></svg>`
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
+}
+const MOCK_IMAGES = {
+ 缸体: svgImg('#1677ff', '料缸消毒完成'),
+ '出料口': svgImg('#52c41a', '出料口清洗'),
+ '搅拌轴': svgImg('#f5222d', '搅拌轴有磨损异常'),
+ '搅拌轴完成': svgImg('#fa8c16', '搅拌轴清洗完成'),
+ '接水盘': svgImg('#722ed1', '接水盘刷洗'),
+ 外壳: svgImg('#13c2c2', '外壳擦拭完成')
+}
+
 const STORAGE_KEYS = {
   USERS: 'icms_users',
   SHIFTS: 'icms_shifts',
@@ -148,6 +161,38 @@ export function initMockData() {
     }))
     const completedCount = items.filter(i => i.completed).length
     const hasMissed = completedCount < items.length
+    const photos: RecordPhoto[] = []
+    if (idx === 2) {
+      items.forEach(item => {
+        if (!item.completed && item.partName.includes('搅拌轴')) {
+          photos.push({
+            id: genId(), recordId: rid, partId: item.partId,
+            url: MOCK_IMAGES['搅拌轴'], type: 'abnormal',
+            description: '搅拌轴有明显划痕和磨损，建议更换',
+            uploadedAt: dayjs(`${yesterday} ${t.scheduledTime}`).add(5, 'minute').toISOString()
+          })
+        }
+        if (item.completed) {
+          const imgKey = (item.partName.includes('搅拌轴') ? '搅拌轴完成' : item.partName) as keyof typeof MOCK_IMAGES
+          const url = MOCK_IMAGES[imgKey] || MOCK_IMAGES.外壳
+          photos.push({
+            id: genId(), recordId: rid, partId: item.partId,
+            url, type: 'completion',
+            uploadedAt: dayjs(`${yesterday} ${t.scheduledTime}`).add(5 + photos.length, 'minute').toISOString()
+          })
+        }
+      })
+    } else {
+      items.slice(0, 3).forEach((item, k) => {
+        const imgKey = (item.partName.includes('搅拌轴') ? '搅拌轴完成' : item.partName) as keyof typeof MOCK_IMAGES
+        const url = MOCK_IMAGES[imgKey] || MOCK_IMAGES.外壳
+        photos.push({
+          id: genId(), recordId: rid, partId: item.partId,
+          url, type: 'completion',
+          uploadedAt: dayjs(`${yesterday} ${t.scheduledTime}`).add(5 + k, 'minute').toISOString()
+        })
+      })
+    }
     records.push({
       id: rid, taskId: t.id, deviceId: t.deviceId, operatorId: t.assigneeId || 'u002',
       shiftId: t.shiftId, recordDate: t.taskDate, timeSlot: t.timeSlot,
@@ -160,7 +205,7 @@ export function initMockData() {
       startTime: dayjs(`${yesterday} ${t.scheduledTime}`).toISOString(),
       endTime: dayjs(`${yesterday} ${t.scheduledTime}`).add(25, 'minute').toISOString(),
       duration: 25, reviewStatus: hasMissed ? 'pending' : 'approved',
-      createdAt: new Date().toISOString(), items, photos: []
+      createdAt: new Date().toISOString(), items, photos
     })
     t.status = 'completed'
     t.recordId = rid
