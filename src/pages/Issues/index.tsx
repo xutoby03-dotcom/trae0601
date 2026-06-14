@@ -175,7 +175,7 @@ export default function Issues() {
               >
                 <div className="flex items-start gap-4">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                       issue.type === 'water'
                         ? 'bg-red-50'
                         : issue.type === 'curled'
@@ -193,6 +193,15 @@ export default function Issues() {
                       }`}
                     />
                   </div>
+                  {issue.photo && (
+                    <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                      <img
+                        src={issue.photo}
+                        alt="现场照片"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-medium text-slate-800 text-sm">

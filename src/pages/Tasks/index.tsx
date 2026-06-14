@@ -34,6 +34,7 @@ export default function Tasks() {
   const [issuePointId, setIssuePointId] = useState<string | null>(null);
   const [issueType, setIssueType] = useState<'curled' | 'water' | 'dirty'>('curled');
   const [issueDesc, setIssueDesc] = useState('');
+  const [issuePhoto, setIssuePhoto] = useState('');
   const [layerName, setLayerName] = useState('');
   const [layMatStatus, setLayMatStatus] = useState<MatStatus>('good');
   const [layHasWarningSign, setLayHasWarningSign] = useState(false);
@@ -127,6 +128,7 @@ export default function Tasks() {
     setIssuePointId(pointId);
     setIssueType('curled');
     setIssueDesc('');
+    setIssuePhoto('');
     setShowIssueModal(true);
   };
 
@@ -137,7 +139,7 @@ export default function Tasks() {
         pointId: issuePointId,
         type: issueType,
         description: issueDesc,
-        photo: '',
+        photo: issuePhoto,
       });
       setShowIssueModal(false);
       setIssuePointId(null);
@@ -519,10 +521,17 @@ export default function Tasks() {
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>
-              <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-300 transition-colors cursor-pointer">
-                <Camera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">点击上传现场照片</p>
-                <p className="text-xs text-slate-300 mt-1">支持 JPG、PNG 格式</p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  现场照片链接
+                </label>
+                <input
+                  type="text"
+                  value={issuePhoto}
+                  onChange={(e) => setIssuePhoto(e.target.value)}
+                  placeholder="请输入现场照片URL"
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-100">
