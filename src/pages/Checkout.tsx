@@ -319,6 +319,8 @@ interface RecordsTabProps {
 
 function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwitchToRegister }: RecordsTabProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [onlyPendingHighHazard, setOnlyPendingHighHazard] = useState(false)
   const [confirmTeacherName, setConfirmTeacherName] = useState<Record<string, string>>({})
   const [stockErrors, setStockErrors] = useState<Record<string, boolean>>({})
 
@@ -329,9 +331,30 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
   }, [samples])
 
   const filteredCheckouts = useMemo(() => {
-    if (statusFilter === 'all') return checkouts
-    return checkouts.filter((c) => c.status === statusFilter)
-  }, [checkouts, statusFilter])
+    let list = checkouts
+    if (statusFilter !== 'all') {
+      list = list.filter((c) => c.status === statusFilter)
+    }
+    if (onlyPendingHighHazard) {
+      list = list.filter((c) => {
+        const s = sampleMap.get(c.sampleId)
+        return c.status === 'pending' && (s?.hazardLevel ?? 0) >= 4
+      })
+    }
+    if (searchTerm.trim()) {
+      const kw = searchTerm.trim().toLowerCase()
+      list = list.filter((c) => {
+        const s = sampleMap.get(c.sampleId)
+        return (
+          c.className.toLowerCase().includes(kw) ||
+          c.studentName.toLowerCase().includes(kw) ||
+          (s?.code.toLowerCase() ?? '').includes(kw) ||
+          (s?.type.toLowerCase() ?? '').includes(kw)
+        )
+      })
+    }
+    return list
+  }, [checkouts, statusFilter, searchTerm, onlyPendingHighHazard, sampleMap])
 
   const sortedCheckouts = useMemo(() => {
     return [...filteredCheckouts].sort((a, b) => new Date(b.checkoutTime).getTime() - new Date(a.checkoutTime).getTime())
@@ -360,20 +383,54 @@ function RecordsTab({ samples, checkouts, confirmCheckout, rejectCheckout, onSwi
     <div className="animate-fade-in">
       <TabBar active="records" onChange={(t) => t === 'register' && onSwitchToRegister()} />
 
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-700">共 {filteredCheckouts.length} 条记录</h3>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-        >
-          <option value="all">全部状态</option>
-          <option value="pending">待教师审批</option>
-          <option value="confirmed">已出库</option>
-          <option value="rejected">已驳回</option>
-          <option value="returned">已归还</option>
-          <option value="disposed">已废弃</option>
-        </select>
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3 className="text-sm font-medium text-gray-700 mr-auto">
+            共 {filteredCheckouts.length} 条记录
+          </h3>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="搜索样本编号/类型、班级、学生..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-1.5 w-72 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+          >
+            <option value="all">全部状态</option>
+            <option value="pending">待教师审批</option>
+            <option value="confirmed">已出库</option>
+            <option value="rejected">已驳回</option>
+            <option value="returned">已归还</option>
+            <option value="disposed">已废弃</option>
+          </select>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={onlyPendingHighHazard}
+            onClick={() => setOnlyPendingHighHazard((v) => !v)}
+            className={cn(
+              'relative w-10 h-5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2',
+              onlyPendingHighHazard ? 'bg-amber-600' : 'bg-gray-300'
+            )}
+          >
+            <span
+              className={cn(
+                'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow',
+                onlyPendingHighHazard && 'translate-x-5'
+              )}
+            />
+          </button>
+          <span className="text-sm text-gray-700">只看待审批高危样本</span>
+        </label>
       </div>
 
       <div className="space-y-3">
