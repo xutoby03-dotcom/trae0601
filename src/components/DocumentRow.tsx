@@ -14,6 +14,7 @@ interface DocumentRowProps {
   showEdit?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  mode?: 'list' | 'detail';
 }
 
 export default function DocumentRow({
@@ -21,10 +22,13 @@ export default function DocumentRow({
   showEdit = false,
   onEdit,
   onDelete,
+  mode = 'list',
 }: DocumentRowProps) {
   const { showSensitive, togglePhotoBackup, toggleInLuggage } = useTripStore();
   const status = getDocumentStatus(document.expiryDate);
   const daysLeft = getDaysUntil(document.expiryDate);
+
+  const compactMode = mode === 'list' && !showSensitive;
 
   const statusConfig = {
     expired: {
@@ -77,25 +81,29 @@ export default function DocumentRow({
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5 font-mono">
-              {showSensitive ? document.number : maskDocumentNumber(document.number)}
-            </p>
+            {!compactMode && (
+              <p className="text-sm text-gray-500 mt-0.5 font-mono transition-opacity duration-200">
+                {showSensitive ? document.number : maskDocumentNumber(document.number)}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className={`text-sm font-medium ${config.text}`}>
-              {formatDate(document.expiryDate)}
-            </p>
-            <p className="text-xs text-gray-400">
-              {status === 'expired'
-                ? `已过期 ${Math.abs(daysLeft)} 天`
-                : status === 'warning'
-                ? `还剩 ${daysLeft} 天`
-                : `剩余 ${daysLeft} 天`}
-            </p>
-          </div>
+          {!compactMode && (
+            <div className="text-right transition-opacity duration-200">
+              <p className={`text-sm font-medium ${config.text}`}>
+                {formatDate(document.expiryDate)}
+              </p>
+              <p className="text-xs text-gray-400">
+                {status === 'expired'
+                  ? `已过期 ${Math.abs(daysLeft)} 天`
+                  : status === 'warning'
+                  ? `还剩 ${daysLeft} 天`
+                  : `剩余 ${daysLeft} 天`}
+              </p>
+            </div>
+          )}
 
           {showEdit ? (
             <div className="flex gap-1">

@@ -331,6 +331,7 @@ export default function PersonDetail() {
                 <DocumentRow
                   key={doc.id}
                   document={doc}
+                  mode="detail"
                   showEdit={true}
                   onEdit={() => setEditingDoc(doc)}
                   onDelete={() => handleDeleteDocument(doc.id)}
