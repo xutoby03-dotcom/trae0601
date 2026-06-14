@@ -37,6 +37,7 @@ export default function BookingModal({ open, onClose, onSuccess }: Props) {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -53,6 +54,7 @@ export default function BookingModal({ open, onClose, onSuccess }: Props) {
       });
       setErrors({});
       setSubmitting(false);
+      setSubmitError(null);
     }
   }, [open]);
 
@@ -77,12 +79,15 @@ export default function BookingModal({ open, onClose, onSuccess }: Props) {
       setErrors(validationErrors);
       return;
     }
+    setSubmitError(null);
     setSubmitting(true);
     setTimeout(() => {
       try {
         const { visitor } = addVisitor(form);
         onSuccess?.(visitor.id);
         onClose();
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : '发券失败，请稍后重试');
       } finally {
         setSubmitting(false);
       }
@@ -260,26 +265,41 @@ export default function BookingModal({ open, onClose, onSuccess }: Props) {
                 </div>
               </div>
 
-              <div className="mt-7 flex items-center justify-between pt-5 border-t border-neutral-100">
-                <div className="text-xs text-neutral-500 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse-dot" />
-                  提交后系统自动生成停车券并扣减库存
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition"
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-primary-700 text-white hover:bg-primary-600 shadow-button hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? '提交中...' : '确认预约并发券'}
-                  </button>
+              <div className="mt-7 pt-5 border-t border-neutral-100">
+                <AnimatePresence>
+                  {submitError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-4 p-3 rounded-lg bg-accent-50 border border-accent-200 text-accent-700 text-xs flex items-start gap-2 overflow-hidden"
+                    >
+                      <span className="mt-0.5 font-bold">!</span>
+                      <span>{submitError}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-neutral-500 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-500 animate-pulse-dot" />
+                    提交后系统自动生成停车券并扣减库存
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-5 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-6 py-2.5 rounded-lg text-sm font-semibold bg-primary-700 text-white hover:bg-primary-600 shadow-button hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? '提交中...' : '确认预约并发券'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>

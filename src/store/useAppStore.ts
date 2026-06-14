@@ -58,6 +58,12 @@ export const useAppStore = create<AppState>()(
 
       addVisitor: (data: BookingFormData) => {
         const { tickets: existingTickets, currentUserId, ticketInventory } = get();
+
+        const remaining = ticketInventory.total - ticketInventory.used;
+        if (remaining <= 0) {
+          throw new Error(`库存不足，当前剩余 ${remaining} 张，请联系管理员补充券库`);
+        }
+
         const visitorId = generateId('v-');
         const ticketId = generateId('t-');
         const now = new Date().toISOString();
@@ -92,7 +98,7 @@ export const useAppStore = create<AppState>()(
           tickets: [ticket, ...s.tickets],
           ticketInventory: {
             ...s.ticketInventory,
-            used: Math.min(s.ticketInventory.total, s.ticketInventory.used + 1),
+            used: s.ticketInventory.used + 1,
           },
         }));
 

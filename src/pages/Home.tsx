@@ -26,6 +26,7 @@ export default function Home() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
   const [tick, setTick] = useState(0);
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   const currentUser = employees.find((e) => e.id === currentUserId);
   const todayLabel = formatDate(new Date(), false);
@@ -35,16 +36,17 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  const stats = useMemo(() => getStats(), [getStats, tick, bookingOpen, detailOpen]);
-  const groups = useMemo(() => getVisitorsByGroup(), [getVisitorsByGroup, tick, bookingOpen, detailOpen]);
+  const stats = useMemo(() => getStats(), [getStats, tick, refreshVersion]);
+  const groups = useMemo(() => getVisitorsByGroup(), [getVisitorsByGroup, tick, refreshVersion]);
   const reminders = useMemo(
     () => getPendingReminders().filter((r) => !dismissedReminders.has(r.id)),
-    [getPendingReminders, tick, dismissedReminders, detailOpen, bookingOpen],
+    [getPendingReminders, tick, dismissedReminders, refreshVersion],
   );
 
   function handleRedeemFromCard(v: VisitorWithRelations) {
     if (!v.ticket) return;
     redeemTicket(v.ticket.id);
+    setRefreshVersion((v) => v + 1);
   }
 
   function handleDetailClick(v: VisitorWithRelations) {
@@ -53,6 +55,7 @@ export default function Home() {
   }
 
   function handleAddSuccess(visitorId: string) {
+    setRefreshVersion((v) => v + 1);
     setDetailVisitorId(visitorId);
     setDetailOpen(true);
   }
@@ -115,6 +118,7 @@ export default function Home() {
           setDetailOpen(false);
           setDetailVisitorId(null);
         }}
+        onRedeem={() => setRefreshVersion((v) => v + 1)}
       />
     </div>
   );
