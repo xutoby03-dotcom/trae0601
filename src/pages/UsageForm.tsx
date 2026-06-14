@@ -256,16 +256,22 @@ export default function UsageForm() {
                 </span>
               </div>
               <p className="text-xs text-warm-600 mt-0.5 truncate">
-                {selectedMaintenanceStatus.isLifespanOverdue
-                  ? `使用寿命已超期 ${Math.abs(selectedMaintenanceStatus.lifespanDaysRemaining)} 天，建议退役`
-                  : selectedMaintenanceStatus.isLifespanUpcoming
-                  ? `距离使用寿命还有 ${selectedMaintenanceStatus.lifespanDaysRemaining} 天`
-                  : selectedMaintenanceStatus.isMaintenanceOverdue
-                  ? `保养已超期 ${Math.abs(selectedMaintenanceStatus.daysUntilNextMaintenance)} 天`
-                  : selectedMaintenanceStatus.isMaintenanceUpcoming
-                  ? `还剩 ${selectedMaintenanceStatus.daysUntilNextMaintenance} 天需要保养`
+                {selectedMaintenanceStatus.isLifespanOverdue || selectedMaintenanceStatus.isLifespanUpcoming
+                  ? selectedEquipment.lifespanKm !== null && selectedMaintenanceStatus.lifespanKmRemaining !== null
+                    ? selectedMaintenanceStatus.lifespanKmRemaining < 0
+                      ? `使用寿命已超 ${Math.abs(selectedMaintenanceStatus.lifespanKmRemaining).toFixed(0)} km，建议退役`
+                      : `距离使用寿命还有 ${selectedMaintenanceStatus.lifespanKmRemaining.toFixed(0)} km`
+                    : selectedMaintenanceStatus.lifespanDaysRemaining < 0
+                    ? `使用寿命已超期 ${Math.abs(selectedMaintenanceStatus.lifespanDaysRemaining)} 天，建议退役`
+                    : `距离使用寿命还有 ${selectedMaintenanceStatus.lifespanDaysRemaining} 天`
+                  : selectedMaintenanceStatus.isMaintenanceOverdue || selectedMaintenanceStatus.isMaintenanceUpcoming
+                  ? selectedMaintenanceStatus.daysUntilNextMaintenance < 0
+                    ? `保养已超期 ${Math.abs(selectedMaintenanceStatus.daysUntilNextMaintenance)} 天`
+                    : `还剩 ${selectedMaintenanceStatus.daysUntilNextMaintenance} 天需要保养`
                   : `保养状态良好，还剩 ${selectedMaintenanceStatus.daysUntilNextMaintenance} 天`}
-                {selectedMaintenanceStatus.kmUntilNextMaintenance !== null &&
+                {!selectedMaintenanceStatus.isLifespanOverdue &&
+                  !selectedMaintenanceStatus.isLifespanUpcoming &&
+                  selectedMaintenanceStatus.kmUntilNextMaintenance !== null &&
                   selectedEquipment.maintenanceCycleKm && (
                     <span className="ml-1">
                       · {selectedMaintenanceStatus.kmUntilNextMaintenance > 0
