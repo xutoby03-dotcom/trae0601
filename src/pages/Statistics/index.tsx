@@ -29,38 +29,112 @@ export default function Statistics() {
   const [onlyRefill, setOnlyRefill] = useState(false);
 
   const refillFlows = useMemo(() => {
+    function parseRefillReason(reason: string): {
+      sourceType: 'jar' | 'batch' | null;
+      sourceLabel: string;
+      sourceJarNo: string;
+      sourceBatchName: string;
+      remark: string;
+    } {
+      const result = {
+        sourceType: null as 'jar' | 'batch' | null,
+        sourceLabel: '',
+        sourceJarNo: '',
+        sourceBatchName: '',
+        remark: '',
+      };
+      if (!reason) return result;
+
+      const mainPart = reason.includes(' · ') ? reason.split(' · ')[0] : reason;
+      result.remark = reason.includes(' · ') ? reason.split(' · ')[1] : '';
+
+      let match: RegExpMatchArray | null;
+
+      match = mainPart.match(/^从罐\s*(.+)$/);
+      if (match) {
+        result.sourceType = 'jar';
+        result.sourceJarNo = match[1].trim();
+        result.sourceLabel = result.sourceJarNo;
+        return result;
+      }
+
+      match = mainPart.match(/^从批次\s*(.+)$/);
+      if (match) {
+        result.sourceType = 'batch';
+        result.sourceBatchName = match[1].trim();
+        result.sourceLabel = result.sourceBatchName;
+        return result;
+      }
+
+      match = mainPart.match(/^从\s*(LJ-[^\s]+)\s*补入$/);
+      if (match) {
+        result.sourceType = 'jar';
+        result.sourceJarNo = match[1].trim();
+        result.sourceLabel = result.sourceJarNo;
+        return result;
+      }
+
+      match = mainPart.match(/^从\s*([^LJ][^\s]*|[^\s][^\s]*)\s*补入$/);
+      if (match && !match[1].startsWith('LJ-')) {
+        result.sourceType = 'batch';
+        result.sourceBatchName = match[1].trim();
+        result.sourceLabel = result.sourceBatchName;
+        return result;
+      }
+
+      if (mainPart) {
+        result.sourceLabel = mainPart;
+      }
+
+      return result;
+    }
+
     return operations
-      .filter(
-        (o) =>
-          o.type === 'refill' &&
-          o.sourceId &&
-          o.sourceType &&
-          !o.reason.startsWith('转出到')
-      )
+      .filter((o) => o.type === 'refill' && !o.reason.startsWith('转出到'))
       .map((op) => {
         const targetJar = jars.find((j) => j.id === op.jarId);
         const targetBatch = batches.find((b) => b.id === targetJar?.batchId);
 
+        let sourceType: 'jar' | 'batch' | null = op.sourceType || null;
         let sourceLabel = '';
         let sourceJarNo = '';
         let sourceBatchName = '';
+        let remark = '';
 
-        if (op.sourceType === 'jar') {
-          const sJar = jars.find((j) => j.id === op.sourceId);
-          const sBatch = batches.find((b) => b.id === sJar?.batchId);
-          sourceLabel = sJar?.jarNo || '未知罐';
-          sourceJarNo = sJar?.jarNo || '';
-          sourceBatchName = sBatch?.name || '';
-        } else if (op.sourceType === 'batch') {
-          const sBatch = batches.find((b) => b.id === op.sourceId);
-          sourceLabel = sBatch?.name || '未知批次';
-          sourceBatchName = sBatch?.name || '';
+        if (op.sourceType && op.sourceId) {
+          if (op.sourceType === 'jar') {
+            const sJar = jars.find((j) => j.id === op.sourceId);
+            const sBatch = batches.find((b) => b.id === sJar?.batchId);
+            sourceJarNo = sJar?.jarNo || '';
+            sourceBatchName = sBatch?.name || '';
+            sourceLabel = sourceJarNo || '未知罐';
+          } else {
+            const sBatch = batches.find((b) => b.id === op.sourceId);
+            sourceBatchName = sBatch?.name || '';
+            sourceLabel = sourceBatchName || '未知批次';
+          }
+          remark = op.reason.includes(' · ') ? op.reason.split(' · ')[1] : '';
+        } else {
+          const parsed = parseRefillReason(op.reason);
+          sourceType = parsed.sourceType;
+          sourceLabel = parsed.sourceLabel;
+          if (parsed.sourceType === 'jar') {
+            sourceJarNo = parsed.sourceJarNo;
+            const matchedJar = jars.find((j) => j.jarNo === parsed.sourceJarNo);
+            if (matchedJar) {
+              const matchedBatch = batches.find((b) => b.id === matchedJar.batchId);
+              sourceBatchName = matchedBatch?.name || '';
+            }
+          } else if (parsed.sourceType === 'batch') {
+            sourceBatchName = parsed.sourceBatchName;
+          }
+          remark = parsed.remark;
         }
 
         return {
           id: op.id,
           teaName: targetBatch?.name || '未知茶品',
-          sourceType: op.sourceType,
+          sourceType,
           sourceLabel,
           sourceJarNo,
           sourceBatchName,
@@ -69,7 +143,7 @@ export default function Statistics() {
           weight: op.weight,
           operator: op.operator,
           operatedAt: op.operatedAt,
-          remark: op.reason.includes(' · ') ? op.reason.split(' · ')[1] : '',
+          remark,
         };
       })
       .sort((a, b) => new Date(b.operatedAt).getTime() - new Date(a.operatedAt).getTime());
@@ -414,7 +488,7 @@ export default function Statistics() {
                     来源罐/批次
                   </th>
                   <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
-                    转入重量
+                    转出重量
                   </th>
                   <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider pb-3">
                     操作人
@@ -447,10 +521,16 @@ export default function Statistics() {
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
                             flow.sourceType === 'jar'
                               ? 'bg-blue-50 text-blue-600'
-                              : 'bg-amber-50 text-amber-700'
+                              : flow.sourceType === 'batch'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-gray-100 text-gray-500'
                           }`}
                         >
-                          {flow.sourceType === 'jar' ? '🫙 罐→罐' : '📦 批次→罐'}
+                          {flow.sourceType === 'jar'
+                            ? '🫙 罐→罐'
+                            : flow.sourceType === 'batch'
+                            ? '📦 批次→罐'
+                            : '❓ 来源未标注'}
                         </span>
                       </div>
                     </td>
