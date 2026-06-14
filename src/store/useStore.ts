@@ -76,6 +76,8 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   collectRecord: (id: string, data: CollectFormData) => {
+    const original = get().records.find(r => r.id === id);
+
     const updatedRecords = get().records.map(record => {
       if (record.id === id) {
         return {
@@ -91,8 +93,32 @@ export const useStore = create<AppState>((set, get) => ({
       return record;
     });
 
-    set({ records: updatedRecords });
-    storage.set(STORAGE_KEYS.RECORDS, updatedRecords);
+    let finalRecords = updatedRecords;
+
+    if (data.needsRedry && original) {
+      const newRecord: ClothesRecord = {
+        id: generateId(),
+        clothingType: original.clothingType,
+        clothingTypeLabel: original.clothingTypeLabel,
+        clothingTypeIcon: original.clothingTypeIcon,
+        quantity: original.quantity,
+        location: original.location,
+        locationId: original.locationId,
+        responsiblePerson: original.responsiblePerson,
+        responsiblePersonId: original.responsiblePersonId,
+        responsiblePersonAvatar: original.responsiblePersonAvatar,
+        startTime: new Date().toISOString(),
+        expectedDuration: original.expectedDuration,
+        isThick: original.isThick,
+        photoUrl: original.photoUrl,
+        status: 'drying',
+        remindCount: 0
+      };
+      finalRecords = [...finalRecords, newRecord];
+    }
+
+    set({ records: finalRecords });
+    storage.set(STORAGE_KEYS.RECORDS, finalRecords);
   },
 
   deleteRecord: (id: string) => {
