@@ -9,6 +9,7 @@ import {
   LogOut,
   MoveRight,
   CalendarClock,
+  CalendarX,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { DataTable } from '../components/DataTable';
@@ -23,7 +24,7 @@ interface ActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   reservation: Reservation | null;
-  action: 'checkin' | 'leave' | 'change_seat' | null;
+  action: 'checkin' | 'leave' | 'change_seat' | 'early_leave' | null;
 }
 
 export default function Checkin() {
@@ -33,6 +34,7 @@ export default function Checkin() {
     checkin,
     earlyLeave,
     changeSeat,
+    requestLeave,
     getPendingReservations,
     getCheckedInReservations,
     getSeatsWithStatus,
@@ -88,7 +90,7 @@ export default function Checkin() {
     );
   }, [modalState.reservation, modalState.action, getSeatsWithStatus]);
 
-  const openModal = (reservation: Reservation, action: 'checkin' | 'leave' | 'change_seat') => {
+  const openModal = (reservation: Reservation, action: 'checkin' | 'leave' | 'change_seat' | 'early_leave') => {
     setModalState({
       isOpen: true,
       onClose: closeModal,
@@ -116,6 +118,11 @@ export default function Checkin() {
         checkin(modalState.reservation.id);
         break;
       case 'leave':
+        if (reason.trim()) {
+          requestLeave(modalState.reservation.id, reason);
+        }
+        break;
+      case 'early_leave':
         if (reason.trim()) {
           earlyLeave(modalState.reservation.id, reason);
         }
@@ -201,6 +208,13 @@ export default function Checkin() {
             <Check className="w-4 h-4" />
             签到
           </button>
+          <button
+            onClick={() => openModal(item, 'leave')}
+            className="px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors flex items-center gap-1"
+          >
+            <CalendarX className="w-4 h-4" />
+            请假
+          </button>
         </div>
       ),
     },
@@ -236,7 +250,7 @@ export default function Checkin() {
             换座
           </button>
           <button
-            onClick={() => openModal(item, 'leave')}
+            onClick={() => openModal(item, 'early_leave')}
             className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
           >
             <LogOut className="w-4 h-4" />
@@ -252,6 +266,8 @@ export default function Checkin() {
       case 'checkin':
         return '确认签到';
       case 'leave':
+        return '临时请假';
+      case 'early_leave':
         return '提前离开';
       case 'change_seat':
         return '更换座位';
@@ -412,6 +428,32 @@ export default function Checkin() {
             )}
 
             {modalState.action === 'leave' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <CalendarX className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-orange-800">标记为临时请假</p>
+                    <p className="text-sm text-orange-600">该预约将被取消，座位释放给其他同学</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    请假原因
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="请输入请假原因"
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all resize-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {modalState.action === 'early_leave' && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-3">
                   离开原因
@@ -419,7 +461,7 @@ export default function Checkin() {
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="请输入离开原因"
+                  placeholder="请输入提前离开原因"
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 outline-none transition-all resize-none"
                 />
@@ -486,6 +528,7 @@ export default function Checkin() {
                 onClick={handleAction}
                 disabled={
                   (modalState.action === 'leave' && !reason.trim()) ||
+                  (modalState.action === 'early_leave' && !reason.trim()) ||
                   (modalState.action === 'change_seat' && (!selectedNewSeat || !reason.trim()))
                 }
                 className={cn(
@@ -493,18 +536,23 @@ export default function Checkin() {
                   modalState.action === 'checkin'
                     ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                     : modalState.action === 'leave'
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    : modalState.action === 'early_leave'
                     ? 'bg-red-500 text-white hover:bg-red-600'
                     : 'bg-blue-500 text-white hover:bg-blue-600',
                   ((modalState.action === 'leave' && !reason.trim()) ||
+                    (modalState.action === 'early_leave' && !reason.trim()) ||
                     (modalState.action === 'change_seat' && (!selectedNewSeat || !reason.trim()))) &&
                     'opacity-50 cursor-not-allowed'
                 )}
               >
                 {modalState.action === 'checkin' && <Check className="w-4 h-4" />}
-                {modalState.action === 'leave' && <LogOut className="w-4 h-4" />}
+                {modalState.action === 'leave' && <CalendarX className="w-4 h-4" />}
+                {modalState.action === 'early_leave' && <LogOut className="w-4 h-4" />}
                 {modalState.action === 'change_seat' && <MoveRight className="w-4 h-4" />}
                 {modalState.action === 'checkin' && '确认签到'}
-                {modalState.action === 'leave' && '确认离开'}
+                {modalState.action === 'leave' && '确认请假'}
+                {modalState.action === 'early_leave' && '确认离开'}
                 {modalState.action === 'change_seat' && '确认换座'}
               </button>
             </div>

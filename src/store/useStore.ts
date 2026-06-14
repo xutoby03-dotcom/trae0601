@@ -61,6 +61,7 @@ interface AppState {
   recordChange: (data: Omit<ChangeRecord, 'id' | 'createdAt'>) => void;
   changeSeat: (reservationId: string, newSeatId: string, reason: string) => void;
   earlyLeave: (reservationId: string, reason: string) => void;
+  requestLeave: (reservationId: string, reason: string) => void;
 
   getDashboardStats: () => DashboardStats;
   getSeatsWithStatus: (classroomId: string, date: string, timeSlot: string) => SeatWithStatus[];
@@ -242,6 +243,32 @@ export const useStore = create<AppState>((set, get) => {
       );
       set({ reservations: updatedReservations });
       setStorageItem(STORAGE_KEYS.RESERVATIONS, updatedReservations);
+    },
+
+    requestLeave: (reservationId, reason) => {
+      const reservation = get().reservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      const updatedReservations = get().reservations.map(r =>
+        r.id === reservationId ? { ...r, status: 'cancelled' as const } : r
+      );
+
+      const newRecord: ChangeRecord = {
+        id: generateId('change-'),
+        reservationId,
+        changeType: 'leave',
+        reason,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedRecords = [...get().changeRecords, newRecord];
+
+      set({
+        reservations: updatedReservations,
+        changeRecords: updatedRecords,
+      });
+      setStorageItem(STORAGE_KEYS.RESERVATIONS, updatedReservations);
+      setStorageItem(STORAGE_KEYS.CHANGE_RECORDS, updatedRecords);
     },
 
     checkin: (reservationId) => {
