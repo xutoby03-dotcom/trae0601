@@ -38,9 +38,18 @@ export interface ParkingTicket {
   actualDuration?: number;
 }
 
+export interface RestockRecord {
+  id: string;
+  amount: number;
+  operatorId: string;
+  operatedAt: string;
+  note?: string;
+}
+
 export interface TicketInventory {
   total: number;
   used: number;
+  restockHistory: RestockRecord[];
 }
 
 export interface DeptUsage {

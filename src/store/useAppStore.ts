@@ -5,6 +5,7 @@ import type {
   Department,
   Employee,
   ParkingTicket,
+  RestockRecord,
   StatsData,
   TicketInventory,
   Visitor,
@@ -30,6 +31,7 @@ interface AppState {
   getStats: () => StatsData;
   getPendingReminders: () => VisitorWithRelations[];
   updateVisitorStatus: (visitorId: string, status: Visitor['status']) => void;
+  addRestock: (amount: number, note?: string) => RestockRecord;
   resetMock: () => void;
 }
 
@@ -179,6 +181,29 @@ export const useAppStore = create<AppState>()(
         set((s) => ({
           visitors: s.visitors.map((v) => (v.id === visitorId ? { ...v, status } : v)),
         }));
+      },
+
+      addRestock: (amount: number, note?: string) => {
+        if (!Number.isFinite(amount) || amount <= 0) {
+          throw new Error('补充数量必须为正整数');
+        }
+        const safeAmount = Math.floor(amount);
+        const { currentUserId } = get();
+        const record: RestockRecord = {
+          id: generateId('r-'),
+          amount: safeAmount,
+          operatorId: currentUserId,
+          operatedAt: new Date().toISOString(),
+          note: note?.trim() || undefined,
+        };
+        set((s) => ({
+          ticketInventory: {
+            ...s.ticketInventory,
+            total: s.ticketInventory.total + safeAmount,
+            restockHistory: [record, ...(s.ticketInventory.restockHistory || [])],
+          },
+        }));
+        return record;
       },
 
       resetMock: () => {

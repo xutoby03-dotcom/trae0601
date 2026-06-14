@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, CalendarDays, Package, RefreshCw } from 'lucide-react';
+import { Plus, CalendarDays, Package, RefreshCw, ChevronDown, User, Clock } from 'lucide-react';
 import StatsOverview from '@/components/StatsOverview';
 import DeptStats from '@/components/DeptStats';
 import VisitorBoard from '@/components/VisitorBoard';
 import ReminderBar from '@/components/ReminderBar';
 import BookingModal from '@/components/BookingModal';
 import DetailModal from '@/components/DetailModal';
+import RestockPopover from '@/components/RestockPopover';
 import { useAppStore } from '@/store/useAppStore';
 import type { VisitorWithRelations } from '@/types';
 import { formatDate } from '@/utils/dateUtils';
@@ -24,12 +25,18 @@ export default function Home() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [detailVisitorId, setDetailVisitorId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [restockOpen, setRestockOpen] = useState(false);
   const [dismissedReminders, setDismissedReminders] = useState<Set<string>>(new Set());
   const [tick, setTick] = useState(0);
   const [refreshVersion, setRefreshVersion] = useState(0);
 
+  const restockAnchorRef = useRef<HTMLButtonElement>(null);
+
   const currentUser = employees.find((e) => e.id === currentUserId);
   const todayLabel = formatDate(new Date(), false);
+
+  const lastRestock = inventory.restockHistory?.[0];
+  const lastRestockOperator = lastRestock ? employees.find((e) => e.id === lastRestock.operatorId) : undefined;
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 30000);
@@ -66,8 +73,13 @@ export default function Home() {
         todayLabel={todayLabel}
         inventory={inventory}
         currentUserName={currentUser?.name || '管理员'}
+        lastRestock={lastRestock}
+        lastRestockOperatorName={lastRestockOperator?.name}
         onNewBooking={() => setBookingOpen(true)}
         onReset={resetMock}
+        restockAnchorRef={restockAnchorRef}
+        onRestockClick={() => setRestockOpen((v) => !v)}
+        restockOpen={restockOpen}
       />
 
       <main className="flex-1 w-full">
@@ -106,6 +118,15 @@ export default function Home() {
         </div>
       </footer>
 
+      <div className="relative">
+        <RestockPopover
+          open={restockOpen}
+          onClose={() => setRestockOpen(false)}
+          anchorRef={restockAnchorRef}
+          onSuccess={() => setRefreshVersion((v) => v + 1)}
+        />
+      </div>
+
       <BookingModal
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}
@@ -126,13 +147,29 @@ export default function Home() {
 
 interface TopNavProps {
   todayLabel: string;
-  inventory: { total: number; used: number };
+  inventory: { total: number; used: number; restockHistory?: { operatedAt: string; amount: number }[] };
   currentUserName: string;
+  lastRestock?: { operatedAt: string; amount: number };
+  lastRestockOperatorName?: string;
   onNewBooking: () => void;
   onReset: () => void;
+  restockAnchorRef: React.RefObject<HTMLButtonElement>;
+  onRestockClick: () => void;
+  restockOpen: boolean;
 }
 
-function TopNav({ todayLabel, inventory, currentUserName, onNewBooking, onReset }: TopNavProps) {
+function TopNav({
+  todayLabel,
+  inventory,
+  currentUserName,
+  lastRestock,
+  lastRestockOperatorName,
+  onNewBooking,
+  onReset,
+  restockAnchorRef,
+  onRestockClick,
+  restockOpen,
+}: TopNavProps) {
   const remaining = inventory.total - inventory.used;
   const lowStock = remaining < 20;
 
@@ -162,17 +199,33 @@ function TopNav({ todayLabel, inventory, currentUserName, onNewBooking, onReset 
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border bg-white">
-            <div className={'relative w-2 h-2 rounded-full ' + (lowStock ? 'bg-accent-500 animate-pulse-dot' : 'bg-mint-500')} />
-            <Package size={14} className="text-neutral-400" />
-            <span className="text-xs text-neutral-500">券库</span>
-            <span className={
-              'font-mono text-sm font-bold ' +
-              (lowStock ? 'text-accent-600' : 'text-neutral-800')
-            }>
-              {remaining}
-            </span>
-            <span className="text-[10px] text-neutral-400">/ {inventory.total}</span>
+          <div className="flex items-center gap-2">
+            {lastRestock && lastRestockOperatorName && (
+              <div className="hidden md:flex items-center gap-1.5 text-[11px] text-neutral-400 max-w-[220px]">
+                <Clock size={11} />
+                <span className="truncate">
+                  {lastRestockOperatorName} +{lastRestock.amount}张 · {formatDate(lastRestock.operatedAt, true)}
+                </span>
+              </div>
+            )}
+
+            <button
+              ref={restockAnchorRef}
+              onClick={onRestockClick}
+              className={
+                'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer ' +
+                (restockOpen
+                  ? 'border-primary-400 bg-primary-50 shadow-sm'
+                  : 'border-neutral-200 bg-white hover:border-primary-300 hover:bg-primary-50/50')
+              }
+            >
+              <div className={'relative w-2 h-2 rounded-full shrink-0 ' + (lowStock ? 'bg-accent-500 animate-pulse-dot' : 'bg-mint-500')} />
+              <Package size={13} className="text-neutral-400 shrink-0" />
+              <span className={'font-mono text-sm font-bold leading-none ' + (lowStock ? 'text-accent-600' : 'text-neutral-800')}>
+                {remaining}
+              </span>
+              <ChevronDown size={12} className={'text-neutral-400 shrink-0 transition-transform ' + (restockOpen ? 'rotate-180' : '')} />
+            </button>
           </div>
 
           <button

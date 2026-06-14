@@ -1,4 +1,4 @@
-import type { ParkingTicket, Visitor } from '@/types';
+import type { ParkingTicket, RestockRecord, Visitor } from '@/types';
 
 function dateFromNow(hoursOffset: number): string {
   const d = new Date();
@@ -278,7 +278,25 @@ export const mockTickets: ParkingTicket[] = [
   },
 ];
 
+const mockRestockHistory: RestockRecord[] = [
+  {
+    id: 'r-mock-001',
+    amount: 50,
+    operatorId: 'u-admin-001',
+    operatedAt: dateFromNow(-48),
+    note: '月初批量补充',
+  },
+  {
+    id: 'r-mock-002',
+    amount: 50,
+    operatorId: 'u-admin-002',
+    operatedAt: dateFromNow(-120),
+    note: '季度库存初始化',
+  },
+];
+
 export const mockInventory = {
   total: 100,
   used: 8,
+  restockHistory: mockRestockHistory,
 };
