@@ -8,14 +8,26 @@ import {
   Percent,
   Trophy,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  MapPin,
+  Clock,
 } from 'lucide-react';
 import { useTastingStore } from '@/store/tastingStore';
 import { useProductStore } from '@/store/productStore';
 import { useOrderStore } from '@/store/orderStore';
 import { calculateDailyStats, calculateProductRanking, getTotalWaste } from '@/utils/stats';
+import { addDays, formatTime, startOfDay, endOfDay } from '@/utils/date';
+import type { Order } from '@/types';
 
 interface ChartDataItem {
   [key: string]: string | number;
+}
+
+interface OrderWithMeta extends Order {
+  stationLocation: string;
+  tastingStartTime: string;
 }
 
 function BarChart({ data, dataKey, labelKey, color = '#FF6B35', height = 200 }: {
@@ -66,6 +78,7 @@ export default function Statistics() {
   const orders = useOrderStore((state) => state.orders);
 
   const [timeRange, setTimeRange] = useState<7 | 14 | 30>(7);
+  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   const dailyStats = useMemo(
     () => calculateDailyStats(records, products, orders, timeRange),
@@ -83,19 +96,73 @@ export default function Statistics() {
     [records, products, batchesMap, orders]
   );
 
+  const tastingMetaMap = useMemo(() => {
+    const map = new Map<string, { stationLocation: string; startTime: string }>();
+    records.forEach((r) => {
+      map.set(r.id, {
+        stationLocation: r.stationLocation,
+        startTime: r.startTime,
+      });
+    });
+    return map;
+  }, [records]);
+
+  const ordersByDate = useMemo(() => {
+    const today = new Date();
+    const map = new Map<string, OrderWithMeta[]>();
+
+    for (let i = timeRange - 1; i >= 0; i--) {
+      const dateStr = addDays(today, -i).toISOString().split('T')[0];
+      map.set(dateStr, []);
+    }
+
+    orders.forEach((order) => {
+      if (!order.tastingId) return;
+      const meta = tastingMetaMap.get(order.tastingId);
+      if (!meta) return;
+
+      const dateStr = new Date(meta.startTime).toISOString().split('T')[0];
+      const bucket = map.get(dateStr);
+      if (!bucket) return;
+
+      bucket.push({
+        ...order,
+        stationLocation: meta.stationLocation,
+        tastingStartTime: meta.startTime,
+      });
+    });
+
+    return map;
+  }, [orders, tastingMetaMap, timeRange]);
+
   const totalStats = useMemo(() => {
     const totalTasting = dailyStats.reduce((sum, d) => sum + d.tastingCount, 0);
     const totalOrders = dailyStats.reduce((sum, d) => sum + d.convertedOrders, 0);
     const totalWaste = getTotalWaste(records);
     const avgConversion = totalTasting > 0 ? totalOrders / totalTasting : 0;
 
+    const today = new Date();
+    const rangeStart = startOfDay(addDays(today, -(timeRange - 1))).getTime();
+    const rangeEnd = endOfDay(today).getTime();
+    let totalAmount = 0;
+    orders.forEach((o) => {
+      if (!o.tastingId) return;
+      const meta = tastingMetaMap.get(o.tastingId);
+      if (!meta) return;
+      const t = new Date(meta.startTime).getTime();
+      if (t >= rangeStart && t <= rangeEnd) {
+        totalAmount += o.amount;
+      }
+    });
+
     return {
       totalTasting,
       totalOrders,
       totalWaste,
+      totalAmount: Number(totalAmount.toFixed(2)),
       avgConversion: Number(avgConversion.toFixed(2)),
     };
-  }, [dailyStats, records]);
+  }, [dailyStats, records, orders, tastingMetaMap, timeRange]);
 
   const topProducts = productRanking.slice(0, 5);
   const wasteRanking = [...productRanking]
@@ -113,6 +180,18 @@ export default function Statistics() {
     value: Number(d.wastedPortion.toFixed(2)),
   }));
 
+  const toggleExpand = (date: string) => {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -124,7 +203,10 @@ export default function Statistics() {
           {[7, 14, 30].map((days) => (
             <button
               key={days}
-              onClick={() => setTimeRange(days as 7 | 14 | 30)}
+              onClick={() => {
+                setTimeRange(days as 7 | 14 | 30);
+                setExpandedDates(new Set());
+              }}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 timeRange === days
                   ? 'bg-orange-500 text-white'
@@ -137,7 +219,7 @@ export default function Statistics() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -162,6 +244,20 @@ export default function Statistics() {
             </div>
             <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
               <ShoppingCart className="w-6 h-6 text-emerald-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-stone-500 text-sm">转化金额</p>
+              <p className="text-3xl font-bold text-stone-800 mt-2">
+                ¥{totalStats.totalAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-amber-600" />
             </div>
           </div>
         </div>
@@ -372,7 +468,9 @@ export default function Statistics() {
           </div>
           <div>
             <h3 className="font-semibold text-stone-800">每日详细数据</h3>
-            <p className="text-sm text-stone-500">近{timeRange}天数据明细</p>
+            <p className="text-sm text-stone-500">
+              近{timeRange}天数据明细 · 点击日期行展开查看订单详情
+            </p>
           </div>
         </div>
 
@@ -380,7 +478,7 @@ export default function Statistics() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-stone-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-stone-500">
+                <th className="text-left py-3 px-4 text-sm font-medium text-stone-500 w-[110px]">
                   日期
                 </th>
                 <th className="text-center py-3 px-4 text-sm font-medium text-stone-500">
@@ -407,54 +505,160 @@ export default function Statistics() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {dailyStats.map((stat, index) => (
-                <tr key={index} className="hover:bg-stone-50">
-                  <td className="py-3 px-4 text-sm text-stone-700">
-                    {stat.date}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-stone-700 text-center font-medium">
-                    {stat.tastingCount}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-stone-700 text-center">
-                    {stat.completedCount}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-stone-700 text-center">
-                    {stat.totalPortion}份
-                  </td>
-                  <td className="py-3 px-4 text-sm text-stone-700 text-center">
-                    {stat.wastedPortion}份
-                  </td>
-                  <td className="py-3 px-4 text-sm text-stone-700 text-center">
-                    {stat.convertedOrders}
-                  </td>
-                  <td className="py-3 px-4 text-sm text-center">
-                    <span
-                      className={`px-2 py-1 rounded-md text-xs font-medium ${
-                        stat.conversionRate >= 0.5
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : stat.conversionRate >= 0.2
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-stone-100 text-stone-600'
-                      }`}
+              {dailyStats.map((stat, index) => {
+                const expanded = expandedDates.has(stat.date);
+                const dayOrders = ordersByDate.get(stat.date) || [];
+                const dayAmount = dayOrders.reduce((s, o) => s + o.amount, 0);
+                return (
+                  <>
+                    <tr
+                      key={index}
+                      className={`${
+                        expanded ? 'bg-orange-50/60' : 'hover:bg-stone-50'
+                      } cursor-pointer transition-colors`}
+                      onClick={() => toggleExpand(stat.date)}
                     >
-                      {(stat.conversionRate * 100).toFixed(0)}%
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-center">
-                    <span
-                      className={`px-2 py-1 rounded-md text-xs font-medium ${
-                        stat.wasteRate >= 0.5
-                          ? 'bg-rose-100 text-rose-700'
-                          : stat.wasteRate >= 0.2
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-emerald-100 text-emerald-700'
-                      }`}
-                    >
-                      {(stat.wasteRate * 100).toFixed(0)}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          {expanded ? (
+                            <ChevronUp className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown
+                              className={`w-4 h-4 flex-shrink-0 ${
+                                dayOrders.length > 0 ? 'text-stone-400' : 'text-stone-300'
+                              }`}
+                            />
+                          )}
+                          <span
+                            className={`text-sm font-medium ${
+                              expanded ? 'text-orange-700' : 'text-stone-700'
+                            }`}
+                          >
+                            {stat.date}
+                          </span>
+                          {dayOrders.length > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-semibold">
+                              ¥{dayAmount.toFixed(0)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-stone-700 text-center font-medium">
+                        {stat.tastingCount}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-stone-700 text-center">
+                        {stat.completedCount}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-stone-700 text-center">
+                        {stat.totalPortion}份
+                      </td>
+                      <td className="py-3 px-4 text-sm text-stone-700 text-center">
+                        {stat.wastedPortion}份
+                      </td>
+                      <td className="py-3 px-4 text-sm text-stone-700 text-center">
+                        <span className="font-medium text-emerald-700">
+                          {stat.convertedOrders}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-center">
+                        <span
+                          className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            stat.conversionRate >= 0.5
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : stat.conversionRate >= 0.2
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-stone-100 text-stone-600'
+                          }`}
+                        >
+                          {(stat.conversionRate * 100).toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-center">
+                        <span
+                          className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            stat.wasteRate >= 0.5
+                              ? 'bg-rose-100 text-rose-700'
+                              : stat.wasteRate >= 0.2
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {(stat.wasteRate * 100).toFixed(0)}%
+                        </span>
+                      </td>
+                    </tr>
+
+                    {expanded && (
+                      <tr className="bg-gradient-to-b from-orange-50/60 to-white">
+                        <td colSpan={8} className="py-4 px-4">
+                          {dayOrders.length === 0 ? (
+                            <div className="text-center py-6">
+                              <ShoppingCart className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+                              <p className="text-sm text-stone-400">
+                                当天没有试吃带来的转化订单
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between px-3 pb-2 border-b border-stone-200">
+                                <div className="flex items-center gap-2 text-xs text-stone-500">
+                                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>共 {dayOrders.length} 笔订单</span>
+                                </div>
+                                <div className="text-sm font-semibold text-stone-800">
+                                  合计金额：
+                                  <span className="text-emerald-700 ml-1">
+                                    ¥{dayAmount.toLocaleString('zh-CN', {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {dayOrders.map((order) => (
+                                  <div
+                                    key={order.id}
+                                    className="flex items-center gap-3 p-3 bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow transition-shadow"
+                                  >
+                                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                      <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-stone-800 text-sm truncate">
+                                        {order.productName}
+                                      </p>
+                                      <div className="flex items-center gap-2 mt-0.5 text-xs text-stone-500 flex-wrap">
+                                        <span className="inline-flex items-center gap-1">
+                                          <MapPin className="w-3 h-3" />
+                                          {order.stationLocation}
+                                        </span>
+                                        <span className="text-stone-300">·</span>
+                                        <span className="inline-flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {formatTime(order.tastingStartTime)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 pl-2">
+                                      <p className="font-semibold text-emerald-700">
+                                        ¥{order.amount.toFixed(2)}
+                                      </p>
+                                      <p className="text-xs text-stone-500 mt-0.5">
+                                        × {order.quantity} 件
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>
