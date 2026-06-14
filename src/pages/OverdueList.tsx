@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -25,10 +25,16 @@ type RemindFilter = 'all' | 'pending' | 'done';
 
 export default function OverdueList() {
   const stores = useUmbrellaStore((s) => s.stores);
+  const umbrellas = useUmbrellaStore((s) => s.umbrellas);
   const markReminded = useLendStore((s) => s.markReminded);
   const batchMarkReminded = useLendStore((s) => s.batchMarkReminded);
+  const lendRecords = useLendStore((s) => s.lendRecords);
+  const returnRecords = useLendStore((s) => s.returnRecords);
 
-  const raw = useMemo(() => computeOverdueList(), []);
+  const raw = useMemo(
+    () => computeOverdueList(),
+    [lendRecords, returnRecords, umbrellas, stores]
+  );
   const list = useMemo(() => [...raw].sort((a, b) => b.overdueDays - a.overdueDays), [raw]);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -66,6 +72,17 @@ export default function OverdueList() {
   const reminded = list.filter((x) => x.reminded).length;
   const pending = total - reminded;
   const severe = list.filter((x) => x.overdueDays >= 7).length;
+
+  useEffect(() => {
+    setSelected((prev) => {
+      const next = new Set<string>();
+      const validIds = new Set(filtered.map((x) => x.lendRecordId));
+      prev.forEach((id) => {
+        if (validIds.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [filtered]);
 
   function toggle(id: string) {
     setSelected((prev) => {
