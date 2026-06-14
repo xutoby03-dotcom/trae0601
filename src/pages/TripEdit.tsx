@@ -105,12 +105,7 @@ export default function TripEdit() {
     };
 
     if (isEdit && existingTrip) {
-      updateTrip(id!, {
-        ...tripData,
-        passengers: existingTrip.passengers,
-        expenses: existingTrip.expenses,
-        settings: existingTrip.settings,
-      });
+      updateTrip(id!, tripData);
       navigate(-1);
     } else {
       const tripId = addTrip(tripData);
