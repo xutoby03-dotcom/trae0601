@@ -100,6 +100,8 @@ export default function Statistics() {
       month: 'long',
       day: 'numeric',
       weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -401,17 +403,13 @@ export default function Statistics() {
                                   <Calendar className="w-3.5 h-3.5" />
                                   {formatDate(visit.visitTime)}
                                 </span>
-                                {unpreparedCount > 0 ? (
-                                  <span className="flex items-center gap-1 text-amber-600">
-                                    <FileText className="w-3.5 h-3.5" />
-                                    待带 {unpreparedCount} 项材料
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1 text-green-600">
-                                    <FileText className="w-3.5 h-3.5" />
-                                    材料已备齐
-                                  </span>
-                                )}
+                                <span className={cn(
+                                  'flex items-center gap-1',
+                                  unpreparedCount > 0 ? 'text-amber-600' : 'text-green-600'
+                                )}>
+                                  <FileText className="w-3.5 h-3.5" />
+                                  待带 {unpreparedCount} 项材料
+                                </span>
                               </div>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
