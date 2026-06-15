@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -28,6 +29,7 @@ import {
   Home as HomeIcon,
   Droplets,
   AlertTriangle,
+  ArrowRight,
 } from 'lucide-react';
 
 const COLORS = ['#4A6FA5', '#9CAF88', '#E8998D', '#DDB388', '#6A86B9'];
@@ -98,18 +100,21 @@ export default function Statistics() {
       value: curtains.filter((c) => c.hasMold).length,
       icon: <AlertTriangle size={20} />,
       color: 'bg-coral-100 text-coral-500',
+      filter: 'mold',
     },
     {
       label: '轨道卡顿',
       value: curtains.filter((c) => c.trackStuck).length,
       icon: <AlertTriangle size={20} />,
       color: 'bg-warm-200 text-primary-700',
+      filter: 'track',
     },
     {
       label: '超时未洗',
       value: curtains.filter((c) => isOverdueForWash(c.lastWashDate, c.washCycleDays)).length,
       icon: <Calendar size={20} />,
       color: 'bg-coral-100 text-coral-500',
+      filter: 'overdue',
     },
   ];
 
@@ -280,16 +285,20 @@ export default function Statistics() {
           </h2>
           <div className="grid grid-cols-3 gap-4">
             {issuesSummary.map((item, index) => (
-              <div
+              <Link
                 key={index}
-                className="text-center p-4 rounded-xl bg-gray-50"
+                to={`/rooms?filter=${item.filter}`}
+                className="text-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all group cursor-pointer"
               >
                 <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3 ${item.color}`}>
                   {item.icon}
                 </div>
                 <p className="text-2xl font-bold text-primary-800">{item.value}</p>
-                <p className="text-sm text-gray-500">{item.label}</p>
-              </div>
+                <p className="text-sm text-gray-500 flex items-center justify-center gap-1">
+                  {item.label}
+                  <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                </p>
+              </Link>
             ))}
           </div>
         </div>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Droplets } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Plus, Edit2, Trash2, Droplets, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageContainer from '@/components/Layout/PageContainer';
 import PageHeader from '@/components/Layout/PageHeader';
@@ -15,11 +15,14 @@ import type { Room, Curtain, CurtainType, WashMethod } from '@/types';
 
 export default function Rooms() {
   const { rooms, curtains, addRoom, updateRoom, deleteRoom, addCurtain, updateCurtain, deleteCurtain } = useAppStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const [curtainModalOpen, setCurtainModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingCurtain, setEditingCurtain] = useState<Curtain | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const [roomForm, setRoomForm] = useState({ name: '' });
   const [curtainForm, setCurtainForm] = useState({
@@ -35,6 +38,35 @@ export default function Rooms() {
     hasMold: false,
     trackStuck: false,
   });
+
+  useEffect(() => {
+    const filter = searchParams.get('filter');
+    setActiveFilter(filter);
+  }, [searchParams]);
+
+  const filterCurtains = (curtainList: Curtain[]): Curtain[] => {
+    if (!activeFilter) return curtainList;
+    return curtainList.filter((c) => {
+      if (activeFilter === 'mold') return c.hasMold;
+      if (activeFilter === 'track') return c.trackStuck;
+      if (activeFilter === 'overdue') return isOverdueForWash(c.lastWashDate, c.washCycleDays);
+      return true;
+    });
+  };
+
+  const clearFilter = () => {
+    setSearchParams({});
+    setActiveFilter(null);
+  };
+
+  const getFilterLabel = (): string => {
+    const labels: Record<string, string> = {
+      mold: '有霉点',
+      track: '轨道卡顿',
+      overdue: '超时未洗',
+    };
+    return labels[activeFilter || ''] || '';
+  };
 
   const handleAddRoom = () => {
     setEditingRoom(null);
@@ -152,6 +184,23 @@ export default function Rooms() {
         }
       />
 
+      {activeFilter && (
+        <div className="mb-6 p-4 bg-coral-50 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="text-coral-500" />
+            <span className="text-coral-700">
+              当前筛选：<strong>{getFilterLabel()}</strong> 的窗帘
+            </span>
+          </div>
+          <button
+            onClick={clearFilter}
+            className="px-4 py-2 bg-white text-coral-600 rounded-lg hover:bg-coral-100 transition-colors text-sm"
+          >
+            清除筛选
+          </button>
+        </div>
+      )}
+
       {rooms.length === 0 ? (
         <div className="card text-center py-16">
           <div className="text-6xl mb-4">🏠</div>
@@ -164,10 +213,15 @@ export default function Rooms() {
       ) : (
         <div className="grid gap-6">
           {rooms.map((room, roomIndex) => {
-            const roomCurtains = curtains.filter((c) => c.roomId === room.id);
-            const overdueCount = roomCurtains.filter((c) =>
+            const allRoomCurtains = curtains.filter((c) => c.roomId === room.id);
+            const roomCurtains = filterCurtains(allRoomCurtains);
+            const overdueCount = allRoomCurtains.filter((c) =>
               isOverdueForWash(c.lastWashDate, c.washCycleDays)
             ).length;
+
+            if (activeFilter && roomCurtains.length === 0) {
+              return null;
+            }
 
             return (
               <div
@@ -223,7 +277,7 @@ export default function Rooms() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h3 className="font-medium text-primary-800">{curtain.name}</h3>
                                 <span className="badge badge-primary">
                                   {getCurtainTypeLabel(curtain.type)}
@@ -234,6 +288,18 @@ export default function Rooms() {
                                 {isOverdue && (
                                   <span className="badge badge-coral animate-breathing">
                                     {getWashStatusText(curtain.lastWashDate, curtain.washCycleDays)}
+                                  </span>
+                                )}
+                                {curtain.hasMold && (
+                                  <span className="badge badge-coral flex items-center gap-1" title="有霉点需要处理">
+                                    <AlertTriangle size={12} />
+                                    霉点
+                                  </span>
+                                )}
+                                {curtain.trackStuck && (
+                                  <span className="badge badge-warm flex items-center gap-1" title="轨道卡顿需要维护">
+                                    <AlertTriangle size={12} />
+                                    轨道卡顿
                                   </span>
                                 )}
                               </div>

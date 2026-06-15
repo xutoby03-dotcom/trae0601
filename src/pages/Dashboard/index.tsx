@@ -122,9 +122,23 @@ export default function Dashboard() {
                           {room?.icon || '🪟'}
                         </div>
                         <div>
-                          <p className="font-medium text-primary-800">
-                            {room?.name} - {curtain.name}
-                          </p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium text-primary-800">
+                              {room?.name} - {curtain.name}
+                            </p>
+                            {curtain.hasMold && (
+                              <span className="badge badge-coral flex items-center gap-1" title="有霉点需要处理">
+                                <AlertTriangle size={10} />
+                                霉点
+                              </span>
+                            )}
+                            {curtain.trackStuck && (
+                              <span className="badge badge-warm flex items-center gap-1" title="轨道卡顿需要维护">
+                                <AlertTriangle size={10} />
+                                卡顿
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">
                             上次清洗：{formatDate(curtain.lastWashDate)}
                           </p>
