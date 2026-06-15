@@ -1,6 +1,6 @@
 import { useCoffeeStore } from '@/store/coffeeStore';
 import { GRINDER_OPTIONS, DRIPPER_OPTIONS, RoastLevel } from '@/types';
-import { Filter, RotateCcw } from 'lucide-react';
+import { Filter, RotateCcw, Star, AlertTriangle } from 'lucide-react';
 
 export default function FilterBar() {
   const filters = useCoffeeStore((s) => s.filters);
@@ -15,11 +15,18 @@ export default function FilterBar() {
       roastLevel: 'all',
       grinder: '',
       dripper: '',
+      onlyTodayRecommended: false,
+      onlyNegative: false,
     });
   };
 
   const hasActiveFilters =
-    filters.beanName || filters.roastLevel !== 'all' || filters.grinder || filters.dripper;
+    filters.beanName ||
+    filters.roastLevel !== 'all' ||
+    filters.grinder ||
+    filters.dripper ||
+    filters.onlyTodayRecommended ||
+    filters.onlyNegative;
 
   return (
     <div className="card mb-4">
@@ -38,7 +45,34 @@ export default function FilterBar() {
           </button>
         )}
       </div>
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setFilters({ onlyTodayRecommended: !filters.onlyTodayRecommended })}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              filters.onlyTodayRecommended
+                ? 'bg-matcha/15 text-matcha border border-matcha/30 shadow-sm'
+                : 'bg-coffee-50 text-coffee-600 border border-coffee-200 hover:border-coffee-300'
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${filters.onlyTodayRecommended ? 'fill-matcha' : ''}`} />
+            只看今天推荐
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilters({ onlyNegative: !filters.onlyNegative })}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              filters.onlyNegative
+                ? 'bg-amber/15 text-amber border border-amber/30 shadow-sm'
+                : 'bg-coffee-50 text-coffee-600 border border-coffee-200 hover:border-coffee-300'
+            }`}
+          >
+            <AlertTriangle className={`w-3.5 h-3.5 ${filters.onlyNegative ? 'fill-amber' : ''}`} />
+            只看翻车记录
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="label">豆名</label>

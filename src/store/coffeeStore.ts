@@ -29,6 +29,8 @@ export const useCoffeeStore = create<CoffeeStore>((set, get) => ({
     roastLevel: 'all',
     grinder: '',
     dripper: '',
+    onlyTodayRecommended: false,
+    onlyNegative: false,
   },
 
   addRecord: (data) => {

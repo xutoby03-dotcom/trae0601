@@ -27,6 +27,8 @@ export interface FilterState {
   roastLevel: RoastLevel | 'all';
   grinder: string;
   dripper: string;
+  onlyTodayRecommended: boolean;
+  onlyNegative: boolean;
 }
 
 export const ROAST_LABELS: Record<RoastLevel, string> = {
