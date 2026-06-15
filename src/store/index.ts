@@ -206,8 +206,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
         r.id === recordId ? { ...r, removalCheck: check } : r
       );
       saveRecords(records);
+
+      const record = records.find((r) => r.id === recordId);
+      if (record) {
+        const curtains = state.curtains.map((c) =>
+          c.id === record.curtainId
+            ? {
+                ...c,
+                hasMold: !check.clothIntact,
+                trackStuck: !check.trackIntact,
+              }
+            : c
+        );
+        saveCurtains(curtains);
+        return { records, curtains };
+      }
+
       return { records };
     });
+    get().generateReminders();
   },
 
   addMissingPart: (recordId, part) => {

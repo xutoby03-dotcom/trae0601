@@ -32,6 +32,8 @@ export default function Rooms() {
     washCycleDays: 30,
     notes: '',
     lastWashDate: '',
+    hasMold: false,
+    trackStuck: false,
   });
 
   const handleAddRoom = () => {
@@ -81,6 +83,8 @@ export default function Rooms() {
       washCycleDays: 30,
       notes: '',
       lastWashDate: '',
+      hasMold: false,
+      trackStuck: false,
     });
     setCurtainModalOpen(true);
   };
@@ -98,6 +102,8 @@ export default function Rooms() {
       washCycleDays: curtain.washCycleDays,
       notes: curtain.notes,
       lastWashDate: curtain.lastWashDate || '',
+      hasMold: curtain.hasMold,
+      trackStuck: curtain.trackStuck,
     });
     setCurtainModalOpen(true);
   };
@@ -115,8 +121,8 @@ export default function Rooms() {
       washCycleDays: curtainForm.washCycleDays,
       notes: curtainForm.notes,
       lastWashDate: curtainForm.lastWashDate || null,
-      hasMold: false,
-      trackStuck: false,
+      hasMold: curtainForm.hasMold,
+      trackStuck: curtainForm.trackStuck,
     };
 
     if (editingCurtain) {
@@ -429,6 +435,34 @@ export default function Rooms() {
               onChange={(e) => setCurtainForm({ ...curtainForm, notes: e.target.value })}
               placeholder="材质说明、注意事项等"
             />
+          </div>
+
+          <div className="md:col-span-2 grid md:grid-cols-2 gap-4 pt-2">
+            <label className="flex items-center gap-3 p-4 rounded-xl bg-coral-50 hover:bg-coral-100 transition-colors cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox-custom"
+                checked={curtainForm.hasMold}
+                onChange={(e) => setCurtainForm({ ...curtainForm, hasMold: e.target.checked })}
+              />
+              <div>
+                <p className="font-medium text-coral-700">有霉点</p>
+                <p className="text-sm text-coral-600">窗帘上发现霉斑需要处理</p>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-3 p-4 rounded-xl bg-coral-50 hover:bg-coral-100 transition-colors cursor-pointer">
+              <input
+                type="checkbox"
+                className="checkbox-custom"
+                checked={curtainForm.trackStuck}
+                onChange={(e) => setCurtainForm({ ...curtainForm, trackStuck: e.target.checked })}
+              />
+              <div>
+                <p className="font-medium text-coral-700">轨道卡顿</p>
+                <p className="text-sm text-coral-600">轨道拉动不顺畅</p>
+              </div>
+            </label>
           </div>
         </div>
 
