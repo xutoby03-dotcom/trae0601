@@ -186,14 +186,14 @@ export const TaskCard: React.FC<Props> = ({
             <Image className="w-3.5 h-3.5" />
             <span>{task.photoEvidence.length}张</span>
           </div>
-        ) : task.completed || task.budget > 0 ? (
+        ) : (
           <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
             task.completed ? 'bg-orange-100 text-orange-700 animate-pulse' : 'bg-amber-50 text-amber-600'
           }`} title="需要补照片证据">
             <ImageOff className="w-3 h-3" />
             <span>缺照片</span>
           </div>
-        ) : null}
+        )}
       </div>
 
       {/* Assignee */}
