@@ -121,41 +121,79 @@ function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
   const hasDamaged = table.issueTags.includes('desktop_damaged');
   const hasMissing = table.issueTags.includes('missing_parts');
 
-  const leftBorderColor = hasDamaged ? 'border-orange-500' : hasMissing ? 'border-amber-500' : 'border-gray-400';
+  const missingPads = table.totalFootPads - table.footPadCount;
+  const missingTablecloth = !table.hasTablecloth;
+
+  const primaryColor = hasDamaged ? 'orange' : hasMissing ? 'amber' : 'gray';
+
+  const detailItems = [];
+  if (hasDamaged) {
+    detailItems.push({ label: '划痕', value: `${table.scratchCount}处`, color: 'text-orange-600' });
+  }
+  if (missingPads > 0) {
+    detailItems.push({ label: '脚垫', value: `${table.footPadCount}/${table.totalFootPads}`, color: 'text-amber-600' });
+  }
+  if (missingTablecloth) {
+    detailItems.push({ label: '桌布', value: '缺失', color: 'text-red-600' });
+  }
 
   return (
     <div
-      className="flex items-center gap-4 p-4 bg-white rounded-2xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      style={{ borderLeftColor: hasDamaged ? '#f97316' : hasMissing ? '#f59e0b' : '#9ca3af' }}
+      className="p-4 bg-white rounded-2xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      style={{
+        borderLeftColor:
+          primaryColor === 'orange' ? '#f97316' : primaryColor === 'amber' ? '#f59e0b' : '#9ca3af',
+      }}
       onClick={onAction}
     >
-      <div
-        className={cn(
-          'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
-          hasDamaged ? 'bg-orange-50' : hasMissing ? 'bg-amber-50' : 'bg-gray-50'
-        )}
-      >
-        <Wrench
+      <div className="flex items-center gap-4">
+        <div
           className={cn(
-            'w-6 h-6',
-            hasDamaged ? 'text-orange-500' : hasMissing ? 'text-amber-500' : 'text-gray-500'
+            'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
+            primaryColor === 'orange' && 'bg-orange-50',
+            primaryColor === 'amber' && 'bg-amber-50',
+            primaryColor === 'gray' && 'bg-gray-50'
           )}
-        />
+        >
+          <Wrench
+            className={cn(
+              'w-6 h-6',
+              primaryColor === 'orange' && 'text-orange-500',
+              primaryColor === 'amber' && 'text-amber-500',
+              primaryColor === 'gray' && 'text-gray-500'
+            )}
+          />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-gray-900">{table.id}</h4>
+            <span className="text-xs text-gray-400">{table.size}</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-0.5">
+            {table.storageCabinet}
+          </div>
+        </div>
+
+        <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h4 className="font-semibold text-gray-900">{table.id}</h4>
-          <span className="text-xs text-gray-500">{table.size}</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {table.issueTags.map((tag: IssueType) => (
-            <StatusBadge key={tag} type="issue" value={tag} />
-          ))}
-        </div>
+      {/* 具体问题明细 */}
+      <div className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap gap-x-4 gap-y-2">
+        {detailItems.map((item, index) => (
+          <div key={index} className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">{item.label}：</span>
+            <span className={cn('text-xs font-semibold', item.color)}>{item.value}</span>
+          </div>
+        ))}
+        {detailItems.length === 0 && table.issueTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {table.issueTags.map((tag: IssueType) => (
+              <StatusBadge key={tag} type="issue" value={tag} />
+            ))}
+          </div>
+        )}
       </div>
-
-      <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
     </div>
   );
 }

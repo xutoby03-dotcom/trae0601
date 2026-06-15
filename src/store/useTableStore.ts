@@ -133,6 +133,11 @@ const useTableStore = create<TableState>((set, get) => ({
       returnTime: new Date().toISOString(),
     };
 
+    const parseNumberFromNote = (note: string): number | null => {
+      const match = note.match(/(\d+)/);
+      return match ? parseInt(match[1], 10) : null;
+    };
+
     set((state) => ({
       returnRecords: [...state.returnRecords, newReturnRecord],
       borrowRecords: state.borrowRecords.map((r) =>
@@ -141,11 +146,27 @@ const useTableStore = create<TableState>((set, get) => ({
       tables: state.tables.map((t) => {
         if (t.id === borrowRecord.tableId) {
           const hasIssues = newIssueTags.length > 0;
-          return {
+          let updatedTable = {
             ...t,
             status: hasIssues ? ('maintenance' as const) : ('available' as const),
             issueTags: [...new Set([...t.issueTags, ...newIssueTags])] as IssueType[],
           };
+
+          if (!data.desktopOk) {
+            const addScratches = parseNumberFromNote(data.desktopNote) || 1;
+            updatedTable.scratchCount = t.scratchCount + addScratches;
+          }
+
+          if (!data.legsOk) {
+            const missingPads = parseNumberFromNote(data.legsNote) || 1;
+            updatedTable.footPadCount = Math.max(0, t.footPadCount - missingPads);
+          }
+
+          if (!data.tableclothReturned) {
+            updatedTable.hasTablecloth = false;
+          }
+
+          return updatedTable;
         }
         return t;
       }),

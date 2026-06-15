@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import NavBar from '@/components/NavBar';
 import Home from '@/pages/Home';
+import ReturnList from '@/pages/ReturnList';
 import ReturnCheck from '@/pages/ReturnCheck';
 import Admin from '@/pages/Admin';
 
@@ -11,6 +12,7 @@ export default function App() {
         <NavBar />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/return" element={<ReturnList />} />
           <Route path="/return/:id" element={<ReturnCheck />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
