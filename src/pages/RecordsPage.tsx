@@ -10,6 +10,8 @@ import {
   Filter,
   Search,
   ArrowRight,
+  User,
+  GraduationCap,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import {
@@ -79,6 +81,63 @@ export default function RecordsPage() {
       return true;
     });
   }, [records, filterType, filterSize, searchQuery]);
+
+  const summary = useMemo(() => {
+    const empty = {
+      exchangeIn: 0,
+      exchangeOut: 0,
+      matchSwap: 0,
+      manualProcess: 0,
+      studentCount: 0,
+      classCount: 0,
+    };
+    if (filteredRecords.length === 0) return empty;
+
+    const students = new Set<string>();
+    const classes = new Set<string>();
+    let exchangeIn = 0;
+    let exchangeOut = 0;
+    let matchSwap = 0;
+    let manualProcess = 0;
+
+    filteredRecords.forEach((r) => {
+      switch (r.operationType) {
+        case 'exchange_in':
+        case 'stock_in':
+          exchangeIn += r.quantity;
+          break;
+        case 'exchange_out':
+        case 'stock_out':
+          exchangeOut += r.quantity;
+          break;
+        case 'match_swap':
+          matchSwap += r.quantity;
+          break;
+        case 'manual_process':
+          manualProcess += r.quantity;
+          break;
+      }
+      if (r.studentName) {
+        r.studentName
+          .split(' ↔ ')
+          .forEach((name) => name.trim() && students.add(name.trim()));
+      }
+      if (r.className) {
+        r.className
+          .split(' / ')
+          .forEach((cls) => cls.trim() && classes.add(cls.trim()));
+      }
+    });
+
+    return {
+      exchangeIn,
+      exchangeOut,
+      matchSwap,
+      manualProcess,
+      studentCount: students.size,
+      classCount: classes.size,
+    };
+  }, [filteredRecords]);
 
   const RecordItem = ({ record }: { record: ExchangeRecord }) => {
     const Icon = operationIcons[record.operationType];
@@ -213,6 +272,69 @@ export default function RecordsPage() {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <ArrowDownCircle className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs text-slate-500">换入</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.exchangeIn}
+            <span className="text-sm font-normal text-slate-400 ml-1">条</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <ArrowUpCircle className="w-4 h-4 text-orange-500" />
+            <span className="text-xs text-slate-500">换出</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.exchangeOut}
+            <span className="text-sm font-normal text-slate-400 ml-1">条</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Repeat className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs text-slate-500">撮合</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.matchSwap}
+            <span className="text-sm font-normal text-slate-400 ml-1">对</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Wrench className="w-4 h-4 text-amber-500" />
+            <span className="text-xs text-slate-500">人工处理</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.manualProcess}
+            <span className="text-sm font-normal text-slate-400 ml-1">条</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <User className="w-4 h-4 text-blue-500" />
+            <span className="text-xs text-slate-500">命中学生</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.studentCount}
+            <span className="text-sm font-normal text-slate-400 ml-1">人</span>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <GraduationCap className="w-4 h-4 text-cyan-500" />
+            <span className="text-xs text-slate-500">命中班级</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-800">
+            {summary.classCount}
+            <span className="text-sm font-normal text-slate-400 ml-1">个</span>
+          </div>
         </div>
       </div>
 
