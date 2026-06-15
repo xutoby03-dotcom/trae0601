@@ -5,6 +5,35 @@ import { formatDateTime, isToday } from '../utils/time';
 
 type FilterType = 'all' | 'unclaimed' | 'expired';
 
+function highlightText(text: string, keyword: string): (string | { highlight: string })[] {
+  if (!keyword.trim()) {
+    return [text];
+  }
+  
+  const lowerText = text.toLowerCase();
+  const lowerKeyword = keyword.trim().toLowerCase();
+  const keywordLen = lowerKeyword.length;
+  const result: (string | { highlight: string })[] = [];
+  
+  let lastIndex = 0;
+  let index = lowerText.indexOf(lowerKeyword);
+  
+  while (index !== -1) {
+    if (index > lastIndex) {
+      result.push(text.slice(lastIndex, index));
+    }
+    result.push({ highlight: text.slice(index, index + keywordLen) });
+    lastIndex = index + keywordLen;
+    index = lowerText.indexOf(lowerKeyword, lastIndex);
+  }
+  
+  if (lastIndex < text.length) {
+    result.push(text.slice(lastIndex));
+  }
+  
+  return result;
+}
+
 export default function Records() {
   const { disposalRecords } = useFoodStore();
   const [filter, setFilter] = useState<FilterType>('all');
@@ -212,12 +241,7 @@ export default function Records() {
             <div className="divide-y divide-warm-100">
               {filteredRecords.map((record, index) => {
                 const isTodayRecord = isToday(record.disposedAt);
-                const highlightedName = keyword.trim()
-                  ? record.foodName.replace(
-                      new RegExp(`(${keyword.trim()})`, 'gi'),
-                      '<mark class="bg-yellow-200 px-0.5 rounded">$1</mark>'
-                    )
-                  : record.foodName;
+                const nameParts = highlightText(record.foodName, keyword);
                 return (
                   <div
                     key={record.id}
@@ -242,10 +266,20 @@ export default function Records() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 
-                          className="font-semibold text-coffee-800 truncate"
-                          dangerouslySetInnerHTML={{ __html: highlightedName }}
-                        />
+                        <h3 className="font-semibold text-coffee-800 truncate">
+                          {nameParts.map((part, i) =>
+                            typeof part === 'string' ? (
+                              <span key={i}>{part}</span>
+                            ) : (
+                              <mark
+                                key={i}
+                                className="bg-yellow-200 px-0.5 rounded font-semibold"
+                              >
+                                {part.highlight}
+                              </mark>
+                            )
+                          )}
+                        </h3>
                         {isTodayRecord && (
                           <span className="px-1.5 py-0.5 rounded bg-primary-100 text-primary-700 text-xs font-medium flex-shrink-0">
                             今天
