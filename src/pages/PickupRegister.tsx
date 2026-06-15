@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { ScanQrCode, CheckCircle2, AlertTriangle, CalendarClock, XCircle, User, Search, Camera } from 'lucide-react';
+import { ScanQrCode, CheckCircle2, AlertTriangle, CalendarClock, XCircle, User, Search, Camera, Tag, UtensilsCrossed } from 'lucide-react';
 import { usePickupStore } from '@/stores/pickupStore';
 import { usePrepStore } from '@/stores/prepStore';
 import { useStudentStore } from '@/stores/studentStore';
-import { PICKUP_STATUS_META, MEAL_TYPE_META, ALLERGY_META } from '@/types';
-import type { PickupStatus, MealType, AllergyType } from '@/types';
+import { PICKUP_STATUS_META, PREP_STATUS_META, MEAL_TYPE_META, ALLERGY_META } from '@/types';
+import type { PickupStatus, MealType, AllergyType, PrepItem } from '@/types';
 import AllergyBadge from '@/components/allergy/AllergyBadge';
 import { formatDateTime } from '@/utils/dateUtils';
+
+interface ScanResultDetail {
+  success: boolean;
+  message: string;
+  prepItem?: PrepItem;
+  mealTypeName?: string;
+}
 
 export default function PickupRegister() {
   const { getTodayRecords, scanQrCode, manualPickup, recordException, getTodayStats } = usePickupStore();
@@ -20,7 +27,7 @@ export default function PickupRegister() {
   const [showExceptionModal, setShowExceptionModal] = useState<string | null>(null);
   const [exceptionType, setExceptionType] = useState<'not_picked' | 'wrong_pick' | 'leave'>('not_picked');
   const [exceptionNotes, setExceptionNotes] = useState('');
-  const [scanResult, setScanResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [scanResult, setScanResult] = useState<ScanResultDetail | null>(null);
   const [pickedBy, setPickedBy] = useState<'student' | 'teacher'>('teacher');
   const [pickedByName, setPickedByName] = useState('');
 
@@ -54,12 +61,26 @@ export default function PickupRegister() {
   });
 
   const handleScan = () => {
-    const mockQr = mealPrepItems[Math.floor(Math.random() * mealPrepItems.length)]?.qrCode;
-    if (mockQr) {
-      const result = scanQrCode(mockQr, pickedBy, pickedByName || '系统管理员');
-      setScanResult(result);
-      setTimeout(() => setScanResult(null), 2000);
+    const notPickedItems = mealPrepItems.filter((p) => p.status !== 'picked');
+    const targetItem = notPickedItems[Math.floor(Math.random() * notPickedItems.length)];
+    if (!targetItem) {
+      setScanResult({ success: false, message: '当前没有待领取的餐品' });
+      setTimeout(() => setScanResult(null), 2500);
+      return;
     }
+    const mockQr = targetItem.qrCode;
+    const result = scanQrCode(mockQr, pickedBy, pickedByName || '系统管理员');
+    if (result.success) {
+      const mealTypeMeta = MEAL_TYPE_META[targetItem.mealType];
+      setScanResult({
+        ...result,
+        prepItem: targetItem,
+        mealTypeName: mealTypeMeta.icon + ' ' + mealTypeMeta.name,
+      });
+    } else {
+      setScanResult(result);
+    }
+    setTimeout(() => setScanResult(null), 3000);
   };
 
   const handleManualPickup = (studentId: string, prepItemId: string) => {
@@ -271,9 +292,19 @@ export default function PickupRegister() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-1 text-right mr-1">
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${PREP_STATUS_META[prep.status].className}`}>
+                            {(prep.status === 'pending' || prep.status === 'preparing') ? <UtensilsCrossed size={10} /> : <CheckCircle2 size={10} />}
+                            {PREP_STATUS_META[prep.status].name}
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-400 flex items-center gap-1">
+                            <Tag size={10} />
+                            {prep.qrCode.slice(-8)}
+                          </span>
+                        </div>
                         {status === 'not_picked' && (
-                          <>
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleManualPickup(prep.studentId, prep.id)}
                               className="btn-primary !px-3 !py-1.5 !text-xs"
@@ -290,7 +321,7 @@ export default function PickupRegister() {
                             >
                               异常登记
                             </button>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -323,18 +354,54 @@ export default function PickupRegister() {
               </div>
               {scanResult && (
                 <div
-                  className={`absolute inset-0 flex items-center justify-center ${
-                    scanResult.success ? 'bg-primary-500/90' : 'bg-danger-500/90'
+                  className={`absolute inset-0 flex items-center justify-center p-4 ${
+                    scanResult.success ? 'bg-primary-500/95' : 'bg-danger-500/95'
                   }`}
                 >
-                  <div className="text-center text-white">
-                    {scanResult.success ? (
-                      <CheckCircle2 size={48} className="mx-auto mb-2" />
-                    ) : (
+                  {scanResult.success && scanResult.prepItem ? (
+                    <div className="text-center text-white w-full max-w-sm">
+                      <CheckCircle2 size={40} className="mx-auto mb-3" />
+                      <p className="text-lg font-bold mb-4">{scanResult.message}</p>
+                      <div className="bg-white/20 backdrop-blur rounded-xl p-4 text-left space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs">学生姓名</span>
+                          <span className="font-semibold">{scanResult.prepItem.studentName}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs">班级</span>
+                          <span className="font-semibold">{scanResult.prepItem.className}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs">餐次</span>
+                          <span className="font-semibold">{scanResult.mealTypeName}</span>
+                        </div>
+                        <div className="border-t border-white/20 my-2" />
+                        <div className="space-y-1">
+                          <span className="text-white/70 text-xs">替换菜品</span>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="line-through opacity-60">{scanResult.prepItem.originalDish}</span>
+                            <span>→</span>
+                            <span className="font-bold">{scanResult.prepItem.replacementDish}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-white/20">
+                          <span className="text-white/70 text-xs">备餐状态</span>
+                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                            {PREP_STATUS_META.picked.name}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs">二维码尾号</span>
+                          <span className="font-mono text-xs">{scanResult.prepItem.qrCode.slice(-8)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-white">
                       <AlertTriangle size={48} className="mx-auto mb-2" />
-                    )}
-                    <p className="font-medium">{scanResult.message}</p>
-                  </div>
+                      <p className="font-medium">{scanResult.message}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
