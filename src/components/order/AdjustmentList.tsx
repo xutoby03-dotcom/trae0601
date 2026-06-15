@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, X, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Adjustment, Participant, AdjustmentType } from '@/types';
@@ -32,19 +32,21 @@ function AdjustmentModal({
   const [description, setDescription] = useState('');
   const [targetParticipantId, setTargetParticipantId] = useState<string>('');
 
-  useState(() => {
-    if (editingAdjustment) {
-      setType(editingAdjustment.type);
-      setAmount(editingAdjustment.amount.toString());
-      setDescription(editingAdjustment.description);
-      setTargetParticipantId(editingAdjustment.targetParticipantId || '');
-    } else {
-      setType('other');
-      setAmount('');
-      setDescription('');
-      setTargetParticipantId('');
+  useEffect(() => {
+    if (isOpen) {
+      if (editingAdjustment) {
+        setType(editingAdjustment.type);
+        setAmount(editingAdjustment.amount.toString());
+        setDescription(editingAdjustment.description);
+        setTargetParticipantId(editingAdjustment.targetParticipantId || '');
+      } else {
+        setType('other');
+        setAmount('');
+        setDescription('');
+        setTargetParticipantId('');
+      }
     }
-  });
+  }, [isOpen, editingAdjustment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
