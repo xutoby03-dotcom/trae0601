@@ -116,7 +116,7 @@ export const mockOrders: Order[] = [
     depositPaid: true,
     pickupTime: formatTime(13, 0),
     status: OrderStatus.PIPING,
-    chefId: 'c3',
+    chefId: 'c2',
     createdAt: formatTime(10, 30),
   },
   {
@@ -167,7 +167,7 @@ export const mockOrders: Order[] = [
     depositPaid: true,
     pickupTime: formatTime(12, 0),
     status: OrderStatus.EMBRYO_READY,
-    chefId: 'c5',
+    chefId: 'c4',
     createdAt: formatTime(11, 0),
   },
   {
@@ -218,7 +218,7 @@ export const mockOrders: Order[] = [
     depositPaid: true,
     pickupTime: formatTime(13, 30),
     status: OrderStatus.CRUSTING,
-    chefId: 'c5',
+    chefId: 'c1',
     createdAt: formatTime(10, 30),
   },
 ];

@@ -21,9 +21,17 @@ export const useOrderStore = create<OrderStore>((set) => ({
     })),
 
   assignChef: (orderId: string, chefId: string) =>
-    set((state) => ({
-      orders: state.orders.map((o) => (o.id === orderId ? { ...o, chefId } : o)),
-    })),
+    set((state) => {
+      const order = state.orders.find((o) => o.id === orderId);
+      const chef = state.chefs.find((c) => c.id === chefId);
+      if (!order || !chef) return state;
+      if (!order.referenceImageUrl && chef.isRookie) {
+        return state;
+      }
+      return {
+        orders: state.orders.map((o) => (o.id === orderId ? { ...o, chefId } : o)),
+      };
+    }),
 
   unassignChef: (orderId: string) =>
     set((state) => ({

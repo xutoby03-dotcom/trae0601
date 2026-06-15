@@ -18,6 +18,7 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
   const assignedChef = chefs.find((c) => c.id === order.chefId);
   const availableChefs = getAvailableChefs(order, chefs);
   const hasReferenceImage = !!order.referenceImageUrl;
+  const isIllegalAssignment = !hasReferenceImage && assignedChef?.isRookie;
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -45,20 +46,31 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
         className={`
           w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg
           border text-sm transition-all duration-200
-          ${assignedChef
-            ? 'bg-cream-50 border-cream-300 text-coffee-900'
-            : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+          ${isIllegalAssignment
+            ? 'bg-danger-500/10 border-danger-500/50 text-danger-600'
+            : assignedChef
+              ? 'bg-cream-50 border-cream-300 text-coffee-900'
+              : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
           }
         `}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {assignedChef ? (
             <>
               <span className="text-lg">{assignedChef.avatar}</span>
               <span className="font-medium">{assignedChef.name}</span>
               {assignedChef.isRookie && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isIllegalAssignment
+                    ? 'bg-danger-500/20 text-danger-600'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
                   新人
+                </span>
+              )}
+              {isIllegalAssignment && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-danger-500 text-white font-medium flex items-center gap-0.5">
+                  ⚠️ 违规分配
                 </span>
               )}
             </>
@@ -66,7 +78,7 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
             <span className="text-amber-600 font-medium">未分配裱花师</span>
           )}
         </div>
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -90,6 +102,7 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
           {chefs.map((chef) => {
             const isAvailable = availableChefs.some((c) => c.id === chef.id);
             const isSelected = chef.id === order.chefId;
+            const isIllegalSelected = isSelected && !hasReferenceImage && chef.isRookie;
             return (
               <button
                 key={chef.id}
@@ -98,7 +111,8 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
                 className={`
                   w-full px-3 py-2.5 text-left flex items-center justify-between gap-2
                   transition-colors text-sm
-                  ${isSelected ? 'bg-matcha-500/10 text-matcha-600' : ''}
+                  ${isIllegalSelected ? 'bg-danger-500/10 text-danger-600 border-b border-danger-500/20' : ''}
+                  ${isSelected && !isIllegalSelected ? 'bg-matcha-500/10 text-matcha-600' : ''}
                   ${isAvailable && !isSelected ? 'hover:bg-cream-100 text-coffee-900' : ''}
                   ${!isAvailable ? 'opacity-40 cursor-not-allowed text-coffee-800/40' : ''}
                 `}
@@ -107,8 +121,17 @@ export default function ChefSelector({ order }: ChefSelectorProps) {
                   <span className="text-lg">{chef.avatar}</span>
                   <span className="font-medium">{chef.name}</span>
                   {chef.isRookie && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      isIllegalSelected
+                        ? 'bg-danger-500/20 text-danger-600'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
                       新人
+                    </span>
+                  )}
+                  {isIllegalSelected && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-danger-500 text-white">
+                      ⚠️ 违规
                     </span>
                   )}
                 </div>
