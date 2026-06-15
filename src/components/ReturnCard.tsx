@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { ReturnOrder } from '@/types/return';
 import { hasUrgentReminder, hasWarningReminder, getStatusLabel } from '@/utils/statusUtils';
 import { formatDateShort, formatRelativeDate, daysUntil } from '@/utils/dateUtils';
+import { useReturnStore } from '@/store/useReturnStore';
 import { AlertTriangle, Clock, Package, Image as ImageIcon } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -21,9 +23,15 @@ const platformColors: Record<string, string> = {
 };
 
 export function ReturnCard({ order, onClick }: ReturnCardProps) {
+  const { orders } = useReturnStore();
   const isUrgent = hasUrgentReminder(order);
   const isWarning = hasWarningReminder(order);
   const statusLabel = getStatusLabel(order.status);
+
+  const packageCount = useMemo(() => {
+    if (!order.packageId) return 0;
+    return orders.filter((o) => o.packageId === order.packageId).length;
+  }, [orders, order.packageId]);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: order.id,
@@ -142,9 +150,9 @@ export function ReturnCard({ order, onClick }: ReturnCardProps) {
         </div>
       )}
 
-      {order.packageId && (
+      {order.packageId && packageCount > 0 && (
         <div className="mt-2 text-xs text-blue-500 bg-blue-50 rounded-lg px-2 py-1 text-center">
-          📦 同包裹商品
+          📦 同包裹 {packageCount} 件
         </div>
       )}
     </div>

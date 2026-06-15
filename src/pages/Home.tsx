@@ -50,6 +50,10 @@ export default function Home() {
     setIsFormOpen(true);
   };
 
+  const handleSwitchOrder = (order: ReturnOrder) => {
+    setSelectedOrder(order);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -175,6 +179,7 @@ export default function Home() {
         }}
         order={selectedOrder}
         onEdit={handleEdit}
+        onSwitchOrder={handleSwitchOrder}
       />
     </div>
   );

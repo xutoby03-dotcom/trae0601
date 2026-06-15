@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   X,
   Edit2,
@@ -13,6 +13,7 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { ReturnOrder } from '@/types/return';
 import { useReturnStore } from '@/store/useReturnStore';
@@ -30,18 +31,31 @@ interface ReturnDetailModalProps {
   onClose: () => void;
   order: ReturnOrder | null;
   onEdit: () => void;
+  onSwitchOrder?: (order: ReturnOrder) => void;
 }
 
-export function ReturnDetailModal({ isOpen, onClose, order, onEdit }: ReturnDetailModalProps) {
-  const { updateStatus, deleteOrder } = useReturnStore();
+export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrder }: ReturnDetailModalProps) {
+  const { orders, updateStatus, deleteOrder } = useReturnStore();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  if (!isOpen || !order) return null;
+  const isUrgent = order ? hasUrgentReminder(order) : false;
+  const isWarning = order ? hasWarningReminder(order) : false;
+  const nextStatus = order ? getNextStatus(order.status) : null;
+  const prevStatus = order ? getPrevStatus(order.status) : null;
 
-  const isUrgent = hasUrgentReminder(order);
-  const isWarning = hasWarningReminder(order);
-  const nextStatus = getNextStatus(order.status);
-  const prevStatus = getPrevStatus(order.status);
+  const packageSiblings = useMemo(() => {
+    if (!order?.packageId) return [];
+    return orders.filter((o) => o.packageId === order.packageId && o.id !== order.id);
+  }, [orders, order?.packageId, order?.id]);
+
+  const siblingStatusColor: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-700',
+    shipment_pending: 'bg-blue-100 text-blue-700',
+    refund_pending: 'bg-purple-100 text-purple-700',
+    completed: 'bg-green-100 text-green-700',
+  };
+
+  if (!isOpen || !order) return null;
 
   const handleDelete = () => {
     if (confirm('确定要删除这条退货记录吗？')) {
@@ -236,8 +250,68 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit }: ReturnDeta
 
             {order.packageId && (
               <div className="bg-blue-50 rounded-xl p-4">
-                <p className="text-xs text-blue-400 mb-1">📦 同包裹商品</p>
-                <p className="text-sm font-medium text-blue-700">包裹ID：{order.packageId}</p>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Package size={16} className="text-blue-500" />
+                    <p className="text-sm font-semibold text-blue-800">
+                      同包裹商品 · 共 {packageSiblings.length + 1} 件
+                    </p>
+                  </div>
+                  <span className="text-xs text-blue-400">ID: {order.packageId}</span>
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-white rounded-lg border border-blue-200 border-dashed">
+                  <div className="w-1 h-8 w-px bg-blue-500 rounded-full flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {order.productName}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span
+                        className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusColorMap[order.status]}`}
+                      >
+                        {getStatusLabel(order.status)}
+                      </span>
+                      <span className="text-xs text-gray-400">当前</span>
+                    </div>
+                  </div>
+                </div>
+
+                {packageSiblings.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {packageSiblings.map((sibling) => (
+                      <button
+                        key={sibling.id}
+                        type="button"
+                        onClick={() => onSwitchOrder?.(sibling)}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 bg-white rounded-lg border border-blue-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all group"
+                      >
+                        <div className="w-1 h-8 w-px bg-blue-200 rounded-full flex-shrink-0" />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium text-gray-700 truncate group-hover:text-blue-700">
+                            {sibling.productName}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span
+                              className={`inline-block text-xs px-2 py-0.5 rounded-full ${siblingStatusColor[sibling.status]}`}
+                            >
+                              {getStatusLabel(sibling.status)}
+                            </span>
+                            {sibling.trackingNumber && (
+                              <span className="text-xs text-gray-400 font-mono truncate max-w-[140px]">
+                                单号 {sibling.trackingNumber.substring(0, 8)}...
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight
+                          size={16}
+                          className="text-gray-300 group-hover:text-blue-500 flex-shrink-0 transition-colors"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
