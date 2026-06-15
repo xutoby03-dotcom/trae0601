@@ -44,8 +44,8 @@ export default function Home() {
     setIsDetailOpen(true);
   };
 
-  const handleEdit = () => {
-    setEditOrder(selectedOrder);
+  const handleEdit = (order: ReturnOrder) => {
+    setEditOrder(order);
     setIsDetailOpen(false);
     setIsFormOpen(true);
   };
@@ -177,7 +177,7 @@ export default function Home() {
           setIsDetailOpen(false);
           setSelectedOrder(null);
         }}
-        order={selectedOrder}
+        orderId={selectedOrder?.id ?? null}
         onEdit={handleEdit}
         onSwitchOrder={handleSwitchOrder}
       />

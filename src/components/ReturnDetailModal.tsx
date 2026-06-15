@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Edit2,
@@ -30,14 +30,19 @@ import {
 interface ReturnDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  order: ReturnOrder | null;
-  onEdit: () => void;
+  orderId: string | null;
+  onEdit: (order: ReturnOrder) => void;
   onSwitchOrder?: (order: ReturnOrder) => void;
 }
 
-export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrder }: ReturnDetailModalProps) {
+export function ReturnDetailModal({ isOpen, onClose, orderId, onEdit, onSwitchOrder }: ReturnDetailModalProps) {
   const { orders, updateStatus, deleteOrder } = useReturnStore();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  const order = useMemo<ReturnOrder | null>(() => {
+    if (!orderId) return null;
+    return orders.find((o) => o.id === orderId) ?? null;
+  }, [orders, orderId]);
 
   const isUrgent = order ? hasUrgentReminder(order) : false;
   const isWarning = order ? hasWarningReminder(order) : false;
@@ -55,6 +60,12 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrde
     refund_pending: 'bg-purple-100 text-purple-700',
     completed: 'bg-green-100 text-green-700',
   };
+
+  useEffect(() => {
+    if (isOpen && orderId && !order) {
+      onClose();
+    }
+  }, [isOpen, orderId, order, onClose]);
 
   if (!isOpen || !order) return null;
 
@@ -122,7 +133,7 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrde
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={onEdit}
+              onClick={() => order && onEdit(order)}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <Edit2 size={18} className="text-gray-500" />
@@ -232,7 +243,7 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrde
               </div>
             )}
 
-            {order.refundApplyDate && (() => {
+            {order.refundApplyDate && order.status !== 'completed' && (() => {
               const progress = getRefundProgress(order.refundApplyDate, order.refundPromiseDays);
               const isOverdue = progress?.isOverdue ?? false;
               const isNearDue = progress?.isNearDue ?? false;
