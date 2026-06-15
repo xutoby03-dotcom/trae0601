@@ -111,6 +111,18 @@ export interface FocusBuilding {
   priority: 'high' | 'medium' | 'low'
 }
 
+export interface PointRecurrenceItem {
+  problemType: string
+  count: number
+  lastOccurrence: string
+}
+
+export interface PointRecurrenceStats {
+  problemTypes: PointRecurrenceItem[]
+  openTickets: number
+  totalProblems: number
+}
+
 export const PROBLEM_TYPES = ['混投', '满溢', '破袋', '厨余未沥水', '可回收堆放']
 
 export const BIN_TYPES = ['厨余垃圾', '其他垃圾', '可回收物', '有害垃圾']

@@ -262,4 +262,67 @@ router.get('/focus-buildings', (req: Request, res: Response) => {
   }
 });
 
+router.get('/point/:pointId/recurrence', (req: Request, res: Response) => {
+  try {
+    const { pointId } = req.params;
+    const { days = '30' } = req.query;
+    const numDays = Number(days);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - numDays);
+
+    const inspections = db
+      .prepare(
+        `SELECT problem_types, inspection_time
+         FROM inspections
+         WHERE point_id = ? AND inspection_time >= ?
+         ORDER BY inspection_time DESC`
+      )
+      .all(pointId, thirtyDaysAgo.toISOString()) as { problem_types: string; inspection_time: string }[];
+
+    const typeStats: Record<string, { count: number; lastOccurrence: string }> = {};
+    let totalProblems = 0;
+
+    inspections.forEach((inspection) => {
+      const types = JSON.parse(inspection.problem_types || '[]') as string[];
+      types.forEach((type) => {
+        totalProblems++;
+        if (!typeStats[type]) {
+          typeStats[type] = { count: 0, lastOccurrence: inspection.inspection_time };
+        }
+        typeStats[type].count++;
+        if (new Date(inspection.inspection_time) > new Date(typeStats[type].lastOccurrence)) {
+          typeStats[type].lastOccurrence = inspection.inspection_time;
+        }
+      });
+    });
+
+    const openTickets = db
+      .prepare(
+        `SELECT COUNT(*) as count FROM tickets
+         WHERE point_id = ? AND status IN ('pending', 'processing')`
+      )
+      .get(pointId) as { count: number };
+
+    const problemTypes = Object.entries(typeStats)
+      .map(([problemType, stats]) => ({
+        problemType,
+        count: stats.count,
+        lastOccurrence: stats.lastOccurrence,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    res.json({
+      success: true,
+      data: {
+        problemTypes,
+        openTickets: openTickets.count,
+        totalProblems,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '获取点位复发统计失败' });
+  }
+});
+
 export default router;

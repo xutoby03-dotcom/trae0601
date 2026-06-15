@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, MapPin, User, Clock, Camera, AlertTriangle, FileText, Edit } from 'lucide-react'
+import { ArrowLeft, MapPin, User, Clock, Camera, AlertTriangle, FileText, Edit, RefreshCw, Calendar, AlertCircle } from 'lucide-react'
 import { api } from '@/utils/api'
-import { formatDateTime } from '@/utils/date'
-import type { Point } from '@/types'
+import { formatDateTime, formatDate } from '@/utils/date'
+import type { Point, PointRecurrenceStats } from '@/types'
 import StatusBadge from '@/components/StatusBadge'
 
 export default function PointDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [point, setPoint] = useState<Point | null>(null)
+  const [recurrence, setRecurrence] = useState<PointRecurrenceStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingRecurrence, setLoadingRecurrence] = useState(true)
 
   useEffect(() => {
-    loadPoint()
+    if (id) {
+      loadPoint()
+      loadRecurrence()
+    }
   }, [id])
 
   const loadPoint = async () => {
@@ -25,6 +30,18 @@ export default function PointDetail() {
       console.error('加载点位详情失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadRecurrence = async () => {
+    try {
+      setLoadingRecurrence(true)
+      const data = await api.get<PointRecurrenceStats>(`/statistics/point/${id}/recurrence?days=30`)
+      setRecurrence(data)
+    } catch (error) {
+      console.error('加载复发统计失败:', error)
+    } finally {
+      setLoadingRecurrence(false)
     }
   }
 
@@ -143,6 +160,74 @@ export default function PointDetail() {
           <div className="mt-6 pt-6 border-t border-gray-100">
             <h4 className="text-sm font-medium text-gray-700 mb-2">备注说明</h4>
             <p className="text-gray-600">{point.description}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center">
+            <RefreshCw className="w-5 h-5 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">问题复发分析</h3>
+            <p className="text-sm text-gray-500">最近30天</p>
+          </div>
+        </div>
+
+        {loadingRecurrence ? (
+          <div className="animate-pulse space-y-3">
+            <div className="h-10 bg-gray-100 rounded-lg" />
+            <div className="h-10 bg-gray-100 rounded-lg" />
+            <div className="h-10 bg-gray-100 rounded-lg" />
+          </div>
+        ) : recurrence && recurrence.totalProblems > 0 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-orange-50 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-orange-600">{recurrence.totalProblems}</p>
+                <p className="text-xs text-gray-500 mt-0.5">累计问题次数</p>
+              </div>
+              <div className={`rounded-lg p-3 text-center ${recurrence.openTickets > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                <p className={`text-2xl font-bold ${recurrence.openTickets > 0 ? 'text-red-600' : 'text-gray-600'}`}>{recurrence.openTickets}</p>
+                <p className="text-xs text-gray-500 mt-0.5">未关闭工单</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {recurrence.problemTypes.map((item, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                        index === 0 ? 'bg-red-100 text-red-700' :
+                        index === 1 ? 'bg-orange-100 text-orange-700' :
+                        index === 2 ? 'bg-amber-100 text-amber-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">{item.problemType}</p>
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        最近一次 {formatDate(item.lastOccurrence)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-800">{item.count}</p>
+                    <p className="text-xs text-gray-500">次</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <AlertCircle className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-400">最近30天无问题记录</p>
           </div>
         )}
       </div>

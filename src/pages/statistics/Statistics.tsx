@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   BarChart,
   Bar,
@@ -11,11 +12,12 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import { TrendingUp, Clock, AlertTriangle, Home } from 'lucide-react'
+import { TrendingUp, Clock, AlertTriangle, Home, ExternalLink } from 'lucide-react'
 import { api } from '@/utils/api'
 import type { RecurrenceData, RepairTimeData, ErrorTypeData, FocusBuilding } from '@/types'
 
 export default function Statistics() {
+  const navigate = useNavigate()
   const [recurrence, setRecurrence] = useState<RecurrenceData[]>([])
   const [repairTime, setRepairTime] = useState<RepairTimeData[]>([])
   const [errorTypes, setErrorTypes] = useState<ErrorTypeData[]>([])
@@ -103,11 +105,24 @@ export default function Statistics() {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                   }}
                   formatter={(value: number) => [`${value}次`, '问题次数']}
+                  cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
                 />
-                <Bar dataKey="problemCount" fill="#10B981" radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="problemCount"
+                  fill="#10B981"
+                  radius={[0, 4, 4, 0]}
+                  onClick={(data: any) => navigate(`/points/${data.id}`)}
+                  style={{ cursor: 'pointer' }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
+          {recurrence.length > 0 && (
+            <p className="text-xs text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
+              <ExternalLink className="w-3 h-3" />
+              点击柱子查看点位详情
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -215,7 +230,8 @@ export default function Statistics() {
             {focusBuildings.map((building, index) => (
               <div
                 key={building.id}
-                className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
+                className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer transition-colors group"
+                onClick={() => navigate(`/points/${building.id}`)}
               >
                 <div
                   className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold ${
@@ -232,7 +248,9 @@ export default function Statistics() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-800">{building.building}</span>
+                    <span className="font-medium text-gray-800 group-hover:text-emerald-600 transition-colors">
+                      {building.building}
+                    </span>
                     <span
                       className={`px-2 py-0.5 text-xs rounded-full border ${
                         priorityColors[building.priority]
@@ -245,16 +263,25 @@ export default function Statistics() {
                     督导员：{building.supervisor} · 已宣传 {building.promotionCount} 次
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-gray-800">
-                    {building.problemCount}
-                    <span className="text-sm font-normal text-gray-500 ml-1">次</span>
-                  </p>
-                  <p className="text-xs text-gray-500">近30天问题</p>
+                <div className="text-right flex items-center gap-2">
+                  <div>
+                    <p className="text-xl font-bold text-gray-800">
+                      {building.problemCount}
+                      <span className="text-sm font-normal text-gray-500 ml-1">次</span>
+                    </p>
+                    <p className="text-xs text-gray-500">近30天问题</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors" />
                 </div>
               </div>
             ))}
           </div>
+          {focusBuildings.length > 0 && (
+            <p className="text-xs text-gray-400 text-center mt-3 flex items-center justify-center gap-1">
+              <ExternalLink className="w-3 h-3" />
+              点击楼栋查看点位详情
+            </p>
+          )}
           {focusBuildings.length === 0 && (
             <div className="text-center py-10 text-gray-400">暂无需要重点宣传的楼栋</div>
           )}
