@@ -1,8 +1,8 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { useStore } from "@/store/useStore"
 import { DEPARTMENTS, ACCESSORIES_OPTIONS } from "@/data/mockData"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Camera, Plus, X } from "lucide-react"
 import type { Device } from "@/types"
 
 export default function DeviceForm() {
@@ -11,6 +11,7 @@ export default function DeviceForm() {
   const devices = useStore((s) => s.devices)
   const addDevice = useStore((s) => s.addDevice)
   const updateDevice = useStore((s) => s.updateDevice)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isEdit = !!id
   const existing = isEdit ? devices.find((d) => d.id === id) : null
@@ -24,6 +25,7 @@ export default function DeviceForm() {
     accessories: existing?.accessories ?? [] as string[],
     accountStatus: existing?.accountStatus ?? ("none" as Device["accountStatus"]),
     department: existing?.department ?? "",
+    photos: existing?.photos ?? [] as string[],
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -34,6 +36,32 @@ export default function DeviceForm() {
       accessories: f.accessories.includes(acc)
         ? f.accessories.filter((a) => a !== acc)
         : [...f.accessories, acc],
+    }))
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files) return
+    const readers: Promise<string>[] = []
+    Array.from(files).forEach((file) => {
+      readers.push(
+        new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(file)
+        })
+      )
+    })
+    Promise.all(readers).then((urls) => {
+      setForm((f) => ({ ...f, photos: [...f.photos, ...urls] }))
+    })
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  function removePhoto(index: number) {
+    setForm((f) => ({
+      ...f,
+      photos: f.photos.filter((_, i) => i !== index),
     }))
   }
 
@@ -59,7 +87,6 @@ export default function DeviceForm() {
       const newDevice: Device = {
         id: `dev-${Date.now()}`,
         ...form,
-        photos: [],
         status: "idle",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -183,6 +210,61 @@ export default function DeviceForm() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Camera size={18} className="text-brand-500" />
+              <h3 className="font-display font-semibold text-slate-800">外观照片</h3>
+              <span className="text-xs text-slate-400">({form.photos.length})</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn-secondary text-xs"
+            >
+              <Plus size={14} />
+              上传照片
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+
+          {form.photos.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3">
+              {form.photos.map((url, i) => (
+                <div key={i} className="relative group">
+                  <img
+                    src={url}
+                    alt={`外观 ${i + 1}`}
+                    className="w-full h-24 object-cover rounded-lg border border-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-white/90 text-slate-600 hover:bg-red-500 hover:text-white shadow-sm transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-lg text-slate-400 cursor-pointer hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Camera size={28} className="mb-2 opacity-60" />
+              <span className="text-sm">点击上传外观照片</span>
+              <span className="text-xs text-slate-400 mt-0.5">支持多张，JPG/PNG</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { useStore } from "@/store/useStore"
 import { StatusBadge, AccountStatusBadge, FirmwareBadge } from "@/components/StatusBadge"
@@ -13,6 +14,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 export default function DeviceDetail() {
@@ -21,6 +25,17 @@ export default function DeviceDetail() {
   const devices = useStore((s) => s.devices)
   const borrowRecords = useStore((s) => s.borrowRecords)
   const device = devices.find((d) => d.id === id)
+
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+
+  function prevPhoto() {
+    if (viewerIndex === null || !device) return
+    setViewerIndex(viewerIndex === 0 ? device.photos.length - 1 : viewerIndex - 1)
+  }
+  function nextPhoto() {
+    if (viewerIndex === null || !device) return
+    setViewerIndex(viewerIndex === device.photos.length - 1 ? 0 : viewerIndex + 1)
+  }
 
   if (!device) {
     return (
@@ -127,15 +142,82 @@ export default function DeviceDetail() {
               <h3 className="font-display font-semibold text-slate-800">外观照片</h3>
             </div>
             {device.photos.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {device.photos.map((url, i) => (
-                  <img key={i} src={url} alt={`外观 ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-slate-200" />
-                ))}
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {device.photos.map((url, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setViewerIndex(i)}
+                      className="group relative overflow-hidden rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    >
+                      <img
+                        src={url}
+                        alt={`外观 ${i + 1}`}
+                        className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 bg-black/50 px-2 py-0.5 rounded">
+                          点击查看
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-slate-400">
                 <Camera size={32} className="mb-2 opacity-50" />
                 <span className="text-sm">暂无外观照片</span>
+                <Link
+                  to={`/devices/${device.id}/edit`}
+                  className="mt-2 text-xs text-brand-500 hover:text-brand-600"
+                >
+                  去编辑上传
+                </Link>
+              </div>
+            )}
+
+            {viewerIndex !== null && (
+              <div
+                className="fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center"
+                onClick={() => setViewerIndex(null)}
+              >
+                <button
+                  className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setViewerIndex(null) }}
+                >
+                  <X size={24} />
+                </button>
+                {device.photos.length > 1 && (
+                  <>
+                    <button
+                      className="absolute left-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                      onClick={(e) => { e.stopPropagation(); prevPhoto() }}
+                    >
+                      <ChevronLeft size={32} />
+                    </button>
+                    <button
+                      className="absolute right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                      onClick={(e) => { e.stopPropagation(); nextPhoto() }}
+                    >
+                      <ChevronRight size={32} />
+                    </button>
+                  </>
+                )}
+                <div
+                  className="max-w-4xl max-h-[80vh] mx-8"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <img
+                    src={device.photos[viewerIndex]}
+                    alt={`外观 ${viewerIndex + 1}`}
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                  />
+                  <div className="text-center mt-3 text-white/70 text-sm">
+                    {viewerIndex + 1} / {device.photos.length}
+                  </div>
+                </div>
               </div>
             )}
           </div>

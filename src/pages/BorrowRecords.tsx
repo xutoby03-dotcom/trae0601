@@ -23,8 +23,13 @@ export default function BorrowRecords() {
 
   const [search, setSearch] = useState("")
   const [deptFilter, setDeptFilter] = useState("")
+  const [customerFilter, setCustomerFilter] = useState("")
+  const [projectFilter, setProjectFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState<BorrowRecord["status"] | "">("")
   const [showFilters, setShowFilters] = useState(false)
+
+  const allCustomers = Array.from(new Set(borrowRecords.map((r) => r.customer).filter(Boolean))).sort()
+  const allProjects = Array.from(new Set(borrowRecords.map((r) => r.project).filter(Boolean))).sort()
 
   const filtered = borrowRecords
     .filter((r) => {
@@ -34,12 +39,14 @@ export default function BorrowRecords() {
         if (!haystack.includes(search.toLowerCase())) return false
       }
       if (deptFilter && r.borrowerDepartment !== deptFilter) return false
+      if (customerFilter && r.customer !== customerFilter) return false
+      if (projectFilter && r.project !== projectFilter) return false
       if (statusFilter && r.status !== statusFilter) return false
       return true
     })
     .sort((a, b) => new Date(b.borrowDate).getTime() - new Date(a.borrowDate).getTime())
 
-  const hasActiveFilters = deptFilter || statusFilter
+  const hasActiveFilters = deptFilter || statusFilter || customerFilter || projectFilter
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -77,7 +84,7 @@ export default function BorrowRecords() {
           </button>
           {hasActiveFilters && (
             <button
-              onClick={() => { setDeptFilter(""); setStatusFilter("") }}
+              onClick={() => { setDeptFilter(""); setStatusFilter(""); setCustomerFilter(""); setProjectFilter("") }}
               className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1"
             >
               <X size={14} />
@@ -87,7 +94,33 @@ export default function BorrowRecords() {
         </div>
 
         {showFilters && (
-          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
+          <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500 whitespace-nowrap">客户</label>
+              <select
+                value={customerFilter}
+                onChange={(e) => setCustomerFilter(e.target.value)}
+                className="select-field w-52"
+              >
+                <option value="">全部客户</option>
+                {allCustomers.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-500 whitespace-nowrap">项目</label>
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="select-field w-52"
+              >
+                <option value="">全部项目</option>
+                {allProjects.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
             <div className="flex items-center gap-2">
               <label className="text-xs font-medium text-slate-500 whitespace-nowrap">部门</label>
               <select
