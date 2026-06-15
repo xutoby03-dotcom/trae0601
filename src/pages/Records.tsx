@@ -4,9 +4,11 @@ import { TIME_SLOT_LABELS, MEDICATION_STATUS_LABELS } from '@/types';
 import MedicationButtons from '../components/Record/MedicationButtons';
 import MedicineAvatar from '../components/Common/MedicineAvatar';
 import { formatDate, formatDateDisplay, isToday } from '@/utils/dateUtils';
-import { ClipboardList, AlertCircle } from 'lucide-react';
+import { ClipboardList, AlertCircle, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Records() {
+  const navigate = useNavigate();
   const { packingSlots, packingItems, medicationRecords, medicines, schedules } = useAppStore();
 
   const sortedSlots = useMemo(() => {
@@ -93,7 +95,14 @@ export default function Records() {
                     <p className="text-sm text-gray-500">{slotInfo.time}</p>
                   </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(`/packing-detail/${slot.date}/${slot.timeSlot}`)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border-2 border-blue-200 hover:bg-blue-100 transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                    查看详情
+                  </button>
                   {record ? (
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border-2 ${MEDICATION_STATUS_LABELS[record.status].bg} ${MEDICATION_STATUS_LABELS[record.status].color}`}>
                       {MEDICATION_STATUS_LABELS[record.status].label}

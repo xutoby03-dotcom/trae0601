@@ -68,9 +68,13 @@ export default function SlotCard({ slot }: Props) {
     ? 'bg-gradient-to-br from-amber-50 via-white to-emerald-50 ring-2 ring-amber-300 shadow-lg'
     : 'bg-white hover:shadow-lg';
 
+  const targetRoute = isPending
+    ? `/packing/${slot.date}/${slot.timeSlot}`
+    : `/packing-detail/${slot.date}/${slot.timeSlot}`;
+
   return (
     <button
-      onClick={() => navigate(`/packing/${slot.date}/${slot.timeSlot}`)}
+      onClick={() => navigate(targetRoute)}
       className={`w-full text-left rounded-3xl border border-emerald-100/60 shadow-md transition-all duration-300 overflow-hidden ${bgClass} group`}
     >
       <div className={`p-5 ${isPending ? '' : ''}`}>

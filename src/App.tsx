@@ -7,6 +7,7 @@ import MedicineFormPage from '@/pages/MedicineFormPage';
 import Records from '@/pages/Records';
 import Statistics from '@/pages/Statistics';
 import PackingModal from '@/components/Packing/PackingModal';
+import PackingDetail from '@/components/Packing/PackingDetail';
 import { useAppStore } from '@/store/useAppStore';
 
 function AppInitializer() {
@@ -25,6 +26,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />}>
             <Route path="packing/:date/:slot" element={<PackingModal />} />
+            <Route path="packing-detail/:date/:slot" element={<PackingDetail />} />
           </Route>
           <Route path="/medicines" element={<Medicines />} />
           <Route path="/medicines/new" element={<MedicineFormPage />} />
@@ -32,6 +34,7 @@ export default function App() {
           <Route path="/records" element={<Records />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/packing/:date/:slot" element={<PackingModalPage />} />
+          <Route path="/packing-detail/:date/:slot" element={<PackingDetailPage />} />
         </Route>
       </Routes>
     </Router>
@@ -43,6 +46,15 @@ function PackingModalPage() {
     <>
       <Home />
       <PackingModal />
+    </>
+  );
+}
+
+function PackingDetailPage() {
+  return (
+    <>
+      <Home />
+      <PackingDetail />
     </>
   );
 }
