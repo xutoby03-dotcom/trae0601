@@ -11,6 +11,7 @@ import type {
 import { loadFromStorage, saveToStorage } from '@/utils/storageUtils';
 import { formatDate, generateId, getWeekDates } from '@/utils/dateUtils';
 import { mockMedicines, mockSchedules } from '@/utils/mockData';
+import { assertPackingValid } from '@/utils/validationUtils';
 
 interface AppState {
   medicines: Medicine[];
@@ -189,6 +190,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!slot) return;
 
     const slotId = slot.id;
+    const state = get();
+
+    try {
+      assertPackingValid({
+        medicines: state.medicines,
+        schedules: state.schedules,
+        selectedItems: items,
+        timeSlot,
+        date,
+        hasPhoto: !!(photoUrl || slot.photoUrl),
+      });
+    } catch (err: any) {
+      console.error('[savePacking] 兜底校验拦截：', err?.message);
+      alert(err?.message || '分装校验失败，已阻止保存，请检查后重试');
+      return;
+    }
 
     set((s) => {
       const oldItems = s.packingItems.filter((i) => i.slotId !== slotId);

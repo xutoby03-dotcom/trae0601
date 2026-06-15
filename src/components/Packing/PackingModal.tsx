@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { TIME_SLOT_LABELS } from '@/types';
 import type { TimeSlot } from '@/types';
-import { validatePacking, hasFatalErrors } from '@/utils/validationUtils';
+import { validatePacking, hasFatalErrors, assertPackingValid } from '@/utils/validationUtils';
 import MedicineAvatar from '../Common/MedicineAvatar';
 import { ArrowLeft, Camera, CheckCircle2, AlertTriangle, Upload, X } from 'lucide-react';
 import { formatDateDisplay } from '@/utils/dateUtils';
@@ -63,8 +63,10 @@ export default function PackingModal() {
         schedules,
         selectedItems,
         timeSlot,
+        date: date!,
+        hasPhoto: !!photoUrl,
       }),
-    [medicines, schedules, selectedItems, timeSlot]
+    [medicines, schedules, selectedItems, timeSlot, date, photoUrl]
   );
 
   const hasFatal = hasFatalErrors(errors);
@@ -102,6 +104,20 @@ export default function PackingModal() {
   };
 
   const handleSave = () => {
+    try {
+      assertPackingValid({
+        medicines,
+        schedules,
+        selectedItems,
+        timeSlot,
+        date: date!,
+        hasPhoto: !!photoUrl,
+      });
+    } catch (err: any) {
+      alert(err.message || '校验不通过，无法保存');
+      return;
+    }
+
     savePacking(date!, timeSlot, selectedItems, photoUrl);
     setShowSuccess(true);
     setTimeout(() => {
@@ -155,12 +171,12 @@ export default function PackingModal() {
               <div className="flex items-start gap-2 mb-2">
                 <AlertTriangle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${hasFatal ? 'text-red-500' : 'text-amber-500'}`} />
                 <span className={`font-bold ${hasFatal ? 'text-red-700' : 'text-amber-700'}`}>
-                  {hasFatal ? '存在错误，无法保存，请先解决' : '请确认以下提示'}
+                  {hasFatal ? '存在以下错误，无法保存分装，请全部解决后再确认' : '请确认以下提示'}
                 </span>
               </div>
-              <ul className="space-y-1 pl-7">
+              <ul className="space-y-1.5 pl-7">
                 {errors.map((e, i) => (
-                  <li key={i} className={`text-sm ${hasFatal && (e.type === 'insufficient' || e.type === 'expired') ? 'text-red-700 font-medium' : 'text-amber-700'}`}>
+                  <li key={i} className={`text-sm ${e.fatal ? 'text-red-700 font-medium' : 'text-amber-700'}`}>
                     {e.message}
                   </li>
                 ))}
@@ -263,7 +279,8 @@ export default function PackingModal() {
           <div>
             <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
               <span className="h-5 w-1 bg-blue-500 rounded-full" />
-              分装后整盒照片（可选）
+              分装后整盒照片（<span className="text-red-600">必填</span>）
+              {!photoUrl && <span className="text-xs text-red-500 font-normal">⚠️ 未拍照无法保存分装</span>}
             </h3>
             <div className="flex items-start gap-4">
               <div className="h-32 w-40 rounded-2xl border-2 border-dashed border-emerald-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -325,8 +342,9 @@ export default function PackingModal() {
             <div className="text-sm text-gray-500">
               共 <span className="font-bold text-gray-700">{scheduleMedicines.length}</span> 种药品，
               已选 <span className="font-bold text-emerald-600">{selectedItems.filter(s => s.pillsCount > 0).length}</span> 种
-              {hasWarnings && <span className="ml-2 text-amber-600">⚠️ 有警告</span>}
-              {hasFatal && <span className="ml-2 text-red-600">❌ 有错误</span>}
+              {!photoUrl && <span className="ml-2 text-red-600">📷 未拍照</span>}
+              {hasFatal && <span className="ml-2 text-red-600">❌ {errors.filter(e=>e.fatal).length} 项错误待解决</span>}
+              {!hasFatal && photoUrl && <span className="ml-2 text-emerald-600">✅ 校验通过</span>}
             </div>
             <div className="flex gap-3">
               <button
@@ -337,7 +355,7 @@ export default function PackingModal() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={hasFatal || showSuccess || scheduleMedicines.length === 0}
+                disabled={hasFatal || showSuccess || scheduleMedicines.length === 0 || !photoUrl}
                 className="px-8 py-2.5 rounded-full text-white font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
               >
                 ✅ 确认分装

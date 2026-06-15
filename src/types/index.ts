@@ -53,10 +53,13 @@ export interface MedicationRecord {
 }
 
 export interface ValidationError {
-  type: 'missing' | 'insufficient' | 'duplicate' | 'expired';
+  type: 'missing' | 'excess' | 'wrongSlot' | 'insufficient' | 'expired' | 'noPhoto';
   medicineId: string;
   medicineName: string;
   message: string;
+  fatal: boolean;
+  expected?: number;
+  actual?: number;
 }
 
 export const TIME_SLOT_LABELS: Record<TimeSlot, { label: string; emoji: string; time: string }> = {
