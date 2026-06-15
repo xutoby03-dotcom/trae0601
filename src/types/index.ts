@@ -85,15 +85,31 @@ export interface PickupRecord {
   wrongPickDetail?: WrongPickDetail;
 }
 
+export interface WrongPickItem {
+  id: string;
+  date: string;
+  mealType: MealType;
+  studentId: string;
+  studentName: string;
+  className: string;
+  prepItemId: string;
+  actualTakerName: string;
+  wrongQrTail: string;
+  handleNotes: string;
+  originalDish: string;
+  replacementDish: string;
+}
+
 export interface WeeklyStats {
   weekStart: string;
   weekEnd: string;
   totalReplacements: number;
   notPickedCount: number;
   wrongPickCount: number;
-  dailyData: { date: string; replacements: number; notPicked: number }[];
+  dailyData: { date: string; replacements: number; notPicked: number; wrongPick: number }[];
   allergyRanking: { type: AllergyType; name: string; count: number }[];
   notPickedList: { studentId: string; studentName: string; className: string; count: number }[];
+  wrongPickList: WrongPickItem[];
 }
 
 export const ALLERGY_META: Record<AllergyType, { name: string; icon: string; highRisk: boolean }> = {

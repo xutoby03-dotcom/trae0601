@@ -5,6 +5,7 @@ import { ALLERGY_META } from '@/types';
 import { generatePickupRecords } from '@/utils/mockData';
 import { todayStr, getWeekRange, getWeekDates, formatDate } from '@/utils/dateUtils';
 import { usePrepStore } from './prepStore';
+import { useStudentStore } from './studentStore';
 
 interface RecordExceptionExtra {
   notes?: string;
@@ -151,6 +152,7 @@ export const usePickupStore = create<PickupStore>()(
           date,
           replacements: records.filter((r) => r.date === date).length,
           notPicked: records.filter((r) => r.date === date && r.status === 'not_picked').length,
+          wrongPick: records.filter((r) => r.date === date && r.status === 'wrong_pick').length,
         }));
 
         const allergyCounts: Record<string, number> = {};
@@ -184,6 +186,31 @@ export const usePickupStore = create<PickupStore>()(
           }))
           .sort((a, b) => b.count - a.count);
 
+        const { prepItems } = usePrepStore.getState();
+        const { students: studentList } = useStudentStore.getState();
+
+        const wrongPickList = records
+          .filter((r) => r.status === 'wrong_pick')
+          .map((r) => {
+            const prep = prepItems.find((p) => p.id === r.prepItemId);
+            const student = studentList.find((s) => s.id === r.studentId);
+            return {
+              id: r.id,
+              date: r.date,
+              mealType: r.mealType,
+              studentId: r.studentId,
+              studentName: student?.name || prep?.studentName || '未知',
+              className: student?.className || prep?.className || '未知',
+              prepItemId: r.prepItemId,
+              actualTakerName: r.wrongPickDetail?.actualTakerName || '未填写',
+              wrongQrTail: r.wrongPickDetail?.wrongQrTail || '未填写',
+              handleNotes: r.wrongPickDetail?.handleNotes || '',
+              originalDish: prep?.originalDish || '',
+              replacementDish: prep?.replacementDish || '',
+            };
+          })
+          .sort((a, b) => b.date.localeCompare(a.date));
+
         return {
           weekStart: start,
           weekEnd: end,
@@ -193,6 +220,7 @@ export const usePickupStore = create<PickupStore>()(
           dailyData,
           allergyRanking,
           notPickedList: Object.values(notPickedMap).sort((a, b) => b.count - a.count),
+          wrongPickList,
         };
       },
 

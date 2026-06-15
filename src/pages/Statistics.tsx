@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, Cell } from 'recharts';
-import { Calendar, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { Calendar, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight, Trophy, User, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePickupStore } from '@/stores/pickupStore';
+import { usePrepStore } from '@/stores/prepStore';
 import { useStudentStore } from '@/stores/studentStore';
-import { ALLERGY_META } from '@/types';
-import type { AllergyType } from '@/types';
+import { ALLERGY_META, MEAL_TYPE_META } from '@/types';
+import type { AllergyType, WrongPickItem } from '@/types';
 import { formatDate, addDays, todayStr, getWeekRange } from '@/utils/dateUtils';
 import AllergyBadge from '@/components/allergy/AllergyBadge';
 
@@ -19,14 +20,14 @@ const ALLERGY_COLORS: Record<AllergyType, string> = {
 };
 
 export default function Statistics() {
+  const pickupRecords = usePickupStore((s) => s.pickupRecords);
+  const prepItems = usePrepStore((s) => s.prepItems);
   const { getWeeklyStats } = usePickupStore();
   const { students } = useStudentStore();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [stats, setStats] = useState(getWeeklyStats());
+  const [expandedWrongPick, setExpandedWrongPick] = useState<string | null>(null);
 
-  useEffect(() => {
-    setStats(getWeeklyStats());
-  }, [weekOffset]);
+  const stats = getWeeklyStats();
 
   const baseDate = addDays(todayStr(), weekOffset * 7);
   const { start, end } = getWeekRange(new Date(baseDate));
@@ -40,7 +41,8 @@ export default function Statistics() {
   const chartData = stats.dailyData.map((d) => ({
     date: formatDate(d.date, 'MM/DD'),
     替换次数: d.replacements,
-    漏领次数: d.notPicked,
+    未领取: d.notPicked,
+    错领: d.wrongPick,
   }));
 
   const rankingData = stats.allergyRanking.map((item) => ({
@@ -59,10 +61,10 @@ export default function Statistics() {
       sub: `日均 ${avgReplacementsPerDay} 次`,
     },
     {
-      label: '本周漏领次数',
+      label: '本周未领取次数',
       value: stats.notPickedCount,
       icon: AlertTriangle,
-      color: 'from-warning-400 to-danger-500',
+      color: 'from-warning-400 to-warning-600',
       sub: `错领 ${stats.wrongPickCount} 次`,
     },
     {
@@ -135,7 +137,7 @@ export default function Statistics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="card">
           <div className="card-header">
-            <h3 className="font-semibold text-slate-800">每日替换与漏领趋势</h3>
+            <h3 className="font-semibold text-slate-800">每日替换与异常趋势</h3>
           </div>
           <div className="card-body">
             <div className="h-72">
@@ -162,10 +164,18 @@ export default function Statistics() {
                   />
                   <Line
                     type="monotone"
-                    dataKey="漏领次数"
+                    dataKey="未领取"
                     stroke="#F59E0B"
                     strokeWidth={3}
                     dot={{ fill: '#F59E0B', strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 7 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="错领"
+                    stroke="#EF4444"
+                    strokeWidth={3}
+                    dot={{ fill: '#EF4444', strokeWidth: 2, r: 5 }}
                     activeDot={{ r: 7 }}
                   />
                 </LineChart>
@@ -228,7 +238,8 @@ export default function Statistics() {
                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500">日期</th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500">星期</th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">替换次数</th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">漏领次数</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">未领取</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">错领</th>
                     <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">完成率</th>
                   </tr>
                 </thead>
@@ -245,6 +256,11 @@ export default function Statistics() {
                         <td className="py-3 px-4 text-center">
                           <span className={`text-sm font-semibold ${d.notPicked > 0 ? 'text-warning-600' : 'text-slate-400'}`}>
                             {d.notPicked}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm font-semibold ${d.wrongPick > 0 ? 'text-danger-600' : 'text-slate-400'}`}>
+                            {d.wrongPick}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -307,6 +323,91 @@ export default function Statistics() {
               })}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-danger-500" />
+              <h3 className="font-semibold text-slate-800">本周错领明细</h3>
+              <span className="bg-danger-100 text-danger-700 text-xs font-semibold px-2.5 py-1 rounded-full">
+                {stats.wrongPickCount} 次
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="card-body">
+          {stats.wrongPickList.length > 0 ? (
+            <div className="space-y-2">
+              {stats.wrongPickList.map((item: WrongPickItem) => {
+                const isExpanded = expandedWrongPick === item.id;
+                const mealMeta = MEAL_TYPE_META[item.mealType];
+                return (
+                  <div
+                    key={item.id}
+                    className="border border-danger-200 bg-danger-50/50 rounded-xl overflow-hidden"
+                  >
+                    <div
+                      className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-danger-50 transition-colors"
+                      onClick={() => setExpandedWrongPick(isExpanded ? null : item.id)}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-danger-400 to-danger-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {item.studentName.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="font-semibold text-slate-800 text-sm">{item.studentName}</p>
+                          <span className="text-[10px] text-slate-400">{item.className}</span>
+                          <span className="text-[10px] text-slate-400">{mealMeta.icon} {mealMeta.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>{formatDate(item.date, 'MM/DD')}</span>
+                          <span className="flex items-center gap-1">
+                            <User size={10} />
+                            拿走人：{item.actualTakerName}
+                          </span>
+                          <span className="flex items-center gap-1 font-mono">
+                            <Tag size={10} />
+                            {item.wrongQrTail}
+                          </span>
+                        </div>
+                      </div>
+                      <button className="text-slate-400 hover:text-slate-600 p-1">
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-4 pb-4 border-t border-danger-200/60 pt-3 space-y-2 bg-white/50">
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-slate-400 mb-0.5">原菜品</p>
+                            <p className="text-slate-600 font-medium line-through">{item.originalDish || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 mb-0.5">替换菜</p>
+                            <p className="text-primary-600 font-medium">{item.replacementDish || '-'}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 text-xs mb-1">处理备注</p>
+                          <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed">
+                            {item.handleNotes || '暂无处理备注'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-400">
+              <AlertTriangle size={36} className="mx-auto mb-2 opacity-40" />
+              <p className="text-sm">本周没有错领记录</p>
+            </div>
+          )}
         </div>
       </div>
 
