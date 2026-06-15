@@ -339,7 +339,7 @@ export const useStore = create<AppStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        const { keyArchives, borrowRecords, generateReminders } = state;
+        const { keyArchives, borrowRecords } = state;
         const repairedArchives = keyArchives.map((k) => {
           if (k.status !== 'borrowed') return k;
           const hasActive = borrowRecords.some(
@@ -350,10 +350,15 @@ export const useStore = create<AppStore>()(
           }
           return k;
         });
-        if (repairedArchives.some((k, i) => k !== keyArchives[i])) {
-          state.keyArchives = repairedArchives;
-        }
-        requestAnimationFrame(() => generateReminders());
+        const needRepair = repairedArchives.some(
+          (k, i) => k !== keyArchives[i]
+        );
+        setTimeout(() => {
+          if (needRepair) {
+            useStore.setState({ keyArchives: repairedArchives });
+          }
+          useStore.getState().generateReminders();
+        }, 0);
       },
     }
   )
