@@ -261,10 +261,15 @@ const HomePage = () => {
           const activeBorrow = borrowRecords.find(
             (r) => r.keyArchiveId === k.id && !r.isReturned
           );
+          const resolvedStatus: 'available' | 'borrowed' | 'inactive' = activeBorrow
+            ? 'borrowed'
+            : k.status === 'borrowed'
+              ? 'available'
+              : k.status;
           return {
             ...k,
             activeBorrow,
-            status: (activeBorrow ? 'borrowed' : k.status) as 'available' | 'borrowed' | 'inactive',
+            status: resolvedStatus,
           };
         });
       return { ...t, keys } as TrusteeWithKeys;

@@ -162,8 +162,9 @@ export const useStore = create<AppStore>()(
       },
 
       returnBorrowRecord: (recordId, returnData) =>
-        set((s) => ({
-          borrowRecords: s.borrowRecords.map((r) =>
+        set((s) => {
+          const targetRecord = s.borrowRecords.find((r) => r.id === recordId);
+          const newBorrowRecords = s.borrowRecords.map((r) =>
             r.id === recordId
               ? {
                   ...r,
@@ -172,8 +173,26 @@ export const useStore = create<AppStore>()(
                   ...returnData,
                 }
               : r
-          ),
-        })),
+          );
+          let newKeyArchives = s.keyArchives;
+          if (targetRecord) {
+            const hasOtherActive = newBorrowRecords.some(
+              (r) =>
+                r.keyArchiveId === targetRecord.keyArchiveId && !r.isReturned
+            );
+            if (!hasOtherActive) {
+              newKeyArchives = s.keyArchives.map((k) =>
+                k.id === targetRecord.keyArchiveId && k.status === 'borrowed'
+                  ? { ...k, status: 'available' as const }
+                  : k
+              );
+            }
+          }
+          return {
+            borrowRecords: newBorrowRecords,
+            keyArchives: newKeyArchives,
+          };
+        }),
 
       generateReminders: () => {
         const { keyArchives, trustees, reminders, settings } = get();
