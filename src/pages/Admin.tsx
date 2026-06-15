@@ -236,7 +236,7 @@ export default function Admin() {
   };
 
   const handleMaintenanceClick = (tableId: string) => {
-    navigate(`/return/${tableId}`);
+    navigate(`/maintenance/${tableId}`);
   };
 
   return (

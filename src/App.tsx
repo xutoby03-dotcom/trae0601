@@ -3,6 +3,7 @@ import NavBar from '@/components/NavBar';
 import Home from '@/pages/Home';
 import ReturnList from '@/pages/ReturnList';
 import ReturnCheck from '@/pages/ReturnCheck';
+import MaintenancePage from '@/pages/MaintenancePage';
 import Admin from '@/pages/Admin';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/return" element={<ReturnList />} />
           <Route path="/return/:id" element={<ReturnCheck />} />
+          <Route path="/maintenance/:id" element={<MaintenancePage />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </div>

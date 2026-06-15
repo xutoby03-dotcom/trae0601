@@ -31,6 +31,13 @@ interface TableState {
 
   borrowTable: (tableId: string, data: BorrowFormData) => void;
   returnTable: (borrowId: string, data: ReturnCheckData) => void;
+  repairTable: (tableId: string, repairs: {
+    desktopFixed: boolean;
+    footPadsAdded: number;
+    tableclothFound: boolean;
+    positionVerified: boolean;
+    note?: string;
+  }) => void;
 }
 
 const useTableStore = create<TableState>((set, get) => ({
@@ -173,6 +180,56 @@ const useTableStore = create<TableState>((set, get) => ({
           return updatedTable;
         }
         return t;
+      }),
+    }));
+  },
+
+  repairTable: (tableId, repairs) => {
+    set((state) => ({
+      tables: state.tables.map((t) => {
+        if (t.id !== tableId) return t;
+
+        let updatedTable = { ...t };
+
+        if (repairs.desktopFixed) {
+          updatedTable.scratchCount = 0;
+          updatedTable.issueTags = updatedTable.issueTags.filter(
+            (tag) => tag !== 'desktop_damaged'
+          );
+        }
+
+        if (repairs.footPadsAdded > 0) {
+          updatedTable.footPadCount = Math.min(
+            t.totalFootPads,
+            t.footPadCount + repairs.footPadsAdded
+          );
+          if (updatedTable.footPadCount === t.totalFootPads) {
+            updatedTable.issueTags = updatedTable.issueTags.filter(
+              (tag) => tag !== 'missing_parts'
+            );
+          }
+        }
+
+        if (repairs.tableclothFound) {
+          updatedTable.hasTablecloth = true;
+          if (updatedTable.footPadCount === t.totalFootPads) {
+            updatedTable.issueTags = updatedTable.issueTags.filter(
+              (tag) => tag !== 'missing_parts'
+            );
+          }
+        }
+
+        if (repairs.positionVerified) {
+          updatedTable.issueTags = updatedTable.issueTags.filter(
+            (tag) => tag !== 'position_mismatch'
+          );
+        }
+
+        if (updatedTable.issueTags.length === 0) {
+          updatedTable.status = 'available';
+        }
+
+        return updatedTable;
       }),
     }));
   },
