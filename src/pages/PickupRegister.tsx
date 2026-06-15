@@ -27,6 +27,9 @@ export default function PickupRegister() {
   const [showExceptionModal, setShowExceptionModal] = useState<string | null>(null);
   const [exceptionType, setExceptionType] = useState<'not_picked' | 'wrong_pick' | 'leave'>('not_picked');
   const [exceptionNotes, setExceptionNotes] = useState('');
+  const [wrongTakerName, setWrongTakerName] = useState('');
+  const [wrongQrTail, setWrongQrTail] = useState('');
+  const [handleNotes, setHandleNotes] = useState('');
   const [scanResult, setScanResult] = useState<ScanResultDetail | null>(null);
   const [pickedBy, setPickedBy] = useState<'student' | 'teacher'>('teacher');
   const [pickedByName, setPickedByName] = useState('');
@@ -87,10 +90,27 @@ export default function PickupRegister() {
     manualPickup(studentId, prepItemId, activeMeal, pickedBy, pickedByName || '系统管理员');
   };
 
-  const handleRecordException = (prepItemId: string, studentId: string) => {
-    recordException(studentId, prepItemId, activeMeal, exceptionType, exceptionNotes);
-    setShowExceptionModal(null);
+  const resetExceptionForm = () => {
     setExceptionNotes('');
+    setWrongTakerName('');
+    setWrongQrTail('');
+    setHandleNotes('');
+  };
+
+  const handleRecordException = (prepItemId: string, studentId: string) => {
+    const extra: { notes?: string; wrongPickDetail?: { actualTakerName: string; wrongQrTail: string; handleNotes: string } } = {
+      notes: exceptionNotes,
+    };
+    if (exceptionType === 'wrong_pick') {
+      extra.wrongPickDetail = {
+        actualTakerName: wrongTakerName,
+        wrongQrTail: wrongQrTail,
+        handleNotes: handleNotes,
+      };
+    }
+    recordException(studentId, prepItemId, activeMeal, exceptionType, extra);
+    setShowExceptionModal(null);
+    resetExceptionForm();
   };
 
   const statusFilters: { key: PickupStatus | 'all'; label: string; count: number; className: string }[] = [
@@ -290,6 +310,24 @@ export default function PickupRegister() {
                             {record.notes}
                           </p>
                         )}
+                        {status === 'wrong_pick' && record?.wrongPickDetail && (
+                          <div className="mt-2 bg-danger-50 border border-danger-200 rounded-lg p-2.5 space-y-1 text-[11px] text-danger-800">
+                            <div className="flex justify-between gap-2">
+                              <span className="text-danger-500 flex-shrink-0">实际拿走人</span>
+                              <span className="font-medium">{record.wrongPickDetail.actualTakerName || '未填写'}</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <span className="text-danger-500 flex-shrink-0">被拿错餐尾号</span>
+                              <span className="font-mono font-medium">{record.wrongPickDetail.wrongQrTail || '未填写'}</span>
+                            </div>
+                            {record.wrongPickDetail.handleNotes && (
+                              <div className="pt-1 border-t border-danger-100">
+                                <span className="text-danger-500">处理备注：</span>
+                                <span>{record.wrongPickDetail.handleNotes}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 flex-shrink-0">
@@ -314,6 +352,7 @@ export default function PickupRegister() {
                             </button>
                             <button
                               onClick={() => {
+                                resetExceptionForm();
                                 setShowExceptionModal(prep.id);
                                 setExceptionType('not_picked');
                               }}
@@ -473,18 +512,58 @@ export default function PickupRegister() {
                 <textarea
                   value={exceptionNotes}
                   onChange={(e) => setExceptionNotes(e.target.value)}
-                  rows={3}
+                  rows={2}
                   className="input resize-none"
                   placeholder="请输入异常情况说明..."
                 />
               </div>
+
+              {exceptionType === 'wrong_pick' && (
+                <div className="bg-danger-50 border border-danger-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-danger-700 flex items-center gap-1.5">
+                    <AlertTriangle size={14} />
+                    错领详情登记
+                  </p>
+                  <div>
+                    <label className="label !text-danger-700">实际拿走人 *</label>
+                    <input
+                      type="text"
+                      value={wrongTakerName}
+                      onChange={(e) => setWrongTakerName(e.target.value)}
+                      className="input border-danger-200 focus:border-danger-400 focus:ring-danger-100"
+                      placeholder="请输入实际拿走这份餐的人姓名"
+                    />
+                  </div>
+                  <div>
+                    <label className="label !text-danger-700">被拿错餐的二维码尾号 *</label>
+                    <input
+                      type="text"
+                      value={wrongQrTail}
+                      onChange={(e) => setWrongQrTail(e.target.value.toUpperCase())}
+                      className="input border-danger-200 focus:border-danger-400 focus:ring-danger-100 font-mono"
+                      placeholder="8 位尾号，例如 3FB9A2C1"
+                      maxLength={8}
+                    />
+                  </div>
+                  <div>
+                    <label className="label !text-danger-700">处理备注</label>
+                    <textarea
+                      value={handleNotes}
+                      onChange={(e) => setHandleNotes(e.target.value)}
+                      rows={2}
+                      className="input resize-none border-danger-200 focus:border-danger-400 focus:ring-danger-100"
+                      placeholder="后续处理方式，如：已通知家长/重新制作..."
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => {
                   setShowExceptionModal(null);
-                  setExceptionNotes('');
+                  resetExceptionForm();
                 }}
                 className="btn-secondary flex-1"
               >

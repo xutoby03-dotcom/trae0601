@@ -1,16 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PickupRecord, PickupStatus, MealType, WeeklyStats, AllergyType, PrepStatus } from '@/types';
+import type { PickupRecord, PickupStatus, MealType, WeeklyStats, AllergyType, PrepStatus, WrongPickDetail } from '@/types';
 import { ALLERGY_META } from '@/types';
 import { generatePickupRecords } from '@/utils/mockData';
 import { todayStr, getWeekRange, getWeekDates, formatDate } from '@/utils/dateUtils';
 import { usePrepStore } from './prepStore';
 
+interface RecordExceptionExtra {
+  notes?: string;
+  wrongPickDetail?: WrongPickDetail;
+}
+
 interface PickupStore {
   pickupRecords: PickupRecord[];
   scanQrCode: (qrData: string, pickedBy: 'student' | 'teacher', pickedByName: string) => { success: boolean; message: string; record?: PickupRecord };
   manualPickup: (studentId: string, prepItemId: string, mealType: MealType, pickedBy: 'student' | 'teacher', pickedByName: string) => void;
-  recordException: (studentId: string, prepItemId: string, mealType: MealType, status: 'not_picked' | 'wrong_pick' | 'leave', notes?: string) => void;
+  recordException: (studentId: string, prepItemId: string, mealType: MealType, status: 'not_picked' | 'wrong_pick' | 'leave', extra?: RecordExceptionExtra) => void;
   getTodayRecords: () => PickupRecord[];
   getRecordsByDate: (date: string) => PickupRecord[];
   getRecordsByStudent: (studentId: string) => PickupRecord[];
@@ -90,7 +95,8 @@ export const usePickupStore = create<PickupStore>()(
         syncPrepItemStatus(prepItemId, 'picked');
       },
 
-      recordException: (studentId, prepItemId, mealType, status, notes) => {
+      recordException: (studentId, prepItemId, mealType, status, extra = {}) => {
+        const { notes, wrongPickDetail } = extra;
         set((state) => {
           const existing = state.pickupRecords.find(
             (r) => r.prepItemId === prepItemId && r.date === todayStr()
@@ -99,7 +105,7 @@ export const usePickupStore = create<PickupStore>()(
             return {
               pickupRecords: state.pickupRecords.map((r) =>
                 r.prepItemId === prepItemId && r.date === todayStr()
-                  ? { ...r, status, notes }
+                  ? { ...r, status, notes, wrongPickDetail }
                   : r
               ),
             };
@@ -115,6 +121,7 @@ export const usePickupStore = create<PickupStore>()(
                 prepItemId,
                 status,
                 notes,
+                wrongPickDetail,
               },
             ],
           };

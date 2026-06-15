@@ -65,6 +65,12 @@ export interface PrepItem {
 
 export type PickupStatus = 'picked' | 'not_picked' | 'wrong_pick' | 'leave';
 
+export interface WrongPickDetail {
+  actualTakerName: string;
+  wrongQrTail: string;
+  handleNotes: string;
+}
+
 export interface PickupRecord {
   id: string;
   date: string;
@@ -76,6 +82,7 @@ export interface PickupRecord {
   pickedByName?: string;
   pickedAt?: string;
   notes?: string;
+  wrongPickDetail?: WrongPickDetail;
 }
 
 export interface WeeklyStats {
