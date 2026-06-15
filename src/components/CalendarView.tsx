@@ -234,7 +234,7 @@ export default function CalendarView() {
                   {selectedSubs.map((s) => {
                     const cat = getCategoryInfo(s.category);
                     const ch = getChannelInfo(s.channel);
-                    const daysUntil = getDaysUntil(s.nextBillingDate);
+                    const daysUntil = getDaysUntil(selectedDate);
                     return (
                       <div
                         key={s.id + Math.random()}
@@ -308,7 +308,7 @@ export default function CalendarView() {
                             <span className="w-1 h-1 rounded-full bg-slate-500" />
                             <span>下次</span>
                             <span className="text-slate-200 ml-1">
-                              {formatShortDate(s.nextBillingDate)}
+                              {formatShortDate(selectedDate)}
                             </span>
                           </div>
                         </div>
