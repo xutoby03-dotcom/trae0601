@@ -83,3 +83,41 @@ export function formatRelativeDate(dateStr: string): string {
   if (days > 0) return `${days}天后`;
   return `${Math.abs(days)}天前`;
 }
+
+export interface RefundProgress {
+  elapsedDays: number;
+  promisedDays: number;
+  remainingDays: number;
+  overdueDays: number;
+  isOverdue: boolean;
+  isNearDue: boolean;
+  percent: number;
+}
+
+export function getRefundProgress(
+  applyDate: string | undefined,
+  promisedDays: number
+): RefundProgress | null {
+  if (!applyDate) return null;
+  try {
+    const elapsed = differenceInDays(startOfDay(new Date()), startOfDay(parseISO(applyDate)));
+    const elapsedDays = Math.max(0, elapsed);
+    const remaining = promisedDays - elapsedDays;
+    const isOverdue = remaining < 0;
+    const overdueDays = isOverdue ? Math.abs(remaining) : 0;
+    const remainingDays = isOverdue ? 0 : remaining;
+    const isNearDue = !isOverdue && remaining >= 0 && remaining <= 2;
+    const percent = Math.min(100, Math.round((elapsedDays / Math.max(1, promisedDays)) * 100));
+    return {
+      elapsedDays,
+      promisedDays,
+      remainingDays,
+      overdueDays,
+      isOverdue,
+      isNearDue,
+      percent,
+    };
+  } catch {
+    return null;
+  }
+}

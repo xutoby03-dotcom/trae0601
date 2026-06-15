@@ -14,10 +14,11 @@ import {
   AlertTriangle,
   CheckCircle,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react';
 import { ReturnOrder } from '@/types/return';
 import { useReturnStore } from '@/store/useReturnStore';
-import { formatDate, formatRelativeDate } from '@/utils/dateUtils';
+import { formatDate, formatRelativeDate, getRefundProgress } from '@/utils/dateUtils';
 import {
   getStatusLabel,
   getNextStatus,
@@ -231,22 +232,74 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrde
               </div>
             )}
 
-            {order.refundApplyDate && (
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-teal-100 rounded-lg">
-                  <Clock size={18} className="text-teal-600" />
+            {order.refundApplyDate && (() => {
+              const progress = getRefundProgress(order.refundApplyDate, order.refundPromiseDays);
+              const isOverdue = progress?.isOverdue ?? false;
+              const isNearDue = progress?.isNearDue ?? false;
+              const barColor = isOverdue
+                ? 'bg-red-500'
+                : isNearDue
+                ? 'bg-yellow-400'
+                : 'bg-teal-500';
+              const titleColor = isOverdue
+                ? 'text-red-700'
+                : isNearDue
+                ? 'text-yellow-700'
+                : 'text-teal-700';
+              const bgColor = isOverdue
+                ? 'bg-red-50 border-red-100'
+                : isNearDue
+                ? 'bg-yellow-50 border-yellow-100'
+                : 'bg-teal-50 border-teal-100';
+              return (
+                <div className={`rounded-xl p-4 border ${bgColor}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`p-1.5 rounded-lg ${isOverdue ? 'bg-red-100' : isNearDue ? 'bg-yellow-100' : 'bg-teal-100'}`}>
+                        <DollarSign size={18} className={titleColor} />
+                      </div>
+                      <div>
+                        <p className={`text-sm font-semibold ${titleColor}`}>
+                          {progress?.isOverdue
+                            ? `已超期 ${progress.overdueDays} 天`
+                            : progress?.remainingDays === 0
+                            ? '今天到期'
+                            : progress?.remainingDays === 1
+                            ? '还差 1 天到账'
+                            : `还差 ${progress?.remainingDays} 天到账`}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          申请日 {formatDate(order.refundApplyDate)} · 承诺 {order.refundPromiseDays} 天
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-lg font-bold ${titleColor}`}>
+                        {progress?.percent}%
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        已等 {progress?.elapsedDays} 天
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full h-2 bg-white rounded-full overflow-hidden mt-2">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                      style={{ width: `${progress?.percent ?? 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2 text-xs text-gray-500">
+                    <span>已申请 {progress?.elapsedDays} 天</span>
+                    <span>承诺 {progress?.promisedDays} 天</span>
+                    <span>
+                      {progress?.isOverdue
+                        ? `超 ${progress.overdueDays} 天`
+                        : `剩 ${progress?.remainingDays} 天`}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-400">退款申请日期</p>
-                  <p className="text-sm font-medium text-gray-700">
-                    {formatDate(order.refundApplyDate)}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    承诺 {order.refundPromiseDays} 天内到账
-                  </p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {order.packageId && (
               <div className="bg-blue-50 rounded-xl p-4">
@@ -351,10 +404,23 @@ export function ReturnDetailModal({ isOpen, onClose, order, onEdit, onSwitchOrde
           {nextStatus ? (
             <button
               onClick={handleStatusNext}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-medium hover:from-orange-600 hover:to-pink-600 transition-all shadow-lg shadow-orange-200"
+              className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-medium transition-all shadow-lg ${
+                nextStatus === 'completed'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-green-200'
+                  : 'bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 shadow-orange-200'
+              }`}
             >
-              标记为{getStatusLabel(nextStatus)}
-              <ArrowRight size={18} />
+              {nextStatus === 'completed' ? (
+                <>
+                  <CheckCircle size={18} />
+                  确认已到账
+                </>
+              ) : (
+                <>
+                  标记为{getStatusLabel(nextStatus)}
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           ) : (
             <div className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-100 text-green-700 font-medium">

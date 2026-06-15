@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { ReturnOrder } from '@/types/return';
 import { hasUrgentReminder, hasWarningReminder, getStatusLabel } from '@/utils/statusUtils';
-import { formatDateShort, formatRelativeDate, daysUntil } from '@/utils/dateUtils';
+import { formatDateShort, formatRelativeDate, daysUntil, getRefundProgress } from '@/utils/dateUtils';
 import { useReturnStore } from '@/store/useReturnStore';
-import { AlertTriangle, Clock, Package, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, Clock, Package, Image as ImageIcon, DollarSign } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -106,6 +106,55 @@ export function ReturnCard({ order, onClick }: ReturnCardProps) {
           单号：{order.trackingNumber}
         </div>
       )}
+
+      {order.status === 'refund_pending' && (() => {
+        const progress = getRefundProgress(order.refundApplyDate, order.refundPromiseDays);
+        if (!progress) return null;
+        const barColor = progress.isOverdue
+          ? 'bg-red-500'
+          : progress.isNearDue
+          ? 'bg-yellow-400'
+          : 'bg-purple-500';
+        const bgColor = progress.isOverdue
+          ? 'bg-red-50 border-red-100'
+          : progress.isNearDue
+          ? 'bg-yellow-50 border-yellow-100'
+          : 'bg-purple-50 border-purple-100';
+        const textColor = progress.isOverdue
+          ? 'text-red-700'
+          : progress.isNearDue
+          ? 'text-yellow-700'
+          : 'text-purple-700';
+        return (
+          <div className={`rounded-xl p-2.5 mb-3 border ${bgColor}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <DollarSign size={12} className={textColor} />
+                <span className={`text-xs font-medium ${textColor}`}>
+                  退款进度
+                </span>
+              </div>
+              <span className={`text-xs font-semibold ${textColor}`}>
+                {progress.isOverdue
+                  ? `已超 ${progress.overdueDays} 天`
+                  : progress.remainingDays === 0
+                  ? '今天到期'
+                  : `还差 ${progress.remainingDays} 天`}
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-white/70 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                style={{ width: `${progress.percent}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5 text-[10px] text-gray-500">
+              <span>已申请 {progress.elapsedDays} 天</span>
+              <span>承诺 {progress.promisedDays} 天</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
         <div className="flex items-center gap-1">
