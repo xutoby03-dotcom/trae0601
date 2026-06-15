@@ -7,6 +7,7 @@ export interface Point {
   supervisor: string
   camera_position: string
   description: string
+  photos: string[]
   created_at: string
   updated_at: string
   recentInspections?: Inspection[]

@@ -120,6 +120,25 @@ export default function PointDetail() {
           </div>
         </div>
 
+        {point.photos && point.photos.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <Camera className="w-4 h-4" />
+              点位照片 ({point.photos.length}张)
+            </h4>
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+              {point.photos.map((photo, index) => (
+                <div
+                  key={index}
+                  className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                >
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {point.description && (
           <div className="mt-6 pt-6 border-t border-gray-100">
             <h4 className="text-sm font-medium text-gray-700 mb-2">备注说明</h4>

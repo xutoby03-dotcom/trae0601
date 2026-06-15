@@ -24,6 +24,7 @@ router.get('/', (req: Request, res: Response) => {
     const result = points.map((point) => ({
       ...point,
       bin_types: JSON.parse(point.bin_types || '[]'),
+      photos: JSON.parse(point.photos || '[]'),
     }));
 
     res.json({ success: true, data: result });
@@ -42,6 +43,7 @@ router.get('/:id', (req: Request, res: Response) => {
     }
 
     point.bin_types = JSON.parse(point.bin_types || '[]');
+    point.photos = JSON.parse(point.photos || '[]');
 
     const recentInspections = db
       .prepare(
@@ -74,7 +76,7 @@ router.get('/:id', (req: Request, res: Response) => {
 
 router.post('/', (req: Request, res: Response) => {
   try {
-    const { building, location, bin_types, open_hours, supervisor, camera_position, description } =
+    const { building, location, bin_types, open_hours, supervisor, camera_position, description, photos } =
       req.body;
 
     if (!building) {
@@ -83,8 +85,8 @@ router.post('/', (req: Request, res: Response) => {
 
     const result = db
       .prepare(
-        `INSERT INTO points (building, location, bin_types, open_hours, supervisor, camera_position, description)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO points (building, location, bin_types, open_hours, supervisor, camera_position, description, photos)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         building,
@@ -93,11 +95,13 @@ router.post('/', (req: Request, res: Response) => {
         open_hours || '',
         supervisor || '',
         camera_position || '',
-        description || ''
+        description || '',
+        JSON.stringify(photos || [])
       );
 
     const newPoint = db.prepare('SELECT * FROM points WHERE id = ?').get(result.lastInsertRowid) as any;
     newPoint.bin_types = JSON.parse(newPoint.bin_types || '[]');
+    newPoint.photos = JSON.parse(newPoint.photos || '[]');
 
     res.json({ success: true, data: newPoint });
   } catch (error) {
@@ -108,7 +112,7 @@ router.post('/', (req: Request, res: Response) => {
 router.put('/:id', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { building, location, bin_types, open_hours, supervisor, camera_position, description } =
+    const { building, location, bin_types, open_hours, supervisor, camera_position, description, photos } =
       req.body;
 
     const existing = db.prepare('SELECT id FROM points WHERE id = ?').get(id);
@@ -118,7 +122,7 @@ router.put('/:id', (req: Request, res: Response) => {
 
     db.prepare(
       `UPDATE points SET building = ?, location = ?, bin_types = ?, open_hours = ?, 
-       supervisor = ?, camera_position = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+       supervisor = ?, camera_position = ?, description = ?, photos = ?, updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).run(
       building,
@@ -128,11 +132,13 @@ router.put('/:id', (req: Request, res: Response) => {
       supervisor || '',
       camera_position || '',
       description || '',
+      JSON.stringify(photos || []),
       id
     );
 
     const updatedPoint = db.prepare('SELECT * FROM points WHERE id = ?').get(id) as any;
     updatedPoint.bin_types = JSON.parse(updatedPoint.bin_types || '[]');
+    updatedPoint.photos = JSON.parse(updatedPoint.photos || '[]');
 
     res.json({ success: true, data: updatedPoint });
   } catch (error) {

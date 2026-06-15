@@ -110,7 +110,36 @@ router.post('/', (req: Request, res: Response) => {
     newInspection.problem_types = JSON.parse(newInspection.problem_types || '[]');
     newInspection.photos = JSON.parse(newInspection.photos || '[]');
 
-    res.json({ success: true, data: newInspection });
+    let createdTicket: any = null;
+    if (is_serious) {
+      const point = db.prepare('SELECT building, location, supervisor FROM points WHERE id = ?').get(point_id) as any;
+      const problemList = problem_types.join('、');
+      const buildingName = point?.building || '';
+
+      const ticketResult = db
+        .prepare(
+          `INSERT INTO tickets (inspection_id, point_id, title, description, priority, status, assignee, created_at, assigned_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          newInspection.id,
+          point_id,
+          `${buildingName}存在${problemList}问题`,
+          `巡查发现${buildingName}${point?.location ? '（' + point.location + '）' : ''}投放点存在${problemList}问题，请及时整改。`,
+          problem_types.includes('满溢') ? 'high' : 'medium',
+          'pending',
+          '物业处理',
+          new Date().toISOString(),
+          new Date().toISOString()
+        );
+
+      createdTicket = db.prepare('SELECT * FROM tickets WHERE id = ?').get(ticketResult.lastInsertRowid) as any;
+      if (createdTicket) {
+        createdTicket.repair_photos = JSON.parse(createdTicket.repair_photos || '[]');
+      }
+    }
+
+    res.json({ success: true, data: { ...newInspection, ticket: createdTicket } });
   } catch (error) {
     res.status(500).json({ success: false, message: '创建巡查记录失败' });
   }

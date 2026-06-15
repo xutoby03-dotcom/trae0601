@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Save, Camera, X } from 'lucide-react'
 import { api } from '@/utils/api'
 import { BIN_TYPES } from '@/types'
 import type { Point } from '@/types'
@@ -19,6 +19,7 @@ export default function PointForm() {
     camera_position: '',
     description: '',
   })
+  const [photos, setPhotos] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -41,6 +42,7 @@ export default function PointForm() {
         camera_position: data.camera_position,
         description: data.description,
       })
+      setPhotos(data.photos || [])
     } catch (error) {
       console.error('加载点位失败:', error)
     } finally {
@@ -58,9 +60,9 @@ export default function PointForm() {
     try {
       setSaving(true)
       if (isEdit) {
-        await api.put(`/points/${id}`, formData)
+        await api.put(`/points/${id}`, { ...formData, photos })
       } else {
-        await api.post('/points', formData)
+        await api.post('/points', { ...formData, photos })
       }
       navigate('/points')
     } catch (error) {
@@ -78,6 +80,26 @@ export default function PointForm() {
         ? prev.bin_types.filter((t) => t !== type)
         : [...prev.bin_types, type],
     }))
+  }
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPhotos((prev) => [...prev, event.target!.result as string])
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ''
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
   if (loading) {
@@ -175,6 +197,35 @@ export default function PointForm() {
               placeholder="例如：1号摄像头"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">点位照片</label>
+            <div className="grid grid-cols-4 gap-3">
+              {photos.map((photo, index) => (
+                <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                <Camera className="w-8 h-8 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500">添加照片</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
 
           <div>

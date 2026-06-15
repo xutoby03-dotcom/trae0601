@@ -27,6 +27,7 @@ export function initDatabase() {
       supervisor TEXT,
       camera_position TEXT,
       description TEXT,
+      photos TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -82,6 +83,12 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
     CREATE INDEX IF NOT EXISTS idx_promotions_date ON promotions(date);
   `);
+
+  const pointColumns = db.prepare("PRAGMA table_info(points)").all() as any[];
+  const hasPointPhotos = pointColumns.some((c: any) => c.name === 'photos');
+  if (!hasPointPhotos) {
+    db.exec('ALTER TABLE points ADD COLUMN photos TEXT');
+  }
 
   const pointCount = db.prepare('SELECT COUNT(*) as count FROM points').get() as { count: number };
   if (pointCount.count === 0) {
