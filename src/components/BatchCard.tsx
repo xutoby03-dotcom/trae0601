@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Leaf, Flower2, Sparkles, Heart, Apple, Droplets, Clock, User, MapPin } from 'lucide-react';
+import { Leaf, Flower2, Sparkles, Heart, Apple, Droplets, Clock, User, MapPin, Check } from 'lucide-react';
 import { Batch, Tea } from '@/types';
 import StatusBadge from './StatusBadge';
 import Countdown from './Countdown';
@@ -10,6 +10,9 @@ interface BatchCardProps {
   tea: Tea | undefined;
   onFilter: (batchId: string) => void;
   onView: (batch: Batch) => void;
+  showCheckbox?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (batchId: string) => void;
 }
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -20,7 +23,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Apple: <Apple className="w-5 h-5" />,
 };
 
-export default function BatchCard({ batch, tea, onFilter, onView }: BatchCardProps) {
+export default function BatchCard({ batch, tea, onFilter, onView, showCheckbox, isSelected, onToggleSelect }: BatchCardProps) {
   const [progress, setProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   
@@ -56,25 +59,57 @@ export default function BatchCard({ batch, tea, onFilter, onView }: BatchCardPro
       : 'bg-matcha-500';
   
   const cardBg = isOverdue 
-    ? 'bg-coral-50/80 border-coral-200' 
+    ? isSelected
+      ? 'bg-coral-100/90 border-coral-400 ring-2 ring-coral-300'
+      : 'bg-coral-50/80 border-coral-200' 
     : isReady 
       ? 'bg-amber-50/80 border-amber-200' 
-      : 'bg-white border-gray-100';
+      : isSelected
+        ? 'bg-matcha-50/90 border-matcha-300 ring-2 ring-matcha-200'
+        : 'bg-white border-gray-100';
+  
+  const handleCardClick = () => {
+    if (showCheckbox) {
+      onToggleSelect?.(batch.id);
+    } else {
+      onView(batch);
+    }
+  };
   
   return (
     <div
       className={`
         relative rounded-2xl border ${cardBg} p-4 shadow-sm
         transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5
-        cursor-pointer overflow-hidden
+        overflow-hidden
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
         ${isOverdue ? 'animate-breathe' : ''}
+        ${showCheckbox || isSelected ? 'cursor-pointer' : 'cursor-pointer'}
       `}
-      onClick={() => onView(batch)}
+      onClick={handleCardClick}
     >
       <div className="absolute top-0 left-0 w-1.5 h-full" style={{ backgroundColor: tea.color }} />
       
-      <div className="flex items-start justify-between mb-3 pl-2">
+      {showCheckbox && (
+        <button
+          className={`
+            absolute top-3 right-3 w-6 h-6 rounded-md border-2 flex items-center justify-center z-10
+            transition-all duration-200
+            ${isSelected 
+              ? 'bg-matcha-500 border-matcha-500 text-white' 
+              : 'bg-white border-gray-300 hover:border-matcha-400'
+            }
+          `}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.(batch.id);
+          }}
+        >
+          {isSelected && <Check className="w-4 h-4" />}
+        </button>
+      )}
+      
+      <div className={`flex items-start justify-between mb-3 ${showCheckbox ? 'pl-8' : 'pl-2'}`}>
         <div className="flex items-center gap-3">
           <div 
             className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
@@ -90,7 +125,7 @@ export default function BatchCard({ batch, tea, onFilter, onView }: BatchCardPro
         <StatusBadge status={batch.status} />
       </div>
       
-      <div className="pl-2 space-y-2">
+      <div className={`${showCheckbox ? 'pl-8' : 'pl-2'} space-y-2`}>
         {batch.status !== 'filtered' && batch.status !== 'off_shelf' ? (
           <>
             <div className="flex items-center justify-between">

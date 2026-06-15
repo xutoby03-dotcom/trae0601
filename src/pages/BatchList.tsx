@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Plus, Leaf, Clock, AlertTriangle, Package, TrendingUp, Bell } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Leaf, Clock, AlertTriangle, Package, TrendingUp, Bell, CheckSquare, Square } from 'lucide-react';
 import { useBatchStore } from '@/store/useBatchStore';
 import BatchCard from '@/components/BatchCard';
 import BatchForm from '@/components/BatchForm';
 import FilterForm from '@/components/FilterForm';
+import BatchFilterForm from '@/components/BatchFilterForm';
 import BatchDetail from '@/components/BatchDetail';
 import StatCard from '@/components/StatCard';
-import { Batch, BatchFormData, FilterFormData, FilterStatus } from '@/types';
+import { Batch, BatchFormData, FilterFormData, FilterStatus, Tea } from '@/types';
 import { isToday } from '@/utils/time';
 
 const filterTabs: { key: FilterStatus; label: string }[] = [
@@ -25,6 +26,8 @@ export default function BatchList() {
   const [filterBatchId, setFilterBatchId] = useState<string | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [showReminder, setShowReminder] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchFilterForm, setShowBatchFilterForm] = useState(false);
   
   useEffect(() => {
     if (!useBatchStore.getState().initialized) {
@@ -96,6 +99,61 @@ export default function BatchList() {
     if (selectedBatch) {
       offShelfBatch(selectedBatch.id, '手动下架');
       setSelectedBatch(null);
+    }
+  };
+  
+  const showCheckbox = activeFilter === 'overdue';
+  
+  const overdueBatches = useMemo(
+    () => filteredBatches.filter((b) => b.status === 'overdue'),
+    [filteredBatches]
+  );
+  
+  const allOverdueSelected =
+    overdueBatches.length > 0 && overdueBatches.every((b) => selectedIds.has(b.id));
+  
+  const toggleSelect = (batchId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(batchId)) {
+        next.delete(batchId);
+      } else {
+        next.add(batchId);
+      }
+      return next;
+    });
+  };
+  
+  const toggleSelectAll = () => {
+    if (allOverdueSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(overdueBatches.map((b) => b.id)));
+    }
+  };
+  
+  const selectedBatches = batches
+    .filter((b) => selectedIds.has(b.id))
+    .sort((a, b) => a.bucketNumber - b.bucketNumber);
+  
+  const batchTeasMap = useMemo(() => {
+    const map: Record<string, Tea | undefined> = {};
+    teas.forEach((t) => (map[t.id] = t));
+    return map;
+  }, [teas]);
+  
+  const handleBatchFilterSubmit = (results: { batchId: string; data: FilterFormData }[]) => {
+    results.forEach(({ batchId, data }) => {
+      filterBatch(batchId, data);
+    });
+    setSelectedIds(new Set());
+    setShowBatchFilterForm(false);
+  };
+  
+  const handleFilterTabChange = (key: FilterStatus) => {
+    setActiveFilter(key);
+    if (key !== 'overdue') {
+      setSelectedIds(new Set());
     }
   };
   
@@ -173,7 +231,7 @@ export default function BatchList() {
           />
         </div>
         
-        <div className="bg-white rounded-2xl p-2 mb-6 shadow-sm inline-flex gap-1 flex-wrap">
+        <div className="bg-white rounded-2xl p-2 mb-6 shadow-sm inline-flex gap-1 flex-wrap items-center">
           {filterTabs.map((tab) => {
             const count = tab.key === 'all' 
               ? batches.length 
@@ -182,7 +240,7 @@ export default function BatchList() {
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveFilter(tab.key)}
+                onClick={() => handleFilterTabChange(tab.key)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   activeFilter === tab.key
                     ? 'bg-matcha-500 text-white shadow-md'
@@ -200,10 +258,30 @@ export default function BatchList() {
               </button>
             );
           })}
+          {showCheckbox && (
+            <>
+              <div className="w-px h-6 bg-gray-200 mx-1" />
+              <button
+                onClick={toggleSelectAll}
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  allOverdueSelected
+                    ? 'bg-matcha-100 text-matcha-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {allOverdueSelected ? (
+                  <CheckSquare className="w-4 h-4" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+                {allOverdueSelected ? '取消全选' : '全选'}
+              </button>
+            </>
+          )}
         </div>
         
         {filteredBatches.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${selectedIds.size > 0 ? 'pb-24' : ''}`}>
             {filteredBatches.map((batch, index) => (
               <div key={batch.id} style={{ animationDelay: `${index * 50}ms` }}>
                 <BatchCard
@@ -211,6 +289,9 @@ export default function BatchList() {
                   tea={getTeaById(batch.teaId)}
                   onFilter={handleFilterBatch}
                   onView={handleViewBatch}
+                  showCheckbox={showCheckbox && batch.status === 'overdue'}
+                  isSelected={selectedIds.has(batch.id)}
+                  onToggleSelect={toggleSelect}
                 />
               </div>
             ))}
@@ -258,6 +339,44 @@ export default function BatchList() {
           onFilter={handleDetailFilter}
           onOffShelf={handleDetailOffShelf}
         />
+      )}
+      
+      {showBatchFilterForm && selectedBatches.length > 0 && (
+        <BatchFilterForm
+          batches={selectedBatches}
+          teas={selectedBatches.reduce((acc, b) => {
+            acc[b.teaId] = getTeaById(b.teaId);
+            return acc;
+          }, {} as Record<string, Tea | undefined>)}
+          onSubmit={handleBatchFilterSubmit}
+          onClose={() => setShowBatchFilterForm(false)}
+        />
+      )}
+      
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-slide-up">
+          <div className="bg-gray-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-matcha-400" />
+              <span className="font-medium">
+                已选 <span className="text-matcha-400 font-bold">{selectedIds.size}</span> 桶
+              </span>
+            </div>
+            <div className="w-px h-6 bg-white/20" />
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="px-4 py-2 rounded-xl text-gray-300 hover:bg-white/10 transition-colors text-sm"
+            >
+              清空选择
+            </button>
+            <button
+              onClick={() => setShowBatchFilterForm(true)}
+              className="px-5 py-2 rounded-xl bg-matcha-500 hover:bg-matcha-600 transition-colors text-sm font-medium shadow-md shadow-matcha-500/30"
+            >
+              批量过滤
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
