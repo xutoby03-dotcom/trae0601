@@ -103,18 +103,16 @@ export default function RecordsPage() {
     filteredRecords.forEach((r) => {
       switch (r.operationType) {
         case 'exchange_in':
-        case 'stock_in':
-          exchangeIn += r.quantity;
+          exchangeIn += 1;
           break;
         case 'exchange_out':
-        case 'stock_out':
-          exchangeOut += r.quantity;
+          exchangeOut += 1;
           break;
         case 'match_swap':
-          matchSwap += r.quantity;
+          matchSwap += 1;
           break;
         case 'manual_process':
-          manualProcess += r.quantity;
+          manualProcess += 1;
           break;
       }
       if (r.studentName) {
