@@ -3,7 +3,7 @@ import { TrendingDown, TrendingUp, Wallet, Calendar, PiggyBank, Activity } from 
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import {
   formatCurrency, formatMonthLabel, getMonthlyTotal, getNextMonthStr,
-  getTotalAnnual, getTotalMonthly,
+  getTotalAnnual, getTotalMonthly, getProjectedBillingsForMonth,
 } from '@/utils/helpers';
 import { cn } from '@/utils/helpers';
 
@@ -26,6 +26,8 @@ export default function SummaryCards() {
   const nextMonthSum = useMemo(() => getMonthlyTotal(subscriptions, nextMonth), [subscriptions, nextMonth]);
   const monthlyProjection = useMemo(() => getTotalMonthly(subscriptions), [subscriptions]);
   const annualProjection = useMemo(() => getTotalAnnual(subscriptions), [subscriptions]);
+  const projectedBillings = useMemo(() => getProjectedBillingsForMonth(subscriptions, selectedMonth), [subscriptions, selectedMonth]);
+  const billingCount = useMemo(() => projectedBillings.reduce((sum, d) => sum + d.subs.length, 0), [projectedBillings]);
 
   const activeCount = subscriptions.length;
   const dailyAverage = monthlyProjection / 30;
@@ -34,15 +36,15 @@ export default function SummaryCards() {
     {
       label: `${formatMonthLabel(selectedMonth)} 已排扣费`,
       value: formatCurrency(monthlySum),
-      subtext: `已排 ${subscriptions.filter(s => s.nextBillingDate.startsWith(selectedMonth)).length} 笔`,
+      subtext: `已排 ${billingCount} 笔`,
       icon: Calendar,
       color: 'text-teal-400',
       bg: 'from-teal-500/20 to-transparent',
     },
     {
-      label: '下月预估',
+      label: '再下月预估',
       value: formatCurrency(nextMonthSum),
-      subtext: `较本月 ${nextMonthSum - monthlySum >= 0 ? '增加' : '减少'} ${formatCurrency(Math.abs(nextMonthSum - monthlySum))}`,
+      subtext: `较${formatMonthLabel(selectedMonth)} ${nextMonthSum - monthlySum >= 0 ? '增加' : '减少'} ${formatCurrency(Math.abs(nextMonthSum - monthlySum))}`,
       trend: {
         direction: nextMonthSum - monthlySum >= 0 ? 'up' : 'down',
         value: `${nextMonthSum > 0 ? Math.round(((nextMonthSum - monthlySum) / (monthlySum || 1)) * 100) : 0}%`,

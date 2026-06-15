@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import type {
   CategoryStat,
   SmartSuggestion,
@@ -60,6 +60,7 @@ interface SubscriptionState {
 const genId = () => `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const currentMonth = format(new Date(), 'yyyy-MM');
+const nextMonth = format(addMonths(new Date(), 1), 'yyyy-MM');
 
 export const useSubscriptionStore = create<SubscriptionState>()(
   persist(
@@ -71,7 +72,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         onlyUnconfirmed: false,
         onlyTrial: false,
       },
-      selectedMonth: currentMonth,
+      selectedMonth: nextMonth,
       modalState: { add: false, editId: null },
 
       addSubscription: (data) => {

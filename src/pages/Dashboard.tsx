@@ -5,6 +5,7 @@ import UpcomingList from '@/components/UpcomingList';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Plus, Wand2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { format, isSameMonth } from 'date-fns';
 import {
   formatCurrency, formatMonthLabel, getMonthlyTotal,
   getTotalAnnual, generateSmartSuggestions,
@@ -24,6 +25,16 @@ export default function Dashboard() {
     [suggestions]
   );
 
+  const now = new Date();
+  const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+  const selDate = new Date(selYear, selMonth - 1, 1);
+  const monthLabel = useMemo(() => {
+    if (isSameMonth(selDate, now)) return '本月';
+    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    if (isSameMonth(selDate, nextMonthDate)) return '下个月';
+    return formatMonthLabel(selectedMonth);
+  }, [selDate, now, selectedMonth]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -33,7 +44,7 @@ export default function Dashboard() {
             <span>{formatMonthLabel(selectedMonth)} 财务概览</span>
           </div>
           <h1 className="font-display font-bold text-3xl md:text-4xl tracking-tight leading-tight">
-            下个月 <span className="text-teal-400">{formatCurrency(monthlySum > 0 ? monthlySum : annualProjection / 12)}</span>
+            {monthLabel} <span className="text-teal-400">{formatCurrency(monthlySum > 0 ? monthlySum : annualProjection / 12)}</span>
             <br className="sm:hidden" />
             <span className="text-slate-300 text-2xl md:text-3xl ml-2 md:ml-3">的订阅已安排</span>
           </h1>

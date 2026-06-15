@@ -106,34 +106,89 @@ export const getCycleLabel = (cycle: string): string => {
   return CYCLE_OPTIONS.find((c) => c.value === cycle)?.label || cycle;
 };
 
-export const getSubscriptionsForMonth = (
+export const getProjectedBillingsForMonth = (
   subs: Subscription[],
   monthStr: string
 ): { date: string; subs: Subscription[] }[] => {
   const [year, month] = monthStr.split('-').map(Number);
-  const startDate = new Date(year, month - 1, 1);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const result: { date: string; subs: Subscription[] }[] = [];
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const daysInMonth = monthEnd.getDate();
+  const dayMap: Record<string, Subscription[]> = {};
 
   for (let d = 1; d <= daysInMonth; d++) {
-    const dayDate = new Date(year, month - 1, d);
-    const dayStr = format(dayDate, 'yyyy-MM-dd');
-    const daySubs = subs.filter((s) => isSameDay(new Date(s.nextBillingDate), dayDate));
-    result.push({ date: dayStr, subs: daySubs });
+    const dayStr = format(new Date(year, month - 1, d), 'yyyy-MM-dd');
+    dayMap[dayStr] = [];
   }
 
-  return result;
+  for (const sub of subs) {
+    let current = new Date(sub.nextBillingDate);
+    let safety = 0;
+    while (safety < 200) {
+      if (isBefore(current, monthStart)) {
+        current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+        safety++;
+        continue;
+      }
+      if (isAfter(current, monthEnd)) break;
+      if (!isSameMonth(current, monthStr)) {
+        current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+        safety++;
+        continue;
+      }
+      const dayStr = format(current, 'yyyy-MM-dd');
+      if (dayMap[dayStr]) {
+        dayMap[dayStr].push(sub);
+      }
+      current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+      safety++;
+    }
+  }
+
+  return Object.entries(dayMap).map(([date, subs]) => ({ date, subs }));
+};
+
+export const getProjectedMonthlyTotal = (
+  subs: Subscription[],
+  monthStr: string
+): number => {
+  const [year, month] = monthStr.split('-').map(Number);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+
+  return subs.reduce((total, sub) => {
+    let subTotal = 0;
+    let current = new Date(sub.nextBillingDate);
+    let safety = 0;
+    while (safety < 200) {
+      if (isBefore(current, monthStart)) {
+        current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+        safety++;
+        continue;
+      }
+      if (isAfter(current, monthEnd)) break;
+      if (!isSameMonth(current, monthStr)) {
+        current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+        safety++;
+        continue;
+      }
+      subTotal += sub.amount;
+      current = calculateNextBillingDate(sub.billingCycle, current, sub.cycleDays);
+      safety++;
+    }
+    return total + subTotal;
+  }, 0);
+};
+
+export const getSubscriptionsForMonth = (
+  subs: Subscription[],
+  monthStr: string
+): { date: string; subs: Subscription[] }[] => {
+  return getProjectedBillingsForMonth(subs, monthStr);
 };
 
 export const getMonthlyTotal = (subs: Subscription[], monthStr: string): number => {
-  const [year, month] = monthStr.split('-').map(Number);
-  return subs.reduce((total, sub) => {
-    const billingDate = new Date(sub.nextBillingDate);
-    if (billingDate.getFullYear() === year && billingDate.getMonth() === month - 1) {
-      return total + sub.amount;
-    }
-    return total;
-  }, 0);
+  return getProjectedMonthlyTotal(subs, monthStr);
 };
 
 export const getUpcomingSubscriptions = (subs: Subscription[], days = 7): Subscription[] => {
