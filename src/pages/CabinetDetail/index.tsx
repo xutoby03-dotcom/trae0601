@@ -10,7 +10,7 @@ import { SupplyModal } from '@/components/SupplyModal';
 import type { Medicine, MedicineStatus } from '@/types';
 import { formatDateTime, isExpiringSoon } from '@/utils/dateUtils';
 import { getMedicineStatus } from '@/utils/statusUtils';
-import { BUILDING_NAMES, STATUS_LABELS } from '@/types';
+import { BUILDING_NAMES } from '@/types';
 
 export const CabinetDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +26,8 @@ export const CabinetDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'medicines' | 'records'>('medicines');
   const [statusFilter, setStatusFilter] = useState<'all' | MedicineStatus | 'expiringSoon'>('all');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [recordTypeFilter, setRecordTypeFilter] = useState<'all' | 'usage' | 'supply'>('all');
+  const [recordSearchKeyword, setRecordSearchKeyword] = useState('');
   
   const cabinet = id ? getCabinetById(id) : null;
   const medicines = id ? getMedicinesByCabinet(id) : [];
@@ -107,6 +109,31 @@ export const CabinetDetail: React.FC = () => {
       ...records.supply.map(r => ({ ...r, type: 'supply' as const })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [records]);
+  
+  const recordTypeCounts = useMemo(() => ({
+    all: allRecords.length,
+    usage: allRecords.filter(r => r.type === 'usage').length,
+    supply: allRecords.filter(r => r.type === 'supply').length,
+  }), [allRecords]);
+  
+  const filteredRecords = useMemo(() => {
+    let result = [...allRecords];
+    
+    if (recordTypeFilter !== 'all') {
+      result = result.filter(r => r.type === recordTypeFilter);
+    }
+    
+    if (recordSearchKeyword.trim()) {
+      const keyword = recordSearchKeyword.toLowerCase().trim();
+      result = result.filter(r => {
+        const medicine = medicines.find(m => m.id === r.medicineId);
+        const medicineName = medicine?.name?.toLowerCase() || '';
+        return medicineName.includes(keyword);
+      });
+    }
+    
+    return result;
+  }, [allRecords, recordTypeFilter, recordSearchKeyword, medicines]);
   
   return (
     <div className="space-y-6 pb-8">
@@ -251,60 +278,121 @@ export const CabinetDetail: React.FC = () => {
       )}
       
       {activeTab === 'records' && (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">药品</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作人</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">备注</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {allRecords.map(record => {
-                const medicine = medicines.find(m => m.id === record.medicineId);
-                return (
-                  <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {formatDateTime(record.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        record.type === 'usage'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {record.type === 'usage' ? '领用' : '补给'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      {medicine?.name || '未知药品'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={record.type === 'usage' ? 'text-red-600' : 'text-green-600'}>
-                        {record.type === 'usage' ? '-' : '+'}{record.quantity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-600">
-                      {record.type === 'usage' ? record.operator : record.supplier}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {record.type === 'usage' ? record.purpose : record.source}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {allRecords.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              暂无操作记录
+        <>
+          <div className="flex flex-col sm:flex-row gap-4 animate-fade-in">
+            <div className="flex flex-wrap gap-1 bg-white rounded-xl p-1 shadow-sm flex-1">
+              {[
+                { key: 'all', label: '全部', count: recordTypeCounts.all },
+                { key: 'usage', label: '领用', count: recordTypeCounts.usage },
+                { key: 'supply', label: '补给', count: recordTypeCounts.supply },
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setRecordTypeFilter(item.key as typeof recordTypeFilter)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    recordTypeFilter === item.key
+                      ? 'bg-primary-500 text-white shadow'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
+                  <span className={`ml-1 text-xs ${
+                    recordTypeFilter === item.key ? 'text-white/80' : 'text-gray-400'
+                  }`}>
+                    {item.count}
+                  </span>
+                </button>
+              ))}
             </div>
-          )}
-        </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={recordSearchKeyword}
+                onChange={(e) => setRecordSearchKeyword(e.target.value)}
+                placeholder="搜索药品名..."
+                className="w-full sm:w-60 pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              />
+              {recordSearchKeyword && (
+                <button
+                  onClick={() => setRecordSearchKeyword('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">药品</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作人</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">备注</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredRecords.map(record => {
+                  const medicine = medicines.find(m => m.id === record.medicineId);
+                  return (
+                    <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {formatDateTime(record.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          record.type === 'usage'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {record.type === 'usage' ? '领用' : '补给'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                        {medicine?.name || '未知药品'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={record.type === 'usage' ? 'text-red-600' : 'text-green-600'}>
+                          {record.type === 'usage' ? '-' : '+'}{record.quantity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-gray-600">
+                        {record.type === 'usage' ? record.operator : record.supplier}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        {record.type === 'usage' ? record.purpose : record.source}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredRecords.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-400">
+                  {allRecords.length === 0 ? '暂无操作记录' : '没有找到匹配的记录'}
+                </p>
+                {(recordTypeFilter !== 'all' || recordSearchKeyword) && (
+                  <button
+                    onClick={() => {
+                      setRecordTypeFilter('all');
+                      setRecordSearchKeyword('');
+                    }}
+                    className="mt-2 text-primary-500 text-sm hover:text-primary-600"
+                  >
+                    清除筛选条件
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
       
       <UsageModal
