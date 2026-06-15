@@ -15,8 +15,10 @@ import { useAppStore } from '@/store/useAppStore';
 import {
   OPERATION_TYPE_LABELS,
   CLOTHING_TYPE_LABELS,
+  SIZE_LIST,
   type OperationType,
   type ExchangeRecord,
+  type Size,
 } from '@/types';
 
 const operationIcons: Record<OperationType, typeof ArrowDownCircle> = {
@@ -52,24 +54,31 @@ function formatDate(dateStr: string) {
 export default function RecordsPage() {
   const records = useAppStore((s) => s.records);
   const [filterType, setFilterType] = useState<OperationType | 'all'>('all');
+  const [filterSize, setFilterSize] = useState<Size | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
       if (filterType !== 'all' && record.operationType !== filterType)
         return false;
+      if (filterSize !== 'all') {
+        const matchOriginal = record.originalSize === filterSize;
+        const matchTarget = record.targetSize === filterSize;
+        if (!matchOriginal && !matchTarget) return false;
+      }
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         return (
           record.studentName?.toLowerCase().includes(query) ||
           record.className?.toLowerCase().includes(query) ||
           record.operator.toLowerCase().includes(query) ||
-          record.remark?.toLowerCase().includes(query)
+          record.remark?.toLowerCase().includes(query) ||
+          CLOTHING_TYPE_LABELS[record.clothingType].toLowerCase().includes(query)
         );
       }
       return true;
     });
-  }, [records, filterType, searchQuery]);
+  }, [records, filterType, filterSize, searchQuery]);
 
   const RecordItem = ({ record }: { record: ExchangeRecord }) => {
     const Icon = operationIcons[record.operationType];
@@ -172,14 +181,26 @@ export default function RecordsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="搜索学生、班级、操作人..."
+            placeholder="搜索学生、班级、衣服类型、操作人..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all text-sm"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-slate-400" />
+          <select
+            value={filterSize}
+            onChange={(e) => setFilterSize(e.target.value as Size | 'all')}
+            className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 text-sm appearance-none pr-8 cursor-pointer"
+          >
+            <option value="all">全部尺码</option>
+            {SIZE_LIST.map((size) => (
+              <option key={size} value={size}>
+                {size} 码
+              </option>
+            ))}
+          </select>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as OperationType | 'all')}
