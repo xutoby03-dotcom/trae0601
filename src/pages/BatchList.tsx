@@ -11,6 +11,7 @@ import { isToday } from '@/utils/time';
 
 const filterTabs: { key: FilterStatus; label: string }[] = [
   { key: 'all', label: '全部' },
+  { key: 'overdue', label: '已超时' },
   { key: 'brewing', label: '浸泡中' },
   { key: 'ready', label: '待过滤' },
   { key: 'filtered', label: '在售中' },
@@ -50,6 +51,7 @@ export default function BatchList() {
       if (activeFilter === 'all') return true;
       if (activeFilter === 'brewing') return batch.status === 'brewing';
       if (activeFilter === 'ready') return batch.status === 'ready';
+      if (activeFilter === 'overdue') return batch.status === 'overdue';
       if (activeFilter === 'filtered') return batch.status === 'filtered';
       if (activeFilter === 'off_shelf') return batch.status === 'off_shelf';
       return true;

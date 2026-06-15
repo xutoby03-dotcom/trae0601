@@ -81,4 +81,4 @@ export interface BrewSuggestion {
   teas: { teaId: string; teaName: string; count: number; color: string }[];
 }
 
-export type FilterStatus = 'all' | 'brewing' | 'ready' | 'filtered' | 'off_shelf';
+export type FilterStatus = 'all' | 'brewing' | 'ready' | 'overdue' | 'filtered' | 'off_shelf';
