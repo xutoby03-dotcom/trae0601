@@ -42,6 +42,7 @@ export default function Planner() {
     return `${hours}:${minutes}`;
   });
   const [confirmed, setConfirmed] = useState<{ food: string; method: ThawMethod } | null>(null);
+  const [onlyShowViable, setOnlyShowViable] = useState(false);
 
   const frozenFoods = foods.filter((f) => f.status === 'frozen');
 
@@ -110,6 +111,9 @@ export default function Planner() {
 
     return matched;
   }, [selectedDish, dinnerDate, frozenFoods]);
+
+  const viableFoods = suitableFoods.filter((p) => p.bestLevel !== 'none');
+  const displayFoods = onlyShowViable ? viableFoods : suitableFoods;
 
   const handleStartThaw = (food: FoodItem, method: ThawMethod) => {
     startThaw(food.id, method);
@@ -327,25 +331,69 @@ export default function Planner() {
         {selectedDish && (
           <section className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-warm-900">推荐食材</h2>
-              <span className="text-xs text-warm-400">
-                ⭐ 冷藏赶不上？试试冷水
-              </span>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-warm-900">推荐食材</h2>
+                <span className="text-sm font-semibold text-primary-500 bg-primary-50 px-2 py-0.5 rounded-full">
+                  {onlyShowViable ? viableFoods.length : suitableFoods.length}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setOnlyShowViable((v) => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all',
+                  onlyShowViable
+                    ? 'bg-primary-500 text-white shadow-warm'
+                    : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+                )}
+              >
+                <span
+                  className={cn(
+                    'relative w-8 h-4 rounded-full transition-colors',
+                    onlyShowViable ? 'bg-white/30' : 'bg-warm-300'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all shadow',
+                      onlyShowViable ? 'left-4' : 'left-0.5'
+                    )}
+                  />
+                </span>
+                只看有戏的
+              </button>
             </div>
 
-            {suitableFoods.length === 0 ? (
+            {displayFoods.length === 0 ? (
               <div className="bg-white rounded-2xl p-6 text-center shadow-soft">
-                <p className="text-warm-400">没有适合做{selectedDish.name}的食材</p>
-                <button
-                  onClick={() => navigate('/inventory')}
-                  className="mt-3 text-primary-500 text-sm font-medium"
-                >
-                  去添加 →
-                </button>
+                {onlyShowViable ? (
+                  <>
+                    <p className="text-warm-500 mb-1">没有赶得上今晚的肉 😢</p>
+                    <p className="text-warm-400 text-sm">
+                      关闭开关看看全部，或者换个吃饭时间
+                    </p>
+                    <button
+                      onClick={() => setOnlyShowViable(false)}
+                      className="mt-3 text-primary-500 text-sm font-medium"
+                    >
+                      显示全部 →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-warm-400">没有适合做{selectedDish.name}的食材</p>
+                    <button
+                      onClick={() => navigate('/inventory')}
+                      className="mt-3 text-primary-500 text-sm font-medium"
+                    >
+                      去添加 →
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
-                {suitableFoods.map((plan) => (
+                {displayFoods.map((plan) => (
                   <div
                     key={plan.food.id}
                     className={cn(
