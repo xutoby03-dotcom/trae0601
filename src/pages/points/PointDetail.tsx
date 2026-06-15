@@ -84,7 +84,7 @@ export default function PointDetail() {
           {point.openTickets && point.openTickets > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg">
               <AlertTriangle className="w-4 h-4" />
-              <span className="text-sm font-medium">{point.openTickets} 个待处理工单</span>
+              <span className="text-sm font-medium">{point.openTickets} 个未关闭工单</span>
             </div>
           )}
         </div>
@@ -188,8 +188,8 @@ export default function PointDetail() {
                 <p className="text-2xl font-bold text-orange-600">{recurrence.totalProblems}</p>
                 <p className="text-xs text-gray-500 mt-0.5">累计问题次数</p>
               </div>
-              <div className={`rounded-lg p-3 text-center ${recurrence.openTickets > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
-                <p className={`text-2xl font-bold ${recurrence.openTickets > 0 ? 'text-red-600' : 'text-gray-600'}`}>{recurrence.openTickets}</p>
+              <div className={`rounded-lg p-3 text-center ${(point.openTickets || 0) > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                <p className={`text-2xl font-bold ${(point.openTickets || 0) > 0 ? 'text-red-600' : 'text-gray-600'}`}>{point.openTickets || 0}</p>
                 <p className="text-xs text-gray-500 mt-0.5">未关闭工单</p>
               </div>
             </div>

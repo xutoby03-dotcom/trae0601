@@ -300,7 +300,7 @@ router.get('/point/:pointId/recurrence', (req: Request, res: Response) => {
     const openTickets = db
       .prepare(
         `SELECT COUNT(*) as count FROM tickets
-         WHERE point_id = ? AND status IN ('pending', 'processing')`
+         WHERE point_id = ? AND status != 'closed'`
       )
       .get(pointId) as { count: number };
 
