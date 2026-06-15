@@ -45,6 +45,7 @@ export interface Order {
   orderNo: string;
   customerName: string;
   phone: string;
+  fullPhone: string;
   size: string;
   flavor: string;
   theme: string;

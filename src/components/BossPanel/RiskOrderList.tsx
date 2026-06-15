@@ -71,11 +71,11 @@ export default function RiskOrderList() {
   const handleCopyPhone = async (order: Order, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await navigator.clipboard.writeText(order.phone);
+      await navigator.clipboard.writeText(order.fullPhone);
       setCopiedPhone(order.id);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = order.phone;
+      ta.value = order.fullPhone;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -234,7 +234,7 @@ export default function RiskOrderList() {
                       {!isPending && (
                         <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cream-100 border border-cream-300">
                           <span className="text-[10px] font-mono text-coffee-800/70">
-                            …{getPhoneTail(order.phone)}
+                            …{getPhoneTail(order.fullPhone)}
                           </span>
                           <button
                             onClick={(e) => handleCopyPhone(order, e)}
@@ -286,13 +286,25 @@ export default function RiskOrderList() {
                           <Clock className="w-3 h-3" />
                           <span>联系时间：{formatContactTime(order.contactTime)}</span>
                         </div>
-                        <button
-                          onClick={(e) => handleCopyPhone(order, e)}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cream-100 hover:bg-cream-200 text-coffee-800/70 transition-colors"
-                        >
-                          <Copy className="w-2.5 h-2.5" />
-                          <span>{isCopied ? '已复制' : order.phone}</span>
-                        </button>
+                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-cream-100 border border-cream-300">
+                          <span className="font-mono text-coffee-800/70">…{getPhoneTail(order.fullPhone)}</span>
+                          <button
+                            onClick={(e) => handleCopyPhone(order, e)}
+                            className={`p-0.5 rounded transition-all duration-200 ${
+                              isCopied
+                                ? 'text-matcha-600'
+                                : 'text-coffee-800/40 hover:text-coffee-900 hover:bg-cream-200'
+                            }`}
+                            title={isCopied ? '已复制' : '复制电话'}
+                          >
+                            {isCopied ? <CheckCheck className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                          </button>
+                          {isCopied && (
+                            <span className="text-matcha-600 font-medium animate-fade-in">
+                              已复制
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 
