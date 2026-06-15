@@ -159,7 +159,11 @@ export default function BatchCard({ batch, tea, onFilter, onView }: BatchCardPro
             `}
             onClick={(e) => {
               e.stopPropagation();
-              onFilter(batch.id);
+              if (isOverdue || isReady) {
+                onFilter(batch.id);
+              } else {
+                onView(batch);
+              }
             }}
           >
             {isOverdue ? '立即过滤' : isReady ? '准备过滤' : '查看详情'}
