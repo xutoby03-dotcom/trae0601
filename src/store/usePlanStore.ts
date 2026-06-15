@@ -53,12 +53,40 @@ const emptyPlan: BirthdayPlan = {
   timeline: [],
 };
 
+const initialState: Omit<PlanState,
+  | 'setRevealSecrets'
+  | 'createPlan'
+  | 'resetPlan'
+  | 'loadExamplePlan'
+  | 'updatePlanHeader'
+  | 'addParticipant'
+  | 'removeParticipant'
+  | 'setMainCharacter'
+  | 'addTask'
+  | 'updateTask'
+  | 'removeTask'
+  | 'moveTask'
+  | 'toggleTaskComplete'
+  | 'addTimelineNode'
+  | 'updateTimelineNode'
+  | 'removeTimelineNode'
+  | 'toggleTimelineComplete'
+> = {
+  plan: emptyPlan,
+  planCreated: false,
+  revealSecrets: false,
+};
+
+type PersistedState = PlanState | {
+  plan: BirthdayPlan;
+  revealSecrets?: boolean;
+};
+
 export const usePlanStore = create<PlanState>()(
   persist(
     (set, get) => ({
-      plan: emptyPlan,
-      planCreated: false,
-      revealSecrets: false,
+      ...initialState,
+
       setRevealSecrets: (v) => set({ revealSecrets: v }),
 
       createPlan: (data) => {
@@ -227,7 +255,32 @@ export const usePlanStore = create<PlanState>()(
     }),
     {
       name: 'birthday_plan_data',
+      version: 1,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as PersistedState;
+
+        // Version 0: 老数据只有 plan，没有 planCreated
+        // 一律重置为空状态，避免历史 mockPlan 混进正式看板
+        if (version === 0) {
+          return {
+            ...initialState,
+            revealSecrets: state?.revealSecrets ?? false,
+          };
+        }
+
+        // Version >= 1：只认 planCreated === true，其他字段补默认
+        if (state && 'planCreated' in state) {
+          return {
+            ...initialState,
+            ...state,
+            plan: state.plan ?? emptyPlan,
+            revealSecrets: state.revealSecrets ?? false,
+          } as PlanState;
+        }
+
+        return { ...initialState } as PlanState;
+      },
     }
   )
 );

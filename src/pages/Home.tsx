@@ -14,7 +14,7 @@ export default function Home() {
   const resetPlan = usePlanStore((s) => s.resetPlan);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const hasPlan = planCreated || !!plan.id;
+  const hasPlan = planCreated === true;
   const allTasksDone = tasks.length > 0 && tasks.every((t) => t.completed);
   const allTimelineDone = timeline.length > 0 && timeline.every((n) => n.completed);
 
