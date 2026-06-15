@@ -5,10 +5,10 @@ export const getMedicineStatus = (medicine: Medicine): MedicineStatus => {
   if (medicine.isExpired || isExpired(medicine.expiryDate)) {
     return 'expired';
   }
-  if (medicine.currentQuantity <= medicine.minimumQuantity) {
+  if (medicine.currentQuantity < medicine.minimumQuantity) {
     return 'insufficient';
   }
-  if (medicine.currentQuantity <= medicine.minimumQuantity * 1.5) {
+  if (medicine.currentQuantity < medicine.minimumQuantity * 1.5) {
     return 'low';
   }
   return 'sufficient';

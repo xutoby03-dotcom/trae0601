@@ -80,7 +80,8 @@ export const useMedicineStore = create<MedicineState>()(
         
         medicines.forEach(m => {
           const status = getMedicineStatus(m);
-          if (status === 'insufficient' && !m.isExpired) {
+          const gap = m.minimumQuantity - m.currentQuantity;
+          if (status === 'insufficient' && !m.isExpired && gap > 0) {
             const cabinet = cabinets.find(c => c.id === m.cabinetId);
             if (cabinet) {
               purchaseItems.push({
@@ -91,7 +92,7 @@ export const useMedicineStore = create<MedicineState>()(
                 building: cabinet.building,
                 currentQuantity: m.currentQuantity,
                 minimumQuantity: m.minimumQuantity,
-                gap: m.minimumQuantity - m.currentQuantity,
+                gap,
               });
             }
           }
