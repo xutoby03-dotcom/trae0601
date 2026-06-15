@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Camera, History } from 'lucide-react';
+import { ArrowLeft, MapPin, Camera, History, Search, X } from 'lucide-react';
 import { useCabinetStore } from '@/store/useCabinetStore';
 import { useMedicineStore } from '@/store/useMedicineStore';
 import { useRecordStore } from '@/store/useRecordStore';
 import { MedicineCard } from '@/components/MedicineCard';
 import { UsageModal } from '@/components/UsageModal';
 import { SupplyModal } from '@/components/SupplyModal';
-import type { Medicine } from '@/types';
-import { formatDateTime } from '@/utils/dateUtils';
+import type { Medicine, MedicineStatus } from '@/types';
+import { formatDateTime, isExpiringSoon } from '@/utils/dateUtils';
 import { getMedicineStatus } from '@/utils/statusUtils';
-import { BUILDING_NAMES } from '@/types';
+import { BUILDING_NAMES, STATUS_LABELS } from '@/types';
 
 export const CabinetDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,19 +24,57 @@ export const CabinetDetail: React.FC = () => {
   const [supplyModalOpen, setSupplyModalOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [activeTab, setActiveTab] = useState<'medicines' | 'records'>('medicines');
+  const [statusFilter, setStatusFilter] = useState<'all' | MedicineStatus | 'expiringSoon'>('all');
+  const [searchKeyword, setSearchKeyword] = useState('');
   
   const cabinet = id ? getCabinetById(id) : null;
   const medicines = id ? getMedicinesByCabinet(id) : [];
   const records = id ? getRecordsByCabinet(id) : null;
   
-  const sortedMedicines = useMemo(() => {
-    return [...medicines].sort((a, b) => {
+  const statusCounts = useMemo(() => {
+    const counts = {
+      all: medicines.length,
+      insufficient: 0,
+      low: 0,
+      expiringSoon: 0,
+      expired: 0,
+    };
+    medicines.forEach(m => {
+      const status = getMedicineStatus(m);
+      if (status === 'insufficient') counts.insufficient++;
+      if (status === 'low') counts.low++;
+      if (status === 'expired') counts.expired++;
+      if (isExpiringSoon(m.expiryDate) && status !== 'expired') counts.expiringSoon++;
+    });
+    return counts;
+  }, [medicines]);
+  
+  const filteredMedicines = useMemo(() => {
+    let result = [...medicines];
+    
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'expiringSoon') {
+        result = result.filter(m => isExpiringSoon(m.expiryDate) && !m.isExpired);
+      } else {
+        result = result.filter(m => getMedicineStatus(m) === statusFilter);
+      }
+    }
+    
+    if (searchKeyword.trim()) {
+      const keyword = searchKeyword.toLowerCase().trim();
+      result = result.filter(m => 
+        m.name.toLowerCase().includes(keyword) ||
+        m.specification.toLowerCase().includes(keyword)
+      );
+    }
+    
+    return result.sort((a, b) => {
       const statusOrder = { expired: 0, insufficient: 1, low: 2, sufficient: 3 };
       const statusA = getMedicineStatus(a);
       const statusB = getMedicineStatus(b);
       return statusOrder[statusA] - statusOrder[statusB];
     });
-  }, [medicines]);
+  }, [medicines, statusFilter, searchKeyword]);
   
   const handleUse = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
@@ -132,17 +170,84 @@ export const CabinetDetail: React.FC = () => {
       </div>
       
       {activeTab === 'medicines' && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {sortedMedicines.map((medicine, index) => (
-            <div key={medicine.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
-              <MedicineCard
-                medicine={medicine}
-                onUse={handleUse}
-                onSupply={handleSupply}
-              />
+        <>
+          <div className="flex flex-col sm:flex-row gap-4 animate-fade-in">
+            <div className="flex flex-wrap gap-1 bg-white rounded-xl p-1 shadow-sm flex-1">
+              {[
+                { key: 'all', label: '全部', count: statusCounts.all },
+                { key: 'insufficient', label: '缺货', count: statusCounts.insufficient },
+                { key: 'low', label: '偏低', count: statusCounts.low },
+                { key: 'expiringSoon', label: '快过期', count: statusCounts.expiringSoon },
+                { key: 'expired', label: '过期', count: statusCounts.expired },
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => setStatusFilter(item.key as typeof statusFilter)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    statusFilter === item.key
+                      ? 'bg-primary-500 text-white shadow'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.label}
+                  <span className={`ml-1 text-xs ${
+                    statusFilter === item.key ? 'text-white/80' : 'text-gray-400'
+                  }`}>
+                    {item.count}
+                  </span>
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="搜索药品名或规格..."
+                className="w-full sm:w-60 pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              />
+              {searchKeyword && (
+                <button
+                  onClick={() => setSearchKeyword('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5 text-gray-400" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            {filteredMedicines.map((medicine, index) => (
+              <div key={medicine.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
+                <MedicineCard
+                  medicine={medicine}
+                  onUse={handleUse}
+                  onSupply={handleSupply}
+                />
+              </div>
+            ))}
+          </div>
+          
+          {filteredMedicines.length === 0 && (
+            <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
+              <p className="text-gray-400">没有找到匹配的药品</p>
+              {(statusFilter !== 'all' || searchKeyword) && (
+                <button
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setSearchKeyword('');
+                  }}
+                  className="mt-2 text-primary-500 text-sm hover:text-primary-600"
+                >
+                  清除筛选条件
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
       
       {activeTab === 'records' && (
