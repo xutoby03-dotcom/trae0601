@@ -32,7 +32,7 @@ export default function ReviseForm({ parentRecord }: Props) {
     ratio: parentRecord.ratio,
     pourStages: parentRecord.pourStages,
     brewTime: parentRecord.brewTime,
-    flavorNotes: '',
+    flavorNotes: parentRecord.flavorNotes,
     negativeReason: 'sour' as Exclude<NegativeReason, null>,
     adjustmentNote: '',
   });
@@ -278,14 +278,17 @@ export default function ReviseForm({ parentRecord }: Props) {
 
         <div>
           <h3 className="text-sm font-semibold text-coffee-700 mb-3 flex items-center gap-2 pb-2 border-b border-coffee-100">
-            新版风味备注
+            风味备注 {diffBadge(hasChanged('flavorNotes'))}
           </h3>
           <textarea
             className="input min-h-[80px]"
-            placeholder="记录调整后的风味表现..."
+            placeholder="记录调整后的风味表现，可直接修改原备注..."
             value={form.flavorNotes}
             onChange={(e) => handleChange('flavorNotes', e.target.value)}
           />
+          {parentRecord.flavorNotes && (
+            <p className="text-xs text-coffee-400 mt-1">原备注已带入，可根据改版结果修改</p>
+          )}
         </div>
       </div>
 
