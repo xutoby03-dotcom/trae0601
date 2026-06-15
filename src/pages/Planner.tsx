@@ -65,7 +65,7 @@ export default function Planner() {
           const thawHours = getAverageThawTime(food.weight, method);
           const takeOutTime = calculateTakeOutTime(dinnerDate, food.weight, method);
           const readyTime = new Date(takeOutTime.getTime() + thawHours * 60 * 60 * 1000);
-          const canMakeIt = takeOutTime <= new Date();
+          const canMakeIt = takeOutTime >= new Date();
           return {
             method,
             thawHours,
