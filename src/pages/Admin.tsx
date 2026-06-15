@@ -120,11 +120,15 @@ interface MaintenanceItemProps {
 function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
   const hasDamaged = table.issueTags.includes('desktop_damaged');
   const hasMissing = table.issueTags.includes('missing_parts');
+  const hasPositionMismatch = table.issueTags.includes('position_mismatch');
 
   const missingPads = table.totalFootPads - table.footPadCount;
   const missingTablecloth = !table.hasTablecloth;
 
-  const primaryColor = hasDamaged ? 'orange' : hasMissing ? 'amber' : 'gray';
+  let primaryColor = 'gray';
+  if (hasDamaged) primaryColor = 'orange';
+  else if (hasMissing) primaryColor = 'amber';
+  else if (hasPositionMismatch) primaryColor = 'violet';
 
   const detailItems = [];
   if (hasDamaged) {
@@ -136,14 +140,21 @@ function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
   if (missingTablecloth) {
     detailItems.push({ label: '桌布', value: '缺失', color: 'text-red-600' });
   }
+  if (hasPositionMismatch) {
+    detailItems.push({ label: '柜位', value: '待核实', color: 'text-violet-600' });
+  }
+
+  const borderColorMap: Record<string, string> = {
+    orange: '#f97316',
+    amber: '#f59e0b',
+    violet: '#8b5cf6',
+    gray: '#9ca3af',
+  };
 
   return (
     <div
       className="p-4 bg-white rounded-2xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-      style={{
-        borderLeftColor:
-          primaryColor === 'orange' ? '#f97316' : primaryColor === 'amber' ? '#f59e0b' : '#9ca3af',
-      }}
+      style={{ borderLeftColor: borderColorMap[primaryColor] }}
       onClick={onAction}
     >
       <div className="flex items-center gap-4">
@@ -152,6 +163,7 @@ function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
             'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0',
             primaryColor === 'orange' && 'bg-orange-50',
             primaryColor === 'amber' && 'bg-amber-50',
+            primaryColor === 'violet' && 'bg-violet-50',
             primaryColor === 'gray' && 'bg-gray-50'
           )}
         >
@@ -160,6 +172,7 @@ function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
               'w-6 h-6',
               primaryColor === 'orange' && 'text-orange-500',
               primaryColor === 'amber' && 'text-amber-500',
+              primaryColor === 'violet' && 'text-violet-500',
               primaryColor === 'gray' && 'text-gray-500'
             )}
           />
@@ -170,8 +183,18 @@ function MaintenanceItem({ table, onAction }: MaintenanceItemProps) {
             <h4 className="font-semibold text-gray-900">{table.id}</h4>
             <span className="text-xs text-gray-400">{table.size}</span>
           </div>
-          <div className="text-xs text-gray-500 mt-0.5">
-            {table.storageCabinet}
+          <div className={cn('text-xs mt-0.5 flex items-center gap-1',
+            hasPositionMismatch ? 'text-violet-600 font-medium' : 'text-gray-500'
+          )}>
+            {hasPositionMismatch ? (
+              <>
+                <AlertTriangle className="w-3 h-3" />
+                <span>柜位待核</span>
+                <span className="text-gray-400 font-normal">· 原柜 {table.storageCabinet}</span>
+              </>
+            ) : (
+              table.storageCabinet
+            )}
           </div>
         </div>
 

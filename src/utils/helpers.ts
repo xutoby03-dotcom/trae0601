@@ -31,6 +31,7 @@ export function getIssueLabel(type: IssueType): string {
     overdue: '逾期未还',
     missing_parts: '配件不齐',
     desktop_damaged: '桌面破损',
+    position_mismatch: '未归位',
   };
   return labels[type];
 }
@@ -40,6 +41,7 @@ export function getIssueColor(type: IssueType): string {
     overdue: 'bg-red-100 text-red-700 border-red-200',
     missing_parts: 'bg-amber-100 text-amber-700 border-amber-200',
     desktop_damaged: 'bg-orange-100 text-orange-700 border-orange-200',
+    position_mismatch: 'bg-violet-100 text-violet-700 border-violet-200',
   };
   return colors[type];
 }

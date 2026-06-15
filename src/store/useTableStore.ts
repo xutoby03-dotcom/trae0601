@@ -117,6 +117,10 @@ const useTableStore = create<TableState>((set, get) => ({
       if (overallStatus !== 'damaged') overallStatus = 'minor';
       newIssueTags.push('missing_parts');
     }
+    if (!data.positionCorrect) {
+      if (overallStatus === 'ok') overallStatus = 'minor';
+      newIssueTags.push('position_mismatch');
+    }
 
     const newReturnRecord: ReturnRecord = {
       id: returnId,

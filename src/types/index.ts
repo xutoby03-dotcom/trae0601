@@ -1,6 +1,6 @@
 export type TableStatus = 'available' | 'borrowed' | 'maintenance';
 
-export type IssueType = 'overdue' | 'missing_parts' | 'desktop_damaged';
+export type IssueType = 'overdue' | 'missing_parts' | 'desktop_damaged' | 'position_mismatch';
 
 export interface FoldingTable {
   id: string;

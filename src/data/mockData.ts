@@ -110,7 +110,7 @@ export const mockTables: FoldingTable[] = [
     totalFootPads: 4,
     photo: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=400&h=300&fit=crop',
     status: 'available',
-    issueTags: [],
+    issueTags: ['position_mismatch'],
     hasTablecloth: true,
   },
 ];
