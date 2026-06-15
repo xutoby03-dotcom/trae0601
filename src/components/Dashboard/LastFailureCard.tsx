@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Edit3 } from 'lucide-react';
 import { useCoffeeStore } from '@/store/coffeeStore';
 import { NEGATIVE_REASON_LABELS, ROAST_LABELS } from '@/types';
 import { Link } from 'react-router-dom';
@@ -97,6 +97,13 @@ export default function LastFailureCard() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         )}
+        <Link
+          to={`/records/${lastFailure.id}/edit`}
+          className="mt-2 flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium bg-amber/10 text-amber hover:bg-amber/20 transition-colors"
+        >
+          <Edit3 className="w-4 h-4" />
+          查看并编辑这次改版
+        </Link>
       </div>
     </div>
   );

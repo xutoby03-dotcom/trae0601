@@ -99,6 +99,12 @@ export default function RecordRow({ record }: Props) {
         {record.flavorNotes && (
           <p className="text-xs text-coffee-600 line-clamp-2">{record.flavorNotes}</p>
         )}
+        {record.negativeReason && record.adjustmentNote && (
+          <p className="text-xs text-amber/80 mt-1 line-clamp-2">
+            <span className="font-medium">调整：</span>
+            {record.adjustmentNote}
+          </p>
+        )}
         {parent && (
           <p className="text-xs text-coffee-400 mt-1 flex items-center gap-1">
             <GitBranch className="w-3 h-3" />
