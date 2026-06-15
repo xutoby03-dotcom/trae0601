@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { FileText, Clock, Trash2, AlertTriangle, Package, XCircle, UserX } from 'lucide-react';
+import { FileText, Clock, Trash2, AlertTriangle, Package, XCircle, UserX, Search, X } from 'lucide-react';
 import { useFoodStore } from '../store/useFoodStore';
 import { formatDateTime, isToday } from '../utils/time';
 
@@ -8,6 +8,7 @@ type FilterType = 'all' | 'unclaimed' | 'expired';
 export default function Records() {
   const { disposalRecords } = useFoodStore();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [keyword, setKeyword] = useState('');
 
   const reasonLabels: Record<string, string> = {
     expired: '过期下架',
@@ -26,10 +27,17 @@ export default function Records() {
       result = result.filter((r) => r.reason === filter);
     }
     
+    if (keyword.trim()) {
+      const lowerKeyword = keyword.trim().toLowerCase();
+      result = result.filter((r) => 
+        r.foodName.toLowerCase().includes(lowerKeyword)
+      );
+    }
+    
     return result.sort((a, b) => 
       new Date(b.disposedAt).getTime() - new Date(a.disposedAt).getTime()
     );
-  }, [disposalRecords, filter]);
+  }, [disposalRecords, filter, keyword]);
 
   const stats = useMemo(() => {
     const total = disposalRecords.reduce((sum, r) => sum + r.quantity, 0);
@@ -50,6 +58,8 @@ export default function Records() {
       .filter((r) => isToday(r.disposedAt) && r.reason === 'expired')
       .reduce((sum, r) => sum + r.quantity, 0);
     
+    const filteredTotal = filteredRecords.reduce((sum, r) => sum + r.quantity, 0);
+    
     return {
       total,
       unclaimedTotal,
@@ -57,14 +67,19 @@ export default function Records() {
       todayTotal,
       todayUnclaimed,
       todayExpired,
+      filteredTotal,
     };
-  }, [disposalRecords]);
+  }, [disposalRecords, filteredRecords]);
 
   const filterTabs: { key: FilterType; label: string; icon: typeof Package }[] = [
     { key: 'all', label: '全部', icon: Package },
     { key: 'unclaimed', label: '无人认领', icon: UserX },
     { key: 'expired', label: '过期下架', icon: XCircle },
   ];
+
+  const clearSearch = () => {
+    setKeyword('');
+  };
 
   return (
     <div className="min-h-screen bg-warm-50 py-8">
@@ -93,13 +108,41 @@ export default function Records() {
             <div className="text-2xl font-bold text-red-700">{stats.todayExpired} 份</div>
           </div>
           <div className="bg-warm-50 rounded-2xl shadow-md p-4 border border-warm-200">
-            <div className="text-sm text-coffee-500 mb-1">累计处理</div>
-            <div className="text-2xl font-bold text-coffee-700">{stats.total} 份</div>
+            <div className="text-sm text-coffee-500 mb-1">
+              {keyword.trim() || filter !== 'all' ? '筛选结果' : '累计处理'}
+            </div>
+            <div className="text-2xl font-bold text-coffee-700">
+              {keyword.trim() || filter !== 'all' ? stats.filteredTotal : stats.total} 份
+            </div>
+            {(keyword.trim() || filter !== 'all') && (
+              <div className="text-xs text-coffee-400 mt-1">
+                共 {filteredRecords.length} 条记录
+              </div>
+            )}
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="p-4 border-b border-warm-100">
+          <div className="p-4 border-b border-warm-100 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-coffee-400" />
+              <input
+                type="text"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="搜索食品名称，如：葡萄、柠檬茶..."
+                className="w-full pl-10 pr-10 py-2.5 bg-warm-50 border border-warm-200 rounded-xl text-coffee-800 placeholder-coffee-400 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400 transition-all"
+              />
+              {keyword && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-coffee-400 hover:text-coffee-600 hover:bg-warm-200 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-2">
               {filterTabs.map(({ key, label, icon: Icon }) => (
                 <button
@@ -138,12 +181,43 @@ export default function Records() {
                 </button>
               ))}
             </div>
+
+            {(keyword.trim() || filter !== 'all') && (
+              <div className="flex items-center gap-2 text-sm text-coffee-500">
+                <span>当前筛选：</span>
+                {filter !== 'all' && (
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${reasonColors[filter]}`}>
+                    {reasonLabels[filter]}
+                  </span>
+                )}
+                {keyword.trim() && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                    关键词：{keyword.trim()}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setFilter('all');
+                    clearSearch();
+                  }}
+                  className="ml-2 text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  清除所有筛选
+                </button>
+              </div>
+            )}
           </div>
 
           {filteredRecords.length > 0 ? (
             <div className="divide-y divide-warm-100">
               {filteredRecords.map((record, index) => {
                 const isTodayRecord = isToday(record.disposedAt);
+                const highlightedName = keyword.trim()
+                  ? record.foodName.replace(
+                      new RegExp(`(${keyword.trim()})`, 'gi'),
+                      '<mark class="bg-yellow-200 px-0.5 rounded">$1</mark>'
+                    )
+                  : record.foodName;
                 return (
                   <div
                     key={record.id}
@@ -168,16 +242,17 @@ export default function Records() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-coffee-800 truncate">
-                          {record.foodName}
-                        </h3>
+                        <h3 
+                          className="font-semibold text-coffee-800 truncate"
+                          dangerouslySetInnerHTML={{ __html: highlightedName }}
+                        />
                         {isTodayRecord && (
-                          <span className="px-1.5 py-0.5 rounded bg-primary-100 text-primary-700 text-xs font-medium">
+                          <span className="px-1.5 py-0.5 rounded bg-primary-100 text-primary-700 text-xs font-medium flex-shrink-0">
                             今天
                           </span>
                         )}
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
                             reasonColors[record.reason]
                           }`}
                         >
@@ -202,16 +277,29 @@ export default function Records() {
           ) : (
             <div className="text-center py-16">
               <div className="w-20 h-20 bg-warm-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-10 h-10 text-coffee-300" />
+                <Search className="w-10 h-10 text-coffee-300" />
               </div>
-              <h3 className="text-lg font-semibold text-coffee-700 mb-2">暂无记录</h3>
+              <h3 className="text-lg font-semibold text-coffee-700 mb-2">暂无匹配记录</h3>
               <p className="text-coffee-500">
-                {filter === 'unclaimed'
+                {keyword.trim()
+                  ? `没有找到包含"${keyword.trim()}"的记录`
+                  : filter === 'unclaimed'
                   ? '没有无人认领的食品，太棒了！'
                   : filter === 'expired'
                   ? '没有过期下架的食品，太棒了！'
                   : '太好了！目前还没有食品被处理掉'}
               </p>
+              {(keyword.trim() || filter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setFilter('all');
+                    clearSearch();
+                  }}
+                  className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
+                >
+                  清除筛选条件
+                </button>
+              )}
             </div>
           )}
         </div>
