@@ -219,7 +219,59 @@ export const useAppStore = create<AppState>((set, get) => ({
       targetSize: req1.targetSize,
       quantity: 1,
       operator,
-      remark: `同年级互换撮合`,
+      remark: `同年级互换撮合：${req1.studentName}(${req1.originalSize}→${req1.targetSize}) ↔ ${req2.studentName}(${req2.originalSize}→${req2.targetSize})`,
+    });
+
+    get().addRecord({
+      operationType: 'exchange_out',
+      requestId: requestId1,
+      studentName: req1.studentName,
+      className: req1.className,
+      clothingType: req1.clothingType,
+      originalSize: req1.originalSize,
+      targetSize: undefined,
+      quantity: 1,
+      operator,
+      remark: `互换换出：${req1.studentName} 交出 ${req1.originalSize} 码给 ${req2.studentName}`,
+    });
+
+    get().addRecord({
+      operationType: 'exchange_in',
+      requestId: requestId1,
+      studentName: req1.studentName,
+      className: req1.className,
+      clothingType: req1.clothingType,
+      originalSize: undefined,
+      targetSize: req1.targetSize,
+      quantity: 1,
+      operator,
+      remark: `互换换入：${req1.studentName} 从 ${req2.studentName} 收到 ${req1.targetSize} 码`,
+    });
+
+    get().addRecord({
+      operationType: 'exchange_out',
+      requestId: requestId2,
+      studentName: req2.studentName,
+      className: req2.className,
+      clothingType: req2.clothingType,
+      originalSize: req2.originalSize,
+      targetSize: undefined,
+      quantity: 1,
+      operator,
+      remark: `互换换出：${req2.studentName} 交出 ${req2.originalSize} 码给 ${req1.studentName}`,
+    });
+
+    get().addRecord({
+      operationType: 'exchange_in',
+      requestId: requestId2,
+      studentName: req2.studentName,
+      className: req2.className,
+      clothingType: req2.clothingType,
+      originalSize: undefined,
+      targetSize: req2.targetSize,
+      quantity: 1,
+      operator,
+      remark: `互换换入：${req2.studentName} 从 ${req1.studentName} 收到 ${req2.targetSize} 码`,
     });
   },
 

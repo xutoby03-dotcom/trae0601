@@ -9,6 +9,7 @@ import {
   Send,
   Filter,
   Search,
+  ArrowRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import {
@@ -73,53 +74,76 @@ export default function RecordsPage() {
   const RecordItem = ({ record }: { record: ExchangeRecord }) => {
     const Icon = operationIcons[record.operationType];
     const colorClass = operationColors[record.operationType];
+    const isExchangeOut = record.operationType === 'exchange_out';
+    const isExchangeIn = record.operationType === 'exchange_in';
+    const displaySize = isExchangeOut ? record.originalSize : record.targetSize;
+    const sizeLabel = isExchangeOut ? '交出尺码' : isExchangeIn ? '收到尺码' : null;
 
     return (
       <div className="flex gap-4 p-4 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
         <div className="flex flex-col items-center">
-          <div className={`w-10 h-10 rounded-full ${colorClass} flex items-center justify-center`}>
+          <div className={`w-10 h-10 rounded-full ${colorClass} flex items-center justify-center flex-shrink-0`}>
             <Icon className="w-5 h-5" />
           </div>
           <div className="flex-1 w-px bg-slate-200 mt-2" />
         </div>
-        <div className="flex-1 pb-2">
-          <div className="flex items-start justify-between mb-1">
-            <div className="flex items-center gap-2">
+        <div className="flex-1 pb-2 min-w-0">
+          <div className="flex items-start justify-between mb-1 gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-slate-800">
                 {OPERATION_TYPE_LABELS[record.operationType]}
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                 {CLOTHING_TYPE_LABELS[record.clothingType]}
               </span>
+              {sizeLabel && displaySize && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  isExchangeOut ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {sizeLabel}：{displaySize}
+                </span>
+              )}
             </div>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 flex-shrink-0">
               {formatDate(record.createdAt)}
             </span>
           </div>
           {record.studentName && (
-            <div className="text-sm text-slate-600 mb-1">
+            <div className="text-sm text-slate-700 mb-1 font-medium">
               {record.studentName}
-              {record.className && ` · ${record.className}`}
+              {record.className && (
+                <span className="text-slate-500 font-normal ml-1">
+                  · {record.className}
+                </span>
+              )}
             </div>
           )}
-          {(record.originalSize || record.targetSize) && (
+          {(record.originalSize || record.targetSize) && !sizeLabel && (
             <div className="text-sm text-slate-500 mb-1">
-              {record.originalSize && <span>{record.originalSize}</span>}
+              {record.originalSize && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100">
+                  {record.originalSize}
+                </span>
+              )}
               {record.originalSize && record.targetSize && (
-                <span className="mx-1">→</span>
+                <ArrowRight className="w-3.5 h-3.5 inline mx-1 text-slate-400" />
               )}
               {record.targetSize && (
-                <span className="font-medium text-blue-600">
+                <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
                   {record.targetSize}
                 </span>
               )}
-              <span className="ml-2 text-slate-400">x{record.quantity}</span>
+              <span className="ml-2 text-slate-400 text-xs">
+                数量：{record.quantity}
+              </span>
             </div>
           )}
           {record.remark && (
-            <div className="text-xs text-slate-400 mt-1">{record.remark}</div>
+            <div className="text-xs text-slate-500 mt-1.5 bg-slate-50 px-2 py-1 rounded inline-block">
+              {record.remark}
+            </div>
           )}
-          <div className="text-xs text-slate-400 mt-1">
+          <div className="text-xs text-slate-400 mt-1.5">
             操作人：{record.operator}
           </div>
         </div>
