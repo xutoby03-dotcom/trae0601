@@ -1,15 +1,35 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { TIME_SLOT_LABELS, MEDICATION_STATUS_LABELS } from '@/types';
 import MedicationButtons from '../components/Record/MedicationButtons';
 import MedicineAvatar from '../components/Common/MedicineAvatar';
 import { formatDate, formatDateDisplay, isToday } from '@/utils/dateUtils';
-import { ClipboardList, AlertCircle, Eye } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ClipboardList, AlertCircle, Eye, Sparkles } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function Records() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightSlotId = searchParams.get('highlight') || undefined;
+  const highlightRef = useRef<HTMLDivElement>(null);
   const { packingSlots, packingItems, medicationRecords, medicines, schedules } = useAppStore();
+
+  useEffect(() => {
+    if (highlightSlotId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [highlightSlotId]);
+
+  useEffect(() => {
+    if (highlightSlotId) {
+      const timer = setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightSlotId, setSearchParams]);
 
   const sortedSlots = useMemo(() => {
     return [...packingSlots]
@@ -69,14 +89,20 @@ export default function Records() {
           const medMedicines = getSlotMedicines(slot.id);
           const today = isToday(slot.date);
           const missedNotRecorded = !record && slot.status === 'packed';
+          const isHighlighted = highlightSlotId === slot.id;
 
           return (
             <div
               key={slot.id}
+              ref={isHighlighted ? highlightRef : undefined}
               className={`bg-white rounded-3xl shadow-md border overflow-hidden transition-all ${
-                today ? 'border-amber-300 ring-2 ring-amber-100' : 'border-emerald-100/60'
+                isHighlighted
+                  ? 'border-yellow-400 ring-4 ring-yellow-200 animate-pulse'
+                  : today
+                  ? 'border-amber-300 ring-2 ring-amber-100'
+                  : 'border-emerald-100/60'
               }`}
-              style={{ animation: `fadeInUp 0.5s ease-out ${idx * 0.04}s both` }}
+              style={{ animation: isHighlighted ? 'highlightPulse 1.5s ease-in-out infinite' : `fadeInUp 0.5s ease-out ${idx * 0.04}s both` }}
             >
               <div className="flex items-start justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50/50 to-transparent">
                 <div className="flex items-center gap-4">
@@ -86,7 +112,13 @@ export default function Records() {
                       <h3 className="text-lg font-bold text-gray-800">
                         {formatDateDisplay(slot.date)} · {slotInfo.label}
                       </h3>
-                      {today && (
+                      {isHighlighted && (
+                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-yellow-400 text-yellow-900 font-bold inline-flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          跳转结果
+                        </span>
+                      )}
+                      {today && !isHighlighted && (
                         <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-amber-900 font-bold">
                           今天
                         </span>

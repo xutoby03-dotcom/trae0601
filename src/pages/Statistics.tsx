@@ -1,10 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
+import { TIME_SLOT_LABELS } from '@/types';
 import {
   getLowStockAlerts,
   getExpiryAlerts,
   getVisitAlerts,
   getMissedStats,
+  getMissedAndVomitedDetails,
+  type MedicationDetailItem,
 } from '../utils/statisticsUtils';
 import MedicineAvatar from '../components/Common/MedicineAvatar';
 import {
@@ -17,10 +21,19 @@ import {
   AlertOctagon,
   CheckCircle2,
   Pill,
+  X,
+  ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function Statistics() {
-  const { medicines, schedules, packingSlots, medicationRecords } = useAppStore();
+  const { medicines, schedules, packingSlots, packingItems, medicationRecords } = useAppStore();
+  const navigate = useNavigate();
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTitle, setDrawerTitle] = useState('漏服 & 吐出重服明细');
+  const [drawerFilter, setDrawerFilter] = useState<string | undefined>(undefined);
+  const [drawerItems, setDrawerItems] = useState<MedicationDetailItem[]>([]);
 
   const now = new Date();
   const lowStockAlerts = useMemo(
@@ -41,6 +54,44 @@ export default function Statistics() {
   );
 
   const maxWeekly = Math.max(...missedStats.weeklyDistribution, 1);
+
+  const openAllDrawer = () => {
+    const items = getMissedAndVomitedDetails(
+      medicationRecords,
+      packingSlots,
+      medicines,
+      schedules,
+      packingItems,
+      now
+    );
+    setDrawerTitle('漏服 & 吐出重服明细');
+    setDrawerFilter(undefined);
+    setDrawerItems(items);
+    setDrawerOpen(true);
+  };
+
+  const openMedicineDrawer = (medicineId: string, medicineName: string) => {
+    const items = getMissedAndVomitedDetails(
+      medicationRecords,
+      packingSlots,
+      medicines,
+      schedules,
+      packingItems,
+      now,
+      medicineId
+    );
+    setDrawerTitle(`「${medicineName}」漏服 & 吐出重服明细`);
+    setDrawerFilter(medicineId);
+    setDrawerItems(items);
+    setDrawerOpen(true);
+  };
+
+  const jumpToRecord = (item: MedicationDetailItem) => {
+    navigate(`/records?highlight=${item.slotId}`);
+    setDrawerOpen(false);
+  };
+
+  const missedCount = missedStats.totalMissed + missedStats.totalVomited;
 
   return (
     <div>
@@ -64,9 +115,19 @@ export default function Statistics() {
               <TrendingDown className="h-5 w-5 text-red-400" />
             </div>
             <div className="text-sm text-gray-500 mb-1">本月漏服次数</div>
-            <div className="text-5xl font-bold text-red-600 mb-1">{missedStats.totalMissed}</div>
+            <div
+              className={`text-5xl font-bold text-red-600 mb-1 ${missedCount > 0 ? 'cursor-pointer hover:text-red-700 hover:underline underline-offset-4 transition-all' : ''}`}
+              onClick={missedCount > 0 ? openAllDrawer : undefined}
+            >
+              {missedCount}
+              {missedCount > 0 && (
+                <span className="ml-2 inline-flex items-center gap-0.5 text-base font-medium align-super">
+                  查看明细 <ChevronRight className="h-4 w-4" />
+                </span>
+              )}
+            </div>
             <div className="text-xs text-gray-400">
-              已服药 {missedStats.totalTaken} 次 · 吐出重服 {missedStats.totalVomited} 次
+              已服药 {missedStats.totalTaken} 次 · 漏吃 <span className="text-red-500 font-semibold">{missedStats.totalMissed}</span> 次 · 吐出重服 <span className="text-amber-500 font-semibold">{missedStats.totalVomited}</span> 次
             </div>
           </div>
         </div>
@@ -121,17 +182,19 @@ export default function Statistics() {
             </div>
           ))}
         </div>
-        {missedStats.byMedicine.length > 0 && (
+          {missedStats.byMedicine.length > 0 && (
           <div className="mt-6 pt-5 border-t border-gray-100">
-            <h4 className="text-sm font-bold text-gray-600 mb-3">漏服最多的药品</h4>
+            <h4 className="text-sm font-bold text-gray-600 mb-3">漏服最多的药品 · 点药名看明细</h4>
             <div className="flex flex-wrap gap-2">
               {missedStats.byMedicine.slice(0, 5).map((item) => (
                 <span
                   key={item.medicineId}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-700 border border-red-200"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-50 text-red-700 border border-red-200 cursor-pointer hover:bg-red-100 hover:shadow-md transition-all"
+                  onClick={() => openMedicineDrawer(item.medicineId, item.medicineName)}
                 >
                   {item.medicineName}
                   <span className="font-bold">{item.count}次</span>
+                  <ChevronRight className="h-3.5 w-3.5 opacity-60" />
                 </span>
               ))}
             </div>
@@ -256,6 +319,139 @@ export default function Statistics() {
           </div>
         </div>
       </div>
+
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-3xl bg-white rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white rounded-t-3xl px-6 py-5 border-b border-gray-100 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">{drawerTitle}</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  共 {drawerItems.length} 条记录 · 漏服 {drawerItems.filter(i => i.status === 'missed').length} 条 · 吐出重服 {drawerItems.filter(i => i.status === 'vomited').length} 条
+                </p>
+              </div>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="h-10 w-10 rounded-2xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {drawerItems.length === 0 ? (
+                <div className="text-center py-16">
+                  <CheckCircle2 className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">暂无异常记录</p>
+                  <p className="text-gray-400 text-sm mt-1">本月老人服药情况良好</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {drawerItems.map((item) => (
+                    <div
+                      key={item.recordId}
+                      className={`p-4 rounded-2xl border-2 transition-all hover:shadow-md ${
+                        item.status === 'missed'
+                          ? 'bg-red-50 border-red-200 hover:border-red-300'
+                          : 'bg-amber-50 border-amber-200 hover:border-amber-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                              item.status === 'missed' ? 'bg-red-100' : 'bg-amber-100'
+                            }`}
+                          >
+                            <span className="text-xl">{item.timeSlotEmoji}</span>
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-800">
+                              {item.dateDisplay} · {item.timeSlotLabel}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {TIME_SLOT_LABELS[item.timeSlot].time} · 标记时间 {item.recordedAt}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                              item.status === 'missed'
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-amber-100 text-amber-700'
+                            }`}
+                          >
+                            {item.statusLabel}
+                          </span>
+                          <button
+                            onClick={() => jumpToRecord(item)}
+                            className="h-8 px-2.5 rounded-xl bg-white border border-gray-200 hover:border-blue-300 hover:text-blue-600 text-xs font-medium text-gray-600 flex items-center gap-1 transition-colors"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            查看记录
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl p-3 border border-gray-100">
+                        <div className="text-xs text-gray-500 mb-2">当次应服药品</div>
+                        <div className="flex flex-wrap gap-2">
+                          {item.medicines.map((m, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 px-2.5 py-1.5 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              <MedicineAvatar medicine={m.medicine} size="sm" />
+                              <span className="text-sm font-medium text-gray-700">{m.medicine.name}</span>
+                              <span className="text-xs text-gray-500">×{m.pillsCount}片</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {item.notes && (
+                        <div className="mt-2 text-xs text-gray-500 bg-white/60 rounded-lg px-3 py-2 border border-gray-100">
+                          📝 备注：{item.notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 rounded-b-3xl">
+              {drawerItems.length > 0 ? (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    <span className="text-red-500 font-semibold">漏服 {drawerItems.filter(i => i.status === 'missed').length} 次</span>
+                    <span className="mx-2 text-gray-300">|</span>
+                    <span className="text-amber-500 font-semibold">吐出重服 {drawerItems.filter(i => i.status === 'vomited').length} 次</span>
+                  </div>
+                  <button
+                    onClick={() => setDrawerOpen(false)}
+                    className="px-5 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
+                  >
+                    关闭
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="w-full px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  关闭
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,8 +4,10 @@ import type {
   PackingSlot,
   MedicationRecord,
   TimeSlot,
+  MedicationStatus,
 } from '@/types';
-import { daysBetween, formatDate, getMonthStart, getMonthEnd, parseDate } from './dateUtils';
+import { TIME_SLOT_LABELS } from '@/types';
+import { daysBetween, formatDate, formatDateDisplay, getMonthStart, getMonthEnd, parseDate } from './dateUtils';
 
 export interface LowStockAlert {
   medicine: Medicine;
@@ -33,6 +35,111 @@ export interface MissedStats {
   totalVomited: number;
   weeklyDistribution: number[];
   byMedicine: { medicineId: string; medicineName: string; count: number }[];
+}
+
+export interface MedicationDetailItem {
+  recordId: string;
+  slotId: string;
+  date: string;
+  dateDisplay: string;
+  timeSlot: TimeSlot;
+  timeSlotLabel: string;
+  timeSlotEmoji: string;
+  status: MedicationStatus;
+  statusLabel: string;
+  statusColor: string;
+  medicines: { medicine: Medicine; pillsCount: number }[];
+  recordedAt: string;
+  notes?: string;
+}
+
+export function getMissedAndVomitedDetails(
+  records: MedicationRecord[],
+  slots: PackingSlot[],
+  medicines: Medicine[],
+  schedules: DosageSchedule[],
+  packingItems: { slotId: string; medicineId: string; pillsCount: number }[],
+  monthDate: Date,
+  filterMedicineId?: string
+): MedicationDetailItem[] {
+  const monthStart = formatDate(getMonthStart(monthDate));
+  const monthEnd = formatDate(getMonthEnd(monthDate));
+
+  const monthSlotIds = slots
+    .filter((s) => s.date >= monthStart && s.date <= monthEnd)
+    .map((s) => s.id);
+
+  const targetRecords = records
+    .filter((r) => monthSlotIds.includes(r.slotId))
+    .filter((r) => r.status === 'missed' || r.status === 'vomited')
+    .filter((r) => {
+      if (!filterMedicineId) return true;
+      const slot = slots.find((s) => s.id === r.slotId);
+      if (!slot) return false;
+      const slotSchedules = schedules.filter(
+        (s) => s.timeSlot === slot.timeSlot && s.medicineId === filterMedicineId
+      );
+      return slotSchedules.length > 0;
+    })
+    .sort((a, b) => {
+      const slotA = slots.find((s) => s.id === a.slotId);
+      const slotB = slots.find((s) => s.id === b.slotId);
+      if (!slotA || !slotB) return 0;
+      if (slotA.date !== slotB.date) return slotB.date.localeCompare(slotA.date);
+      const order: TimeSlot[] = ['morning', 'noon', 'evening', 'bedtime'];
+      return order.indexOf(slotB.timeSlot) - order.indexOf(slotA.timeSlot);
+    });
+
+  const results: MedicationDetailItem[] = [];
+
+  targetRecords.forEach((record) => {
+    const slot = slots.find((s) => s.id === record.slotId);
+    if (!slot) return;
+
+    const slotInfo = TIME_SLOT_LABELS[slot.timeSlot];
+    const statusLabels: Record<MedicationStatus, { label: string; color: string }> = {
+      taken: { label: '已吃', color: 'text-green-600' },
+      missed: { label: '漏吃', color: 'text-red-600' },
+      vomited: { label: '吐出重服', color: 'text-amber-600' },
+    };
+
+    const slotMedicines = packingItems
+      .filter((i) => i.slotId === slot.id)
+      .map((i) => ({
+        medicine: medicines.find((m) => m.id === i.medicineId)!,
+        pillsCount: i.pillsCount,
+      }))
+      .filter((x) => x.medicine);
+
+    if (slotMedicines.length === 0) {
+      const scheduleMedicines = schedules
+        .filter((s) => s.timeSlot === slot.timeSlot)
+        .map((s) => ({
+          medicine: medicines.find((m) => m.id === s.medicineId)!,
+          pillsCount: s.pillsPerTime,
+        }))
+        .filter((x) => x.medicine);
+      slotMedicines.push(...scheduleMedicines);
+    }
+
+    results.push({
+      recordId: record.id,
+      slotId: slot.id,
+      date: slot.date,
+      dateDisplay: formatDateDisplay(slot.date),
+      timeSlot: slot.timeSlot,
+      timeSlotLabel: slotInfo.label,
+      timeSlotEmoji: slotInfo.emoji,
+      status: record.status,
+      statusLabel: statusLabels[record.status].label,
+      statusColor: statusLabels[record.status].color,
+      medicines: slotMedicines,
+      recordedAt: record.recordedAt,
+      notes: record.notes,
+    });
+  });
+
+  return results;
 }
 
 export function calculateDailyUsage(
