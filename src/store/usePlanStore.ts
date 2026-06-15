@@ -6,8 +6,22 @@ import { generateCodeName, generateId, getAvatarColor } from '../utils';
 
 interface PlanState {
   plan: BirthdayPlan;
+  planCreated: boolean;
   revealSecrets: boolean;
   setRevealSecrets: (v: boolean) => void;
+
+  createPlan: (data: {
+    mainCharacter: string;
+    date: string;
+    meetingPoint: string;
+    totalBudget: number;
+    secrecyLevel: SecrecyLevel;
+    participants: { name: string; isMainCharacter: boolean }[];
+  }) => void;
+
+  resetPlan: () => void;
+
+  loadExamplePlan: () => void;
 
   updatePlanHeader: (data: Partial<Pick<BirthdayPlan, 'mainCharacter' | 'date' | 'meetingPoint' | 'totalBudget' | 'secrecyLevel'>>) => void;
 
@@ -27,12 +41,55 @@ interface PlanState {
   toggleTimelineComplete: (id: string) => void;
 }
 
+const emptyPlan: BirthdayPlan = {
+  id: '',
+  mainCharacter: '',
+  date: '',
+  meetingPoint: '',
+  totalBudget: 0,
+  secrecyLevel: 'normal',
+  participants: [],
+  tasks: [],
+  timeline: [],
+};
+
 export const usePlanStore = create<PlanState>()(
   persist(
     (set, get) => ({
-      plan: mockPlan,
+      plan: emptyPlan,
+      planCreated: false,
       revealSecrets: false,
       setRevealSecrets: (v) => set({ revealSecrets: v }),
+
+      createPlan: (data) => {
+        const participants: Participant[] = data.participants.map((p, idx) => ({
+          id: generateId(),
+          name: p.name,
+          avatarColor: getAvatarColor(idx),
+          isMainCharacter: p.isMainCharacter,
+        }));
+        const mainChar = participants.find((p) => p.isMainCharacter);
+        const newPlan: BirthdayPlan = {
+          id: generateId(),
+          mainCharacter: mainChar?.name || data.mainCharacter,
+          date: data.date,
+          meetingPoint: data.meetingPoint,
+          totalBudget: data.totalBudget,
+          secrecyLevel: data.secrecyLevel,
+          participants,
+          tasks: [],
+          timeline: [],
+        };
+        set({ plan: newPlan, planCreated: true });
+      },
+
+      resetPlan: () => {
+        set({ plan: emptyPlan, planCreated: false, revealSecrets: false });
+      },
+
+      loadExamplePlan: () => {
+        set({ plan: { ...mockPlan, id: generateId() }, planCreated: true });
+      },
 
       updatePlanHeader: (data) =>
         set((state) => ({
