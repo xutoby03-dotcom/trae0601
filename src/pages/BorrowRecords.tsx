@@ -23,6 +23,7 @@ import {
   ChevronRight,
   ExternalLink,
   Usb,
+  Download,
 } from "lucide-react"
 import type { BorrowRecord, AlertItem } from "@/types"
 
@@ -77,6 +78,170 @@ export default function BorrowRecords() {
         (a) => a.borrowRecordId === selectedRecord.id || a.deviceId === selectedRecord.deviceId
       )
     : []
+
+  function handleExport() {
+    if (!selectedRecord || !device) return
+    const r = selectedRecord
+    const rc = r.returnCheck
+    const severityLabel: Record<AlertItem["severity"], string> = {
+      high: "高",
+      medium: "中",
+      low: "低",
+    }
+    const typeLabel: Record<AlertItem["type"], string> = {
+      overdue: "逾期未还",
+      sensitive_data: "敏感数据",
+      non_standard_firmware: "非标准固件/异常",
+    }
+    const sortedAlerts = [...recordAlerts].sort((a, b) => {
+      if (a.resolved !== b.resolved) return a.resolved ? 1 : -1
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>外借单据 - ${r.id}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 32px; background: #f8fafc; color: #1e293b; }
+  .wrap { max-width: 800px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .subtitle { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 14px; font-weight: 600; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; color: #334155; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .field { display: flex; }
+  .field .label { color: #64748b; width: 100px; font-size: 13px; flex-shrink: 0; }
+  .field .value { font-size: 13px; color: #1e293b; word-break: break-all; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid; }
+  .tag-green { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+  .tag-red { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+  .tag-amber { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .tag-slate { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+  .check-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
+  .check-item.fail { background: #fef2f2; border-color: #fecaca; }
+  .check-item .icon { width: 18px; flex-shrink: 0; }
+  .check-item .text { flex: 1; font-size: 13px; }
+  .check-item .note { font-size: 12px; color: #b91c1c; margin-top: 2px; }
+  .alert-item { padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; }
+  .alert-item.resolved { opacity: 0.6; }
+  .alert-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin-bottom: 4px; flex-wrap: wrap; }
+  .alert-msg { font-size: 13px; color: #1e293b; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>外借单据</h1>
+    <p class="subtitle">单据编号 ${r.id} · 导出时间 ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}</p>
+
+    <div class="section">
+      <div class="section-title">设备信息</div>
+      <div class="grid">
+        <div class="field"><span class="label">设备编号</span><span class="value">${device.code}</span></div>
+        <div class="field"><span class="label">设备型号</span><span class="value">${device.model}</span></div>
+        <div class="field"><span class="label">序列号</span><span class="value">${device.serialNumber}</span></div>
+        <div class="field"><span class="label">固件版本</span><span class="value">${device.firmwareVersion}${device.firmwareVersion !== device.standardFirmware ? `（标准：${device.standardFirmware}）` : ""}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">客户与项目</div>
+      <div class="grid">
+        <div class="field"><span class="label">客户名称</span><span class="value">${r.customer}</span></div>
+        <div class="field"><span class="label">项目名称</span><span class="value">${r.project || "-"}</span></div>
+        <div class="field"><span class="label">演示场景</span><span class="value">${r.demoScenario || "-"}</span></div>
+        <div class="field"><span class="label">含敏感数据</span><span class="value">${r.hasSensitiveData ? '<span class="tag tag-red">是</span>' : '<span class="tag tag-slate">否</span>'}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">借用信息</div>
+      <div class="grid">
+        <div class="field"><span class="label">借用人</span><span class="value">${r.borrower}</span></div>
+        <div class="field"><span class="label">借用人部门</span><span class="value">${r.borrowerDepartment}</span></div>
+        <div class="field"><span class="label">借出日期</span><span class="value">${format(new Date(r.borrowDate), "yyyy-MM-dd HH:mm")}</span></div>
+        <div class="field"><span class="label">预计归还</span><span class="value">${format(new Date(r.expectedReturnDate), "yyyy-MM-dd HH:mm")}</span></div>
+        <div class="field"><span class="label">实际归还</span><span class="value">${r.actualReturnDate ? format(new Date(r.actualReturnDate), "yyyy-MM-dd HH:mm") : "未归还"}</span></div>
+        <div class="field"><span class="label">单据状态</span><span class="value">${r.status === "borrowed" ? '<span class="tag tag-amber">借出中</span>' : r.status === "returned" ? '<span class="tag tag-green">已归还</span>' : '<span class="tag tag-red">逾期</span>'}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">归还检查${rc ? (rc.passed ? ' · <span class="tag tag-green" style="vertical-align:middle">全部通过</span>' : ' · <span class="tag tag-red" style="vertical-align:middle">存在未通过项</span>') : ' · <span class="tag tag-slate" style="vertical-align:middle">未检查</span>'}</div>
+      ${rc ? `
+        <div class="check-item ${rc.accessoriesComplete ? "" : "fail"}">
+          <div class="icon">${rc.accessoriesComplete ? "✅" : "❌"}</div>
+          <div>
+            <div class="text">配件齐全</div>
+            ${rc.accessoriesNote ? `<div class="note">${rc.accessoriesNote}</div>` : ""}
+          </div>
+        </div>
+        <div class="check-item ${rc.noNewScratches ? "" : "fail"}">
+          <div class="icon">${rc.noNewScratches ? "✅" : "❌"}</div>
+          <div>
+            <div class="text">无新增划痕</div>
+            ${rc.scratchesNote ? `<div class="note">${rc.scratchesNote}</div>` : ""}
+          </div>
+        </div>
+        <div class="check-item ${rc.batteryLevel >= 20 ? "" : "fail"}">
+          <div class="icon">${rc.batteryLevel >= 20 ? "✅" : "⚠️"}</div>
+          <div>
+            <div class="text">剩余电量：${rc.batteryLevel}%</div>
+            ${rc.batteryLevel < 20 ? `<div class="note">电量偏低</div>` : ""}
+          </div>
+        </div>
+        <div class="check-item ${rc.dataCleared ? "" : "fail"}">
+          <div class="icon">${rc.dataCleared ? "✅" : "❌"}</div>
+          <div>
+            <div class="text">客户数据已清空</div>
+            ${rc.dataClearNote ? `<div class="note">${rc.dataClearNote}</div>` : ""}
+          </div>
+        </div>
+        <div class="check-item ${rc.firmwareRolledBack ? "" : "fail"}">
+          <div class="icon">${rc.firmwareRolledBack ? "✅" : "❌"}</div>
+          <div>
+            <div class="text">固件已回滚至标准版</div>
+            ${rc.firmwareNote ? `<div class="note">${rc.firmwareNote}</div>` : ""}
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px"><span class="label">检查时间</span><span class="value">${format(new Date(rc.checkedAt), "yyyy-MM-dd HH:mm")}</span></div>
+        <div class="field"><span class="label">检查人</span><span class="value">${rc.checkedBy}</span></div>
+      ` : `<div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">该单据尚未进行归还检查</div>`}
+    </div>
+
+    <div class="section">
+      <div class="section-title">相关预警 · ${sortedAlerts.filter(a => !a.resolved).length} 条未处理</div>
+      ${sortedAlerts.length > 0 ? sortedAlerts.map(a => `
+        <div class="alert-item ${a.resolved ? "resolved" : ""}">
+          <div class="alert-head">
+            <span>${format(new Date(a.createdAt), "yyyy-MM-dd HH:mm")}</span>
+            <span class="tag tag-slate">${typeLabel[a.type]}</span>
+            <span class="tag ${a.severity === "high" ? "tag-red" : a.severity === "medium" ? "tag-amber" : "tag-slate"}">严重程度：${severityLabel[a.severity]}</span>
+            ${a.resolved ? '<span class="tag tag-green">已处理</span>' : ""}
+          </div>
+          <div class="alert-msg">${a.message}</div>
+        </div>
+      `).join("") : `<div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px;">暂无相关预警</div>`}
+    </div>
+
+    <div class="footer">样机外借追踪系统 · 本单据由系统自动导出</div>
+  </div>
+</body>
+</html>`
+
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `外借单-${r.id}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -448,6 +613,13 @@ export default function BorrowRecords() {
                   </div>
                 )}
               </Section>
+
+              <div className="pt-4 border-t border-slate-100">
+                <button onClick={handleExport} className="btn-primary w-full justify-center">
+                  <Download size={16} />
+                  导出单据为 HTML 文件
+                </button>
+              </div>
             </div>
           </div>
         </div>
