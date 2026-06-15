@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { PickupRecord, PickupStatus, MealType, WeeklyStats, AllergyType } from '@/types';
+import type { PickupRecord, PickupStatus, MealType, WeeklyStats, AllergyType, PrepStatus } from '@/types';
 import { ALLERGY_META } from '@/types';
 import { generatePickupRecords } from '@/utils/mockData';
 import { todayStr, getWeekRange, getWeekDates, formatDate } from '@/utils/dateUtils';
+import { usePrepStore } from './prepStore';
 
 interface PickupStore {
   pickupRecords: PickupRecord[];
@@ -16,6 +17,11 @@ interface PickupStore {
   getWeeklyStats: () => WeeklyStats;
   getTodayStats: () => { total: number; picked: number; notPicked: number; wrongPick: number; leave: number };
 }
+
+const syncPrepItemStatus = (prepItemId: string, status: PrepStatus) => {
+  const { updatePrepStatus } = usePrepStore.getState();
+  updatePrepStatus(prepItemId, status);
+};
 
 export const usePickupStore = create<PickupStore>()(
   persist(
@@ -56,6 +62,7 @@ export const usePickupStore = create<PickupStore>()(
           }
           return { pickupRecords: [...state.pickupRecords, record] };
         });
+        syncPrepItemStatus(prepItemId, 'picked');
         return { success: true, message: '领取成功', record };
       },
 
@@ -80,6 +87,7 @@ export const usePickupStore = create<PickupStore>()(
           }
           return { pickupRecords: [...state.pickupRecords, record] };
         });
+        syncPrepItemStatus(prepItemId, 'picked');
       },
 
       recordException: (studentId, prepItemId, mealType, status, notes) => {
@@ -111,6 +119,11 @@ export const usePickupStore = create<PickupStore>()(
             ],
           };
         });
+        if (status === 'leave') {
+          syncPrepItemStatus(prepItemId, 'pending');
+        } else if (status === 'wrong_pick') {
+          syncPrepItemStatus(prepItemId, 'ready');
+        }
       },
 
       getTodayRecords: () => get().getRecordsByDate(todayStr()),
