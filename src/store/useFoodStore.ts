@@ -111,7 +111,9 @@ export const useFoodStore = create<FoodState>()(
           if (food.status === 'available' || food.status === 'partially_claimed') {
             const expiryTime = getExpiryTime(food.endTime, food.edibleHours);
             if (expiryTime.getTime() < now.getTime()) {
-              get().expireFood(food.id, 'expired');
+              const hasBeenClaimed = state.claimRecords.some((r) => r.foodId === food.id);
+              const reason: 'expired' | 'unclaimed' = hasBeenClaimed ? 'expired' : 'unclaimed';
+              get().expireFood(food.id, reason);
             }
           }
         });
@@ -160,9 +162,11 @@ export const useFoodStore = create<FoodState>()(
           .slice(0, 5);
 
         const foodWasteMap = new Map<string, number>();
-        state.disposalRecords.forEach((record) => {
-          foodWasteMap.set(record.foodName, (foodWasteMap.get(record.foodName) || 0) + record.quantity);
-        });
+        state.disposalRecords
+          .filter((record) => record.reason === 'unclaimed')
+          .forEach((record) => {
+            foodWasteMap.set(record.foodName, (foodWasteMap.get(record.foodName) || 0) + record.quantity);
+          });
         
         const commonlyUnclaimed = Array.from(foodWasteMap.entries())
           .map(([name, count]) => ({ name, count }))
