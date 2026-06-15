@@ -30,6 +30,16 @@ export interface Chef {
   skillLevel: number;
 }
 
+export enum ContactStatus {
+  PENDING = 'pending',
+  CONTACTED = 'contacted',
+}
+
+export const CONTACT_STATUS_LABELS: Record<ContactStatus, string> = {
+  [ContactStatus.PENDING]: '待联系',
+  [ContactStatus.CONTACTED]: '已联系',
+};
+
 export interface Order {
   id: string;
   orderNo: string;
@@ -46,6 +56,9 @@ export interface Order {
   status: OrderStatus;
   chefId?: string;
   createdAt: string;
+  contactStatus: ContactStatus;
+  contactTime?: string;
+  contactNote?: string;
 }
 
 export interface StatusLog {

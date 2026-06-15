@@ -1,10 +1,16 @@
 import type { Chef, Order } from '@/types';
-import { OrderStatus } from '@/types';
+import { OrderStatus, ContactStatus } from '@/types';
 
 const today = new Date();
 const formatTime = (h: number, m: number) => {
   const d = new Date(today);
   d.setHours(h, m, 0, 0);
+  return d.toISOString();
+};
+
+const formatPastTime = (minutesAgo: number) => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - minutesAgo);
   return d.toISOString();
 };
 
@@ -33,6 +39,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.PIPING,
     chefId: 'c1',
     createdAt: formatTime(9, 0),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o2',
@@ -50,6 +57,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.CHILLED,
     chefId: 'c2',
     createdAt: formatTime(8, 30),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o3',
@@ -67,6 +75,9 @@ export const mockOrders: Order[] = [
     status: OrderStatus.CRUSTING,
     chefId: 'c4',
     createdAt: formatTime(10, 0),
+    contactStatus: ContactStatus.CONTACTED,
+    contactTime: formatPastTime(25),
+    contactNote: '已联系，客户同意简化装饰，放弃立体字改用平面印刷',
   },
   {
     id: 'o4',
@@ -84,6 +95,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.EMBRYO_READY,
     chefId: undefined,
     createdAt: formatTime(11, 0),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o5',
@@ -101,6 +113,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.FILLING_DONE,
     chefId: 'c1',
     createdAt: formatTime(9, 30),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o6',
@@ -118,6 +131,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.PIPING,
     chefId: 'c2',
     createdAt: formatTime(10, 30),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o7',
@@ -135,6 +149,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.EMBRYO_READY,
     chefId: undefined,
     createdAt: formatTime(11, 30),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o8',
@@ -152,6 +167,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.CRUSTING,
     chefId: 'c2',
     createdAt: formatTime(10, 0),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o9',
@@ -169,6 +185,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.EMBRYO_READY,
     chefId: 'c4',
     createdAt: formatTime(11, 0),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o10',
@@ -186,6 +203,7 @@ export const mockOrders: Order[] = [
     status: OrderStatus.EMBRYO_READY,
     chefId: undefined,
     createdAt: formatTime(12, 0),
+    contactStatus: ContactStatus.PENDING,
   },
   {
     id: 'o11',
@@ -203,6 +221,9 @@ export const mockOrders: Order[] = [
     status: OrderStatus.FILLING_DONE,
     chefId: 'c4',
     createdAt: formatTime(9, 0),
+    contactStatus: ContactStatus.CONTACTED,
+    contactTime: formatPastTime(55),
+    contactNote: '客户确认车型无误，蓝色用浅蓝更适合小孩',
   },
   {
     id: 'o12',
@@ -220,5 +241,6 @@ export const mockOrders: Order[] = [
     status: OrderStatus.CRUSTING,
     chefId: 'c1',
     createdAt: formatTime(10, 30),
+    contactStatus: ContactStatus.PENDING,
   },
 ];
