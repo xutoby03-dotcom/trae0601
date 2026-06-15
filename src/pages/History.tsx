@@ -192,35 +192,17 @@ export default function History() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                    filter === 'unpicked'
-                      ? 'bg-gradient-to-br from-primary-100 to-primary-200'
-                      : 'bg-gradient-to-br from-accent-coral/10 to-accent-coral/20'
-                  }`}>
-                    {filter === 'unpicked' ? (
-                      <Package className="w-7 h-7 text-primary-600" />
-                    ) : (
-                      <AlertTriangle className="w-7 h-7 text-accent-coral" />
-                    )}
+                  <div className="w-14 h-14 bg-gradient-to-br from-accent-coral/10 to-accent-coral/20 rounded-2xl flex items-center justify-center">
+                    <AlertTriangle className="w-7 h-7 text-accent-coral" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-xl font-bold text-neutral-800">
-                      {filter === 'all' && '待收总金额'}
-                      {filter === 'unpaid' && '待付款总金额'}
-                      {filter === 'unpicked' && '待取货总件数'}
-                    </h3>
-                    <p className="text-neutral-500">共 {totalPeople} 人</p>
+                    <h3 className="font-serif text-xl font-bold text-neutral-800">待收总金额</h3>
+                    <p className="text-neutral-500">共 {totalPeople} 人未结清</p>
                   </div>
                 </div>
-                {filter === 'unpicked' ? (
-                  <p className="font-serif text-4xl font-bold text-primary-600">
-                    {totalUnpicked} 件
-                  </p>
-                ) : (
-                  <p className="font-serif text-4xl font-bold text-accent-coral">
-                    {formatCurrency(totalUnpaid)}
-                  </p>
-                )}
+                <p className="font-serif text-4xl font-bold text-accent-coral">
+                  {formatCurrency(totalUnpaid)}
+                </p>
               </div>
             </motion.div>
 
@@ -247,7 +229,14 @@ export default function History() {
                         </span>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg text-neutral-800">{debt.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-lg text-neutral-800">{debt.name}</h3>
+                          {debt.displayUnpicked > 0 && (
+                            <span className="badge badge-info">
+                              {debt.displayUnpicked} 件待取
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-neutral-500">
                           {debt.orders.length} 个订单待处理
                         </p>
@@ -256,21 +245,10 @@ export default function History() {
 
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        {filter === 'unpicked' ? (
-                          <>
-                            <p className="text-xs text-neutral-500">待取货</p>
-                            <p className="font-serif text-2xl font-bold text-primary-600">
-                              {debt.displayUnpicked} 件
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xs text-neutral-500">待付金额</p>
-                            <p className="font-serif text-2xl font-bold text-accent-coral">
-                              {formatCurrency(debt.displayUnpaid)}
-                            </p>
-                          </>
-                        )}
+                        <p className="text-xs text-neutral-500">待付金额</p>
+                        <p className="font-serif text-2xl font-bold text-accent-coral">
+                          {formatCurrency(debt.displayUnpaid)}
+                        </p>
                       </div>
                       <button className="p-2 hover:bg-neutral-100 rounded-lg transition-colors">
                         {isExpanded ? (
