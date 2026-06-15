@@ -121,11 +121,13 @@ export const useStore = create<AppState>((set, get) => ({
   addBorrowRecord: (record) => {
     set((s) => {
       const now = new Date()
-      const borrowRecords = [...s.borrowRecords, record]
       const device = s.devices.find((d) => d.id === record.deviceId)
 
       const isOverdue = new Date(record.expectedReturnDate) < now
       const newStatus = isOverdue ? ("overdue" as const) : ("borrowed" as const)
+
+      const correctedRecord: BorrowRecord = { ...record, status: newStatus }
+      const borrowRecords = [...s.borrowRecords, correctedRecord]
 
       const devices = s.devices.map((d) =>
         d.id === record.deviceId ? { ...d, status: newStatus, updatedAt: new Date().toISOString() } : d

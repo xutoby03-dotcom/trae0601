@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
 import Layout from "@/components/Layout"
 import DeviceList from "@/pages/DeviceList"
@@ -7,8 +8,15 @@ import BorrowForm from "@/pages/BorrowForm"
 import ReturnCheck from "@/pages/ReturnCheck"
 import BorrowRecords from "@/pages/BorrowRecords"
 import Alerts from "@/pages/Alerts"
+import { useStore } from "@/store/useStore"
 
 export default function App() {
+  const generateAlerts = useStore((s) => s.generateAlerts)
+
+  useEffect(() => {
+    generateAlerts()
+  }, [generateAlerts])
+
   return (
     <Router>
       <Routes>
