@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Droplets, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Droplets, AlertTriangle, Wrench } from 'lucide-react';
 import { useAppStore } from '@/store';
 import PageContainer from '@/components/Layout/PageContainer';
 import PageHeader from '@/components/Layout/PageHeader';
@@ -23,6 +23,8 @@ export default function Rooms() {
   const [editingCurtain, setEditingCurtain] = useState<Curtain | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [scrollToStatus, setScrollToStatus] = useState(false);
+  const statusSectionRef = useRef<HTMLDivElement>(null);
 
   const [roomForm, setRoomForm] = useState({ name: '' });
   const [curtainForm, setCurtainForm] = useState({
@@ -67,6 +69,23 @@ export default function Rooms() {
     };
     return labels[activeFilter || ''] || '';
   };
+
+  const filterStats = useMemo(() => {
+    if (!activeFilter) return null;
+    const filteredCurtains = filterCurtains(curtains);
+    const roomsWithIssues = new Set(filteredCurtains.map((c) => c.roomId));
+    return {
+      roomCount: roomsWithIssues.size,
+      curtainCount: filteredCurtains.length,
+    };
+  }, [activeFilter, curtains]);
+
+  useEffect(() => {
+    if (scrollToStatus && statusSectionRef.current) {
+      statusSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setScrollToStatus(false);
+    }
+  }, [scrollToStatus, curtainModalOpen]);
 
   const handleAddRoom = () => {
     setEditingRoom(null);
@@ -121,7 +140,7 @@ export default function Rooms() {
     setCurtainModalOpen(true);
   };
 
-  const handleEditCurtain = (curtain: Curtain) => {
+  const handleEditCurtain = (curtain: Curtain, focusStatus = false) => {
     setSelectedRoomId(curtain.roomId);
     setEditingCurtain(curtain);
     setCurtainForm({
@@ -138,6 +157,13 @@ export default function Rooms() {
       trackStuck: curtain.trackStuck,
     });
     setCurtainModalOpen(true);
+    if (focusStatus) {
+      setScrollToStatus(true);
+    }
+  };
+
+  const handleQuickFix = (curtain: Curtain) => {
+    handleEditCurtain(curtain, true);
   };
 
   const handleSaveCurtain = () => {
@@ -185,19 +211,31 @@ export default function Rooms() {
       />
 
       {activeFilter && (
-        <div className="mb-6 p-4 bg-coral-50 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-coral-500" />
-            <span className="text-coral-700">
-              当前筛选：<strong>{getFilterLabel()}</strong> 的窗帘
-            </span>
+        <div className="mb-6 p-4 bg-coral-50 rounded-xl">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-coral-500" />
+              <span className="text-coral-700">
+                当前筛选：<strong>{getFilterLabel()}</strong> 的窗帘
+              </span>
+            </div>
+            <button
+              onClick={clearFilter}
+              className="px-4 py-2 bg-white text-coral-600 rounded-lg hover:bg-coral-100 transition-colors text-sm"
+            >
+              清除筛选
+            </button>
           </div>
-          <button
-            onClick={clearFilter}
-            className="px-4 py-2 bg-white text-coral-600 rounded-lg hover:bg-coral-100 transition-colors text-sm"
-          >
-            清除筛选
-          </button>
+          {filterStats && (
+            <div className="flex items-center gap-6 text-sm">
+              <span className="text-coral-600">
+                📍 涉及 <strong>{filterStats.roomCount}</strong> 个房间
+              </span>
+              <span className="text-coral-600">
+                🪟 共 <strong>{filterStats.curtainCount}</strong> 幅窗帘
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -208,6 +246,15 @@ export default function Rooms() {
           <p className="text-gray-500 mb-6">点击上方按钮添加您的第一个房间</p>
           <button onClick={handleAddRoom} className="btn-primary">
             添加第一个房间
+          </button>
+        </div>
+      ) : filterStats && filterStats.curtainCount === 0 ? (
+        <div className="card text-center py-16">
+          <div className="text-6xl mb-4">✅</div>
+          <h2 className="text-2xl mb-2">太棒了！</h2>
+          <p className="text-gray-500 mb-6">{getFilterLabel()}的问题都处理完了</p>
+          <button onClick={clearFilter} className="btn-primary">
+            查看所有窗帘
           </button>
         </div>
       ) : (
@@ -314,9 +361,20 @@ export default function Rooms() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 ml-4">
+                              {activeFilter && (
+                                <button
+                                  onClick={() => handleQuickFix(curtain)}
+                                  className="px-3 py-2 bg-coral-500 text-white rounded-lg hover:bg-coral-600 transition-colors flex items-center gap-2 text-sm"
+                                  title="快速处理问题状态"
+                                >
+                                  <Wrench size={16} />
+                                  处理
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleEditCurtain(curtain)}
                                 className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                                title="编辑窗帘"
                               >
                                 <Edit2 size={18} className="text-gray-500" />
                               </button>
@@ -330,6 +388,7 @@ export default function Rooms() {
                               <button
                                 onClick={() => handleDeleteCurtain(curtain.id)}
                                 className="p-2 hover:bg-coral-100 rounded-lg transition-colors"
+                                title="删除窗帘"
                               >
                                 <Trash2 size={18} className="text-coral-500" />
                               </button>
@@ -503,7 +562,7 @@ export default function Rooms() {
             />
           </div>
 
-          <div className="md:col-span-2 grid md:grid-cols-2 gap-4 pt-2">
+          <div ref={statusSectionRef} className="md:col-span-2 grid md:grid-cols-2 gap-4 pt-2">
             <label className="flex items-center gap-3 p-4 rounded-xl bg-coral-50 hover:bg-coral-100 transition-colors cursor-pointer">
               <input
                 type="checkbox"
