@@ -29,7 +29,7 @@ interface AppState {
 
   addReimbursement: (
     reimbursement: Omit<Reimbursement, 'id' | 'status' | 'isOverBudget' | 'approvalLogs' | 'createdAt'>
-  ) => void;
+  ) => string;
   submitReimbursement: (id: string) => void;
   approveReimbursementByTeacher: (id: string, comment: string) => void;
   approveReimbursementByFinance: (id: string, comment: string) => void;
@@ -106,9 +106,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? budget.usedAmount + reimData.amount > budget.amount
       : false;
 
+    const newId = generateId();
     const newReimbursement: Reimbursement = {
       ...reimData,
-      id: generateId(),
+      id: newId,
       status: 'draft' as ReimbursementStatus,
       isOverBudget,
       approvalLogs: [],
@@ -117,6 +118,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       reimbursements: [newReimbursement, ...state.reimbursements],
     }));
+    return newId;
   },
 
   submitReimbursement: (id) => {

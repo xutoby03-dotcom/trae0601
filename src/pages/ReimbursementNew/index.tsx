@@ -24,7 +24,7 @@ export default function ReimbursementNew() {
   const [searchParams] = useSearchParams();
   const budgetIdFromUrl = searchParams.get('budgetId');
 
-  const { getActiveBudgets, addReimbursement, getBudgetById } = useAppStore();
+  const { getActiveBudgets, addReimbursement, getBudgetById, submitReimbursement } = useAppStore();
   const activeBudgets = getActiveBudgets();
 
   const [formData, setFormData] = useState({
@@ -38,6 +38,7 @@ export default function ReimbursementNew() {
 
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string>('');
+  const [receiptClear, setReceiptClear] = useState<'clear' | 'unclear' | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState(1);
 
@@ -74,12 +75,15 @@ export default function ReimbursementNew() {
   const handleRemoveFile = () => {
     setReceiptFile(null);
     setReceiptPreview('');
+    setReceiptClear('');
   };
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.budgetId) newErrors.budgetId = '请选择活动预算';
     if (!receiptFile) newErrors.receipt = '请上传票据照片';
+    if (!receiptClear) newErrors.receiptClear = '请确认票据清晰度';
+    if (receiptClear === 'unclear') newErrors.receiptClear = '票据不清晰，请重新上传';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -141,8 +145,7 @@ export default function ReimbursementNew() {
     if (!validateStep2()) return;
     if (!selectedBudget) return;
 
-    const newReimId = 'temp-' + Date.now();
-    addReimbursement({
+    const newId = addReimbursement({
       budgetId: formData.budgetId,
       budgetName: selectedBudget.name,
       clubId: selectedBudget.clubId,
@@ -156,9 +159,10 @@ export default function ReimbursementNew() {
       description: formData.description.trim(),
     });
 
-    setTimeout(() => {
-      navigate('/reimbursements');
-    }, 300);
+    submitReimbursement(newId);
+
+    const targetStatus = isOverBudget ? 'pending_teacher' : 'pending_finance';
+    navigate(`/reimbursements?status=${targetStatus}`);
   };
 
   const FormField = ({
@@ -318,6 +322,50 @@ export default function ReimbursementNew() {
                         <FileText size={12} />
                         {receiptFile?.name}
                       </p>
+
+                      <div className="mt-4">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                          <Check size={14} className="text-slate-400" />
+                          票据清晰度确认 <span className="text-danger-500">*</span>
+                        </label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="receiptClear"
+                              value="clear"
+                              checked={receiptClear === 'clear'}
+                              onChange={(e) => {
+                                setReceiptClear(e.target.value as 'clear');
+                                if (errors.receiptClear) {
+                                  setErrors((prev) => ({ ...prev, receiptClear: '' }));
+                                }
+                              }}
+                              className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-slate-700">清晰可辨</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="receiptClear"
+                              value="unclear"
+                              checked={receiptClear === 'unclear'}
+                              onChange={(e) => {
+                                setReceiptClear(e.target.value as 'unclear');
+                              }}
+                              className="w-4 h-4 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-slate-700">不清晰</span>
+                          </label>
+                        </div>
+                        {errors.receiptClear && (
+                          <p className="mt-2 text-xs text-danger-500 flex items-center gap-1">
+                            <AlertTriangle size={12} />
+                            {errors.receiptClear}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </FormField>
@@ -467,7 +515,13 @@ export default function ReimbursementNew() {
                   </button>
                   <button
                     onClick={handleSubmitAndSend}
-                    className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-all shadow-sm shadow-primary-200 flex items-center gap-2"
+                    disabled={receiptClear !== 'clear'}
+                    className={cn(
+                      'px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                      receiptClear === 'clear'
+                        ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-200'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    )}
                   >
                     <Check size={16} />
                     提交报销
