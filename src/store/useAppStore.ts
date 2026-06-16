@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Book, Cabinet, BorrowRecord, Donation, RejectReason } from "@/types";
+import { APPROPRIATE_CATEGORIES } from "@/types";
 import {
   CABINETS,
   INITIAL_BOOKS,
@@ -113,7 +114,31 @@ export const useAppStore = create<AppState>()(
         const donation = get().donations.find((d) => d.id === donationId);
         if (!donation || donation.status !== "pending") return;
 
-        if (approved && targetCabinetId) {
+        const books = get().books;
+        const duplicateCount = books.filter(
+          (b) =>
+            b.title.toLowerCase() === donation.bookTitle.toLowerCase() &&
+            b.author.toLowerCase() === donation.bookAuthor.toLowerCase()
+        ).length;
+        const isBadCondition =
+          donation.bookCondition === "noticeable_damage" ||
+          donation.bookCondition === "heavy_marking";
+        const isLowGradeInappropriate =
+          (donation.suitableGrade === "一年级" ||
+            donation.suitableGrade === "二年级") &&
+          !(
+            APPROPRIATE_CATEGORIES[donation.suitableGrade] || []
+          ).includes(donation.category);
+        const tooManyDuplicates = duplicateCount >= 3;
+
+        let autoRejectReason: RejectReason | undefined;
+        if (isBadCondition) autoRejectReason = "damaged";
+        else if (tooManyDuplicates) autoRejectReason = "duplicate";
+        else if (isLowGradeInappropriate) autoRejectReason = "inappropriate";
+
+        const shouldApprove = approved && !autoRejectReason;
+
+        if (shouldApprove && targetCabinetId) {
           const newBook: Book = {
             id: generateId(),
             title: donation.bookTitle,
@@ -136,13 +161,14 @@ export const useAppStore = create<AppState>()(
             ),
           }));
         } else {
+          const finalReason = rejectReason || autoRejectReason || "duplicate";
           set((state) => ({
             donations: state.donations.map((d) =>
               d.id === donationId
                 ? {
                     ...d,
                     status: "rejected" as const,
-                    rejectReason,
+                    rejectReason: finalReason,
                     reviewDate: today(),
                   }
                 : d

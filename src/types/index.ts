@@ -2,6 +2,30 @@ export type BookStatus = "available" | "borrowed" | "damaged" | "offline";
 
 export type DonationStatus = "pending" | "approved" | "rejected";
 export type RejectReason = "damaged" | "duplicate" | "inappropriate";
+export type BookCondition =
+  | "like_new"
+  | "minor_crease"
+  | "noticeable_damage"
+  | "heavy_marking";
+
+export const BOOK_CONDITIONS: {
+  value: BookCondition;
+  label: string;
+  desc: string;
+  level: "good" | "warn" | "bad";
+}[] = [
+  { value: "like_new", label: "完好如新", desc: "封面完好，无笔记折痕", level: "good" },
+  { value: "minor_crease", label: "轻微折痕", desc: "少量折痕或签名，不影响阅读", level: "good" },
+  { value: "noticeable_damage", label: "明显破损", desc: "封面撕裂、缺页、水渍等", level: "bad" },
+  { value: "heavy_marking", label: "涂鸦严重", desc: "大量涂写笔记，影响阅读", level: "bad" },
+];
+
+export const BOOK_CONDITION_LABEL: Record<BookCondition, string> = {
+  like_new: "完好如新",
+  minor_crease: "轻微折痕",
+  noticeable_damage: "明显破损",
+  heavy_marking: "涂鸦严重",
+};
 
 export type BorrowStatus = "borrowed" | "returned" | "overdue";
 
@@ -50,6 +74,7 @@ export interface Donation {
   category: string;
   donorName: string;
   donorClass: string;
+  bookCondition: BookCondition;
   status: DonationStatus;
   rejectReason?: RejectReason;
   submitDate: string;

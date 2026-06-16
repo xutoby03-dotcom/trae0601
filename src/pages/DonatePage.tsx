@@ -9,32 +9,67 @@ import {
   AlertTriangle,
   CheckCircle2,
   BookMarked,
+  AlertCircle,
+  XCircle,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
-import { GRADES, CATEGORIES, APPROPRIATE_CATEGORIES } from "@/types";
+import {
+  GRADES,
+  CATEGORIES,
+  APPROPRIATE_CATEGORIES,
+  BOOK_CONDITIONS,
+  BOOK_CONDITION_LABEL,
+  type BookCondition,
+} from "@/types";
 import { CLASSES } from "@/data/mockData";
 import Toast from "@/components/Toast";
 import { gradeColor } from "@/utils/helpers";
+
+interface BlockingIssue {
+  reason: "duplicate" | "damaged" | "inappropriate";
+  label: string;
+  detail: string;
+}
 
 export default function DonatePage() {
   const navigate = useNavigate();
   const submitDonation = useAppStore((state) => state.submitDonation);
   const existingBooks = useAppStore((state) => state.books);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    bookTitle: string;
+    bookAuthor: string;
+    suitableGrade: string;
+    category: string;
+    donorClass: string;
+    donorName: string;
+    bookCondition: BookCondition | "";
+  }>({
     bookTitle: "",
     bookAuthor: "",
     suitableGrade: "",
     category: "",
     donorClass: "",
     donorName: "",
+    bookCondition: "",
   });
   const [coverPreview, setCoverPreview] = useState<string>("");
   const [showToast, setShowToast] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const warnings = useMemo(() => {
-    const result: { type: "info" | "warning" | "error"; message: string }[] = [];
+  const { blockingIssues, warnings } = useMemo(() => {
+    const blocks: BlockingIssue[] = [];
+    const warns: { type: "info" | "warning"; message: string }[] = [];
+
+    if (formData.bookCondition === "noticeable_damage" || formData.bookCondition === "heavy_marking") {
+      blocks.push({
+        reason: "damaged",
+        label: "书籍破损/涂鸦严重",
+        detail: `当前书况为【${
+          BOOK_CONDITION_LABEL[formData.bookCondition as BookCondition]
+        }】，漂流柜仅收八成新以上书籍`,
+      });
+    }
 
     if (formData.bookTitle && formData.bookAuthor) {
       const duplicates = existingBooks.filter(
@@ -43,29 +78,43 @@ export default function DonatePage() {
           b.author.toLowerCase() === formData.bookAuthor.toLowerCase()
       );
       if (duplicates.length >= 3) {
-        result.push({
-          type: "warning",
-          message: `⚠️ 系统中已有 ${duplicates.length} 本相同书籍，可能因重复率过高被拒`,
+        blocks.push({
+          reason: "duplicate",
+          label: "重复书籍过多",
+          detail: `系统中已有 ${duplicates.length} 本相同书籍，漂流柜重复藏书上限为 2 本`,
         });
       } else if (duplicates.length > 0) {
-        result.push({
+        warns.push({
           type: "info",
           message: `ℹ️ 系统中已有 ${duplicates.length} 本相同书籍`,
         });
       }
     }
 
-    if (formData.suitableGrade && formData.category) {
+    if (
+      formData.suitableGrade &&
+      formData.category &&
+      (formData.suitableGrade === "一年级" || formData.suitableGrade === "二年级")
+    ) {
       const appropriate = APPROPRIATE_CATEGORIES[formData.suitableGrade] || [];
       if (!appropriate.includes(formData.category)) {
-        result.push({
+        blocks.push({
+          reason: "inappropriate",
+          label: "低年级内容不匹配",
+          detail: `${formData.suitableGrade}推荐类别：${appropriate.join("、")}；【${formData.category}】不适合低龄读者`,
+        });
+      }
+    } else if (formData.suitableGrade && formData.category) {
+      const appropriate = APPROPRIATE_CATEGORIES[formData.suitableGrade] || [];
+      if (!appropriate.includes(formData.category)) {
+        warns.push({
           type: "warning",
-          message: `⚠️ ${formData.suitableGrade}通常更适合：${appropriate.join("、")}，内容可能不适合低年级`,
+          message: `⚠️ ${formData.suitableGrade}通常更适合：${appropriate.join("、")}，提交后管理员会重点审核`,
         });
       }
     }
 
-    return result;
+    return { blockingIssues: blocks, warnings: warns };
   }, [formData, existingBooks]);
 
   const updateField = (field: string, value: string) => {
@@ -82,9 +131,24 @@ export default function DonatePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { bookTitle, bookAuthor, suitableGrade, category, donorClass, donorName } =
-      formData;
-    if (!bookTitle || !bookAuthor || !suitableGrade || !category || !donorClass || !donorName) {
+    const {
+      bookTitle,
+      bookAuthor,
+      suitableGrade,
+      category,
+      donorClass,
+      donorName,
+      bookCondition,
+    } = formData;
+    if (
+      !bookTitle ||
+      !bookAuthor ||
+      !suitableGrade ||
+      !category ||
+      !donorClass ||
+      !donorName ||
+      !bookCondition
+    ) {
       return;
     }
 
@@ -104,6 +168,7 @@ export default function DonatePage() {
         category,
         donorName,
         donorClass,
+        bookCondition,
       });
       setSubmitting(false);
       setShowToast(true);
@@ -117,7 +182,8 @@ export default function DonatePage() {
     formData.suitableGrade &&
     formData.category &&
     formData.donorClass &&
-    formData.donorName;
+    formData.donorName &&
+    formData.bookCondition;
 
   return (
     <div className="max-w-2xl mx-auto animate-fade-in">
@@ -208,6 +274,86 @@ export default function DonatePage() {
                 placeholder="请输入作者姓名"
                 className="w-full px-4 py-2.5 rounded-xl border border-cream-300 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-400"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                书籍状况 *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {BOOK_CONDITIONS.map((cond) => {
+                  const selected = formData.bookCondition === cond.value;
+                  const colorCfg =
+                    cond.level === "good"
+                      ? {
+                          border: "border-forest-200",
+                          bg: "bg-forest-50",
+                          active: "bg-forest-500 text-white border-forest-500",
+                          label: "text-forest-700",
+                          desc: "text-forest-600",
+                        }
+                      : {
+                          border: "border-red-200",
+                          bg: "bg-red-50",
+                          active: "bg-red-500 text-white border-red-500",
+                          label: "text-red-700",
+                          desc: "text-red-600",
+                        };
+                  return (
+                    <label
+                      key={cond.value}
+                      className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${
+                        selected
+                          ? `${colorCfg.active} shadow-md`
+                          : `${colorCfg.bg} ${colorCfg.border} hover:shadow-sm`
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="bookCondition"
+                        value={cond.value}
+                        checked={selected}
+                        onChange={(e) =>
+                          updateField("bookCondition", e.target.value)
+                        }
+                        className="hidden"
+                      />
+                      <p
+                        className={`font-semibold text-sm ${
+                          selected ? "text-white" : colorCfg.label
+                        }`}
+                      >
+                        {cond.label}
+                      </p>
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          selected ? "text-white/80" : colorCfg.desc
+                        }`}
+                      >
+                        {cond.desc}
+                      </p>
+                    </label>
+                  );
+                })}
+              </div>
+              {formData.bookCondition && (
+                <p className="mt-2 text-xs flex items-center gap-1.5 text-gray-500">
+                  {BOOK_CONDITIONS.find((c) => c.value === formData.bookCondition)
+                    ?.level === "bad" ? (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                      <span className="text-red-600">
+                        注意：当前书况大概率无法通过审核
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-forest-500" />
+                      书况良好，可以继续提交
+                    </>
+                  )}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -301,7 +447,39 @@ export default function DonatePage() {
           </div>
         </div>
 
-        {warnings.length > 0 && (
+        {blockingIssues.length > 0 && (
+          <div className="bg-red-50 rounded-2xl p-5 border-2 border-red-200 animate-slide-up">
+            <h4 className="font-semibold text-red-800 flex items-center gap-2 mb-3">
+              <XCircle className="w-5 h-5" />
+              系统检测到阻断性问题
+              <span className="ml-auto text-xs font-normal bg-red-200 text-red-800 px-2 py-0.5 rounded-md">
+                管理员将自动拒绝
+              </span>
+            </h4>
+            <ul className="space-y-2.5">
+              {blockingIssues.map((b, i) => (
+                <li
+                  key={i}
+                  className="p-3 bg-white rounded-xl border border-red-100"
+                >
+                  <p className="font-medium text-red-700 text-sm flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" />
+                    {b.label}
+                  </p>
+                  <p className="text-xs text-red-600 mt-1 leading-relaxed">
+                    {b.detail}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-red-700 mt-4 flex items-start gap-1.5 leading-relaxed">
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              你仍可继续提交，但以上问题将被直接标记为拦截原因，无需再人工复核，书籍会被退回。
+            </p>
+          </div>
+        )}
+
+        {blockingIssues.length === 0 && warnings.length > 0 && (
           <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 animate-slide-up">
             <h4 className="font-semibold text-amber-800 flex items-center gap-2 mb-3">
               <AlertTriangle className="w-5 h-5" />
@@ -312,11 +490,7 @@ export default function DonatePage() {
                 <li
                   key={i}
                   className={`text-sm ${
-                    w.type === "error"
-                      ? "text-red-700"
-                      : w.type === "warning"
-                      ? "text-amber-700"
-                      : "text-blue-700"
+                    w.type === "warning" ? "text-amber-700" : "text-blue-700"
                   }`}
                 >
                   {w.message}
@@ -324,7 +498,7 @@ export default function DonatePage() {
               ))}
             </ul>
             <p className="text-xs text-amber-600 mt-3">
-              * 以上提示不影响提交，最终以管理员审核为准
+              * 以上提示仅供参考，最终以管理员审核为准
             </p>
           </div>
         )}
@@ -332,10 +506,19 @@ export default function DonatePage() {
         <button
           type="submit"
           disabled={!isFormValid || submitting}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold shadow-lg hover:shadow-xl hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          className={`w-full py-3.5 rounded-xl text-white font-semibold shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+            blockingIssues.length > 0
+              ? "bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 hover:shadow-xl"
+              : "bg-gradient-to-r from-primary-500 to-primary-600 hover:shadow-xl hover:from-primary-600 hover:to-primary-700"
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           {submitting ? (
             "提交中..."
+          ) : blockingIssues.length > 0 ? (
+            <>
+              <AlertTriangle className="w-5 h-5" />
+              仍要提交（会被拦截退回）
+            </>
           ) : (
             <>
               <CheckCircle2 className="w-5 h-5" />
@@ -347,7 +530,11 @@ export default function DonatePage() {
 
       {showToast && (
         <Toast
-          message="提交成功！等待管理员审核后即可上架 🌟"
+          message={
+            blockingIssues.length > 0
+              ? "已提交，系统将按拦截原因自动退回 📬"
+              : "提交成功！等待管理员审核后即可上架 🌟"
+          }
           type="success"
           onClose={() => setShowToast(false)}
         />
