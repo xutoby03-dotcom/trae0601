@@ -27,6 +27,13 @@ interface AppState {
   createCompletionRecord: (data: Omit<CompletionRecord, 'id' | 'completedAt'>) => Promise<{ completion: CompletionRecord; inspection?: Inspection }>;
   
   updateInspection: (id: string, data: Partial<Inspection>) => Promise<void>;
+  completeInspection: (id: string, data: {
+    wallDamage: 'none' | 'minor' | 'major';
+    wallDamageDescription?: string;
+    protectionMatReturned: boolean;
+    depositStatus: 'collected' | 'refunded' | 'deducted';
+    notes?: string;
+  }) => Promise<void>;
   
   setError: (error: string | null) => void;
 }
@@ -227,6 +234,21 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: (error as Error).message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  completeInspection: async (id, data) => {
+    set({ loading: true, error: null });
+    try {
+      await inspectionApi.complete(id, data);
+      set((state) => ({
+        pendingInspections: state.pendingInspections.filter((i) => i.id !== id),
+      }));
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
     } finally {
       set({ loading: false });
     }

@@ -122,4 +122,15 @@ export const inspectionApi = {
       method: 'PUT', 
       body: JSON.stringify(data) 
     }),
+  complete: (id: string, data: {
+    wallDamage: 'none' | 'minor' | 'major';
+    wallDamageDescription?: string;
+    protectionMatReturned: boolean;
+    depositStatus: 'collected' | 'refunded' | 'deducted';
+    notes?: string;
+  }) =>
+    request<{ inspection: Inspection; completion: CompletionRecord }>(`/inspections/${id}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };

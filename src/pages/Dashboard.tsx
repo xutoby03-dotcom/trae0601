@@ -29,6 +29,12 @@ interface ExtendedInspection {
   building?: string;
   notes?: string;
   createdAt?: string;
+  needsProtectionMat?: boolean;
+  protectionMatReturned?: boolean;
+  wallDamage?: string;
+  wallDamageDescription?: string;
+  depositStatus?: string;
+  depositAmount?: number;
 }
 
 export default function Dashboard() {
@@ -41,12 +47,20 @@ export default function Dashboard() {
     fetchPendingInspections,
     approveReservation,
     cancelReservation,
-    updateInspection,
+    completeInspection,
     setError
   } = useAppStore();
   
   const [selectedTab, setSelectedTab] = useState<'timeline' | 'conflicts' | 'inspections'>('timeline');
   const [filterDate, setFilterDate] = useState(getTodayDate());
+  const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
+  const [inspectionForm, setInspectionForm] = useState({
+    wallDamage: 'none' as 'none' | 'minor' | 'major',
+    wallDamageDescription: '',
+    protectionMatReturned: true,
+    depositStatus: 'refunded' as 'collected' | 'refunded' | 'deducted',
+    notes: '',
+  });
 
   useEffect(() => {
     fetchTodayReservations();
@@ -82,8 +96,35 @@ export default function Dashboard() {
     }
   };
 
-  const handleCompleteInspection = async (id: string) => {
-    await updateInspection(id, { status: 'completed' });
+  const handleOpenInspection = (inspection: ExtendedInspection) => {
+    setActiveInspectionId(inspection.id);
+    setInspectionForm({
+      wallDamage: (inspection.wallDamage as 'none' | 'minor' | 'major') || 'none',
+      wallDamageDescription: inspection.wallDamageDescription || '',
+      protectionMatReturned: inspection.protectionMatReturned !== undefined ? inspection.protectionMatReturned : true,
+      depositStatus: (inspection.depositStatus as 'collected' | 'refunded' | 'deducted') || 'refunded',
+      notes: inspection.notes || '',
+    });
+  };
+
+  const handleCloseInspection = () => {
+    setActiveInspectionId(null);
+  };
+
+  const handleSubmitInspection = async () => {
+    if (!activeInspectionId) return;
+    try {
+      await completeInspection(activeInspectionId, {
+        wallDamage: inspectionForm.wallDamage,
+        wallDamageDescription: inspectionForm.wallDamageDescription || undefined,
+        protectionMatReturned: inspectionForm.protectionMatReturned,
+        depositStatus: inspectionForm.depositStatus,
+        notes: inspectionForm.notes || undefined,
+      });
+      setActiveInspectionId(null);
+    } catch (error) {
+      setError((error as Error).message);
+    }
   };
 
   const getTimeSlotPosition = (startTime: string): number => {
@@ -404,41 +445,210 @@ export default function Dashboard() {
               {pendingInspections.length > 0 ? (
                 pendingInspections.map(inspection => {
                   const extInspection = inspection as ExtendedInspection;
+                  const isActive = activeInspectionId === inspection.id;
                   return (
                     <div
                       key={inspection.id}
-                      className="bg-amber-50 border border-amber-200 rounded-xl p-5"
+                      className={cn(
+                        'rounded-xl border transition-all',
+                        isActive
+                          ? 'bg-white border-sky-300 shadow-lg ring-1 ring-sky-200 col-span-1 md:col-span-2 lg:col-span-3'
+                          : 'bg-amber-50 border-amber-200 hover:border-amber-300 cursor-pointer'
+                      )}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                            <Search className="w-5 h-5 text-amber-600" />
+                      {!isActive ? (
+                        <div
+                          className="p-5"
+                          onClick={() => handleOpenInspection(extInspection)}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <Search className="w-5 h-5 text-amber-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-800">
+                                  {extInspection.building || ''} {inspection.unit}
+                                </h4>
+                                <p className="text-sm text-slate-500">{inspection.floor}层</p>
+                              </div>
+                            </div>
+                            <span className="px-2 py-1 text-xs bg-amber-200 text-amber-800 rounded-full">
+                              待巡检
+                            </span>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-slate-800">
-                              {extInspection.building || ''} {inspection.unit}
-                            </h4>
-                            <p className="text-sm text-slate-500">{inspection.floor}层</p>
+                          
+                          {extInspection.notes && (
+                            <p className="text-sm text-slate-600 bg-white rounded-lg p-3 mb-4">
+                              {extInspection.notes}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-2 text-sm text-amber-700">
+                            <Shield className={cn('w-4 h-4', extInspection.needsProtectionMat ? 'text-amber-500' : 'text-slate-300')} />
+                            <span>{extInspection.needsProtectionMat ? '需要检查护板归还' : '无需护板'}</span>
                           </div>
                         </div>
-                        <span className="px-2 py-1 text-xs bg-amber-200 text-amber-800 rounded-full">
-                          待巡检
-                        </span>
-                      </div>
-                      
-                      {extInspection.notes && (
-                        <p className="text-sm text-slate-600 bg-white rounded-lg p-3 mb-4">
-                          {extInspection.notes}
-                        </p>
+                      ) : (
+                        <div className="p-5">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                                <Search className="w-5 h-5 text-sky-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-800">
+                                  {extInspection.building || ''} {inspection.unit} {inspection.floor}层
+                                </h4>
+                                <p className="text-sm text-slate-500">填写巡检结果</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={handleCloseInspection}
+                              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                              <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-amber-500" />
+                                护板归还
+                              </h4>
+                              {extInspection.needsProtectionMat ? (
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer bg-white hover:bg-slate-50 border-slate-200">
+                                    <input
+                                      type="radio"
+                                      name={`mat-${inspection.id}`}
+                                      checked={inspectionForm.protectionMatReturned}
+                                      onChange={() => setInspectionForm(f => ({ ...f, protectionMatReturned: true }))}
+                                      className="text-sky-600"
+                                    />
+                                    <span className="text-sm text-slate-700">已归还</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer bg-white hover:bg-slate-50 border-slate-200">
+                                    <input
+                                      type="radio"
+                                      name={`mat-${inspection.id}`}
+                                      checked={!inspectionForm.protectionMatReturned}
+                                      onChange={() => setInspectionForm(f => ({ ...f, protectionMatReturned: false }))}
+                                      className="text-sky-600"
+                                    />
+                                    <span className="text-sm text-slate-700">未归还</span>
+                                  </label>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-slate-400 p-3 bg-slate-50 rounded-lg">无需护板</p>
+                              )}
+
+                              <h4 className="font-medium text-slate-700 mt-5 mb-3 flex items-center gap-2">
+                                <Package className="w-4 h-4 text-emerald-500" />
+                                押金状态
+                              </h4>
+                              <div className="space-y-2">
+                                {[
+                                  { value: 'refunded' as const, label: '已退还', color: 'text-green-700' },
+                                  { value: 'deducted' as const, label: '已扣款', color: 'text-red-700' },
+                                  { value: 'collected' as const, label: '已收取', color: 'text-amber-700' },
+                                ].map(opt => (
+                                  <label key={opt.value} className={cn(
+                                    'flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer bg-white hover:bg-slate-50',
+                                    inspectionForm.depositStatus === opt.value ? 'border-sky-300 ring-1 ring-sky-200' : 'border-slate-200'
+                                  )}>
+                                    <input
+                                      type="radio"
+                                      name={`deposit-${inspection.id}`}
+                                      checked={inspectionForm.depositStatus === opt.value}
+                                      onChange={() => setInspectionForm(f => ({ ...f, depositStatus: opt.value }))}
+                                      className="text-sky-600"
+                                    />
+                                    <span className={cn('text-sm', opt.color)}>{opt.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                                <Building2 className="w-4 h-4 text-orange-500" />
+                                墙面情况
+                              </h4>
+                              <div className="space-y-2">
+                                {[
+                                  { value: 'none' as const, label: '完好无损', desc: '墙面无任何损坏', color: 'border-green-200 bg-green-50' },
+                                  { value: 'minor' as const, label: '轻微刮擦', desc: '小面积划痕或擦伤', color: 'border-amber-200 bg-amber-50' },
+                                  { value: 'major' as const, label: '明显损坏', desc: '大面积破损或凹陷', color: 'border-red-200 bg-red-50' },
+                                ].map(opt => (
+                                  <label key={opt.value} className={cn(
+                                    'flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer',
+                                    inspectionForm.wallDamage === opt.value
+                                      ? `${opt.color} ring-1 ring-sky-200`
+                                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                                  )}>
+                                    <input
+                                      type="radio"
+                                      name={`wall-${inspection.id}`}
+                                      checked={inspectionForm.wallDamage === opt.value}
+                                      onChange={() => setInspectionForm(f => ({ ...f, wallDamage: opt.value }))}
+                                      className="text-sky-600 mt-0.5"
+                                    />
+                                    <div>
+                                      <span className="text-sm font-medium text-slate-700">{opt.label}</span>
+                                      <p className="text-xs text-slate-400">{opt.desc}</p>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+
+                              {inspectionForm.wallDamage !== 'none' && (
+                                <div className="mt-3">
+                                  <label className="text-sm text-slate-600 mb-1 block">损坏描述</label>
+                                  <textarea
+                                    value={inspectionForm.wallDamageDescription}
+                                    onChange={e => setInspectionForm(f => ({ ...f, wallDamageDescription: e.target.value }))}
+                                    placeholder="请描述墙面损坏的具体位置和程度"
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              <h4 className="font-medium text-slate-700 mb-3 flex items-center gap-2">
+                                <User className="w-4 h-4 text-violet-500" />
+                                巡检备注
+                              </h4>
+                              <textarea
+                                value={inspectionForm.notes}
+                                onChange={e => setInspectionForm(f => ({ ...f, notes: e.target.value }))}
+                                placeholder="填写巡检备注信息..."
+                                rows={6}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                              />
+
+                              <div className="mt-6 flex gap-3">
+                                <button
+                                  onClick={handleSubmitInspection}
+                                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                >
+                                  <Check className="w-4 h-4" />
+                                  确认完成
+                                </button>
+                                <button
+                                  onClick={handleCloseInspection}
+                                  className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
-                      
-                      <button
-                        onClick={() => handleCompleteInspection(inspection.id)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <Check className="w-4 h-4" />
-                        标记为已巡检
-                      </button>
                     </div>
                   );
                 })
