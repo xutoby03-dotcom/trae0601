@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useStore } from '@/store'
 import { STATUS_LABELS, STATUS_COLORS, SIZE_LABELS, type GoggleSize, type GoggleStatus, type Goggle } from '@/types'
 import { formatDateTime, formatDate } from '@/utils/format'
@@ -27,13 +27,22 @@ export default function Inventory() {
     return true
   }), [goggles, search, filterLab, filterStatus])
 
+  const visibleIds = useMemo(() => new Set(filteredGoggles.map(g => g.id)), [filteredGoggles])
+
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const cleaned = prev.filter(id => visibleIds.has(id))
+      return cleaned.length === prev.length ? prev : cleaned
+    })
+  }, [visibleIds])
+
   const selectedGoggles = useMemo(
     () => filteredGoggles.filter(g => selectedIds.includes(g.id)),
     [filteredGoggles, selectedIds]
   )
 
-  const allSelected = filteredGoggles.length > 0 && selectedIds.length === filteredGoggles.length
-  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredGoggles.length
+  const allSelected = filteredGoggles.length > 0 && selectedGoggles.length === filteredGoggles.length
+  const someSelected = selectedGoggles.length > 0 && selectedGoggles.length < filteredGoggles.length
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev =>
@@ -43,9 +52,13 @@ export default function Inventory() {
 
   const toggleSelectAll = () => {
     if (allSelected) {
-      setSelectedIds([])
+      setSelectedIds(prev => prev.filter(id => !visibleIds.has(id)))
     } else {
-      setSelectedIds(filteredGoggles.map(g => g.id))
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        filteredGoggles.forEach(g => next.add(g.id))
+        return Array.from(next)
+      })
     }
   }
 
@@ -105,10 +118,10 @@ export default function Inventory() {
           <p className="text-slate-500 mt-1">管理所有护目镜的资料信息，包括尺码、实验室和消毒记录</p>
         </div>
         <div className="flex items-center gap-3">
-          {selectedIds.length > 0 && (
+          {selectedGoggles.length > 0 && (
             <button onClick={handleBatchStatus} className="btn-secondary">
               <CheckSquare className="w-4 h-4" />
-              批量改状态 ({selectedIds.length})
+              批量改状态 ({selectedGoggles.length})
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
@@ -140,9 +153,9 @@ export default function Inventory() {
             {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
           <span className="text-sm text-slate-500 shrink-0">共 {filteredGoggles.length} 副</span>
-          {selectedIds.length > 0 && (
+          {selectedGoggles.length > 0 && (
             <span className="text-sm text-brand-600 font-medium shrink-0">
-              已选 {selectedIds.length} 副
+              已选 {selectedGoggles.length} 副
             </span>
           )}
         </div>
