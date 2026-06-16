@@ -25,10 +25,6 @@ export default function OpenBooth() {
       showToast.error('请先登录');
       return;
     }
-    if (selectedIds.length === 0) {
-      showToast.error('请至少选择一件桌椅');
-      return;
-    }
     try {
       await openBooth(currentUser.id, selectedIds, currentWeather);
       setIsSuccess(true);
@@ -110,7 +106,7 @@ export default function OpenBooth() {
             size="lg"
             onClick={handleOpenBooth}
             loading={loading}
-            disabled={selectedIds.length === 0}
+            disabled={loading}
           >
             确认开摊
           </Button>
