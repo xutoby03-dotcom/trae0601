@@ -21,6 +21,7 @@ import {
   EyeOutlined,
   DeleteOutlined,
   CheckCircleOutlined,
+  PictureOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import {
@@ -39,6 +40,62 @@ const SEVERITY_MAP = {
   low: { label: '轻微', color: 'green' },
   medium: { label: '中等', color: 'orange' },
   high: { label: '严重', color: 'red' },
+}
+
+function PhotoThumb({ src }) {
+  const [failed, setFailed] = useState(false)
+  if (!src) return <span style={{ color: '#bfbfbf' }}>无</span>
+  if (failed) {
+    return (
+      <div
+        style={{
+          width: 60,
+          height: 40,
+          borderRadius: 4,
+          background: '#f5f5f5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+        }}
+      >
+        <PictureOutlined style={{ color: '#d9d9d9', fontSize: 14 }} />
+        <span style={{ color: '#bfbfbf', fontSize: 10, marginTop: 2 }}>不可用</span>
+      </div>
+    )
+  }
+  return (
+    <Image
+      width={60}
+      height={40}
+      src={src}
+      style={{ objectFit: 'cover', borderRadius: 4 }}
+      onError={() => setFailed(true)}
+      preview={false}
+    />
+  )
+}
+
+function PhotoDetail({ src }) {
+  const [failed, setFailed] = useState(false)
+  if (!src) return null
+  if (failed) {
+    return (
+      <div
+        style={{
+          padding: '32px 0',
+          textAlign: 'center',
+          background: '#fafafa',
+          borderRadius: 8,
+          border: '1px dashed #e8e8e8',
+        }}
+      >
+        <PictureOutlined style={{ fontSize: 40, color: '#d9d9d9' }} />
+        <div style={{ color: '#bfbfbf', marginTop: 8 }}>照片不可用，文件可能已被删除</div>
+      </div>
+    )
+  }
+  return <Image src={src} style={{ maxWidth: '100%' }} onError={() => setFailed(true)} />
 }
 
 function PestReports() {
@@ -272,17 +329,7 @@ function PestReports() {
       title: '照片',
       dataIndex: 'photoUrl',
       key: 'photoUrl',
-      render: (photoUrl) =>
-        photoUrl ? (
-          <Image
-            width={60}
-            height={40}
-            src={photoUrl}
-            style={{ objectFit: 'cover', borderRadius: 4 }}
-          />
-        ) : (
-          <span style={{ color: '#bfbfbf' }}>无</span>
-        ),
+      render: (photoUrl) => <PhotoThumb src={photoUrl} />,
     },
     {
       title: '状态',
@@ -520,7 +567,7 @@ function PestReports() {
             {detailData.photoUrl && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ color: '#888', marginBottom: 4 }}>照片</div>
-                <Image src={detailData.photoUrl} style={{ maxWidth: '100%' }} />
+                <PhotoDetail src={detailData.photoUrl} />
               </div>
             )}
             {detailData.resolvedNotes && (
