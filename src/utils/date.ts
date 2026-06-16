@@ -60,11 +60,18 @@ export function addDaysIso(dateStr: string, days: number): string {
 export function addDaysDateOnly(dateStr: string, days: number): string {
   const date = new Date(dateStr);
   date.setDate(date.getDate() + days);
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const d = date.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function todayStr(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = (now.getMonth() + 1).toString().padStart(2, '0');
+  const d = now.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function nowIso(): string {
@@ -72,17 +79,24 @@ export function nowIso(): string {
 }
 
 export function toDatePart(isoStr: string): string {
-  return isoStr.split('T')[0];
+  const date = new Date(isoStr);
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const d = date.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function toTimePart(isoStr: string): string {
-  const parts = isoStr.split('T')[1];
-  if (!parts) return '00:00';
-  return parts.slice(0, 5);
+  const date = new Date(isoStr);
+  const h = date.getHours().toString().padStart(2, '0');
+  const min = date.getMinutes().toString().padStart(2, '0');
+  return `${h}:${min}`;
 }
 
 export function combineDateAndTime(dateStr: string, timeStr: string): string {
-  const date = new Date(`${dateStr}T${timeStr}:00`);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [h, min] = timeStr.split(':').map(Number);
+  const date = new Date(y, m - 1, d, h, min, 0, 0);
   return date.toISOString();
 }
 
