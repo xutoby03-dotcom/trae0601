@@ -43,7 +43,6 @@ export default function FreezerDetail() {
     temperature: -18,
     productStatus: 'good',
     notes: '',
-    isResolved: true,
   });
 
   if (!freezer) {
@@ -70,16 +69,11 @@ export default function FreezerDetail() {
   const handleRecheckInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setRecheckForm((prev) => ({ ...prev, [name]: checked }));
-    } else {
-      setRecheckForm((prev) => ({
-        ...prev,
-        [name]: name === 'temperature' ? Number(value) : value,
-      }));
-    }
+    const { name, value } = e.target;
+    setRecheckForm((prev) => ({
+      ...prev,
+      [name]: name === 'temperature' ? Number(value) : value,
+    }));
   };
 
   const latestAbnormalInspection = inspections.find(
@@ -100,7 +94,7 @@ export default function FreezerDetail() {
       temperature: recheckForm.temperature,
       productStatus: recheckForm.productStatus as any,
       notes: recheckForm.notes,
-      isResolved: recheckForm.isResolved,
+      isResolved: true,
     });
 
     setShowRecheckDialog(false);
@@ -110,7 +104,6 @@ export default function FreezerDetail() {
       temperature: -18,
       productStatus: 'good',
       notes: '',
-      isResolved: true,
     });
   };
 
@@ -688,21 +681,16 @@ export default function FreezerDetail() {
                 />
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-                <input
-                  type="checkbox"
-                  id="isResolved"
-                  name="isResolved"
-                  checked={recheckForm.isResolved}
-                  onChange={handleRecheckInputChange}
-                  className="w-5 h-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                />
-                <label htmlFor="isResolved" className="text-sm text-slate-700">
-                  <span className="font-medium">标记为已解决</span>
-                  <span className="text-slate-500 block text-xs mt-0.5">
-                    勾选后冷柜状态将恢复为正常
+              <div className="flex items-start gap-3 p-4 bg-emerald-50 rounded-xl">
+                <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-sm">
+                  <span className="font-medium text-emerald-700">提交后自动恢复正常</span>
+                  <span className="text-emerald-600 block text-xs mt-0.5">
+                    复查登记提交后，冷柜状态将自动恢复为正常，告警提示会同步解除
                   </span>
-                </label>
+                </div>
               </div>
             </div>
 

@@ -112,12 +112,11 @@ export const useLossReportStore = create<LossReportStore>()(
         const newRecheck: Recheck = {
           ...recheck,
           id: generateId(),
+          isResolved: true,
         };
         set({ rechecks: [newRecheck, ...get().rechecks] });
 
-        if (recheck.isResolved) {
-          useFreezerStore.getState().updateFreezerStatus(recheck.freezerId, 'normal');
-        }
+        useFreezerStore.getState().updateFreezerStatus(recheck.freezerId, 'normal');
       },
 
       getRechecksByFreezer: (freezerId) => {
