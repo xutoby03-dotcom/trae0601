@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronDown, ChevronUp, Package, DollarSign, User } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Package, DollarSign, User, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOrderStore } from '@/store/useOrderStore';
 import { formatCurrency, formatDate } from '@/types';
@@ -28,12 +28,26 @@ interface ParticipantDebt {
 
 export default function History() {
   const navigate = useNavigate();
-  const { orders, payments, pickupStatus } = useOrderStore();
+  const { orders, payments, pickupStatus, setPayment, setPickupStatus } = useOrderStore();
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
 
   const toggleExpand = (id: string) => {
     setExpandedParticipant(expandedParticipant === id ? null : id);
+  };
+
+  const handleQuickPayment = (e: React.MouseEvent, orderId: string, participantId: string, amount: number) => {
+    e.stopPropagation();
+    if (confirm(`确认收到该笔款项 ${formatCurrency(amount)} 吗？`)) {
+      setPayment(orderId, participantId, amount);
+    }
+  };
+
+  const handleQuickPickup = (e: React.MouseEvent, orderId: string, participantId: string) => {
+    e.stopPropagation();
+    if (confirm('确认标记为已取货吗？')) {
+      setPickupStatus(orderId, participantId, true);
+    }
   };
 
   const participantDebts = orders.reduce((acc, order) => {
@@ -269,25 +283,28 @@ export default function History() {
                       className="overflow-hidden"
                     >
                       <div className="pt-4 mt-4 border-t border-neutral-100">
-                        <div className="grid grid-cols-5 gap-4 px-4 py-2 text-sm font-medium text-neutral-500">
+                        <div className="grid grid-cols-6 gap-3 px-4 py-2 text-sm font-medium text-neutral-500">
                           <div className="col-span-2">订单</div>
                           <div className="text-right">日期</div>
                           <div className="text-right">
                             {filter === 'unpicked' ? '应付金额' : '待付金额'}
                           </div>
                           <div className="text-right">状态</div>
+                          <div className="text-right">操作</div>
                         </div>
 
                         {debt.orders.map((order) => (
                           <div
                             key={order.orderId}
-                            className="grid grid-cols-5 gap-4 px-4 py-3 rounded-xl hover:bg-neutral-50 items-center cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/order/${order.orderId}`);
-                            }}
+                            className="grid grid-cols-6 gap-3 px-4 py-3 rounded-xl hover:bg-neutral-50 items-center"
                           >
-                            <div className="col-span-2">
+                            <div
+                              className="col-span-2 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/order/${order.orderId}`);
+                              }}
+                            >
                               <p className="font-medium text-neutral-800">
                                 {order.orderPlatform}
                               </p>
@@ -313,6 +330,37 @@ export default function History() {
                               )}
                               {!order.isPickedUp && (
                                 <span className="badge badge-warning">待取货</span>
+                              )}
+                            </div>
+                            <div className="flex justify-end gap-1">
+                              {!order.isPaid && (
+                                <button
+                                  onClick={(e) => handleQuickPayment(
+                                    e,
+                                    order.orderId,
+                                    debt.participantId,
+                                    order.payableAmount
+                                  )}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                                  title="标记为已收款"
+                                >
+                                  <DollarSign className="w-3.5 h-3.5" />
+                                  收款
+                                </button>
+                              )}
+                              {!order.isPickedUp && (
+                                <button
+                                  onClick={(e) => handleQuickPickup(
+                                    e,
+                                    order.orderId,
+                                    debt.participantId
+                                  )}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg text-sm font-medium hover:bg-primary-100 transition-colors"
+                                  title="标记为已取货"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  取货
+                                </button>
                               )}
                             </div>
                           </div>
