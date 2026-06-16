@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Badge, Visitor, LossRecord, DashboardStats, BadgeStatus, VisitorStatus } from '../types';
+import type {
+  Badge,
+  Visitor,
+  LossRecord,
+  OvertimeReminder,
+  DashboardStats,
+  BadgeStatus,
+  VisitorStatus,
+  ReminderStatus,
+} from '../types';
 import { mockBadges, mockVisitors } from '../data/mockData';
 import { generateId } from '../utils/id';
 import { isToday, isOvertime, getDurationMs, getAverageDuration } from '../utils/time';
@@ -9,6 +18,7 @@ interface BadgeStore {
   badges: Badge[];
   visitors: Visitor[];
   lossRecords: LossRecord[];
+  overtimeReminders: OvertimeReminder[];
 
   addBadge: (badge: Omit<Badge, 'id' | 'createdAt' | 'status'> & { status?: BadgeStatus }) => void;
   updateBadge: (id: string, data: Partial<Badge>) => void;
@@ -19,6 +29,10 @@ interface BadgeStore {
   confirmReturn: (visitorId: string) => void;
   updateOvertimeStatus: () => void;
   reportLost: (data: Omit<LossRecord, 'id' | 'reportedAt' | 'status'>) => void;
+
+  handleReminder: (reminderId: string, note?: string) => void;
+  getPendingReminders: () => OvertimeReminder[];
+  getHandledReminders: () => OvertimeReminder[];
 
   getDashboardStats: () => DashboardStats;
   getUnreturnedVisitors: () => Visitor[];
@@ -35,6 +49,7 @@ export const useBadgeStore = create<BadgeStore>()(
       badges: mockBadges,
       visitors: mockVisitors,
       lossRecords: [],
+      overtimeReminders: [],
 
       addBadge: (badge) => {
         const newBadge: Badge = {
@@ -85,24 +100,63 @@ export const useBadgeStore = create<BadgeStore>()(
               ? { ...v, actualLeaveTime: now, status: 'returned' as VisitorStatus }
               : v
           ),
-        }));
-      },
-
-      updateOvertimeStatus: () => {
-        set((state) => ({
-          visitors: state.visitors.map((v) =>
-            v.status === 'visiting' && isOvertime(v.expectedLeaveTime)
-              ? { ...v, status: 'overtime' as VisitorStatus }
-              : v
+          overtimeReminders: state.overtimeReminders.map((r) =>
+            r.visitorId === visitorId && r.status === 'pending'
+              ? {
+                  ...r,
+                  status: 'handled' as ReminderStatus,
+                  handledAt: now,
+                  handledNote: r.handledNote || '工牌已归还',
+                }
+              : r
           ),
         }));
       },
 
+      updateOvertimeStatus: () => {
+        const now = new Date().toISOString();
+        const { visitors, badges, overtimeReminders } = get();
+        const pendingVisitorIds = new Set(
+          overtimeReminders.filter((r) => r.status === 'pending').map((r) => r.visitorId)
+        );
+
+        const newReminders: OvertimeReminder[] = [];
+        const updatedVisitors = visitors.map((v) => {
+          if (v.status === 'visiting' && isOvertime(v.expectedLeaveTime)) {
+            const badge = badges.find((b) => b.id === v.badgeId);
+            if (!pendingVisitorIds.has(v.id)) {
+              newReminders.push({
+                id: generateId(),
+                visitorId: v.id,
+                visitorName: v.name,
+                visitorCompany: v.company,
+                visitorPhone: v.phone,
+                hostName: v.hostName,
+                expectedLeaveTime: v.expectedLeaveTime,
+                badgeNumber: badge?.number || '未知',
+                badgeColor: badge?.color || '未知',
+                badgeColorHex: badge?.colorHex || '#6b7280',
+                overtimeAt: now,
+                status: 'pending',
+              });
+            }
+            return { ...v, status: 'overtime' as VisitorStatus };
+          }
+          return v;
+        });
+
+        set((state) => ({
+          visitors: updatedVisitors,
+          overtimeReminders: [...state.overtimeReminders, ...newReminders],
+        }));
+      },
+
       reportLost: (data) => {
+        const now = new Date().toISOString();
         const record: LossRecord = {
           ...data,
           id: generateId(),
-          reportedAt: new Date().toISOString(),
+          reportedAt: now,
           status: 'completed',
         };
         set((state) => ({
@@ -113,7 +167,49 @@ export const useBadgeStore = create<BadgeStore>()(
           visitors: state.visitors.map((v) =>
             v.id === data.visitorId ? { ...v, status: 'lost' as VisitorStatus } : v
           ),
+          overtimeReminders: state.overtimeReminders.map((r) =>
+            r.visitorId === data.visitorId && r.status === 'pending'
+              ? {
+                  ...r,
+                  status: 'handled' as ReminderStatus,
+                  handledAt: now,
+                  handledNote: r.handledNote || '工牌已遗失登记',
+                }
+              : r
+          ),
         }));
+      },
+
+      handleReminder: (reminderId, note) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          overtimeReminders: state.overtimeReminders.map((r) =>
+            r.id === reminderId
+              ? {
+                  ...r,
+                  status: 'handled' as ReminderStatus,
+                  handledAt: now,
+                  handledNote: note || '已处理',
+                }
+              : r
+          ),
+        }));
+      },
+
+      getPendingReminders: () => {
+        const { overtimeReminders, visitors } = get();
+        const activeVisitorIds = new Set(
+          visitors
+            .filter((v) => v.status === 'overtime' || v.status === 'visiting')
+            .map((v) => v.id)
+        );
+        return overtimeReminders.filter(
+          (r) => r.status === 'pending' && activeVisitorIds.has(r.visitorId)
+        );
+      },
+
+      getHandledReminders: () => {
+        return get().overtimeReminders.filter((r) => r.status === 'handled');
       },
 
       getDashboardStats: () => {
@@ -178,7 +274,12 @@ export const useBadgeStore = create<BadgeStore>()(
       },
 
       resetToMock: () => {
-        set({ badges: mockBadges, visitors: mockVisitors, lossRecords: [] });
+        set({
+          badges: mockBadges,
+          visitors: mockVisitors,
+          lossRecords: [],
+          overtimeReminders: [],
+        });
       },
     }),
     {

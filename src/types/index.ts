@@ -2,6 +2,7 @@ export type BadgeStatus = 'active' | 'inactive' | 'lost';
 export type VisitorStatus = 'visiting' | 'returned' | 'overtime' | 'lost';
 export type LossRecordStatus = 'pending' | 'completed';
 export type VisitorFilter = 'all' | 'visiting' | 'returned' | 'overtime';
+export type ReminderStatus = 'pending' | 'handled';
 
 export interface Badge {
   id: string;
@@ -36,6 +37,23 @@ export interface LossRecord {
   status: LossRecordStatus;
   reportedAt: string;
   remark?: string;
+}
+
+export interface OvertimeReminder {
+  id: string;
+  visitorId: string;
+  visitorName: string;
+  visitorCompany: string;
+  visitorPhone: string;
+  hostName: string;
+  expectedLeaveTime: string;
+  badgeNumber: string;
+  badgeColor: string;
+  badgeColorHex: string;
+  overtimeAt: string;
+  status: ReminderStatus;
+  handledAt?: string;
+  handledNote?: string;
 }
 
 export interface DashboardStats {
