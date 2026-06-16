@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Canopy, BorrowRecord, RepairRecord, BorrowItem, RepairIssueType, AccessoryType } from '@/types';
+import { ACCESSORY_META } from '@/types';
 import { initialCanopies, initialBorrowRecords, initialRepairRecords } from '@/data/mockData';
+
+const ACCESSORY_UNIT: Record<AccessoryType, string> = {
+  tarp: '块',
+  pole: '根',
+  bar: '根',
+  stake: '根',
+  bag: '个',
+};
 
 interface ReturnData {
   returnedItems: BorrowItem;
@@ -84,7 +93,7 @@ export const useStore = create<StoreState>()(
               borrowRecordId: record.id,
               issueType: 'missing',
               accessoryType: type,
-              description: `归还时少了${diff}件`,
+              description: `少了${diff}${ACCESSORY_UNIT[type]}${ACCESSORY_META[type].name}`,
               status: 'pending',
               createdAt: now,
             });
