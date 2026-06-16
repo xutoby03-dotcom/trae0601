@@ -31,16 +31,47 @@ import {
   Legend,
 } from "recharts";
 
-const CATEGORY_COLORS = [
-  "#E87A3F",
-  "#2D5A3D",
-  "#CC5E2A",
-  "#73AE86",
-  "#F28C47",
-  "#498E60",
-  "#A84820",
-  "#A8CBB3",
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  儿童文学: "#E87A3F",
+  科普百科: "#2D5A3D",
+  童话故事: "#CC5E2A",
+  历史故事: "#73AE86",
+  成长励志: "#F28C47",
+  绘本漫画: "#498E60",
+  自然科学: "#A84820",
+  经典名著: "#8B7355",
+};
+
+const FALLBACK_COLORS = [
+  "#5B8FB9",
+  "#B8860B",
+  "#CD5C5C",
+  "#6B8E23",
+  "#9370DB",
+  "#20B2AA",
+  "#FF7F50",
+  "#4682B4",
 ];
+
+const CANONICAL_CATEGORY_ORDER = Object.keys(CATEGORY_COLOR_MAP);
+
+function getCategoryColor(category: string): string {
+  if (CATEGORY_COLOR_MAP[category]) return CATEGORY_COLOR_MAP[category];
+  const idx = [...category].reduce(
+    (acc, ch) => acc + ch.charCodeAt(0),
+    0
+  );
+  return FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+}
+
+function sortCategoriesStably(categories: string[]): string[] {
+  const inMap = categories.filter((c) => CATEGORY_COLOR_MAP[c]);
+  const rest = categories.filter((c) => !CATEGORY_COLOR_MAP[c]).sort();
+  inMap.sort(
+    (a, b) => CANONICAL_CATEGORY_ORDER.indexOf(a) - CANONICAL_CATEGORY_ORDER.indexOf(b)
+  );
+  return [...inMap, ...rest];
+}
 
 export default function AdminDashboard() {
   const books = useAppStore((state) => state.books);
@@ -104,7 +135,7 @@ export default function AdminDashboard() {
       ...cats,
     }));
 
-    const categoryList = Array.from(categorySet);
+    const categoryList = sortCategoriesStably(Array.from(categorySet));
     return { gradeCategoryData: data, usedCategories: categoryList };
   }, [borrowRecords, books]);
 
@@ -244,10 +275,10 @@ export default function AdminDashboard() {
                   }
                   labelLine={{ stroke: "#999", strokeWidth: 1 }}
                 >
-                  {overallCategoryData.map((_, i) => (
+                  {overallCategoryData.map((item) => (
                     <Cell
-                      key={i}
-                      fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]}
+                      key={item.name}
+                      fill={getCategoryColor(item.name)}
                     />
                   ))}
                 </Pie>
@@ -289,12 +320,12 @@ export default function AdminDashboard() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                {usedCategories.map((cat, i) => (
+                {usedCategories.map((cat) => (
                   <Bar
                     key={cat}
                     dataKey={cat}
                     stackId="a"
-                    fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]}
+                    fill={getCategoryColor(cat)}
                     radius={[2, 2, 0, 0]}
                   />
                 ))}
