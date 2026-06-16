@@ -52,6 +52,18 @@ function hasMissingOrDamage(borrowed: BorrowItem, returned: BorrowItem): boolean
   );
 }
 
+export function formatMissingDescription(
+  description: string,
+  issueType: RepairIssueType,
+  accessoryType?: AccessoryType
+): string {
+  if (issueType !== 'missing' || !accessoryType) return description;
+  if (/^少了\d+/.test(description)) return description;
+  const match = description.match(/(\d+)/);
+  const qty = match ? parseInt(match[1], 10) : 1;
+  return `少了${qty}${ACCESSORY_UNIT[accessoryType]}${ACCESSORY_META[accessoryType].name}`;
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -210,6 +222,34 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'canopy-borrow-store',
+      version: 1,
+      migrate: (persistedState: any, version) => {
+        if (!persistedState) return persistedState;
+        if (version < 1 && Array.isArray(persistedState.repairRecords)) {
+          persistedState.repairRecords = persistedState.repairRecords.map(
+            (r: RepairRecord) => ({
+              ...r,
+              description: formatMissingDescription(
+                r.description,
+                r.issueType,
+                r.accessoryType
+              ),
+            })
+          );
+        }
+        return persistedState;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        state.repairRecords = state.repairRecords.map((r: RepairRecord) => ({
+          ...r,
+          description: formatMissingDescription(
+            r.description,
+            r.issueType,
+            r.accessoryType
+          ),
+        }));
+      },
     }
   )
 );

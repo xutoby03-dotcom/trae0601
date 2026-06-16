@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Wrench, Check, Plus, X, Umbrella } from 'lucide-react';
-import { useStore } from '@/store';
+import { useStore, formatMissingDescription } from '@/store';
 import { RepairIssueBadge, CanopyStatusBadge } from '@/components/StatusBadge';
 import { formatDateTime } from '@/utils/date';
 import { ACCESSORY_META, REPAIR_ISSUE_META } from '@/types';
@@ -180,7 +180,9 @@ export default function RepairPage() {
                     <td className="px-5 py-4 text-sm text-gray-600">
                       {r.accessoryType ? ACCESSORY_META[r.accessoryType].name : '-'}
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-700">{r.description}</td>
+                    <td className="px-5 py-4 text-sm text-gray-700">
+                      {formatMissingDescription(r.description, r.issueType, r.accessoryType)}
+                    </td>
                     <td className="px-5 py-4 text-sm text-gray-500">
                       {formatDateTime(r.createdAt)}
                     </td>
