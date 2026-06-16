@@ -4,7 +4,7 @@ import {
   AppState, OdorLevel, BracesStage 
 } from '../types';
 import { loadState, saveState, generateId, getTodayString, getDateString } from '../utils/storage';
-import { checkAllReminders } from '../utils/reminderRules';
+import { checkAllReminders, checkAndResolveReminders } from '../utils/reminderRules';
 
 const createMockData = (): Partial<AppState> => {
   const bracesId1 = generateId();
@@ -307,13 +307,25 @@ export const useStore = create<StoreState>((set, get) => ({
   
   runReminderCheck: () => {
     const { braces, records, inventories, reminders } = get();
-    const newReminders = checkAllReminders(braces, records, inventories, reminders);
+    const { newReminders, resolvedIds } = checkAndResolveReminders(braces, records, inventories, reminders);
     
-    if (newReminders.length > 0) {
+    if (newReminders.length > 0 || resolvedIds.length > 0) {
       set((state) => {
-        const newState = {
-          reminders: [...state.reminders, ...newReminders],
-        };
+        let updatedReminders = [...state.reminders];
+        
+        if (resolvedIds.length > 0) {
+          updatedReminders = updatedReminders.map(r =>
+            resolvedIds.includes(r.id)
+              ? { ...r, isResolved: true, resolvedAt: getTodayString() }
+              : r
+          );
+        }
+        
+        if (newReminders.length > 0) {
+          updatedReminders = [...updatedReminders, ...newReminders];
+        }
+        
+        const newState = { reminders: updatedReminders };
         saveState({ ...state, ...newState });
         return newState;
       });

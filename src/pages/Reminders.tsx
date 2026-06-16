@@ -74,16 +74,18 @@ const Reminders: React.FC = () => {
   };
 
   const handleQuickAction = (reminder: typeof reminders[0]) => {
-    if (reminder.type === 'missed_wear') {
-      navigate('/records');
-    } else if (reminder.type === 'overdue_clean') {
-      navigate('/records');
-    } else if (reminder.type === 'lost_box') {
-      navigate('/records');
-    } else if (reminder.type === 'low_stock') {
-      navigate('/checkup');
+    if (reminder.type === 'low_stock') {
+      navigate(`/checkup?bracesId=${reminder.bracesId}&from=reminder&reminderId=${reminder.id}`);
+    } else {
+      const params = new URLSearchParams({
+        bracesId: reminder.bracesId,
+        date: reminder.triggerDate,
+        from: 'reminder',
+        reminderId: reminder.id,
+        type: reminder.type,
+      });
+      navigate(`/records?${params.toString()}`);
     }
-    resolveReminder(reminder.id);
   };
 
   const getBracesName = (bracesId: string) => {

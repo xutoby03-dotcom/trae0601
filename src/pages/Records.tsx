@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit2, Trash2, Save } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Plus, Edit2, Trash2, Save, Info } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { formatDisplayDate, getTodayString, getDateString } from '../utils/storage';
 import { getQualifiedStatus, getStatusText, getOdorText } from '../utils/statistics';
-import { OdorLevel } from '../types';
+import { OdorLevel, ReminderType } from '../types';
 import Card, { CardHeader, CardTitle, CardContent } from '../components/Card';
 import Slider from '../components/Slider';
 import Toggle from '../components/Toggle';
@@ -13,12 +13,18 @@ import AlertBanner from '../components/AlertBanner';
 
 const Records: React.FC = () => {
   const navigate = useNavigate();
-  const { braces, records, init, initialized, addRecord, updateRecord, deleteRecord } = useStore();
+  const [searchParams] = useSearchParams();
+  const { braces, records, reminders, init, initialized, addRecord, updateRecord, deleteRecord, runReminderCheck } = useStore();
 
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [selectedBraces, setSelectedBraces] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<string | null>(null);
+  const [fromReminder, setFromReminder] = useState<{
+    reminderId: string;
+    type: ReminderType;
+    bracesName: string;
+  } | null>(null);
 
   const [formData, setFormData] = useState({
     wearHours: 20,
@@ -41,10 +47,36 @@ const Records: React.FC = () => {
   }, [init, initialized]);
 
   useEffect(() => {
-    if (braces.length > 0 && !selectedBraces) {
+    if (!initialized || braces.length === 0) return;
+
+    const bracesId = searchParams.get('bracesId');
+    const date = searchParams.get('date');
+    const from = searchParams.get('from');
+    const reminderId = searchParams.get('reminderId');
+    const type = searchParams.get('type') as ReminderType;
+
+    if (from === 'reminder' && bracesId) {
+      const brace = braces.find(b => b.id === bracesId);
+      if (brace) {
+        setSelectedBraces(bracesId);
+        if (date) {
+          setSelectedDate(date);
+        }
+        if (reminderId && type) {
+          const reminder = reminders.find(r => r.id === reminderId && !r.isResolved);
+          if (reminder) {
+            setFromReminder({
+              reminderId,
+              type,
+              bracesName: brace.name,
+            });
+          }
+        }
+      }
+    } else if (braces.length > 0 && !selectedBraces) {
       setSelectedBraces(braces[0].id);
     }
-  }, [braces, selectedBraces]);
+  }, [initialized, braces, searchParams, reminders, selectedBraces]);
 
   useEffect(() => {
     const existingRecord = records.find(
@@ -172,6 +204,18 @@ const Records: React.FC = () => {
           </select>
         )}
       </div>
+
+      {fromReminder && (
+        <AlertBanner
+          type="info"
+          title={`来自提醒：${fromReminder.bracesName}`}
+          description={`请补全${formatDisplayDate(selectedDate)}的记录，完成后提醒会自动消失`}
+          action={{
+            label: '返回提醒中心',
+            onClick: () => navigate('/reminders'),
+          }}
+        />
+      )}
 
       <Card>
         <CardHeader>

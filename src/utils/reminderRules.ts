@@ -183,6 +183,94 @@ export const checkLowStock = (
   return null;
 };
 
+export const checkAndResolveReminders = (
+  bracesList: Braces[],
+  records: DailyRecord[],
+  inventories: Inventory[],
+  existingReminders: Reminder[]
+): { newReminders: Reminder[]; resolvedIds: string[] } => {
+  const newReminders: Reminder[] = [];
+  const resolvedIds: string[] = [];
+  const today = getTodayString();
+
+  const unresolvedReminders = existingReminders.filter(r => !r.isResolved);
+
+  for (const braces of bracesList) {
+    const inventory = inventories.find(i => i.bracesId === braces.id);
+    const bracesReminders = unresolvedReminders.filter(r => r.bracesId === braces.id);
+
+    for (const reminder of bracesReminders) {
+      let isResolved = false;
+
+      if (reminder.type === 'missed_wear') {
+        const todayRecord = records.find(r => r.recordDate === reminder.triggerDate && r.bracesId === braces.id);
+        if (reminder.title.includes('连续未记录')) {
+          const yesterday = formatDate(new Date(Date.now() - 86400000));
+          const yesterdayRecord = records.find(r => r.recordDate === yesterday && r.bracesId === braces.id);
+          const dayBefore = formatDate(new Date(Date.now() - 86400000 * 2));
+          const dayBeforeRecord = records.find(r => r.recordDate === dayBefore && r.bracesId === braces.id);
+          if (yesterdayRecord || dayBeforeRecord) {
+            isResolved = true;
+          }
+        } else if (todayRecord && todayRecord.wearHours >= 20) {
+          isResolved = true;
+        }
+      }
+
+      if (reminder.type === 'overdue_clean') {
+        if (reminder.title.includes('未刷洗牙套') && reminder.recordId) {
+          const record = records.find(r => r.id === reminder.recordId);
+          if (record && record.isBrushed) {
+            isResolved = true;
+          }
+        } else {
+          const soakedRecords = records
+            .filter(r => r.bracesId === braces.id && r.isSoaked)
+            .sort((a, b) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime());
+          const lastSoakDate = soakedRecords[0]?.recordDate || braces.receiveDate;
+          const daysSinceLastSoak = getDaysDiff(lastSoakDate, today);
+          if (daysSinceLastSoak <= braces.cleanCycle) {
+            isResolved = true;
+          }
+        }
+      }
+
+      if (reminder.type === 'lost_box' && reminder.recordId) {
+        const record = records.find(r => r.id === reminder.recordId);
+        if (record && record.boxReturned) {
+          isResolved = true;
+        }
+      }
+
+      if (reminder.type === 'low_stock') {
+        if (inventory && inventory.currentStock > inventory.lowStockThreshold) {
+          isResolved = true;
+        }
+      }
+
+      if (isResolved) {
+        resolvedIds.push(reminder.id);
+      }
+    }
+
+    const currentNewReminders = [...existingReminders.filter(r => !resolvedIds.includes(r.id)), ...newReminders];
+
+    const missedWear = checkMissedWear(braces, records, [...currentNewReminders, ...newReminders]);
+    if (missedWear) newReminders.push(missedWear);
+    
+    const overdueClean = checkOverdueClean(braces, records, [...currentNewReminders, ...newReminders]);
+    if (overdueClean) newReminders.push(overdueClean);
+    
+    const lostBox = checkLostBox(braces, records, [...currentNewReminders, ...newReminders]);
+    if (lostBox) newReminders.push(lostBox);
+    
+    const lowStock = checkLowStock(braces, inventory, [...currentNewReminders, ...newReminders]);
+    if (lowStock) newReminders.push(lowStock);
+  }
+  
+  return { newReminders, resolvedIds };
+};
+
 export const checkAllReminders = (
   bracesList: Braces[],
   records: DailyRecord[],
