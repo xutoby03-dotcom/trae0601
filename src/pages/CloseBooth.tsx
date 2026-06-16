@@ -233,7 +233,7 @@ export default function CloseBooth() {
             size="lg"
             onClick={handleCloseBooth}
             loading={loading}
-            disabled={!allFurnitureChecked || !allChecklistDone}
+            disabled={loading || !allChecklistDone}
           >
             确认收摊
           </Button>
