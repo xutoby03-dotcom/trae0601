@@ -163,13 +163,15 @@ export default function FreezerDetail() {
               }`}
             >
               <div className="absolute inset-0 bg-black/10" />
-              <div className="absolute top-4 right-4">
-                <StatusBadge
-                  type="freezer"
-                  status={freezer.status}
-                  className="bg-white/90 backdrop-blur-sm"
-                />
-              </div>
+              {isAbnormal && (
+                <div className="absolute top-4 right-4">
+                  <StatusBadge
+                    type="freezer"
+                    status={freezer.status}
+                    className="bg-white/90 backdrop-blur-sm"
+                  />
+                </div>
+              )}
               <div className="absolute bottom-4 left-6 text-white">
                 <h1 className="text-2xl font-bold">{freezer.name}</h1>
                 <p className="text-sm opacity-90 flex items-center gap-1 mt-1">
