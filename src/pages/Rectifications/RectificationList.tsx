@@ -8,11 +8,13 @@ import {
   Filter,
   Calendar,
   User,
-  ChevronRight
+  ChevronRight,
+  ClipboardList
 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useRectificationStore } from '@/store/rectificationStore';
 import { useDeviceStore } from '@/store/deviceStore';
+import { useInspectionStore } from '@/store/inspectionStore';
 import { RectificationStatus } from '@/types';
 import { formatDate, daysUntil } from '@/utils/date';
 
@@ -34,6 +36,7 @@ export function RectificationList() {
   const navigate = useNavigate();
   const { rectifications } = useRectificationStore();
   const { getDeviceById, getBuildings } = useDeviceStore();
+  const { getInspectionById } = useInspectionStore();
 
   const [activeTab, setActiveTab] = useState<RectificationStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,6 +161,7 @@ export function RectificationList() {
         <div className="divide-y divide-gray-100">
           {filteredRectifications.map(rect => {
             const device = getDeviceById(rect.deviceId);
+            const inspection = getInspectionById(rect.inspectionId);
             if (!device) return null;
 
             const days = daysUntil(rect.deadline);
@@ -193,14 +197,16 @@ export function RectificationList() {
                   <p className="mt-1 text-sm text-gray-600 line-clamp-1">
                     {rect.description}
                   </p>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
-                      创建: {formatDate(rect.createDate)}
-                    </span>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                    {inspection && (
+                      <span className="flex items-center gap-1">
+                        <ClipboardList className="h-3.5 w-3.5" />
+                        巡检: {formatDate(inspection.inspectDate)} · {inspection.inspector}
+                      </span>
+                    )}
                     <span className="flex items-center gap-1">
                       <User className="h-3.5 w-3.5" />
-                      {rect.handler}
+                      处理: {rect.handler}
                     </span>
                     <span className={`flex items-center gap-1 ${getUrgencyColor(rect.deadline, rect.status)}`}>
                       <Clock className="h-3.5 w-3.5" />

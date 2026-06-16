@@ -115,65 +115,137 @@ export function RectificationDetail() {
               关联巡检记录
             </h3>
             {inspection ? (
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500">
-                    巡检日期: {formatDate(inspection.inspectDate)}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    检查人: {inspection.inspector}
-                  </span>
-                </div>
-                <div className="grid grid-cols-5 gap-3 text-center text-sm">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 rounded-xl bg-blue-50 p-4">
                   <div>
-                    <p className="text-gray-500">压力</p>
-                    <p className={`font-medium ${
-                      inspection.pressureStatus === 'normal' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {inspection.pressure}MPa
+                    <p className="text-xs font-medium text-blue-600">巡检日期</p>
+                    <p className="mt-1 text-lg font-bold text-blue-900">
+                      {formatDate(inspection.inspectDate)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">铅封</p>
-                    <p className={`font-medium ${
-                      inspection.seal ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {inspection.seal ? '完好' : '损坏'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">喷管</p>
-                    <p className={`font-medium ${
-                      inspection.hose ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {inspection.hose ? '完好' : '损坏'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">箱门</p>
-                    <p className={`font-medium ${
-                      inspection.boxDoor ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {inspection.boxDoor ? '完好' : '变形'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">遮挡物</p>
-                    <p className={`font-medium ${
-                      !inspection.obstruction ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {inspection.obstruction ? '有' : '无'}
+                    <p className="text-xs font-medium text-blue-600">检查人</p>
+                    <p className="mt-1 text-lg font-bold text-blue-900">
+                      {inspection.inspector}
                     </p>
                   </div>
                 </div>
+
+                <div className="rounded-xl border-2 border-gray-100 p-4">
+                  <p className="mb-3 text-sm font-semibold text-gray-700">检查项详情</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className={`rounded-xl p-3 text-center ${
+                      inspection.pressureStatus === 'normal'
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-xs font-medium text-gray-500">压力值</p>
+                      <p className={`mt-1 text-xl font-bold ${
+                        inspection.pressureStatus === 'normal'
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}>
+                        {inspection.pressure}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {device && `标准: ${device.minPressure}-${device.maxPressure} MPa`}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${
+                        inspection.pressureStatus === 'normal'
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}>
+                        {inspection.pressureStatus === 'normal' ? '✓ 正常' :
+                         inspection.pressureStatus === 'low' ? '✗ 偏低' : '✗ 偏高'}
+                      </p>
+                    </div>
+
+                    <div className={`rounded-xl p-3 text-center ${
+                      inspection.seal
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-xs font-medium text-gray-500">铅封</p>
+                      <p className={`mt-1 text-xl font-bold ${
+                        inspection.seal ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.seal ? '✓' : '✗'}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${
+                        inspection.seal ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.seal ? '完好' : '损坏'}
+                      </p>
+                    </div>
+
+                    <div className={`rounded-xl p-3 text-center ${
+                      inspection.hose
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-xs font-medium text-gray-500">喷管</p>
+                      <p className={`mt-1 text-xl font-bold ${
+                        inspection.hose ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.hose ? '✓' : '✗'}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${
+                        inspection.hose ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.hose ? '完好' : '损坏'}
+                      </p>
+                    </div>
+
+                    <div className={`rounded-xl p-3 text-center ${
+                      inspection.boxDoor
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-xs font-medium text-gray-500">箱门</p>
+                      <p className={`mt-1 text-xl font-bold ${
+                        inspection.boxDoor ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.boxDoor ? '✓' : '✗'}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${
+                        inspection.boxDoor ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {inspection.boxDoor ? '完好' : '变形'}
+                      </p>
+                    </div>
+
+                    <div className={`rounded-xl p-3 text-center ${
+                      !inspection.obstruction
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-xs font-medium text-gray-500">遮挡物</p>
+                      <p className={`mt-1 text-xl font-bold ${
+                        !inspection.obstruction ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {!inspection.obstruction ? '✓' : '✗'}
+                      </p>
+                      <p className={`mt-1 text-xs font-medium ${
+                        !inspection.obstruction ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {!inspection.obstruction ? '无遮挡' : '有遮挡'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {inspection.remark && (
-                  <p className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-600">
-                    备注: {inspection.remark}
-                  </p>
+                  <div className="rounded-xl bg-gray-50 p-4">
+                    <p className="text-xs font-medium text-gray-500">巡检备注</p>
+                    <p className="mt-1 text-sm text-gray-700">{inspection.remark}</p>
+                  </div>
                 )}
               </div>
             ) : (
-              <p className="text-gray-400">无关联巡检记录</p>
+              <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-8 text-gray-400">
+                <FileText className="mb-2 h-10 w-10" />
+                <p className="text-sm">无关联巡检记录</p>
+              </div>
             )}
           </div>
 
