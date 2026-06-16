@@ -1,4 +1,4 @@
-import { Droplets, MapPin, Clock } from 'lucide-react';
+import { Droplets, MapPin, Clock, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import StatusBadge from './StatusBadge';
 import type { WashingPool } from '../types';
@@ -44,18 +44,34 @@ export default function PoolCard({ pool, onClick, disabled = false }: PoolCardPr
         disabled && 'opacity-60 cursor-not-allowed grayscale-[30%]',
       )}
     >
-      <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-primary-50 to-transparent opacity-50 transition-opacity duration-300 group-hover:opacity-80" />
+      <div
+        className={cn(
+          'absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-primary-50 to-transparent transition-opacity duration-300',
+          disabled ? 'opacity-30' : 'opacity-50 group-hover:opacity-80',
+        )}
+      />
 
       <div className="relative">
         <div className="flex items-start justify-between">
-          <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110', iconColorClass)}>
+          <div
+            className={cn(
+              'flex h-12 w-12 items-center justify-center rounded-xl',
+              !disabled && 'transition-transform duration-300 group-hover:scale-110',
+              iconColorClass,
+            )}
+          >
             <Droplets className="h-6 w-6" />
           </div>
           <StatusBadge status={pool.status} />
         </div>
 
         <div className="mt-4">
-          <h3 className="text-lg font-semibold text-gray-900 transition-colors duration-200 group-hover:text-primary-600">
+          <h3
+            className={cn(
+              'text-lg font-semibold text-gray-900',
+              !disabled && 'transition-colors duration-200 group-hover:text-primary-600',
+            )}
+          >
             {pool.name}
           </h3>
           <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
@@ -64,10 +80,19 @@ export default function PoolCard({ pool, onClick, disabled = false }: PoolCardPr
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-1 border-t border-gray-100 pt-3 text-xs text-gray-400">
-          <Clock className="h-3.5 w-3.5" />
-          <span>最后清洁：{formatLastCleaned(pool.lastCleanedAt)}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            <span>最后清洁：{formatLastCleaned(pool.lastCleanedAt)}</span>
+          </div>
         </div>
+
+        {disabled && (
+          <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-400">
+            <Ban className="h-3.5 w-3.5" />
+            <span>暂不可预约</span>
+          </div>
+        )}
       </div>
     </div>
   );
