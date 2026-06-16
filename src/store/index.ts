@@ -70,29 +70,68 @@ export const useStore = create<StoreState>()(
 
         const now = new Date().toISOString();
         const overdue = new Date(now) > new Date(record.dueTime);
-        const hasDamage = hasMissingOrDamage(record.borrowedItems, data.returnedItems);
+        const borrowed = record.borrowedItems;
+        const returned = data.returnedItems;
+        const accessoryTypes: AccessoryType[] = ['tarp', 'pole', 'bar', 'stake', 'bag'];
 
+        const missingRepairs: RepairRecord[] = [];
+        accessoryTypes.forEach((type) => {
+          const diff = borrowed[type] - returned[type];
+          if (diff > 0) {
+            missingRepairs.push({
+              id: generateId('rp'),
+              canopyId: record.canopyId,
+              borrowRecordId: record.id,
+              issueType: 'missing',
+              accessoryType: type,
+              description: `归还时少了${diff}件`,
+              status: 'pending',
+              createdAt: now,
+            });
+          }
+        });
+
+        const hasMissing = missingRepairs.length > 0;
         let newStatus: Canopy['status'] = 'available';
         if (data.isWet) newStatus = 'drying';
-        if (hasDamage) newStatus = 'repairing';
+        if (hasMissing) newStatus = 'repairing';
 
-        set((state) => ({
-          borrowRecords: state.borrowRecords.map((r) =>
-            r.id === id
-              ? {
-                  ...r,
-                  status: 'returned',
-                  returnTime: now,
-                  returnedItems: data.returnedItems,
-                  isWet: data.isWet,
-                  isOverdue: overdue,
-                }
-              : r
-          ),
-          canopies: state.canopies.map((c) =>
-            c.id === record.canopyId ? { ...c, status: newStatus } : c
-          ),
-        }));
+        set((state) => {
+          const updatedAccessories: Record<AccessoryType, number> = {
+            tarp: state.canopies.find((c) => c.id === record.canopyId)?.accessories.tarp || 0,
+            pole: state.canopies.find((c) => c.id === record.canopyId)?.accessories.pole || 0,
+            bar: state.canopies.find((c) => c.id === record.canopyId)?.accessories.bar || 0,
+            stake: state.canopies.find((c) => c.id === record.canopyId)?.accessories.stake || 0,
+            bag: state.canopies.find((c) => c.id === record.canopyId)?.accessories.bag || 0,
+          };
+          accessoryTypes.forEach((type) => {
+            const diff = borrowed[type] - returned[type];
+            if (diff > 0) {
+              updatedAccessories[type] = Math.max(0, updatedAccessories[type] - diff);
+            }
+          });
+
+          return {
+            borrowRecords: state.borrowRecords.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    status: 'returned',
+                    returnTime: now,
+                    returnedItems: data.returnedItems,
+                    isWet: data.isWet,
+                    isOverdue: overdue,
+                  }
+                : r
+            ),
+            canopies: state.canopies.map((c) =>
+              c.id === record.canopyId
+                ? { ...c, status: newStatus, accessories: updatedAccessories }
+                : c
+            ),
+            repairRecords: [...state.repairRecords, ...missingRepairs],
+          };
+        });
       },
 
       createRepairRecord: (data) => {
