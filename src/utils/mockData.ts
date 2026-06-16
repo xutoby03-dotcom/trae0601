@@ -313,3 +313,9 @@ export const lossStatusLabels = {
   approved: '已通过',
   rejected: '已驳回',
 };
+
+export const productStatusLabels = {
+  good: '良好',
+  partial: '部分异常',
+  bad: '严重异常',
+};

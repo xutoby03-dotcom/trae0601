@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,25 +12,39 @@ import {
   Package,
   Clock,
   AlertTriangle,
+  X,
+  RefreshCw,
+  CheckCircle,
+  FileText,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { useFreezerStore } from '@/store/freezerStore';
 import { useInspectionStore } from '@/store/inspectionStore';
 import { useLossReportStore } from '@/store/lossReportStore';
 import { formatDateTime, formatCurrency } from '@/utils/format';
-import { shiftLabels, softeningLabels } from '@/utils/mockData';
+import { shiftLabels, softeningLabels, productStatusLabels } from '@/utils/mockData';
 
 export default function FreezerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getFreezerById, deleteFreezer } = useFreezerStore();
-  const { getInspectionsByFreezer } = useInspectionStore();
-  const { getLossReportsByFreezer } = useLossReportStore();
+  const { getInspectionsByFreezer, inspections } = useInspectionStore();
+  const { getLossReportsByFreezer, getRechecksByFreezer, addRecheck } = useLossReportStore();
 
   const freezer = getFreezerById(id || '');
-  const inspections = getInspectionsByFreezer(id || '');
+  const inspectionList = getInspectionsByFreezer(id || '');
   const lossReports = getLossReportsByFreezer(id || '');
+  const rechecks = getRechecksByFreezer(id || '');
+
+  const [showRecheckDialog, setShowRecheckDialog] = useState(false);
+  const [recheckForm, setRecheckForm] = useState({
+    recheckTime: new Date().toISOString().slice(0, 16),
+    rechecker: '',
+    temperature: -18,
+    productStatus: 'good',
+    notes: '',
+    isResolved: true,
+  });
 
   if (!freezer) {
     return (
@@ -52,6 +67,53 @@ export default function FreezerDetail() {
     }
   };
 
+  const handleRecheckInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setRecheckForm((prev) => ({ ...prev, [name]: checked }));
+    } else {
+      setRecheckForm((prev) => ({
+        ...prev,
+        [name]: name === 'temperature' ? Number(value) : value,
+      }));
+    }
+  };
+
+  const latestAbnormalInspection = inspections.find(
+    (i) => i.freezerId === id && i.isAbnormal
+  );
+
+  const handleSubmitRecheck = () => {
+    if (!recheckForm.rechecker.trim()) {
+      alert('请填写复查人');
+      return;
+    }
+
+    addRecheck({
+      freezerId: id || '',
+      inspectionId: latestAbnormalInspection?.id || '',
+      recheckTime: new Date(recheckForm.recheckTime).toISOString(),
+      rechecker: recheckForm.rechecker,
+      temperature: recheckForm.temperature,
+      productStatus: recheckForm.productStatus as any,
+      notes: recheckForm.notes,
+      isResolved: recheckForm.isResolved,
+    });
+
+    setShowRecheckDialog(false);
+    setRecheckForm({
+      recheckTime: new Date().toISOString().slice(0, 16),
+      rechecker: '',
+      temperature: -18,
+      productStatus: 'good',
+      notes: '',
+      isResolved: true,
+    });
+  };
+
   const totalProducts = freezer.zones.reduce(
     (sum, zone) => sum + zone.products.length,
     0
@@ -67,6 +129,21 @@ export default function FreezerDetail() {
       sum + zone.products.reduce((s, p) => s + p.retailPrice * p.stock, 0),
     0
   );
+
+  const isAbnormal = freezer.status !== 'normal';
+
+  const getProductStatusColor = (status: string) => {
+    switch (status) {
+      case 'good':
+        return 'text-emerald-600 bg-emerald-50';
+      case 'partial':
+        return 'text-amber-600 bg-amber-50';
+      case 'bad':
+        return 'text-red-600 bg-red-50';
+      default:
+        return 'text-slate-600 bg-slate-50';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -107,6 +184,17 @@ export default function FreezerDetail() {
                   {freezer.location}
                 </p>
               </div>
+              {isAbnormal && (
+                <div className="absolute bottom-4 right-6">
+                  <button
+                    onClick={() => setShowRecheckDialog(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl font-medium hover:bg-white/90 transition-colors shadow-lg"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    复查登记
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="p-6">
@@ -166,6 +254,47 @@ export default function FreezerDetail() {
               </div>
             </div>
           </div>
+
+          {isAbnormal && (
+            <div
+              className={`rounded-2xl p-5 border ${
+                freezer.status === 'abnormal'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-amber-50 border-amber-200'
+              }`}
+            >
+              <div className="flex items-start gap-4">
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    freezer.status === 'abnormal'
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-amber-100 text-amber-600'
+                  }`}
+                >
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-slate-900">
+                    {freezer.status === 'abnormal' ? '温度异常告警' : '温度预警'}
+                  </h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    冷柜当前处于{freezer.status === 'abnormal' ? '异常' : '预警'}状态，请及时检查门封和制冷情况。温度恢复正常后请登记复查。
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRecheckDialog(true)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    freezer.status === 'abnormal'
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-amber-600 text-white hover:bg-amber-700'
+                  }`}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  复查登记
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 border-b border-slate-100">
@@ -230,10 +359,10 @@ export default function FreezerDetail() {
               <h2 className="text-lg font-semibold text-slate-900">最近巡查记录</h2>
             </div>
             <div className="divide-y divide-slate-50">
-              {inspections.length === 0 ? (
+              {inspectionList.length === 0 ? (
                 <div className="p-8 text-center text-slate-400">暂无巡查记录</div>
               ) : (
-                inspections.slice(0, 5).map((inspection) => (
+                inspectionList.slice(0, 5).map((inspection) => (
                   <div key={inspection.id} className="p-4 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -271,6 +400,82 @@ export default function FreezerDetail() {
                         )}
                       </div>
                     </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">复查记录</h2>
+                {isAbnormal && (
+                  <button
+                    onClick={() => setShowRecheckDialog(true)}
+                    className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 font-medium"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    新增复查
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="divide-y divide-slate-50">
+              {rechecks.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">暂无复查记录</div>
+              ) : (
+                rechecks.slice(0, 5).map((recheck) => (
+                  <div key={recheck.id} className="p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            recheck.isResolved
+                              ? 'bg-emerald-100 text-emerald-600'
+                              : 'bg-amber-100 text-amber-600'
+                          }`}
+                        >
+                          {recheck.isResolved ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : (
+                            <Clock className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {recheck.temperature}°C
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {recheck.rechecker} ·{' '}
+                            <span
+                              className={`inline-flex px-1.5 py-0.5 rounded text-xs ${getProductStatusColor(
+                                recheck.productStatus
+                              )}`}
+                            >
+                              {productStatusLabels[recheck.productStatus as keyof typeof productStatusLabels]}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatDateTime(recheck.recheckTime)}
+                        </p>
+                        {recheck.isResolved && (
+                          <p className="text-xs text-emerald-600 mt-1 font-medium">
+                            已解除异常
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {recheck.notes && (
+                      <p className="text-xs text-slate-500 mt-2 ml-13 pl-13 bg-slate-50 rounded-lg p-2">
+                        <span className="font-medium">备注：</span>
+                        {recheck.notes}
+                      </p>
+                    )}
                   </div>
                 ))
               )}
@@ -333,8 +538,191 @@ export default function FreezerDetail() {
               )}
             </div>
           </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h3 className="font-semibold text-slate-900 mb-4">最近复查</h3>
+            <div className="space-y-3">
+              {rechecks.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">暂无复查记录</p>
+              ) : (
+                rechecks.slice(0, 3).map((recheck) => (
+                  <div
+                    key={recheck.id}
+                    className="p-3 bg-slate-50 rounded-xl"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-sky-500" />
+                        <span className="text-sm font-medium text-slate-700">
+                          {recheck.temperature}°C
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${getProductStatusColor(
+                          recheck.productStatus
+                        )}`}
+                      >
+                        {productStatusLabels[recheck.productStatus as keyof typeof productStatusLabels]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {recheck.rechecker} · {formatDateTime(recheck.recheckTime)}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {showRecheckDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center">
+                  <RefreshCw className="w-5 h-5 text-sky-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">复查登记</h3>
+                  <p className="text-sm text-slate-500">{freezer.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRecheckDialog(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    复查时间 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="recheckTime"
+                    value={recheckForm.recheckTime}
+                    onChange={handleRecheckInputChange}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    复查人 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="rechecker"
+                    value={recheckForm.rechecker}
+                    onChange={handleRecheckInputChange}
+                    placeholder="请输入复查人姓名"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  复查温度 (°C)
+                </label>
+                <div className="relative">
+                  <Thermometer className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="number"
+                    name="temperature"
+                    value={recheckForm.temperature}
+                    onChange={handleRecheckInputChange}
+                    step="0.5"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1.5">
+                  温度范围: {freezer.minTemp}°C ~ {freezer.maxTemp}°C
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  商品状态
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['good', 'partial', 'bad'].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setRecheckForm((prev) => ({ ...prev, productStatus: status }))}
+                      className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                        recheckForm.productStatus === status
+                          ? status === 'good'
+                            ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
+                            : status === 'partial'
+                            ? 'bg-amber-100 text-amber-700 border-2 border-amber-300'
+                            : 'bg-red-100 text-red-700 border-2 border-red-300'
+                          : 'bg-slate-50 text-slate-600 border-2 border-transparent hover:bg-slate-100'
+                      }`}
+                    >
+                      {productStatusLabels[status as keyof typeof productStatusLabels]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  备注
+                </label>
+                <textarea
+                  name="notes"
+                  value={recheckForm.notes}
+                  onChange={handleRecheckInputChange}
+                  placeholder="请输入复查备注（可选）"
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="isResolved"
+                  name="isResolved"
+                  checked={recheckForm.isResolved}
+                  onChange={handleRecheckInputChange}
+                  className="w-5 h-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <label htmlFor="isResolved" className="text-sm text-slate-700">
+                  <span className="font-medium">标记为已解决</span>
+                  <span className="text-slate-500 block text-xs mt-0.5">
+                    勾选后冷柜状态将恢复为正常
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => setShowRecheckDialog(false)}
+                className="px-5 py-2.5 text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmitRecheck}
+                className="px-5 py-2.5 bg-sky-600 text-white rounded-xl hover:bg-sky-700 transition-colors shadow-sm font-medium"
+              >
+                提交复查
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
