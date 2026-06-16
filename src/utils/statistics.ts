@@ -311,6 +311,41 @@ export function getVersionComparison(currentSampleId: string): VersionComparison
     currentFeedbacksBySize[size] = currentFeedbacks.filter(f => f.trySize === size);
   });
 
+  type ActionKey = `${SizeCode}:${string}`;
+  const actionAggregator = new Map<ActionKey, {
+    size: SizeCode;
+    action: string;
+    prevCount: number;
+    prevWearers: string[];
+    prevProblemTypes: ProblemType[];
+  }>();
+
+  previousFeedbacks.forEach(prevFb => {
+    prevFb.limitedActions.forEach(action => {
+      const key = `${prevFb.trySize}:${action}` as ActionKey;
+      const existing = actionAggregator.get(key);
+      if (existing) {
+        existing.prevCount++;
+        if (!existing.prevWearers.includes(prevFb.wearerName)) {
+          existing.prevWearers.push(prevFb.wearerName);
+        }
+        prevFb.problemTypes.forEach(t => {
+          if (!existing.prevProblemTypes.includes(t)) {
+            existing.prevProblemTypes.push(t);
+          }
+        });
+      } else {
+        actionAggregator.set(key, {
+          size: prevFb.trySize,
+          action,
+          prevCount: 1,
+          prevWearers: [prevFb.wearerName],
+          prevProblemTypes: [...prevFb.problemTypes],
+        });
+      }
+    });
+  });
+
   const BODY_PART_LABEL: Record<string, string> = {
     shoulder: '肩宽',
     chest: '胸围',
@@ -385,40 +420,6 @@ export function getVersionComparison(currentSampleId: string): VersionComparison
       }
     });
 
-    prevFb.limitedActions.forEach(action => {
-      const stillLimited = currentSameSize.filter(fb =>
-        fb.limitedActions.includes(action)
-      ).length;
-
-      let status: OldSpecificProblem['status'];
-      let evidence: string;
-      if (currentSameSize.length === 0) {
-        status = 'persisted';
-        evidence = '新版该尺码暂无反馈，待验证';
-      } else if (stillLimited === 0) {
-        status = 'resolved';
-        evidence = `新版 ${size} 码 ${currentSameSize.length} 人均无此受限`;
-      } else if (stillLimited < prevFb.limitedActions.length) {
-        status = 'improved';
-        evidence = `新版 ${size} 码仍有 ${stillLimited} 人反馈该动作受限`;
-      } else {
-        status = 'persisted';
-        evidence = `新版 ${size} 码仍有 ${stillLimited} 人反馈该动作受限`;
-      }
-
-      oldSpecificProblems.push({
-        id: `action-${prevFb.id}-${action}`,
-        category: 'action',
-        size,
-        actionName: action,
-        problemTypes: prevFb.problemTypes,
-        originalText: `活动受限：${action}`,
-        wearerName: prevFb.wearerName,
-        status,
-        evidence,
-      });
-    });
-
     if (prevFb.problemDescription && prevFb.problemTypes.length > 0) {
       const sameTypeProblems = currentSameSize.filter(fb =>
         fb.problemTypes.some(t => prevFb.problemTypes.includes(t))
@@ -449,6 +450,44 @@ export function getVersionComparison(currentSampleId: string): VersionComparison
         evidence,
       });
     }
+  });
+
+  actionAggregator.forEach((agg, key) => {
+    const { size, action, prevCount, prevWearers, prevProblemTypes } = agg;
+    const currentSameSize = currentFeedbacksBySize[size] || [];
+    const stillLimited = currentSameSize.filter(fb =>
+      fb.limitedActions.includes(action)
+    ).length;
+
+    let status: 'improved' | 'persisted';
+    let evidence: string;
+    if (currentSameSize.length === 0) {
+      status = 'persisted';
+      evidence = `旧版 ${size} 码 ${prevCount} 人反馈「${action}」受限，新版该尺码暂无反馈，待验证`;
+    } else if (stillLimited === 0) {
+      status = 'improved';
+      evidence = `旧版 ${size} 码 ${prevCount} 人反馈「${action}」受限，新版 ${currentSameSize.length} 人均无此受限`;
+    } else if (stillLimited < prevCount) {
+      status = 'improved';
+      evidence = `旧版 ${size} 码 ${prevCount} 人反馈「${action}」受限，新版仍有 ${stillLimited} 人，已缓解`;
+    } else {
+      status = 'persisted';
+      evidence = `旧版 ${size} 码 ${prevCount} 人反馈「${action}」受限，新版仍有 ${stillLimited} 人，仍存在`;
+    }
+
+    oldSpecificProblems.push({
+      id: `action-${key}`,
+      category: 'action',
+      size,
+      actionName: action,
+      problemTypes: prevProblemTypes,
+      originalText: `活动受限：${action}`,
+      wearerName: prevWearers.length > 2
+        ? `${prevWearers.slice(0, 2).join('、')}等${prevWearers.length}人`
+        : prevWearers.join('、'),
+      status,
+      evidence,
+    });
   });
 
   oldSpecificProblems.sort((a, b) => {
