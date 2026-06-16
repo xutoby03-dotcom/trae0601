@@ -210,6 +210,7 @@ interface GoggleStore extends StoreData {
   getLabById: (id: string) => Lab | undefined
   getClassById: (id: string) => ClassInfo | undefined
   getTeacherById: (id: string) => Teacher | undefined
+  batchUpdateGoggleStatus: (ids: string[], status: GoggleStatus) => void
   resetData: () => void
 }
 
@@ -377,6 +378,20 @@ export const useStore = create<GoggleStore>((set, get) => ({
   getLabById: (id) => get().labs.find(l => l.id === id),
   getClassById: (id) => get().classes.find(c => c.id === id),
   getTeacherById: (id) => get().teachers.find(t => t.id === id),
+
+  batchUpdateGoggleStatus: (ids, status) => {
+    const now = new Date().toISOString()
+    set(s => {
+      const goggles = s.goggles.map(g => {
+        if (!ids.includes(g.id)) return g
+        const updates: Partial<Goggle> = { status, updatedAt: now }
+        if (status === 'disinfected') updates.lastDisinfectionTime = now
+        return { ...g, ...updates }
+      })
+      saveToStorage({ ...s, goggles })
+      return { goggles }
+    })
+  },
 
   resetData: () => {
     localStorage.removeItem(STORAGE_KEY)

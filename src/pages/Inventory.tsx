@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useStore } from '@/store'
-import { STATUS_LABELS, STATUS_COLORS, SIZE_LABELS, type GoggleSize, type GoggleStatus } from '@/types'
+import { STATUS_LABELS, STATUS_COLORS, SIZE_LABELS, type GoggleSize, type GoggleStatus, type Goggle } from '@/types'
 import { formatDateTime, formatDate } from '@/utils/format'
-import { Archive, Search, Plus, X, Eye, Edit3 } from 'lucide-react'
+import { Archive, Search, Plus, X, Eye, Edit3, CheckSquare, Square, ArrowRight } from 'lucide-react'
+import StatusFlowModal from '@/components/StatusFlowModal'
 
 export default function Inventory() {
   const { goggles, labs, addGoggle, updateGoggle, getLabById } = useStore()
@@ -12,17 +13,41 @@ export default function Inventory() {
   const [showAdd, setShowAdd] = useState(false)
   const [showDetail, setShowDetail] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState<string | null>(null)
+  const [showStatusModal, setShowStatusModal] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const [newCode, setNewCode] = useState('')
   const [newSize, setNewSize] = useState<GoggleSize>('M')
   const [newLabId, setNewLabId] = useState('')
 
-  const filteredGoggles = goggles.filter(g => {
+  const filteredGoggles = useMemo(() => goggles.filter(g => {
     if (search && !g.code.toLowerCase().includes(search.toLowerCase())) return false
     if (filterLab && g.labId !== filterLab) return false
     if (filterStatus && g.status !== filterStatus) return false
     return true
-  })
+  }), [goggles, search, filterLab, filterStatus])
+
+  const selectedGoggles = useMemo(
+    () => filteredGoggles.filter(g => selectedIds.includes(g.id)),
+    [filteredGoggles, selectedIds]
+  )
+
+  const allSelected = filteredGoggles.length > 0 && selectedIds.length === filteredGoggles.length
+  const someSelected = selectedIds.length > 0 && selectedIds.length < filteredGoggles.length
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredGoggles.map(g => g.id))
+    }
+  }
 
   const handleAdd = () => {
     if (!newCode.trim() || !newLabId) return
@@ -62,6 +87,16 @@ export default function Inventory() {
 
   const statusOptions = Object.entries(STATUS_LABELS) as [GoggleStatus, string][]
 
+  const handleBatchStatus = () => {
+    if (selectedGoggles.length === 0) return
+    setShowStatusModal(true)
+  }
+
+  const handleStatusModalClose = () => {
+    setShowStatusModal(false)
+    setSelectedIds([])
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -69,10 +104,19 @@ export default function Inventory() {
           <h2 className="text-2xl font-bold text-slate-900">护目镜台账</h2>
           <p className="text-slate-500 mt-1">管理所有护目镜的资料信息，包括尺码、实验室和消毒记录</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary">
-          <Plus className="w-4 h-4" />
-          新增护目镜
-        </button>
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <button onClick={handleBatchStatus} className="btn-secondary">
+              <CheckSquare className="w-4 h-4" />
+              批量改状态 ({selectedIds.length})
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={() => setShowAdd(true)} className="btn-primary">
+            <Plus className="w-4 h-4" />
+            新增护目镜
+          </button>
+        </div>
       </div>
 
       <div className="card p-5 mb-6">
@@ -96,6 +140,11 @@ export default function Inventory() {
             {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
           <span className="text-sm text-slate-500 shrink-0">共 {filteredGoggles.length} 副</span>
+          {selectedIds.length > 0 && (
+            <span className="text-sm text-brand-600 font-medium shrink-0">
+              已选 {selectedIds.length} 副
+            </span>
+          )}
         </div>
       </div>
 
@@ -104,6 +153,17 @@ export default function Inventory() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="py-3 px-4 w-12">
+                  <button onClick={toggleSelectAll} className="text-slate-400 hover:text-slate-600 transition-colors">
+                    {allSelected ? (
+                      <CheckSquare className="w-4 h-4 text-brand-600" />
+                    ) : someSelected ? (
+                      <CheckSquare className="w-4 h-4 text-brand-400 opacity-60" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide">照片</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide">编号</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500 text-xs uppercase tracking-wide">尺码</th>
@@ -116,8 +176,23 @@ export default function Inventory() {
             <tbody>
               {filteredGoggles.map(g => {
                 const lab = getLabById(g.labId)
+                const isSelected = selectedIds.includes(g.id)
                 return (
-                  <tr key={g.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={g.id}
+                    className={`border-b border-slate-100 transition-colors ${
+                      isSelected ? 'bg-brand-50/50' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <td className="py-2 px-4">
+                      <button onClick={() => toggleSelect(g.id)} className="text-slate-400 hover:text-brand-600 transition-colors">
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-brand-600" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
                     <td className="py-2 px-4">
                       <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden">
                         {g.photoUrl ? (
@@ -245,8 +320,18 @@ export default function Inventory() {
                 </div>
               </div>
             </div>
-            <div className="mt-6">
-              <button onClick={() => setShowDetail(null)} className="btn-secondary w-full">关闭</button>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDetail(null)
+                  setSelectedIds([detailGoggle.id])
+                  setShowStatusModal(true)
+                }}
+                className="btn-secondary flex-1"
+              >
+                修改状态
+              </button>
+              <button onClick={() => setShowDetail(null)} className="btn-primary flex-1">关闭</button>
             </div>
           </div>
         </div>
@@ -283,6 +368,14 @@ export default function Inventory() {
             </div>
           </div>
         </div>
+      )}
+
+      {showStatusModal && (
+        <StatusFlowModal
+          goggles={selectedGoggles}
+          onClose={handleStatusModalClose}
+          title="批量状态流转"
+        />
       )}
     </div>
   )

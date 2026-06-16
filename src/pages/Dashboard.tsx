@@ -1,13 +1,17 @@
+import { useState } from 'react'
 import { useStore } from '@/store'
-import { STATUS_LABELS, STATUS_COLORS, CHECKOUT_STATUS_LABELS, CHECKOUT_STATUS_COLORS } from '@/types'
+import { STATUS_LABELS, STATUS_COLORS, CHECKOUT_STATUS_LABELS, CHECKOUT_STATUS_COLORS, type Goggle } from '@/types'
 import { timeAgo, hoursSince, isOverdue, isDisinfectionOverdue } from '@/utils/format'
-import { Package, ArrowRightLeft, Wrench, Ban, AlertTriangle, Clock, TrendingUp } from 'lucide-react'
+import { Package, ArrowRightLeft, Wrench, Ban, AlertTriangle, Clock, TrendingUp, ArrowRight } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import StatusFlowModal from '@/components/StatusFlowModal'
 
 const PIE_COLORS = ['#10b981', '#d97706', '#f97316', '#0ea5e9', '#6366f1', '#14b8a6', '#f43f5e', '#6b7280']
 
 export default function Dashboard() {
   const { goggles, labs, checkouts, classes, getLabById, getClassById, getTeacherById } = useStore()
+  const [showStatusModal, setShowStatusModal] = useState(false)
+  const [selectedGoggles, setSelectedGoggles] = useState<Goggle[]>([])
 
   const statusCounts = goggles.reduce((acc, g) => {
     acc[g.status] = (acc[g.status] || 0) + 1
@@ -243,13 +247,27 @@ export default function Dashboard() {
       </div>
 
       <div className="card p-6">
-        <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-accent-600 animate-pulse-slow" />
-          消毒超时预警
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-accent-600 animate-pulse-slow" />
+            消毒超时预警
+            {disinfectionOverdue.length > 0 && (
+              <span className="badge bg-accent-100 text-accent-700 ml-2">{disinfectionOverdue.length} 项超时</span>
+            )}
+          </h3>
           {disinfectionOverdue.length > 0 && (
-            <span className="badge bg-accent-100 text-accent-700 ml-2">{disinfectionOverdue.length} 项超时</span>
+            <button
+              onClick={() => {
+                setSelectedGoggles(disinfectionOverdue)
+                setShowStatusModal(true)
+              }}
+              className="btn-primary text-xs px-3 py-1.5"
+            >
+              批量处理
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           )}
-        </h3>
+        </div>
         {disinfectionOverdue.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-sm text-slate-500">所有护目镜消毒流程均在时限内</p>
@@ -260,7 +278,14 @@ export default function Dashboard() {
               const lab = getLabById(g.labId)
               const elapsed = Math.round(hoursSince(g.updatedAt))
               return (
-                <div key={g.id} className="p-4 bg-accent-50 rounded-lg border border-accent-200 relative overflow-hidden">
+                <button
+                  key={g.id}
+                  onClick={() => {
+                    setSelectedGoggles([g])
+                    setShowStatusModal(true)
+                  }}
+                  className="text-left p-4 bg-accent-50 rounded-lg border border-accent-200 relative overflow-hidden hover:border-accent-400 hover:shadow-md transition-all group"
+                >
                   <div className="absolute top-0 right-0 w-2 h-full bg-accent-500 animate-pulse-slow" />
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-slate-900">{g.code}</span>
@@ -268,12 +293,23 @@ export default function Dashboard() {
                   </div>
                   <p className="text-xs text-slate-600">{lab?.name}</p>
                   <p className="text-xs text-accent-700 mt-1 font-medium">已等待 {elapsed} 小时</p>
-                </div>
+                  <p className="text-xs text-accent-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    点击处理 <ArrowRight className="w-3 h-3" />
+                  </p>
+                </button>
               )
             })}
           </div>
         )}
       </div>
+
+      {showStatusModal && (
+        <StatusFlowModal
+          goggles={selectedGoggles}
+          onClose={() => setShowStatusModal(false)}
+          title="消毒流程状态处理"
+        />
+      )}
 
       <div className="card p-6 mt-5">
         <h3 className="text-base font-semibold text-slate-900 mb-4">近期领用记录</h3>
