@@ -11,12 +11,14 @@ import { usePickupPointStore } from '../store/pickupPointStore';
 import type { Member } from '../types';
 import { PickupModal } from '../components/modals/PickupModal';
 import { ProxyPickerModal } from '../components/modals/ProxyPickerModal';
+import { ScanPickupModal } from '../components/modals/ScanPickupModal';
 
 export default function KanbanBoard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [showProxyModal, setShowProxyModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [pickupMode, setPickupMode] = useState<'self' | 'proxy'>('self');
 
   const { pickupPoints, currentPickupPoint, setCurrentPickupPoint } = usePickupPointStore();
@@ -63,6 +65,12 @@ export default function KanbanBoard() {
     }
   };
 
+  const handleScanMemberFound = (member: Member) => {
+    setSelectedMember(member);
+    setPickupMode('self');
+    setShowPickupModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -75,7 +83,7 @@ export default function KanbanBoard() {
           <p className="text-gray-400 mt-1">管理现场应援物领取状态</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="md">
+          <Button variant="secondary" size="md" onClick={() => setShowScanModal(true)}>
             <ScanLine className="w-4 h-4 mr-2" />
             扫码领取
           </Button>
@@ -168,6 +176,12 @@ export default function KanbanBoard() {
         targetMember={selectedMember}
         onConfirm={handleConfirmProxy}
         members={allMembers.filter((m) => m.canProxy && m.status === 'picked')}
+      />
+
+      <ScanPickupModal
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onMemberFound={handleScanMemberFound}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes } from 'react';
+import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -6,7 +6,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function Input({ label, error, className, id, ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  function Input({ label, error, className, id, ...props }, ref) {
   const inputId = id || props.name;
   
   return (
@@ -17,6 +18,7 @@ export function Input({ label, error, className, id, ...props }: InputProps) {
         </label>
       )}
       <input
+        ref={ref}
         id={inputId}
         className={cn(
           'w-full px-3 py-2 rounded-lg input-glass text-sm',
@@ -28,7 +30,7 @@ export function Input({ label, error, className, id, ...props }: InputProps) {
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
-}
+});
 
 interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;

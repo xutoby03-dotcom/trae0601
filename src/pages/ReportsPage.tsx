@@ -13,10 +13,10 @@ import { usePickupPointStore } from '../store/pickupPointStore';
 export default function ReportsPage() {
   const { members } = useMemberStore();
   const { materials } = useMaterialStore();
-  const { getAllPickupPointStats, getLongestQueuePoint } = usePickupPointStore();
+  const { pickupRecords, getAllPickupPointStats, getLongestQueuePoint } = usePickupPointStore();
 
-  const pickupPointStats = useMemo(() => getAllPickupPointStats(), [getAllPickupPointStats]);
-  const longestQueuePoint = useMemo(() => getLongestQueuePoint(), [getLongestQueuePoint]);
+  const pickupPointStats = useMemo(() => getAllPickupPointStats(), [pickupRecords, getAllPickupPointStats]);
+  const longestQueuePoint = useMemo(() => getLongestQueuePoint(), [pickupRecords, getLongestQueuePoint]);
 
   const unpickedMembers = members.filter((m) => m.status === 'pending');
   const pickedCount = members.filter((m) => m.status === 'picked' || m.status === 'proxied').length;

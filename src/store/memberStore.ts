@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Member, MemberStatus } from '../types';
 import { mockMembers } from '../data/mockData';
+import { usePickupPointStore } from './pickupPointStore';
 
 interface MemberState {
   members: Member[];
@@ -50,6 +51,15 @@ export const useMemberStore = create<MemberState>()(
 
       confirmPickup: (id) => {
         const now = new Date().toISOString();
+        const member = get().members.find((m) => m.id === id);
+        
+        if (!member) return;
+
+        const queueStartTime = member.queueStartTime || now;
+        const waitDuration = Math.max(0, Math.floor(
+          (new Date(now).getTime() - new Date(queueStartTime).getTime()) / 1000
+        ));
+
         set((state) => ({
           members: state.members.map((m) =>
             m.id === id
@@ -57,10 +67,29 @@ export const useMemberStore = create<MemberState>()(
               : m
           ),
         }));
+
+        usePickupPointStore.getState().addPickupRecord({
+          memberId: id,
+          pickupPointId: member.pickupPoint,
+          type: 'self',
+          proxyMemberId: null,
+          queueStartTime,
+          pickupTime: now,
+          waitDuration,
+        });
       },
 
       confirmProxyPickup: (id, proxyMemberId) => {
         const now = new Date().toISOString();
+        const member = get().members.find((m) => m.id === id);
+        
+        if (!member) return;
+
+        const queueStartTime = member.queueStartTime || now;
+        const waitDuration = Math.max(0, Math.floor(
+          (new Date(now).getTime() - new Date(queueStartTime).getTime()) / 1000
+        ));
+
         set((state) => ({
           members: state.members.map((m) => {
             if (m.id === id) {
@@ -69,6 +98,16 @@ export const useMemberStore = create<MemberState>()(
             return m;
           }),
         }));
+
+        usePickupPointStore.getState().addPickupRecord({
+          memberId: id,
+          pickupPointId: member.pickupPoint,
+          type: 'proxy',
+          proxyMemberId,
+          queueStartTime,
+          pickupTime: now,
+          waitDuration,
+        });
       },
 
       getMembersByStatus: (status) => get().members.filter((m) => m.status === status),
