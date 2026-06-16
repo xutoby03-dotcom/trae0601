@@ -26,6 +26,7 @@ export default function Stations() {
     setJustAddedMap((prev) => ({ ...prev, [stationId]: orderNo }))
     setTimeout(() => {
       setJustAddedMap((prev) => {
+        if (prev[stationId] !== orderNo) return prev
         const next = { ...prev }
         delete next[stationId]
         return next
