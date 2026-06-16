@@ -3,6 +3,7 @@ import { DailyCheckIn, CheckInSource } from '@/types';
 import { mockCheckIns } from '@/data/checkIn';
 import { getStorage, setStorage, generateId } from '@/utils/storage';
 import { getToday, formatDateTime } from '@/utils/date';
+import { useExceptionStore } from './exceptionStore';
 
 interface CheckInState {
   checkInRecords: DailyCheckIn[];
@@ -58,6 +59,8 @@ export const useCheckInStore = create<CheckInState>((set, get) => ({
     
     set({ checkInRecords: newRecords });
     setStorage(STORAGE_KEY, newRecords);
+
+    useExceptionStore.getState().resolveElderlyTodayException(elderlyId);
   },
 
   getTodayStatus: (elderlyId) => {

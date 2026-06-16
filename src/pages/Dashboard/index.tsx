@@ -1,28 +1,78 @@
-import { useEffect, useState } from 'react';
-import { Users, CheckCircle, Clock, AlertTriangle, ChevronRight, Phone, Users as UsersIcon, Home, Wifi } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Users, CheckCircle, Clock, AlertTriangle, ChevronRight, Phone, Users as UsersIcon, Home, Wifi, Info, CheckCircle2 } from 'lucide-react';
 import { useElderlyStore } from '@/store/elderlyStore';
 import { useCheckInStore } from '@/store/checkInStore';
 import { useExceptionStore } from '@/store/exceptionStore';
 import { Elderly, ExceptionRecord } from '@/types';
-import { isTimePassed, formatTimeAgo } from '@/utils/date';
+import { isTimePassed, formatTimeAgo, getTimeString } from '@/utils/date';
 import { sourceConfig } from '@/utils/source';
 import SourceBadge from '@/components/SourceBadge';
 import StatusBadge from '@/components/StatusBadge';
 import CheckInModal from '@/components/CheckInModal';
 import { mockGrids } from '@/data/grids';
 
+interface Toast {
+  id: string;
+  type: 'info' | 'success' | 'warning';
+  message: string;
+}
+
 export default function Dashboard() {
   const { elderlyList, initElderly } = useElderlyStore();
   const { checkInRecords, initCheckIns, getTodayUnconfirmed, getTodayStats, getTodayStatus } = useCheckInStore();
-  const { exceptions, initExceptions, getOpenExceptions, getEscalatedExceptions } = useExceptionStore();
+  const { exceptions, initExceptions, getOpenExceptions, getEscalatedExceptions, processTimeouts } = useExceptionStore();
   const [selectedElderly, setSelectedElderly] = useState<Elderly | null>(null);
   const [currentGrid, setCurrentGrid] = useState<string>('all');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+  const hasProcessedRef = useRef(false);
+
+  const addToast = (type: Toast['type'], message: string) => {
+    const id = `toast-${Date.now()}-${toastIdRef.current++}`;
+    setToasts(prev => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const runTimeoutCheck = (showToastAlways = false) => {
+    const allIds = elderlyList.map(e => e.id);
+    if (allIds.length === 0) return;
+    const unconfirmedIds = getTodayUnconfirmed(allIds);
+    const result = processTimeouts(unconfirmedIds);
+
+    if (result.created > 0 || result.escalated > 0) {
+      const parts: string[] = [];
+      if (result.created > 0) parts.push(`${result.created} 条超时提醒`);
+      if (result.escalated > 0) parts.push(`${result.escalated} 条升级告警`);
+      addToast('warning', `已自动生成：${parts.join('、')}`);
+    } else if (showToastAlways) {
+      if (isTimePassed(12) && unconfirmedIds.length === 0) {
+        addToast('success', '12:00 检查完成，今日无未处理的超时异常');
+      } else if (isTimePassed(10)) {
+        addToast('info', `10:00 超时检查完成，当前 ${unconfirmedIds.length} 位老人未确认`);
+      }
+    }
+  };
 
   useEffect(() => {
     initElderly();
     initCheckIns();
     initExceptions();
   }, [initElderly, initCheckIns, initExceptions]);
+
+  useEffect(() => {
+    if (elderlyList.length === 0 || hasProcessedRef.current) return;
+    hasProcessedRef.current = true;
+    runTimeoutCheck(true);
+  }, [elderlyList, exceptions]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      runTimeoutCheck(false);
+    }, 30 * 1000);
+    return () => clearInterval(interval);
+  }, [elderlyList]);
 
   const filteredElderly = currentGrid === 'all' 
     ? elderlyList 
@@ -328,6 +378,31 @@ export default function Dashboard() {
           onClose={() => setSelectedElderly(null)}
         />
       )}
+
+      <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => {
+          const colorMap = {
+            info: 'bg-blue-50 border-blue-200 text-blue-800',
+            success: 'bg-green-50 border-green-200 text-green-800',
+            warning: 'bg-amber-50 border-amber-200 text-amber-800',
+          };
+          const iconMap = {
+            info: <Info size={18} className="text-blue-600" />,
+            success: <CheckCircle2 size={18} className="text-green-600" />,
+            warning: <AlertTriangle size={18} className="text-amber-600" />,
+          };
+          return (
+            <div
+              key={toast.id}
+              className={`px-4 py-3 rounded-xl border shadow-lg flex items-center gap-3 fade-in pointer-events-auto min-w-[280px] ${colorMap[toast.type]}`}
+            >
+              {iconMap[toast.type]}
+              <span className="text-sm font-medium">{toast.message}</span>
+              <span className="text-xs opacity-60 ml-auto">{getTimeString()}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

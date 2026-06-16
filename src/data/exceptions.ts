@@ -1,7 +1,5 @@
 import { ExceptionRecord } from '@/types';
-import { getToday } from '@/utils/date';
 
-const today = getToday();
 const yesterday = new Date();
 yesterday.setDate(yesterday.getDate() - 1);
 const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -10,51 +8,6 @@ twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
 
 export const mockExceptions: ExceptionRecord[] = [
-  {
-    id: 'exception-1',
-    elderlyId: 'elderly-4',
-    exceptionDate: today,
-    type: 'timeout',
-    status: 'pending',
-    firstReminderTime: null,
-    escalationTime: null,
-    knockResult: null,
-    contactedFamily: null,
-    needMedical: null,
-    handlingNotes: '',
-    resolvedTime: null,
-    resolverId: null,
-  },
-  {
-    id: 'exception-2',
-    elderlyId: 'elderly-5',
-    exceptionDate: today,
-    type: 'timeout',
-    status: 'processing',
-    firstReminderTime: `${today} 10:05`,
-    escalationTime: null,
-    knockResult: '敲门无人应答',
-    contactedFamily: true,
-    needMedical: false,
-    handlingNotes: '已联系侄子，他正在赶来的路上',
-    resolvedTime: null,
-    resolverId: null,
-  },
-  {
-    id: 'exception-3',
-    elderlyId: 'elderly-8',
-    exceptionDate: today,
-    type: 'timeout',
-    status: 'escalated',
-    firstReminderTime: `${today} 10:02`,
-    escalationTime: `${today} 12:10`,
-    knockResult: '敲门很久才开门，老人说身体不舒服',
-    contactedFamily: true,
-    needMedical: true,
-    handlingNotes: '老人说头晕，已经联系120和女儿，正在等救护车',
-    resolvedTime: null,
-    resolverId: null,
-  },
   {
     id: 'exception-4',
     elderlyId: 'elderly-6',
