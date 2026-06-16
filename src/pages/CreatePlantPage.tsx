@@ -8,6 +8,7 @@ import {
   Layers,
   Sun,
   Droplets,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { usePlantStore } from '../store/plantStore';
 import type { LightRequirement } from '../types';
@@ -25,6 +26,7 @@ export default function CreatePlantPage() {
     currentSoilMixId: soilMixes[0]?.id || '',
     lightRequirement: '散射光' as LightRequirement,
     wateringRhythm: '每7天一次',
+    latestPhotoUrl: '',
     isAlive: true,
   });
 
@@ -173,6 +175,45 @@ export default function CreatePlantPage() {
                   <span className="font-medium text-sm">{opt}</span>
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+            <div className="md:col-span-3">
+              <label className="label flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-clay-500" />
+                最近照片地址
+              </label>
+              <input
+                type="url"
+                placeholder="粘贴图片 URL，保存后卡片和详情页直接用这张图"
+                value={formData.latestPhotoUrl}
+                onChange={(e) => updateField('latestPhotoUrl', e.target.value)}
+                className="input-field"
+              />
+              <p className="text-xs text-forest-400 mt-1.5">
+                可选，不填则显示占位图
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">预览</label>
+              <div className="aspect-[4/3] w-full rounded-xl overflow-hidden bg-forest-100 border border-cream-200 flex items-center justify-center">
+                {formData.latestPhotoUrl ? (
+                  <img
+                    src={formData.latestPhotoUrl}
+                    alt="预览"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="text-center text-forest-400">
+                    <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">填入地址后这里显示预览</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
