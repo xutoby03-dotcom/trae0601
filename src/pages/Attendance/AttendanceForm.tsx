@@ -4,6 +4,7 @@ import { ArrowLeft, Save, CheckCircle } from 'lucide-react';
 import { useAttendanceStore } from '@/store/attendanceStore';
 import { useElderStore } from '@/store/elderStore';
 import { useCourseStore } from '@/store/courseStore';
+import { useRegistrationStore } from '@/store/registrationStore';
 import { COURSE_TOPIC_MAP } from '@/types';
 import { formatDate, formatTime } from '@/utils/format';
 
@@ -13,6 +14,7 @@ export default function AttendanceForm() {
   const { addAttendance, volunteers, fetchVolunteers } = useAttendanceStore();
   const { elders } = useElderStore();
   const { courses, getCourseById } = useCourseStore();
+  const { completeRegistrationByElderAndCourse } = useRegistrationStore();
 
   const preselectedElderId = searchParams.get('elderId') || '';
   const preselectedCourseId = searchParams.get('courseId') || '';
@@ -60,6 +62,8 @@ export default function AttendanceForm() {
       nextFollowUp: formData.nextFollowUp,
       duration: Number(formData.duration),
     });
+
+    completeRegistrationByElderAndCourse(formData.elderId, formData.courseId);
 
     setSubmitted(true);
     setTimeout(() => {

@@ -17,6 +17,7 @@ interface RegistrationState {
   cancelRegistration: (id: string) => void;
   confirmRegistration: (id: string) => void;
   completeRegistration: (id: string) => void;
+  completeRegistrationByElderAndCourse: (elderId: string, courseId: string) => boolean;
 }
 
 export const useRegistrationStore = create<RegistrationState>((set, get) => ({
@@ -161,5 +162,22 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     );
     storage.set(STORAGE_KEYS.REGISTRATIONS, registrations);
     set({ registrations });
+  },
+
+  completeRegistrationByElderAndCourse: (elderId, courseId) => {
+    const targetRegistration = get().registrations.find(
+      r => r.elderId === elderId && r.courseId === courseId && r.status === 'confirmed'
+    );
+    
+    if (!targetRegistration) {
+      return false;
+    }
+
+    const registrations = get().registrations.map(r =>
+      r.id === targetRegistration.id ? { ...r, status: 'completed' as const } : r
+    );
+    storage.set(STORAGE_KEYS.REGISTRATIONS, registrations);
+    set({ registrations });
+    return true;
   },
 }));
