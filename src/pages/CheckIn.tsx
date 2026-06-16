@@ -81,9 +81,9 @@ export default function CheckIn() {
   const allChecked = items.every((item) => item.checked)
 
   const handleComplete = async () => {
-    const sid = await ensureSession()
     setSubmitting(true)
     try {
+      const sid = await ensureSession()
       await updateCheckItems(sid, items.map((item) => ({
         component_id: item.component_id,
         actual_count: item.actual_count,
