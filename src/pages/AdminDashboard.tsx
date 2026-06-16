@@ -79,26 +79,33 @@ export default function AdminDashboard() {
     [books]
   );
 
-  const categoryByGrade = useMemo(() => {
+  const { gradeCategoryData, usedCategories } = useMemo(() => {
     const classToGrade: Record<string, string> = {};
     CLASSES.forEach((c) => {
       classToGrade[c.name] = c.grade;
     });
 
     const gradeMap: Record<string, Record<string, number>> = {};
+    const categorySet = new Set<string>();
+
     borrowRecords.forEach((r) => {
       const grade = classToGrade[r.className];
       if (!grade) return;
       const book = books.find((b) => b.id === r.bookId);
       if (!book) return;
+      categorySet.add(book.category);
       if (!gradeMap[grade]) gradeMap[grade] = {};
       gradeMap[grade][book.category] =
         (gradeMap[grade][book.category] || 0) + 1;
     });
-    return Object.entries(gradeMap).map(([grade, cats]) => ({
+
+    const data = Object.entries(gradeMap).map(([grade, cats]) => ({
       grade,
       ...cats,
     }));
+
+    const categoryList = Array.from(categorySet);
+    return { gradeCategoryData: data, usedCategories: categoryList };
   }, [borrowRecords, books]);
 
   const overallCategoryData = useMemo(() => {
@@ -263,37 +270,37 @@ export default function AdminDashboard() {
           📊 各年级实际借阅类别分布
         </h3>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryByGrade} margin={{ top: 10, right: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F5E3CC" />
-              <XAxis dataKey="grade" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 8,
-                  border: "1px solid #F5E3CC",
-                  fontSize: 12,
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              {[
-                "儿童文学",
-                "科普百科",
-                "童话故事",
-                "历史故事",
-                "绘本漫画",
-                "经典名著",
-              ].map((cat, i) => (
-                <Bar
-                  key={cat}
-                  dataKey={cat}
-                  stackId="a"
-                  fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]}
-                  radius={[2, 2, 0, 0]}
+          {gradeCategoryData.length === 0 || usedCategories.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+              <BarChart3 className="w-12 h-12 mb-2 opacity-30" />
+              <p className="text-sm">暂无借阅数据</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={gradeCategoryData} margin={{ top: 10, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F5E3CC" />
+                <XAxis dataKey="grade" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 8,
+                    border: "1px solid #F5E3CC",
+                    fontSize: 12,
+                  }}
                 />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {usedCategories.map((cat, i) => (
+                  <Bar
+                    key={cat}
+                    dataKey={cat}
+                    stackId="a"
+                    fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]}
+                    radius={[2, 2, 0, 0]}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
