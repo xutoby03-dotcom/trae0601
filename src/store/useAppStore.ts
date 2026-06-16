@@ -43,13 +43,32 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: true,
 
   initApp: async () => {
+    const recoverInterfaceType = (message: string): InterfaceType | null => {
+      const types: InterfaceType[] = ['USB-C', 'Lightning', 'Micro-USB'];
+      for (const t of types) {
+        if (message.includes(t)) return t;
+      }
+      return null;
+    };
+
     const deduplicateAlerts = (alerts: Alert[]): Alert[] => {
+      const repaired: Alert[] = alerts.map(alert => {
+        if (alert.type === 'low_stock' && !alert.interfaceType) {
+          const recovered = recoverInterfaceType(alert.message);
+          if (recovered) {
+            return { ...alert, interfaceType: recovered };
+          }
+        }
+        return alert;
+      });
+
       const seen = new Map<string, Alert>();
       
-      alerts.forEach(alert => {
+      for (const alert of repaired) {
         let key: string;
         if (alert.type === 'low_stock') {
-          key = `low_stock-${alert.interfaceType || 'unknown'}`;
+          const it = alert.interfaceType || recoverInterfaceType(alert.message) || 'unknown';
+          key = `low_stock-${it}`;
         } else {
           key = `${alert.type}-${alert.cableId || ''}-${alert.borrowId || ''}`;
         }
@@ -58,7 +77,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!existing || alert.createdAt > existing.createdAt) {
           seen.set(key, alert);
         }
-      });
+      }
       
       return Array.from(seen.values());
     };
@@ -66,10 +85,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (storage.isInitialized()) {
       let alerts = storage.getAlerts();
       const deduplicatedAlerts = deduplicateAlerts(alerts);
-      if (deduplicatedAlerts.length !== alerts.length) {
+      const needsUpdate = deduplicatedAlerts.length !== alerts.length
+        || alerts.some((a, i) => a.interfaceType !== deduplicatedAlerts[i]?.interfaceType);
+      if (needsUpdate) {
         storage.setAlerts(deduplicatedAlerts);
-        alerts = deduplicatedAlerts;
       }
+      alerts = deduplicatedAlerts;
       
       set({
         cables: storage.getCables(),
