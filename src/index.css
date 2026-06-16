@@ -1,0 +1,65 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "PingFang SC", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #1a1a1a;
+  background-color: #fdf8f3;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.wood-grain {
+  background: linear-gradient(
+      135deg,
+      rgba(139, 90, 43, 0.08) 0%,
+      transparent 50%,
+      rgba(139, 90, 43, 0.06) 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(160, 110, 60, 0.03) 0px,
+      rgba(160, 110, 60, 0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f5e3cc;
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #c7a77b;
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #a88860;
+}
+
+.book-spine {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    transparent 15%,
+    transparent 85%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
