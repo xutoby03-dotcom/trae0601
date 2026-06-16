@@ -18,8 +18,9 @@ export const CleaningRecords = () => {
   });
   const [rawDaysInput, setRawDaysInput] = useState('1');
   const [daysError, setDaysError] = useState(false);
+  const [unhandledMode, setUnhandledMode] = useState(false);
 
-  const isUnhandled = (newRecord.daysUnhandled ?? 0) > 0;
+  const isUnhandled = unhandledMode;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,14 +57,17 @@ export const CleaningRecords = () => {
     });
     setRawDaysInput('1');
     setDaysError(false);
+    setUnhandledMode(false);
   };
 
   const handleSwitchToHandled = () => {
+    setUnhandledMode(false);
     setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }));
     setDaysError(false);
   };
 
   const handleSwitchToUnhandled = () => {
+    setUnhandledMode(true);
     const days = parseInt(rawDaysInput);
     if (!isNaN(days) && days >= 1) {
       setNewRecord((prev) => ({ ...prev, daysUnhandled: days }));
