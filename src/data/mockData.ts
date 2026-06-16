@@ -104,8 +104,8 @@ export const mockCleaningRecords: CleaningRecord[] = [
     cleaningDate: addDays(new Date().toISOString(), -14),
     cleanedBy: '张阿姨',
     dryingLocation: '阳台晾晒区',
-    daysUnhandled: 3,
-    notes: '用消毒液浸泡30分钟后刷洗',
+    daysUnhandled: 5,
+    notes: '用消毒液浸泡30分钟后刷洗，之后忘记放回了',
   },
   {
     id: 'cleaning-2',
@@ -124,6 +124,24 @@ export const mockCleaningRecords: CleaningRecord[] = [
     dryingLocation: '阳台晾晒区',
     daysUnhandled: 0,
     notes: '新垫子首次清洗',
+  },
+  {
+    id: 'cleaning-4',
+    bathroomId: 'bathroom-2',
+    cleaningDate: addDays(new Date().toISOString(), -12),
+    cleanedBy: '张阿姨',
+    dryingLocation: '阳台晾晒区',
+    daysUnhandled: 2,
+    notes: '深度清洁，用了专用清洁剂',
+  },
+  {
+    id: 'cleaning-5',
+    bathroomId: 'bathroom-1',
+    cleaningDate: addDays(new Date().toISOString(), -25),
+    cleanedBy: '李叔叔',
+    dryingLocation: '卫生间通风处',
+    daysUnhandled: 0,
+    notes: '当月例行清洗',
   },
 ];
 

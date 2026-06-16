@@ -30,7 +30,7 @@ interface AppState {
   addBathroom: (bathroom: Omit<Bathroom, 'id' | 'riskLevel'>) => void;
   updateBathroom: (id: string, updates: Partial<Bathroom>) => void;
   addInspection: (inspection: Omit<Inspection, 'id'>) => { createdTask: boolean; taskId?: string };
-  addCleaningRecord: (record: Omit<CleaningRecord, 'id' | 'daysUnhandled'>) => void;
+  addCleaningRecord: (record: Omit<CleaningRecord, 'id'>) => void;
   addTask: (task: Omit<Task, 'id'>) => string;
   updateTask: (id: string, updates: Partial<Task>) => void;
   addProcurementSpec: (spec: Omit<ProcurementSpec, 'id'>) => string;
@@ -117,7 +117,6 @@ export const useStore = create<AppState>()(
         const newRecord: CleaningRecord = {
           ...record,
           id: generateId(),
-          daysUnhandled: 0,
         };
 
         get().updateBathroom(record.bathroomId, {

@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { CleaningRecordItem } from '../components/CleaningRecordItem';
-import { Droplets, Plus, X, User, MapPin, FileText } from 'lucide-react';
+import { Droplets, Plus, X, User, MapPin, FileText, Clock, CheckCircle2 } from 'lucide-react';
 import { getToday } from '../utils/dateUtils';
 import type { CleaningRecord } from '../types';
 
 export const CleaningRecords = () => {
   const { cleaningRecords, getBathroomById, addCleaningRecord, bathrooms } = useStore();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newRecord, setNewRecord] = useState<Partial<Omit<CleaningRecord, 'id' | 'daysUnhandled'>>>({
+  const [newRecord, setNewRecord] = useState<Partial<Omit<CleaningRecord, 'id'>>>({
     bathroomId: '',
     cleaningDate: getToday(),
     cleanedBy: '',
     dryingLocation: '',
+    daysUnhandled: 0,
     notes: '',
   });
 
@@ -25,6 +26,7 @@ export const CleaningRecords = () => {
       cleaningDate: newRecord.cleaningDate || getToday(),
       cleanedBy: newRecord.cleanedBy,
       dryingLocation: newRecord.dryingLocation,
+      daysUnhandled: newRecord.daysUnhandled || 0,
       notes: newRecord.notes || '',
     });
 
@@ -34,6 +36,7 @@ export const CleaningRecords = () => {
       cleaningDate: getToday(),
       cleanedBy: '',
       dryingLocation: '',
+      daysUnhandled: 0,
       notes: '',
     });
   };
@@ -132,6 +135,77 @@ export const CleaningRecords = () => {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:outline-none transition-colors"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock size={16} className="inline mr-1" />
+                  处理状态
+                </label>
+                <div className="flex gap-3 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }))}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-all duration-300 ${
+                      newRecord.daysUnhandled === 0
+                        ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <CheckCircle2 size={18} />
+                    已放回原位
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewRecord((prev) => ({ ...prev, daysUnhandled: 1 }))}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-all duration-300 ${
+                      (newRecord.daysUnhandled ?? 0) > 0
+                        ? 'border-amber-400 bg-amber-50 text-amber-700'
+                        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <Clock size={18} />
+                    未处理
+                  </button>
+                </div>
+                {(newRecord.daysUnhandled ?? 0) > 0 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600">未处理天数：</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewRecord((prev) => ({
+                          ...prev,
+                          daysUnhandled: Math.max(1, (prev.daysUnhandled ?? 1) - 1)
+                        }))}
+                        className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newRecord.daysUnhandled ?? 1}
+                        onChange={(e) => setNewRecord((prev) => ({
+                          ...prev,
+                          daysUnhandled: Math.max(0, parseInt(e.target.value) || 0)
+                        }))}
+                        className="w-20 px-3 py-2 text-center border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:outline-none transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setNewRecord((prev) => ({
+                          ...prev,
+                          daysUnhandled: (prev.daysUnhandled ?? 0) + 1
+                        }))}
+                        className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
+                      >
+                        +
+                      </button>
+                      <span className="text-sm text-gray-500">天</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

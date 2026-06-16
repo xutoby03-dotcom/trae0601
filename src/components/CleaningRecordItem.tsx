@@ -1,4 +1,4 @@
-import { User, MapPin, Calendar, Clock, FileText } from 'lucide-react';
+import { User, MapPin, Calendar, Clock, FileText, CheckCircle2 } from 'lucide-react';
 import type { CleaningRecord, Bathroom } from '../types';
 import { formatDate, getDaysSince } from '../utils/dateUtils';
 
@@ -7,8 +7,34 @@ interface CleaningRecordItemProps {
   bathroom: Bathroom | undefined;
 }
 
+const getUnhandledBadgeConfig = (days: number) => {
+  if (days === 0) {
+    return {
+      bg: 'bg-emerald-100',
+      text: 'text-emerald-700',
+      label: '已处理',
+      icon: <CheckCircle2 size={14} />,
+    };
+  }
+  if (days <= 3) {
+    return {
+      bg: 'bg-amber-100',
+      text: 'text-amber-700',
+      label: `未处理 ${days} 天`,
+      icon: <Clock size={14} />,
+    };
+  }
+  return {
+    bg: 'bg-red-100',
+    text: 'text-red-700',
+    label: `未处理 ${days} 天`,
+    icon: <Clock size={14} />,
+  };
+};
+
 export const CleaningRecordItem = ({ record, bathroom }: CleaningRecordItemProps) => {
   const daysAgo = getDaysSince(record.cleaningDate);
+  const badgeConfig = getUnhandledBadgeConfig(record.daysUnhandled);
 
   return (
     <div className="relative pl-8 pb-8 last:pb-0">
@@ -31,14 +57,13 @@ export const CleaningRecordItem = ({ record, bathroom }: CleaningRecordItemProps
               <span>{formatDate(record.cleaningDate)}</span>
               <span className="mx-1">·</span>
               <Clock size={14} />
-              <span>{daysAgo} 天前</span>
+              <span>{daysAgo} 天前清洗</span>
             </div>
           </div>
-          {record.daysUnhandled > 0 && (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${record.daysUnhandled > 3 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-              未处理 {record.daysUnhandled} 天
-            </span>
-          )}
+          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${badgeConfig.bg} ${badgeConfig.text}`}>
+            {badgeConfig.icon}
+            {badgeConfig.label}
+          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-3">
