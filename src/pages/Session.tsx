@@ -143,6 +143,13 @@ export default function Session() {
     setStep('confirm');
   };
 
+  const finishGame = () => {
+    if (!currentSession) return;
+    updateSessionStatus(currentSession.id, 'finished');
+    setCurrentSession(null);
+    resetAll();
+  };
+
   const resetAll = () => {
     setStep('select-script');
     setSelectedScript(null);
@@ -465,10 +472,10 @@ export default function Session() {
               返回调整
             </button>
             <button
-              onClick={resetAll}
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium hover:from-purple-600 hover:to-indigo-600 transition-all"
+              onClick={finishGame}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25"
             >
-              完成
+              结束局次
             </button>
           </div>
         </div>

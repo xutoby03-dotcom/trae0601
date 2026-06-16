@@ -46,7 +46,7 @@ export default function Stats() {
     return calculateTriggerStats(ratings, players, allCharacters, sessions);
   }, [ratings, players, scripts, sessions]);
 
-  const finishedSessions = useMemo(() =>
+  const visibleSessions = useMemo(() =>
     sessions.filter(s => s.status === 'finished' || s.status === 'playing')
       .sort((a, b) => b.createdAt - a.createdAt),
     [sessions]
@@ -166,7 +166,7 @@ export default function Stats() {
 
       {activeTab === 'sessions' && (
         <div className="space-y-4">
-          {finishedSessions.length === 0 ? (
+          {visibleSessions.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/50 flex items-center justify-center">
                 <Clock className="text-slate-600" size={32} />
@@ -175,10 +175,11 @@ export default function Stats() {
               <p className="text-sm text-slate-500">去组局分配开始一局吧</p>
             </div>
           ) : (
-            finishedSessions.map(session => {
+            visibleSessions.map(session => {
               const sessionRatings = getRatingsForSession(session.id);
               const isExpanded = expandedSession === session.id;
               const allRated = session.playerIds.every(pid => hasRated(session.id, pid));
+              const isPlaying = session.status === 'playing';
 
               return (
                 <div
@@ -204,19 +205,24 @@ export default function Stats() {
                             <Clock size={12} />
                             {formatDate(session.createdAt)}
                           </span>
-                          <span className={cn(
-                            'px-2 py-0.5 rounded-full text-xs',
-                            allRated
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-amber-500/20 text-amber-400'
-                          )}>
-                            {allRated ? '已全部评分' : `${sessionRatings.length}/${session.playerIds.length} 已评分`}
-                          </span>
+                          {isPlaying ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-blue-500/20 text-blue-400">
+                              进行中
+                            </span>
+                          ) : allRated ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-400">
+                              已全部评分
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-400">
+                              {sessionRatings.length}/{session.playerIds.length} 已评分
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {!allRated && (
+                      {!isPlaying && !allRated && (
                         <button
                           onClick={(e) => { e.stopPropagation(); openRatingModal(session); }}
                           className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors"
@@ -230,6 +236,11 @@ export default function Stats() {
 
                   {isExpanded && (
                     <div className="border-t border-slate-700/50 p-4 space-y-3">
+                      {isPlaying && (
+                        <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+                          该局次正在进行中，结束后即可评分
+                        </div>
+                      )}
                       {session.playerIds.map(playerId => {
                         const playerRating = sessionRatings.find(r => r.playerId === playerId);
                         const characterName = getCharacterName(session, playerId);
@@ -266,10 +277,12 @@ export default function Stats() {
                                   )}
                                 </div>
                               ) : (
-                                <p className="text-xs text-slate-500 mt-1">未评分</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {isPlaying ? '进行中' : '未评分'}
+                                </p>
                               )}
                             </div>
-                            {!playerRating && (
+                            {!isPlaying && !playerRating && (
                               <button
                                 onClick={() => openRatingModal(session)}
                                 className="text-xs text-purple-400 hover:text-purple-300"
