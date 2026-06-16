@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useStore } from '@/store'
 import { CATEGORY_LABELS } from '@/types'
@@ -20,6 +20,8 @@ export default function CheckIn() {
   }>>([])
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const submittingRef = useRef(false)
 
   const gameId = Number(id)
 
@@ -81,6 +83,8 @@ export default function CheckIn() {
   const allChecked = items.every((item) => item.checked)
 
   const handleComplete = async () => {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setSubmitting(true)
     try {
       const sid = await ensureSession()
@@ -93,6 +97,7 @@ export default function CheckIn() {
       await completeCheckSession(sid)
       navigate(`/games/${gameId}`)
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }
