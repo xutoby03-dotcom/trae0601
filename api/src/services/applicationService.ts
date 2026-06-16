@@ -121,7 +121,7 @@ export const applicationService = {
     if (!app || !app.seatId) return undefined;
 
     courseService.releaseSeat(app.courseId, app.seatId);
-    applicationStore.update(id, { status: 'no_show' });
+    applicationStore.update(id, { status: 'no_show', seatId: undefined });
 
     const waitlist = applicationStore.getWaitlist(app.courseId);
     if (waitlist.length > 0) {

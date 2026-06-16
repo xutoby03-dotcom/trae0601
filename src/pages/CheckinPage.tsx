@@ -121,7 +121,10 @@ export const CheckinPage: React.FC = () => {
 
   const getSeatApplication = (seat: Seat) => {
     return applications.find(
-      (a) => a.courseId === selectedCourseId && a.seatId === seat.id
+      (a) =>
+        a.courseId === selectedCourseId &&
+        a.seatId === seat.id &&
+        (a.status === 'approved' || a.status === 'checked_in')
     );
   };
 
