@@ -3,7 +3,7 @@ import { AlertTriangle, Clock, CheckCircle, ArrowUpRight, X, Save, Phone, Home, 
 import { useElderlyStore } from '@/store/elderlyStore';
 import { useExceptionStore } from '@/store/exceptionStore';
 import { ExceptionRecord, ExceptionStatus } from '@/types';
-import { formatDateTime } from '@/utils/date';
+import { formatDateTime, getToday } from '@/utils/date';
 import StatusBadge from '@/components/StatusBadge';
 import { mockGrids } from '@/data/grids';
 
@@ -39,11 +39,12 @@ export default function ExceptionsPage() {
     return statusOrder[a.status] - statusOrder[b.status];
   });
 
+  const today = getToday();
   const stats = {
     total: exceptions.length,
     pending: exceptions.filter(e => e.status === 'pending').length,
     processing: exceptions.filter(e => e.status === 'processing').length,
-    escalated: exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout').length,
+    escalated: exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today).length,
     resolved: exceptions.filter(e => e.status === 'resolved').length,
   };
 

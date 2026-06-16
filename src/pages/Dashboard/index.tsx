@@ -4,7 +4,7 @@ import { useElderlyStore } from '@/store/elderlyStore';
 import { useCheckInStore } from '@/store/checkInStore';
 import { useExceptionStore } from '@/store/exceptionStore';
 import { Elderly, ExceptionRecord } from '@/types';
-import { isTimePassed, formatTimeAgo, getTimeString } from '@/utils/date';
+import { isTimePassed, formatTimeAgo, getTimeString, getToday } from '@/utils/date';
 import { sourceConfig } from '@/utils/source';
 import SourceBadge from '@/components/SourceBadge';
 import StatusBadge from '@/components/StatusBadge';
@@ -85,8 +85,11 @@ export default function Dashboard() {
   const openExceptions = getOpenExceptions().filter(e => 
     currentGrid === 'all' || filteredElderly.find(el => el.id === e.elderlyId)
   );
+  const today = getToday();
   const escalatedExceptions = getEscalatedExceptions().filter(e => 
     e.type === 'timeout' &&
+    e.exceptionDate === today &&
+    unconfirmedIds.includes(e.elderlyId) &&
     (currentGrid === 'all' || filteredElderly.find(el => el.id === e.elderlyId))
   );
 

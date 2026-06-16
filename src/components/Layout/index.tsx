@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, CheckSquare, AlertTriangle, BarChart3, Menu, X, Bell } from 'lucide-react';
 import { useExceptionStore } from '@/store/exceptionStore';
+import { getToday } from '@/utils/date';
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: '首页' },
@@ -20,7 +21,8 @@ export default function Layout() {
     initExceptions();
   }, [initExceptions]);
 
-  const escalatedCount = exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout').length;
+  const today = getToday();
+  const escalatedCount = exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today).length;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
