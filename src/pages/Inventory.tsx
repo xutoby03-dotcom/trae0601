@@ -16,6 +16,7 @@ export default function Inventory() {
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [snapshotGoggles, setSnapshotGoggles] = useState<Goggle[]>([])
+  const [tableSnapshot, setTableSnapshot] = useState<Goggle[]>([])
 
   const [newCode, setNewCode] = useState('')
   const [newSize, setNewSize] = useState<GoggleSize>('M')
@@ -28,7 +29,9 @@ export default function Inventory() {
     return true
   }), [goggles, search, filterLab, filterStatus])
 
-  const visibleIds = useMemo(() => new Set(filteredGoggles.map(g => g.id)), [filteredGoggles])
+  const visibleGoggles = showStatusModal && tableSnapshot.length > 0 ? tableSnapshot : filteredGoggles
+
+  const visibleIds = useMemo(() => new Set(visibleGoggles.map(g => g.id)), [visibleGoggles])
 
   useEffect(() => {
     setSelectedIds(prev => {
@@ -38,12 +41,12 @@ export default function Inventory() {
   }, [visibleIds])
 
   const selectedGoggles = useMemo(
-    () => filteredGoggles.filter(g => selectedIds.includes(g.id)),
-    [filteredGoggles, selectedIds]
+    () => visibleGoggles.filter(g => selectedIds.includes(g.id)),
+    [visibleGoggles, selectedIds]
   )
 
-  const allSelected = filteredGoggles.length > 0 && selectedGoggles.length === filteredGoggles.length
-  const someSelected = selectedGoggles.length > 0 && selectedGoggles.length < filteredGoggles.length
+  const allSelected = visibleGoggles.length > 0 && selectedGoggles.length === visibleGoggles.length
+  const someSelected = selectedGoggles.length > 0 && selectedGoggles.length < visibleGoggles.length
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev =>
@@ -57,7 +60,7 @@ export default function Inventory() {
     } else {
       setSelectedIds(prev => {
         const next = new Set(prev)
-        filteredGoggles.forEach(g => next.add(g.id))
+        visibleGoggles.forEach(g => next.add(g.id))
         return Array.from(next)
       })
     }
@@ -105,12 +108,14 @@ export default function Inventory() {
 
   const handleBatchStatus = () => {
     if (selectedGoggles.length === 0) return
+    setTableSnapshot([...filteredGoggles])
     setSnapshotGoggles([...selectedGoggles])
     setShowStatusModal(true)
   }
 
   const handleStatusModalClose = () => {
     setShowStatusModal(false)
+    setTableSnapshot([])
     setSnapshotGoggles([])
     setSelectedIds([])
   }
@@ -157,7 +162,7 @@ export default function Inventory() {
             <option value="">全部状态</option>
             {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
-          <span className="text-sm text-slate-500 shrink-0">共 {filteredGoggles.length} 副</span>
+          <span className="text-sm text-slate-500 shrink-0">共 {visibleGoggles.length} 副</span>
           {visibleCount > 0 && (
             <span className="text-sm text-brand-600 font-medium shrink-0">
               已选 {visibleCount} 副
@@ -192,7 +197,7 @@ export default function Inventory() {
               </tr>
             </thead>
             <tbody>
-              {filteredGoggles.map(g => {
+              {visibleGoggles.map(g => {
                 const lab = getLabById(g.labId)
                 const isSelected = selectedIds.includes(g.id)
                 return (
@@ -246,7 +251,7 @@ export default function Inventory() {
           </table>
         </div>
 
-        {filteredGoggles.length === 0 && (
+        {visibleGoggles.length === 0 && (
           <div className="text-center py-12">
             <Archive className="w-10 h-10 text-slate-300 mx-auto mb-3" />
             <p className="text-sm text-slate-500">未找到匹配的护目镜</p>
@@ -344,6 +349,7 @@ export default function Inventory() {
                   setShowDetail(null)
                   setSelectedIds([detailGoggle.id])
                   setSnapshotGoggles([detailGoggle])
+                  setTableSnapshot([...filteredGoggles])
                   setShowStatusModal(true)
                 }}
                 className="btn-secondary flex-1"
