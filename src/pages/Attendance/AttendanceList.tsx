@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -14,10 +14,16 @@ import { useCourseStore } from '@/store/courseStore';
 import { formatDateTime, formatDuration } from '@/utils/format';
 
 export default function AttendanceList() {
-  const { attendances } = useAttendanceStore();
-  const { elders } = useElderStore();
-  const { courses } = useCourseStore();
+  const { attendances, fetchAttendances } = useAttendanceStore();
+  const { elders, fetchElders } = useElderStore();
+  const { courses, fetchCourses } = useCourseStore();
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    fetchAttendances();
+    fetchElders();
+    fetchCourses();
+  }, [fetchAttendances, fetchElders, fetchCourses]);
 
   const filteredAttendances = attendances
     .filter(a => {

@@ -11,7 +11,7 @@ const difficulties: Difficulty[] = ['beginner', 'elementary', 'intermediate', 'a
 export default function CourseForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getCourseById, addCourse, updateCourse } = useCourseStore();
+  const { getCourseById, addCourse, updateCourse, fetchCourses } = useCourseStore();
   const isEdit = !!id;
 
   const [formData, setFormData] = useState<Partial<Course>>({
@@ -25,6 +25,10 @@ export default function CourseForm() {
     volunteer: '',
     capacity: 10,
   });
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   useEffect(() => {
     if (isEdit && id) {

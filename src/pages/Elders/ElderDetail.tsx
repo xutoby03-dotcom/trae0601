@@ -1,4 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   Edit,
@@ -25,10 +26,17 @@ import { PHONE_SYSTEM_MAP } from '@/types';
 export default function ElderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getElderById, deleteElder } = useElderStore();
-  const { getAttendancesByElderId } = useAttendanceStore();
-  const { getRegistrationsByElderId } = useRegistrationStore();
-  const { getCourseById } = useCourseStore();
+  const { getElderById, deleteElder, fetchElders } = useElderStore();
+  const { getAttendancesByElderId, fetchAttendances } = useAttendanceStore();
+  const { getRegistrationsByElderId, fetchRegistrations } = useRegistrationStore();
+  const { getCourseById, fetchCourses } = useCourseStore();
+
+  useEffect(() => {
+    fetchElders();
+    fetchAttendances();
+    fetchRegistrations();
+    fetchCourses();
+  }, [fetchElders, fetchAttendances, fetchRegistrations, fetchCourses]);
 
   const elder = id ? getElderById(id) : undefined;
   const attendances = id ? getAttendancesByElderId(id) : [];

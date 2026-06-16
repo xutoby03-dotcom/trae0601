@@ -1,4 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   Edit,
@@ -18,9 +19,15 @@ import { formatDateTime, formatDuration } from '@/utils/format';
 export default function AttendanceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAttendanceById, deleteAttendance } = useAttendanceStore();
-  const { getElderById } = useElderStore();
-  const { getCourseById } = useCourseStore();
+  const { getAttendanceById, deleteAttendance, fetchAttendances } = useAttendanceStore();
+  const { getElderById, fetchElders } = useElderStore();
+  const { getCourseById, fetchCourses } = useCourseStore();
+
+  useEffect(() => {
+    fetchAttendances();
+    fetchElders();
+    fetchCourses();
+  }, [fetchAttendances, fetchElders, fetchCourses]);
 
   const attendance = id ? getAttendanceById(id) : undefined;
   const elder = attendance ? getElderById(attendance.elderId) : undefined;

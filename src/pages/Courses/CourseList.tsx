@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -24,9 +24,14 @@ const statusFilters: { value: 'all' | CourseStatus; label: string }[] = [
 ];
 
 export default function CourseList() {
-  const { courses } = useCourseStore();
-  const { getConfirmedCount, getWaitlistCount } = useRegistrationStore();
+  const { courses, fetchCourses } = useCourseStore();
+  const { getConfirmedCount, getWaitlistCount, fetchRegistrations } = useRegistrationStore();
   const [statusFilter, setStatusFilter] = useState<'all' | CourseStatus>('all');
+
+  useEffect(() => {
+    fetchCourses();
+    fetchRegistrations();
+  }, [fetchCourses, fetchRegistrations]);
 
   const filteredCourses = courses
     .filter(c => statusFilter === 'all' || c.status === statusFilter)

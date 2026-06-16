@@ -12,12 +12,13 @@ export default function AttendanceForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { addAttendance, volunteers, fetchVolunteers } = useAttendanceStore();
-  const { elders } = useElderStore();
-  const { courses, getCourseById } = useCourseStore();
+  const { elders, fetchElders } = useElderStore();
+  const { courses, getCourseById, fetchCourses } = useCourseStore();
   const { completeRegistrationByElderAndCourse } = useRegistrationStore();
 
   const preselectedElderId = searchParams.get('elderId') || '';
   const preselectedCourseId = searchParams.get('courseId') || '';
+  const fromPage = searchParams.get('from') || '';
 
   const [formData, setFormData] = useState({
     elderId: preselectedElderId,
@@ -34,7 +35,9 @@ export default function AttendanceForm() {
 
   useEffect(() => {
     fetchVolunteers();
-  }, [fetchVolunteers]);
+    fetchElders();
+    fetchCourses();
+  }, [fetchVolunteers, fetchElders, fetchCourses]);
 
   const selectedCourse = formData.courseId ? getCourseById(formData.courseId) : null;
 
@@ -67,7 +70,7 @@ export default function AttendanceForm() {
 
     setSubmitted(true);
     setTimeout(() => {
-      navigate('/attendance');
+      navigate(fromPage === 'registrations' ? '/registrations' : '/attendance');
     }, 1500);
   };
 

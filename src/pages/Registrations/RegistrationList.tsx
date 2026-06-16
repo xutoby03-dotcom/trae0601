@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -23,11 +23,17 @@ const statusFilters: { value: 'all' | RegistrationStatus; label: string }[] = [
 ];
 
 export default function RegistrationList() {
-  const { registrations, cancelRegistration } = useRegistrationStore();
-  const { elders } = useElderStore();
-  const { courses } = useCourseStore();
+  const { registrations, cancelRegistration, fetchRegistrations } = useRegistrationStore();
+  const { elders, fetchElders } = useElderStore();
+  const { courses, fetchCourses } = useCourseStore();
   const [statusFilter, setStatusFilter] = useState<'all' | RegistrationStatus>('all');
   const [keyword, setKeyword] = useState('');
+
+  useEffect(() => {
+    fetchElders();
+    fetchCourses();
+    fetchRegistrations();
+  }, [fetchElders, fetchCourses, fetchRegistrations]);
 
   const filteredRegs = registrations
     .filter(r => statusFilter === 'all' || r.status === statusFilter)
@@ -171,7 +177,7 @@ export default function RegistrationList() {
                       {(reg.status === 'confirmed' || reg.status === 'waitlist') && (
                         <>
                           <Link
-                            to={`/attendance/new?elderId=${reg.elderId}&courseId=${reg.courseId}`}
+                            to={`/attendance/new?elderId=${reg.elderId}&courseId=${reg.courseId}&from=registrations`}
                             className="text-sm text-success-600 hover:text-success-700 flex items-center gap-1"
                           >
                             <UserCheck size={14} />

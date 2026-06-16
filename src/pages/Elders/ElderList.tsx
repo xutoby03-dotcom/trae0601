@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
@@ -13,9 +13,13 @@ import { useElderStore } from '@/store/elderStore';
 import { PHONE_SYSTEM_MAP } from '@/types';
 
 export default function ElderList() {
-  const { elders, searchElders } = useElderStore();
+  const { elders, searchElders, fetchElders } = useElderStore();
   const [keyword, setKeyword] = useState('');
   const [filterNeedHome, setFilterNeedHome] = useState(false);
+
+  useEffect(() => {
+    fetchElders();
+  }, [fetchElders]);
 
   const filteredElders = searchElders(keyword).filter(
     elder => !filterNeedHome || elder.needHomeVisit

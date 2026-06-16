@@ -1,4 +1,5 @@
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   Edit,
@@ -20,9 +21,15 @@ import { formatDate, formatTime } from '@/utils/format';
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getCourseById, deleteCourse } = useCourseStore();
-  const { getRegistrationsByCourseId, getConfirmedCount, getWaitlistCount, cancelRegistration } = useRegistrationStore();
-  const { getElderById } = useElderStore();
+  const { getCourseById, deleteCourse, fetchCourses } = useCourseStore();
+  const { getRegistrationsByCourseId, getConfirmedCount, getWaitlistCount, cancelRegistration, fetchRegistrations } = useRegistrationStore();
+  const { getElderById, fetchElders } = useElderStore();
+
+  useEffect(() => {
+    fetchCourses();
+    fetchRegistrations();
+    fetchElders();
+  }, [fetchCourses, fetchRegistrations, fetchElders]);
 
   const course = id ? getCourseById(id) : undefined;
   const registrations = id ? getRegistrationsByCourseId(id) : [];

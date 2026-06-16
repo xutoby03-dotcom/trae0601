@@ -7,7 +7,7 @@ import type { Elder, Gender } from '@/types';
 export default function ElderForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getElderById, addElder, updateElder } = useElderStore();
+  const { getElderById, addElder, updateElder, fetchElders } = useElderStore();
   const isEdit = !!id;
 
   const [formData, setFormData] = useState<Partial<Elder>>({
@@ -27,6 +27,10 @@ export default function ElderForm() {
     notes: '',
     needHomeVisit: false,
   });
+
+  useEffect(() => {
+    fetchElders();
+  }, [fetchElders]);
 
   useEffect(() => {
     if (isEdit && id) {

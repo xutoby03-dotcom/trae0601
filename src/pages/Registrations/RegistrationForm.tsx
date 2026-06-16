@@ -10,9 +10,9 @@ import { formatDate, formatTime } from '@/utils/format';
 export default function RegistrationForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addRegistration, getConfirmedCount } = useRegistrationStore();
-  const { elders } = useElderStore();
-  const { courses, getCourseById } = useCourseStore();
+  const { addRegistration, getConfirmedCount, fetchRegistrations } = useRegistrationStore();
+  const { elders, fetchElders } = useElderStore();
+  const { courses, getCourseById, fetchCourses } = useCourseStore();
 
   const preselectedElderId = searchParams.get('elderId') || '';
   const preselectedCourseId = searchParams.get('courseId') || '';
@@ -26,6 +26,12 @@ export default function RegistrationForm() {
   });
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    fetchElders();
+    fetchCourses();
+    fetchRegistrations();
+  }, [fetchElders, fetchCourses, fetchRegistrations]);
 
   const selectedCourse = formData.courseId ? getCourseById(formData.courseId) : null;
   const confirmedCount = formData.courseId ? getConfirmedCount(formData.courseId) : 0;
