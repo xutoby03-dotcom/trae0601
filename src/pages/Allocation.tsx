@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { User, Package, AlertTriangle } from 'lucide-react';
+import { User, Package, AlertTriangle, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Alert } from '../components/common/Alert';
+import { Modal } from '../components/common/Modal';
 import { useFleetStore } from '../store/fleetStore';
-import { cn } from '../utils/helpers';
+import { cn, equipmentCategoryConfig } from '../utils/helpers';
 import { PersonTag } from '../components/allocation/PersonTag';
 import { EquipmentTag } from '../components/allocation/EquipmentTag';
 import { VehicleAllocation } from '../components/allocation/VehicleAllocation';
+import type { EquipmentCategory } from '../types';
 
 type PoolTab = 'people' | 'equipment';
 
@@ -16,7 +18,16 @@ export default function Allocation() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PoolTab>('people');
 
-  const { vehicles, people, passengers, equipment, getWarnings } = useFleetStore();
+  const [newPersonName, setNewPersonName] = useState('');
+  const [newPersonPhone, setNewPersonPhone] = useState('');
+
+  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
+  const [newEquipName, setNewEquipName] = useState('');
+  const [newEquipCategory, setNewEquipCategory] = useState<EquipmentCategory>('other');
+  const [newEquipSize, setNewEquipSize] = useState<number>(0);
+  const [newEquipCritical, setNewEquipCritical] = useState(false);
+
+  const { vehicles, people, passengers, equipment, getWarnings, addPerson, addEquipment } = useFleetStore();
 
   const warnings = getWarnings();
 
@@ -35,6 +46,34 @@ export default function Allocation() {
 
   const handleEquipmentClick = (equipmentId: string) => {
     setSelectedEquipmentId((prev) => (prev === equipmentId ? null : equipmentId));
+  };
+
+  const handleAddPerson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPersonName.trim()) return;
+    addPerson({ name: newPersonName.trim(), phone: newPersonPhone.trim() });
+    setNewPersonName('');
+    setNewPersonPhone('');
+  };
+
+  const handleResetEquipmentForm = () => {
+    setNewEquipName('');
+    setNewEquipCategory('other');
+    setNewEquipSize(0);
+    setNewEquipCritical(false);
+  };
+
+  const handleAddEquipment = () => {
+    if (!newEquipName.trim()) return;
+    addEquipment({
+      name: newEquipName.trim(),
+      category: newEquipCategory,
+      size: Number(newEquipSize) || 0,
+      vehicleId: null,
+      isCritical: newEquipCritical,
+    });
+    handleResetEquipmentForm();
+    setShowEquipmentModal(false);
   };
 
   const tabs: { key: PoolTab; label: string; icon: typeof User; count: number }[] = [
@@ -114,8 +153,38 @@ export default function Allocation() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-2"
+                  className="space-y-3"
                 >
+                  <form onSubmit={handleAddPerson} className="bg-cream-50 rounded-xl p-3 border border-cream-200">
+                    <p className="text-xs font-semibold text-forest-700 mb-2 flex items-center gap-1">
+                      <Plus className="w-3.5 h-3.5" />
+                      补加成员
+                    </p>
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={newPersonName}
+                        onChange={(e) => setNewPersonName(e.target.value)}
+                        placeholder="姓名 *"
+                        className="input text-sm py-1.5"
+                      />
+                      <input
+                        type="tel"
+                        value={newPersonPhone}
+                        onChange={(e) => setNewPersonPhone(e.target.value)}
+                        placeholder="电话"
+                        className="input text-sm py-1.5"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newPersonName.trim()}
+                        className="btn-primary w-full text-sm py-1.5"
+                      >
+                        加入待分配
+                      </button>
+                    </div>
+                  </form>
+
                   {unassignedPeople.length > 0 ? (
                     unassignedPeople.map((person) => (
                       <PersonTag
@@ -126,8 +195,8 @@ export default function Allocation() {
                       />
                     ))
                   ) : (
-                    <div className="text-center py-10">
-                      <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <div className="text-center py-8">
+                      <User className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                       <p className="text-gray-500 text-sm">所有人员已分配</p>
                     </div>
                   )}
@@ -138,8 +207,19 @@ export default function Allocation() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-2"
+                  className="space-y-3"
                 >
+                  <button
+                    onClick={() => {
+                      handleResetEquipmentForm();
+                      setShowEquipmentModal(true);
+                    }}
+                    className="w-full bg-warm-50 border-2 border-dashed border-warm-300 rounded-xl p-3 text-warm-700 hover:bg-warm-100 hover:border-warm-400 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    添加新装备
+                  </button>
+
                   {unassignedEquipment.length > 0 ? (
                     unassignedEquipment.map((item) => (
                       <EquipmentTag
@@ -150,8 +230,8 @@ export default function Allocation() {
                       />
                     ))
                   ) : (
-                    <div className="text-center py-10">
-                      <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <div className="text-center py-8">
+                      <Package className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                       <p className="text-gray-500 text-sm">所有装备已分配</p>
                     </div>
                   )}
@@ -182,6 +262,93 @@ export default function Allocation() {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={showEquipmentModal}
+        onClose={() => setShowEquipmentModal(false)}
+        title="添加新装备"
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowEquipmentModal(false)}
+              className="btn-ghost"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleAddEquipment}
+              disabled={!newEquipName.trim()}
+              className="btn-warm"
+            >
+              保存到待分配
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="label">装备名称 *</label>
+            <input
+              type="text"
+              value={newEquipName}
+              onChange={(e) => setNewEquipName(e.target.value)}
+              placeholder="例如：烧烤架、保温箱..."
+              className="input"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">分类</label>
+              <select
+                value={newEquipCategory}
+                onChange={(e) => setNewEquipCategory(e.target.value as EquipmentCategory)}
+                className="input"
+              >
+                {Object.entries(equipmentCategoryConfig).map(([key, cfg]) => (
+                  <option key={key} value={key}>{cfg.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">体积 (L)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={newEquipSize}
+                onChange={(e) => setNewEquipSize(Number(e.target.value))}
+                className="input"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={newEquipCritical}
+              onClick={() => setNewEquipCritical(!newEquipCritical)}
+              className={cn(
+                'relative w-12 h-7 rounded-full transition-colors flex-shrink-0',
+                newEquipCritical ? 'bg-red-500' : 'bg-gray-300'
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform',
+                  newEquipCritical ? 'translate-x-5' : 'translate-x-0'
+                )}
+              />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-red-800">关键装备</p>
+              <p className="text-xs text-red-600">未分配会冒红色提醒，缺了不行的重要物资</p>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </PageLayout>
   );
 }
