@@ -62,6 +62,11 @@ export default function CheckinPage() {
           navigate(`/cleanup/${b.id}`, { replace: true });
           return;
         }
+        if (b.status === 'no_show') {
+          showToast('error', '已超过签到时间，预约已取消，信用分-10');
+          navigate('/my-bookings', { replace: true });
+          return;
+        }
         if (b.status !== 'pending') {
           showToast('warning', '该预约已处理完毕');
           navigate('/my-bookings', { replace: true });

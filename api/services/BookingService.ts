@@ -83,7 +83,22 @@ export class BookingService {
   }
 
   getBookingById(id: number): Booking | undefined {
-    return bookingRepository.findById(id);
+    const booking = bookingRepository.findById(id);
+    if (!booking) return undefined;
+
+    if (booking.status === 'pending') {
+      const now = dayjs();
+      const bookingStart = dayjs(`${booking.date} ${booking.startTime}`);
+      const diffMinutes = now.diff(bookingStart, 'minute');
+
+      if (diffMinutes > this.NO_SHOW_AFTER_MINUTES) {
+        bookingRepository.updateStatus(id, 'no_show');
+        userRepository.deductCreditScore(booking.userId, 10);
+        return bookingRepository.findById(id);
+      }
+    }
+
+    return booking;
   }
 
   checkin(bookingId: number, userId: number): { success: boolean; message?: string } {
