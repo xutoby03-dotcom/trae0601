@@ -247,8 +247,18 @@ export default function Statistics() {
             <div className="space-y-2">
               {lowStock.map(item => (
                 <div key={item.type} className="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2">
-                  <span>{INTERFACE_TYPE_LABELS[item.type]} 接口</span>
-                  <span className="text-sm">库存不足 ({item.available}/{item.total})，建议补充 {item.safeStock - item.available + 2} 条</span>
+                  <span className="flex items-center gap-2">
+                    {INTERFACE_TYPE_LABELS[item.type]} 接口
+                    {item.available === 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">紧急</span>
+                    )}
+                  </span>
+                  <span className="text-sm">
+                    {item.available === 0 
+                      ? `已断货！当前0条可用，建议采购 ${item.safeStock + 2} 条`
+                      : `库存不足 (${item.available}/${item.total})，建议补充 ${item.safeStock - item.available + 2} 条`
+                    }
+                  </span>
                 </div>
               ))}
               {highDemand && highDemand.count > 0 && (

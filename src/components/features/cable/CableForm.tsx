@@ -1,9 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import type { Cable, InterfaceType } from '@/types';
+import type { Cable, InterfaceType, CableStatus } from '@/types';
 import { PhotoUpload } from '@/components/common/PhotoUpload';
-import { INTERFACE_TYPE_LABELS } from '@/types';
+import { INTERFACE_TYPE_LABELS, CABLE_STATUS_LABELS } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { getPlaceholderImage } from '@/utils/imageUtils';
 
@@ -18,6 +18,7 @@ interface FormData {
   power: number;
   defaultLocation: string;
   photoUrl: string;
+  status: CableStatus;
 }
 
 const floors = ['1楼', '2楼', '3楼', '4楼', '5楼'];
@@ -36,6 +37,7 @@ export const CableForm = ({ initialData }: CableFormProps) => {
       power: initialData.power,
       defaultLocation: initialData.defaultLocation,
       photoUrl: initialData.photoUrl,
+      status: initialData.status,
     } : {
       code: '',
       interfaceType: 'USB-C',
@@ -43,6 +45,7 @@ export const CableForm = ({ initialData }: CableFormProps) => {
       power: 65,
       defaultLocation: '',
       photoUrl: '',
+      status: 'available',
     },
   });
 
@@ -55,7 +58,7 @@ export const CableForm = ({ initialData }: CableFormProps) => {
       if (isEditing && initialData) {
         updateCable(initialData.id, { ...data, photoUrl: photoToUse });
       } else {
-        addCable({ ...data, photoUrl: photoToUse, status: 'available' });
+        addCable({ ...data, photoUrl: photoToUse });
       }
       navigate('/cables');
     } catch (error) {
@@ -173,6 +176,25 @@ export const CableForm = ({ initialData }: CableFormProps) => {
               </div>
               {errors.defaultLocation && (
                 <p className="text-red-500 text-xs mt-1">{errors.defaultLocation.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                状态 <span className="text-red-500">*</span>
+              </label>
+              <select
+                {...register('status', { required: '请选择状态' })}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              >
+                {(Object.keys(CABLE_STATUS_LABELS) as CableStatus[]).map(status => (
+                  <option key={status} value={status}>
+                    {CABLE_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+              {errors.status && (
+                <p className="text-red-500 text-xs mt-1">{errors.status.message}</p>
               )}
             </div>
 

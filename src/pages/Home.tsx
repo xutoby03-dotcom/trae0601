@@ -183,8 +183,13 @@ export default function Home() {
                   {stats.interfaceStock.map(item => (
                     <div key={item.type}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">
-                          {INTERFACE_TYPE_LABELS[item.type]}
+                        <span className="flex items-center gap-2">
+                          <span className="text-gray-600">
+                            {INTERFACE_TYPE_LABELS[item.type]}
+                          </span>
+                          {item.available === 0 && (
+                            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded">断货</span>
+                          )}
                         </span>
                         <span className={item.available < item.safeStock ? 'text-red-500 font-medium' : 'text-gray-900'}>
                           {item.available}/{item.total}
@@ -193,12 +198,16 @@ export default function Home() {
                       <div className="w-full bg-gray-100 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all ${
+                            item.available === 0 ? 'bg-red-600' :
                             item.available < item.safeStock ? 'bg-red-500' : 'bg-green-500'
                           }`}
                           style={{ width: `${item.total > 0 ? (item.available / item.total) * 100 : 0}%` }}
                         />
                       </div>
-                      {item.available < item.safeStock && (
+                      {item.available === 0 && (
+                        <p className="text-xs text-red-600 font-medium mt-1">⚠️ 已完全断货，请紧急补货</p>
+                      )}
+                      {item.available > 0 && item.available < item.safeStock && (
                         <p className="text-xs text-red-500 mt-1">库存不足，建议补货</p>
                       )}
                     </div>

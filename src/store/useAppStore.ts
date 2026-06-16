@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Cable, BorrowRecord, Employee, Alert, Statistics, InterfaceType, CableStatus, BorrowStatus, ReturnStatus, DamageType } from '@/types';
+import { INTERFACE_TYPE_LABELS } from '@/types';
 import { storage } from '@/utils/storage';
 import { generateId } from '@/utils/idGenerator';
 import { getNow, isOverdue } from '@/utils/dateUtils';
@@ -396,8 +397,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
 
     const typeCounts: Record<string, number> = {};
-    cables.filter(c => c.status === 'available').forEach(c => {
-      typeCounts[c.interfaceType] = (typeCounts[c.interfaceType] || 0) + 1;
+    const interfaceTypes: InterfaceType[] = ['USB-C', 'Lightning', 'Micro-USB'];
+
+    interfaceTypes.forEach(type => {
+      typeCounts[type] = cables.filter(
+        c => c.interfaceType === type && c.status === 'available'
+      ).length;
     });
 
     Object.entries(typeCounts).forEach(([type, count]) => {
@@ -407,8 +412,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           newAlerts.push({
             id: generateId(),
             type: 'low_stock',
-            message: `${type} 接口库存不足（当前${count}条）`,
-            level: 'warning',
+            message: `${INTERFACE_TYPE_LABELS[type as InterfaceType]} 接口库存不足（当前${count}条）`,
+            level: count === 0 ? 'danger' : 'warning',
             isRead: false,
             createdAt: getNow(),
           });
