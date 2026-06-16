@@ -30,17 +30,24 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import Avatar from '../../components/Avatar';
 import StatusBadge from '../../components/StatusBadge';
+import PhotoViewer from '../../components/PhotoViewer';
 import { POSITIVE_TAGS, NEGATIVE_TAGS } from '../../../shared/constants';
 import type { Guest, Feedback } from '../../../shared/types';
 
 export default function DashboardPage() {
-  const { overviewStats, sessions, loading, fetchOverviewStats, fetchSessions } = useAppStore();
+  const { overviewStats, sessions, guests, loading, fetchOverviewStats, fetchSessions, fetchGuests } = useAppStore();
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
+  const [viewerGuestName, setViewerGuestName] = useState('');
+  const [viewerSessionName, setViewerSessionName] = useState('');
 
   useEffect(() => {
     fetchSessions();
     fetchOverviewStats();
-  }, [fetchSessions, fetchOverviewStats]);
+    fetchGuests();
+  }, [fetchSessions, fetchOverviewStats, fetchGuests]);
 
   useEffect(() => {
     if (sessions.length > 0 && !selectedSessionId) {
@@ -75,6 +82,33 @@ export default function DashboardPage() {
   const getSecondInviteGuests = (): Guest[] => {
     if (!overviewStats) return [];
     return overviewStats.vipGuests.filter((g) => g.status !== 'checked_in' && g.status !== 'left');
+  };
+
+  const getGuestName = (guestId: string): string => {
+    const guest = guests.find((g) => g.id === guestId);
+    return guest?.name || '匿名';
+  };
+
+  const getSessionName = (sessionId: string): string => {
+    const session = sessions.find((s) => s.id === sessionId);
+    return session?.name || '';
+  };
+
+  const openPhotoViewer = (feedback: Feedback) => {
+    if (!feedback.photos || feedback.photos.length === 0) return;
+    setViewerPhotos(feedback.photos);
+    setViewerIndex(0);
+    setViewerGuestName(getGuestName(feedback.guestId));
+    setViewerSessionName(getSessionName(feedback.sessionId));
+    setViewerOpen(true);
+  };
+
+  const handlePrevPhoto = () => {
+    setViewerIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextPhoto = () => {
+    setViewerIndex((prev) => Math.min(viewerPhotos.length - 1, prev + 1));
   };
 
   const getHighScoreFeedback = (): Feedback[] => {
@@ -383,14 +417,21 @@ export default function DashboardPage() {
                   {feedback.photos && feedback.photos.length > 0 && (
                     <div className="flex gap-1 mt-2">
                       {feedback.photos.slice(0, 3).map((photo, idx) => (
-                        <div key={idx} className="w-10 h-10 rounded-md overflow-hidden bg-warm-200 flex-shrink-0">
+                        <button
+                          key={idx}
+                          onClick={() => openPhotoViewer(feedback)}
+                          className="w-10 h-10 rounded-md overflow-hidden bg-warm-200 flex-shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in"
+                        >
                           <img src={photo} alt="" className="w-full h-full object-cover" />
-                        </div>
+                        </button>
                       ))}
                       {feedback.photos.length > 3 && (
-                        <div className="w-10 h-10 rounded-md bg-warm-200 flex items-center justify-center text-xs text-brown-500 flex-shrink-0">
+                        <button
+                          onClick={() => openPhotoViewer(feedback)}
+                          className="w-10 h-10 rounded-md bg-warm-200 flex items-center justify-center text-xs text-brown-500 flex-shrink-0 hover:bg-warm-300 transition-colors cursor-zoom-in"
+                        >
                           +{feedback.photos.length - 3}
-                        </div>
+                        </button>
                       )}
                     </div>
                   )}
@@ -442,6 +483,17 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      <PhotoViewer
+        isOpen={viewerOpen}
+        photos={viewerPhotos}
+        currentIndex={viewerIndex}
+        onClose={() => setViewerOpen(false)}
+        onPrev={handlePrevPhoto}
+        onNext={handleNextPhoto}
+        guestName={viewerGuestName}
+        sessionName={viewerSessionName}
+      />
     </div>
   );
 }

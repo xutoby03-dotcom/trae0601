@@ -15,6 +15,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import Avatar from '../../components/Avatar';
 import Modal from '../../components/Modal';
+import PhotoViewer from '../../components/PhotoViewer';
 import { POSITIVE_TAGS, NEGATIVE_TAGS } from '../../../shared/constants';
 import { formatDateTime } from '../../utils/format';
 import type { Feedback } from '../../../shared/types';
@@ -489,6 +490,23 @@ interface FeedbackCardProps {
 
 function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: FeedbackCardProps) {
   const avgScore = (feedback.tasteScore + feedback.serviceScore + feedback.flowScore + feedback.priceAcceptance) / 4;
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const hasPhotos = feedback.photos && feedback.photos.length > 0;
+
+  const handlePrevPhoto = () => {
+    setViewerIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextPhoto = () => {
+    setViewerIndex((prev) => Math.min(feedback.photos.length - 1, prev + 1));
+  };
+
+  const openViewer = (index: number) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
 
   return (
     <div className="card hover:shadow-medium transition-all">
@@ -562,7 +580,7 @@ function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: Feedback
             </div>
           )}
           
-          {feedback.photos && feedback.photos.length > 0 && (
+          {hasPhotos && (
             <div className="mt-3">
               <p className="text-xs text-brown-500 mb-1.5 flex items-center gap-1">
                 <ImageIcon size={12} />
@@ -570,18 +588,25 @@ function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: Feedback
               </p>
               <div className="flex gap-2">
                 {feedback.photos.slice(0, 4).map((photo, index) => (
-                  <div key={index} className="w-16 h-16 rounded-lg overflow-hidden bg-warm-100 flex-shrink-0">
+                  <button
+                    key={index}
+                    onClick={() => openViewer(index)}
+                    className="w-16 h-16 rounded-lg overflow-hidden bg-warm-100 flex-shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in"
+                  >
                     <img
                       src={photo}
                       alt={`反馈照片 ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
-                  </div>
+                  </button>
                 ))}
                 {feedback.photos.length > 4 && (
-                  <div className="w-16 h-16 rounded-lg bg-warm-100 flex items-center justify-center text-sm text-brown-500 flex-shrink-0">
+                  <button
+                    onClick={() => openViewer(4)}
+                    className="w-16 h-16 rounded-lg bg-warm-100 flex items-center justify-center text-sm text-brown-500 flex-shrink-0 hover:bg-warm-200 transition-colors cursor-zoom-in"
+                  >
                     +{feedback.photos.length - 4}
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -614,6 +639,19 @@ function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: Feedback
           </div>
         </div>
       </div>
+      
+      {hasPhotos && (
+        <PhotoViewer
+          isOpen={viewerOpen}
+          photos={feedback.photos}
+          currentIndex={viewerIndex}
+          onClose={() => setViewerOpen(false)}
+          onPrev={handlePrevPhoto}
+          onNext={handleNextPhoto}
+          guestName={guestName}
+          sessionName={sessionName}
+        />
+      )}
     </div>
   );
 }
