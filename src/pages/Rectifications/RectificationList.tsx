@@ -9,7 +9,8 @@ import {
   Calendar,
   User,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  MapPin
 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useRectificationStore } from '@/store/rectificationStore';
@@ -194,6 +195,10 @@ export function RectificationList() {
                     </span>
                     <StatusBadge status={rect.status} />
                   </div>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-gray-500">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{device.building} {device.floor} {device.location}</span>
+                  </p>
                   <p className="mt-1 text-sm text-gray-600 line-clamp-1">
                     {rect.description}
                   </p>

@@ -10,7 +10,8 @@ import {
   FileText,
   CheckCircle,
   Save,
-  MapPin
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useRectificationStore } from '@/store/rectificationStore';
@@ -110,10 +111,19 @@ export function RectificationDetail() {
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-              <FileText className="h-5 w-5 text-blue-500" />
-              关联巡检记录
-            </h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+                <FileText className="h-5 w-5 text-blue-500" />
+                关联巡检记录
+              </h3>
+              <Link
+                to={`/devices/${device.id}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+              >
+                查看设备档案
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
             {inspection ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 rounded-xl bg-blue-50 p-4">
@@ -128,6 +138,24 @@ export function RectificationDetail() {
                     <p className="mt-1 text-lg font-bold text-blue-900">
                       {inspection.inspector}
                     </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={device.photo}
+                      alt={device.code}
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900">{device.code}</p>
+                      <p className="text-xs text-gray-500">{device.type}</p>
+                      <p className="flex items-center gap-1 text-xs text-gray-500">
+                        <MapPin className="h-3 w-3" />
+                        {device.building} {device.floor} {device.location}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -256,31 +284,60 @@ export function RectificationDetail() {
                 整改结果
               </h3>
               <div className="space-y-4">
-                <div>
-                  <p className="mb-2 text-sm text-gray-500">整改照片</p>
-                  <div className="w-48 overflow-hidden rounded-xl bg-gray-100">
-                    {rectification.fixPhoto ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-red-600">整改前（巡检时）</p>
+                    <div className="overflow-hidden rounded-xl bg-gray-100">
                       <img
-                        src={rectification.fixPhoto}
-                        alt="整改照片"
-                        className="h-48 w-full object-cover"
+                        src={device.photo}
+                        alt="整改前"
+                        className="h-40 w-full object-cover"
                       />
-                    ) : (
-                      <div className="flex h-48 items-center justify-center text-gray-400">
-                        暂无照片
-                      </div>
-                    )}
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      巡检日期: {inspection ? formatDate(inspection.inspectDate) : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-green-600">整改后</p>
+                    <div className="overflow-hidden rounded-xl bg-gray-100">
+                      {rectification.fixPhoto ? (
+                        <img
+                          src={rectification.fixPhoto}
+                          alt="整改后"
+                          className="h-40 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-40 items-center justify-center text-gray-400">
+                          暂无照片
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      完成日期: {rectification.fixDate ? formatDate(rectification.fixDate) : '-'}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <p className="mb-1 text-sm text-gray-500">整改说明</p>
-                  <p className="text-gray-900">{rectification.fixRemark}</p>
-                </div>
-                <div>
-                  <p className="mb-1 text-sm text-gray-500">完成时间</p>
-                  <p className="text-gray-900">
-                    {rectification.fixDate ? formatDate(rectification.fixDate) : '-'}
-                  </p>
+
+                <div className="rounded-xl bg-gray-50 p-4 space-y-2">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">整改说明</p>
+                    <p className="mt-1 text-sm text-gray-900">{rectification.fixRemark}</p>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      处理人: {rectification.handler}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      创建: {formatDate(rectification.createDate)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      关闭: {rectification.fixDate ? formatDate(rectification.fixDate) : '-'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -362,10 +419,19 @@ export function RectificationDetail() {
 
         <div className="space-y-6">
           <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h3 className="mb-4 font-semibold text-gray-900">关联设备</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">关联设备</h3>
+              <Link
+                to={`/devices/${device.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700"
+              >
+                前往档案
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
             <Link
               to={`/devices/${device.id}`}
-              className="block rounded-xl border border-gray-100 p-3 hover:bg-gray-50"
+              className="block rounded-xl border border-gray-100 p-3 transition-colors hover:bg-gray-50"
             >
               <div className="overflow-hidden rounded-lg bg-gray-100">
                 <img
@@ -380,6 +446,9 @@ export function RectificationDetail() {
                 <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
                   <MapPin className="h-3 w-3" />
                   {device.building} {device.floor} {device.location}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  压力范围: {device.minPressure}-{device.maxPressure} MPa
                 </p>
               </div>
             </Link>
