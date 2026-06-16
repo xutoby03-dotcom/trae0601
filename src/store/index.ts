@@ -16,7 +16,7 @@ interface AppState {
     min_players: number
     max_players: number
     play_time_minutes: number
-    expansions?: string[]
+    expansions?: Array<{ name: string }>
     components?: Array<{ name: string; category: string; expected_count: number }>
   }) => Promise<void>
   updateGame: (id: number, data: Partial<Game>) => Promise<void>
@@ -24,7 +24,7 @@ interface AppState {
 
   fetchDashboard: () => Promise<void>
 
-  createCheckSession: (gameId: number, type: 'open' | 'close') => Promise<void>
+  createCheckSession: (gameId: number, type: 'open' | 'close', table_location?: string) => Promise<void>
   fetchCheckSession: (sessionId: number) => Promise<void>
   updateCheckItems: (sessionId: number, items: Array<{
     component_id: number
@@ -106,10 +106,10 @@ export const useStore = create<AppState>((set, get) => ({
     } catch {}
   },
 
-  createCheckSession: async (gameId, type) => {
+  createCheckSession: async (gameId, type, table_location) => {
     const session = await api<CheckSession>(`/api/games/${gameId}/check`, {
       method: 'POST',
-      body: JSON.stringify({ type }),
+      body: JSON.stringify({ type, table_location }),
     })
     set({ currentCheckSession: session })
   },

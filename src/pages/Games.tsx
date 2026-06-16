@@ -51,7 +51,7 @@ export default function Games() {
       min_players: formMinPlayers,
       max_players: formMaxPlayers,
       play_time_minutes: formPlayTime,
-      expansions: formExpansions.filter((e) => e.trim()),
+      expansions: formExpansions.filter((e) => e.trim()).map((name) => ({ name })),
       components: formComponents.filter((c) => c.name.trim()),
     })
     setShowModal(false)

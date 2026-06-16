@@ -28,7 +28,7 @@ export default function CheckIn() {
   }, [gameId, fetchGame])
 
   useEffect(() => {
-    if (currentGame?.components && !sessionId) {
+    if (currentGame?.components && items.length === 0) {
       const checkItems = currentGame.components.map((comp) => ({
         component_id: comp.id,
         name: comp.name,
@@ -38,13 +38,19 @@ export default function CheckIn() {
         checked: false,
       }))
       setItems(checkItems)
-
-      createCheckSession(gameId, 'open').then(() => {
-        const session = useStore.getState().currentCheckSession
-        if (session) setSessionId(session.id)
-      })
     }
-  }, [currentGame, sessionId, gameId, createCheckSession])
+  }, [currentGame, items.length])
+
+  const ensureSession = async () => {
+    if (sessionId) return sessionId
+    await createCheckSession(gameId, 'open', tableLocation.trim() || undefined)
+    const session = useStore.getState().currentCheckSession
+    if (session) {
+      setSessionId(session.id)
+      return session.id
+    }
+    throw new Error('Failed to create check session')
+  }
 
   const toggleCheck = (componentId: number) => {
     setItems(items.map((item) =>
@@ -75,16 +81,16 @@ export default function CheckIn() {
   const allChecked = items.every((item) => item.checked)
 
   const handleComplete = async () => {
-    if (!sessionId) return
+    const sid = await ensureSession()
     setSubmitting(true)
     try {
-      await updateCheckItems(sessionId, items.map((item) => ({
+      await updateCheckItems(sid, items.map((item) => ({
         component_id: item.component_id,
         actual_count: item.actual_count,
         is_missing: item.actual_count < item.expected_count,
         missing_count: Math.max(0, item.expected_count - item.actual_count),
       })))
-      await completeCheckSession(sessionId)
+      await completeCheckSession(sid)
       navigate(`/games/${gameId}`)
     } finally {
       setSubmitting(false)
