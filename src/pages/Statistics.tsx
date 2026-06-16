@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Trophy,
@@ -7,6 +7,8 @@ import {
   AlertTriangle,
   Clock,
   Flame,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { usePotStore } from '../store/usePotStore';
 import { Card } from '../components/ui';
@@ -15,7 +17,14 @@ import { cn } from '../lib/utils';
 export default function Statistics() {
   const navigate = useNavigate();
   const { pots, getMonthlySpiceMap } = usePotStore();
-  const monthlySpiceMap = useMemo(() => getMonthlySpiceMap(), [pots]);
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+
+  const monthlySpiceMap = useMemo(
+    () => getMonthlySpiceMap(selectedYear, selectedMonth),
+    [pots, selectedYear, selectedMonth, getMonthlySpiceMap]
+  );
 
   const spiceRanking = useMemo(() => {
     return [...pots]
@@ -28,6 +37,29 @@ export default function Statistics() {
   }, [pots, monthlySpiceMap]);
 
   const maxSpiceCount = Math.max(...spiceRanking.map((s) => s.count), 1);
+  const totalMonthlySpice = spiceRanking.reduce((sum, s) => sum + s.count, 0);
+
+  const prevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedYear(selectedYear - 1);
+      setSelectedMonth(11);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedYear(selectedYear + 1);
+      setSelectedMonth(0);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
+
+  const monthLabel = `${selectedYear}年${selectedMonth + 1}月`;
 
   const cleanSchedule = useMemo(() => {
     const cleanCycle = pots.map((pot) => {
@@ -118,9 +150,9 @@ export default function Statistics() {
               <Flame className="w-6 h-6 text-braised-red-600" />
             </div>
             <div>
-              <p className="text-stone-500 text-sm">本月香料</p>
+              <p className="text-stone-500 text-sm">{monthLabel}香料</p>
               <p className="text-2xl font-bold text-stone-800">
-                {spiceRanking.reduce((sum, s) => sum + s.count, 0)} 包
+                {totalMonthlySpice} 包
               </p>
             </div>
           </div>
@@ -167,7 +199,29 @@ export default function Statistics() {
         <Card
           title="香料消耗排行"
           action={
-            <span className="text-xs text-stone-500">本月累计</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={prevMonth}
+                className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-medium text-stone-700 min-w-[80px] text-center">
+                {monthLabel}
+              </span>
+              <button
+                onClick={nextMonth}
+                className={cn(
+                  'w-7 h-7 flex items-center justify-center rounded-md transition-colors',
+                  isCurrentMonth
+                    ? 'text-stone-300 cursor-not-allowed'
+                    : 'text-stone-500 hover:bg-stone-100 hover:text-stone-700'
+                )}
+                disabled={isCurrentMonth}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           }
         >
           <div className="space-y-4">

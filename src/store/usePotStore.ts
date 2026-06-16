@@ -16,7 +16,7 @@ interface PotActions {
   addComplaint: (batchId: string, complaint: Omit<Complaint, 'id' | 'batchId' | 'potId' | 'timestamp'>) => void;
   getPotById: (id: string) => Pot | undefined;
   getAlertPots: () => Pot[];
-  getMonthlySpiceMap: () => Record<string, number>;
+  getMonthlySpiceMap: (year?: number, month?: number) => Record<string, number>;
   updatePotStatus: (potId: string) => void;
   resetToMockData: () => void;
 }
@@ -168,16 +168,16 @@ export const usePotStore = create<PotState & PotActions>()(
 
       getAlertPots: () => get().pots.filter((p) => p.status !== 'normal'),
 
-      getMonthlySpiceMap: () => {
+      getMonthlySpiceMap: (year, month) => {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
+        const targetYear = year ?? now.getFullYear();
+        const targetMonth = month ?? now.getMonth();
         const map: Record<string, number> = {};
         get().pots.forEach((pot) => {
           let count = 0;
           pot.cookingRecords.forEach((record) => {
             const d = new Date(record.timestamp);
-            if (d.getFullYear() === year && d.getMonth() === month) {
+            if (d.getFullYear() === targetYear && d.getMonth() === targetMonth) {
               count += record.spicePackCount;
             }
           });
