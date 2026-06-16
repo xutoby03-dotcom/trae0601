@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Droplets, Clock, AlertTriangle, FlaskConical } from 'lucide-react';
 import { usePotStore } from '../store/usePotStore';
@@ -8,8 +9,10 @@ import { cn } from '../lib/utils';
 export default function PotDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPotById } = usePotStore();
+  const { getPotById, getMonthlySpiceMap, pots } = usePotStore();
   const pot = getPotById(id || '');
+  const monthlySpiceMap = useMemo(() => getMonthlySpiceMap(), [pots]);
+  const monthlySpiceCount = pot ? (monthlySpiceMap[pot.id] || 0) : 0;
 
   if (!pot) {
     return (
@@ -124,7 +127,7 @@ export default function PotDetail() {
                 <span className="text-stone-600 text-sm">本月香料</span>
               </div>
               <span className="text-xl font-bold text-stone-800 font-mono">
-                {pot.spicePackCount} 包
+                {monthlySpiceCount} 包
               </span>
             </div>
           </div>

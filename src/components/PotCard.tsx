@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Droplets, Clock, AlertTriangle, ChefHat, Package } from 'lucide-react';
 import type { Pot } from '../types';
 import { SoupLevelGauge } from './ui';
 import { StatusBadge, LevelBadge } from './badges';
+import { usePotStore } from '../store/usePotStore';
 import { cn } from '../lib/utils';
 
 interface PotCardProps {
@@ -11,6 +13,9 @@ interface PotCardProps {
 
 export default function PotCard({ pot }: PotCardProps) {
   const navigate = useNavigate();
+  const { getMonthlySpiceMap, pots } = usePotStore();
+  const monthlySpiceMap = useMemo(() => getMonthlySpiceMap(), [pots]);
+  const monthlySpiceCount = monthlySpiceMap[pot.id] || 0;
 
   const isDanger = pot.status === 'danger';
   const isWarning = pot.status === 'warning';
@@ -89,7 +94,7 @@ export default function PotCard({ pot }: PotCardProps) {
           <div className="flex items-center justify-between pt-2 border-t border-stone-100">
             <div className="flex items-center gap-1 text-stone-500 text-xs">
               <Package className="w-3.5 h-3.5" />
-              <span>本月香料 {pot.spicePackCount} 包</span>
+              <span>本月香料 {monthlySpiceCount} 包</span>
             </div>
             <div className="flex items-center gap-1 text-stone-500 text-xs">
               <Clock className="w-3.5 h-3.5" />

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChefHat, Package, TrendingUp } from 'lucide-react';
 import { usePotStore } from '../store/usePotStore';
@@ -6,14 +7,15 @@ import { Card } from '../components/ui';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { pots, getAlertPots } = usePotStore();
+  const { pots, getAlertPots, getMonthlySpiceMap } = usePotStore();
   const alertPots = getAlertPots();
 
   const todayTotalBatches = pots.reduce(
     (sum, pot) => sum + pot.productionBatches.length,
     0
   );
-  const totalSpicePacks = pots.reduce((sum, pot) => sum + pot.spicePackCount, 0);
+  const monthlySpiceMap = useMemo(() => getMonthlySpiceMap(), [pots]);
+  const totalSpicePacks = Object.values(monthlySpiceMap).reduce((sum, v) => sum + v, 0);
 
   return (
     <div className="space-y-6 animate-slide-up">

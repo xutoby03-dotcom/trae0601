@@ -14,17 +14,18 @@ import { cn } from '../lib/utils';
 
 export default function Statistics() {
   const navigate = useNavigate();
-  const { pots } = usePotStore();
+  const { pots, getMonthlySpiceMap } = usePotStore();
+  const monthlySpiceMap = useMemo(() => getMonthlySpiceMap(), [pots]);
 
   const spiceRanking = useMemo(() => {
     return [...pots]
       .map((pot) => ({
           potId: pot.id,
           potName: pot.name,
-          count: pot.spicePackCount,
+          count: monthlySpiceMap[pot.id] || 0,
         }))
       .sort((a, b) => b.count - a.count);
-  }, [pots]);
+  }, [pots, monthlySpiceMap]);
 
   const maxSpiceCount = Math.max(...spiceRanking.map((s) => s.count), 1);
 
