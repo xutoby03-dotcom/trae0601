@@ -1,0 +1,188 @@
+import type { Bathroom, Inspection, CleaningRecord, Task, ProcurementSpec, CheckItem } from '../types';
+import { addDays } from '../utils/dateUtils';
+
+export const mockBathrooms: Bathroom[] = [
+  {
+    id: 'bathroom-1',
+    name: '主卧浴室',
+    location: '二楼主卧',
+    matSize: '60x90cm',
+    matMaterial: '天然橡胶',
+    suctionCupsCount: 16,
+    purchaseDate: addDays(new Date().toISOString(), -180),
+    recommendedLifespanDays: 180,
+    riskLevel: 'danger',
+    suctionStatus: 'poor',
+    cornerStatus: 'normal',
+    moldStatus: 'mild',
+    lastInspectionDate: addDays(new Date().toISOString(), -7),
+    lastCleaningDate: addDays(new Date().toISOString(), -14),
+    photoUrl: null,
+  },
+  {
+    id: 'bathroom-2',
+    name: '客用浴室',
+    location: '一楼公共区域',
+    matSize: '50x80cm',
+    matMaterial: 'PVC环保材质',
+    suctionCupsCount: 12,
+    purchaseDate: addDays(new Date().toISOString(), -90),
+    recommendedLifespanDays: 180,
+    riskLevel: 'warning',
+    suctionStatus: 'normal',
+    cornerStatus: 'good',
+    moldStatus: 'none',
+    lastInspectionDate: addDays(new Date().toISOString(), -3),
+    lastCleaningDate: addDays(new Date().toISOString(), -5),
+    photoUrl: null,
+  },
+  {
+    id: 'bathroom-3',
+    name: '老人专用浴室',
+    location: '一楼东侧',
+    matSize: '70x100cm',
+    matMaterial: '医用级硅胶',
+    suctionCupsCount: 20,
+    purchaseDate: addDays(new Date().toISOString(), -30),
+    recommendedLifespanDays: 180,
+    riskLevel: 'safe',
+    suctionStatus: 'good',
+    cornerStatus: 'good',
+    moldStatus: 'none',
+    lastInspectionDate: addDays(new Date().toISOString(), -1),
+    lastCleaningDate: addDays(new Date().toISOString(), -2),
+    photoUrl: null,
+  },
+];
+
+export const mockInspections: Inspection[] = [
+  {
+    id: 'inspection-1',
+    bathroomId: 'bathroom-1',
+    inspectionDate: addDays(new Date().toISOString(), -7),
+    photoUrl: null,
+    adsorptionOk: false,
+    drainageOk: true,
+    cleaningOk: false,
+    dryingOk: true,
+    handrailOk: true,
+    notes: '吸盘有松动，边缘有轻微霉斑',
+    inspector: '张阿姨',
+  },
+  {
+    id: 'inspection-2',
+    bathroomId: 'bathroom-2',
+    inspectionDate: addDays(new Date().toISOString(), -3),
+    photoUrl: null,
+    adsorptionOk: true,
+    drainageOk: true,
+    cleaningOk: true,
+    dryingOk: true,
+    handrailOk: true,
+    notes: '状态良好',
+    inspector: '李叔叔',
+  },
+  {
+    id: 'inspection-3',
+    bathroomId: 'bathroom-3',
+    inspectionDate: addDays(new Date().toISOString(), -1),
+    photoUrl: null,
+    adsorptionOk: true,
+    drainageOk: true,
+    cleaningOk: true,
+    dryingOk: true,
+    handrailOk: true,
+    notes: '全新状态，吸力很强',
+    inspector: '张阿姨',
+  },
+];
+
+export const mockCleaningRecords: CleaningRecord[] = [
+  {
+    id: 'cleaning-1',
+    bathroomId: 'bathroom-1',
+    cleaningDate: addDays(new Date().toISOString(), -14),
+    cleanedBy: '张阿姨',
+    dryingLocation: '阳台晾晒区',
+    daysUnhandled: 3,
+    notes: '用消毒液浸泡30分钟后刷洗',
+  },
+  {
+    id: 'cleaning-2',
+    bathroomId: 'bathroom-2',
+    cleaningDate: addDays(new Date().toISOString(), -5),
+    cleanedBy: '李叔叔',
+    dryingLocation: '卫生间通风处',
+    daysUnhandled: 0,
+    notes: '常规清洗，晾干后立即放回',
+  },
+  {
+    id: 'cleaning-3',
+    bathroomId: 'bathroom-3',
+    cleaningDate: addDays(new Date().toISOString(), -2),
+    cleanedBy: '张阿姨',
+    dryingLocation: '阳台晾晒区',
+    daysUnhandled: 0,
+    notes: '新垫子首次清洗',
+  },
+];
+
+export const mockTasks: Task[] = [
+  {
+    id: 'task-1',
+    bathroomId: 'bathroom-1',
+    type: 'replace',
+    status: 'pending',
+    createdDate: addDays(new Date().toISOString(), -7),
+    dueDate: addDays(new Date().toISOString(), 3),
+    reason: '吸盘松动，有轻微霉斑，已使用6个月达到使用寿命',
+    procurementSpecId: 'spec-1',
+  },
+];
+
+export const mockProcurementSpecs: ProcurementSpec[] = [
+  {
+    id: 'spec-1',
+    name: '防滑垫（主卧浴室）',
+    size: '60x90cm',
+    material: '天然橡胶',
+    suctionCups: 16,
+    thickness: '5mm',
+    color: '灰色',
+    notes: '老人使用，需要强力吸盘，表面有防滑纹理',
+    quantity: 1,
+  },
+];
+
+export const checkItems: CheckItem[] = [
+  {
+    key: 'adsorptionOk',
+    label: '吸附力',
+    description: '检查吸盘是否牢固，用力推垫子不会滑动',
+    icon: 'Magnet',
+  },
+  {
+    key: 'drainageOk',
+    label: '排水性',
+    description: '检查垫子表面是否有积水，排水孔是否通畅',
+    icon: 'Droplets',
+  },
+  {
+    key: 'cleaningOk',
+    label: '清洁度',
+    description: '检查表面是否有污渍、皂垢堆积',
+    icon: 'Sparkles',
+  },
+  {
+    key: 'dryingOk',
+    label: '晾干状态',
+    description: '检查背面是否潮湿，有无异味',
+    icon: 'Wind',
+  },
+  {
+    key: 'handrailOk',
+    label: '浴椅扶手',
+    description: '检查扶手是否稳固，螺丝有无松动',
+    icon: 'Armchair',
+  },
+];
