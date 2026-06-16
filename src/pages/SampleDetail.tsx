@@ -6,6 +6,7 @@ import Button from '@/components/common/Button';
 import Tag from '@/components/common/Tag';
 import Empty from '@/components/common/Empty';
 import VersionTimeline from '@/components/sample/VersionTimeline';
+import VersionComparison from '@/components/sample/VersionComparison';
 import FeedbackCard from '@/components/feedback/FeedbackCard';
 import ProblemPieChart from '@/components/stats/ProblemPieChart';
 import SizeProblemBarChart from '@/components/stats/SizeProblemBarChart';
@@ -142,6 +143,10 @@ export default function SampleDetail() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-7">
           <VersionTimeline sampleId={id} />
+
+          {sample.previousVersionId && (
+            <VersionComparison sampleId={id} />
+          )}
 
           <div className="card p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

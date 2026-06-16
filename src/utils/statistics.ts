@@ -177,3 +177,127 @@ export function getVersionChain(sampleId: string): Sample[] {
 
   return chain;
 }
+
+export interface SizeProblemHotspot {
+  size: SizeCode;
+  currentCount: number;
+  previousCount: number;
+  delta: number;
+}
+
+export interface ProblemTypeDelta {
+  type: ProblemType;
+  currentCount: number;
+  previousCount: number;
+  delta: number;
+}
+
+export interface SuggestionDelta {
+  text: string;
+  currentCount: number;
+  previousCount: number;
+  status: 'new' | 'resolved' | 'reduced' | 'persisted' | 'increased';
+}
+
+export interface OldProblemStatus {
+  problem: string;
+  type: ProblemType;
+  status: 'resolved' | 'persisted';
+}
+
+export interface VersionComparisonData {
+  currentSample: Sample;
+  previousSample: Sample;
+  sizeHotspots: SizeProblemHotspot[];
+  problemTypeDeltas: ProblemTypeDelta[];
+  suggestionDeltas: SuggestionDelta[];
+  oldProblemStatuses: OldProblemStatus[];
+  overallImproved: boolean;
+}
+
+export function getVersionComparison(currentSampleId: string): VersionComparisonData | null {
+  const currentSample = getSamples().find(s => s.id === currentSampleId);
+  if (!currentSample || !currentSample.previousVersionId) return null;
+
+  const previousSample = getSamples().find(s => s.id === currentSample.previousVersionId);
+  if (!previousSample) return null;
+
+  const currentFeedbacks = getFeedbacksBySampleId(currentSampleId);
+  const previousFeedbacks = getFeedbacksBySampleId(previousSample.id);
+
+  const currentProblemBySize = initSizeCount();
+  const previousProblemBySize = initSizeCount();
+  currentFeedbacks.forEach(f => { if (f.problemTypes.length > 0) currentProblemBySize[f.trySize]++; });
+  previousFeedbacks.forEach(f => { if (f.problemTypes.length > 0) previousProblemBySize[f.trySize]++; });
+
+  const sizeHotspots: SizeProblemHotspot[] = SIZE_CODES
+    .filter(size => currentSample.sizes.includes(size) || previousSample.sizes.includes(size))
+    .map(size => ({
+      size,
+      currentCount: currentProblemBySize[size],
+      previousCount: previousProblemBySize[size],
+      delta: currentProblemBySize[size] - previousProblemBySize[size],
+    }));
+
+  const currentProblemDist = initProblemCount();
+  const previousProblemDist = initProblemCount();
+  currentFeedbacks.forEach(f => f.problemTypes.forEach(t => currentProblemDist[t]++));
+  previousFeedbacks.forEach(f => f.problemTypes.forEach(t => previousProblemDist[t]++));
+
+  const problemTypeDeltas: ProblemTypeDelta[] = PROBLEM_TYPES.map(type => ({
+    type,
+    currentCount: currentProblemDist[type],
+    previousCount: previousProblemDist[type],
+    delta: currentProblemDist[type] - previousProblemDist[type],
+  }));
+
+  const currentSuggestions = aggregateSuggestions(currentSampleId);
+  const previousSuggestions = aggregateSuggestions(previousSample.id);
+  const allSuggestionTexts = new Set([
+    ...currentSuggestions.map(s => s.text),
+    ...previousSuggestions.map(s => s.text),
+  ]);
+
+  const suggestionDeltas: SuggestionDelta[] = Array.from(allSuggestionTexts).map(text => {
+    const curr = currentSuggestions.find(s => s.text === text)?.count || 0;
+    const prev = previousSuggestions.find(s => s.text === text)?.count || 0;
+    let status: SuggestionDelta['status'];
+    if (prev === 0 && curr > 0) status = 'new';
+    else if (curr === 0 && prev > 0) status = 'resolved';
+    else if (curr < prev) status = 'reduced';
+    else if (curr > prev) status = 'increased';
+    else status = 'persisted';
+    return { text, currentCount: curr, previousCount: prev, status };
+  }).sort((a, b) => {
+    const order: Record<SuggestionDelta['status'], number> = {
+      persisted: 0, increased: 1, new: 2, reduced: 3, resolved: 4,
+    };
+    return order[a.status] - order[b.status];
+  });
+
+  const oldProblemStatuses: OldProblemStatus[] = [];
+  PROBLEM_TYPES.forEach(type => {
+    if (previousProblemDist[type] > 0) {
+      const isResolved = currentProblemDist[type] === 0;
+      oldProblemStatuses.push({
+        problem: `「${type === 'pattern' ? '版型' : type === 'fabric' ? '面料' : type === 'workmanship' ? '工艺' : '舒适度'}」问题`,
+        type,
+        status: isResolved ? 'resolved' : 'persisted',
+      });
+    }
+  });
+
+  const totalCurrentProblems = Object.values(currentProblemDist).reduce((a, b) => a + b, 0);
+  const totalPreviousProblems = Object.values(previousProblemDist).reduce((a, b) => a + b, 0);
+  const overallImproved = totalCurrentProblems <= totalPreviousProblems;
+
+  return {
+    currentSample,
+    previousSample,
+    sizeHotspots,
+    problemTypeDeltas,
+    suggestionDeltas,
+    oldProblemStatuses,
+    overallImproved,
+  };
+}
