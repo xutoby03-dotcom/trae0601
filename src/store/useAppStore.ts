@@ -43,12 +43,39 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: true,
 
   initApp: async () => {
+    const deduplicateAlerts = (alerts: Alert[]): Alert[] => {
+      const seen = new Map<string, Alert>();
+      
+      alerts.forEach(alert => {
+        let key: string;
+        if (alert.type === 'low_stock') {
+          key = `low_stock-${alert.interfaceType || 'unknown'}`;
+        } else {
+          key = `${alert.type}-${alert.cableId || ''}-${alert.borrowId || ''}`;
+        }
+        
+        const existing = seen.get(key);
+        if (!existing || alert.createdAt > existing.createdAt) {
+          seen.set(key, alert);
+        }
+      });
+      
+      return Array.from(seen.values());
+    };
+
     if (storage.isInitialized()) {
+      let alerts = storage.getAlerts();
+      const deduplicatedAlerts = deduplicateAlerts(alerts);
+      if (deduplicatedAlerts.length !== alerts.length) {
+        storage.setAlerts(deduplicatedAlerts);
+        alerts = deduplicatedAlerts;
+      }
+      
       set({
         cables: storage.getCables(),
         borrowRecords: storage.getBorrowRecords(),
         employees: storage.getEmployees(),
-        alerts: storage.getAlerts(),
+        alerts,
         currentUser: storage.getCurrentUser(),
         isInitialized: true,
         isLoading: false,
@@ -376,7 +403,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { cables, borrowRecords, alerts } = get();
     const config = storage.getSystemConfig();
     const newAlerts: Alert[] = [];
-    const existingAlertKeys = new Set(alerts.map(a => `${a.type}-${a.cableId || ''}-${a.borrowId || ''}`));
+
+    const getAlertKey = (a: Alert): string => {
+      if (a.type === 'low_stock' && a.interfaceType) {
+        return `${a.type}-${a.interfaceType}`;
+      }
+      return `${a.type}-${a.cableId || ''}-${a.borrowId || ''}`;
+    };
+
+    const existingAlertKeys = new Set(alerts.map(getAlertKey));
 
     borrowRecords.forEach(record => {
       if (record.status === 'borrowing' && isOverdue(record.expectedReturn, config.overdueHours)) {
@@ -407,12 +442,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     Object.entries(typeCounts).forEach(([type, count]) => {
       if (count < config.safeStock) {
-        const key = `low_stock-${type}`;
+        const interfaceType = type as InterfaceType;
+        const key = `low_stock-${interfaceType}`;
         if (!existingAlertKeys.has(key)) {
           newAlerts.push({
             id: generateId(),
             type: 'low_stock',
-            message: `${INTERFACE_TYPE_LABELS[type as InterfaceType]} 接口库存不足（当前${count}条）`,
+            interfaceType,
+            message: `${INTERFACE_TYPE_LABELS[interfaceType]} 接口库存不足（当前${count}条）`,
             level: count === 0 ? 'danger' : 'warning',
             isRead: false,
             createdAt: getNow(),

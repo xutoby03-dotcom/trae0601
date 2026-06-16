@@ -57,6 +57,7 @@ export interface Alert {
   type: AlertType;
   cableId?: string;
   borrowId?: string;
+  interfaceType?: InterfaceType;
   message: string;
   level: AlertLevel;
   isRead: boolean;

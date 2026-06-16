@@ -1,4 +1,5 @@
-import type { Cable, BorrowRecord, Employee, Alert } from '@/types';
+import type { Cable, BorrowRecord, Employee, Alert, InterfaceType } from '@/types';
+import { INTERFACE_TYPE_LABELS } from '@/types';
 import { generateId, generateCableCode } from './idGenerator';
 import { addHoursToNow, getNow } from './dateUtils';
 import { getPlaceholderImage } from './imageUtils';
@@ -140,17 +141,23 @@ export const generateMockAlerts = (cables: Cable[], borrowRecords: BorrowRecord[
   });
   
   const typeCounts: Record<string, number> = {};
-  cables.filter(c => c.status === 'available').forEach(c => {
-    typeCounts[c.interfaceType] = (typeCounts[c.interfaceType] || 0) + 1;
+  const interfaceTypes: InterfaceType[] = ['USB-C', 'Lightning', 'Micro-USB'];
+  
+  interfaceTypes.forEach(type => {
+    typeCounts[type] = cables.filter(
+      c => c.interfaceType === type && c.status === 'available'
+    ).length;
   });
   
   Object.entries(typeCounts).forEach(([type, count]) => {
     if (count < 2) {
+      const interfaceType = type as InterfaceType;
       alerts.push({
         id: generateId(),
         type: 'low_stock',
-        message: `${type} 接口库存不足（当前${count}条）`,
-        level: 'warning',
+        interfaceType,
+        message: `${INTERFACE_TYPE_LABELS[interfaceType]} 接口库存不足（当前${count}条）`,
+        level: count === 0 ? 'danger' : 'warning',
         isRead: false,
         createdAt: getNow(),
       });
