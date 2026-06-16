@@ -15,6 +15,7 @@ export default function Inventory() {
   const [showEdit, setShowEdit] = useState<string | null>(null)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [snapshotGoggles, setSnapshotGoggles] = useState<Goggle[]>([])
 
   const [newCode, setNewCode] = useState('')
   const [newSize, setNewSize] = useState<GoggleSize>('M')
@@ -98,15 +99,19 @@ export default function Inventory() {
     setShowEdit(null)
   }
 
+  const visibleCount = showStatusModal ? snapshotGoggles.length : selectedGoggles.length
+
   const statusOptions = Object.entries(STATUS_LABELS) as [GoggleStatus, string][]
 
   const handleBatchStatus = () => {
     if (selectedGoggles.length === 0) return
+    setSnapshotGoggles([...selectedGoggles])
     setShowStatusModal(true)
   }
 
   const handleStatusModalClose = () => {
     setShowStatusModal(false)
+    setSnapshotGoggles([])
     setSelectedIds([])
   }
 
@@ -118,10 +123,10 @@ export default function Inventory() {
           <p className="text-slate-500 mt-1">管理所有护目镜的资料信息，包括尺码、实验室和消毒记录</p>
         </div>
         <div className="flex items-center gap-3">
-          {selectedGoggles.length > 0 && (
+          {visibleCount > 0 && (
             <button onClick={handleBatchStatus} className="btn-secondary">
               <CheckSquare className="w-4 h-4" />
-              批量改状态 ({selectedGoggles.length})
+              批量改状态 ({visibleCount})
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
@@ -153,9 +158,9 @@ export default function Inventory() {
             {statusOptions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
           <span className="text-sm text-slate-500 shrink-0">共 {filteredGoggles.length} 副</span>
-          {selectedGoggles.length > 0 && (
+          {visibleCount > 0 && (
             <span className="text-sm text-brand-600 font-medium shrink-0">
-              已选 {selectedGoggles.length} 副
+              已选 {visibleCount} 副
             </span>
           )}
         </div>
@@ -338,6 +343,7 @@ export default function Inventory() {
                 onClick={() => {
                   setShowDetail(null)
                   setSelectedIds([detailGoggle.id])
+                  setSnapshotGoggles([detailGoggle])
                   setShowStatusModal(true)
                 }}
                 className="btn-secondary flex-1"
@@ -385,7 +391,7 @@ export default function Inventory() {
 
       {showStatusModal && (
         <StatusFlowModal
-          goggles={selectedGoggles}
+          goggles={snapshotGoggles}
           onClose={handleStatusModalClose}
           title="批量状态流转"
         />

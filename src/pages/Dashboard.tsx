@@ -11,7 +11,7 @@ const PIE_COLORS = ['#10b981', '#d97706', '#f97316', '#0ea5e9', '#6366f1', '#14b
 export default function Dashboard() {
   const { goggles, labs, checkouts, classes, getLabById, getClassById, getTeacherById } = useStore()
   const [showStatusModal, setShowStatusModal] = useState(false)
-  const [selectedGoggles, setSelectedGoggles] = useState<Goggle[]>([])
+  const [snapshotGoggles, setSnapshotGoggles] = useState<Goggle[]>([])
 
   const statusCounts = goggles.reduce((acc, g) => {
     acc[g.status] = (acc[g.status] || 0) + 1
@@ -258,7 +258,7 @@ export default function Dashboard() {
           {disinfectionOverdue.length > 0 && (
             <button
               onClick={() => {
-                setSelectedGoggles(disinfectionOverdue)
+                setSnapshotGoggles([...disinfectionOverdue])
                 setShowStatusModal(true)
               }}
               className="btn-primary text-xs px-3 py-1.5"
@@ -281,7 +281,7 @@ export default function Dashboard() {
                 <button
                   key={g.id}
                   onClick={() => {
-                    setSelectedGoggles([g])
+                    setSnapshotGoggles([g])
                     setShowStatusModal(true)
                   }}
                   className="text-left p-4 bg-accent-50 rounded-lg border border-accent-200 relative overflow-hidden hover:border-accent-400 hover:shadow-md transition-all group"
@@ -305,8 +305,11 @@ export default function Dashboard() {
 
       {showStatusModal && (
         <StatusFlowModal
-          goggles={selectedGoggles}
-          onClose={() => setShowStatusModal(false)}
+          goggles={snapshotGoggles}
+          onClose={() => {
+            setShowStatusModal(false)
+            setSnapshotGoggles([])
+          }}
           title="消毒流程状态处理"
         />
       )}
