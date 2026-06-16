@@ -1,3 +1,4 @@
+
 import { Router, Request, Response } from 'express';
 import { applicationService } from '../services/applicationService';
 import type { Application } from '../../../shared/types';
@@ -63,12 +64,12 @@ router.put('/:id/checkin', (req: Request, res: Response) => {
 });
 
 router.put('/:id/release', (req: Request, res: Response) => {
-  const updated = applicationService.releaseSeatForNoShow(req.params.id);
-  if (!updated) {
-    res.status(404).json({ error: 'Application not found or has no seat' });
+  const result = applicationService.releaseSeatForNoShow(req.params.id);
+  if (result.error) {
+    res.status(400).json({ error: result.error });
     return;
   }
-  res.json(updated);
+  res.json(result.app);
 });
 
 router.put('/:id/cancel', (req: Request, res: Response) => {

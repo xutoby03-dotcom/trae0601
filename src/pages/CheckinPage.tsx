@@ -88,6 +88,7 @@ export const CheckinPage: React.FC = () => {
       await approveApplication(id);
     } catch (e) {
       console.error('Approve failed:', e);
+      setError((e as Error).message || '通过申请失败');
     }
   };
 
@@ -96,6 +97,7 @@ export const CheckinPage: React.FC = () => {
       await rejectApplication(id);
     } catch (e) {
       console.error('Reject failed:', e);
+      setError((e as Error).message || '拒绝申请失败');
     }
   };
 
@@ -106,6 +108,7 @@ export const CheckinPage: React.FC = () => {
       setSelectedSeat(null);
     } catch (e) {
       console.error('Check-in failed:', e);
+      setError((e as Error).message || '签到失败');
     }
   };
 
@@ -116,6 +119,7 @@ export const CheckinPage: React.FC = () => {
       setSelectedSeat(null);
     } catch (e) {
       console.error('Release failed:', e);
+      setError((e as Error).message || '标记未到失败');
     }
   };
 

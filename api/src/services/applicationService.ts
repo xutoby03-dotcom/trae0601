@@ -116,9 +116,16 @@ export const applicationService = {
     return applicationStore.getById(id);
   },
 
-  releaseSeatForNoShow: (id: string): Application | undefined => {
+  releaseSeatForNoShow: (id: string): { app?: Application; error?: string } => {
     const app = applicationStore.getById(id);
-    if (!app || !app.seatId) return undefined;
+    if (!app) return { error: '申请不存在' };
+    if (app.status === 'no_show') return { error: '该学生已标记为未到' };
+    if (app.status === 'checked_in') return { error: '该学生已签到，无法标记未到' };
+    if (app.status === 'waitlist') return { error: '该学生在候补中，无法标记未到' };
+    if (app.status === 'pending_approval') return { error: '该申请待审批中，无法标记未到' };
+    if (app.status === 'rejected') return { error: '该申请已被拒绝，无法标记未到' };
+    if (app.status !== 'approved') return { error: '当前状态不允许标记未到' };
+    if (!app.seatId) return { error: '该申请没有分配座位，无法标记未到' };
 
     courseService.releaseSeat(app.courseId, app.seatId);
     applicationStore.update(id, { status: 'no_show', seatId: undefined });
@@ -142,7 +149,7 @@ export const applicationService = {
       }
     }
 
-    return applicationStore.getById(id);
+    return { app: applicationStore.getById(id) };
   },
 
   cancelApplication: (id: string): Application | undefined => {
