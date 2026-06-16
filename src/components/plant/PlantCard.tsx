@@ -5,7 +5,6 @@ import {
   MapPin,
   Ruler,
   Layers,
-  Leaf,
   AlertTriangle,
   Clock,
 } from 'lucide-react';
@@ -13,6 +12,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { usePlantStore } from '../../store/plantStore';
 import type { Plant } from '../../types';
+import PlantPhoto from './PlantPhoto';
 
 interface PlantCardProps {
   plant: Plant;
@@ -47,18 +47,13 @@ export default function PlantCard({ plant }: PlantCardProps) {
         inRecovery ? 'ring-2 ring-leaf-400 ring-offset-2 ring-offset-cream-100' : ''
       } ${!plant.isAlive ? 'opacity-60 grayscale' : ''}`}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-forest-100">
-        {plant.latestPhotoUrl ? (
-          <img
-            src={plant.latestPhotoUrl}
-            alt={plant.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-100 to-forest-200">
-            <Leaf className="w-16 h-16 text-forest-300" />
-          </div>
-        )}
+      <div className="relative overflow-hidden">
+        <PlantPhoto
+          photoUrl={plant.latestPhotoUrl}
+          alt={plant.name}
+          aspect="4/3"
+          showHoverZoom
+        />
 
         {inRecovery && (
           <div className="absolute top-3 left-3">

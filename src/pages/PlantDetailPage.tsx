@@ -7,7 +7,6 @@ import {
   Layers,
   Sun,
   Droplets,
-  Leaf,
   Plus,
   Repeat,
   Droplets as WaterIcon,
@@ -24,6 +23,7 @@ import { usePlantStore } from '../store/plantStore';
 import Timeline from '../components/timeline/Timeline';
 import RepotHistory from '../components/repot/RepotHistory';
 import RecoveryAlert from '../components/repot/RecoveryAlert';
+import PlantPhoto from '../components/plant/PlantPhoto';
 import type { TimelineEventType } from '../types';
 
 const eventTypes: { key: TimelineEventType; label: string; icon: typeof Droplets }[] = [
@@ -102,18 +102,12 @@ export default function PlantDetailPage() {
       </Link>
 
       <div className="card overflow-hidden animate-slide-up">
-        <div className="relative h-56 md:h-72 bg-forest-100">
-          {plant.latestPhotoUrl ? (
-            <img
-              src={plant.latestPhotoUrl}
-              alt={plant.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-100 to-forest-200">
-              <Leaf className="w-20 h-20 text-forest-300" />
-            </div>
-          )}
+        <div className="relative overflow-hidden">
+          <PlantPhoto
+            photoUrl={plant.latestPhotoUrl}
+            alt={plant.name}
+            aspect="banner"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
             <h2 className="font-serif text-3xl font-semibold">{plant.name}</h2>
