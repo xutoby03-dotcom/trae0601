@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { CleaningRecordItem } from '../components/CleaningRecordItem';
-import { Droplets, Plus, X, User, MapPin, FileText, Clock, CheckCircle2 } from 'lucide-react';
+import { Droplets, Plus, X, User, MapPin, FileText, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getToday } from '../utils/dateUtils';
 import type { CleaningRecord } from '../types';
 
@@ -17,6 +17,7 @@ export const CleaningRecords = () => {
     notes: '',
   });
   const [rawDaysInput, setRawDaysInput] = useState('1');
+  const [daysError, setDaysError] = useState(false);
 
   const isUnhandled = (newRecord.daysUnhandled ?? 0) > 0;
 
@@ -24,9 +25,16 @@ export const CleaningRecords = () => {
     e.preventDefault();
     if (!newRecord.bathroomId || !newRecord.cleanedBy || !newRecord.dryingLocation) return;
 
-    const finalDays = isUnhandled
-      ? Math.max(1, parseInt(rawDaysInput) || 1)
-      : 0;
+    if (isUnhandled) {
+      const parsed = parseInt(rawDaysInput);
+      if (isNaN(parsed) || parsed < 1) {
+        setDaysError(true);
+        return;
+      }
+      setDaysError(false);
+    }
+
+    const finalDays = isUnhandled ? parseInt(rawDaysInput) : 0;
 
     addCleaningRecord({
       bathroomId: newRecord.bathroomId,
@@ -47,45 +55,63 @@ export const CleaningRecords = () => {
       notes: '',
     });
     setRawDaysInput('1');
+    setDaysError(false);
   };
 
   const handleSwitchToHandled = () => {
     setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }));
+    setDaysError(false);
   };
 
   const handleSwitchToUnhandled = () => {
-    const days = parseInt(rawDaysInput) || 1;
-    setNewRecord((prev) => ({ ...prev, daysUnhandled: Math.max(1, days) }));
+    const days = parseInt(rawDaysInput);
+    if (!isNaN(days) && days >= 1) {
+      setNewRecord((prev) => ({ ...prev, daysUnhandled: days }));
+      setDaysError(false);
+    } else {
+      setDaysError(true);
+      setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }));
+    }
   };
 
   const handleDaysInputChange = (val: string) => {
     setRawDaysInput(val);
-    if (val === '') return;
+    if (val === '') {
+      setDaysError(true);
+      return;
+    }
     const parsed = parseInt(val);
-    if (!isNaN(parsed) && parsed >= 1) {
+    if (isNaN(parsed) || parsed < 1) {
+      setDaysError(true);
+    } else {
+      setDaysError(false);
       setNewRecord((prev) => ({ ...prev, daysUnhandled: parsed }));
     }
   };
 
   const handleDaysInputBlur = () => {
-    const parsed = parseInt(rawDaysInput) || 0;
-    const clamped = Math.max(1, parsed);
-    setRawDaysInput(String(clamped));
-    setNewRecord((prev) => ({ ...prev, daysUnhandled: clamped }));
+    const parsed = parseInt(rawDaysInput);
+    if (isNaN(parsed) || parsed < 1) {
+      setDaysError(true);
+    } else {
+      setDaysError(false);
+    }
   };
 
   const handleDaysDecrement = () => {
-    const current = parseInt(rawDaysInput) || 1;
+    const current = parseInt(rawDaysInput) || 0;
     const next = Math.max(1, current - 1);
     setRawDaysInput(String(next));
     setNewRecord((prev) => ({ ...prev, daysUnhandled: next }));
+    setDaysError(false);
   };
 
   const handleDaysIncrement = () => {
-    const current = parseInt(rawDaysInput) || 1;
+    const current = parseInt(rawDaysInput) || 0;
     const next = current + 1;
     setRawDaysInput(String(next));
     setNewRecord((prev) => ({ ...prev, daysUnhandled: next }));
+    setDaysError(false);
   };
 
   const sortedRecords = [...cleaningRecords].sort(
@@ -216,33 +242,45 @@ export const CleaningRecords = () => {
                   </button>
                 </div>
                 {isUnhandled && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-600">未处理天数：</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleDaysDecrement}
-                        className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        min="1"
-                        value={rawDaysInput}
-                        onChange={(e) => handleDaysInputChange(e.target.value)}
-                        onBlur={handleDaysInputBlur}
-                        className="w-20 px-3 py-2 text-center border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:outline-none transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleDaysIncrement}
-                        className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
-                      >
-                        +
-                      </button>
-                      <span className="text-sm text-gray-500">天</span>
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm text-gray-600">未处理天数：</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDaysDecrement}
+                          className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={rawDaysInput}
+                          onChange={(e) => handleDaysInputChange(e.target.value)}
+                          onBlur={handleDaysInputBlur}
+                          className={`w-20 px-3 py-2 text-center border-2 rounded-lg focus:outline-none transition-colors ${
+                            daysError
+                              ? 'border-red-400 bg-red-50 focus:border-red-500'
+                              : 'border-gray-200 focus:border-orange-400'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleDaysIncrement}
+                          className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
+                        >
+                          +
+                        </button>
+                        <span className="text-sm text-gray-500">天</span>
+                      </div>
                     </div>
+                    {daysError && (
+                      <div className="flex items-center gap-1 text-sm text-red-600">
+                        <AlertCircle size={14} />
+                        <span>请输入1天以上的未处理天数</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
