@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowRight,
   Save,
   Upload,
   X,
@@ -66,9 +67,12 @@ export default function ReimbursementNew() {
         setReceiptPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
-      if (errors.receipt) {
-        setErrors((prev) => ({ ...prev, receipt: '' }));
-      }
+      setReceiptClear('');
+      setErrors((prev) => ({
+        ...prev,
+        receipt: '',
+        receiptClear: '',
+      }));
     }
   };
 
@@ -337,9 +341,7 @@ export default function ReimbursementNew() {
                               checked={receiptClear === 'clear'}
                               onChange={(e) => {
                                 setReceiptClear(e.target.value as 'clear');
-                                if (errors.receiptClear) {
-                                  setErrors((prev) => ({ ...prev, receiptClear: '' }));
-                                }
+                                setErrors((prev) => ({ ...prev, receiptClear: '' }));
                               }}
                               className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                             />
@@ -353,6 +355,10 @@ export default function ReimbursementNew() {
                               checked={receiptClear === 'unclear'}
                               onChange={(e) => {
                                 setReceiptClear(e.target.value as 'unclear');
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  receiptClear: '票据不清晰，请重新上传',
+                                }));
                               }}
                               className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                             />
@@ -374,9 +380,16 @@ export default function ReimbursementNew() {
               <div className="mt-8 flex justify-end">
                 <button
                   onClick={handleNext}
-                  className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-all shadow-sm shadow-primary-200"
+                  disabled={!formData.budgetId || !receiptFile || receiptClear !== 'clear'}
+                  className={cn(
+                    'px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                    formData.budgetId && receiptFile && receiptClear === 'clear'
+                      ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-200'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  )}
                 >
                   下一步
+                  <ArrowRight size={14} />
                 </button>
               </div>
             </div>
