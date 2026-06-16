@@ -199,6 +199,23 @@ export interface SuggestionDelta {
   status: 'new' | 'resolved' | 'reduced' | 'persisted' | 'increased';
 }
 
+export type OldProblemCategory = 'fit' | 'action' | 'description';
+
+export interface OldSpecificProblem {
+  id: string;
+  category: OldProblemCategory;
+  size: SizeCode;
+  bodyPart?: 'shoulder' | 'chest' | 'waist';
+  feelLevel?: FeelLevel;
+  actionName?: string;
+  descriptionText?: string;
+  problemTypes?: ProblemType[];
+  originalText: string;
+  wearerName: string;
+  status: 'resolved' | 'improved' | 'persisted' | 'worsened';
+  evidence: string;
+}
+
 export interface OldProblemStatus {
   problem: string;
   type: ProblemType;
@@ -212,6 +229,7 @@ export interface VersionComparisonData {
   problemTypeDeltas: ProblemTypeDelta[];
   suggestionDeltas: SuggestionDelta[];
   oldProblemStatuses: OldProblemStatus[];
+  oldSpecificProblems: OldSpecificProblem[];
   overallImproved: boolean;
 }
 
@@ -287,6 +305,162 @@ export function getVersionComparison(currentSampleId: string): VersionComparison
     }
   });
 
+  const oldSpecificProblems: OldSpecificProblem[] = [];
+  const currentFeedbacksBySize: Record<SizeCode, Feedback[]> = {} as Record<SizeCode, Feedback[]>;
+  SIZE_CODES.forEach(size => {
+    currentFeedbacksBySize[size] = currentFeedbacks.filter(f => f.trySize === size);
+  });
+
+  const BODY_PART_LABEL: Record<string, string> = {
+    shoulder: '肩宽',
+    chest: '胸围',
+    waist: '腰围',
+  };
+
+  const FEEL_LABEL_SHORT: Record<FeelLevel, string> = {
+    1: '过紧',
+    2: '合适',
+    3: '过松',
+  };
+
+  previousFeedbacks.forEach(prevFb => {
+    const size = prevFb.trySize;
+    const currentSameSize = currentFeedbacksBySize[size] || [];
+
+    (['shoulder', 'chest', 'waist'] as const).forEach(part => {
+      const feelKey = `${part}Feel` as keyof Feedback;
+      const noteKey = `${part}Note` as keyof Feedback;
+      const feel = prevFb[feelKey] as FeelLevel;
+      const note = prevFb[noteKey] as string | undefined;
+
+      if (feel !== 2) {
+        const currSameFeelCount = currentSameSize.filter(fb => {
+          const currFeel = fb[feelKey] as FeelLevel;
+          return currFeel === feel;
+        }).length;
+        const currBetterCount = currentSameSize.filter(fb => {
+          const currFeel = fb[feelKey] as FeelLevel;
+          return feel === 1 ? currFeel >= 2 : currFeel <= 2;
+        }).length;
+        const currWorseCount = currentSameSize.filter(fb => {
+          const currFeel = fb[feelKey] as FeelLevel;
+          return feel === 1 ? currFeel === 1 : currFeel === 3;
+        }).length;
+
+        let status: OldSpecificProblem['status'];
+        let evidence: string;
+        if (currentSameSize.length === 0) {
+          status = 'persisted';
+          evidence = '新版该尺码暂无反馈，待验证';
+        } else if (currWorseCount === 0 && currBetterCount > 0) {
+          status = 'resolved';
+          evidence = `新版 ${size} 码 ${currentSameSize.length} 人反馈中 ${currBetterCount} 人感受已合适`;
+        } else if (currBetterCount > currWorseCount) {
+          status = 'improved';
+          evidence = `新版 ${size} 码 ${currBetterCount} 人感受改善，${currWorseCount} 人仍有此问题`;
+        } else if (currWorseCount > currBetterCount) {
+          status = 'worsened';
+          evidence = `新版 ${size} 码仍有 ${currWorseCount} 人反馈相同问题`;
+        } else {
+          status = 'persisted';
+          evidence = `新版 ${size} 码仍有 ${currWorseCount} 人反馈相同问题`;
+        }
+
+        const originalText = note
+          ? `${BODY_PART_LABEL[part]}${FEEL_LABEL_SHORT[feel]}：${note}`
+          : `${BODY_PART_LABEL[part]}${FEEL_LABEL_SHORT[feel]}`;
+
+        oldSpecificProblems.push({
+          id: `fit-${prevFb.id}-${part}`,
+          category: 'fit',
+          size,
+          bodyPart: part,
+          feelLevel: feel,
+          problemTypes: prevFb.problemTypes.filter(t => t === 'pattern' || t === 'comfort'),
+          originalText,
+          wearerName: prevFb.wearerName,
+          status,
+          evidence,
+        });
+      }
+    });
+
+    prevFb.limitedActions.forEach(action => {
+      const stillLimited = currentSameSize.filter(fb =>
+        fb.limitedActions.includes(action)
+      ).length;
+
+      let status: OldSpecificProblem['status'];
+      let evidence: string;
+      if (currentSameSize.length === 0) {
+        status = 'persisted';
+        evidence = '新版该尺码暂无反馈，待验证';
+      } else if (stillLimited === 0) {
+        status = 'resolved';
+        evidence = `新版 ${size} 码 ${currentSameSize.length} 人均无此受限`;
+      } else if (stillLimited < prevFb.limitedActions.length) {
+        status = 'improved';
+        evidence = `新版 ${size} 码仍有 ${stillLimited} 人反馈该动作受限`;
+      } else {
+        status = 'persisted';
+        evidence = `新版 ${size} 码仍有 ${stillLimited} 人反馈该动作受限`;
+      }
+
+      oldSpecificProblems.push({
+        id: `action-${prevFb.id}-${action}`,
+        category: 'action',
+        size,
+        actionName: action,
+        problemTypes: prevFb.problemTypes,
+        originalText: `活动受限：${action}`,
+        wearerName: prevFb.wearerName,
+        status,
+        evidence,
+      });
+    });
+
+    if (prevFb.problemDescription && prevFb.problemTypes.length > 0) {
+      const sameTypeProblems = currentSameSize.filter(fb =>
+        fb.problemTypes.some(t => prevFb.problemTypes.includes(t))
+      ).length;
+
+      let status: OldSpecificProblem['status'];
+      let evidence: string;
+      if (currentSameSize.length === 0) {
+        status = 'persisted';
+        evidence = '新版该尺码暂无反馈，待验证';
+      } else if (sameTypeProblems === 0) {
+        status = 'resolved';
+        evidence = `新版 ${size} 码暂无同类型问题反馈`;
+      } else {
+        status = 'persisted';
+        evidence = `新版 ${size} 码仍有 ${sameTypeProblems} 人反馈同类型问题`;
+      }
+
+      oldSpecificProblems.push({
+        id: `desc-${prevFb.id}`,
+        category: 'description',
+        size,
+        problemTypes: prevFb.problemTypes,
+        descriptionText: prevFb.problemDescription,
+        originalText: prevFb.problemDescription,
+        wearerName: prevFb.wearerName,
+        status,
+        evidence,
+      });
+    }
+  });
+
+  oldSpecificProblems.sort((a, b) => {
+    const statusOrder: Record<OldSpecificProblem['status'], number> = {
+      worsened: 0,
+      persisted: 1,
+      improved: 2,
+      resolved: 3,
+    };
+    return statusOrder[a.status] - statusOrder[b.status];
+  });
+
   const totalCurrentProblems = Object.values(currentProblemDist).reduce((a, b) => a + b, 0);
   const totalPreviousProblems = Object.values(previousProblemDist).reduce((a, b) => a + b, 0);
   const overallImproved = totalCurrentProblems <= totalPreviousProblems;
@@ -298,6 +472,7 @@ export function getVersionComparison(currentSampleId: string): VersionComparison
     problemTypeDeltas,
     suggestionDeltas,
     oldProblemStatuses,
+    oldSpecificProblems,
     overallImproved,
   };
 }

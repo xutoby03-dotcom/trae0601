@@ -1,6 +1,6 @@
-import { GitCompareArrows, TrendingDown, TrendingUp, CheckCircle2, AlertCircle, Minus, ArrowRight, Lightbulb } from 'lucide-react';
+import { GitCompareArrows, TrendingDown, TrendingUp, CheckCircle2, AlertCircle, Minus, ArrowRight, Lightbulb, User, Activity, Ruler, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getVersionComparison } from '@/utils/statistics';
+import { getVersionComparison, type OldSpecificProblem } from '@/utils/statistics';
 import { ProblemTypeLabel } from '@/types';
 import Tag from '@/components/common/Tag';
 
@@ -30,35 +30,132 @@ function DeltaBadge({ delta }: { delta: number }) {
   );
 }
 
-function SuggestionStatusBadge({ status }: { status: string }) {
+function ProblemStatusBadge({ status }: { status: OldSpecificProblem['status'] }) {
   switch (status) {
     case 'resolved':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-medium text-moss-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-semibold text-moss-600">
           <CheckCircle2 className="h-3 w-3" />已解决
         </span>
       );
-    case 'reduced':
+    case 'improved':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-medium text-moss-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-semibold text-moss-500">
           <TrendingDown className="h-3 w-3" />已缓解
         </span>
       );
     case 'persisted':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-champagne-100 px-2 py-0.5 text-xs font-medium text-champagne-500">
+        <span className="inline-flex items-center gap-1 rounded-full bg-champagne-100 px-2 py-0.5 text-xs font-semibold text-champagne-500">
+          <AlertCircle className="h-3 w-3" />仍存在
+        </span>
+      );
+    case 'worsened':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-semibold text-terracotta-600">
+          <TrendingUp className="h-3 w-3" />加剧
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+function ProblemCategoryIcon({ category }: { category: OldSpecificProblem['category'] }) {
+  switch (category) {
+    case 'fit':
+      return <Ruler className="h-3.5 w-3.5" />;
+    case 'action':
+      return <Activity className="h-3.5 w-3.5" />;
+    case 'description':
+      return <MessageSquare className="h-3.5 w-3.5" />;
+    default:
+      return null;
+  }
+}
+
+function OldProblemCard({ problem }: { problem: OldSpecificProblem }) {
+  const borderColorMap = {
+    resolved: 'border-moss-200 bg-moss-50/50',
+    improved: 'border-moss-200/60 bg-moss-50/30',
+    persisted: 'border-champagne-200 bg-champagne-50/50',
+    worsened: 'border-terracotta-200 bg-terracotta-50/50',
+  };
+
+  const iconColorMap = {
+    resolved: 'text-moss-500',
+    improved: 'text-moss-400',
+    persisted: 'text-champagne-500',
+    worsened: 'text-terracotta-500',
+  };
+
+  return (
+    <div
+      className={`rounded-lg border px-4 py-3 transition-all duration-200 hover:shadow-sm ${
+        borderColorMap[problem.status]
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-charcoal-400">
+            <span className={`${iconColorMap[problem.status]}`}>
+              <ProblemCategoryIcon category={problem.category} />
+            </span>
+            <Tag variant="size">{problem.size}</Tag>
+            {problem.problemTypes && problem.problemTypes.length > 0 && (
+              <Tag variant={problem.problemTypes[0]}>
+                {ProblemTypeLabel[problem.problemTypes[0]]}
+              </Tag>
+            )}
+          </div>
+          <p className="mt-2 text-sm font-medium text-charcoal-800 leading-relaxed">
+            {problem.originalText}
+          </p>
+          <div className="mt-2 flex items-center gap-2 text-xs text-charcoal-400">
+            <User className="h-3 w-3" />
+            <span>试穿人：{problem.wearerName}</span>
+          </div>
+          <p className="mt-1.5 text-xs text-charcoal-500 leading-relaxed">
+            {problem.evidence}
+          </p>
+        </div>
+        <div className="shrink-0">
+          <ProblemStatusBadge status={problem.status} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuggestionStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'resolved':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-semibold text-moss-600">
+          <CheckCircle2 className="h-3 w-3" />已解决
+        </span>
+      );
+    case 'reduced':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-moss-50 px-2 py-0.5 text-xs font-semibold text-moss-500">
+          <TrendingDown className="h-3 w-3" />已缓解
+        </span>
+      );
+    case 'persisted':
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-champagne-100 px-2 py-0.5 text-xs font-semibold text-champagne-500">
           <AlertCircle className="h-3 w-3" />仍存在
         </span>
       );
     case 'increased':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-medium text-terracotta-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-semibold text-terracotta-600">
           <TrendingUp className="h-3 w-3" />加剧
         </span>
       );
     case 'new':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-medium text-terracotta-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-2 py-0.5 text-xs font-semibold text-terracotta-600">
           <AlertCircle className="h-3 w-3" />新增
         </span>
       );
@@ -78,7 +175,7 @@ export default function VersionComparison({ sampleId }: VersionComparisonProps) 
     sizeHotspots,
     problemTypeDeltas,
     suggestionDeltas,
-    oldProblemStatuses,
+    oldSpecificProblems,
     overallImproved,
   } = comparison;
 
@@ -188,33 +285,28 @@ export default function VersionComparison({ sampleId }: VersionComparisonProps) 
           </div>
         </div>
 
-        {oldProblemStatuses.length > 0 && (
+        {oldSpecificProblems.length > 0 && (
           <div>
-            <h4 className="mb-3 text-sm font-semibold text-charcoal-700">旧版问题追踪</h4>
-            <div className="flex flex-wrap gap-2">
-              {oldProblemStatuses.map(item => (
-                <div
-                  key={item.problem}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
-                    item.status === 'resolved'
-                      ? 'border-moss-200 bg-moss-50 text-moss-700'
-                      : 'border-champagne-200 bg-champagne-50 text-champagne-500'
-                  }`}
-                >
-                  {item.status === 'resolved' ? (
-                    <CheckCircle2 className="h-4 w-4 text-moss-500" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-champagne-500" />
-                  )}
-                  <span className="font-medium">{item.problem}</span>
-                  <span
-                    className={`text-xs font-semibold ${
-                      item.status === 'resolved' ? 'text-moss-600' : 'text-champagne-500'
-                    }`}
-                  >
-                    {item.status === 'resolved' ? '已缓解' : '仍存在'}
-                  </span>
-                </div>
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-charcoal-700">旧版问题追踪</h4>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1 text-terracotta-600">
+                  <span className="h-2 w-2 rounded-full bg-terracotta-500" />
+                  {oldSpecificProblems.filter(p => p.status === 'worsened').length} 加剧
+                </span>
+                <span className="flex items-center gap-1 text-champagne-500">
+                  <span className="h-2 w-2 rounded-full bg-champagne-400" />
+                  {oldSpecificProblems.filter(p => p.status === 'persisted').length} 仍存在
+                </span>
+                <span className="flex items-center gap-1 text-moss-500">
+                  <span className="h-2 w-2 rounded-full bg-moss-500" />
+                  {oldSpecificProblems.filter(p => p.status === 'improved' || p.status === 'resolved').length} 改善
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {oldSpecificProblems.map(problem => (
+                <OldProblemCard key={problem.id} problem={problem} />
               ))}
             </div>
           </div>
