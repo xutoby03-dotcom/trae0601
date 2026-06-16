@@ -17,9 +17,22 @@ export default function UsingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (id) {
-      loadBooking();
+    if (!id || isNaN(parseInt(id))) {
+      showToast('error', '预约信息无效');
+      navigate('/my-bookings', { replace: true });
+      return;
     }
+    loadBooking();
+    const timer = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) {
+          showToast('error', '加载超时，请稍后重试');
+          navigate('/my-bookings', { replace: true });
+        }
+        return prev;
+      });
+    }, 8000);
+    return () => clearTimeout(timer);
   }, [id]);
 
   useEffect(() => {

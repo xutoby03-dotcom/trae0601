@@ -8,6 +8,7 @@ function mapRow(row: any): Booking {
     userName: row.user_name,
     chairId: row.chair_id,
     chairNumber: row.chair_number,
+    location: row.location || '',
     date: row.date,
     startTime: row.start_time,
     endTime: row.end_time,
@@ -37,7 +38,7 @@ export class BookingRepository {
 
   findById(id: number): Booking | undefined {
     const row = db.prepare(`
-      SELECT b.*, u.name as user_name, c.chair_number
+      SELECT b.*, u.name as user_name, c.chair_number, c.location
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN chairs c ON b.chair_id = c.id
@@ -48,7 +49,7 @@ export class BookingRepository {
 
   findByUserId(userId: number): Booking[] {
     const rows = db.prepare(`
-      SELECT b.*, u.name as user_name, c.chair_number
+      SELECT b.*, u.name as user_name, c.chair_number, c.location
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN chairs c ON b.chair_id = c.id
@@ -60,7 +61,7 @@ export class BookingRepository {
 
   findConflicting(chairId: number, date: string, startTime: string, endTime: string): Booking[] {
     const rows = db.prepare(`
-      SELECT b.*, u.name as user_name, c.chair_number
+      SELECT b.*, u.name as user_name, c.chair_number, c.location
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN chairs c ON b.chair_id = c.id
@@ -76,7 +77,7 @@ export class BookingRepository {
 
   findUserConsecutiveBookings(userId: number, date: string, startTime: string, endTime: string): Booking[] {
     const rows = db.prepare(`
-      SELECT b.*, u.name as user_name, c.chair_number
+      SELECT b.*, u.name as user_name, c.chair_number, c.location
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN chairs c ON b.chair_id = c.id
@@ -111,7 +112,7 @@ export class BookingRepository {
 
   findNoShows(): Booking[] {
     const rows = db.prepare(`
-      SELECT b.*, u.name as user_name, c.chair_number
+      SELECT b.*, u.name as user_name, c.chair_number, c.location
       FROM bookings b
       JOIN users u ON b.user_id = u.id
       JOIN chairs c ON b.chair_id = c.id

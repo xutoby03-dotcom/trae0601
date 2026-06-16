@@ -54,19 +54,8 @@ export default function MyBookings() {
     }
   };
 
-  const handleCheckin = async (bookingId: number) => {
-    try {
-      const result = await bookingApi.checkin(bookingId);
-      if (result.success) {
-        showToast('success', '签到成功！祝您午休愉快');
-        await refreshUser();
-        navigate(`/using/${bookingId}`);
-      } else {
-        showToast('error', result.message || '签到失败');
-      }
-    } catch {
-      showToast('error', '签到失败，请稍后重试');
-    }
+  const handleCheckin = (bookingId: number) => {
+    navigate(`/checkin/${bookingId}`);
   };
 
   const handleEndUsage = async (bookingId: number) => {

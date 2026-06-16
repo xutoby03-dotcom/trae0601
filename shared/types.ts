@@ -25,6 +25,7 @@ export interface Booking {
   userName: string;
   chairId: number;
   chairNumber: string;
+  location: string;
   date: string;
   startTime: string;
   endTime: string;

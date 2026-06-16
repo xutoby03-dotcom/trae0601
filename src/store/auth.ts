@@ -12,11 +12,24 @@ interface AuthState {
 
 const API_BASE = '/api';
 
+function getToken(): string | null {
+  try {
+    const stored = localStorage.getItem('auth-storage');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.state?.token || null;
+    }
+  } catch {
+    // ignore
+  }
+  return localStorage.getItem('token');
+}
+
 async function fetchApi<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),

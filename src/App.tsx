@@ -68,19 +68,19 @@ function AppRoutes() {
             </RequireAuth>
           } />
           
-          <Route path="/checkin/:bookingId" element={
+          <Route path="/checkin/:id" element={
             <RequireAuth>
               <CheckinPage />
             </RequireAuth>
           } />
           
-          <Route path="/using/:bookingId" element={
+          <Route path="/using/:id" element={
             <RequireAuth>
               <UsingPage />
             </RequireAuth>
           } />
           
-          <Route path="/cleanup/:bookingId" element={
+          <Route path="/cleanup/:id" element={
             <RequireAuth>
               <CleanupPage />
             </RequireAuth>

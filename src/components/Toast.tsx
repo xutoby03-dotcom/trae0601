@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
 
 interface Toast {
@@ -23,9 +23,10 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-
+  const toastCounterRef = useRef(0);
+  
   const showToast = useCallback((type: 'success' | 'error' | 'warning', message: string) => {
-    const id = Date.now();
+    const id = Date.now() + (++toastCounterRef.current);
     setToasts((prev) => [...prev, { id, type, message }]);
     
     setTimeout(() => {
