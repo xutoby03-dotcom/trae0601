@@ -51,7 +51,23 @@ export default function CheckinPage() {
     try {
       const result = await bookingApi.getById(parseInt(id!));
       if (result.success && result.data) {
-        setBooking(result.data);
+        const b = result.data;
+        if (b.status === 'checked_in') {
+          showToast('warning', '您已签到，正在进入使用页面');
+          navigate(`/using/${b.id}`, { replace: true });
+          return;
+        }
+        if (b.status === 'completed' && !b.cleanupConfirmed) {
+          showToast('warning', '请完成清洁确认');
+          navigate(`/cleanup/${b.id}`, { replace: true });
+          return;
+        }
+        if (b.status !== 'pending') {
+          showToast('warning', '该预约已处理完毕');
+          navigate('/my-bookings', { replace: true });
+          return;
+        }
+        setBooking(b);
       } else {
         showToast('error', result.message || '加载失败');
         navigate('/my-bookings');
