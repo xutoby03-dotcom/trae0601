@@ -77,7 +77,7 @@ export default function CloseBooth() {
       showToast.error('今日未开摊');
       return;
     }
-    if (!allFurnitureChecked) {
+    if (todayFurniture.length > 0 && !allFurnitureChecked) {
       const unchecked = todayFurniture.filter(f => !checkedFurnitureIds.includes(f.id));
       const codes = unchecked.map(f => f.code).join('、');
       showToast.error(`还有 ${unchecked.length} 件桌椅未核对：${codes}`);
