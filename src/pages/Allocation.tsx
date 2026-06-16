@@ -73,6 +73,7 @@ export default function Allocation() {
       isCritical: newEquipCritical,
     });
     setSelectedEquipmentId(newId);
+    setSelectedPersonId(null);
     handleResetEquipmentForm();
     setShowEquipmentModal(false);
   };
