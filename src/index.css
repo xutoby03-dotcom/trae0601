@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #223A31;
+  background-color: #F7F4EB;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #F7F4EB;
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(107, 143, 113, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 20%, rgba(193, 127, 89, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(232, 179, 74, 0.05) 0%, transparent 50%);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-forest-700 text-white font-medium rounded-full shadow-soft hover:bg-forest-600 hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-forest-700 font-medium rounded-full border border-forest-200 shadow-soft hover:bg-forest-50 hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-forest-600 font-medium rounded-full hover:bg-forest-50 transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-soft border border-cream-200 overflow-hidden;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-soft-lg transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full;
+  }
+
+  .tag-forest {
+    @apply tag bg-forest-50 text-forest-700 border border-forest-100;
+  }
+
+  .tag-clay {
+    @apply tag bg-clay-50 text-clay-700 border border-clay-100;
+  }
+
+  .tag-leaf {
+    @apply tag bg-leaf-50 text-leaf-700 border border-leaf-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white border border-cream-300 rounded-xl text-forest-800 placeholder:text-forest-300 focus:outline-none focus:ring-2 focus:ring-forest-400 focus:border-transparent transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-forest-700 mb-1.5;
+  }
+
+  .section-title {
+    @apply font-serif text-xl font-semibold text-forest-800 mb-4;
+  }
+
+  .card-title {
+    @apply font-serif text-lg font-semibold text-forest-800;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F0E8D3;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B5CFBE;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8EB79C;
+}
