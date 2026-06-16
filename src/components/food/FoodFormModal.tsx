@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Calendar, Tag, Package, MapPin, Receipt, StickyNote, Sparkles } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Calendar, Tag, Package, MapPin, Receipt, StickyNote, Sparkles, Scissors } from 'lucide-react';
 import type { FoodFormData, FoodItem, StorageZone } from '@/types';
 import { useFoodStore } from '@/store/useFoodStore';
 import { Button } from '@/components/common/Button';
@@ -10,9 +10,10 @@ import {
   FOOD_EMOJI_OPTIONS,
   STORAGE_ZONE_LABEL,
   STORAGE_ZONE_EMOJI,
-  OPENED_SHELF_LIFE_OVERRIDE,
 } from '@/utils/constants';
 import { todayStr } from '@/utils/date';
+import { getOpenedShelfLifeDays, getEffectiveExpiry } from '@/utils/food';
+import { addDays, formatDateFull } from '@/utils/date';
 import { clsx } from 'clsx';
 
 interface FoodFormModalProps {
@@ -81,19 +82,48 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
   const updateField = <K extends keyof FoodFormData>(key: K, value: FoodFormData[K]) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === 'name' && typeof value === 'string') {
-        const override = OPENED_SHELF_LIFE_OVERRIDE[value];
-        if (override && !editFood) {
-          next.openedShelfLifeDays = override;
-        }
+      if (key === 'name' || key === 'category') {
+        const newName = key === 'name' ? (value as string) : prev.name;
+        const newCategory = key === 'category' ? (value as string) : prev.category;
+        const { days } = getOpenedShelfLifeDays(
+          newName,
+          newCategory,
+          prev.openedShelfLifeDays
+        );
+        next.openedShelfLifeDays = days;
       }
       return next;
     });
   };
 
+  const matchedRule = useMemo(() => {
+    return getOpenedShelfLifeDays(form.name, form.category, form.openedShelfLifeDays);
+  }, [form.name, form.category, form.openedShelfLifeDays]);
+
+  const previewExpiry = useMemo(() => {
+    const base = form.purchaseDate || todayStr();
+    const normalExpiry = addDays(base, form.shelfLifeDays);
+    const openedRef = form.isOpened ? (form.openedAt || todayStr()) : null;
+    let openedExpiry: string | null = null;
+    if (openedRef) {
+      openedExpiry = addDays(openedRef, form.openedShelfLifeDays);
+    }
+    return { normal: normalExpiry, opened: openedExpiry };
+  }, [form.purchaseDate, form.shelfLifeDays, form.isOpened, form.openedAt, form.openedShelfLifeDays]);
+
   const handleSubmit = () => {
     if (!form.name.trim()) return;
     if (editFood) {
+      const wasOpened = !!editFood.openedAt;
+      const nowOpened = form.isOpened;
+      let openedAt: string | null = editFood.openedAt;
+      if (!wasOpened && nowOpened) {
+        openedAt = form.openedAt ?? todayStr();
+      } else if (wasOpened && nowOpened && form.openedAt && form.openedAt !== editFood.openedAt) {
+        openedAt = form.openedAt;
+      } else if (!nowOpened) {
+        openedAt = null;
+      }
       updateFood(editFood.id, {
         name: form.name,
         emoji: form.emoji,
@@ -104,6 +134,7 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
         purchaseDate: form.purchaseDate,
         shelfLifeDays: form.shelfLifeDays,
         openedShelfLifeDays: form.openedShelfLifeDays,
+        openedAt,
         price: form.price,
         notes: form.notes,
       });
@@ -159,10 +190,10 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
                 placeholder="如：草莓酸奶"
                 className="w-full h-11 px-4 rounded-xl border border-slate-200 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all outline-none text-sm"
               />
-              {OPENED_SHELF_LIFE_OVERRIDE[form.name] && (
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 rounded-lg px-2.5 py-1.5 inline-flex">
+              {matchedRule.matched && form.name.trim() && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 inline-flex">
                   <Sparkles className="w-3 h-3" />
-                  {form.name}开封后建议 {OPENED_SHELF_LIFE_OVERRIDE[form.name]} 天内吃完
+                  按「{matchedRule.ruleLabel}」规则：开封后建议 {matchedRule.days} 天内吃完
                 </div>
               )}
             </div>
@@ -355,11 +386,16 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100">
+          <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 space-y-4">
             <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <span className="text-sm font-medium text-slate-700">是否已经开封？</span>
-                <p className="text-xs text-slate-500 mt-0.5">开封后会重新计算保质期倒计时</p>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center">
+                  <Scissors className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-slate-700">是否已经开封？</span>
+                  <p className="text-xs text-slate-500 mt-0.5">开封后会重新计算保质期倒计时</p>
+                </div>
               </div>
               <button
                 type="button"
@@ -377,6 +413,76 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
                 />
               </button>
             </label>
+
+            {form.isOpened && (
+              <div className="pt-4 border-t border-orange-100 space-y-3 animate-fade-in">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    开封日期
+                  </label>
+                  <input
+                    type="date"
+                    value={form.openedAt ?? todayStr()}
+                    max={todayStr()}
+                    onChange={(e) => updateField('openedAt', e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-50 transition-all outline-none text-sm bg-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-white border border-orange-100">
+                    <p className="text-xs text-slate-400 mb-1">开封后保质期</p>
+                    <p className="text-sm font-semibold text-orange-700">
+                      {matchedRule.matched && (
+                        <Badge variant="warning" size="sm" className="mr-1.5">
+                          {matchedRule.ruleLabel}
+                        </Badge>
+                      )}
+                      {form.openedShelfLifeDays} 天
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white border border-orange-100">
+                    <p className="text-xs text-slate-400 mb-1">到期日</p>
+                    <p className="text-sm font-semibold text-slate-700">
+                      {previewExpiry.opened
+                        ? formatDateFull(previewExpiry.opened)
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 to-teal-50/80 border border-emerald-100">
+            <p className="text-xs font-medium text-slate-500 mb-2">📅 保质期总览</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/70">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs">未开</span>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">未开封到期日</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {formatDateFull(previewExpiry.normal)}
+                  </p>
+                </div>
+              </div>
+              {previewExpiry.opened && (
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-orange-50/80">
+                  <div className="w-7 h-7 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs">已开</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">开封后到期日</p>
+                    <p className="text-sm font-semibold text-orange-700">
+                      {formatDateFull(previewExpiry.opened)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>

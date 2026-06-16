@@ -1,15 +1,78 @@
 import type { FoodItem, FoodStatus } from '@/types';
 import { daysUntil, hoursUntil, formatDate } from './date';
-import { OPENED_SHELF_LIFE_OVERRIDE } from './constants';
+import { OPENED_SHELF_LIFE_RULES, type OpenedShelfLifeRule } from './constants';
+
+export function matchOpenedShelfLifeRule(
+  name: string,
+  category?: string
+): OpenedShelfLifeRule | null {
+  const trimmedName = name.trim();
+  for (const rule of OPENED_SHELF_LIFE_RULES) {
+    const nameHit =
+      rule.keywords && rule.keywords.length > 0
+        ? rule.keywords.some((kw) => trimmedName.includes(kw))
+        : false;
+    const categoryHit =
+      rule.categories && rule.categories.length > 0 && category
+        ? rule.categories.some((c) => c === category)
+        : false;
+    if (nameHit || categoryHit) return rule;
+  }
+  return null;
+}
+
+export function getOpenedShelfLifeDays(
+  name: string,
+  category: string,
+  fallback: number
+): { days: number; matched: boolean; ruleLabel?: string } {
+  const rule = matchOpenedShelfLifeRule(name, category);
+  if (rule) {
+    return { days: rule.days, matched: true, ruleLabel: rule.label };
+  }
+  return { days: fallback, matched: false };
+}
 
 export function getEffectiveExpiry(food: FoodItem): string {
   if (food.openedAt) {
-    const overrideDays = OPENED_SHELF_LIFE_OVERRIDE[food.name] ?? food.openedShelfLifeDays;
+    const { days } = getOpenedShelfLifeDays(
+      food.name,
+      food.category,
+      food.openedShelfLifeDays
+    );
     const openedDate = new Date(food.openedAt);
-    openedDate.setDate(openedDate.getDate() + overrideDays);
+    openedDate.setDate(openedDate.getDate() + days);
     return openedDate.toISOString().split('T')[0];
   }
   return food.expiryDate;
+}
+
+export function describeEffectiveExpiry(food: FoodItem): {
+  expiry: string;
+  isOpened: boolean;
+  label?: string;
+  openedDays: number;
+} {
+  if (food.openedAt) {
+    const { days, ruleLabel } = getOpenedShelfLifeDays(
+      food.name,
+      food.category,
+      food.openedShelfLifeDays
+    );
+    const openedDate = new Date(food.openedAt);
+    openedDate.setDate(openedDate.getDate() + days);
+    return {
+      expiry: openedDate.toISOString().split('T')[0],
+      isOpened: true,
+      label: ruleLabel,
+      openedDays: days,
+    };
+  }
+  return {
+    expiry: food.expiryDate,
+    isOpened: false,
+    openedDays: food.shelfLifeDays,
+  };
 }
 
 export function getFoodStatus(food: FoodItem): FoodStatus {

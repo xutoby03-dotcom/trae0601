@@ -3,9 +3,13 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { FoodItem, DiscardRecord, FoodFormData, StorageZone, DiscardReason } from '@/types';
 import { initialFoods, initialDiscards } from '@/data/mockData';
 import { addDays, todayStr, isThisMonth } from '@/utils/date';
-import { getEffectiveExpiry, getFoodStatus, compareByUrgency } from '@/utils/food';
+import {
+  getEffectiveExpiry,
+  getFoodStatus,
+  compareByUrgency,
+  getOpenedShelfLifeDays,
+} from '@/utils/food';
 import { daysUntil, hoursUntil } from '@/utils/date';
-import { OPENED_SHELF_LIFE_OVERRIDE } from '@/utils/constants';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -19,7 +23,7 @@ interface FoodStore {
   updateFood: (id: string, data: Partial<FoodItem>) => void;
   deleteFood: (id: string) => void;
 
-  markOpened: (id: string) => void;
+  markOpened: (id: string, openedAt?: string) => void;
   deductPortion: (id: string, portion: number) => void;
 
   discardFood: (id: string, reason: DiscardReason) => void;
@@ -45,6 +49,11 @@ export const useFoodStore = create<FoodStore>()(
         const today = todayStr();
         const expiryDate = addDays(data.purchaseDate, data.shelfLifeDays);
         const openedAt = data.isOpened ? (data.openedAt ?? today) : null;
+        const { days: resolvedOpenedDays } = getOpenedShelfLifeDays(
+          data.name,
+          data.category,
+          data.openedShelfLifeDays
+        );
 
         const newFood: FoodItem = {
           id: generateId(),
@@ -59,7 +68,7 @@ export const useFoodStore = create<FoodStore>()(
           expiryDate,
           openedAt,
           shelfLifeDays: data.shelfLifeDays,
-          openedShelfLifeDays: data.openedShelfLifeDays,
+          openedShelfLifeDays: resolvedOpenedDays,
           price: data.price,
           notes: data.notes,
           createdAt: today,
@@ -70,7 +79,21 @@ export const useFoodStore = create<FoodStore>()(
 
       updateFood: (id, data) => {
         set((state) => ({
-          foods: state.foods.map((f) => (f.id === id ? { ...f, ...data } : f)),
+          foods: state.foods.map((f) => {
+            if (f.id !== id) return f;
+            const merged = { ...f, ...data };
+            const nameOrCategoryChanged =
+              data.name !== undefined || data.category !== undefined;
+            if (nameOrCategoryChanged) {
+              const { days } = getOpenedShelfLifeDays(
+                merged.name,
+                merged.category,
+                merged.openedShelfLifeDays
+              );
+              merged.openedShelfLifeDays = days;
+            }
+            return merged;
+          }),
         }));
       },
 
@@ -80,16 +103,20 @@ export const useFoodStore = create<FoodStore>()(
         }));
       },
 
-      markOpened: (id) => {
-        const today = todayStr();
+      markOpened: (id, openedAt) => {
+        const finalOpenedAt = openedAt ?? todayStr();
         const food = get().foods.find((f) => f.id === id);
         if (!food) return;
 
-        const overrideDays = OPENED_SHELF_LIFE_OVERRIDE[food.name];
-        const updates: Partial<FoodItem> = { openedAt: today };
-        if (overrideDays) {
-          updates.openedShelfLifeDays = overrideDays;
-        }
+        const { days } = getOpenedShelfLifeDays(
+          food.name,
+          food.category,
+          food.openedShelfLifeDays
+        );
+        const updates: Partial<FoodItem> = {
+          openedAt: finalOpenedAt,
+          openedShelfLifeDays: days,
+        };
 
         set((state) => ({
           foods: state.foods.map((f) => (f.id === id ? { ...f, ...updates } : f)),

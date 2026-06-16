@@ -16,6 +16,7 @@ import {
   getStatusLabel,
   getRemainingText,
   formatMoney,
+  describeEffectiveExpiry,
 } from '@/utils/food';
 import { formatDateFull } from '@/utils/date';
 import { STORAGE_ZONE_LABEL, STORAGE_ZONE_EMOJI } from '@/utils/constants';
@@ -209,6 +210,7 @@ function FoodDetailModal({ open, onClose, food, onOpen, onDeduct, onDiscard, onE
   const status = getFoodStatus(food);
   const progress = getExpiryProgress(food);
   const countdown = getCountdownText(food);
+  const expiryInfo = describeEffectiveExpiry(food);
 
   return (
     <Modal open={open} onClose={onClose} size="md" title={`${food.emoji} ${food.name}`}>
@@ -256,15 +258,59 @@ function FoodDetailModal({ open, onClose, food, onOpen, onDeduct, onDiscard, onE
             </div>
             <p className="text-sm font-semibold text-slate-800">{formatDateFull(food.purchaseDate)}</p>
           </div>
-          <div className="p-4 rounded-2xl bg-slate-50">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100">
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-              <Calendar className="w-3.5 h-3.5" />
-              {food.openedAt ? '开封日期' : '保质期至'}
+              <Sparkles className="w-3.5 h-3.5" />
+              {expiryInfo.isOpened ? '开封详情' : '开封详情'}
             </div>
             <p className="text-sm font-semibold text-slate-800">
-              {food.openedAt ? formatDateFull(food.openedAt) : formatDateFull(food.expiryDate)}
+              {food.openedAt
+                ? <>
+                    {formatDateFull(food.openedAt)} 开封
+                    <span className="ml-1 text-xs text-orange-600">
+                      · 开封后 {expiryInfo.openedDays} 天
+                    </span>
+                  </>
+                : '未开封'}
             </p>
+            {expiryInfo.label && expiryInfo.isOpened && (
+              <Badge variant="warning" size="sm" className="mt-1">
+                按「{expiryInfo.label}」规则
+              </Badge>
+            )}
           </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <Clock className="w-3.5 h-3.5" />
+                最终到期日（与首页倒计时一致）
+              </div>
+              <p className="text-lg font-semibold text-slate-800">
+                {formatDateFull(expiryInfo.expiry)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-500 mb-1">距今天数</p>
+              <p className={clsx(
+                'text-lg font-bold',
+                status === 'expired' ? 'text-red-600' :
+                status === 'danger' ? 'text-orange-600' :
+                status === 'warning' ? 'text-amber-600' : 'text-emerald-600'
+              )}>
+                {countdown}
+              </p>
+            </div>
+          </div>
+          {expiryInfo.isOpened && expiryInfo.label && (
+            <div className="mt-3 pt-3 border-t border-emerald-100/60 text-xs text-emerald-700 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              按「{expiryInfo.label}」特殊规则重新计算倒计时，开封后
+              <span className="font-semibold">{expiryInfo.openedDays} 天</span>内吃完
+            </div>
+          )}
         </div>
 
         <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100">
