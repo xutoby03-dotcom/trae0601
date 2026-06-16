@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Card, CardContent, Select, Button, Textarea, useToast, Loading } from '@/components/ui';
 import { PhotoUploader } from '@/components/incidents';
@@ -22,6 +22,7 @@ const severityOptions: SelectOption[] = [
 
 export default function IncidentNew() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
   const { reportIncident, loading } = useIncidentStore();
   const { furniture, fetchFurniture } = useFurnitureStore();
@@ -33,10 +34,22 @@ export default function IncidentNew() {
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dailyRecordId, setDailyRecordId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     fetchFurniture();
   }, [fetchFurniture]);
+
+  useEffect(() => {
+    const recordId = searchParams.get('recordId');
+    const furnId = searchParams.get('furnitureId');
+    if (recordId) {
+      setDailyRecordId(recordId);
+    }
+    if (furnId) {
+      setFurnitureId(furnId);
+    }
+  }, [searchParams]);
 
   const furnitureOptions: SelectOption[] = furniture
     .filter(f => f.status !== 'lost')
@@ -70,6 +83,7 @@ export default function IncidentNew() {
         photos,
         reporterId: currentUser.id,
         reportTime: new Date().toISOString(),
+        dailyRecordId,
       });
       showToast.success('事件上报成功');
       navigate('/incidents');

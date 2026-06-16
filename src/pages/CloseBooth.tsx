@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CloseChecklist } from '@/components/daily';
 import { Button, Card, CardContent, Checkbox, useToast } from '@/components/ui';
 import { useDailyRecordStore } from '@/stores/useDailyRecordStore';
@@ -17,6 +18,7 @@ const defaultChecklist: CloseChecklistType = {
 };
 
 export default function CloseBooth() {
+  const navigate = useNavigate();
   const [checklist, setChecklist] = useState<CloseChecklistType>(defaultChecklist);
   const [checkedFurnitureIds, setCheckedFurnitureIds] = useState<string[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -56,7 +58,14 @@ export default function CloseBooth() {
   };
 
   const handleReportIncident = () => {
-    showToast.info('跳转到异常登记页面');
+    const params = new URLSearchParams();
+    if (currentRecord?.id) {
+      params.set('recordId', currentRecord.id);
+    }
+    if (checkedFurnitureIds.length > 0) {
+      params.set('furnitureId', checkedFurnitureIds[0]);
+    }
+    navigate(`/incidents/new?${params.toString()}`);
   };
 
   const handleCloseBooth = async () => {
@@ -66,6 +75,12 @@ export default function CloseBooth() {
     }
     if (!currentRecord) {
       showToast.error('今日未开摊');
+      return;
+    }
+    if (!allFurnitureChecked) {
+      const unchecked = todayFurniture.filter(f => !checkedFurnitureIds.includes(f.id));
+      const codes = unchecked.map(f => f.code).join('、');
+      showToast.error(`还有 ${unchecked.length} 件桌椅未核对：${codes}`);
       return;
     }
     if (!allChecklistDone) {
@@ -218,7 +233,7 @@ export default function CloseBooth() {
             size="lg"
             onClick={handleCloseBooth}
             loading={loading}
-            disabled={!allChecklistDone}
+            disabled={!allFurnitureChecked || !allChecklistDone}
           >
             确认收摊
           </Button>
