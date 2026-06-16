@@ -40,6 +40,23 @@ const Dashboard: React.FC = () => {
   const weeklyProgress = getWeeklyProgress(records);
   const today = getTodayString();
   const todayRecord = records.find(r => r.recordDate === today && r.bracesId === selectedBraces);
+
+  const isCareReminder = (type: string) => type !== 'low_stock';
+
+  const handleReminderAction = (reminder: typeof reminders[0]) => {
+    if (reminder.type === 'low_stock') {
+      navigate(`/checkup?bracesId=${reminder.bracesId}&from=reminder&reminderId=${reminder.id}`);
+    } else {
+      const params = new URLSearchParams({
+        bracesId: reminder.bracesId,
+        date: reminder.triggerDate,
+        from: 'reminder',
+        reminderId: reminder.id,
+        type: reminder.type,
+      });
+      navigate(`/records?${params.toString()}`);
+    }
+  };
   
   const currentBraces = braces.find(b => b.id === selectedBraces);
   const currentInventory = inventories.find(i => i.bracesId === selectedBraces);
@@ -129,10 +146,10 @@ const Dashboard: React.FC = () => {
               title={reminder.title}
               description={reminder.description}
               action={{
-                label: '去处理',
-                onClick: () => navigate('/reminders'),
+                label: isCareReminder(reminder.type) ? '去补记录' : '去处理',
+                onClick: () => handleReminderAction(reminder),
               }}
-              onClose={() => resolveReminder(reminder.id)}
+              onClose={isCareReminder(reminder.type) ? undefined : () => resolveReminder(reminder.id)}
             />
           ))}
           {unresolvedReminders.length > 3 && (
