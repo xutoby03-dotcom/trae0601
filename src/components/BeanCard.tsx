@@ -106,14 +106,14 @@ export function BeanCard({ bean, onSetPick, onDispense, onRecordWaste }: BeanCar
             onClick={onSetPick}
             disabled={!canPick || bean.isTodayPick}
             className={`flex-1 py-2 px-3 text-sm font-medium rounded-lg transition-all ${
-              bean.isTodayPick
+              !canPick
+                ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                : bean.isTodayPick
                 ? 'bg-orange-100 text-orange-700 cursor-default'
-                : canPick
-                ? 'bg-orange-500 text-white hover:bg-orange-600 active:scale-95'
-                : 'bg-stone-100 text-stone-400 cursor-not-allowed'
+                : 'bg-orange-500 text-white hover:bg-orange-600 active:scale-95'
             }`}
           >
-            {bean.isTodayPick ? '已设主推' : '设为主推'}
+            {!canPick ? '未到风味期' : bean.isTodayPick ? '已设主推' : '设为主推'}
           </button>
           <button
             onClick={onDispense}

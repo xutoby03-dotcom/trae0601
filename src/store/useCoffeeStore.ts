@@ -19,10 +19,19 @@ interface CoffeeState {
   getBeanById: (id: string) => CoffeeBean | undefined;
 }
 
+function sanitizeTodayPick(beans: CoffeeBean[]): CoffeeBean[] {
+  const pickBeans = beans.filter((b) => b.isTodayPick && canSetAsTodayPick(b));
+  const validPickId = pickBeans.length > 0 ? pickBeans[0].id : null;
+  return beans.map((b) => ({
+    ...b,
+    isTodayPick: validPickId !== null && b.id === validPickId,
+  }));
+}
+
 export const useCoffeeStore = create<CoffeeState>()(
   persist(
     (set, get) => ({
-      beans: mockBeans,
+      beans: sanitizeTodayPick(mockBeans),
       grinders: mockGrinders,
       wasteRecords: mockWasteRecords,
 
@@ -33,11 +42,12 @@ export const useCoffeeStore = create<CoffeeState>()(
       setTodayPick: (beanId: string) => {
         set((state) => {
           const bean = state.beans.find((b) => b.id === beanId);
+          const sanitized = sanitizeTodayPick(state.beans);
           if (!bean || !canSetAsTodayPick(bean)) {
-            return state;
+            return sanitized.length === state.beans.length ? state : { beans: sanitized };
           }
           return {
-            beans: state.beans.map((b) => ({
+            beans: sanitized.map((b) => ({
               ...b,
               isTodayPick: b.id === beanId,
             })),
@@ -124,6 +134,11 @@ export const useCoffeeStore = create<CoffeeState>()(
     }),
     {
       name: 'coffee-bean-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.beans = sanitizeTodayPick(state.beans);
+        }
+      },
     }
   )
 );
