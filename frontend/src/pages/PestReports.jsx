@@ -44,6 +44,9 @@ const SEVERITY_MAP = {
 
 function PhotoThumb({ src }) {
   const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
   if (!src) return <span style={{ color: '#bfbfbf' }}>无</span>
   if (failed) {
     return (
@@ -78,6 +81,9 @@ function PhotoThumb({ src }) {
 
 function PhotoDetail({ src }) {
   const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
   if (!src) return null
   if (failed) {
     return (
