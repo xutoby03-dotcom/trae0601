@@ -353,17 +353,19 @@ export const useBadgeStore = create<BadgeStore>()(
             }
           });
 
-          if (missing.length > 0) {
-            state.overtimeReminders = [...state.overtimeReminders, ...missing];
-          }
-
-          state.visitors = state.visitors.map((v) =>
+          const patchedVisitors = state.visitors.map((v) =>
             v.status === 'visiting' && isOvertime(v.expectedLeaveTime)
-              ? { ...v, status: 'overtime' }
+              ? { ...v, status: 'overtime' as VisitorStatus }
               : v
           );
 
-          state._hasHydrated = true;
+          useBadgeStore.setState({
+            visitors: patchedVisitors,
+            overtimeReminders: missing.length > 0
+              ? [...state.overtimeReminders, ...missing]
+              : state.overtimeReminders,
+            _hasHydrated: true,
+          });
         };
       },
     }

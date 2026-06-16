@@ -3,17 +3,17 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  Clock,
   ChevronDown,
   ChevronUp,
   History,
+  Loader2,
 } from 'lucide-react';
 import { ReminderCard } from './ReminderCard';
-import type { OvertimeReminder } from '../../types';
 import { useBadgeStore } from '../../store/useBadgeStore';
 import { formatDateTime } from '../../utils/time';
 
 export const ReminderPanel = () => {
+  const hasHydrated = useBadgeStore((s) => s._hasHydrated);
   const getPendingReminders = useBadgeStore((s) => s.getPendingReminders);
   const getHandledReminders = useBadgeStore((s) => s.getHandledReminders);
   const updateOvertimeStatus = useBadgeStore((s) => s.updateOvertimeStatus);
@@ -25,13 +25,13 @@ export const ReminderPanel = () => {
   const handledReminders = getHandledReminders();
 
   useEffect(() => {
-    updateOvertimeStatus();
+    if (!hasHydrated) return;
     const interval = setInterval(() => {
       updateOvertimeStatus();
       setTick((t) => t + 1);
     }, 15000);
     return () => clearInterval(interval);
-  }, [updateOvertimeStatus]);
+  }, [hasHydrated, updateOvertimeStatus]);
 
   return (
     <div className="card overflow-hidden">
@@ -40,7 +40,7 @@ export const ReminderPanel = () => {
           <div className="flex items-center gap-3">
             <div className="relative">
               <Bell size={20} className="text-danger" />
-              {pendingReminders.length > 0 && (
+              {hasHydrated && pendingReminders.length > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                   {pendingReminders.length}
                 </span>
@@ -54,7 +54,7 @@ export const ReminderPanel = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {pendingReminders.length > 0 && (
+            {hasHydrated && pendingReminders.length > 0 && (
               <span className="tag-danger">
                 <AlertTriangle size={12} className="mr-1" />
                 {pendingReminders.length} 条待处理
@@ -65,7 +65,12 @@ export const ReminderPanel = () => {
       </div>
 
       <div className="p-4 max-h-[500px] overflow-y-auto scrollbar-thin space-y-3">
-        {pendingReminders.length === 0 ? (
+        {!hasHydrated ? (
+          <div className="text-center py-8">
+            <Loader2 size={24} className="text-neutral-300 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-neutral-400">加载中…</p>
+          </div>
+        ) : pendingReminders.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
               <CheckCircle2 size={28} className="text-success" />
@@ -81,7 +86,7 @@ export const ReminderPanel = () => {
             ))
         )}
 
-        {handledReminders.length > 0 && (
+        {hasHydrated && handledReminders.length > 0 && (
           <div className="pt-3 border-t border-neutral-100">
             <button
               onClick={() => setShowHandled(!showHandled)}
