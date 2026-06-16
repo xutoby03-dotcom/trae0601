@@ -20,7 +20,7 @@ export default function Layout() {
     initExceptions();
   }, [initExceptions]);
 
-  const escalatedCount = exceptions.filter(e => e.status === 'escalated').length;
+  const escalatedCount = exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout').length;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

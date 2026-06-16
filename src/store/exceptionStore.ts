@@ -162,8 +162,10 @@ export const useExceptionStore = create<ExceptionState>((set, get) => ({
       newList = newList.map(e => {
         if (
           e.exceptionDate === today &&
+          e.type === 'timeout' &&
           (e.status === 'pending' || e.status === 'processing') &&
-          !e.escalationTime
+          !e.escalationTime &&
+          todayUnconfirmedIds.includes(e.elderlyId)
         ) {
           escalatedCount++;
           return {

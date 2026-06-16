@@ -86,7 +86,8 @@ export default function Dashboard() {
     currentGrid === 'all' || filteredElderly.find(el => el.id === e.elderlyId)
   );
   const escalatedExceptions = getEscalatedExceptions().filter(e => 
-    currentGrid === 'all' || filteredElderly.find(el => el.id === e.elderlyId)
+    e.type === 'timeout' &&
+    (currentGrid === 'all' || filteredElderly.find(el => el.id === e.elderlyId))
   );
 
   const unconfirmedElderly = unconfirmedIds

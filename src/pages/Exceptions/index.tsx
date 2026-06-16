@@ -43,7 +43,7 @@ export default function ExceptionsPage() {
     total: exceptions.length,
     pending: exceptions.filter(e => e.status === 'pending').length,
     processing: exceptions.filter(e => e.status === 'processing').length,
-    escalated: exceptions.filter(e => e.status === 'escalated').length,
+    escalated: exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout').length,
     resolved: exceptions.filter(e => e.status === 'resolved').length,
   };
 
