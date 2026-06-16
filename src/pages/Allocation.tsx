@@ -65,13 +65,14 @@ export default function Allocation() {
 
   const handleAddEquipment = () => {
     if (!newEquipName.trim()) return;
-    addEquipment({
+    const newId = addEquipment({
       name: newEquipName.trim(),
       category: newEquipCategory,
       size: Number(newEquipSize) || 0,
       vehicleId: null,
       isCritical: newEquipCritical,
     });
+    setSelectedEquipmentId(newId);
     handleResetEquipmentForm();
     setShowEquipmentModal(false);
   };

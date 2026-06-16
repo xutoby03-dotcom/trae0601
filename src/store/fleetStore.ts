@@ -26,7 +26,7 @@ interface FleetState {
   removePassenger: (id: string) => void;
   assignPassenger: (personId: string, vehicleId: string | null) => void;
 
-  addEquipment: (equipment: Omit<Equipment, 'id'>) => void;
+  addEquipment: (equipment: Omit<Equipment, 'id'>) => string;
   updateEquipment: (id: string, equipment: Partial<Equipment>) => void;
   removeEquipment: (id: string) => void;
   assignEquipment: (equipmentId: string, vehicleId: string | null) => void;
@@ -177,12 +177,16 @@ export const useFleetStore = create<FleetState>((set, get) => {
       return { passengers: newPassengers };
     }),
 
-    addEquipment: (equipment) => set((s) => {
-      const newEquipment = { ...equipment, id: generateId() };
-      const newEquipments = [...s.equipment, newEquipment];
-      saveState({ ...s, equipment: newEquipments });
-      return { equipment: newEquipments };
-    }),
+    addEquipment: (equipment) => {
+      const newId = generateId();
+      const newEquipment = { ...equipment, id: newId };
+      set((s) => {
+        const newEquipments = [...s.equipment, newEquipment];
+        saveState({ ...s, equipment: newEquipments });
+        return { equipment: newEquipments };
+      });
+      return newId;
+    },
     updateEquipment: (id, equipment) => set((s) => {
       const newEquipments = s.equipment.map((e) => (e.id === id ? { ...e, ...equipment } : e));
       saveState({ ...s, equipment: newEquipments });
