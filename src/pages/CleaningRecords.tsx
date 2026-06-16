@@ -16,17 +16,24 @@ export const CleaningRecords = () => {
     daysUnhandled: 0,
     notes: '',
   });
+  const [rawDaysInput, setRawDaysInput] = useState('1');
+
+  const isUnhandled = (newRecord.daysUnhandled ?? 0) > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRecord.bathroomId || !newRecord.cleanedBy || !newRecord.dryingLocation) return;
+
+    const finalDays = isUnhandled
+      ? Math.max(1, parseInt(rawDaysInput) || 1)
+      : 0;
 
     addCleaningRecord({
       bathroomId: newRecord.bathroomId,
       cleaningDate: newRecord.cleaningDate || getToday(),
       cleanedBy: newRecord.cleanedBy,
       dryingLocation: newRecord.dryingLocation,
-      daysUnhandled: newRecord.daysUnhandled || 0,
+      daysUnhandled: finalDays,
       notes: newRecord.notes || '',
     });
 
@@ -39,6 +46,46 @@ export const CleaningRecords = () => {
       daysUnhandled: 0,
       notes: '',
     });
+    setRawDaysInput('1');
+  };
+
+  const handleSwitchToHandled = () => {
+    setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }));
+  };
+
+  const handleSwitchToUnhandled = () => {
+    const days = parseInt(rawDaysInput) || 1;
+    setNewRecord((prev) => ({ ...prev, daysUnhandled: Math.max(1, days) }));
+  };
+
+  const handleDaysInputChange = (val: string) => {
+    setRawDaysInput(val);
+    if (val === '') return;
+    const parsed = parseInt(val);
+    if (!isNaN(parsed) && parsed >= 1) {
+      setNewRecord((prev) => ({ ...prev, daysUnhandled: parsed }));
+    }
+  };
+
+  const handleDaysInputBlur = () => {
+    const parsed = parseInt(rawDaysInput) || 0;
+    const clamped = Math.max(1, parsed);
+    setRawDaysInput(String(clamped));
+    setNewRecord((prev) => ({ ...prev, daysUnhandled: clamped }));
+  };
+
+  const handleDaysDecrement = () => {
+    const current = parseInt(rawDaysInput) || 1;
+    const next = Math.max(1, current - 1);
+    setRawDaysInput(String(next));
+    setNewRecord((prev) => ({ ...prev, daysUnhandled: next }));
+  };
+
+  const handleDaysIncrement = () => {
+    const current = parseInt(rawDaysInput) || 1;
+    const next = current + 1;
+    setRawDaysInput(String(next));
+    setNewRecord((prev) => ({ ...prev, daysUnhandled: next }));
   };
 
   const sortedRecords = [...cleaningRecords].sort(
@@ -145,9 +192,9 @@ export const CleaningRecords = () => {
                 <div className="flex gap-3 mb-3">
                   <button
                     type="button"
-                    onClick={() => setNewRecord((prev) => ({ ...prev, daysUnhandled: 0 }))}
+                    onClick={handleSwitchToHandled}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-all duration-300 ${
-                      newRecord.daysUnhandled === 0
+                      !isUnhandled
                         ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
                         : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
                     }`}
@@ -157,9 +204,9 @@ export const CleaningRecords = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNewRecord((prev) => ({ ...prev, daysUnhandled: 1 }))}
+                    onClick={handleSwitchToUnhandled}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-medium transition-all duration-300 ${
-                      (newRecord.daysUnhandled ?? 0) > 0
+                      isUnhandled
                         ? 'border-amber-400 bg-amber-50 text-amber-700'
                         : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
                     }`}
@@ -168,16 +215,13 @@ export const CleaningRecords = () => {
                     未处理
                   </button>
                 </div>
-                {(newRecord.daysUnhandled ?? 0) > 0 && (
+                {isUnhandled && (
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-600">未处理天数：</span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setNewRecord((prev) => ({
-                          ...prev,
-                          daysUnhandled: Math.max(1, (prev.daysUnhandled ?? 1) - 1)
-                        }))}
+                        onClick={handleDaysDecrement}
                         className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
                       >
                         −
@@ -185,19 +229,14 @@ export const CleaningRecords = () => {
                       <input
                         type="number"
                         min="1"
-                        value={newRecord.daysUnhandled ?? 1}
-                        onChange={(e) => setNewRecord((prev) => ({
-                          ...prev,
-                          daysUnhandled: Math.max(0, parseInt(e.target.value) || 0)
-                        }))}
+                        value={rawDaysInput}
+                        onChange={(e) => handleDaysInputChange(e.target.value)}
+                        onBlur={handleDaysInputBlur}
                         className="w-20 px-3 py-2 text-center border-2 border-gray-200 rounded-lg focus:border-orange-400 focus:outline-none transition-colors"
                       />
                       <button
                         type="button"
-                        onClick={() => setNewRecord((prev) => ({
-                          ...prev,
-                          daysUnhandled: (prev.daysUnhandled ?? 0) + 1
-                        }))}
+                        onClick={handleDaysIncrement}
                         className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 font-bold transition-colors"
                       >
                         +
