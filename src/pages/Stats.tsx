@@ -414,9 +414,9 @@ export default function Stats() {
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-sm p-5">
-              <h3 className="font-semibold text-white mb-3">总对局数</h3>
-              <p className="text-3xl font-bold text-purple-300">{sessions.length}</p>
-              <p className="text-xs text-slate-500 mt-1">累计进行的剧本杀局次</p>
+              <h3 className="font-semibold text-white mb-3">已结束局次</h3>
+              <p className="text-3xl font-bold text-purple-300">{visibleSessions.length}</p>
+              <p className="text-xs text-slate-500 mt-1">累计完成的剧本杀局次</p>
             </div>
 
             <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 backdrop-blur-sm p-5">
