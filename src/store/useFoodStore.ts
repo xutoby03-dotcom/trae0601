@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { FoodItem, DiscardRecord, FoodFormData, StorageZone, DiscardReason } from '@/types';
 import { initialFoods, initialDiscards } from '@/data/mockData';
-import { addDays, todayStr, isThisMonth } from '@/utils/date';
+import { addDaysDateOnly, todayStr, nowIso, isThisMonth, toDatePart } from '@/utils/date';
 import {
   getEffectiveExpiry,
   getFoodStatus,
@@ -47,8 +47,17 @@ export const useFoodStore = create<FoodStore>()(
 
       addFood: (data) => {
         const today = todayStr();
-        const expiryDate = addDays(data.purchaseDate, data.shelfLifeDays);
-        const openedAt = data.isOpened ? (data.openedAt ?? today) : null;
+        const expiryDate = addDaysDateOnly(data.purchaseDate, data.shelfLifeDays);
+        let openedAt: string | null = null;
+        if (data.isOpened) {
+          if (data.openedAt && data.openedAt.includes('T')) {
+            openedAt = data.openedAt;
+          } else if (data.openedAt) {
+            openedAt = new Date(`${data.openedAt}T12:00:00`).toISOString();
+          } else {
+            openedAt = nowIso();
+          }
+        }
         const { days: resolvedOpenedDays } = getOpenedShelfLifeDays(
           data.name,
           data.category,
@@ -71,7 +80,7 @@ export const useFoodStore = create<FoodStore>()(
           openedShelfLifeDays: resolvedOpenedDays,
           price: data.price,
           notes: data.notes,
-          createdAt: today,
+          createdAt: nowIso(),
         };
 
         set((state) => ({ foods: [...state.foods, newFood] }));
@@ -104,7 +113,7 @@ export const useFoodStore = create<FoodStore>()(
       },
 
       markOpened: (id, openedAt) => {
-        const finalOpenedAt = openedAt ?? todayStr();
+        const finalOpenedAt = openedAt ?? nowIso();
         const food = get().foods.find((f) => f.id === id);
         if (!food) return;
 
@@ -180,8 +189,8 @@ export const useFoodStore = create<FoodStore>()(
         return get()
           .foods.filter((f) => {
             const expiry = getEffectiveExpiry(f);
-            const days = daysUntil(expiry);
-            return days > 0 && days <= 3;
+            const hours = hoursUntil(expiry);
+            return hours > 24 && hours <= 24 * 3;
           })
           .sort(compareByUrgency);
       },

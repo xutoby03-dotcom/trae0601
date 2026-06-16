@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, Tag, Package, MapPin, Receipt, StickyNote, Sparkles, Scissors } from 'lucide-react';
+import { X, Calendar, Tag, Package, MapPin, Receipt, StickyNote, Sparkles, Scissors, Clock } from 'lucide-react';
 import type { FoodFormData, FoodItem, StorageZone } from '@/types';
 import { useFoodStore } from '@/store/useFoodStore';
 import { Button } from '@/components/common/Button';
@@ -11,9 +11,17 @@ import {
   STORAGE_ZONE_LABEL,
   STORAGE_ZONE_EMOJI,
 } from '@/utils/constants';
-import { todayStr } from '@/utils/date';
+import {
+  todayStr,
+  nowIso,
+  toDatePart,
+  toTimePart,
+  combineDateAndTime,
+  formatDateFull,
+  formatDateTimeFull,
+} from '@/utils/date';
 import { getOpenedShelfLifeDays, getEffectiveExpiry } from '@/utils/food';
-import { addDays, formatDateFull } from '@/utils/date';
+import { addDaysDateOnly } from '@/utils/date';
 import { clsx } from 'clsx';
 
 interface FoodFormModalProps {
@@ -92,7 +100,24 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
         );
         next.openedShelfLifeDays = days;
       }
+      if (key === 'isOpened' && value === true && !prev.openedAt) {
+        next.openedAt = nowIso();
+      }
       return next;
+    });
+  };
+
+  const updateOpenedDate = (dateStr: string) => {
+    setForm((prev) => {
+      const timeStr = prev.openedAt ? toTimePart(prev.openedAt) : '12:00';
+      return { ...prev, openedAt: combineDateAndTime(dateStr, timeStr) };
+    });
+  };
+
+  const updateOpenedTime = (timeStr: string) => {
+    setForm((prev) => {
+      const dateStr = prev.openedAt ? toDatePart(prev.openedAt) : todayStr();
+      return { ...prev, openedAt: combineDateAndTime(dateStr, timeStr) };
     });
   };
 
@@ -102,11 +127,13 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
 
   const previewExpiry = useMemo(() => {
     const base = form.purchaseDate || todayStr();
-    const normalExpiry = addDays(base, form.shelfLifeDays);
-    const openedRef = form.isOpened ? (form.openedAt || todayStr()) : null;
+    const normalExpiry = addDaysDateOnly(base, form.shelfLifeDays);
+    const openedRef = form.isOpened ? (form.openedAt || nowIso()) : null;
     let openedExpiry: string | null = null;
     if (openedRef) {
-      openedExpiry = addDays(openedRef, form.openedShelfLifeDays);
+      const date = new Date(openedRef);
+      date.setDate(date.getDate() + form.openedShelfLifeDays);
+      openedExpiry = date.toISOString();
     }
     return { normal: normalExpiry, opened: openedExpiry };
   }, [form.purchaseDate, form.shelfLifeDays, form.isOpened, form.openedAt, form.openedShelfLifeDays]);
@@ -416,18 +443,32 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
 
             {form.isOpened && (
               <div className="pt-4 border-t border-orange-100 space-y-3 animate-fade-in">
-                <div>
-                  <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1.5">
-                    <Calendar className="w-3.5 h-3.5" />
-                    开封日期
-                  </label>
-                  <input
-                    type="date"
-                    value={form.openedAt ?? todayStr()}
-                    max={todayStr()}
-                    onChange={(e) => updateField('openedAt', e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-50 transition-all outline-none text-sm bg-white"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      开封日期
+                    </label>
+                    <input
+                      type="date"
+                      value={form.openedAt ? toDatePart(form.openedAt) : todayStr()}
+                      max={todayStr()}
+                      onChange={(e) => updateOpenedDate(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-50 transition-all outline-none text-sm bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      开封时间
+                    </label>
+                    <input
+                      type="time"
+                      value={form.openedAt ? toTimePart(form.openedAt) : '12:00'}
+                      onChange={(e) => updateOpenedTime(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-orange-200 focus:border-orange-400 focus:ring-4 focus:ring-orange-50 transition-all outline-none text-sm bg-white"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -443,10 +484,10 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-white border border-orange-100">
-                    <p className="text-xs text-slate-400 mb-1">到期日</p>
+                    <p className="text-xs text-slate-400 mb-1">到期时刻</p>
                     <p className="text-sm font-semibold text-slate-700">
                       {previewExpiry.opened
-                        ? formatDateFull(previewExpiry.opened)
+                        ? formatDateTimeFull(previewExpiry.opened)
                         : '—'}
                     </p>
                   </div>
@@ -467,6 +508,7 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
                   <p className="text-sm font-semibold text-slate-700">
                     {formatDateFull(previewExpiry.normal)}
                   </p>
+                  <p className="text-[10px] text-slate-400">当日 23:59:59 到期</p>
                 </div>
               </div>
               {previewExpiry.opened && (
@@ -475,10 +517,11 @@ export function FoodFormModal({ open, onClose, onSuccess, editFood }: FoodFormMo
                     <span className="text-xs">已开</span>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">开封后到期日</p>
+                    <p className="text-xs text-slate-400">开封后到期时刻</p>
                     <p className="text-sm font-semibold text-orange-700">
-                      {formatDateFull(previewExpiry.opened)}
+                      {formatDateTimeFull(previewExpiry.opened)}
                     </p>
+                    <p className="text-[10px] text-orange-400">精确到分，与首页倒计时一致</p>
                   </div>
                 </div>
               )}

@@ -1,5 +1,13 @@
 import type { FoodItem, FoodStatus } from '@/types';
-import { daysUntil, hoursUntil, formatDate } from './date';
+import {
+  daysUntil,
+  hoursUntil,
+  minutesUntil,
+  formatDate,
+  formatDateTime,
+  addDaysIso,
+  toDatePart,
+} from './date';
 import { OPENED_SHELF_LIFE_RULES, type OpenedShelfLifeRule } from './constants';
 
 export function matchOpenedShelfLifeRule(
@@ -33,6 +41,12 @@ export function getOpenedShelfLifeDays(
   return { days: fallback, matched: false };
 }
 
+function getExpiryEndOfDay(dateStr: string): string {
+  const date = new Date(dateStr);
+  date.setHours(23, 59, 59, 999);
+  return date.toISOString();
+}
+
 export function getEffectiveExpiry(food: FoodItem): string {
   if (food.openedAt) {
     const { days } = getOpenedShelfLifeDays(
@@ -40,11 +54,9 @@ export function getEffectiveExpiry(food: FoodItem): string {
       food.category,
       food.openedShelfLifeDays
     );
-    const openedDate = new Date(food.openedAt);
-    openedDate.setDate(openedDate.getDate() + days);
-    return openedDate.toISOString().split('T')[0];
+    return addDaysIso(food.openedAt, days);
   }
-  return food.expiryDate;
+  return getExpiryEndOfDay(food.expiryDate);
 }
 
 export function describeEffectiveExpiry(food: FoodItem): {
@@ -59,17 +71,15 @@ export function describeEffectiveExpiry(food: FoodItem): {
       food.category,
       food.openedShelfLifeDays
     );
-    const openedDate = new Date(food.openedAt);
-    openedDate.setDate(openedDate.getDate() + days);
     return {
-      expiry: openedDate.toISOString().split('T')[0],
+      expiry: addDaysIso(food.openedAt, days),
       isOpened: true,
       label: ruleLabel,
       openedDays: days,
     };
   }
   return {
-    expiry: food.expiryDate,
+    expiry: getExpiryEndOfDay(food.expiryDate),
     isOpened: false,
     openedDays: food.shelfLifeDays,
   };
@@ -77,34 +87,46 @@ export function describeEffectiveExpiry(food: FoodItem): {
 
 export function getFoodStatus(food: FoodItem): FoodStatus {
   const expiry = getEffectiveExpiry(food);
-  const days = daysUntil(expiry);
-  if (days < 0) return 'expired';
-  if (days === 0 || hoursUntil(expiry) <= 24) return 'danger';
-  if (days <= 3) return 'warning';
+  const hours = hoursUntil(expiry);
+  if (hours < 0) return 'expired';
+  if (hours <= 24) return 'danger';
+  if (hours <= 24 * 3) return 'warning';
   return 'fresh';
 }
 
 export function getExpiryProgress(food: FoodItem): number {
   const expiry = getEffectiveExpiry(food);
-  const total = food.shelfLifeDays;
-  const remaining = daysUntil(expiry);
-  const used = total - remaining;
-  return Math.min(100, Math.max(0, (used / total) * 100));
+  const totalHours = food.shelfLifeDays * 24;
+  const remainingHours = hoursUntil(expiry);
+  const used = totalHours - remainingHours;
+  return Math.min(100, Math.max(0, (used / totalHours) * 100));
 }
 
 export function getCountdownText(food: FoodItem): string {
   const expiry = getEffectiveExpiry(food);
   const days = daysUntil(expiry);
   const hours = hoursUntil(expiry);
+  const minutes = minutesUntil(expiry);
 
-  if (days < 0) return `已过期 ${Math.abs(days)} 天`;
-  if (days === 0) {
-    if (hours <= 0) return '今天过期';
-    return `剩 ${hours} 小时`;
+  if (hours < 0) {
+    const absHours = Math.abs(hours);
+    if (absHours < 24) return `已过期 ${absHours} 小时`;
+    return `已过期 ${Math.abs(days)} 天`;
   }
-  if (days === 1) return '明天过期';
+  if (hours < 1) {
+    return `剩 ${Math.max(1, minutes)} 分钟`;
+  }
+  if (hours < 24) {
+    return `剩 ${hours} 小时${minutes % 60 > 0 ? ` ${minutes % 60}分` : ''}`;
+  }
+  if (days === 1) return '明天到期';
   if (days <= 7) return `剩 ${days} 天`;
   return `${formatDate(expiry)} 过期`;
+}
+
+export function getExpiryDisplay(food: FoodItem): string {
+  const expiry = getEffectiveExpiry(food);
+  return formatDateTime(expiry);
 }
 
 export function getStatusColor(status: FoodStatus): string {
@@ -179,4 +201,8 @@ export function compareByUrgency(a: FoodItem, b: FoodItem): number {
   const expiryA = getEffectiveExpiry(a);
   const expiryB = getEffectiveExpiry(b);
   return new Date(expiryA).getTime() - new Date(expiryB).getTime();
+}
+
+export function isOpenedExpiry(food: FoodItem): boolean {
+  return !!food.openedAt;
 }

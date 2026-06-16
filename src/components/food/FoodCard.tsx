@@ -18,7 +18,7 @@ import {
   formatMoney,
   describeEffectiveExpiry,
 } from '@/utils/food';
-import { formatDateFull } from '@/utils/date';
+import { formatDateFull, formatDateTimeFull, formatDateTime } from '@/utils/date';
 import { STORAGE_ZONE_LABEL, STORAGE_ZONE_EMOJI } from '@/utils/constants';
 import { clsx } from 'clsx';
 
@@ -261,20 +261,20 @@ function FoodDetailModal({ open, onClose, food, onOpen, onDeduct, onDiscard, onE
           <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-100">
             <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
               <Sparkles className="w-3.5 h-3.5" />
-              {expiryInfo.isOpened ? '开封详情' : '开封详情'}
+              开封详情
             </div>
             <p className="text-sm font-semibold text-slate-800">
               {food.openedAt
                 ? <>
-                    {formatDateFull(food.openedAt)} 开封
-                    <span className="ml-1 text-xs text-orange-600">
-                      · 开封后 {expiryInfo.openedDays} 天
+                    {formatDateTimeFull(food.openedAt)} 开封
+                    <span className="ml-1 text-xs text-orange-600 block mt-0.5">
+                      · 开封后 {expiryInfo.openedDays} 天内吃完
                     </span>
                   </>
                 : '未开封'}
             </p>
             {expiryInfo.label && expiryInfo.isOpened && (
-              <Badge variant="warning" size="sm" className="mt-1">
+              <Badge variant="warning" size="sm" className="mt-2">
                 按「{expiryInfo.label}」规则
               </Badge>
             )}
@@ -286,14 +286,14 @@ function FoodDetailModal({ open, onClose, food, onOpen, onDeduct, onDiscard, onE
             <div>
               <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <Clock className="w-3.5 h-3.5" />
-                最终到期日（与首页倒计时一致）
+                最终到期时刻（与首页倒计时一致）
               </div>
               <p className="text-lg font-semibold text-slate-800">
-                {formatDateFull(expiryInfo.expiry)}
+                {formatDateTimeFull(expiryInfo.expiry)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-500 mb-1">距今天数</p>
+              <p className="text-xs text-slate-500 mb-1">剩余时间</p>
               <p className={clsx(
                 'text-lg font-bold',
                 status === 'expired' ? 'text-red-600' :
@@ -308,7 +308,7 @@ function FoodDetailModal({ open, onClose, food, onOpen, onDeduct, onDiscard, onE
             <div className="mt-3 pt-3 border-t border-emerald-100/60 text-xs text-emerald-700 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               按「{expiryInfo.label}」特殊规则重新计算倒计时，开封后
-              <span className="font-semibold">{expiryInfo.openedDays} 天</span>内吃完
+              <span className="font-semibold">{expiryInfo.openedDays} 天</span>的相同时刻到期
             </div>
           )}
         </div>
