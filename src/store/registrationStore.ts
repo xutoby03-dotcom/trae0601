@@ -64,7 +64,8 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
 
   getRegistrationByElderAndCourse: (elderId, courseId) => {
     return get().registrations.find(
-      r => r.elderId === elderId && r.courseId === courseId
+      r => r.elderId === elderId && r.courseId === courseId &&
+           (r.status === 'confirmed' || r.status === 'waitlist')
     );
   },
 

@@ -57,12 +57,12 @@ export default function AttendanceForm() {
     }
 
     const registration = getRegistrationByElderAndCourse(formData.elderId, formData.courseId);
-    if (registration && registration.status === 'waitlist') {
-      alert('该老人当前为候补状态，无法签到。请先将其转为已报名后再进行签到。');
+    if (!registration) {
+      alert('未找到有效的报名记录，请先报名后再签到。');
       return;
     }
-    if (registration && registration.status === 'completed') {
-      alert('该老人已完成此课程，无需重复签到。');
+    if (registration.status === 'waitlist') {
+      alert('该老人当前为候补状态，无法签到。请先将其转为已报名后再进行签到。');
       return;
     }
 
