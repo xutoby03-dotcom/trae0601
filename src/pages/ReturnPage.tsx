@@ -11,7 +11,7 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 import Toast from "@/components/Toast";
 import StatusBadge from "@/components/StatusBadge";
-import { formatDate, isOverdue } from "@/utils/helpers";
+import { formatDate, isOverdue, getAvailableSlots } from "@/utils/helpers";
 
 type ReturnMode = "original" | "switch";
 
@@ -45,8 +45,7 @@ export default function ReturnPage() {
 
   const availableCabinets = useMemo(() => {
     return cabinets.filter((cab) => {
-      const count = books.filter((b) => b.cabinetId === cab.id).length;
-      return count < cab.capacity;
+      return getAvailableSlots(books, cab.id, cab.capacity) > 0;
     });
   }, [cabinets, books]);
 
@@ -234,9 +233,7 @@ export default function ReturnPage() {
                       </p>
                     ) : (
                       availableCabinets.map((cab) => {
-                        const count = books.filter(
-                          (b) => b.cabinetId === cab.id
-                        ).length;
+                        const slots = getAvailableSlots(books, cab.id, cab.capacity);
                         return (
                           <label
                             key={cab.id}
@@ -262,7 +259,7 @@ export default function ReturnPage() {
                                   : "text-gray-500"
                               }`}
                             >
-                              空位 {cab.capacity - count}
+                              空位 {slots}
                             </p>
                           </label>
                         );

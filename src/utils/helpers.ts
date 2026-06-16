@@ -58,3 +58,19 @@ export function rejectReasonLabel(reason: string): string {
   };
   return labels[reason] || reason;
 }
+
+import type { Book } from "@/types";
+
+export function getInCabinetBooks(books: Book[], cabinetId: string): Book[] {
+  return books.filter(
+    (b) => b.cabinetId === cabinetId && (b.status === "available" || b.status === "damaged")
+  );
+}
+
+export function getCabinetOccupiedCount(books: Book[], cabinetId: string): number {
+  return getInCabinetBooks(books, cabinetId).length;
+}
+
+export function getAvailableSlots(books: Book[], cabinetId: string, capacity: number): number {
+  return Math.max(capacity - getCabinetOccupiedCount(books, cabinetId), 0);
+}

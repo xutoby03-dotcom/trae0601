@@ -2,7 +2,7 @@ import { User, Layers } from "lucide-react";
 import type { Cabinet, Book } from "@/types";
 import { useAppStore } from "@/store/useAppStore";
 import StatusBadge from "@/components/StatusBadge";
-import { gradeColor } from "@/utils/helpers";
+import { gradeColor, getInCabinetBooks, getAvailableSlots } from "@/utils/helpers";
 
 interface CabinetCardProps {
   cabinet: Cabinet;
@@ -10,14 +10,11 @@ interface CabinetCardProps {
 }
 
 export default function CabinetCard({ cabinet, onClick }: CabinetCardProps) {
-  const books = useAppStore((state) =>
-    state.books.filter(
-      (b) => b.cabinetId === cabinet.id && b.status !== "offline"
-    )
-  );
+  const allBooks = useAppStore((state) => state.books);
+  const books = getInCabinetBooks(allBooks, cabinet.id);
   const availableBooks = books.filter((b) => b.status === "available");
   const usedCount = books.length;
-  const remaining = cabinet.capacity - usedCount;
+  const remaining = getAvailableSlots(allBooks, cabinet.id, cabinet.capacity);
   const fillPercent = Math.min((usedCount / cabinet.capacity) * 100, 100);
 
   const displayBooks = books.slice(0, 4);

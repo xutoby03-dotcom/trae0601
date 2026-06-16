@@ -14,7 +14,7 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 import StatusBadge from "@/components/StatusBadge";
 import Toast from "@/components/Toast";
-import { rejectReasonLabel, gradeColor, formatDate } from "@/utils/helpers";
+import { rejectReasonLabel, gradeColor, formatDate, getAvailableSlots } from "@/utils/helpers";
 import type { RejectReason } from "@/types";
 
 type TabType = "pending" | "approved" | "rejected";
@@ -48,8 +48,7 @@ export default function AdminReview() {
   const availableCabinet = useMemo(
     () =>
       cabinets.filter((cab) => {
-        const count = books.filter((b) => b.cabinetId === cab.id).length;
-        return count < cab.capacity;
+        return getAvailableSlots(books, cab.id, cab.capacity) > 0;
       }),
     [cabinets, books]
   );
@@ -245,12 +244,10 @@ export default function AdminReview() {
                             {availableCabinet[0]?.name || "已满"}）
                           </option>
                           {availableCabinet.map((cab) => {
-                            const cnt = books.filter(
-                              (b) => b.cabinetId === cab.id
-                            ).length;
+                            const slots = getAvailableSlots(books, cab.id, cab.capacity);
                             return (
                               <option key={cab.id} value={cab.id}>
-                                {cab.name}（空位 {cab.capacity - cnt}）
+                                {cab.name}（空位 {slots}）
                               </option>
                             );
                           })}

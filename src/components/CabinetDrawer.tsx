@@ -3,7 +3,7 @@ import { X, User, BookOpen, Tag, Sparkles } from "lucide-react";
 import type { Cabinet, Book } from "@/types";
 import { useAppStore } from "@/store/useAppStore";
 import StatusBadge from "@/components/StatusBadge";
-import { gradeColor } from "@/utils/helpers";
+import { gradeColor, getInCabinetBooks, getAvailableSlots } from "@/utils/helpers";
 
 interface CabinetDrawerProps {
   cabinet: Cabinet | null;
@@ -15,9 +15,13 @@ export default function CabinetDrawer({ cabinet, onClose }: CabinetDrawerProps) 
 
   if (!cabinet) return null;
 
-  const books = allBooks.filter(
-    (b) => b.cabinetId === cabinet.id && b.status !== "offline"
+  const booksInCabinet = getInCabinetBooks(allBooks, cabinet.id);
+  const borrowedInCabinet = allBooks.filter(
+    (b) => b.cabinetId === cabinet.id && b.status === "borrowed"
   );
+  const displayedBooks = [...booksInCabinet, ...borrowedInCabinet];
+  const occupiedCount = booksInCabinet.length;
+  const remaining = getAvailableSlots(allBooks, cabinet.id, cabinet.capacity);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end animate-fade-in">
@@ -42,23 +46,23 @@ export default function CabinetDrawer({ cabinet, onClose }: CabinetDrawerProps) 
           <div className="mt-3 flex items-center gap-4 text-sm">
             <span className="flex items-center gap-1">
               <BookOpen className="w-4 h-4" />
-              藏书 {books.length} / {cabinet.capacity}
+              占位 {occupiedCount} / {cabinet.capacity}
             </span>
             <span>
-              空位 {Math.max(cabinet.capacity - books.length, 0)}
+              空位 {remaining}
             </span>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-thin p-5 space-y-4">
-          {books.length === 0 ? (
+          {displayedBooks.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-5xl mb-4">📭</div>
               <p className="text-gray-500">这个柜格还是空的</p>
               <p className="text-sm text-gray-400 mt-1">期待有同学来捐书哦～</p>
             </div>
           ) : (
-            books.map((book: Book) => (
+            displayedBooks.map((book: Book) => (
               <div
                 key={book.id}
                 className="bg-white rounded-xl p-4 shadow-book hover:shadow-book-hover transition-shadow"

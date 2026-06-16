@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { CLASSES } from "@/data/mockData";
 import StatusBadge from "@/components/StatusBadge";
 import Toast from "@/components/Toast";
 import {
@@ -79,17 +80,26 @@ export default function AdminDashboard() {
   );
 
   const categoryByGrade = useMemo(() => {
+    const classToGrade: Record<string, string> = {};
+    CLASSES.forEach((c) => {
+      classToGrade[c.name] = c.grade;
+    });
+
     const gradeMap: Record<string, Record<string, number>> = {};
-    books.forEach((b) => {
-      if (!gradeMap[b.suitableGrade]) gradeMap[b.suitableGrade] = {};
-      gradeMap[b.suitableGrade][b.category] =
-        (gradeMap[b.suitableGrade][b.category] || 0) + 1;
+    borrowRecords.forEach((r) => {
+      const grade = classToGrade[r.className];
+      if (!grade) return;
+      const book = books.find((b) => b.id === r.bookId);
+      if (!book) return;
+      if (!gradeMap[grade]) gradeMap[grade] = {};
+      gradeMap[grade][book.category] =
+        (gradeMap[grade][book.category] || 0) + 1;
     });
     return Object.entries(gradeMap).map(([grade, cats]) => ({
       grade,
       ...cats,
     }));
-  }, [books]);
+  }, [borrowRecords, books]);
 
   const overallCategoryData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -250,7 +260,7 @@ export default function AdminDashboard() {
 
       <div className="bg-white rounded-2xl p-5 shadow-book border border-cream-200 mb-6">
         <h3 className="font-serif font-bold text-gray-800 mb-4">
-          📊 各年级最喜欢借阅的类别
+          📊 各年级实际借阅类别分布
         </h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
