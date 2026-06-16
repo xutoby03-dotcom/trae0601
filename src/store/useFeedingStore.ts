@@ -7,12 +7,12 @@ import type {
 } from "@/types";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { buildSeedData, buildDailyPlanForAquarium } from "@/data/seedData";
+import { SEED_DATA, buildDailyPlanForAquarium } from "@/data/seedData";
 import { uid, nowStr, todayStr } from "@/utils/formatters";
 import { useAquariumStore } from "./useAquariumStore";
 import { useStockStore } from "./useStockStore";
 
-const seed = buildSeedData();
+const seed = SEED_DATA;
 
 interface FeedingState {
   plans: FeedingPlan[];

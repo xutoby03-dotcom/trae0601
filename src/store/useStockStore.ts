@@ -1,10 +1,10 @@
 import type { FoodStock } from "@/types";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { buildSeedData } from "@/data/seedData";
+import { SEED_DATA } from "@/data/seedData";
 import { uid, todayStr } from "@/utils/formatters";
 
-const seed = buildSeedData();
+const seed = SEED_DATA;
 
 interface StockState {
   stocks: FoodStock[];

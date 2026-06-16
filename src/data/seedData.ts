@@ -226,6 +226,8 @@ export const buildSeedData = (): SeedData => {
   return { aquariums, plans, records, waterChanges, waterTests, stocks };
 };
 
+export const SEED_DATA: SeedData = /*#__PURE__*/ buildSeedData();
+
 export const buildDailyPlanForAquarium = (
   a: Aquarium,
   date = todayStr()
