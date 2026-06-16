@@ -161,7 +161,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await applicationApi.reject(id);
-      await get().fetchApplications();
+      await Promise.all([get().fetchApplications(), get().fetchCourses()]);
     } catch (error) {
       set({ error: (error as Error).message });
       throw error;

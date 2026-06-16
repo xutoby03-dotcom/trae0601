@@ -136,6 +136,7 @@ export const applicationService = {
         applicationStore.update(nextApp.id, {
           status: 'approved',
           seatId: seat.id,
+          waitlistPosition: undefined,
         });
         applicationStore.updateWaitlistPositions(app.courseId);
       }

@@ -6,10 +6,49 @@ interface Store {
   applications: Application[];
 }
 
-const store: Store = {
-  courses: JSON.parse(JSON.stringify(mockCourses)),
-  applications: JSON.parse(JSON.stringify(mockApplications)),
+const initStore = (): Store => {
+  const courses = JSON.parse(JSON.stringify(mockCourses));
+  const applications = JSON.parse(JSON.stringify(mockApplications));
+
+  applications.forEach((app: Application) => {
+    if (app.seatId && (app.status === 'approved' || app.status === 'checked_in')) {
+      const course = courses.find((c: Course) => c.id === app.courseId);
+      if (course) {
+        for (const row of course.seats) {
+          for (const seat of row) {
+            if (seat.id === app.seatId) {
+              seat.status = app.status === 'checked_in' ? 'checked_in' : 'reserved';
+              seat.applicationId = app.id;
+              seat.studentName = app.studentName;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const store: Store = { courses, applications };
+  
+  const tempStore = store;
+  const courseIds = [...new Set(applications.map((a: Application) => a.courseId))];
+  courseIds.forEach((courseId) => {
+    const waitlist = tempStore.applications.filter(
+      (a: Application) => a.courseId === courseId && a.status === 'waitlist'
+    );
+    waitlist
+      .sort(
+        (a: Application, b: Application) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+      .forEach((app: Application, index: number) => {
+        app.waitlistPosition = index + 1;
+      });
+  });
+
+  return store;
 };
+
+const store: Store = initStore();
 
 export const courseStore = {
   getAll: (): Course[] => store.courses,

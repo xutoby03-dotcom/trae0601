@@ -52,10 +52,18 @@ export const CheckinPage: React.FC = () => {
   const selectedCourse = courses.find((c) => c.id === selectedCourseId);
   const courseApps = applications.filter((a) => a.courseId === selectedCourseId);
   const pendingApproval = courseApps.filter((a) => a.status === 'pending_approval');
-  const approved = courseApps.filter(
-    (a) => a.status === 'approved' || a.status === 'checked_in'
-  );
-  const waitlist = courseApps.filter((a) => a.status === 'waitlist');
+  const approved = courseApps
+    .filter((a) => a.status === 'approved' || a.status === 'checked_in')
+    .sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  const waitlist = courseApps
+    .filter((a) => a.status === 'waitlist')
+    .sort(
+      (a, b) =>
+        (a.waitlistPosition || 0) - (b.waitlistPosition || 0)
+    );
   const checkedIn = courseApps.filter((a) => a.status === 'checked_in');
 
   const stats = selectedCourseId
@@ -105,7 +113,6 @@ export const CheckinPage: React.FC = () => {
     try {
       await releaseApplication(id);
       setShowSeatModal(false);
-      setShowSeatModal(false);
       setSelectedSeat(null);
     } catch (e) {
       console.error('Release failed:', e);
@@ -113,7 +120,9 @@ export const CheckinPage: React.FC = () => {
   };
 
   const getSeatApplication = (seat: Seat) => {
-    return applications.find((a) => a.seatId === seat.id);
+    return applications.find(
+      (a) => a.courseId === selectedCourseId && a.seatId === seat.id
+    );
   };
 
   const filteredCourses = courses.filter((course) => {
