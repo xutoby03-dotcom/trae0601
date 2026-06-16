@@ -25,7 +25,7 @@ export function BeanCard({ bean, onSetPick, onDispense, onRecordWaste }: BeanCar
     <div
       className={`relative bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border-l-4 ${borderColor}`}
     >
-      {bean.isTodayPick && (
+      {bean.isTodayPick && canPick && (
         <div className="absolute top-3 right-3 z-10">
           <span className="inline-flex items-center gap-1 bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
             <Sparkles className="w-3 h-3" />

@@ -44,7 +44,7 @@ export const useCoffeeStore = create<CoffeeState>()(
           const bean = state.beans.find((b) => b.id === beanId);
           const sanitized = sanitizeTodayPick(state.beans);
           if (!bean || !canSetAsTodayPick(bean)) {
-            return sanitized.length === state.beans.length ? state : { beans: sanitized };
+            return { beans: sanitized };
           }
           return {
             beans: sanitized.map((b) => ({

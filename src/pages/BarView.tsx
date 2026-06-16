@@ -3,7 +3,7 @@ import { Coffee, AlertTriangle, Calendar, Sparkles } from 'lucide-react';
 import { useCoffeeStore } from '../store/useCoffeeStore';
 import { BeanCard } from '../components/BeanCard';
 import { Modal } from '../components/Modal';
-import { getFlavorStatus, getFlavorStatusText } from '../utils/flavorUtils';
+import { getFlavorStatus, getFlavorStatusText, canSetAsTodayPick } from '../utils/flavorUtils';
 import { formatDateChinese, getToday } from '../utils/dateUtils';
 import type { WasteType } from '../types';
 
@@ -17,7 +17,7 @@ export function BarView() {
   const [showDispenseModal, setShowDispenseModal] = useState(false);
   const [dispenseGrams, setDispenseGrams] = useState('18');
 
-  const todayPick = beans.find((b) => b.isTodayPick);
+  const todayPick = beans.find((b) => b.isTodayPick && canSetAsTodayPick(b));
   const expiredCount = beans.filter((b) => getFlavorStatus(b) === 'expired').length;
   const nearExpiryCount = beans.filter((b) => getFlavorStatus(b) === 'nearExpiry').length;
 
