@@ -14,6 +14,7 @@ const statusIconColors: Record<string, string> = {
 interface PoolCardProps {
   pool: WashingPool;
   onClick?: () => void;
+  disabled?: boolean;
 }
 
 function formatLastCleaned(date?: Date): string {
@@ -30,16 +31,17 @@ function formatLastCleaned(date?: Date): string {
   return '刚刚';
 }
 
-export default function PoolCard({ pool, onClick }: PoolCardProps) {
+export default function PoolCard({ pool, onClick, disabled = false }: PoolCardProps) {
   const iconColorClass = statusIconColors[pool.status] || statusIconColors.IDLE;
 
   return (
     <div
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       className={cn(
         'group relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm transition-all duration-300',
-        'hover:shadow-lg hover:-translate-y-1 hover:border-primary-200',
-        onClick && 'cursor-pointer',
+        !disabled && 'hover:shadow-lg hover:-translate-y-1 hover:border-primary-200',
+        !disabled && onClick && 'cursor-pointer',
+        disabled && 'opacity-60 cursor-not-allowed grayscale-[30%]',
       )}
     >
       <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-primary-50 to-transparent opacity-50 transition-opacity duration-300 group-hover:opacity-80" />

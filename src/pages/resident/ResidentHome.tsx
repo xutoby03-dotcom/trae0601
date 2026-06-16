@@ -62,13 +62,17 @@ export default function ResidentHome() {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {washingPools.map((pool) => (
-              <PoolCard
-                key={pool.id}
-                pool={pool}
-                onClick={() => handlePoolClick(pool.id)}
-              />
-            ))}
+            {washingPools.map((pool) => {
+              const isIdle = pool.status === 'IDLE';
+              return (
+                <PoolCard
+                  key={pool.id}
+                  pool={pool}
+                  onClick={isIdle ? () => handlePoolClick(pool.id) : undefined}
+                  disabled={!isIdle}
+                />
+              );
+            })}
           </div>
         </div>
 

@@ -36,7 +36,8 @@ export default function BookingPage() {
       .map((b) => b.timeSlot);
   }, [bookings, poolId, date]);
 
-  const canSubmit = pool && selectedSlot && petInfo.nickname && petInfo.building && petInfo.ownerPhone;
+  const isPoolAvailable = pool?.status === 'IDLE';
+  const canSubmit = pool && isPoolAvailable && selectedSlot && petInfo.nickname && petInfo.building && petInfo.ownerPhone;
 
   const handleSubmit = () => {
     if (!pool || !canSubmit) return;
@@ -54,6 +55,13 @@ export default function BookingPage() {
     }
   };
 
+  const unavailableStatusText: Record<string, string> = {
+    OCCUPIED: '当前有人正在使用',
+    CLEANING_PENDING: '待清洁，暂不可用',
+    PAUSED: '已暂停使用',
+    MAINTENANCE: '维修中，暂不可用',
+  };
+
   if (!pool) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col items-center justify-center p-8">
@@ -65,6 +73,25 @@ export default function BookingPage() {
           className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-3 text-white font-medium shadow-lg shadow-teal-500/30"
         >
           返回首页
+        </button>
+      </div>
+    );
+  }
+
+  if (!isPoolAvailable) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col items-center justify-center p-8">
+        <AlertCircle className="h-16 w-16 text-amber-400 mb-4" />
+        <h2 className="text-xl font-bold text-slate-800 mb-2">该洗脚池暂不可用</h2>
+        <p className="text-slate-500 mb-2 text-center">{pool.name}</p>
+        <p className="text-amber-600 mb-6 text-center font-medium">
+          {unavailableStatusText[pool.status] || '当前不可预约'}
+        </p>
+        <button
+          onClick={() => navigate('/resident')}
+          className="rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-3 text-white font-medium shadow-lg shadow-teal-500/30"
+        >
+          返回选择其他洗脚池
         </button>
       </div>
     );
@@ -150,7 +177,19 @@ export default function BookingPage() {
                 : 'bg-slate-300 cursor-not-allowed'
             )}
           >
-            {submitting ? '提交中...' : '确认预约'}
+            {submitting
+              ? '提交中...'
+              : !pool
+                ? '请选择洗脚池'
+                : !selectedSlot
+                  ? '请选择时段'
+                  : !petInfo.nickname
+                    ? '请填写宠物昵称'
+                    : !petInfo.building
+                      ? '请选择楼栋'
+                      : !petInfo.ownerPhone
+                        ? '请填写联系电话'
+                        : '确认预约'}
           </button>
         </div>
       </div>
