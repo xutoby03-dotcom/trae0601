@@ -7,6 +7,7 @@ import {
   Phone,
   QrCode,
   Square,
+  X,
   Droplets,
   Sparkles,
   Shield,
@@ -32,6 +33,7 @@ export default function UsingPage() {
   const booking = useMemo(() => bookings.find((b) => b.id === bookingId), [bookings, bookingId]);
 
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showScanConfirm, setShowScanConfirm] = useState(false);
   const [feedback, setFeedback] = useState({
     waterSpilled: false,
     floorNeedsMopping: false,
@@ -58,6 +60,11 @@ export default function UsingPage() {
   const isStarted = booking.status === 'IN_USE';
 
   const handleStart = () => {
+    setShowScanConfirm(true);
+  };
+
+  const handleConfirmStart = () => {
+    setShowScanConfirm(false);
     startBooking(bookingId);
   };
 
@@ -248,6 +255,68 @@ export default function UsingPage() {
                 className="flex-1 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-500/30 transition-all hover:shadow-xl hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60"
               >
                 {submitting ? '提交中...' : '确认提交'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showScanConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center sm:items-center animate-[fadeIn_0.2s_ease-out]">
+          <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl p-6 animate-[slideUp_0.3s_ease-out]">
+            <button
+              onClick={() => setShowScanConfirm(false)}
+              className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-gradient-to-br from-teal-400 to-cyan-500 mb-4 shadow-lg shadow-teal-500/30">
+                <QrCode className="h-7 w-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">扫码确认</h3>
+              <p className="text-sm text-slate-500 mt-1">请核对以下预约信息后开始使用</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="rounded-xl bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-100 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex-shrink-0">
+                    <Droplets className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 mb-0.5">洗脚池</p>
+                    <p className="text-base font-semibold text-slate-800">{booking.poolName}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-400 to-indigo-500 flex-shrink-0">
+                    <CheckCircle2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 mb-0.5">预约时段</p>
+                    <p className="text-base font-semibold text-slate-800">{booking.date} {booking.timeSlot}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowScanConfirm(false)}
+                className="flex-1 rounded-2xl bg-slate-100 px-6 py-3.5 text-base font-semibold text-slate-700 transition-all hover:bg-slate-200 active:scale-[0.98]"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmStart}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-500/30 transition-all hover:shadow-xl hover:shadow-teal-500/40 hover:scale-[1.01] active:scale-[0.98]"
+              >
+                确认开始
               </button>
             </div>
           </div>
