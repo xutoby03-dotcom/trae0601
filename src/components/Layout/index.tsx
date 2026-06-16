@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, CheckSquare, AlertTriangle, BarChart3, Menu, X, Bell } from 'lucide-react';
 import { useExceptionStore } from '@/store/exceptionStore';
+import { useElderlyStore } from '@/store/elderlyStore';
+import { useCheckInStore } from '@/store/checkInStore';
 import { getToday } from '@/utils/date';
 
 const navItems = [
@@ -16,13 +18,19 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const { exceptions, initExceptions } = useExceptionStore();
+  const { elderlyList, initElderly } = useElderlyStore();
+  const { initCheckIns, getTodayUnconfirmed } = useCheckInStore();
 
   useEffect(() => {
     initExceptions();
-  }, [initExceptions]);
+    initElderly();
+    initCheckIns();
+  }, [initExceptions, initElderly, initCheckIns]);
 
   const today = getToday();
-  const escalatedCount = exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today).length;
+  const allElderlyIds = elderlyList.map(e => e.id);
+  const todayUnconfirmedIds = getTodayUnconfirmed(allElderlyIds);
+  const escalatedCount = exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today && todayUnconfirmedIds.includes(e.elderlyId)).length;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">

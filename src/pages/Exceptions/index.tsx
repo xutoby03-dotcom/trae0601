@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, Clock, CheckCircle, ArrowUpRight, X, Save, Phone, Home, Users, Heart, TrendingUp } from 'lucide-react';
 import { useElderlyStore } from '@/store/elderlyStore';
 import { useExceptionStore } from '@/store/exceptionStore';
+import { useCheckInStore } from '@/store/checkInStore';
 import { ExceptionRecord, ExceptionStatus } from '@/types';
 import { formatDateTime, getToday } from '@/utils/date';
 import StatusBadge from '@/components/StatusBadge';
@@ -10,6 +11,7 @@ import { mockGrids } from '@/data/grids';
 export default function ExceptionsPage() {
   const { elderlyList, initElderly } = useElderlyStore();
   const { exceptions, initExceptions, updateException, escalateException, resolveException, createException } = useExceptionStore();
+  const { initCheckIns, getTodayUnconfirmed } = useCheckInStore();
   const [statusFilter, setStatusFilter] = useState<ExceptionStatus | 'all'>('all');
   const [gridFilter, setGridFilter] = useState('all');
   const [selectedException, setSelectedException] = useState<ExceptionRecord | null>(null);
@@ -25,9 +27,13 @@ export default function ExceptionsPage() {
   useEffect(() => {
     initElderly();
     initExceptions();
-  }, [initElderly, initExceptions]);
+    initCheckIns();
+  }, [initElderly, initExceptions, initCheckIns]);
 
   const getElderlyById = (id: string) => elderlyList.find(e => e.id === id);
+
+  const allElderlyIds = elderlyList.map(e => e.id);
+  const todayUnconfirmedIds = getTodayUnconfirmed(allElderlyIds);
 
   const filteredExceptions = exceptions.filter(e => {
     const matchesStatus = statusFilter === 'all' || e.status === statusFilter;
@@ -44,7 +50,7 @@ export default function ExceptionsPage() {
     total: exceptions.length,
     pending: exceptions.filter(e => e.status === 'pending').length,
     processing: exceptions.filter(e => e.status === 'processing').length,
-    escalated: exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today).length,
+    escalated: exceptions.filter(e => e.status === 'escalated' && e.type === 'timeout' && e.exceptionDate === today && todayUnconfirmedIds.includes(e.elderlyId)).length,
     resolved: exceptions.filter(e => e.status === 'resolved').length,
   };
 
