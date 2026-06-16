@@ -3,7 +3,7 @@ import { BarChart3, Calendar, TrendingDown, Package, Clock, GripVertical, AlertT
 import { useCoffeeStore } from '../store/useCoffeeStore';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
-import { getFlavorStatus, getBestFlavorEndDate, getDaysUntilExpiry } from '../utils/flavorUtils';
+import { getFlavorStatus, getBestFlavorEndDate, getDaysUntilExpiry, canSetAsTodayPick } from '../utils/flavorUtils';
 import { formatDateChinese, addDays, getToday, daysBetween } from '../utils/dateUtils';
 import type { CoffeeBean } from '../types';
 
@@ -67,10 +67,15 @@ export function ManagerView() {
     }, {} as Record<string, number>);
   }, [wasteRecords]);
 
-  const recommendedBeans = useMemo(() => {
+  const orderedRecommendationBeans = useMemo(() => {
     return beans
-      .filter((b) => b.recommendationOrder > 0)
-      .sort((a, b) => a.recommendationOrder - b.recommendationOrder);
+      .filter((b) => b.remainingWeight > 0 && canSetAsTodayPick(b))
+      .sort((a, b) => {
+        const oa = a.recommendationOrder > 0 ? a.recommendationOrder : Number.MAX_SAFE_INTEGER;
+        const ob = b.recommendationOrder > 0 ? b.recommendationOrder : Number.MAX_SAFE_INTEGER;
+        if (oa !== ob) return oa - ob;
+        return b.remainingWeight - a.remainingWeight;
+      });
   }, [beans]);
 
   const handleDragStart = () => {};
@@ -82,7 +87,7 @@ export function ManagerView() {
     const dragIndex = Number(e.dataTransfer.getData('text/plain'));
     if (dragIndex === dropIndex) return;
 
-    const newOrder = [...recommendedBeans];
+    const newOrder = [...orderedRecommendationBeans];
     const [dragged] = newOrder.splice(dragIndex, 1);
     newOrder.splice(dropIndex, 0, dragged);
 
@@ -393,7 +398,7 @@ export function ManagerView() {
                 </div>
 
                 <div className="space-y-2">
-                  {recommendedBeans.map((bean, index) => {
+                  {orderedRecommendationBeans.map((bean, index) => {
                     const status = getFlavorStatus(bean);
                     return (
                       <div
@@ -425,7 +430,7 @@ export function ManagerView() {
                   })}
                 </div>
 
-                {recommendedBeans.length === 0 && (
+                {orderedRecommendationBeans.length === 0 && (
                   <div className="text-center py-12">
                     <Sparkles className="w-12 h-12 text-stone-300 mx-auto mb-3" />
                     <p className="text-stone-400">暂无推荐豆子</p>

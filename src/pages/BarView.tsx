@@ -26,8 +26,9 @@ export function BarView() {
     const statusA = statusOrder[getFlavorStatus(a)];
     const statusB = statusOrder[getFlavorStatus(b)];
     if (statusA !== statusB) return statusA - statusB;
-    if (a.isTodayPick) return -1;
-    if (b.isTodayPick) return 1;
+    const pickA = a.isTodayPick && canSetAsTodayPick(a) ? 0 : 1;
+    const pickB = b.isTodayPick && canSetAsTodayPick(b) ? 0 : 1;
+    if (pickA !== pickB) return pickA - pickB;
     return b.remainingWeight - a.remainingWeight;
   });
 
