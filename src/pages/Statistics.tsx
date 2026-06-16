@@ -50,7 +50,7 @@ export default function Statistics() {
       };
     });
 
-    return [...cleanSchedule].sort((a, b) => a.daysUntilClean - b.daysUntilClean);
+    return [...cleanCycle].sort((a, b) => a.daysUntilClean - b.daysUntilClean);
   }, [pots]);
 
   const tasteTrend = useMemo(() => {

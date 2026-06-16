@@ -48,7 +48,7 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-braised-red-100 rounded-xl flex items-center justify-center">
               <ChefHat className="w-6 h-6 text-braised-red-600" />
@@ -60,7 +60,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/production')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-amber-gold-100 rounded-xl flex items-center justify-center">
               <Package className="w-6 h-6 text-amber-gold-600" />
@@ -72,7 +72,7 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/statistics')}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-green-600" />

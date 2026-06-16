@@ -82,11 +82,19 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
+  onClick?: () => void;
 }
 
-export function Card({ title, children, className, action }: CardProps) {
+export function Card({ title, children, className, action, onClick }: CardProps) {
   return (
-    <div className={cn('bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden', className)}>
+    <div
+      onClick={onClick}
+      className={cn(
+        'bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden',
+        onClick && 'cursor-pointer',
+        className
+      )}
+    >
       {(title || action) && (
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-100 bg-stone-50/50">
           {title && <h3 className="font-semibold text-stone-800">{title}</h3>}
