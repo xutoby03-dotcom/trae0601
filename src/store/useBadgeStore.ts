@@ -14,7 +14,35 @@ import { mockBadges, mockVisitors } from '../data/mockData';
 import { generateId } from '../utils/id';
 import { isToday, isOvertime, getDurationMs, getAverageDuration } from '../utils/time';
 
+const buildInitialReminders = (): OvertimeReminder[] => {
+  const reminders: OvertimeReminder[] = [];
+  mockVisitors.forEach((v) => {
+    const isActive = v.status === 'visiting' || v.status === 'overtime';
+    if (isActive && isOvertime(v.expectedLeaveTime)) {
+      const badge = mockBadges.find((b) => b.id === v.badgeId);
+      reminders.push({
+        id: generateId(),
+        visitorId: v.id,
+        visitorName: v.name,
+        visitorCompany: v.company,
+        visitorPhone: v.phone,
+        hostName: v.hostName,
+        expectedLeaveTime: v.expectedLeaveTime,
+        badgeNumber: badge?.number || '未知',
+        badgeColor: badge?.color || '未知',
+        badgeColorHex: badge?.colorHex || '#6b7280',
+        overtimeAt: v.expectedLeaveTime,
+        status: 'pending',
+      });
+    }
+  });
+  return reminders;
+};
+
+const initialOvertimeReminders = buildInitialReminders();
+
 interface BadgeStore {
+  _hasHydrated: boolean;
   badges: Badge[];
   visitors: Visitor[];
   lossRecords: LossRecord[];
@@ -46,10 +74,11 @@ interface BadgeStore {
 export const useBadgeStore = create<BadgeStore>()(
   persist(
     (set, get) => ({
+      _hasHydrated: false,
       badges: mockBadges,
       visitors: mockVisitors,
       lossRecords: [],
-      overtimeReminders: [],
+      overtimeReminders: initialOvertimeReminders,
 
       addBadge: (badge) => {
         const newBadge: Badge = {
@@ -291,22 +320,22 @@ export const useBadgeStore = create<BadgeStore>()(
     }),
     {
       name: 'badge-management-storage',
-      onRehydrateStorage: (state) => {
-        return () => {
+      onRehydrateStorage: () => {
+        return (state) => {
           if (!state) return;
-          const { overtimeReminders, visitors, badges } = state;
+
           const remindedVisitorIds = new Set(
-            overtimeReminders.map((r) => r.visitorId)
+            state.overtimeReminders.map((r) => r.visitorId)
           );
 
           const missing: OvertimeReminder[] = [];
-          visitors.forEach((v) => {
+          state.visitors.forEach((v) => {
             const isVisitorOvertime = isOvertime(v.expectedLeaveTime);
             const isActiveUnreturned =
               v.status === 'visiting' || v.status === 'overtime';
 
             if (isActiveUnreturned && isVisitorOvertime && !remindedVisitorIds.has(v.id)) {
-              const badge = badges.find((b) => b.id === v.badgeId);
+              const badge = state.badges.find((b) => b.id === v.badgeId);
               missing.push({
                 id: generateId(),
                 visitorId: v.id,
@@ -325,14 +354,16 @@ export const useBadgeStore = create<BadgeStore>()(
           });
 
           if (missing.length > 0) {
-            state.overtimeReminders = [...overtimeReminders, ...missing];
+            state.overtimeReminders = [...state.overtimeReminders, ...missing];
           }
 
-          visitors.forEach((v, idx) => {
-            if (v.status === 'visiting' && isOvertime(v.expectedLeaveTime)) {
-              state.visitors[idx] = { ...v, status: 'overtime' };
-            }
-          });
+          state.visitors = state.visitors.map((v) =>
+            v.status === 'visiting' && isOvertime(v.expectedLeaveTime)
+              ? { ...v, status: 'overtime' }
+              : v
+          );
+
+          state._hasHydrated = true;
         };
       },
     }

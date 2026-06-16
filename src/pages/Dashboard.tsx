@@ -18,6 +18,7 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ onNewVisitor, showVisitorForm, onCloseVisitorForm }: DashboardProps) => {
+  const hasHydrated = useBadgeStore((s) => s._hasHydrated);
   const getDashboardStats = useBadgeStore((s) => s.getDashboardStats);
   const getPendingReminders = useBadgeStore((s) => s.getPendingReminders);
   const updateOvertimeStatus = useBadgeStore((s) => s.updateOvertimeStatus);
@@ -31,16 +32,13 @@ export const Dashboard = ({ onNewVisitor, showVisitorForm, onCloseVisitorForm }:
   const pendingReminders = getPendingReminders();
 
   useEffect(() => {
-    const forceTimeout = setTimeout(() => updateOvertimeStatus(), 0);
+    if (!hasHydrated) return;
     const interval = setInterval(() => {
       updateOvertimeStatus();
       setTick((t) => t + 1);
     }, 15000);
-    return () => {
-      clearTimeout(forceTimeout);
-      clearInterval(interval);
-    };
-  }, [updateOvertimeStatus]);
+    return () => clearInterval(interval);
+  }, [hasHydrated, updateOvertimeStatus]);
 
   const handleReturn = (visitor: Visitor) => {
     setSelectedVisitor(visitor);
@@ -63,7 +61,11 @@ export const Dashboard = ({ onNewVisitor, showVisitorForm, onCloseVisitorForm }:
   };
 
   return (
-    <div className="max-w-[1800px] mx-auto px-6 py-6 space-y-6">
+    <div
+      className={`max-w-[1800px] mx-auto px-6 py-6 space-y-6 transition-opacity duration-300 ${
+        hasHydrated ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="今日访客"
