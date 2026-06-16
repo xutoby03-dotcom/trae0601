@@ -114,41 +114,48 @@ export const useBadgeStore = create<BadgeStore>()(
       },
 
       updateOvertimeStatus: () => {
-        const now = new Date().toISOString();
         const { visitors, badges, overtimeReminders } = get();
-        const pendingVisitorIds = new Set(
-          overtimeReminders.filter((r) => r.status === 'pending').map((r) => r.visitorId)
+        const remindedVisitorIds = new Set(
+          overtimeReminders.map((r) => r.visitorId)
         );
 
         const newReminders: OvertimeReminder[] = [];
         const updatedVisitors = visitors.map((v) => {
-          if (v.status === 'visiting' && isOvertime(v.expectedLeaveTime)) {
+          const isVisitorOvertime = isOvertime(v.expectedLeaveTime);
+          const isActiveUnreturned = v.status === 'visiting' || v.status === 'overtime';
+
+          if (isActiveUnreturned && isVisitorOvertime && !remindedVisitorIds.has(v.id)) {
             const badge = badges.find((b) => b.id === v.badgeId);
-            if (!pendingVisitorIds.has(v.id)) {
-              newReminders.push({
-                id: generateId(),
-                visitorId: v.id,
-                visitorName: v.name,
-                visitorCompany: v.company,
-                visitorPhone: v.phone,
-                hostName: v.hostName,
-                expectedLeaveTime: v.expectedLeaveTime,
-                badgeNumber: badge?.number || '未知',
-                badgeColor: badge?.color || '未知',
-                badgeColorHex: badge?.colorHex || '#6b7280',
-                overtimeAt: now,
-                status: 'pending',
-              });
-            }
+            newReminders.push({
+              id: generateId(),
+              visitorId: v.id,
+              visitorName: v.name,
+              visitorCompany: v.company,
+              visitorPhone: v.phone,
+              hostName: v.hostName,
+              expectedLeaveTime: v.expectedLeaveTime,
+              badgeNumber: badge?.number || '未知',
+              badgeColor: badge?.color || '未知',
+              badgeColorHex: badge?.colorHex || '#6b7280',
+              overtimeAt: v.expectedLeaveTime,
+              status: 'pending',
+            });
+          }
+
+          if (v.status === 'visiting' && isVisitorOvertime) {
             return { ...v, status: 'overtime' as VisitorStatus };
           }
           return v;
         });
 
-        set((state) => ({
-          visitors: updatedVisitors,
-          overtimeReminders: [...state.overtimeReminders, ...newReminders],
-        }));
+        if (newReminders.length > 0) {
+          set((state) => ({
+            visitors: updatedVisitors,
+            overtimeReminders: [...state.overtimeReminders, ...newReminders],
+          }));
+        } else {
+          set({ visitors: updatedVisitors });
+        }
       },
 
       reportLost: (data) => {
@@ -284,6 +291,50 @@ export const useBadgeStore = create<BadgeStore>()(
     }),
     {
       name: 'badge-management-storage',
+      onRehydrateStorage: (state) => {
+        return () => {
+          if (!state) return;
+          const { overtimeReminders, visitors, badges } = state;
+          const remindedVisitorIds = new Set(
+            overtimeReminders.map((r) => r.visitorId)
+          );
+
+          const missing: OvertimeReminder[] = [];
+          visitors.forEach((v) => {
+            const isVisitorOvertime = isOvertime(v.expectedLeaveTime);
+            const isActiveUnreturned =
+              v.status === 'visiting' || v.status === 'overtime';
+
+            if (isActiveUnreturned && isVisitorOvertime && !remindedVisitorIds.has(v.id)) {
+              const badge = badges.find((b) => b.id === v.badgeId);
+              missing.push({
+                id: generateId(),
+                visitorId: v.id,
+                visitorName: v.name,
+                visitorCompany: v.company,
+                visitorPhone: v.phone,
+                hostName: v.hostName,
+                expectedLeaveTime: v.expectedLeaveTime,
+                badgeNumber: badge?.number || '未知',
+                badgeColor: badge?.color || '未知',
+                badgeColorHex: badge?.colorHex || '#6b7280',
+                overtimeAt: v.expectedLeaveTime,
+                status: 'pending',
+              });
+            }
+          });
+
+          if (missing.length > 0) {
+            state.overtimeReminders = [...overtimeReminders, ...missing];
+          }
+
+          visitors.forEach((v, idx) => {
+            if (v.status === 'visiting' && isOvertime(v.expectedLeaveTime)) {
+              state.visitors[idx] = { ...v, status: 'overtime' };
+            }
+          });
+        };
+      },
     }
   )
 );

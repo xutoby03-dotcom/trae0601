@@ -31,12 +31,15 @@ export const Dashboard = ({ onNewVisitor, showVisitorForm, onCloseVisitorForm }:
   const pendingReminders = getPendingReminders();
 
   useEffect(() => {
-    updateOvertimeStatus();
+    const forceTimeout = setTimeout(() => updateOvertimeStatus(), 0);
     const interval = setInterval(() => {
       updateOvertimeStatus();
       setTick((t) => t + 1);
     }, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(forceTimeout);
+      clearInterval(interval);
+    };
   }, [updateOvertimeStatus]);
 
   const handleReturn = (visitor: Visitor) => {
