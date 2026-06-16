@@ -648,6 +648,7 @@ function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: Feedback
           onClose={() => setViewerOpen(false)}
           onPrev={handlePrevPhoto}
           onNext={handleNextPhoto}
+          onGoToIndex={(index) => setViewerIndex(index)}
           guestName={guestName}
           sessionName={sessionName}
         />

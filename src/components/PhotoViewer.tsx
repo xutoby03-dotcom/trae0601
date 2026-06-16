@@ -8,6 +8,7 @@ interface PhotoViewerProps {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onGoToIndex?: (index: number) => void;
   guestName?: string;
   sessionName?: string;
 }
@@ -19,6 +20,7 @@ export default function PhotoViewer({
   onClose,
   onPrev,
   onNext,
+  onGoToIndex,
   guestName,
   sessionName,
 }: PhotoViewerProps) {
@@ -123,8 +125,12 @@ export default function PhotoViewer({
               <button
                 key={index}
                 onClick={() => {
-                  if (index < currentIndex) onPrev();
-                  if (index > currentIndex) onNext();
+                  if (onGoToIndex) {
+                    onGoToIndex(index);
+                  } else {
+                    if (index < currentIndex) onPrev();
+                    if (index > currentIndex) onNext();
+                  }
                 }}
                 className={`w-2 h-2 rounded-full transition-all ${
                   index === currentIndex

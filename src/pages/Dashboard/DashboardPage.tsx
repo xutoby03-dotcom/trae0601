@@ -94,10 +94,11 @@ export default function DashboardPage() {
     return session?.name || '';
   };
 
-  const openPhotoViewer = (feedback: Feedback) => {
+  const openPhotoViewer = (feedback: Feedback, startIndex: number = 0) => {
     if (!feedback.photos || feedback.photos.length === 0) return;
+    const safeIndex = Math.max(0, Math.min(startIndex, feedback.photos.length - 1));
     setViewerPhotos(feedback.photos);
-    setViewerIndex(0);
+    setViewerIndex(safeIndex);
     setViewerGuestName(getGuestName(feedback.guestId));
     setViewerSessionName(getSessionName(feedback.sessionId));
     setViewerOpen(true);
@@ -419,7 +420,7 @@ export default function DashboardPage() {
                       {feedback.photos.slice(0, 3).map((photo, idx) => (
                         <button
                           key={idx}
-                          onClick={() => openPhotoViewer(feedback)}
+                          onClick={() => openPhotoViewer(feedback, idx)}
                           className="w-10 h-10 rounded-md overflow-hidden bg-warm-200 flex-shrink-0 hover:opacity-80 transition-opacity cursor-zoom-in"
                         >
                           <img src={photo} alt="" className="w-full h-full object-cover" />
@@ -427,7 +428,7 @@ export default function DashboardPage() {
                       ))}
                       {feedback.photos.length > 3 && (
                         <button
-                          onClick={() => openPhotoViewer(feedback)}
+                          onClick={() => openPhotoViewer(feedback, 3)}
                           className="w-10 h-10 rounded-md bg-warm-200 flex items-center justify-center text-xs text-brown-500 flex-shrink-0 hover:bg-warm-300 transition-colors cursor-zoom-in"
                         >
                           +{feedback.photos.length - 3}
@@ -491,6 +492,7 @@ export default function DashboardPage() {
         onClose={() => setViewerOpen(false)}
         onPrev={handlePrevPhoto}
         onNext={handleNextPhoto}
+        onGoToIndex={(index) => setViewerIndex(index)}
         guestName={viewerGuestName}
         sessionName={viewerSessionName}
       />
