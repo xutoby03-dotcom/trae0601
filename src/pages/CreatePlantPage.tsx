@@ -36,8 +36,11 @@ export default function CreatePlantPage() {
     navigate('/');
   };
 
+  const [photoLoadError, setPhotoLoadError] = useState(false);
+
   const updateField = <K extends keyof typeof formData>(key: K, value: typeof formData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+    if (key === 'latestPhotoUrl') setPhotoLoadError(false);
   };
 
   const lightOptions: LightRequirement[] = ['低光', '散射光', '半日照', '全日照'];
@@ -198,15 +201,18 @@ export default function CreatePlantPage() {
             <div className="md:col-span-2">
               <label className="label">预览</label>
               <div className="aspect-[4/3] w-full rounded-xl overflow-hidden bg-forest-100 border border-cream-200 flex items-center justify-center">
-                {formData.latestPhotoUrl ? (
+                {formData.latestPhotoUrl && !photoLoadError ? (
                   <img
                     src={formData.latestPhotoUrl}
                     alt="预览"
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+                    onError={() => setPhotoLoadError(true)}
                   />
+                ) : formData.latestPhotoUrl && photoLoadError ? (
+                  <div className="text-center text-clay-600">
+                    <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-60" />
+                    <p className="text-xs">图片加载失败，请检查地址</p>
+                  </div>
                 ) : (
                   <div className="text-center text-forest-400">
                     <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
