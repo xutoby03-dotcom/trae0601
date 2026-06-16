@@ -1,0 +1,29 @@
+[
+  {
+    "id": "sess-001",
+    "name": "第一场试营业",
+    "date": "2026-06-15",
+    "startTime": "11:00",
+    "endTime": "14:00",
+    "capacity": 30,
+    "description": "午市试营业，主要邀请亲友和老顾客"
+  },
+  {
+    "id": "sess-002",
+    "name": "第二场试营业",
+    "date": "2026-06-16",
+    "startTime": "17:30",
+    "endTime": "21:00",
+    "capacity": 40,
+    "description": "晚市试营业，邀请更多朋友和合作伙伴"
+  },
+  {
+    "id": "sess-003",
+    "name": "第三场试营业",
+    "date": "2026-06-18",
+    "startTime": "11:00",
+    "endTime": "14:00",
+    "capacity": 35,
+    "description": "周末午市，邀请家庭客户"
+  }
+]
