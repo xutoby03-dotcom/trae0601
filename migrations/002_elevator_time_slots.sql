@@ -1,4 +1,4 @@
-CREATE TABLE elevator_time_slots (
+CREATE TABLE IF NOT EXISTS elevator_time_slots (
   id TEXT PRIMARY KEY,
   elevator_id TEXT NOT NULL,
   start_time TEXT NOT NULL,
@@ -8,9 +8,9 @@ CREATE TABLE elevator_time_slots (
   FOREIGN KEY (elevator_id) REFERENCES elevators(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_elevator_time_slots_elevator ON elevator_time_slots(elevator_id);
+CREATE INDEX IF NOT EXISTS idx_elevator_time_slots_elevator ON elevator_time_slots(elevator_id);
 
-INSERT INTO elevator_time_slots (id, elevator_id, start_time, end_time) VALUES
+INSERT OR IGNORE INTO elevator_time_slots (id, elevator_id, start_time, end_time) VALUES
 ('ets-001', 'elev-001', '08:00', '10:00'),
 ('ets-002', 'elev-001', '10:00', '12:00'),
 ('ets-003', 'elev-001', '13:00', '15:00'),

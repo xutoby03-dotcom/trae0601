@@ -10,6 +10,13 @@ const dbPath = path.join(__dirname, 'elevator.db');
 
 let db: Database.Database;
 
+function tableExists(tableName: string): boolean {
+  const row = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
+  ).get(tableName);
+  return !!row;
+}
+
 function runMigrations() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -23,17 +30,30 @@ function runMigrations() {
     .filter(f => f.endsWith('.sql'))
     .sort();
 
+  const hasLegacyData = tableExists('elevators') && !tableExists('schema_migrations');
+  
+  const migrationCount = db.prepare('SELECT COUNT(*) as count FROM schema_migrations').get() as { count: number };
+  const isLegacyDb = hasLegacyData || (migrationCount.count === 0 && tableExists('elevators'));
+
   for (const file of migrationFiles) {
     const version = file.replace('.sql', '');
     const row = db.prepare('SELECT version FROM schema_migrations WHERE version = ?').get(version);
     
-    if (!row) {
-      const migrationPath = path.join(migrationsDir, file);
-      const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
-      db.exec(migrationSQL);
-      db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
-      console.log(`Applied migration: ${file}`);
+    if (row) {
+      continue;
     }
+
+    if (isLegacyDb && version === '001_initial_schema') {
+      db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
+      console.log(`Skipped migration (legacy db): ${file}`);
+      continue;
+    }
+
+    const migrationPath = path.join(migrationsDir, file);
+    const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+    db.exec(migrationSQL);
+    db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
+    console.log(`Applied migration: ${file}`);
   }
 }
 
