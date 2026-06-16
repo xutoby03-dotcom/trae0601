@@ -7,7 +7,7 @@ export default function Stations() {
   const { stations, boxes, startUsingBox, addOrder, getBoxById } = useStore()
   const [switchingStationId, setSwitchingStationId] = useState<string | null>(null)
   const [orderInputs, setOrderInputs] = useState<Record<string, string>>({})
-  const [justAdded, setJustAdded] = useState<string | null>(null)
+  const [justAddedMap, setJustAddedMap] = useState<Record<string, string>>({})
 
   const availableBoxes = boxes.filter((b) => b.status === 'in_stock')
 
@@ -23,8 +23,14 @@ export default function Stations() {
     if (!orderNo) return
     addOrder(orderNo, stationId)
     setOrderInputs((prev) => ({ ...prev, [stationId]: '' }))
-    setJustAdded(orderNo)
-    setTimeout(() => setJustAdded(null), 1500)
+    setJustAddedMap((prev) => ({ ...prev, [stationId]: orderNo }))
+    setTimeout(() => {
+      setJustAddedMap((prev) => {
+        const next = { ...prev }
+        delete next[stationId]
+        return next
+      })
+    }, 1500)
   }
 
   return (
@@ -111,12 +117,12 @@ export default function Stations() {
                         disabled={!orderInputs[station.id]?.trim()}
                         className="px-3 py-2 bg-amber text-white rounded-lg text-xs font-medium hover:bg-amber-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        {justAdded && orderInputs[station.id] ? <Check size={14} /> : <Plus size={14} />}
+                        {justAddedMap[station.id] ? <Check size={14} /> : <Plus size={14} />}
                       </button>
                     </div>
-                    {justAdded && (
+                    {justAddedMap[station.id] && (
                       <p className="text-xs text-success mt-1.5 flex items-center gap-1">
-                        <Check size={12} /> 已登记 {justAdded}，批次 {currentBox.batchNo}
+                        <Check size={12} /> 已登记 {justAddedMap[station.id]}，批次 {currentBox.batchNo}
                       </p>
                     )}
                   </div>
