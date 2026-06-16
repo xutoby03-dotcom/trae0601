@@ -226,16 +226,19 @@ const Reminders: React.FC = () => {
                   <>
                     <button
                       onClick={() => handleQuickAction(reminder)}
-                      className="btn-primary py-2 px-4 text-sm flex-1"
+                      className={`btn-primary py-2 px-4 text-sm ${reminder.type === 'low_stock' ? 'flex-1' : 'w-full'}`}
                     >
-                      去处理
+                      {reminder.type === 'low_stock' ? '去处理' : '去补记录'}
                     </button>
-                    <button
-                      onClick={() => handleResolve(reminder.id)}
-                      className="btn-secondary py-2 px-4 text-sm"
-                    >
-                      <Check size={16} />
-                    </button>
+                    {reminder.type === 'low_stock' && (
+                      <button
+                        onClick={() => handleResolve(reminder.id)}
+                        className="btn-secondary py-2 px-4 text-sm"
+                        title="标记已处理"
+                      >
+                        <Check size={16} />
+                      </button>
+                    )}
                   </>
                 ) : (
                   <span className="text-sm text-gray-400 flex items-center gap-1">
