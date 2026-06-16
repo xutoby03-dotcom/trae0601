@@ -174,22 +174,22 @@ export default function RegistrationList() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {reg.status === 'confirmed' && (
+                        <Link
+                          to={`/attendance/new?elderId=${reg.elderId}&courseId=${reg.courseId}&from=registrations`}
+                          className="text-sm text-success-600 hover:text-success-700 flex items-center gap-1"
+                        >
+                          <UserCheck size={14} />
+                          签到
+                        </Link>
+                      )}
                       {(reg.status === 'confirmed' || reg.status === 'waitlist') && (
-                        <>
-                          <Link
-                            to={`/attendance/new?elderId=${reg.elderId}&courseId=${reg.courseId}&from=registrations`}
-                            className="text-sm text-success-600 hover:text-success-700 flex items-center gap-1"
-                          >
-                            <UserCheck size={14} />
-                            签到
-                          </Link>
-                          <button
-                            onClick={() => handleCancel(reg.id)}
-                            className="text-sm text-red-500 hover:text-red-600"
-                          >
-                            取消
-                          </button>
-                        </>
+                        <button
+                          onClick={() => handleCancel(reg.id)}
+                          className="text-sm text-red-500 hover:text-red-600"
+                        >
+                          取消
+                        </button>
                       )}
                     </div>
                   </td>

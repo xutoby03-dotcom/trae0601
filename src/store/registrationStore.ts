@@ -13,6 +13,7 @@ interface RegistrationState {
   getRegistrationsByCourseId: (courseId: string) => Registration[];
   getConfirmedCount: (courseId: string) => number;
   getWaitlistCount: (courseId: string) => number;
+  getRegistrationByElderAndCourse: (elderId: string, courseId: string) => Registration | undefined;
   addRegistration: (reg: Omit<Registration, 'id' | 'status' | 'waitlistPosition' | 'createdAt'>) => { success: boolean; message: string; registration?: Registration };
   cancelRegistration: (id: string) => void;
   confirmRegistration: (id: string) => void;
@@ -59,6 +60,12 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     return get().registrations.filter(
       r => r.courseId === courseId && r.status === 'waitlist'
     ).length;
+  },
+
+  getRegistrationByElderAndCourse: (elderId, courseId) => {
+    return get().registrations.find(
+      r => r.elderId === elderId && r.courseId === courseId
+    );
   },
 
   addRegistration: (regData) => {

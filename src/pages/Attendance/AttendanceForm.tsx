@@ -14,7 +14,7 @@ export default function AttendanceForm() {
   const { addAttendance, volunteers, fetchVolunteers } = useAttendanceStore();
   const { elders, fetchElders } = useElderStore();
   const { courses, getCourseById, fetchCourses } = useCourseStore();
-  const { completeRegistrationByElderAndCourse } = useRegistrationStore();
+  const { completeRegistrationByElderAndCourse, getRegistrationByElderAndCourse, fetchRegistrations } = useRegistrationStore();
 
   const preselectedElderId = searchParams.get('elderId') || '';
   const preselectedCourseId = searchParams.get('courseId') || '';
@@ -37,7 +37,8 @@ export default function AttendanceForm() {
     fetchVolunteers();
     fetchElders();
     fetchCourses();
-  }, [fetchVolunteers, fetchElders, fetchCourses]);
+    fetchRegistrations();
+  }, [fetchVolunteers, fetchElders, fetchCourses, fetchRegistrations]);
 
   const selectedCourse = formData.courseId ? getCourseById(formData.courseId) : null;
 
@@ -52,6 +53,16 @@ export default function AttendanceForm() {
     
     if (!formData.elderId || !formData.courseId) {
       alert('请选择老人和课程');
+      return;
+    }
+
+    const registration = getRegistrationByElderAndCourse(formData.elderId, formData.courseId);
+    if (registration && registration.status === 'waitlist') {
+      alert('该老人当前为候补状态，无法签到。请先将其转为已报名后再进行签到。');
+      return;
+    }
+    if (registration && registration.status === 'completed') {
+      alert('该老人已完成此课程，无需重复签到。');
       return;
     }
 
