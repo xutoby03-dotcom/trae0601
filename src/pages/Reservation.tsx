@@ -17,7 +17,6 @@ import {
   BUILDINGS,
   UNITS,
   FLOORS,
-  TIME_SLOTS,
   calculateEstimatedWeight,
   getNextWeekDates,
   formatDisplayDate,
@@ -64,7 +63,7 @@ export default function Reservation() {
   const [checkingConflict, setCheckingConflict] = useState(false);
   const [checkingWeight, setCheckingWeight] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [createdReservation, setCreatedReservation] = useState<{ id: string; building: string; unit: string } | null>(null);
+  const [createdReservation, setCreatedReservation] = useState<{ id: string; building: string; unit: string; status?: string } | null>(null);
 
   const availableDates = getNextWeekDates();
   const estimatedWeight = formData.estimatedItems ? calculateEstimatedWeight(formData.estimatedItems) : 0;
@@ -75,6 +74,9 @@ export default function Reservation() {
     if (formData.needsProtectionMat && !e.allowsProtectionMat) return false;
     return true;
   });
+
+  const selectedElevator = elevators.find(e => e.id === formData.elevatorId);
+  const availableTimeSlots = selectedElevator?.timeSlots || [];
 
   useEffect(() => {
     fetchElevators();
@@ -139,17 +141,22 @@ export default function Reservation() {
     }));
     
     if (field === 'building' || field === 'needsProtectionMat') {
-      setFormData(prev => ({ ...prev, elevatorId: '' }));
+      setFormData(prev => ({ ...prev, elevatorId: '', startTime: '', endTime: '' }));
+    }
+    
+    if (field === 'elevatorId') {
+      setFormData(prev => ({ ...prev, startTime: '', endTime: '' }));
     }
     
     if (field === 'startTime') {
-      const slot = TIME_SLOTS.find(s => s.start === value);
+      const slot = availableTimeSlots.find(s => s.startTime === value);
       if (slot) {
-        setFormData(prev => ({ ...prev, endTime: slot.end }));
+        setFormData(prev => ({ ...prev, endTime: slot.endTime }));
       }
     }
     
     setSuccess(false);
+    setCreatedReservation(null);
   };
 
   const isFormValid = (): boolean => {
@@ -158,7 +165,6 @@ export default function Reservation() {
     if (!formData.estimatedItems || formData.estimatedItems < 1) return false;
     if (!formData.date || !formData.startTime || !formData.endTime) return false;
     if (!formData.elevatorId) return false;
-    if (conflictResult?.hasConflict) return false;
     if (weightResult?.isOverloaded) return false;
     return true;
   };
@@ -182,7 +188,7 @@ export default function Reservation() {
         startTime: formData.startTime,
         endTime: formData.endTime,
         elevatorId: formData.elevatorId,
-        status: 'approved',
+        status: 'pending',
       });
       
       setSuccess(true);
@@ -190,6 +196,7 @@ export default function Reservation() {
         id: reservation.id,
         building: reservation.building,
         unit: reservation.unit,
+        status: reservation.status,
       });
       
       setTimeout(() => {
@@ -230,15 +237,40 @@ export default function Reservation() {
       </div>
 
       {success && createdReservation && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex items-start gap-4">
-          <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+        <div className={cn(
+          "border rounded-xl p-6 flex items-start gap-4",
+          createdReservation.status === 'conflict'
+            ? 'bg-amber-50 border-amber-200'
+            : 'bg-green-50 border-green-200'
+        )}>
+          {createdReservation.status === 'conflict' ? (
+            <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0 mt-1" />
+          ) : (
+            <CheckCircle className="w-8 h-8 text-green-500 flex-shrink-0 mt-1" />
+          )}
           <div>
-            <h3 className="font-bold text-green-800 text-lg">预约成功！</h3>
-            <p className="text-green-700 mt-1">
+            <h3 className={cn(
+              "font-bold text-lg",
+              createdReservation.status === 'conflict' ? 'text-amber-800' : 'text-green-800'
+            )}>
+              {createdReservation.status === 'conflict' ? '预约已提交，等待物业审核' : '预约成功！'}
+            </h3>
+            <p className={cn(
+              "mt-1",
+              createdReservation.status === 'conflict' ? 'text-amber-700' : 'text-green-700'
+            )}>
               您的{createdReservation.building}{createdReservation.unit}搬家预约已提交，预约号：
-              <span className="font-mono bg-green-100 px-2 py-1 rounded ml-1">{createdReservation.id}</span>
+              <span className="font-mono bg-white/50 px-2 py-1 rounded ml-1">{createdReservation.id}</span>
             </p>
-            <p className="text-green-600 text-sm mt-2">请按时使用货梯，如需取消请联系物业。</p>
+            <p className={cn(
+              "text-sm mt-2",
+              createdReservation.status === 'conflict' ? 'text-amber-600' : 'text-green-600'
+            )}>
+              {createdReservation.status === 'conflict'
+                ? '该时段已有其他预约，物业将尽快协调审核，请耐心等待结果。'
+                : '请按时使用货梯，如需取消请联系物业。'
+              }
+            </p>
           </div>
         </div>
       )}
@@ -409,11 +441,16 @@ export default function Reservation() {
                   value={formData.startTime}
                   onChange={(e) => handleInputChange('startTime', e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                  disabled={!formData.elevatorId}
                   required
                 >
-                  <option value="">请选择开始时间</option>
-                  {TIME_SLOTS.map(slot => (
-                    <option key={slot.start} value={slot.start}>{slot.label}</option>
+                  <option value="">
+                    {formData.elevatorId ? '请选择开始时间' : '请先选择电梯'}
+                  </option>
+                  {availableTimeSlots.map(slot => (
+                    <option key={slot.id} value={slot.startTime}>
+                      {slot.startTime} - {slot.endTime}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -428,6 +465,12 @@ export default function Reservation() {
                 </div>
               </div>
             </div>
+            {formData.elevatorId && availableTimeSlots.length === 0 && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700">该电梯暂未设置可用时段，请联系物业或选择其他电梯。</p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">

@@ -4,6 +4,14 @@ export interface TimeSlot {
   endTime: string;
 }
 
+export interface ElevatorTimeSlot {
+  id: string;
+  elevatorId: string;
+  startTime: string;
+  endTime: string;
+  dayOfWeek?: number;
+}
+
 export interface Maintenance {
   id: string;
   elevatorId: string;
@@ -22,6 +30,7 @@ export interface Elevator {
   allowsProtectionMat: boolean;
   status: 'active' | 'maintenance' | 'disabled';
   maintenanceSchedule?: Maintenance[];
+  timeSlots?: ElevatorTimeSlot[];
   createdAt?: string;
 }
 

@@ -6,7 +6,8 @@ import type {
   ApiResponse,
   ConflictCheckResult,
   WeightCheckResult,
-  Maintenance
+  Maintenance,
+  ElevatorTimeSlot
 } from '../../shared/types';
 
 const API_BASE = '/api';
@@ -32,7 +33,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 export const elevatorApi = {
   getAll: () => request<Elevator[]>('/elevators'),
   getById: (id: string) => request<Elevator>(`/elevators/${id}`),
-  create: (data: Omit<Elevator, 'id' | 'createdAt' | 'maintenanceSchedule'>) => 
+  create: (data: Omit<Elevator, 'id' | 'createdAt' | 'maintenanceSchedule' | 'timeSlots'>) => 
     request<Elevator>('/elevators', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Elevator>) =>
     request<Elevator>(`/elevators/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -42,6 +43,18 @@ export const elevatorApi = {
     request<Maintenance>(`/elevators/${id}/maintenance`, { method: 'POST', body: JSON.stringify(data) }),
   deleteMaintenance: (maintenanceId: string) =>
     request<void>(`/elevators/maintenance/${maintenanceId}`, { method: 'DELETE' }),
+  getTimeSlots: (id: string) => request<ElevatorTimeSlot[]>(`/elevators/${id}/time-slots`),
+  addTimeSlot: (id: string, data: Omit<ElevatorTimeSlot, 'id' | 'elevatorId'>) =>
+    request<ElevatorTimeSlot>(`/elevators/${id}/time-slots`, { method: 'POST', body: JSON.stringify(data) }),
+  updateTimeSlot: (slotId: string, data: Partial<ElevatorTimeSlot>) =>
+    request<ElevatorTimeSlot>(`/elevators/time-slots/${slotId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteTimeSlot: (slotId: string) =>
+    request<void>(`/elevators/time-slots/${slotId}`, { method: 'DELETE' }),
+  batchUpdateTimeSlots: (id: string, slots: Omit<ElevatorTimeSlot, 'id' | 'elevatorId'>[]) =>
+    request<ElevatorTimeSlot[]>(`/elevators/${id}/time-slots/batch`, { 
+      method: 'PUT', 
+      body: JSON.stringify({ slots }) 
+    }),
 };
 
 export const reservationApi = {
@@ -82,6 +95,10 @@ export const reservationApi = {
       method: 'PUT', 
       body: JSON.stringify({ status }) 
     }),
+  approve: (id: string) =>
+    request<Reservation>(`/reservations/${id}/approve`, { method: 'PUT' }),
+  cancel: (id: string) =>
+    request<Reservation>(`/reservations/${id}/cancel`, { method: 'PUT' }),
 };
 
 export const completionApi = {

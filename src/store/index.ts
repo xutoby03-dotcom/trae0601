@@ -17,8 +17,10 @@ interface AppState {
   
   createReservation: (data: Omit<Reservation, 'id' | 'createdAt' | 'elevator'>) => Promise<Reservation>;
   updateReservationStatus: (id: string, status: Reservation['status']) => Promise<void>;
+  approveReservation: (id: string) => Promise<Reservation>;
+  cancelReservation: (id: string) => Promise<Reservation>;
   
-  createElevator: (data: Omit<Elevator, 'id' | 'createdAt' | 'maintenanceSchedule'>) => Promise<Elevator>;
+  createElevator: (data: Omit<Elevator, 'id' | 'createdAt' | 'maintenanceSchedule' | 'timeSlots'>) => Promise<Elevator>;
   updateElevator: (id: string, data: Partial<Elevator>) => Promise<Elevator>;
   deleteElevator: (id: string) => Promise<void>;
   
@@ -111,6 +113,40 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: (error as Error).message });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  approveReservation: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await reservationApi.approve(id);
+      set((state) => ({
+        reservations: state.reservations.map((r) => (r.id === id ? updated : r)),
+        todayReservations: state.todayReservations.map((r) => (r.id === id ? updated : r)),
+      }));
+      return updated;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  cancelReservation: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await reservationApi.cancel(id);
+      set((state) => ({
+        reservations: state.reservations.map((r) => (r.id === id ? updated : r)),
+        todayReservations: state.todayReservations.map((r) => (r.id === id ? updated : r)),
+      }));
+      return updated;
+    } catch (error) {
+      set({ error: (error as Error).message });
+      throw error;
     } finally {
       set({ loading: false });
     }

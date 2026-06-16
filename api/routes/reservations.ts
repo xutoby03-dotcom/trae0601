@@ -5,6 +5,17 @@ import type { Reservation, ApiResponse, ConflictCheckRequest, ConflictCheckResul
 
 const router = Router();
 
+const ELEVATOR_SELECT = `
+  e.id AS e_id,
+  e.name AS e_name,
+  e.building AS e_building,
+  e.unit AS e_unit,
+  e.max_load AS e_max_load,
+  e.allows_protection_mat AS e_allows_protection_mat,
+  e.status AS e_status,
+  e.created_at AS e_created_at
+`;
+
 const rowToReservation = (row: Record<string, unknown>): Reservation => ({
   id: row.id as string,
   building: row.building as string,
@@ -24,14 +35,14 @@ const rowToReservation = (row: Record<string, unknown>): Reservation => ({
 });
 
 const rowToElevator = (row: Record<string, unknown>): Elevator => ({
-  id: row.id as string,
-  name: row.name as string,
-  building: row.building as string,
-  unit: row.unit as string,
-  maxLoad: row.max_load as number,
-  allowsProtectionMat: Boolean(row.allows_protection_mat),
-  status: row.status as 'active' | 'maintenance' | 'disabled',
-  createdAt: row.created_at as string,
+  id: row.e_id as string,
+  name: row.e_name as string,
+  building: row.e_building as string,
+  unit: row.e_unit as string,
+  maxLoad: row.e_max_load as number,
+  allowsProtectionMat: Boolean(row.e_allows_protection_mat),
+  status: row.e_status as 'active' | 'maintenance' | 'disabled',
+  createdAt: row.e_created_at as string,
 });
 
 const isTimeOverlap = (
@@ -78,7 +89,7 @@ router.get('/', (req: Request, res: Response<ApiResponse<Reservation[]>>) => {
   try {
     const { date, status, elevatorId } = req.query;
     
-    let sql = 'SELECT r.*, e.* FROM reservations r LEFT JOIN elevators e ON r.elevator_id = e.id WHERE 1=1';
+    let sql = `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r LEFT JOIN elevators e ON r.elevator_id = e.id WHERE 1=1`;
     const params: unknown[] = [];
     
     if (date) {
@@ -114,7 +125,7 @@ router.get('/today', (req: Request, res: Response<ApiResponse<Reservation[]>>) =
     const today = new Date().toISOString().split('T')[0];
     
     const rows = runQuery<Record<string, unknown>>(
-      `SELECT r.*, e.* FROM reservations r 
+      `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
        LEFT JOIN elevators e ON r.elevator_id = e.id 
        WHERE r.date = ? 
        ORDER BY r.start_time`,
@@ -154,9 +165,9 @@ router.get('/check-conflict', (req: Request<unknown, unknown, unknown, ConflictC
       return;
     }
     
-    let sql = `SELECT r.*, e.* FROM reservations r 
+    let sql = `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
                LEFT JOIN elevators e ON r.elevator_id = e.id 
-               WHERE r.elevator_id = ? AND r.date = ? AND r.status != 'cancelled'`;
+               WHERE r.elevator_id = ? AND r.date = ? AND r.status = 'approved'`;
     const params: unknown[] = [elevatorId, date];
     
     if (reservationId) {
@@ -273,24 +284,22 @@ router.post('/', (req: Request<unknown, unknown, Omit<Reservation, 'id' | 'creat
       return;
     }
     
-    const existingRows = runQuery<Record<string, unknown>>(
+    const approvedRows = runQuery<Record<string, unknown>>(
       `SELECT * FROM reservations 
-       WHERE elevator_id = ? AND date = ? AND status != 'cancelled'`,
+       WHERE elevator_id = ? AND date = ? AND status = 'approved'`,
       [elevatorId, date]
     );
     
-    for (const existing of existingRows) {
+    let hasApprovedConflict = false;
+    for (const existing of approvedRows) {
       if (isTimeOverlap(startTime, endTime, existing.start_time as string, existing.end_time as string)) {
-        res.status(409).json({ 
-          success: false, 
-          error: '该时段已有预约，请选择其他时段或电梯' 
-        });
-        return;
+        hasApprovedConflict = true;
+        break;
       }
     }
     
     const id = uuidv4();
-    const status: Reservation['status'] = 'approved';
+    const status: Reservation['status'] = hasApprovedConflict ? 'conflict' : 'approved';
     
     runExecute(
       `INSERT INTO reservations (
@@ -306,7 +315,7 @@ router.post('/', (req: Request<unknown, unknown, Omit<Reservation, 'id' | 'creat
     );
     
     const row = runOne<Record<string, unknown>>(
-      `SELECT r.*, e.* FROM reservations r 
+      `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
        LEFT JOIN elevators e ON r.elevator_id = e.id 
        WHERE r.id = ?`,
       [id]
@@ -335,7 +344,7 @@ router.put('/:id/status', (req: Request<{ id: string }, unknown, { status: Reser
     runExecute('UPDATE reservations SET status = ? WHERE id = ?', [status, id]);
     
     const row = runOne<Record<string, unknown>>(
-      `SELECT r.*, e.* FROM reservations r 
+      `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
        LEFT JOIN elevators e ON r.elevator_id = e.id 
        WHERE r.id = ?`,
       [id]
@@ -345,6 +354,92 @@ router.put('/:id/status', (req: Request<{ id: string }, unknown, { status: Reser
     reservation.elevator = rowToElevator(row!);
     
     res.json({ success: true, data: reservation });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.put('/:id/approve', (req: Request<{ id: string }>, res: Response<ApiResponse<Reservation>>) => {
+  try {
+    const { id } = req.params;
+    
+    const reservationRow = runOne<Record<string, unknown>>(
+      'SELECT * FROM reservations WHERE id = ?',
+      [id]
+    );
+    
+    if (!reservationRow) {
+      res.status(404).json({ success: false, error: '预约不存在' });
+      return;
+    }
+    
+    if (reservationRow.status !== 'conflict' && reservationRow.status !== 'pending') {
+      res.status(400).json({ success: false, error: '只有冲突或待处理状态的预约可以审核通过' });
+      return;
+    }
+    
+    const approvedRows = runQuery<Record<string, unknown>>(
+      `SELECT * FROM reservations 
+       WHERE elevator_id = ? AND date = ? AND status = 'approved' AND id != ?`,
+      [reservationRow.elevator_id, reservationRow.date, id]
+    );
+    
+    for (const existing of approvedRows) {
+      if (isTimeOverlap(
+        reservationRow.start_time as string, 
+        reservationRow.end_time as string, 
+        existing.start_time as string, 
+        existing.end_time as string
+      )) {
+        res.status(409).json({ 
+          success: false, 
+          error: '该时段已有其他已通过的预约，无法通过此申请' 
+        });
+        return;
+      }
+    }
+    
+    runExecute('UPDATE reservations SET status = ? WHERE id = ?', ['approved', id]);
+    
+    const row = runOne<Record<string, unknown>>(
+      `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
+       LEFT JOIN elevators e ON r.elevator_id = e.id 
+       WHERE r.id = ?`,
+      [id]
+    );
+    
+    const reservation = rowToReservation(row!);
+    reservation.elevator = rowToElevator(row!);
+    
+    res.json({ success: true, data: reservation, message: '预约已通过' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.put('/:id/cancel', (req: Request<{ id: string }>, res: Response<ApiResponse<Reservation>>) => {
+  try {
+    const { id } = req.params;
+    
+    const existing = runOne('SELECT id, status FROM reservations WHERE id = ?', [id]);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '预约不存在' });
+      return;
+    }
+    
+    runExecute('UPDATE reservations SET status = ? WHERE id = ?', ['cancelled', id]);
+    
+    const row = runOne<Record<string, unknown>>(
+      `SELECT r.*, ${ELEVATOR_SELECT} FROM reservations r 
+       LEFT JOIN elevators e ON r.elevator_id = e.id 
+       WHERE r.id = ?`,
+      [id]
+    );
+    
+    const reservation = rowToReservation(row!);
+    reservation.elevator = rowToElevator(row!);
+    
+    res.json({ success: true, data: reservation, message: '预约已取消' });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
   }

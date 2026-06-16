@@ -10,6 +10,33 @@ const dbPath = path.join(__dirname, 'elevator.db');
 
 let db: Database.Database;
 
+function runMigrations() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version TEXT PRIMARY KEY,
+      applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  const migrationsDir = path.join(__dirname, '../../migrations');
+  const migrationFiles = fs.readdirSync(migrationsDir)
+    .filter(f => f.endsWith('.sql'))
+    .sort();
+
+  for (const file of migrationFiles) {
+    const version = file.replace('.sql', '');
+    const row = db.prepare('SELECT version FROM schema_migrations WHERE version = ?').get(version);
+    
+    if (!row) {
+      const migrationPath = path.join(migrationsDir, file);
+      const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
+      db.exec(migrationSQL);
+      db.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
+      console.log(`Applied migration: ${file}`);
+    }
+  }
+}
+
 function initDatabase() {
   const dbExists = fs.existsSync(dbPath);
   db = new Database(dbPath);
@@ -17,10 +44,9 @@ function initDatabase() {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   
+  runMigrations();
+  
   if (!dbExists) {
-    const migrationPath = path.join(__dirname, '../../migrations/001_initial_schema.sql');
-    const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
-    db.exec(migrationSQL);
     console.log('Database initialized with schema and seed data');
   }
   

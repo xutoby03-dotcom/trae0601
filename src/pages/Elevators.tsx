@@ -9,12 +9,13 @@ import {
   Wrench,
   Shield,
   Gauge,
-  AlertTriangle
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { useAppStore } from '../store';
 import { BUILDINGS, UNITS, cn } from '../lib/utils';
 import StatusBadge from '../components/StatusBadge';
-import type { Elevator, Maintenance } from '../../shared/types';
+import type { Elevator, Maintenance, ElevatorTimeSlot } from '../../shared/types';
 
 interface ElevatorFormData {
   name: string;
@@ -30,6 +31,11 @@ interface MaintenanceFormData {
   startTime: string;
   endTime: string;
   description: string;
+}
+
+interface TimeSlotFormData {
+  startTime: string;
+  endTime: string;
 }
 
 const initialFormData: ElevatorFormData = {
@@ -48,6 +54,11 @@ const initialMaintenanceForm: MaintenanceFormData = {
   description: '',
 };
 
+const initialTimeSlotForm: TimeSlotFormData = {
+  startTime: '08:00',
+  endTime: '10:00',
+};
+
 export default function Elevators() {
   const { elevators, fetchElevators, createElevator, updateElevator, deleteElevator } = useAppStore();
   const [showForm, setShowForm] = useState(false);
@@ -56,6 +67,9 @@ export default function Elevators() {
   const [selectedElevator, setSelectedElevator] = useState<Elevator | null>(null);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [maintenanceForm, setMaintenanceForm] = useState<MaintenanceFormData>(initialMaintenanceForm);
+  const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
+  const [timeSlotForm, setTimeSlotForm] = useState<TimeSlotFormData>(initialTimeSlotForm);
+  const [editingTimeSlotId, setEditingTimeSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchElevators();
@@ -153,6 +167,71 @@ export default function Elevators() {
         
         const updated = await elevatorApi.getById(selectedElevator.id);
         setSelectedElevator(updated);
+      } catch (error) {
+        // Error handled by store
+      }
+    }
+  };
+
+  const handleOpenTimeSlots = (elevator: Elevator) => {
+    setSelectedElevator(elevator);
+    setShowTimeSlotModal(true);
+    setEditingTimeSlotId(null);
+    setTimeSlotForm(initialTimeSlotForm);
+  };
+
+  const handleCloseTimeSlots = () => {
+    setShowTimeSlotModal(false);
+    setSelectedElevator(null);
+    setEditingTimeSlotId(null);
+    setTimeSlotForm(initialTimeSlotForm);
+  };
+
+  const handleAddTimeSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedElevator) return;
+    
+    try {
+      const { elevatorApi } = await import('../lib/api');
+      
+      if (editingTimeSlotId) {
+        await elevatorApi.updateTimeSlot(editingTimeSlotId, timeSlotForm);
+      } else {
+        await elevatorApi.addTimeSlot(selectedElevator.id, timeSlotForm);
+      }
+      
+      const updated = await elevatorApi.getById(selectedElevator.id);
+      setSelectedElevator(updated);
+      
+      setEditingTimeSlotId(null);
+      setTimeSlotForm(initialTimeSlotForm);
+      
+      await fetchElevators();
+    } catch (error) {
+      // Error handled by store
+    }
+  };
+
+  const handleEditTimeSlot = (slot: ElevatorTimeSlot) => {
+    setEditingTimeSlotId(slot.id);
+    setTimeSlotForm({
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+    });
+  };
+
+  const handleDeleteTimeSlot = async (slotId: string) => {
+    if (!selectedElevator) return;
+    if (confirm('确定要删除这个时段吗？')) {
+      try {
+        const { elevatorApi } = await import('../lib/api');
+        await elevatorApi.deleteTimeSlot(slotId);
+        
+        const updated = await elevatorApi.getById(selectedElevator.id);
+        setSelectedElevator(updated);
+        
+        await fetchElevators();
       } catch (error) {
         // Error handled by store
       }
@@ -268,6 +347,13 @@ export default function Elevators() {
               >
                 <Edit className="w-4 h-4" />
                 编辑
+              </button>
+              <button
+                onClick={() => handleOpenTimeSlots(elevator)}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <Clock className="w-4 h-4" />
+                时段
               </button>
               <button
                 onClick={() => setSelectedElevator(elevator)}
@@ -547,6 +633,129 @@ export default function Elevators() {
                   <div className="text-center py-8 text-slate-500">
                     <AlertTriangle className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                     <p>暂无检修安排</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTimeSlotModal && selectedElevator && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-800">可用时段管理</h2>
+                <p className="text-sm text-slate-500">{selectedElevator.name}</p>
+              </div>
+              <button
+                onClick={handleCloseTimeSlots}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-medium text-slate-700">时段列表</h3>
+                <button
+                  onClick={() => {
+                    setEditingTimeSlotId(null);
+                    setTimeSlotForm(initialTimeSlotForm);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  添加时段
+                </button>
+              </div>
+
+              <form onSubmit={handleAddTimeSlot} className="bg-slate-50 rounded-xl p-4 mb-4">
+                <div className="flex items-end gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">开始时间</label>
+                    <input
+                      type="time"
+                      value={timeSlotForm.startTime}
+                      onChange={(e) => setTimeSlotForm(prev => ({ ...prev, startTime: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      required
+                    />
+                  </div>
+                  <span className="pb-2 text-slate-500">-</span>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">结束时间</label>
+                    <input
+                      type="time"
+                      value={timeSlotForm.endTime}
+                      onChange={(e) => setTimeSlotForm(prev => ({ ...prev, endTime: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    {editingTimeSlotId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTimeSlotId(null);
+                          setTimeSlotForm(initialTimeSlotForm);
+                        }}
+                        className="px-4 py-2 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        取消
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="px-4 py-2 text-sm bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                    >
+                      {editingTimeSlotId ? '修改' : '添加'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+              
+              <div className="space-y-3">
+                {selectedElevator.timeSlots && selectedElevator.timeSlots.length > 0 ? (
+                  selectedElevator.timeSlots.map(slot => (
+                    <div
+                      key={slot.id}
+                      className="flex items-center justify-between p-4 bg-slate-50 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-sky-600" />
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-800">
+                            {slot.startTime} - {slot.endTime}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleEditTimeSlot(slot)}
+                          className="p-2 text-slate-500 hover:bg-slate-200 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTimeSlot(slot.id)}
+                          className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-slate-500">
+                    <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p>暂无可用时段</p>
+                    <p className="text-sm">请先为这部电梯添加可用时段</p>
                   </div>
                 )}
               </div>

@@ -39,8 +39,10 @@ export default function Dashboard() {
     fetchTodayReservations,
     fetchReservations,
     fetchPendingInspections,
-    updateReservationStatus,
-    updateInspection
+    approveReservation,
+    cancelReservation,
+    updateInspection,
+    setError
   } = useAppStore();
   
   const [selectedTab, setSelectedTab] = useState<'timeline' | 'conflicts' | 'inspections'>('timeline');
@@ -59,11 +61,25 @@ export default function Dashboard() {
   const pendingCount = pendingInspections.length;
 
   const handleApproveReservation = async (id: string) => {
-    await updateReservationStatus(id, 'approved');
+    if (!confirm('确定要通过这个预约申请吗？通过后将占用该时段。')) {
+      return;
+    }
+    try {
+      await approveReservation(id);
+    } catch (error) {
+      setError((error as Error).message);
+    }
   };
 
   const handleCancelReservation = async (id: string) => {
-    await updateReservationStatus(id, 'cancelled');
+    if (!confirm('确定要取消这个预约申请吗？')) {
+      return;
+    }
+    try {
+      await cancelReservation(id);
+    } catch (error) {
+      setError((error as Error).message);
+    }
   };
 
   const handleCompleteInspection = async (id: string) => {

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { runQuery, runOne, runExecute } from '../db';
-import type { Elevator, Maintenance, ApiResponse } from '../../shared/types';
+import { runQuery, runOne, runExecute, runTransaction } from '../db';
+import type { Elevator, Maintenance, ElevatorTimeSlot, ApiResponse } from '../../shared/types';
 
 const router = Router();
 
@@ -25,10 +25,36 @@ const rowToMaintenance = (row: Record<string, unknown>): Maintenance => ({
   description: row.description as string,
 });
 
+const rowToTimeSlot = (row: Record<string, unknown>): ElevatorTimeSlot => ({
+  id: row.id as string,
+  elevatorId: row.elevator_id as string,
+  startTime: row.start_time as string,
+  endTime: row.end_time as string,
+  dayOfWeek: row.day_of_week !== null ? (row.day_of_week as number) : undefined,
+});
+
 router.get('/', (req: Request, res: Response<ApiResponse<Elevator[]>>) => {
   try {
     const rows = runQuery<Record<string, unknown>>('SELECT * FROM elevators ORDER BY building, unit, name');
     const elevators = rows.map(rowToElevator);
+    
+    const allTimeSlotRows = runQuery<Record<string, unknown>>(
+      'SELECT * FROM elevator_time_slots ORDER BY elevator_id, start_time'
+    );
+    
+    const timeSlotsByElevator = new Map<string, ElevatorTimeSlot[]>();
+    for (const row of allTimeSlotRows) {
+      const slot = rowToTimeSlot(row);
+      if (!timeSlotsByElevator.has(slot.elevatorId)) {
+        timeSlotsByElevator.set(slot.elevatorId, []);
+      }
+      timeSlotsByElevator.get(slot.elevatorId)!.push(slot);
+    }
+    
+    for (const elevator of elevators) {
+      elevator.timeSlots = timeSlotsByElevator.get(elevator.id) || [];
+    }
+    
     res.json({ success: true, data: elevators });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
@@ -52,6 +78,12 @@ router.get('/:id', (req: Request, res: Response<ApiResponse<Elevator>>) => {
       [id]
     );
     elevator.maintenanceSchedule = maintenanceRows.map(rowToMaintenance);
+    
+    const timeSlotRows = runQuery<Record<string, unknown>>(
+      'SELECT * FROM elevator_time_slots WHERE elevator_id = ? ORDER BY start_time',
+      [id]
+    );
+    elevator.timeSlots = timeSlotRows.map(rowToTimeSlot);
     
     res.json({ success: true, data: elevator });
   } catch (error) {
@@ -141,8 +173,11 @@ router.delete('/:id', (req: Request, res: Response<ApiResponse>) => {
       return;
     }
     
-    runExecute('DELETE FROM maintenance WHERE elevator_id = ?', [id]);
-    runExecute('DELETE FROM elevators WHERE id = ?', [id]);
+    runTransaction(() => {
+      runExecute('DELETE FROM maintenance WHERE elevator_id = ?', [id]);
+      runExecute('DELETE FROM elevator_time_slots WHERE elevator_id = ?', [id]);
+      runExecute('DELETE FROM elevators WHERE id = ?', [id]);
+    });
     
     res.json({ success: true, message: '电梯已删除' });
   } catch (error) {
@@ -189,6 +224,139 @@ router.delete('/maintenance/:maintenanceId', (req: Request, res: Response<ApiRes
     const { maintenanceId } = req.params;
     runExecute('DELETE FROM maintenance WHERE id = ?', [maintenanceId]);
     res.json({ success: true, message: '检修安排已删除' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.get('/:id/time-slots', (req: Request, res: Response<ApiResponse<ElevatorTimeSlot[]>>) => {
+  try {
+    const { id } = req.params;
+    const rows = runQuery<Record<string, unknown>>(
+      'SELECT * FROM elevator_time_slots WHERE elevator_id = ? ORDER BY start_time',
+      [id]
+    );
+    const timeSlots = rows.map(rowToTimeSlot);
+    res.json({ success: true, data: timeSlots });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.post('/:id/time-slots', (req: Request<{ id: string }, unknown, Omit<ElevatorTimeSlot, 'id' | 'elevatorId'>>, res: Response<ApiResponse<ElevatorTimeSlot>>) => {
+  try {
+    const { id } = req.params;
+    const { startTime, endTime, dayOfWeek } = req.body;
+    
+    const existing = runOne('SELECT id FROM elevators WHERE id = ?', [id]);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '电梯不存在' });
+      return;
+    }
+    
+    const timeSlotId = uuidv4();
+    runExecute(
+      'INSERT INTO elevator_time_slots (id, elevator_id, start_time, end_time, day_of_week) VALUES (?, ?, ?, ?, ?)',
+      [timeSlotId, id, startTime, endTime, dayOfWeek !== undefined ? dayOfWeek : null]
+    );
+    
+    const row = runOne<Record<string, unknown>>('SELECT * FROM elevator_time_slots WHERE id = ?', [timeSlotId]);
+    const timeSlot = rowToTimeSlot(row!);
+    
+    res.status(201).json({ success: true, data: timeSlot });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.put('/time-slots/:slotId', (req: Request<{ slotId: string }, unknown, Partial<ElevatorTimeSlot>>, res: Response<ApiResponse<ElevatorTimeSlot>>) => {
+  try {
+    const { slotId } = req.params;
+    const { startTime, endTime, dayOfWeek } = req.body;
+    
+    const existing = runOne('SELECT id FROM elevator_time_slots WHERE id = ?', [slotId]);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '时段不存在' });
+      return;
+    }
+    
+    const updates: string[] = [];
+    const params: unknown[] = [];
+    
+    if (startTime !== undefined) {
+      updates.push('start_time = ?');
+      params.push(startTime);
+    }
+    if (endTime !== undefined) {
+      updates.push('end_time = ?');
+      params.push(endTime);
+    }
+    if (dayOfWeek !== undefined) {
+      updates.push('day_of_week = ?');
+      params.push(dayOfWeek);
+    }
+    
+    if (updates.length > 0) {
+      params.push(slotId);
+      runExecute(`UPDATE elevator_time_slots SET ${updates.join(', ')} WHERE id = ?`, params);
+    }
+    
+    const row = runOne<Record<string, unknown>>('SELECT * FROM elevator_time_slots WHERE id = ?', [slotId]);
+    const timeSlot = rowToTimeSlot(row!);
+    
+    res.json({ success: true, data: timeSlot });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.delete('/time-slots/:slotId', (req: Request, res: Response<ApiResponse>) => {
+  try {
+    const { slotId } = req.params;
+    
+    const existing = runOne('SELECT id FROM elevator_time_slots WHERE id = ?', [slotId]);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '时段不存在' });
+      return;
+    }
+    
+    runExecute('DELETE FROM elevator_time_slots WHERE id = ?', [slotId]);
+    res.json({ success: true, message: '时段已删除' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+router.put('/:id/time-slots/batch', (req: Request<{ id: string }, unknown, { slots: Omit<ElevatorTimeSlot, 'id' | 'elevatorId'>[] }>, res: Response<ApiResponse<ElevatorTimeSlot[]>>) => {
+  try {
+    const { id } = req.params;
+    const { slots } = req.body;
+    
+    const existing = runOne('SELECT id FROM elevators WHERE id = ?', [id]);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '电梯不存在' });
+      return;
+    }
+    
+    runTransaction(() => {
+      runExecute('DELETE FROM elevator_time_slots WHERE elevator_id = ?', [id]);
+      
+      for (const slot of slots) {
+        const slotId = uuidv4();
+        runExecute(
+          'INSERT INTO elevator_time_slots (id, elevator_id, start_time, end_time, day_of_week) VALUES (?, ?, ?, ?, ?)',
+          [slotId, id, slot.startTime, slot.endTime, slot.dayOfWeek !== undefined ? slot.dayOfWeek : null]
+        );
+      }
+    });
+    
+    const rows = runQuery<Record<string, unknown>>(
+      'SELECT * FROM elevator_time_slots WHERE elevator_id = ? ORDER BY start_time',
+      [id]
+    );
+    const timeSlots = rows.map(rowToTimeSlot);
+    
+    res.json({ success: true, data: timeSlots });
   } catch (error) {
     res.status(500).json({ success: false, error: (error as Error).message });
   }
