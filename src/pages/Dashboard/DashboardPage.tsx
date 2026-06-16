@@ -25,6 +25,7 @@ import {
   Crown,
   MessageSquare,
   ArrowRight,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import Avatar from '../../components/Avatar';
@@ -379,6 +380,20 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <p className="text-sm text-brown-600 line-clamp-2">{feedback.comment || '无文字反馈'}</p>
+                  {feedback.photos && feedback.photos.length > 0 && (
+                    <div className="flex gap-1 mt-2">
+                      {feedback.photos.slice(0, 3).map((photo, idx) => (
+                        <div key={idx} className="w-10 h-10 rounded-md overflow-hidden bg-warm-200 flex-shrink-0">
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {feedback.photos.length > 3 && (
+                        <div className="w-10 h-10 rounded-md bg-warm-200 flex items-center justify-center text-xs text-brown-500 flex-shrink-0">
+                          +{feedback.photos.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {feedback.positiveTags.slice(0, 3).map((tag) => (
                       <span

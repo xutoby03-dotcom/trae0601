@@ -9,7 +9,11 @@
     "priceAcceptance": 4,
     "positiveTags": ["味道好", "食材新鲜", "摆盘精致", "有特色"],
     "negativeTags": ["服务慢"],
-    "photos": [],
+    "photos": [
+      "https://picsum.photos/seed/food1/400/300",
+      "https://picsum.photos/seed/food2/400/300",
+      "https://picsum.photos/seed/food3/400/300"
+    ],
     "comment": "整体体验很棒，菜品很有特色，食材也很新鲜。就是上菜稍微慢了一点，可能是试营业的原因。",
     "createdAt": "2026-06-15T14:30:00Z",
     "isFollowedUp": true,
@@ -25,7 +29,10 @@
     "priceAcceptance": 5,
     "positiveTags": ["服务好", "价格实惠", "分量足", "干净卫生"],
     "negativeTags": ["动线混乱"],
-    "photos": [],
+    "photos": [
+      "https://picsum.photos/seed/shop1/400/300",
+      "https://picsum.photos/seed/shop2/400/300"
+    ],
     "comment": "服务态度特别好，价格也很实惠。就是店里的动线有点乱，找位置和取餐不太方便。",
     "createdAt": "2026-06-15T14:00:00Z",
     "isFollowedUp": false
@@ -40,7 +47,9 @@
     "priceAcceptance": 3,
     "positiveTags": ["味道好", "环境棒", "氛围好", "分量足"],
     "negativeTags": ["价格偏贵"],
-    "photos": [],
+    "photos": [
+      "https://picsum.photos/seed/drink1/400/300"
+    ],
     "comment": "环境和味道都不错，小朋友也很喜欢。就是价格稍微有点贵，如果能便宜点会经常来。",
     "createdAt": "2026-06-15T15:00:00Z",
     "isFollowedUp": false
@@ -55,7 +64,13 @@
     "priceAcceptance": 4,
     "positiveTags": ["味道好", "食材新鲜", "创意不错", "摆盘精致", "服务好"],
     "negativeTags": [],
-    "photos": [],
+    "photos": [
+      "https://picsum.photos/seed/gourmet1/400/300",
+      "https://picsum.photos/seed/gourmet2/400/300",
+      "https://picsum.photos/seed/gourmet3/400/300",
+      "https://picsum.photos/seed/gourmet4/400/300",
+      "https://picsum.photos/seed/gourmet5/400/300"
+    ],
     "comment": "作为同行，我觉得做得很不错！味道和创意都在线，是一家有潜力的店。",
     "createdAt": "2026-06-16T21:30:00Z",
     "isFollowedUp": false

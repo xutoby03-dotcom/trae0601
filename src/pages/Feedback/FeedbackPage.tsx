@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { 
   MessageSquare, 
   Star, 
@@ -7,7 +8,9 @@ import {
   Camera,
   Send,
   Filter,
-  Check
+  Check,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import Avatar from '../../components/Avatar';
@@ -32,6 +35,7 @@ export default function FeedbackPage() {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGuestId, setSelectedGuestId] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     tasteScore: 4,
@@ -40,6 +44,7 @@ export default function FeedbackPage() {
     priceAcceptance: 4,
     positiveTags: [] as string[],
     negativeTags: [] as string[],
+    photos: [] as string[],
     comment: '',
   });
 
@@ -69,6 +74,7 @@ export default function FeedbackPage() {
       priceAcceptance: 4,
       positiveTags: [],
       negativeTags: [],
+      photos: [],
       comment: '',
     });
     setSelectedGuestId(availableGuestsForFeedback[0]?.id || '');
@@ -95,7 +101,7 @@ export default function FeedbackPage() {
         priceAcceptance: formData.priceAcceptance,
         positiveTags: formData.positiveTags,
         negativeTags: formData.negativeTags,
-        photos: [],
+        photos: formData.photos,
         comment: formData.comment,
         isFollowedUp: false,
       });
@@ -121,6 +127,44 @@ export default function FeedbackPage() {
           : [...prev.negativeTags, tag]
       }));
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newPhotos: string[] = [];
+    let processed = 0;
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          newPhotos.push(event.target.result as string);
+        }
+        processed++;
+        if (processed === files.length || processed + newPhotos.length === files.length) {
+          setFormData(prev => ({
+            ...prev,
+            photos: [...prev.photos, ...newPhotos]
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index)
+    }));
   };
 
   const handleFollowUp = async (id: string) => {
@@ -346,15 +390,50 @@ export default function FeedbackPage() {
             />
           </div>
 
-          {/* 照片上传 (占位) */}
+          {/* 照片上传 */}
           <div>
             <label className="block text-sm font-medium text-brown-700 mb-2">
               照片
             </label>
-            <div className="border-2 border-dashed border-warm-200 rounded-xl p-6 text-center hover:border-primary-300 transition-colors cursor-pointer">
-              <Camera size={32} className="mx-auto text-warm-400 mb-2" />
-              <p className="text-sm text-brown-500">点击或拖拽上传照片</p>
-              <p className="text-xs text-brown-400 mt-1">支持 JPG、PNG 格式（演示版本暂不支持）</p>
+            <div className="space-y-3">
+              {formData.photos.length > 0 && (
+                <div className="grid grid-cols-4 gap-3">
+                  {formData.photos.map((photo, index) => (
+                    <div key={index} className="relative group aspect-square">
+                      <img
+                        src={photo}
+                        alt={`上传的照片 ${index + 1}`}
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-warm-200 rounded-xl p-6 text-center hover:border-primary-400 hover:bg-primary-50/50 transition-all cursor-pointer"
+              >
+                <Camera size={32} className="mx-auto text-warm-400 mb-2" />
+                <p className="text-sm text-brown-600 font-medium">点击或拖拽上传照片</p>
+                <p className="text-xs text-brown-400 mt-1">支持 JPG、PNG 格式，可多选</p>
+              </div>
             </div>
           </div>
 
@@ -479,6 +558,31 @@ function FeedbackCard({ feedback, guestName, sessionName, onFollowUp }: Feedback
                     {tag}
                   </span>
                 ))}
+              </div>
+            </div>
+          )}
+          
+          {feedback.photos && feedback.photos.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs text-brown-500 mb-1.5 flex items-center gap-1">
+                <ImageIcon size={12} />
+                照片 ({feedback.photos.length})
+              </p>
+              <div className="flex gap-2">
+                {feedback.photos.slice(0, 4).map((photo, index) => (
+                  <div key={index} className="w-16 h-16 rounded-lg overflow-hidden bg-warm-100 flex-shrink-0">
+                    <img
+                      src={photo}
+                      alt={`反馈照片 ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+                {feedback.photos.length > 4 && (
+                  <div className="w-16 h-16 rounded-lg bg-warm-100 flex items-center justify-center text-sm text-brown-500 flex-shrink-0">
+                    +{feedback.photos.length - 4}
+                  </div>
+                )}
               </div>
             </div>
           )}
