@@ -63,11 +63,11 @@ export function ScanPickupModal({ isOpen, onClose, onMemberFound }: ScanPickupMo
     });
 
     if (found) {
-      setMatchedMember(found);
+      const queueStart = new Date().toISOString();
+      const memberWithFreshQueue = { ...found, queueStartTime: queueStart };
+      setMatchedMember(memberWithFreshQueue);
       setCurrentPickupPoint(found.pickupPoint);
-      if (!found.queueStartTime) {
-        startQueue(found.id);
-      }
+      startQueue(found.id);
     } else {
       setError('未找到匹配的待领取成员，请检查输入');
     }

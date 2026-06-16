@@ -22,7 +22,7 @@ export default function KanbanBoard() {
   const [pickupMode, setPickupMode] = useState<'self' | 'proxy'>('self');
 
   const { pickupPoints, currentPickupPoint, setCurrentPickupPoint } = usePickupPointStore();
-  const { members, searchMembers, confirmPickup, confirmProxyPickup, getMemberById } = useMemberStore();
+  const { members, searchMembers, confirmPickup, confirmProxyPickup, getMemberById, startQueue } = useMemberStore();
 
   const filteredMembers = useMemo(() => {
     return searchMembers(searchQuery, currentPickupPoint);
@@ -37,13 +37,15 @@ export default function KanbanBoard() {
   }, [members, currentPickupPoint]);
 
   const handlePickupClick = (member: Member) => {
-    setSelectedMember(member);
+    startQueue(member.id);
+    setSelectedMember({ ...member, queueStartTime: new Date().toISOString() });
     setPickupMode('self');
     setShowPickupModal(true);
   };
 
   const handleProxyClick = (member: Member) => {
-    setSelectedMember(member);
+    startQueue(member.id);
+    setSelectedMember({ ...member, queueStartTime: new Date().toISOString() });
     setShowProxyModal(true);
   };
 

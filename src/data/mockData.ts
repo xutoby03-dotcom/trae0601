@@ -76,23 +76,6 @@ const names = [
 function generateMembers(): Member[] {
   const members: Member[] = [];
   for (let i = 0; i < 35; i++) {
-    const statusRoll = Math.random();
-    let status: Member['status'];
-    let pickupTime: string | null = null;
-    let proxyById: string | null = null;
-    let queueStartTime: string | null = null;
-
-    if (statusRoll < 0.5) {
-      status = 'pending';
-      queueStartTime = new Date(Date.now() - Math.random() * 10 * 60 * 1000).toISOString();
-    } else if (statusRoll < 0.85) {
-      status = 'picked';
-      pickupTime = new Date(Date.now() - Math.random() * 60 * 60 * 1000).toISOString();
-    } else {
-      status = 'proxied';
-      pickupTime = new Date(Date.now() - Math.random() * 30 * 60 * 1000).toISOString();
-    }
-
     members.push({
       id: `member-${i + 1}`,
       name: names[i],
@@ -101,10 +84,10 @@ function generateMembers(): Member[] {
       amountDue: Math.floor(Math.random() * 3) === 0 ? 0 : [35, 50, 65, 80][Math.floor(Math.random() * 4)],
       canProxy: Math.random() > 0.6,
       pickupPoint: mockPickupPoints[Math.floor(Math.random() * mockPickupPoints.length)].id,
-      status,
-      proxyById,
-      pickupTime,
-      queueStartTime,
+      status: 'pending',
+      proxyById: null,
+      pickupTime: null,
+      queueStartTime: null,
       createdAt: '2026-06-01T10:00:00Z',
     });
   }

@@ -151,7 +151,7 @@ export const useMemberStore = create<MemberState>()(
       },
     }),
     {
-      name: 'member-storage',
+      name: 'member-storage-v2',
     }
   )
 );
