@@ -80,6 +80,11 @@ export default function ReimbursementNew() {
     setReceiptFile(null);
     setReceiptPreview('');
     setReceiptClear('');
+    setErrors((prev) => ({
+      ...prev,
+      receipt: '请上传票据照片',
+      receiptClear: '',
+    }));
   };
 
   const validateStep1 = () => {
