@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PickupPoint, PickupRecord, PickupPointStats } from '../types';
-import { mockPickupPoints, mockPickupRecords } from '../data/mockData';
+import { mockPickupPoints } from '../data/mockData';
 
 interface PickupPointState {
   pickupPoints: PickupPoint[];
@@ -21,7 +21,7 @@ export const usePickupPointStore = create<PickupPointState>()(
     (set, get) => ({
       pickupPoints: mockPickupPoints,
       currentPickupPoint: mockPickupPoints[0]?.id || '',
-      pickupRecords: mockPickupRecords,
+      pickupRecords: [],
 
       setCurrentPickupPoint: (id) => set({ currentPickupPoint: id }),
 
@@ -81,7 +81,7 @@ export const usePickupPointStore = create<PickupPointState>()(
       },
     }),
     {
-      name: 'pickup-point-storage',
+      name: 'pickup-point-storage-v2',
     }
   )
 );

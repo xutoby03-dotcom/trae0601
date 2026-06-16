@@ -21,8 +21,8 @@ export function ScanPickupModal({ isOpen, onClose, onMemberFound }: ScanPickupMo
   const [matchedMember, setMatchedMember] = useState<Member | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { currentPickupPoint } = usePickupPointStore();
-  const { members } = useMemberStore();
+  const { setCurrentPickupPoint, pickupPoints } = usePickupPointStore();
+  const { members, startQueue } = useMemberStore();
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +46,6 @@ export function ScanPickupModal({ isOpen, onClose, onMemberFound }: ScanPickupMo
 
     const found = members.find((m) => {
       if (m.status !== 'pending') return false;
-      if (m.pickupPoint !== currentPickupPoint) return false;
 
       if (trimmedCode.length === 4 && /^\d+$/.test(trimmedCode)) {
         return m.phoneLastFour === trimmedCode;
@@ -65,6 +64,10 @@ export function ScanPickupModal({ isOpen, onClose, onMemberFound }: ScanPickupMo
 
     if (found) {
       setMatchedMember(found);
+      setCurrentPickupPoint(found.pickupPoint);
+      if (!found.queueStartTime) {
+        startQueue(found.id);
+      }
     } else {
       setError('未找到匹配的待领取成员，请检查输入');
     }
@@ -143,8 +146,11 @@ export function ScanPickupModal({ isOpen, onClose, onMemberFound }: ScanPickupMo
               <Avatar name={matchedMember.name} size="lg" />
               <div className="flex-1">
                 <h4 className="text-lg font-semibold text-white">{matchedMember.name}</h4>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <Tag variant="purple">{matchedMember.seatSection}</Tag>
+                  <Tag variant="gold">
+                    {pickupPoints.find(p => p.id === matchedMember.pickupPoint)?.name}
+                  </Tag>
                   <span className="text-sm text-gray-400">尾号 {matchedMember.phoneLastFour}</span>
                 </div>
               </div>
