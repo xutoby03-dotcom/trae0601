@@ -1,6 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { Clock, Users, Wrench, X, QrCode } from 'lucide-react';
 import type { Booking } from '@/types';
-import { mockRooms, mockInstruments } from '@/data/mockData';
+import { useStore } from '@/store/useStore';
 import StatusBadge from './StatusBadge';
 import { cn } from '@/lib/utils';
 
@@ -24,8 +25,13 @@ function formatDate(date: Date): string {
 }
 
 export default function BookingCard({ booking, showActions = false }: BookingCardProps) {
-  const room = mockRooms.find((r) => r.id === booking.roomId);
-  const instrument = mockInstruments.find((i) => i.id === booking.instrumentId);
+  const navigate = useNavigate();
+  const rooms = useStore((s) => s.rooms);
+  const instruments = useStore((s) => s.instruments);
+  const checkInBooking = useStore((s) => s.checkInBooking);
+
+  const room = rooms.find((r) => r.id === booking.roomId);
+  const instrument = instruments.find((i) => i.id === booking.instrumentId);
 
   const showCheckIn = booking.status === 'waiting_checkin';
   const showRepair = booking.status === 'checked_in' || booking.status === 'waiting_checkin';
@@ -33,6 +39,20 @@ export default function BookingCard({ booking, showActions = false }: BookingCar
     booking.status === 'approved' ||
     booking.status === 'waiting_checkin' ||
     booking.status === 'pending_approval';
+
+  const handleRepair = () => {
+    navigate(
+      `/repairs?bookingId=${encodeURIComponent(booking.id)}&roomId=${encodeURIComponent(booking.roomId)}`,
+    );
+  };
+
+  const handleCheckIn = () => {
+    checkInBooking(booking.id);
+  };
+
+  const handleCancel = () => {
+    // TODO: 接入取消预约功能
+  };
 
   return (
     <div
@@ -76,6 +96,7 @@ export default function BookingCard({ booking, showActions = false }: BookingCar
         <div className="flex items-center gap-2 pt-3 border-t border-border-subtle">
           {showCheckIn && (
             <button
+              onClick={handleCheckIn}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-copper text-white text-sm font-medium hover:bg-accent-copper-dark transition-colors"
             >
               <QrCode className="w-4 h-4" />
@@ -84,6 +105,7 @@ export default function BookingCard({ booking, showActions = false }: BookingCar
           )}
           {showRepair && (
             <button
+              onClick={handleRepair}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-bg-elevated text-text-secondary text-sm font-medium hover:bg-bg-secondary hover:text-text-primary transition-colors"
             >
               <Wrench className="w-4 h-4" />
@@ -92,6 +114,7 @@ export default function BookingCard({ booking, showActions = false }: BookingCar
           )}
           {showCancel && !showCheckIn && !showRepair && (
             <button
+              onClick={handleCancel}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-state-danger/20 text-state-danger-light text-sm font-medium hover:bg-state-danger/30 transition-colors"
             >
               <X className="w-4 h-4" />
@@ -100,6 +123,7 @@ export default function BookingCard({ booking, showActions = false }: BookingCar
           )}
           {showCancel && (showCheckIn || showRepair) && (
             <button
+              onClick={handleCancel}
               className="p-2 rounded-lg bg-state-danger/20 text-state-danger-light hover:bg-state-danger/30 transition-colors"
               title="取消预约"
             >

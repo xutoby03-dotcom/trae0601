@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Wrench,
   Plus,
@@ -36,6 +37,8 @@ function formatDateTime(date: Date): string {
 }
 
 export default function RepairList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRepair, setNewRepair] = useState({
@@ -51,6 +54,38 @@ export default function RepairList() {
   const currentUser = useStore((s) => s.currentUser);
   const createRepair = useStore((s) => s.createRepair);
   const updateRepairStatus = useStore((s) => s.updateRepairStatus);
+
+  useEffect(() => {
+    const bookingIdParam = searchParams.get('bookingId');
+    const roomIdParam = searchParams.get('roomId');
+    if (bookingIdParam || roomIdParam) {
+      setNewRepair((prev) => ({
+        ...prev,
+        bookingId: bookingIdParam || '',
+      }));
+      setShowCreateModal(true);
+    }
+  }, [searchParams]);
+
+  const handleOpenCreateModal = () => {
+    clearUrlParams();
+    setNewRepair({
+      bookingId: '',
+      equipmentName: '',
+      description: '',
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setNewRepair({
+      bookingId: '',
+      equipmentName: '',
+      description: '',
+    });
+    clearUrlParams();
+  };
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'teacher';
 
@@ -81,6 +116,10 @@ export default function RepairList() {
       )
       .slice(0, 10);
   }, [bookings]);
+
+  const clearUrlParams = () => {
+    navigate('/repairs', { replace: true });
+  };
 
   const handleCreateRepair = () => {
     if (!newRepair.equipmentName.trim() || !newRepair.description.trim()) {
@@ -113,6 +152,7 @@ export default function RepairList() {
       description: '',
     });
     setShowCreateModal(false);
+    clearUrlParams();
   };
 
   const handleUpdateStatus = (id: string, status: RepairStatus) => {
@@ -139,7 +179,7 @@ export default function RepairList() {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleOpenCreateModal}
           className={cn(
             'flex items-center gap-2 px-5 py-2.5 rounded-xl',
             'bg-accent-copper text-white font-medium',
@@ -285,7 +325,7 @@ export default function RepairList() {
       {showCreateModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
-          onClick={() => setShowCreateModal(false)}
+          onClick={handleCloseCreateModal}
         >
           <div
             className="bg-bg-secondary rounded-2xl p-6 w-full max-w-md border border-border-subtle shadow-card-hover animate-slide-up"
@@ -296,7 +336,7 @@ export default function RepairList() {
                 新建报修
               </h2>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCloseCreateModal}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -399,7 +439,7 @@ export default function RepairList() {
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={handleCloseCreateModal}
                 className={cn(
                   'flex-1 px-4 py-2.5 rounded-xl',
                   'bg-bg-tertiary text-text-secondary font-medium text-sm',

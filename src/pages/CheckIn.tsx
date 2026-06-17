@@ -153,8 +153,10 @@ export default function CheckIn() {
     checkInBooking(id);
   };
 
-  const handleRepair = () => {
-    navigate('/repairs');
+  const handleRepair = (bookingId: string, roomId: string) => {
+    navigate(
+      `/repairs?bookingId=${encodeURIComponent(bookingId)}&roomId=${encodeURIComponent(roomId)}`,
+    );
   };
 
   const handleManualRefresh = () => {
@@ -388,7 +390,7 @@ export default function CheckIn() {
                         </div>
 
                         <button
-                          onClick={() => handleRepair()}
+                          onClick={() => handleRepair(booking.id, booking.roomId)}
                           className={cn(
                             'flex items-center gap-1.5 px-3 py-2 rounded-lg ml-3',
                             'bg-bg-elevated text-text-secondary text-sm font-medium',

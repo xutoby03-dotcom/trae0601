@@ -263,7 +263,7 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {myBookings.map((booking: Booking) => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard key={booking.id} booking={booking} showActions={true} />
               ))}
             </div>
           )}
