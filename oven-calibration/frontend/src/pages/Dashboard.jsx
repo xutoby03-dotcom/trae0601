@@ -16,6 +16,8 @@ import {
   Table,
   Typography,
   message,
+  Descriptions,
+  Modal,
 } from 'antd'
 import {
   FireOutlined,
@@ -23,7 +25,11 @@ import {
   AlertOutlined,
   WarningOutlined,
   CheckCircleOutlined,
+  EyeOutlined,
+  RightOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
 import ReactECharts from 'echarts-for-react'
 import {
   getOverview,
@@ -60,6 +66,7 @@ const statusTagMap = {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [overview, setOverview] = useState(null)
   const [deviationTrend, setDeviationTrend] = useState([])
@@ -70,6 +77,8 @@ const Dashboard = () => {
   const [ovens, setOvens] = useState([])
   const [selectedOvenId, setSelectedOvenId] = useState(null)
   const [selectedDays, setSelectedDays] = useState(30)
+  const [detailVisible, setDetailVisible] = useState(false)
+  const [detailOven, setDetailOven] = useState(null)
 
   useEffect(() => {
     fetchAllData()
@@ -349,6 +358,37 @@ const Dashboard = () => {
     return `${index + 1}`
   }
 
+  const decommissionWarningList = useMemo(() => {
+    if (!decommissionCandidates?.length) return []
+    return decommissionCandidates.map((item) => {
+      const ovenInfo = ovens.find((o) => o.id === item.ovenId)
+      let failedProductCount = 0
+      affectedProducts?.forEach((p) => {
+        const hasOven = p.affectedOvens?.some((ao) => ao.ovenId === item.ovenId)
+        if (hasOven) failedProductCount++
+      })
+      return {
+        ...item,
+        employeeName: ovenInfo?.employee?.name || '-',
+        latestDeviation: ovenInfo?.latestCalibration?.deviation ?? null,
+        failedProductCount,
+        status: ovenInfo?.status || 'active',
+      }
+    })
+  }, [decommissionCandidates, ovens, affectedProducts])
+
+  const handleViewOvenDetail = (ovenId) => {
+    const ovenInfo = ovens.find((o) => o.id === ovenId)
+    if (ovenInfo) {
+      setDetailOven(ovenInfo)
+      setDetailVisible(true)
+    }
+  }
+
+  const handleGoToOvens = (ovenId) => {
+    navigate('/ovens', { state: { openOvenId: ovenId } })
+  }
+
   const productColumns = [
     {
       title: '排名',
@@ -519,6 +559,92 @@ const Dashboard = () => {
           </Card>
         </Col>
       </Row>
+
+      {decommissionWarningList.length > 0 && (
+        <Card
+          bordered={false}
+          style={{ marginBottom: 16 }}
+          bodyStyle={{ padding: '12px 24px' }}
+          title={
+            <Space>
+              <ExclamationCircleOutlined style={{ color: '#cf1322', fontSize: 18 }} />
+              <Text strong style={{ color: '#cf1322', fontSize: 15 }}>
+                停用预警
+              </Text>
+              <Tag color="red" style={{ marginLeft: 8 }}>
+                {decommissionWarningList.length} 台高风险
+              </Tag>
+            </Space>
+          }
+          extra={
+            <Button
+              type="link"
+              size="small"
+              onClick={() => {
+                const el = document.getElementById('decommission-section')
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
+              }}
+            >
+              查看全部 <RightOutlined style={{ fontSize: 12 }} />
+            </Button>
+          }
+        >
+          <Row gutter={[12, 12]}>
+            {decommissionWarningList.slice(0, 4).map((item) => {
+              const risk = getRiskLevel(item)
+              return (
+                <Col xs={24} sm={12} md={6} key={item.ovenId}>
+                  <div
+                    style={{
+                      border: '1px solid #ffccc7',
+                      borderRadius: 8,
+                      padding: 12,
+                      background: '#fff1f0',
+                      cursor: 'pointer',
+                      transition: 'box-shadow 0.2s',
+                    }}
+                    onClick={() => handleViewOvenDetail(item.ovenId)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(255,77,79,0.2)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                  >
+                    <Space wrap style={{ marginBottom: 8 }}>
+                      <Text strong>{item.model}</Text>
+                      <Tag color={riskLevelMap[risk]?.color} style={{ margin: 0 }}>
+                        {riskLevelMap[risk]?.label}
+                      </Tag>
+                    </Space>
+                    <Descriptions column={2} size="small" colon={false}>
+                      <Descriptions.Item label="负责人" span={2}>
+                        {item.employeeName}
+                      </Descriptions.Item>
+                      <Descriptions.Item label="最近偏差">
+                        <span style={{ color: getDeviationColor(item.latestDeviation || 0) }}>
+                          {item.latestDeviation !== null ? `${item.latestDeviation > 0 ? '+' : ''}${item.latestDeviation}℃` : '-'}
+                        </span>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="失败产品">
+                        <Text type="danger">{item.failedProductCount} 个</Text>
+                      </Descriptions.Item>
+                    </Descriptions>
+                    <Button
+                      type="link"
+                      size="small"
+                      style={{ padding: 0, marginTop: 4 }}
+                      icon={<EyeOutlined />}
+                    >
+                      查看详情
+                    </Button>
+                  </div>
+                </Col>
+              )
+            })}
+          </Row>
+        </Card>
+      )}
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={24} md={12}>
@@ -698,14 +824,15 @@ const Dashboard = () => {
 
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Card
-            bordered={false}
-            title={
-              <Title level={5} style={{ margin: 0 }}>
-                🔴 建议停用烤箱
-              </Title>
-            }
-          >
+          <div id="decommission-section">
+            <Card
+              bordered={false}
+              title={
+                <Title level={5} style={{ margin: 0 }}>
+                  🔴 建议停用烤箱
+                </Title>
+              }
+            >
             {decommissionCandidates?.length > 0 ? (
               <Row gutter={[16, 16]}>
                 {decommissionCandidates.map((item) => {
@@ -772,9 +899,89 @@ const Dashboard = () => {
                 <div>所有烤箱状态良好 ✅</div>
               </div>
             )}
-          </Card>
+            </Card>
+          </div>
         </Col>
       </Row>
+
+      <Modal
+        title="烤箱详情"
+        open={detailVisible}
+        onCancel={() => setDetailVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setDetailVisible(false)}>
+            关闭
+          </Button>,
+          <Button
+            key="goto"
+            type="primary"
+            onClick={() => {
+              handleGoToOvens(detailOven?.id)
+              setDetailVisible(false)
+            }}
+          >
+            前往设备页 <RightOutlined />
+          </Button>,
+        ]}
+        width={600}
+        destroyOnClose
+      >
+        {detailOven && (
+          <div>
+            <Space wrap style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 18 }}>
+                {detailOven.model}
+              </Text>
+              <Tag color={statusTagMap[detailOven.status]?.color}>
+                {statusTagMap[detailOven.status]?.label}
+              </Tag>
+            </Space>
+            <Descriptions column={2} size="small" bordered>
+              <Descriptions.Item label="序列号">
+                {detailOven.serialNumber || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="层数">
+                {detailOven.totalLayers || '-'} 层
+              </Descriptions.Item>
+              <Descriptions.Item label="探针位置">
+                {detailOven.probePosition || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="常用温区">
+                {detailOven.commonTempZoneLow && detailOven.commonTempZoneHigh
+                  ? `${detailOven.commonTempZoneLow} - ${detailOven.commonTempZoneHigh}℃`
+                  : '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="负责人">
+                {detailOven.employee?.name || '-'}
+              </Descriptions.Item>
+              <Descriptions.Item label="最近偏差">
+                <span
+                  style={{
+                    color: getDeviationColor(
+                      detailOven.latestCalibration?.deviation || 0
+                    ),
+                    fontWeight: 'bold',
+                  }}
+                >
+                  {detailOven.latestCalibration?.deviation !== undefined &&
+                  detailOven.latestCalibration?.deviation !== null
+                    ? `${
+                        detailOven.latestCalibration.deviation > 0 ? '+' : ''
+                      }${detailOven.latestCalibration.deviation}℃`
+                    : '-'}
+                </span>
+              </Descriptions.Item>
+            </Descriptions>
+            <Alert
+              type="warning"
+              showIcon
+              message="提示"
+              description="点击右下角按钮前往设备管理页，查看完整校准历史和失败批次记录。"
+              style={{ marginTop: 16 }}
+            />
+          </div>
+        )}
+      </Modal>
 
       <style>{`
         @keyframes blink {

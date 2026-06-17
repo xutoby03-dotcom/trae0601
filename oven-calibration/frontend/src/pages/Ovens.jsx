@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Table,
   Card,
@@ -66,6 +67,7 @@ const getDeviationDisplay = (deviation) => {
 }
 
 const Ovens = () => {
+  const location = useLocation()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -130,6 +132,17 @@ const Ovens = () => {
     fetchOvens()
     fetchEmployees()
   }, [])
+
+  useEffect(() => {
+    const openOvenId = location.state?.openOvenId
+    if (openOvenId && ovens.length > 0 && !detailVisible) {
+      const oven = ovens.find((o) => o.id === openOvenId)
+      if (oven) {
+        handleView(oven)
+        window.history.replaceState({}, document.title)
+      }
+    }
+  }, [ovens, location.state])
 
   const handleSearch = (value) => {
     setSearchText(value)
