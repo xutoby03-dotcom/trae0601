@@ -23,6 +23,10 @@ export function ArchiveDetail() {
     [borrowRecords, id]
   );
 
+  const latestReturnRecord = useMemo(() => {
+    return records.find((r) => r.returnCheck && r.status === '已归还');
+  }, [records]);
+
   const [showBorrow, setShowBorrow] = useState(false);
   const [purpose, setPurpose] = useState('');
   const [expectedReturn, setExpectedReturn] = useState(addDaysFromNow(7));
@@ -180,6 +184,41 @@ export function ArchiveDetail() {
                 <p className="text-gray-600">借出人：<span className="text-navy-800 font-medium">{records[0].borrowerName}</span></p>
                 <p className="text-gray-600">借出时间：<span className="text-navy-800">{records[0].borrowedAt ? formatDateTime(records[0].borrowedAt) : '-'}</span></p>
                 <p className="text-gray-600">预计归还：<span className="text-navy-800">{records[0].expectedReturnDate}</span></p>
+              </div>
+            )}
+            {box.status === '异常' && latestReturnRecord?.returnCheck && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertCircle size={14} className="text-red-500" />
+                  <p className="text-sm font-medium text-red-700">异常详情</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                  <div className={`p-2 rounded-md text-center ${latestReturnRecord.returnCheck.sealIntact ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    <p className="font-medium">封条</p>
+                    <p>{latestReturnRecord.returnCheck.sealIntact ? '完好' : '异常'}</p>
+                  </div>
+                  <div className={`p-2 rounded-md text-center ${latestReturnRecord.returnCheck.pagesComplete ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    <p className="font-medium">页数</p>
+                    <p>{latestReturnRecord.returnCheck.pagesComplete ? '完整' : '缺失'}</p>
+                  </div>
+                  <div className={`p-2 rounded-md text-center ${latestReturnRecord.returnCheck.cabinetCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    <p className="font-medium">柜位</p>
+                    <p>{latestReturnRecord.returnCheck.cabinetCorrect ? '正确' : '错误'}</p>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p>检查人：{latestReturnRecord.returnCheck.checkerName}</p>
+                  <p>实际清点：{latestReturnRecord.returnCheck.actualPageCount} 页</p>
+                  {latestReturnRecord.returnCheck.sealRemark && (
+                    <p className="text-red-600">封条说明：{latestReturnRecord.returnCheck.sealRemark}</p>
+                  )}
+                  {latestReturnRecord.returnCheck.missingPages && (
+                    <p className="text-red-600">缺页说明：{latestReturnRecord.returnCheck.missingPages}</p>
+                  )}
+                  {latestReturnRecord.returnCheck.remarks && (
+                    <p className="text-gold-700">备注：{latestReturnRecord.returnCheck.remarks}</p>
+                  )}
+                </div>
               </div>
             )}
           </div>

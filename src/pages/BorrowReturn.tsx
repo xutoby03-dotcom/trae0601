@@ -60,6 +60,12 @@ export function BorrowReturn() {
   };
 
   const hasAnomaly = !sealIntact || !pagesComplete || !cabinetCorrect;
+  const pageDiff = box ? (box.pageCount || 0) - Number(actualPageCount) : 0;
+
+  const anomalyMessages = [];
+  if (!sealIntact) anomalyMessages.push('封条异常');
+  if (!pagesComplete) anomalyMessages.push(`页数不符（差 ${Math.abs(pageDiff)} 页）`);
+  if (!cabinetCorrect) anomalyMessages.push('柜位错误');
 
   return (
     <div className="animate-fade-in">
@@ -132,15 +138,28 @@ export function BorrowReturn() {
         onClose={() => setShowCheck(false)}
         title={`归还检查 - ${selected?.boxNumber || ''}`}
         footer={
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setShowCheck(false)} className="btn-secondary">取消</button>
-            <button onClick={handleSubmit} className={`${hasAnomaly ? 'btn-gold' : 'btn-primary'}`}>
-              {hasAnomaly ? (
-                <><AlertTriangle size={14} /> 登记异常并完成归还</>
-              ) : (
-                <><Check size={14} /> 确认归还</>
-              )}
-            </button>
+          <div className="space-y-3">
+            {hasAnomaly && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700 flex items-start gap-2">
+              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">检测到异常</p>
+                <p className="text-xs mt-0.5 text-red-600">
+                  {anomalyMessages.join('、')}
+                </p>
+              </div>
+            </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowCheck(false)} className="btn-secondary">取消</button>
+              <button onClick={handleSubmit} className={`${hasAnomaly ? 'btn-gold' : 'btn-primary'}`}>
+                {hasAnomaly ? (
+                  <><AlertTriangle size={14} /> 登记异常并完成归还</>
+                ) : (
+                  <><Check size={14} /> 确认归还</>
+                )}
+              </button>
+            </div>
           </div>
         }
       >

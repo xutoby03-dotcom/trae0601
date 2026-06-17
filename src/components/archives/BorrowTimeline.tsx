@@ -1,4 +1,4 @@
-import { FileUp, CheckCircle, XCircle, RotateCcw, Clock } from 'lucide-react';
+import { FileUp, CheckCircle, XCircle, RotateCcw, Clock, AlertTriangle } from 'lucide-react';
 import type { BorrowRecord } from '../../types';
 import { StatusBadge } from '../ui/Badges';
 import { formatDateTime } from '../../utils';
@@ -56,17 +56,42 @@ export function BorrowTimeline({ records }: BorrowTimelineProps) {
                   )}
                 </div>
                 {record.returnCheck && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-xs">
-                    <p className="font-medium text-navy-700 mb-1">归还检查：</p>
-                    <div className="flex flex-wrap gap-3 text-gray-600">
-                      <span>封条：{record.returnCheck.sealIntact ? '完好' : '异常'}</span>
-                      <span>页数：{record.returnCheck.pagesComplete ? '完整' : '缺失'}</span>
-                      <span>柜位：{record.returnCheck.cabinetCorrect ? '正确' : '错误'}</span>
-                      <span>检查人：{record.returnCheck.checkerName}</span>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-xs font-medium text-navy-700">归还检查</p>
+                      {(!record.returnCheck.sealIntact || !record.returnCheck.pagesComplete || !record.returnCheck.cabinetCorrect) && (
+                        <span className="badge bg-red-50 text-red-600 border border-red-200 !text-[10px] !py-0">
+                          <AlertTriangle size={10} /> 异常
+                        </span>
+                      )}
                     </div>
-                    {record.returnCheck.remarks && (
-                      <p className="mt-1 text-gold-700">备注：{record.returnCheck.remarks}</p>
-                    )}
+                    <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+                      <div className={`p-2 rounded-md ${record.returnCheck.sealIntact ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                        <p className="font-medium">封条</p>
+                        <p>{record.returnCheck.sealIntact ? '完好' : '异常'}</p>
+                      </div>
+                      <div className={`p-2 rounded-md ${record.returnCheck.pagesComplete ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                        <p className="font-medium">页数</p>
+                        <p>{record.returnCheck.pagesComplete ? '完整' : '缺失'}</p>
+                      </div>
+                      <div className={`p-2 rounded-md ${record.returnCheck.cabinetCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                        <p className="font-medium">柜位</p>
+                        <p>{record.returnCheck.cabinetCorrect ? '正确' : '错误'}</p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <p>检查人：{record.returnCheck.checkerName}</p>
+                      <p>实际清点：{record.returnCheck.actualPageCount} 页</p>
+                      {record.returnCheck.sealRemark && (
+                        <p className="text-red-600">封条异常说明：{record.returnCheck.sealRemark}</p>
+                      )}
+                      {record.returnCheck.missingPages && (
+                        <p className="text-red-600">缺页说明：{record.returnCheck.missingPages}</p>
+                      )}
+                      {record.returnCheck.remarks && (
+                        <p className="text-gold-700">备注：{record.returnCheck.remarks}</p>
+                      )}
+                    </div>
                   </div>
                 )}
                 {record.approverName && (
