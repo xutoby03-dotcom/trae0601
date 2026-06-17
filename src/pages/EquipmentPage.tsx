@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Edit2,
@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import {
@@ -62,6 +64,83 @@ export default function EquipmentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [formData, setFormData] = useState<Omit<Equipment, 'id'>>(emptyEquipment);
+
+  // Lightbox 状态
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxEquipmentId, setLightboxEquipmentId] = useState<string | null>(null);
+
+  // 获取同类有照片的装备列表
+  const getSiblingEquipmentWithPhotos = useCallback(
+    (currentEquipId: string): Equipment[] => {
+      const current = equipment.find((e) => e.id === currentEquipId);
+      if (!current) return [];
+      return equipment.filter((e) => e.type === current.type && e.photo);
+    },
+    [equipment]
+  );
+
+  // 获取当前 Lightbox 装备
+  const lightboxEquipment = equipment.find((e) => e.id === lightboxEquipmentId) || null;
+
+  // 切换到上一张
+  const goToPrev = useCallback(() => {
+    if (!lightboxEquipmentId) return;
+    const siblings = getSiblingEquipmentWithPhotos(lightboxEquipmentId);
+    const idx = siblings.findIndex((e) => e.id === lightboxEquipmentId);
+    if (idx > 0) {
+      setLightboxEquipmentId(siblings[idx - 1].id);
+    } else if (siblings.length > 0) {
+      setLightboxEquipmentId(siblings[siblings.length - 1].id);
+    }
+  }, [lightboxEquipmentId, getSiblingEquipmentWithPhotos]);
+
+  // 切换到下一张
+  const goToNext = useCallback(() => {
+    if (!lightboxEquipmentId) return;
+    const siblings = getSiblingEquipmentWithPhotos(lightboxEquipmentId);
+    const idx = siblings.findIndex((e) => e.id === lightboxEquipmentId);
+    if (idx < siblings.length - 1) {
+      setLightboxEquipmentId(siblings[idx + 1].id);
+    } else if (siblings.length > 0) {
+      setLightboxEquipmentId(siblings[0].id);
+    }
+  }, [lightboxEquipmentId, getSiblingEquipmentWithPhotos]);
+
+  // 打开 Lightbox
+  const openLightbox = (equipId: string) => {
+    setLightboxEquipmentId(equipId);
+    setLightboxOpen(true);
+  };
+
+  // 关闭 Lightbox
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxEquipmentId(null);
+  };
+
+  // 键盘事件
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') goToPrev();
+      if (e.key === 'ArrowRight') goToNext();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxOpen, goToPrev, goToNext]);
+
+  // 阻止背景滚动
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [lightboxOpen]);
 
   const filteredEquipment =
     activeType === 'all'
@@ -176,12 +255,16 @@ export default function EquipmentPage() {
               className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300 hover:-translate-y-1"
             >
               {equip.photo ? (
-                <div className="relative h-44 bg-slate-100">
+                <div
+                  className="relative h-44 bg-slate-100 cursor-zoom-in group/photo"
+                  onClick={() => openLightbox(equip.id)}
+                >
                   <img
                     src={equip.photo}
                     alt={equip.name || EQUIPMENT_TYPE_LABELS[equip.type]}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover/photo:scale-110 transition-transform duration-500"
                     loading="lazy"
+                    draggable={false}
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = 'none';
                       const parent = (e.currentTarget as HTMLImageElement)
@@ -191,10 +274,21 @@ export default function EquipmentPage() {
                         fallback.className = `absolute inset-0 flex items-center justify-center bg-gradient-to-br ${equipmentColors[equip.type]}`;
                         fallback.innerHTML = `<span class="text-5xl">${emoji}</span>`;
                         parent.appendChild(fallback);
+                        // 加载失败移除点击事件
+                        parent.classList.remove('cursor-zoom-in');
+                        parent.onclick = null;
                       }
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 opacity-60 group-hover/photo:opacity-80 transition-opacity" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                      点击放大
+                    </div>
+                  </div>
                   <div
                     className={cn(
                       'absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium backdrop-blur-sm',
@@ -501,6 +595,146 @@ export default function EquipmentPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox 大图查看 */}
+      {lightboxOpen && lightboxEquipment && lightboxEquipment.photo && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] p-4 sm:p-6"
+          onClick={closeLightbox}
+        >
+          {/* 关闭按钮 */}
+          <button
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-110 border border-white/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* 计数 */}
+          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white/90 text-sm font-medium border border-white/20">
+            {(() => {
+              const siblings = getSiblingEquipmentWithPhotos(lightboxEquipment.id);
+              const idx = siblings.findIndex((e) => e.id === lightboxEquipment.id);
+              return `${idx + 1} / ${siblings.length} · ${EQUIPMENT_TYPE_LABELS[lightboxEquipment.type]}`;
+            })()}
+          </div>
+
+          {/* 上一张按钮 */}
+          <button
+            className="absolute left-2 sm:left-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-110 z-10 border border-white/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToPrev();
+            }}
+          >
+            <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+          </button>
+
+          {/* 下一张按钮 */}
+          <button
+            className="absolute right-2 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-110 z-10 border border-white/20"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToNext();
+            }}
+          >
+            <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+          </button>
+
+          {/* 图片 + 信息内容 */}
+          <div
+            className="w-full max-w-4xl flex flex-col items-center gap-5 animate-[zoomIn_0.25s_ease-out]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 大图 */}
+            <div className="relative w-full aspect-square max-w-[500px] sm:max-w-[560px] rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
+              <img
+                src={lightboxEquipment.photo}
+                alt={lightboxEquipment.name || EQUIPMENT_TYPE_LABELS[lightboxEquipment.type]}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/10 to-transparent" />
+            </div>
+
+            {/* 信息卡片 */}
+            <div className="w-full max-w-[500px] sm:max-w-[560px] bg-white/10 backdrop-blur-xl rounded-2xl p-5 sm:p-6 border border-white/15 text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-2xl">{equipmentEmojis[lightboxEquipment.type]}</span>
+                    <h3 className="text-xl font-bold truncate">
+                      {lightboxEquipment.name || EQUIPMENT_TYPE_LABELS[lightboxEquipment.type]}
+                    </h3>
+                  </div>
+                  <div className="text-white/60 text-sm">
+                    {EQUIPMENT_TYPE_LABELS[lightboxEquipment.type]}
+                  </div>
+                </div>
+                <div
+                  className={cn(
+                    'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium flex-shrink-0',
+                    statusColors[lightboxEquipment.status].replace(
+                      /(text-\w+-500)/,
+                      'text-white bg-white/20'
+                    )
+                  )}
+                >
+                  {(() => {
+                    const SIcon = statusIcons[lightboxEquipment.status];
+                    return <SIcon className="w-3.5 h-3.5" />;
+                  })()}
+                  {EQUIPMENT_STATUS_LABELS[lightboxEquipment.status]}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/10">
+                <div>
+                  <div className="text-white/50 text-xs mb-1">尺码</div>
+                  <div className="font-semibold text-lg">{lightboxEquipment.size}</div>
+                </div>
+                <div>
+                  <div className="text-white/50 text-xs mb-1">拥有者</div>
+                  <div className="font-semibold text-lg truncate">
+                    {getOwnerName(lightboxEquipment.ownerId)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/50 text-xs mb-1">使用者</div>
+                  <div className="font-semibold text-lg truncate">
+                    {lightboxEquipment.assignedTo
+                      ? getOwnerName(lightboxEquipment.assignedTo)
+                      : '未分配'}
+                  </div>
+                </div>
+              </div>
+
+              {lightboxEquipment.type === 'goggles' && (
+                <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-500/20 border border-violet-400/30">
+                  <span className="text-sm">
+                    {lightboxEquipment.hasMyopiaLens ? '✅' : '⚠️'}
+                  </span>
+                  <span className="text-sm font-medium">
+                    近视镜片：{lightboxEquipment.hasMyopiaLens ? '已配备' : '未配备'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* 键盘提示 */}
+            <div className="hidden sm:flex items-center gap-4 text-white/40 text-xs">
+              <span className="px-2 py-1 rounded border border-white/20">←</span>
+              <span>上一张</span>
+              <span className="px-2 py-1 rounded border border-white/20">→</span>
+              <span>下一张</span>
+              <span className="px-2 py-1 rounded border border-white/20">Esc</span>
+              <span>关闭</span>
+            </div>
           </div>
         </div>
       )}
