@@ -362,6 +362,21 @@ export const mockBookings: Booking[] = [
     parentBookingId: 'booking-4',
     createdAt: hoursFromNow(today, -18),
   },
+  {
+    id: 'booking-18',
+    roomId: 'room-2',
+    userId: 'user-4',
+    instrumentId: 'inst-4',
+    piece: '古典吉他练习',
+    peopleCount: 1,
+    needMusicStand: true,
+    expectedVolume: 'low',
+    startTime: hoursFromNow(today, -0.5),
+    endTime: hoursFromNow(today, 0.5),
+    status: 'waitlisted',
+    parentBookingId: 'booking-4',
+    createdAt: hoursFromNow(today, -17),
+  },
 ];
 
 export const mockRepairs: Repair[] = [

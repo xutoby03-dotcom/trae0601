@@ -59,7 +59,7 @@ interface StoreState {
   processBookingStatusUpdates: () => { noShows: number; checkins: number };
 }
 
-const STORAGE_KEY = 'music-studio-store-v2';
+const STORAGE_KEY = 'music-studio-store-v3';
 
 function reviveDates(key: string, value: unknown): unknown {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
@@ -217,7 +217,12 @@ export const useStore = create<StoreState>((set, get) => ({
         .filter(
           (b) =>
             b.parentBookingId === overdueBooking.id &&
-            b.status === 'waitlisted',
+            b.status === 'waitlisted' &&
+            b.roomId === overdueBooking.roomId &&
+            new Date(b.startTime).getTime() ===
+              new Date(overdueBooking.startTime).getTime() &&
+            new Date(b.endTime).getTime() ===
+              new Date(overdueBooking.endTime).getTime(),
         )
         .sort(
           (a, b) =>
@@ -300,7 +305,12 @@ export const useStore = create<StoreState>((set, get) => ({
           .filter(
             (b) =>
               b.parentBookingId === overdueBooking.id &&
-              b.status === 'waitlisted',
+              b.status === 'waitlisted' &&
+              b.roomId === overdueBooking.roomId &&
+              new Date(b.startTime).getTime() ===
+                new Date(overdueBooking.startTime).getTime() &&
+              new Date(b.endTime).getTime() ===
+                new Date(overdueBooking.endTime).getTime(),
           )
           .sort(
             (a, b) =>
