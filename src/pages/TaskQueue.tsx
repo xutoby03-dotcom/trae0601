@@ -51,12 +51,12 @@ const TaskQueue = () => {
       if (sortField === 'priority') {
         comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
       } else if (sortField === 'deadline') {
-        comparison = new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
+        comparison = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
       } else if (sortField === 'createdAt') {
-        comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
 
-      return sortAsc ? -comparison : comparison;
+      return sortAsc ? comparison : -comparison;
     });
 
     return filtered;
