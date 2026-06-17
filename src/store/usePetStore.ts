@@ -87,13 +87,6 @@ export const usePetStore = create<PetState>()(
               : item
           ),
         }));
-        
-        const state = get();
-        const taskItems = state.checkItems.filter((c) => c.taskId === taskId);
-        const allCompleted = taskItems.every((item) => item.completed);
-        if (allCompleted) {
-          state.updateTaskStatus(taskId, 'completed');
-        }
       },
 
       addAbnormality: (taskId, type, description, photo) => {

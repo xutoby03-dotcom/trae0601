@@ -18,6 +18,7 @@ export default function TaskDetail() {
     addAbnormality,
     updateTaskStatus,
     resetTask,
+    getReportByTaskId,
     pet,
   } = usePetStore();
 
@@ -27,6 +28,7 @@ export default function TaskDetail() {
   const task = id ? getTaskById(id) : undefined;
   const checkItems = id ? getCheckItemsByTaskId(id) : [];
   const abnormalities = id ? getAbnormalitiesByTaskId(id) : [];
+  const existingReport = id ? getReportByTaskId(id) : undefined;
 
   const progress = useMemo(() => {
     if (checkItems.length === 0) return 0;
@@ -220,14 +222,14 @@ export default function TaskDetail() {
             )}
           </div>
 
-          {allCompleted && task.status !== 'completed' && (
+          {allCompleted && !existingReport && (
             <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg shadow-green-200 animate-slideUp" style={{ animationDelay: '700ms' }}>
               <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <CheckCircle2 size={24} />
-                太棒了！所有任务已完成
+                太棒了！所有打卡已完成
               </h2>
               <p className="text-white/90 text-sm mb-4">
-                确认无误后，可以生成日报发送给主人
+                确认无误后，生成日报发送给主人
               </p>
               <div className="flex gap-3">
                 <button
@@ -248,7 +250,7 @@ export default function TaskDetail() {
             </div>
           )}
 
-          {task.status === 'completed' && (
+          {task.status === 'completed' && existingReport && (
             <div className="bg-gradient-to-r from-teal-500 to-cyan-500 rounded-2xl p-6 text-white shadow-lg shadow-teal-200 animate-slideUp">
               <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <CheckCircle2 size={24} />
