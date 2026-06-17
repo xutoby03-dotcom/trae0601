@@ -179,18 +179,18 @@ const Batches = () => {
       const values = await form.validateFields()
 
       const formData = new FormData()
-      formData.append('recipeId', values.recipeId)
-      formData.append('ovenId', values.ovenId)
-      formData.append('layerUsed', values.layerUsed)
+      formData.append('recipe_id', values.recipeId)
+      formData.append('oven_id', values.ovenId)
+      formData.append('layer_used', values.layerUsed)
       if (values.actualTemp !== undefined && values.actualTemp !== null) {
-        formData.append('actualTemp', values.actualTemp)
+        formData.append('actual_temp', values.actualTemp)
       }
       formData.append('result', values.result)
       if (values.result === 'failed' && values.failureReason) {
-        formData.append('failureReason', values.failureReason)
+        formData.append('failure_reason', values.failureReason)
       }
       if (values.producedAt) {
-        formData.append('producedAt', values.producedAt.format('YYYY-MM-DD HH:mm:ss'))
+        formData.append('produced_at', values.producedAt.format('YYYY-MM-DD HH:mm:ss'))
       }
       if (uploadFile) {
         formData.append('photo', uploadFile)
