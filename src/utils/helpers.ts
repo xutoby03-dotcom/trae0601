@@ -200,6 +200,12 @@ function diagnoseEmptyResult(
   scenario: string
 ): string {
   const hints: string[] = [];
+  const scenarioObj = scenario ? SCENARIOS.find(s => s.value === scenario) : undefined;
+  const scenarioCategories = scenarioObj?.categories || [];
+  const scenarioSeason = scenarioObj?.season || 'all';
+
+  const effectiveCategory = category || '';
+  const effectiveSeason = season || (scenarioSeason !== 'all' ? scenarioSeason : '') as Season | '';
 
   let pool = activeClothes;
 
@@ -212,16 +218,24 @@ function diagnoseEmptyResult(
     hints.push(`${owner}有 ${pool.length} 件`);
   }
 
-  if (category) {
-    const catPool = pool.filter(c => c.category === category);
+  if (effectiveCategory) {
+    const catPool = pool.filter(c => c.category === effectiveCategory);
     if (catPool.length === 0) {
       const cats = [...new Set(pool.map(c => getCategoryLabel(c.category)))];
-      hints.push(`有${getCategoryLabel(category)}但尺码/季节不匹配`);
-      hints.push(`${owner || '该归属人'}的${getCategoryLabel(category)}：无，现有 ${cats.join('、')}`);
+      hints.push(`没有${getCategoryLabel(effectiveCategory)}`);
+      hints.push(`现有类别: ${cats.join('、')}`);
       return hints.join('；');
     }
     pool = catPool;
-    hints.push(`${getCategoryLabel(category)} ${pool.length} 件`);
+    hints.push(`${getCategoryLabel(effectiveCategory)} ${pool.length} 件`);
+  } else if (scenarioCategories.length > 0) {
+    const scenarioCatPool = pool.filter(c => scenarioCategories.includes(c.category));
+    if (scenarioCatPool.length === 0) {
+      hints.push(`场景「${scenarioObj?.label}」无匹配类别`);
+      return hints.join('；');
+    }
+    pool = scenarioCatPool;
+    hints.push(`场景匹配类别 ${pool.length} 件`);
   }
 
   if (size) {
@@ -236,26 +250,21 @@ function diagnoseEmptyResult(
     hints.push(`尺码${size} ${pool.length} 件`);
   }
 
-  if (season && season !== 'all') {
-    const seasonPool = pool.filter(c => c.season === season || c.season === 'all');
+  if (effectiveSeason && effectiveSeason !== 'all') {
+    const seasonPool = pool.filter(c => c.season === effectiveSeason || c.season === 'all');
     if (seasonPool.length === 0) {
       const seasons = [...new Set(pool.map(c => getSeasonLabel(c.season)))];
-      hints.push(`季节「${getSeasonLabel(season)}」无匹配`);
+      const seasonSource = season ? '筛选季节' : '场景季节';
+      hints.push(`${seasonSource}「${getSeasonLabel(effectiveSeason)}」无匹配`);
       hints.push(`现有季节: ${seasons.join('、')}`);
       return hints.join('；');
     }
     pool = seasonPool;
+    hints.push(`${getSeasonLabel(effectiveSeason)} ${pool.length} 件`);
   }
 
-  if (scenario) {
-    const scenarioObj = SCENARIOS.find(s => s.value === scenario);
-    if (scenarioObj) {
-      const scenarioPool = pool.filter(c => scenarioObj.categories.includes(c.category));
-      if (scenarioPool.length === 0) {
-        hints.push(`场景「${scenarioObj.label}」无匹配`);
-        return hints.join('；');
-      }
-    }
+  if (scenario && !scenarioObj) {
+    hints.push(`场景「${scenario}」无匹配`);
   }
 
   return hints.join('；');
