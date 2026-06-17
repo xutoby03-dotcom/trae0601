@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #F8F5F0;
+  min-height: 100vh;
+}
+
+@layer base {
+  h1, h2, h3, h4 {
+    @apply text-accent-blue font-semibold;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 shadow-soft hover:shadow-hover;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-accent-blue border-2 border-brand-200 hover:border-brand-400 hover:bg-brand-50;
+  }
+  .btn-danger {
+    @apply btn bg-accent-red text-white hover:bg-[#D35A40] shadow-soft;
+  }
+  .btn-warning {
+    @apply btn bg-accent-orange text-accent-blue hover:bg-[#DEB650] shadow-soft;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-soft p-6 transition-all duration-300 hover:shadow-card;
+  }
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-warm-100 bg-warm-50 text-accent-blue placeholder:text-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-all;
+  }
+  .label {
+    @apply block text-sm font-medium text-accent-blue mb-2;
+  }
+  .tag {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F0E9DD;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: #AFDDD4;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7EC7BB;
+}
