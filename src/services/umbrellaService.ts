@@ -13,8 +13,40 @@ import { STORAGE_PERIOD_DAYS, EXPIRING_WARNING_DAYS } from '@/utils/constants';
 
 const generateId = (): string => `umb-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+let lastCheckTime = 0;
+const CHECK_INTERVAL = 60 * 1000;
+
+const checkAndTransferExpiredUmbrellas = (): number => {
+  const now = Date.now();
+  if (now - lastCheckTime < CHECK_INTERVAL) return 0;
+  lastCheckTime = now;
+
+  const umbrellas = storage.umbrellas.getAll();
+  let transferredCount = 0;
+  let hasChanges = false;
+
+  umbrellas.forEach((umbrella, index) => {
+    if (umbrella.status === 'pending' && isExpired(umbrella.foundTime, umbrella.storagePeriodDays)) {
+      umbrellas[index] = {
+        ...umbrella,
+        status: 'shared',
+        updatedAt: new Date().toISOString(),
+      };
+      transferredCount++;
+      hasChanges = true;
+    }
+  });
+
+  if (hasChanges) {
+    storage.umbrellas.setAll(umbrellas);
+  }
+
+  return transferredCount;
+};
+
 export const umbrellaService = {
   getAll: (filters?: UmbrellaFilters): Umbrella[] => {
+    checkAndTransferExpiredUmbrellas();
     let umbrellas = storage.umbrellas.getAll();
 
     if (filters) {
@@ -83,6 +115,7 @@ export const umbrellaService = {
   },
 
   getDashboardStats: (): DashboardStats => {
+    checkAndTransferExpiredUmbrellas();
     const umbrellas = storage.umbrellas.getAll();
     const claims = storage.claims.getAll();
 
@@ -96,6 +129,7 @@ export const umbrellaService = {
   },
 
   getExpiringUmbrellas: (days: number = EXPIRING_WARNING_DAYS): Umbrella[] => {
+    checkAndTransferExpiredUmbrellas();
     return storage.umbrellas.getAll()
       .filter(u => u.status === 'pending' && isExpiringSoon(u.foundTime, u.storagePeriodDays))
       .sort((a, b) => {
@@ -107,11 +141,13 @@ export const umbrellaService = {
   },
 
   getExpiredUmbrellas: (): Umbrella[] => {
+    checkAndTransferExpiredUmbrellas();
     return storage.umbrellas.getAll()
       .filter(u => u.status === 'pending' && isExpired(u.foundTime, u.storagePeriodDays));
   },
 
   getBuildingStats: (): BuildingStat[] => {
+    checkAndTransferExpiredUmbrellas();
     const umbrellas = storage.umbrellas.getAll();
     const stats: Record<string, number> = {};
 
@@ -125,6 +161,7 @@ export const umbrellaService = {
   },
 
   getSimilarUmbrellas: (): SimilarUmbrellaGroup[] => {
+    checkAndTransferExpiredUmbrellas();
     const pendingUmbrellas = storage.umbrellas.getAll().filter(u => u.status === 'pending');
     const groups: SimilarUmbrellaGroup[] = [];
     const used = new Set<string>();
@@ -164,11 +201,18 @@ export const umbrellaService = {
   },
 
   getShared: (): Umbrella[] => {
+    checkAndTransferExpiredUmbrellas();
     return storage.umbrellas.getAll().filter(u => u.status === 'shared');
   },
 
   getScrapped: (): Umbrella[] => {
+    checkAndTransferExpiredUmbrellas();
     return storage.umbrellas.getAll().filter(u => u.status === 'scrapped');
+  },
+
+  forceCheckExpired: (): number => {
+    lastCheckTime = 0;
+    return checkAndTransferExpiredUmbrellas();
   },
 
   getScrapRecords: (): ScrapRecord[] => {

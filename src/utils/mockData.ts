@@ -19,6 +19,15 @@ const getRandomDate = (daysAgo: number): string => {
   return date.toISOString();
 };
 
+const getRandomDateRange = (minDaysAgo: number, maxDaysAgo: number): string => {
+  const date = new Date();
+  const daysAgo = minDaysAgo + Math.floor(Math.random() * (maxDaysAgo - minDaysAgo + 1));
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(Math.floor(Math.random() * 12) + 8);
+  date.setMinutes(Math.floor(Math.random() * 60));
+  return date.toISOString();
+};
+
 const COLORS = [
   { name: '黑色', hex: '#1a1a1a' },
   { name: '黑色', hex: '#1a1a1a' },
@@ -72,14 +81,29 @@ export const generateMockUmbrellas = (count: number = 25): Umbrella[] => {
     const color = getRandomItem(COLORS);
     const building = getRandomItem(BUILDINGS);
     const area = getRandomItem(AREAS[building]);
-    const foundTime = getRandomDate(20);
+    let foundTime: string;
     const features = getRandomItems(FEATURES, Math.floor(Math.random() * 3) + 1);
     
     let status: Umbrella['status'] = 'pending';
     const rand = Math.random();
-    if (rand > 0.75) status = 'claimed';
-    else if (rand > 0.65) status = 'shared';
-    else if (rand > 0.6) status = 'scrapped';
+    if (rand > 0.75) {
+      status = 'claimed';
+      foundTime = getRandomDate(14);
+    } else if (rand > 0.65) {
+      status = 'shared';
+      foundTime = getRandomDate(14);
+    } else if (rand > 0.6) {
+      status = 'scrapped';
+      foundTime = getRandomDate(14);
+    } else {
+      status = 'pending';
+      const pendingRand = Math.random();
+      if (pendingRand > 0.8) {
+        foundTime = getRandomDateRange(16, 25);
+      } else {
+        foundTime = getRandomDate(14);
+      }
+    }
     
     umbrellas.push({
       id: generateId('umb', i + 1),
