@@ -31,6 +31,18 @@ export default function StarterDetail() {
   const starter = useMemo(() => id ? getStarterById(id) : undefined, [id, getStarterById]);
   const feedingRecords = useMemo(() => id ? getFeedingRecordsForStarter(id) : [], [id, getFeedingRecordsForStarter]);
 
+  const weightMap = useMemo(() => {
+    const map = new Map<string, { before: number; after: number }>();
+    let cursor = starter?.currentWeight ?? 0;
+    for (const r of feedingRecords) {
+      const after = cursor;
+      const before = cursor - r.flourAdded - r.waterAdded + r.discardAmount;
+      map.set(r.id, { before: Math.round(before), after: Math.round(after) });
+      cursor = Math.round(before);
+    }
+    return map;
+  }, [feedingRecords, starter?.currentWeight]);
+
   if (!starter) {
     return (
       <div className="text-center py-20">
@@ -279,14 +291,22 @@ export default function StarterDetail() {
                           </p>
                         </div>
                       </div>
-                      <div 
-                        className="px-3 py-1 rounded-full text-sm font-medium"
-                        style={{ 
-                          backgroundColor: `${getActivityScoreColor(record.activityScore)}15`,
-                          color: getActivityScoreColor(record.activityScore)
-                        }}
-                      >
-                        {record.activityScore}分 · {getActivityScoreLabel(record.activityScore)}
+                      <div className="flex items-center gap-3">
+                        {weightMap.get(record.id) && (
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-bread-800 font-display">{weightMap.get(record.id)!.after}g</p>
+                            <p className="text-xs text-bread-400">喂后重量</p>
+                          </div>
+                        )}
+                        <div 
+                          className="px-3 py-1 rounded-full text-sm font-medium"
+                          style={{ 
+                            backgroundColor: `${getActivityScoreColor(record.activityScore)}15`,
+                            color: getActivityScoreColor(record.activityScore)
+                          }}
+                        >
+                          {record.activityScore}分
+                        </div>
                       </div>
                     </div>
 
