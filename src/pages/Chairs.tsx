@@ -35,7 +35,7 @@ import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 
 export default function Chairs() {
-  const { chairs, orders, addChair, updateChair, deleteChair } = useStore();
+  const { chairs, orders, addChair, updateChair, deleteChair, setChairDisabled, loading } = useStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Chair | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -90,10 +90,10 @@ export default function Chairs() {
         photo: values.photo || `https://picsum.photos/seed/${Date.now()}/400/300`,
       };
       if (editing) {
-        updateChair(editing.id, payload);
+        await updateChair(editing.id, payload);
         message.success('椅子信息已更新');
       } else {
-        addChair(payload);
+        await addChair(payload);
         message.success('新椅子已录入');
       }
       setModalOpen(false);
@@ -107,8 +107,8 @@ export default function Chairs() {
     setDetailOpen(true);
   };
 
-  const handleToggleDisable = (chair: Chair) => {
-    updateChair(chair.id, { disabled: !chair.disabled });
+  const handleToggleDisable = async (chair: Chair) => {
+    await setChairDisabled(chair.id, !chair.disabled);
     message.success(chair.disabled ? '已恢复使用' : '已标记停用');
   };
 
@@ -175,7 +175,7 @@ export default function Chairs() {
               size="small"
               type="text"
               danger={!r.disabled}
-              icon={r.disabled ? <CheckCircleOutlined /> : <StopOutlined />}
+              icon={r.disabled ? <StopOutlined /> : <CheckCircleOutlined />}
               onClick={() => handleToggleDisable(r)}
             />
           </Tooltip>
@@ -244,6 +244,7 @@ export default function Chairs() {
           rowKey="id"
           columns={columns}
           dataSource={filteredChairs}
+          loading={loading}
           scroll={{ x: 1250 }}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 把椅子` }}
         />

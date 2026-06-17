@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Tabs, Card, Tooltip, Badge, Descriptions, List, Tag, Button, Space, Empty, Select, Statistic } from 'antd';
+import { Tabs, Card, Tooltip, Badge, Descriptions, List, Tag, Button, Space, Empty, Select, Statistic, Spin, Alert } from 'antd';
 import { EyeOutlined, ExclamationCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useStore } from '@/store';
 import { AREAS, FAULT_TYPE_LABEL, FREQUENCY_LABEL, FREQUENCY_WEIGHT, ARMREST_TYPE_LABEL } from '@/types';
@@ -22,7 +22,7 @@ const LEVEL_LABELS = [
 ];
 
 export default function SeatMap() {
-  const { chairs, orders, getOrderById } = useStore();
+  const { chairs, orders, getOrderById, loading, error } = useStore();
   const navigate = useNavigate();
   const [activeArea, setActiveArea] = useState(AREAS[0]);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -78,10 +78,14 @@ export default function SeatMap() {
 
   return (
     <div>
-      <h2 className="page-header">座位故障地图</h2>
-      <p className="page-subheader">
-        颜色深浅代表故障频率与数量综合指数，红点为高频故障椅，点击座位查看详情。
-      </p>
+      {error && (
+        <Alert type="error" message="数据加载失败" description={error} style={{ marginBottom: 20 }} showIcon />
+      )}
+      <Spin spinning={loading} tip="数据加载中...">
+        <h2 className="page-header">座位故障地图</h2>
+        <p className="page-subheader">
+          颜色深浅代表故障频率与数量综合指数，红点为高频故障椅，点击座位查看详情。
+        </p>
 
       <div className="seat-legend" style={{ marginBottom: 20 }}>
         {LEVEL_LABELS.map((l) => (
@@ -190,6 +194,7 @@ export default function SeatMap() {
           navigate={navigate}
         />
       )}
+      </Spin>
     </div>
   );
 }

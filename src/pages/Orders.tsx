@@ -43,13 +43,13 @@ import {
 import { useStore } from '@/store';
 
 export default function Orders() {
-  const { chairs, orders, addOrder, updateOrder, addRepair } = useStore();
+  const { chairs, orders, addOrder, updateOrder, addRepair, assignOrder, changeOrderStatus, loading } = useStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<RepairOrder | null>(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [assignOrder, setAssignOrder] = useState<RepairOrder | null>(null);
+  const [orderToAssign, setOrderToAssign] = useState<RepairOrder | null>(null);
   const [assignForm] = Form.useForm();
 
   const [filterStatus, setFilterStatus] = useState<OrderStatus | undefined>();
@@ -86,7 +86,7 @@ export default function Orders() {
   const submitForm = async () => {
     try {
       const values = await form.validateFields();
-      addOrder({ ...values, frequency: values.frequency });
+      await addOrder({ ...values, frequency: values.frequency });
       message.success('工单已提交，行政部会尽快处理');
       setModalOpen(false);
       form.resetFields();
@@ -96,33 +96,32 @@ export default function Orders() {
   };
 
   const openAssign = (order: RepairOrder) => {
-    setAssignOrder(order);
+    setOrderToAssign(order);
     assignForm.setFieldsValue({ assignee: order.assignee });
     setAssignModalOpen(true);
   };
 
   const submitAssign = async () => {
     const v = await assignForm.validateFields();
-    if (!assignOrder) return;
-    updateOrder(assignOrder.id, { assignee: v.assignee, status: 'repairing' });
+    if (!orderToAssign) return;
+    await assignOrder(orderToAssign!.id, v.assignee);
     message.success('已分配处理人，工单进入维修中');
     setAssignModalOpen(false);
   };
 
-  const startRepair = (order: RepairOrder) => {
-    updateOrder(order.id, { status: 'repairing' });
+  const startRepair = async (order: RepairOrder) => {
+    await changeOrderStatus(order.id, 'repairing');
     message.success('已开始维修');
   };
 
-  const closeOrder = (order: RepairOrder) => {
-    updateOrder(order.id, { status: 'closed' });
+  const closeOrder = async (order: RepairOrder) => {
+    await changeOrderStatus(order.id, 'closed');
     message.success('工单已关闭');
   };
 
-  const completeWithRepair = (order: RepairOrder) => {
-    // Navigate to repairs page by opening drawer with pre-fill - but simpler: directly add a minimal repair
+  const completeWithRepair = async (order: RepairOrder) => {
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    addRepair(order.id, {
+    await addRepair(order.id, {
       startedAt: order.createdAt,
       finishedAt: now,
       partsReplaced: [],
@@ -297,6 +296,7 @@ export default function Orders() {
           dataSource={filtered}
           scroll={{ x: 1380 }}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条工单` }}
+          loading={loading}
         />
       </Card>
 

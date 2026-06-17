@@ -1,0 +1,3668 @@
+[
+  {
+    "id": "order-UmqaiG2a",
+    "chairId": "chair-8l7iX8bn",
+    "reporter": "测试员工 E2E",
+    "faultTypes": [
+      "noise",
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "这是一条端到端测试的问题工单，测试数据持久化功能。",
+    "status": "done",
+    "createdAt": "2026-06-17 09:49:38",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-xwVB__Kr",
+      "orderId": "order-UmqaiG2a",
+      "startedAt": "2026-06-17 10:00:00",
+      "finishedAt": "2026-06-17 11:30:00",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 180
+        },
+        {
+          "name": "静音轮子",
+          "quantity": 5,
+          "unitCost": 25
+        }
+      ],
+      "laborCost": 80,
+      "totalCost": 385,
+      "handler": "王师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/repair-xwVB__Kr-b/400/300",
+      "afterPhoto": "https://picsum.photos/seed/repair-xwVB__Kr-a/400/300",
+      "notes": "更换了整套气压杆和5个轮子，测试无异响和下沉问题。"
+    }
+  },
+  {
+    "id": "order-UKCfxh_-",
+    "chairId": "chair-1",
+    "reporter": "测试员",
+    "faultTypes": [
+      "noise",
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "测试新增工单",
+    "status": "done",
+    "createdAt": "2026-06-17 09:28:52",
+    "needDisable": false,
+    "repair": {
+      "id": "repair-CeahRmgQ",
+      "orderId": "order-UKCfxh_-",
+      "startedAt": "2026-06-17 09:00:00",
+      "finishedAt": "2026-06-17 11:30:00",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 120,
+      "totalCost": 400,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/repair-CeahRmgQ-b/400/300",
+      "afterPhoto": "https://picsum.photos/seed/repair-CeahRmgQ-a/400/300",
+      "notes": "测试维修记录API"
+    }
+  },
+  {
+    "id": "order-1",
+    "chairId": "chair-146",
+    "reporter": "李四",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-14 07:35:08",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-1",
+      "orderId": "order-1",
+      "startedAt": "2025-09-14 10:12:21",
+      "finishedAt": "2025-09-15 08:59:47",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        },
+        {
+          "name": "万向轮",
+          "quantity": 2,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 171,
+      "totalCost": 621,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before0/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after0/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-2",
+    "chairId": "chair-103",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-11-07 19:00:48",
+    "needDisable": false,
+    "assignee": "赵师傅"
+  },
+  {
+    "id": "order-3",
+    "chairId": "chair-142",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-03-31 15:33:03",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-3",
+      "orderId": "order-3",
+      "startedAt": "2025-04-01 01:42:27",
+      "finishedAt": "2025-04-01 16:39:11",
+      "partsReplaced": [],
+      "laborCost": 223,
+      "totalCost": 223,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before2/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after2/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-4",
+    "chairId": "chair-75",
+    "reporter": "王五",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-03 12:29:42",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-4",
+      "orderId": "order-4",
+      "startedAt": "2025-09-03 07:32:44",
+      "finishedAt": "2025-09-05 05:20:37",
+      "partsReplaced": [],
+      "laborCost": 129,
+      "totalCost": 129,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before3/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after3/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-5",
+    "chairId": "chair-46",
+    "reporter": "张三",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-03-25 02:22:47",
+    "needDisable": false,
+    "assignee": "李师傅"
+  },
+  {
+    "id": "order-6",
+    "chairId": "chair-168",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed",
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-01-25 23:51:40",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-6",
+      "orderId": "order-6",
+      "startedAt": "2025-01-26 01:54:50",
+      "finishedAt": "2025-01-26 10:05:35",
+      "partsReplaced": [],
+      "laborCost": 259,
+      "totalCost": 259,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before5/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after5/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-7",
+    "chairId": "chair-4",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-05-01 03:28:08",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-7",
+      "orderId": "order-7",
+      "startedAt": "2025-05-01 17:19:50",
+      "finishedAt": "2025-05-02 20:59:00",
+      "partsReplaced": [],
+      "laborCost": 170,
+      "totalCost": 170,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before6/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after6/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-8",
+    "chairId": "chair-74",
+    "reporter": "周九",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-01-13 21:23:51",
+    "needDisable": false,
+    "assignee": "李师傅"
+  },
+  {
+    "id": "order-9",
+    "chairId": "chair-62",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "backrest_loose",
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-01-13 15:52:09",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-9",
+      "orderId": "order-9",
+      "startedAt": "2025-01-13 15:44:58",
+      "finishedAt": "2025-01-15 08:16:19",
+      "partsReplaced": [],
+      "laborCost": 254,
+      "totalCost": 254,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before8/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after8/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-10",
+    "chairId": "chair-107",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken",
+      "sinking"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-11-18 21:16:21",
+    "needDisable": false,
+    "assignee": "李师傅"
+  },
+  {
+    "id": "order-11",
+    "chairId": "chair-121",
+    "reporter": "李四",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-02-24 22:06:15",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-11",
+      "orderId": "order-11",
+      "startedAt": "2025-02-25 12:41:22",
+      "finishedAt": "2025-02-26 11:42:21",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        }
+      ],
+      "laborCost": 180,
+      "totalCost": 270,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before10/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after10/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-12",
+    "chairId": "chair-11",
+    "reporter": "王五",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-02-15 20:03:10",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-12",
+      "orderId": "order-12",
+      "startedAt": "2026-02-16 02:07:24",
+      "finishedAt": "2026-02-17 11:17:11",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 222,
+      "totalCost": 417,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before11/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after11/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-13",
+    "chairId": "chair-127",
+    "reporter": "钱七",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2026-01-12 01:08:36",
+    "needDisable": false
+  },
+  {
+    "id": "order-14",
+    "chairId": "chair-59",
+    "reporter": "钱七",
+    "faultTypes": [
+      "noise",
+      "backrest_loose"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-04-25 03:20:51",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-14",
+      "orderId": "order-14",
+      "startedAt": "2026-04-24 20:29:15",
+      "finishedAt": "2026-04-25 03:04:03",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        },
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 256,
+      "totalCost": 686,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before13/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after13/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-15",
+    "chairId": "chair-131",
+    "reporter": "钱七",
+    "faultTypes": [
+      "seat_collapse",
+      "wheel_jammed"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-22 04:52:58",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-15",
+      "orderId": "order-15",
+      "startedAt": "2026-03-22 00:24:41",
+      "finishedAt": "2026-03-23 16:18:55",
+      "partsReplaced": [],
+      "laborCost": 198,
+      "totalCost": 198,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before14/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after14/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-16",
+    "chairId": "chair-67",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed",
+      "seat_collapse"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-12 12:01:09",
+    "needDisable": true,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-16",
+      "orderId": "order-16",
+      "startedAt": "2025-10-13 01:35:58",
+      "finishedAt": "2025-10-14 03:36:20",
+      "partsReplaced": [],
+      "laborCost": 152,
+      "totalCost": 152,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before15/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after15/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-17",
+    "chairId": "chair-96",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-07-20 11:42:59",
+    "needDisable": true,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-17",
+      "orderId": "order-17",
+      "startedAt": "2025-07-20 14:11:13",
+      "finishedAt": "2025-07-20 17:05:51",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        },
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 84,
+      "totalCost": 354,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before16/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after16/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-18",
+    "chairId": "chair-156",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-03-17 16:35:12",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-19",
+    "chairId": "chair-98",
+    "reporter": "赵六",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-01-22 22:12:29",
+    "needDisable": false,
+    "assignee": "赵师傅"
+  },
+  {
+    "id": "order-20",
+    "chairId": "chair-115",
+    "reporter": "王五",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-09-16 19:32:12",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-21",
+    "chairId": "chair-81",
+    "reporter": "赵六",
+    "faultTypes": [
+      "noise",
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-04-04 01:00:56",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-21",
+      "orderId": "order-21",
+      "startedAt": "2026-04-04 03:05:18",
+      "finishedAt": "2026-04-05 21:03:58",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 87,
+      "totalCost": 397,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before20/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after20/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-22",
+    "chairId": "chair-60",
+    "reporter": "钱七",
+    "faultTypes": [
+      "sinking",
+      "noise"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-01-12 07:20:30",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-22",
+      "orderId": "order-22",
+      "startedAt": "2026-01-12 15:58:26",
+      "finishedAt": "2026-01-12 18:10:58",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 1,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 191,
+      "totalCost": 341,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before21/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after21/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-23",
+    "chairId": "chair-80",
+    "reporter": "孙八",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-22 04:10:04",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-23",
+      "orderId": "order-23",
+      "startedAt": "2026-03-22 06:28:46",
+      "finishedAt": "2026-03-23 08:06:00",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        },
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 209,
+      "totalCost": 609,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before22/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after22/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-24",
+    "chairId": "chair-22",
+    "reporter": "王五",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-01-22 02:26:19",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-24",
+      "orderId": "order-24",
+      "startedAt": "2025-01-22 09:05:33",
+      "finishedAt": "2025-01-22 22:08:16",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 278,
+      "totalCost": 458,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before23/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after23/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-25",
+    "chairId": "chair-14",
+    "reporter": "张三",
+    "faultTypes": [
+      "wheel_jammed",
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-11-27 19:28:14",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-25",
+      "orderId": "order-25",
+      "startedAt": "2025-11-27 19:00:43",
+      "finishedAt": "2025-11-28 15:13:32",
+      "partsReplaced": [],
+      "laborCost": 235,
+      "totalCost": 235,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before24/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after24/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-26",
+    "chairId": "chair-52",
+    "reporter": "孙八",
+    "faultTypes": [
+      "noise",
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-01-25 18:16:59",
+    "needDisable": false
+  },
+  {
+    "id": "order-27",
+    "chairId": "chair-45",
+    "reporter": "吴十",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-07-01 09:56:57",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-27",
+      "orderId": "order-27",
+      "startedAt": "2025-07-01 22:49:03",
+      "finishedAt": "2025-07-03 21:33:46",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 160,
+      "totalCost": 340,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before26/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after26/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-28",
+    "chairId": "chair-58",
+    "reporter": "吴十",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-12-14 23:48:24",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-28",
+      "orderId": "order-28",
+      "startedAt": "2025-12-14 19:35:04",
+      "finishedAt": "2025-12-16 06:14:01",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 218,
+      "totalCost": 438,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before27/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after27/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-29",
+    "chairId": "chair-150",
+    "reporter": "张三",
+    "faultTypes": [
+      "wheel_jammed",
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2026-02-05 10:33:49",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-29",
+      "orderId": "order-29",
+      "startedAt": "2026-02-06 00:41:26",
+      "finishedAt": "2026-02-06 13:17:23",
+      "partsReplaced": [],
+      "laborCost": 127,
+      "totalCost": 127,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before28/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after28/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-30",
+    "chairId": "chair-2",
+    "reporter": "李四",
+    "faultTypes": [
+      "backrest_loose",
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-08 22:13:45",
+    "needDisable": true,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-30",
+      "orderId": "order-30",
+      "startedAt": "2025-06-09 10:39:40",
+      "finishedAt": "2025-06-11 10:23:07",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 196,
+      "totalCost": 506,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before29/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after29/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-31",
+    "chairId": "chair-145",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "noise",
+      "backrest_loose"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-16 16:31:50",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-31",
+      "orderId": "order-31",
+      "startedAt": "2026-03-16 12:39:08",
+      "finishedAt": "2026-03-16 16:44:37",
+      "partsReplaced": [],
+      "laborCost": 126,
+      "totalCost": 126,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before30/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after30/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-32",
+    "chairId": "chair-166",
+    "reporter": "吴十",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-02-28 17:08:09",
+    "needDisable": false
+  },
+  {
+    "id": "order-33",
+    "chairId": "chair-157",
+    "reporter": "张三",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2026-05-17 23:41:32",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-33",
+      "orderId": "order-33",
+      "startedAt": "2026-05-18 10:57:15",
+      "finishedAt": "2026-05-20 07:37:54",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        },
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 139,
+      "totalCost": 679,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before32/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after32/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-34",
+    "chairId": "chair-53",
+    "reporter": "周九",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-07-22 20:09:28",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-34",
+      "orderId": "order-34",
+      "startedAt": "2025-07-22 16:17:36",
+      "finishedAt": "2025-07-23 23:51:22",
+      "partsReplaced": [],
+      "laborCost": 82,
+      "totalCost": 82,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before33/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after33/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-35",
+    "chairId": "chair-53",
+    "reporter": "周九",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-30 20:34:28",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-35",
+      "orderId": "order-35",
+      "startedAt": "2025-07-01 09:39:46",
+      "finishedAt": "2025-07-02 17:44:11",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        },
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 230,
+      "totalCost": 810,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before34/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after34/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-36",
+    "chairId": "chair-115",
+    "reporter": "李四",
+    "faultTypes": [
+      "wheel_jammed",
+      "noise"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-04-12 12:10:26",
+    "needDisable": true,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-36",
+      "orderId": "order-36",
+      "startedAt": "2026-04-13 01:32:51",
+      "finishedAt": "2026-04-14 04:12:27",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        },
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 226,
+      "totalCost": 361,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before35/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after35/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-37",
+    "chairId": "chair-154",
+    "reporter": "赵六",
+    "faultTypes": [
+      "noise",
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-04-10 12:44:40",
+    "needDisable": true,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-37",
+      "orderId": "order-37",
+      "startedAt": "2026-04-10 23:47:13",
+      "finishedAt": "2026-04-12 13:13:13",
+      "partsReplaced": [],
+      "laborCost": 101,
+      "totalCost": 101,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before36/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after36/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-38",
+    "chairId": "chair-111",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-12-21 08:19:18",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-38",
+      "orderId": "order-38",
+      "startedAt": "2025-12-21 07:41:15",
+      "finishedAt": "2025-12-23 07:25:18",
+      "partsReplaced": [],
+      "laborCost": 255,
+      "totalCost": 255,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before37/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after37/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-39",
+    "chairId": "chair-66",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken",
+      "noise"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-08-24 23:35:39",
+    "needDisable": true,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-39",
+      "orderId": "order-39",
+      "startedAt": "2025-08-24 21:14:16",
+      "finishedAt": "2025-08-26 02:46:43",
+      "partsReplaced": [],
+      "laborCost": 244,
+      "totalCost": 244,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before38/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after38/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-40",
+    "chairId": "chair-101",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed",
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-21 04:36:05",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-40",
+      "orderId": "order-40",
+      "startedAt": "2026-03-20 23:06:14",
+      "finishedAt": "2026-03-21 09:15:24",
+      "partsReplaced": [],
+      "laborCost": 254,
+      "totalCost": 254,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before39/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after39/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-41",
+    "chairId": "chair-116",
+    "reporter": "张三",
+    "faultTypes": [
+      "armrest_broken",
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-02-03 13:01:13",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-42",
+    "chairId": "chair-24",
+    "reporter": "钱七",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-03-05 20:13:55",
+    "needDisable": false,
+    "assignee": "孙师傅"
+  },
+  {
+    "id": "order-43",
+    "chairId": "chair-110",
+    "reporter": "周九",
+    "faultTypes": [
+      "wheel_jammed",
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-12-10 10:02:37",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-43",
+      "orderId": "order-43",
+      "startedAt": "2025-12-11 02:05:27",
+      "finishedAt": "2025-12-12 20:49:02",
+      "partsReplaced": [],
+      "laborCost": 186,
+      "totalCost": 186,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before42/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after42/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-44",
+    "chairId": "chair-66",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-11 07:39:59",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-44",
+      "orderId": "order-44",
+      "startedAt": "2026-03-11 04:39:08",
+      "finishedAt": "2026-03-12 08:48:14",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        },
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 102,
+      "totalCost": 552,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before43/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after43/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-45",
+    "chairId": "chair-41",
+    "reporter": "孙八",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-02-01 05:17:16",
+    "needDisable": true,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-45",
+      "orderId": "order-45",
+      "startedAt": "2026-02-01 12:33:15",
+      "finishedAt": "2026-02-02 23:11:43",
+      "partsReplaced": [],
+      "laborCost": 206,
+      "totalCost": 206,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before44/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after44/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-46",
+    "chairId": "chair-113",
+    "reporter": "孙八",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-20 17:55:50",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-46",
+      "orderId": "order-46",
+      "startedAt": "2025-09-20 11:25:38",
+      "finishedAt": "2025-09-21 19:48:35",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 200,
+      "totalCost": 265,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before45/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after45/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-47",
+    "chairId": "chair-91",
+    "reporter": "赵六",
+    "faultTypes": [
+      "sinking",
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-05-21 03:50:23",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-47",
+      "orderId": "order-47",
+      "startedAt": "2025-05-21 16:37:58",
+      "finishedAt": "2025-05-23 13:07:36",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 2,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 136,
+      "totalCost": 226,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before46/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after46/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-48",
+    "chairId": "chair-84",
+    "reporter": "赵六",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-05-18 19:44:52",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-48",
+      "orderId": "order-48",
+      "startedAt": "2025-05-18 22:57:30",
+      "finishedAt": "2025-05-20 14:56:08",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        },
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 96,
+      "totalCost": 736,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before47/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after47/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-49",
+    "chairId": "chair-97",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-12-28 18:55:13",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-49",
+      "orderId": "order-49",
+      "startedAt": "2025-12-29 09:24:35",
+      "finishedAt": "2025-12-30 02:33:41",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 2,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 89,
+      "totalCost": 179,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before48/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after48/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-50",
+    "chairId": "chair-23",
+    "reporter": "孙八",
+    "faultTypes": [
+      "sinking",
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-01-21 05:30:09",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-50",
+      "orderId": "order-50",
+      "startedAt": "2025-01-21 11:41:34",
+      "finishedAt": "2025-01-22 02:19:05",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        },
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 81,
+      "totalCost": 426,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before49/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after49/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-51",
+    "chairId": "chair-142",
+    "reporter": "李四",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-27 08:33:45",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-51",
+      "orderId": "order-51",
+      "startedAt": "2025-10-27 06:39:53",
+      "finishedAt": "2025-10-27 14:38:42",
+      "partsReplaced": [],
+      "laborCost": 152,
+      "totalCost": 152,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before50/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after50/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-52",
+    "chairId": "chair-137",
+    "reporter": "钱七",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-01-16 21:48:44",
+    "needDisable": true,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-53",
+    "chairId": "chair-131",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-03-04 02:54:51",
+    "needDisable": true,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-53",
+      "orderId": "order-53",
+      "startedAt": "2025-03-03 21:35:24",
+      "finishedAt": "2025-03-05 15:24:24",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 266,
+      "totalCost": 551,
+      "handler": "王师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before52/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after52/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-54",
+    "chairId": "chair-77",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "noise",
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-27 19:19:21",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-54",
+      "orderId": "order-54",
+      "startedAt": "2025-09-28 04:15:12",
+      "finishedAt": "2025-09-28 13:03:14",
+      "partsReplaced": [],
+      "laborCost": 192,
+      "totalCost": 192,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before53/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after53/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-55",
+    "chairId": "chair-40",
+    "reporter": "张三",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-04-23 18:00:42",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-55",
+      "orderId": "order-55",
+      "startedAt": "2025-04-24 06:29:54",
+      "finishedAt": "2025-04-24 12:53:05",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 273,
+      "totalCost": 493,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before54/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after54/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-56",
+    "chairId": "chair-63",
+    "reporter": "张三",
+    "faultTypes": [
+      "armrest_broken",
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2026-02-20 15:59:38",
+    "needDisable": false
+  },
+  {
+    "id": "order-57",
+    "chairId": "chair-80",
+    "reporter": "孙八",
+    "faultTypes": [
+      "backrest_loose",
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2026-02-26 08:34:04",
+    "needDisable": false
+  },
+  {
+    "id": "order-58",
+    "chairId": "chair-104",
+    "reporter": "李四",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-08-18 13:41:10",
+    "needDisable": false,
+    "assignee": "孙师傅"
+  },
+  {
+    "id": "order-59",
+    "chairId": "chair-11",
+    "reporter": "张三",
+    "faultTypes": [
+      "seat_collapse",
+      "backrest_loose"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-28 18:23:16",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-59",
+      "orderId": "order-59",
+      "startedAt": "2026-03-29 01:19:43",
+      "finishedAt": "2026-03-30 06:02:40",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        },
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 167,
+      "totalCost": 392,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before58/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after58/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-60",
+    "chairId": "chair-36",
+    "reporter": "张三",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-11-15 09:53:31",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-60",
+      "orderId": "order-60",
+      "startedAt": "2025-11-15 15:03:19",
+      "finishedAt": "2025-11-15 22:06:45",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 171,
+      "totalCost": 216,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before59/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after59/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-61",
+    "chairId": "chair-9",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken",
+      "wheel_jammed"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-14 02:15:08",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-61",
+      "orderId": "order-61",
+      "startedAt": "2025-06-14 16:18:48",
+      "finishedAt": "2025-06-15 04:51:17",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 2,
+          "unitCost": 45
+        },
+        {
+          "name": "坐垫海绵",
+          "quantity": 2,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 99,
+      "totalCost": 629,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before60/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after60/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-62",
+    "chairId": "chair-163",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-11 03:16:33",
+    "needDisable": true,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-62",
+      "orderId": "order-62",
+      "startedAt": "2026-03-11 17:23:19",
+      "finishedAt": "2026-03-13 12:52:21",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 2,
+          "unitCost": 90
+        }
+      ],
+      "laborCost": 269,
+      "totalCost": 449,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before61/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after61/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-63",
+    "chairId": "chair-56",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-05-25 10:41:39",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-63",
+      "orderId": "order-63",
+      "startedAt": "2025-05-25 13:15:21",
+      "finishedAt": "2025-05-25 15:55:05",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 2,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 108,
+      "totalCost": 198,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before62/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after62/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-64",
+    "chairId": "chair-115",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-02-15 04:42:36",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-64",
+      "orderId": "order-64",
+      "startedAt": "2025-02-15 15:39:16",
+      "finishedAt": "2025-02-16 12:22:27",
+      "partsReplaced": [],
+      "laborCost": 259,
+      "totalCost": 259,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before63/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after63/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-65",
+    "chairId": "chair-31",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-02-19 20:03:09",
+    "needDisable": false,
+    "assignee": "赵师傅"
+  },
+  {
+    "id": "order-66",
+    "chairId": "chair-35",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-01-22 00:32:04",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-66",
+      "orderId": "order-66",
+      "startedAt": "2025-01-21 18:41:59",
+      "finishedAt": "2025-01-23 03:07:38",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        },
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 96,
+      "totalCost": 536,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before65/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after65/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-67",
+    "chairId": "chair-97",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken",
+      "noise"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-03-06 10:23:23",
+    "needDisable": false
+  },
+  {
+    "id": "order-68",
+    "chairId": "chair-53",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-08 21:34:37",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-68",
+      "orderId": "order-68",
+      "startedAt": "2025-09-09 05:21:22",
+      "finishedAt": "2025-09-09 07:30:33",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 2,
+          "unitCost": 220
+        },
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        }
+      ],
+      "laborCost": 271,
+      "totalCost": 801,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before67/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after67/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-69",
+    "chairId": "chair-94",
+    "reporter": "孙八",
+    "faultTypes": [
+      "noise",
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-04-25 07:53:49",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-69",
+      "orderId": "order-69",
+      "startedAt": "2025-04-25 02:47:39",
+      "finishedAt": "2025-04-25 20:38:43",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 129,
+      "totalCost": 489,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before68/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after68/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-70",
+    "chairId": "chair-156",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-04-07 12:26:35",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-70",
+      "orderId": "order-70",
+      "startedAt": "2025-04-08 01:55:13",
+      "finishedAt": "2025-04-08 21:16:31",
+      "partsReplaced": [],
+      "laborCost": 117,
+      "totalCost": 117,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before69/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after69/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-71",
+    "chairId": "chair-92",
+    "reporter": "孙八",
+    "faultTypes": [
+      "sinking",
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-11-19 01:31:22",
+    "needDisable": false
+  },
+  {
+    "id": "order-72",
+    "chairId": "chair-70",
+    "reporter": "吴十",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-04-12 20:25:36",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-72",
+      "orderId": "order-72",
+      "startedAt": "2025-04-13 08:03:50",
+      "finishedAt": "2025-04-15 04:55:17",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 98,
+      "totalCost": 458,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before71/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after71/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-73",
+    "chairId": "chair-115",
+    "reporter": "赵六",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-06-02 18:20:44",
+    "needDisable": false
+  },
+  {
+    "id": "order-74",
+    "chairId": "chair-34",
+    "reporter": "周九",
+    "faultTypes": [
+      "seat_collapse",
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-02-09 13:01:14",
+    "needDisable": false,
+    "assignee": "赵师傅"
+  },
+  {
+    "id": "order-75",
+    "chairId": "chair-28",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "sinking",
+      "wheel_jammed"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-23 07:29:56",
+    "needDisable": true,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-75",
+      "orderId": "order-75",
+      "startedAt": "2026-03-23 03:51:14",
+      "finishedAt": "2026-03-24 13:26:58",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 277,
+      "totalCost": 707,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before74/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after74/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-76",
+    "chairId": "chair-46",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "backrest_loose",
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-06-12 03:08:05",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-76",
+      "orderId": "order-76",
+      "startedAt": "2026-06-12 00:21:10",
+      "finishedAt": "2026-06-12 12:20:42",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 207,
+      "totalCost": 567,
+      "handler": "孙师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before75/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after75/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-77",
+    "chairId": "chair-92",
+    "reporter": "李四",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2026-04-06 23:02:09",
+    "needDisable": true,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-78",
+    "chairId": "chair-26",
+    "reporter": "吴十",
+    "faultTypes": [
+      "sinking",
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-02-06 18:12:59",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-79",
+    "chairId": "chair-164",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-06-04 09:31:43",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-79",
+      "orderId": "order-79",
+      "startedAt": "2026-06-04 04:08:00",
+      "finishedAt": "2026-06-05 14:05:56",
+      "partsReplaced": [],
+      "laborCost": 255,
+      "totalCost": 255,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before78/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after78/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-80",
+    "chairId": "chair-133",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-02-02 19:05:13",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-80",
+      "orderId": "order-80",
+      "startedAt": "2025-02-03 02:35:43",
+      "finishedAt": "2025-02-04 06:19:43",
+      "partsReplaced": [],
+      "laborCost": 184,
+      "totalCost": 184,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before79/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after79/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-81",
+    "chairId": "chair-115",
+    "reporter": "赵六",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-02-07 17:36:25",
+    "needDisable": false
+  },
+  {
+    "id": "order-82",
+    "chairId": "chair-67",
+    "reporter": "张三",
+    "faultTypes": [
+      "seat_collapse",
+      "armrest_broken"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-04-03 03:59:16",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-83",
+    "chairId": "chair-146",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "armrest_broken",
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-20 08:26:39",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-83",
+      "orderId": "order-83",
+      "startedAt": "2025-06-20 23:53:52",
+      "finishedAt": "2025-06-22 15:44:59",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 202,
+      "totalCost": 422,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before82/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after82/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-84",
+    "chairId": "chair-37",
+    "reporter": "李四",
+    "faultTypes": [
+      "backrest_loose",
+      "noise"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2026-03-15 16:54:01",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-84",
+      "orderId": "order-84",
+      "startedAt": "2026-03-15 18:44:55",
+      "finishedAt": "2026-03-17 11:30:48",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        }
+      ],
+      "laborCost": 109,
+      "totalCost": 199,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before83/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after83/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-85",
+    "chairId": "chair-97",
+    "reporter": "赵六",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-03-10 18:13:00",
+    "needDisable": false,
+    "assignee": "李师傅"
+  },
+  {
+    "id": "order-86",
+    "chairId": "chair-156",
+    "reporter": "钱七",
+    "faultTypes": [
+      "noise",
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-06-13 14:05:14",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-86",
+      "orderId": "order-86",
+      "startedAt": "2026-06-14 02:27:31",
+      "finishedAt": "2026-06-15 11:20:43",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        },
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 118,
+      "totalCost": 698,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before85/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after85/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-87",
+    "chairId": "chair-154",
+    "reporter": "赵六",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-12-23 18:32:15",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-87",
+      "orderId": "order-87",
+      "startedAt": "2025-12-23 17:25:34",
+      "finishedAt": "2025-12-24 12:32:42",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 109,
+      "totalCost": 329,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before86/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after86/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-88",
+    "chairId": "chair-168",
+    "reporter": "周九",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-03-11 12:51:23",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-89",
+    "chairId": "chair-23",
+    "reporter": "张三",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-02-02 03:11:00",
+    "needDisable": false
+  },
+  {
+    "id": "order-90",
+    "chairId": "chair-99",
+    "reporter": "李四",
+    "faultTypes": [
+      "armrest_broken",
+      "backrest_loose"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-10-19 12:47:32",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-90",
+      "orderId": "order-90",
+      "startedAt": "2025-10-19 18:57:25",
+      "finishedAt": "2025-10-21 19:21:45",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        }
+      ],
+      "laborCost": 147,
+      "totalCost": 192,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before89/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after89/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-91",
+    "chairId": "chair-156",
+    "reporter": "王五",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-12-06 00:32:15",
+    "needDisable": false,
+    "assignee": "孙师傅"
+  },
+  {
+    "id": "order-92",
+    "chairId": "chair-48",
+    "reporter": "赵六",
+    "faultTypes": [
+      "wheel_jammed",
+      "seat_collapse"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-04-03 11:25:49",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-92",
+      "orderId": "order-92",
+      "startedAt": "2025-04-03 11:27:54",
+      "finishedAt": "2025-04-03 23:56:08",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 241,
+      "totalCost": 306,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before91/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after91/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-93",
+    "chairId": "chair-29",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-03-16 13:57:18",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-93",
+      "orderId": "order-93",
+      "startedAt": "2025-03-16 09:24:33",
+      "finishedAt": "2025-03-17 22:40:33",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 137,
+      "totalCost": 202,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before92/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after92/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-94",
+    "chairId": "chair-60",
+    "reporter": "赵六",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-01 12:32:01",
+    "needDisable": true,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-94",
+      "orderId": "order-94",
+      "startedAt": "2025-06-01 20:34:41",
+      "finishedAt": "2025-06-03 06:22:55",
+      "partsReplaced": [
+        {
+          "name": "万向轮",
+          "quantity": 1,
+          "unitCost": 45
+        },
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 208,
+      "totalCost": 433,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before93/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after93/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-95",
+    "chairId": "chair-1",
+    "reporter": "钱七",
+    "faultTypes": [
+      "sinking",
+      "backrest_loose"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-02-02 18:01:53",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-95",
+      "orderId": "order-95",
+      "startedAt": "2025-02-03 07:58:35",
+      "finishedAt": "2025-02-03 13:44:01",
+      "partsReplaced": [],
+      "laborCost": 177,
+      "totalCost": 177,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before94/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after94/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-96",
+    "chairId": "chair-109",
+    "reporter": "周九",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-11-27 11:43:25",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-96",
+      "orderId": "order-96",
+      "startedAt": "2025-11-27 23:53:37",
+      "finishedAt": "2025-11-29 01:41:35",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 158,
+      "totalCost": 458,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before95/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after95/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-97",
+    "chairId": "chair-162",
+    "reporter": "周九",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-02-21 10:24:53",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-97",
+      "orderId": "order-97",
+      "startedAt": "2026-02-21 10:19:47",
+      "finishedAt": "2026-02-22 05:28:14",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        },
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 115,
+      "totalCost": 460,
+      "handler": "孙师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before96/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after96/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-98",
+    "chairId": "chair-123",
+    "reporter": "王五",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-05-25 22:28:21",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-98",
+      "orderId": "order-98",
+      "startedAt": "2026-05-26 13:30:13",
+      "finishedAt": "2026-05-28 09:40:59",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 2,
+          "unitCost": 150
+        },
+        {
+          "name": "气压杆",
+          "quantity": 2,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 275,
+      "totalCost": 1135,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before97/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after97/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-99",
+    "chairId": "chair-141",
+    "reporter": "周九",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-04 09:48:24",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-99",
+      "orderId": "order-99",
+      "startedAt": "2025-10-04 08:32:43",
+      "finishedAt": "2025-10-05 03:38:26",
+      "partsReplaced": [],
+      "laborCost": 122,
+      "totalCost": 122,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before98/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after98/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-100",
+    "chairId": "chair-150",
+    "reporter": "钱七",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-08-04 16:07:41",
+    "needDisable": true,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-100",
+      "orderId": "order-100",
+      "startedAt": "2025-08-04 22:18:25",
+      "finishedAt": "2025-08-05 00:56:57",
+      "partsReplaced": [],
+      "laborCost": 239,
+      "totalCost": 239,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before99/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after99/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-101",
+    "chairId": "chair-43",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-03-16 22:41:19",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-101",
+      "orderId": "order-101",
+      "startedAt": "2025-03-16 20:08:48",
+      "finishedAt": "2025-03-17 15:18:27",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 1,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 134,
+      "totalCost": 284,
+      "handler": "赵师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before100/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after100/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-102",
+    "chairId": "chair-44",
+    "reporter": "赵六",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2026-03-15 02:55:53",
+    "needDisable": false
+  },
+  {
+    "id": "order-103",
+    "chairId": "chair-10",
+    "reporter": "张三",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-09-02 00:49:12",
+    "needDisable": false
+  },
+  {
+    "id": "order-104",
+    "chairId": "chair-36",
+    "reporter": "李四",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-05-22 01:35:17",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-104",
+      "orderId": "order-104",
+      "startedAt": "2026-05-22 05:47:22",
+      "finishedAt": "2026-05-22 22:15:27",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        },
+        {
+          "name": "扶手垫",
+          "quantity": 1,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 212,
+      "totalCost": 637,
+      "handler": "孙师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before103/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after103/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-105",
+    "chairId": "chair-109",
+    "reporter": "李四",
+    "faultTypes": [
+      "seat_collapse"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-03-01 15:40:22",
+    "needDisable": false,
+    "assignee": "王师傅",
+    "repair": {
+      "id": "repair-105",
+      "orderId": "order-105",
+      "startedAt": "2026-03-01 17:47:43",
+      "finishedAt": "2026-03-02 07:55:33",
+      "partsReplaced": [],
+      "laborCost": 167,
+      "totalCost": 167,
+      "handler": "王师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before104/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after104/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-106",
+    "chairId": "chair-90",
+    "reporter": "王五",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2026-04-30 07:47:24",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-106",
+      "orderId": "order-106",
+      "startedAt": "2026-04-30 01:08:48",
+      "finishedAt": "2026-04-30 20:47:13",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 259,
+      "totalCost": 619,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before105/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after105/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-107",
+    "chairId": "chair-129",
+    "reporter": "吴十",
+    "faultTypes": [
+      "wheel_jammed",
+      "sinking"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-26 09:23:41",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-107",
+      "orderId": "order-107",
+      "startedAt": "2025-10-26 18:14:35",
+      "finishedAt": "2025-10-26 20:49:15",
+      "partsReplaced": [],
+      "laborCost": 148,
+      "totalCost": 148,
+      "handler": "孙师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before106/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after106/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-108",
+    "chairId": "chair-59",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-12-30 01:54:45",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-108",
+      "orderId": "order-108",
+      "startedAt": "2025-12-30 06:29:07",
+      "finishedAt": "2025-12-30 07:24:43",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 1,
+          "unitCost": 90
+        },
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 208,
+      "totalCost": 578,
+      "handler": "李师傅",
+      "needDisable": true,
+      "beforePhoto": "https://picsum.photos/seed/before107/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after107/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-109",
+    "chairId": "chair-117",
+    "reporter": "吴十",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-01-26 08:44:31",
+    "needDisable": false
+  },
+  {
+    "id": "order-110",
+    "chairId": "chair-11",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-06-17 09:37:50",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-110",
+      "orderId": "order-110",
+      "startedAt": "2025-06-17 11:01:26",
+      "finishedAt": "2025-06-18 03:32:02",
+      "partsReplaced": [],
+      "laborCost": 252,
+      "totalCost": 252,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before109/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after109/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-111",
+    "chairId": "chair-80",
+    "reporter": "赵六",
+    "faultTypes": [
+      "seat_collapse",
+      "wheel_jammed"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-02-27 19:17:52",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-111",
+      "orderId": "order-111",
+      "startedAt": "2025-02-27 16:00:09",
+      "finishedAt": "2025-02-27 22:17:14",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 2,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 216,
+      "totalCost": 776,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before110/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after110/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-112",
+    "chairId": "chair-135",
+    "reporter": "周九",
+    "faultTypes": [
+      "wheel_jammed",
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-02-02 18:09:53",
+    "needDisable": true,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-112",
+      "orderId": "order-112",
+      "startedAt": "2025-02-03 08:14:31",
+      "finishedAt": "2025-02-03 21:04:57",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 227,
+      "totalCost": 507,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before111/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after111/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-113",
+    "chairId": "chair-105",
+    "reporter": "王五",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "rare",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2026-01-12 05:59:34",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-113",
+      "orderId": "order-113",
+      "startedAt": "2026-01-12 17:04:37",
+      "finishedAt": "2026-01-12 20:04:06",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 2,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 84,
+      "totalCost": 644,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before112/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after112/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-114",
+    "chairId": "chair-10",
+    "reporter": "张三",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-12 09:54:08",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-114",
+      "orderId": "order-114",
+      "startedAt": "2025-10-12 14:29:34",
+      "finishedAt": "2025-10-14 01:00:01",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 2,
+          "unitCost": 220
+        },
+        {
+          "name": "坐垫海绵",
+          "quantity": 1,
+          "unitCost": 220
+        }
+      ],
+      "laborCost": 205,
+      "totalCost": 865,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before113/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after113/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-115",
+    "chairId": "chair-105",
+    "reporter": "吴十",
+    "faultTypes": [
+      "wheel_jammed",
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-10-17 14:46:48",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-115",
+      "orderId": "order-115",
+      "startedAt": "2025-10-18 06:55:06",
+      "finishedAt": "2025-10-19 10:43:37",
+      "partsReplaced": [
+        {
+          "name": "五星脚",
+          "quantity": 2,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 117,
+      "totalCost": 477,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before114/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after114/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-116",
+    "chairId": "chair-24",
+    "reporter": "张三",
+    "faultTypes": [
+      "noise",
+      "armrest_broken"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-07-16 01:29:59",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-116",
+      "orderId": "order-116",
+      "startedAt": "2025-07-16 03:24:50",
+      "finishedAt": "2025-07-18 02:34:27",
+      "partsReplaced": [
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        },
+        {
+          "name": "靠背连接轴",
+          "quantity": 1,
+          "unitCost": 150
+        }
+      ],
+      "laborCost": 170,
+      "totalCost": 600,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before115/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after115/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-117",
+    "chairId": "chair-107",
+    "reporter": "钱七",
+    "faultTypes": [
+      "wheel_jammed"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-12-15 19:34:26",
+    "needDisable": false
+  },
+  {
+    "id": "order-118",
+    "chairId": "chair-19",
+    "reporter": "冯十二",
+    "faultTypes": [
+      "backrest_loose",
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-12-07 06:42:27",
+    "needDisable": false,
+    "assignee": "王师傅"
+  },
+  {
+    "id": "order-119",
+    "chairId": "chair-161",
+    "reporter": "赵六",
+    "faultTypes": [
+      "wheel_jammed",
+      "sinking"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-04-06 00:00:02",
+    "needDisable": false,
+    "assignee": "孙师傅"
+  },
+  {
+    "id": "order-120",
+    "chairId": "chair-89",
+    "reporter": "周九",
+    "faultTypes": [
+      "noise",
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "pending",
+    "createdAt": "2025-09-23 17:51:50",
+    "needDisable": false
+  },
+  {
+    "id": "order-121",
+    "chairId": "chair-52",
+    "reporter": "王五",
+    "faultTypes": [
+      "wheel_jammed",
+      "seat_collapse"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-03-26 09:51:03",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-121",
+      "orderId": "order-121",
+      "startedAt": "2025-03-26 23:16:56",
+      "finishedAt": "2025-03-27 08:34:08",
+      "partsReplaced": [
+        {
+          "name": "调节弹簧",
+          "quantity": 2,
+          "unitCost": 90
+        },
+        {
+          "name": "五星脚",
+          "quantity": 1,
+          "unitCost": 180
+        }
+      ],
+      "laborCost": 192,
+      "totalCost": 552,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before120/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after120/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-122",
+    "chairId": "chair-109",
+    "reporter": "孙八",
+    "faultTypes": [
+      "noise",
+      "backrest_loose"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-05-18 14:04:48",
+    "needDisable": false,
+    "assignee": "李师傅",
+    "repair": {
+      "id": "repair-122",
+      "orderId": "order-122",
+      "startedAt": "2025-05-18 18:11:23",
+      "finishedAt": "2025-05-20 07:17:35",
+      "partsReplaced": [
+        {
+          "name": "坐垫海绵",
+          "quantity": 2,
+          "unitCost": 220
+        },
+        {
+          "name": "气压杆",
+          "quantity": 1,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 254,
+      "totalCost": 974,
+      "handler": "李师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before121/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after121/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-123",
+    "chairId": "chair-125",
+    "reporter": "周九",
+    "faultTypes": [
+      "sinking"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-06-28 08:42:59",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-123",
+      "orderId": "order-123",
+      "startedAt": "2025-06-28 10:41:14",
+      "finishedAt": "2025-06-29 22:19:09",
+      "partsReplaced": [],
+      "laborCost": 96,
+      "totalCost": 96,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before122/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after122/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-124",
+    "chairId": "chair-106",
+    "reporter": "王五",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-12-19 00:11:29",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-124",
+      "orderId": "order-124",
+      "startedAt": "2025-12-19 08:45:21",
+      "finishedAt": "2025-12-20 23:49:23",
+      "partsReplaced": [
+        {
+          "name": "扶手垫",
+          "quantity": 2,
+          "unitCost": 65
+        }
+      ],
+      "laborCost": 120,
+      "totalCost": 250,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before123/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after123/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-125",
+    "chairId": "chair-107",
+    "reporter": "郑十一",
+    "faultTypes": [
+      "armrest_broken",
+      "seat_collapse"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "done",
+    "createdAt": "2025-09-12 06:06:23",
+    "needDisable": false,
+    "assignee": "孙师傅",
+    "repair": {
+      "id": "repair-125",
+      "orderId": "order-125",
+      "startedAt": "2025-09-12 19:19:38",
+      "finishedAt": "2025-09-13 23:25:45",
+      "partsReplaced": [],
+      "laborCost": 193,
+      "totalCost": 193,
+      "handler": "孙师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before124/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after124/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-126",
+    "chairId": "chair-159",
+    "reporter": "孙八",
+    "faultTypes": [
+      "backrest_loose"
+    ],
+    "frequency": "occasional",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "closed",
+    "createdAt": "2025-05-01 01:19:50",
+    "needDisable": false,
+    "assignee": "赵师傅",
+    "repair": {
+      "id": "repair-126",
+      "orderId": "order-126",
+      "startedAt": "2025-05-01 05:55:01",
+      "finishedAt": "2025-05-03 03:42:34",
+      "partsReplaced": [
+        {
+          "name": "靠背连接轴",
+          "quantity": 1,
+          "unitCost": 150
+        },
+        {
+          "name": "气压杆",
+          "quantity": 2,
+          "unitCost": 280
+        }
+      ],
+      "laborCost": 269,
+      "totalCost": 979,
+      "handler": "赵师傅",
+      "needDisable": false,
+      "beforePhoto": "https://picsum.photos/seed/before125/400/300",
+      "afterPhoto": "https://picsum.photos/seed/after125/400/300",
+      "notes": "已按标准流程检修，测试正常后交付。"
+    }
+  },
+  {
+    "id": "order-127",
+    "chairId": "chair-95",
+    "reporter": "赵六",
+    "faultTypes": [
+      "armrest_broken"
+    ],
+    "frequency": "always",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-08-16 08:36:03",
+    "needDisable": true,
+    "assignee": "李师傅"
+  },
+  {
+    "id": "order-128",
+    "chairId": "chair-9",
+    "reporter": "孙八",
+    "faultTypes": [
+      "noise"
+    ],
+    "frequency": "frequent",
+    "description": "坐着不舒服，希望尽快处理。",
+    "status": "repairing",
+    "createdAt": "2025-08-06 19:51:14",
+    "needDisable": false,
+    "assignee": "赵师傅"
+  }
+]

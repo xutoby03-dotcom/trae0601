@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Card, List, Tag, Space, Avatar, Progress, Button, Divider, Empty } from 'antd';
+import { Card, List, Tag, Space, Avatar, Progress, Button, Divider, Empty, Spin, Alert } from 'antd';
 import {
   AlertOutlined,
   RiseOutlined,
@@ -26,7 +26,7 @@ import type { FaultType, Frequency } from '@/types';
 import dayjs from 'dayjs';
 
 export default function Dashboard() {
-  const { chairs, orders } = useStore();
+  const { chairs, orders, loading, error } = useStore();
   const navigate = useNavigate();
   const doneRepairs = orders.filter((o) => o.repair);
 
@@ -176,8 +176,18 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2 className="page-header">工作台总览</h2>
-      <p className="page-subheader">欢迎回来！这是今日工学椅运维情况的整体概览。</p>
+      {error && (
+        <Alert
+          type="error"
+          message="数据加载失败"
+          description={error}
+          style={{ marginBottom: 20 }}
+          showIcon
+        />
+      )}
+      <Spin spinning={loading} tip="数据加载中...">
+        <h2 className="page-header">工作台总览</h2>
+        <p className="page-subheader">欢迎回来！这是今日工学椅运维情况的整体概览。</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
         <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
@@ -453,6 +463,7 @@ export default function Dashboard() {
           </div>
         </Card>
       </div>
+      </Spin>
     </div>
   );
 }

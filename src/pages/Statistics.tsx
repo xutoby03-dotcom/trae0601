@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Card, Tabs, List, Tag, Space, Avatar, Empty } from 'antd';
+import { Card, Tabs, List, Tag, Space, Avatar, Empty, Spin, Alert } from 'antd';
 import {
   RiseOutlined,
   EnvironmentOutlined,
@@ -24,7 +24,7 @@ import type { FaultType, Frequency } from '@/types';
 import dayjs from 'dayjs';
 
 export default function Statistics() {
-  const { chairs, orders } = useStore();
+  const { chairs, orders, loading, error } = useStore();
 
   const doneRepairs = useMemo(() => orders.filter((o) => o.repair), [orders]);
   const chairMap = useMemo(() => {
@@ -311,10 +311,14 @@ export default function Statistics() {
 
   return (
     <div>
-      <h2 className="page-header">统计分析</h2>
-      <p className="page-subheader">
-        从型号、区域、维修次数、处理时长等维度分析，辅助采购与运维决策。
-      </p>
+      {error && (
+        <Alert type="error" message="数据加载失败" description={error} style={{ marginBottom: 20 }} showIcon />
+      )}
+      <Spin spinning={loading} tip="数据加载中...">
+        <h2 className="page-header">统计分析</h2>
+        <p className="page-subheader">
+          从型号、区域、维修次数、处理时长等维度分析，辅助采购与运维决策。
+        </p>
 
       <Space size={16} style={{ marginBottom: 20 }} wrap>
         <div className="stat-card" style={{ minWidth: 170 }}>
@@ -611,6 +615,7 @@ export default function Statistics() {
           },
         ]}
       />
+      </Spin>
     </div>
   );
 }

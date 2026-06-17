@@ -1,93 +1,140 @@
-import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  createContext,
+  useContext,
+  ReactNode,
+} from 'react';
 import type { Chair, RepairOrder, RepairRecord } from '@/types';
-import { MOCK_CHAIRS, MOCK_ORDERS } from '@/data/mock';
+import { api } from '@/services/api';
+import { message } from 'antd';
 
 interface StoreContextValue {
   chairs: Chair[];
   orders: RepairOrder[];
-  addChair: (chair: Omit<Chair, 'id'>) => void;
-  updateChair: (id: string, patch: Partial<Chair>) => void;
-  deleteChair: (id: string) => void;
-  addOrder: (order: Omit<RepairOrder, 'id' | 'status' | 'createdAt'>) => void;
-  updateOrder: (id: string, patch: Partial<RepairOrder>) => void;
-  addRepair: (orderId: string, repair: Omit<RepairRecord, 'id' | 'orderId'>) => void;
+  loading: boolean;
+  error: string | null;
+  refreshAll: () => Promise<void>;
+  addChair: (chair: Omit<Chair, 'id'>) => Promise<Chair>;
+  updateChair: (id: string, patch: Partial<Chair>) => Promise<Chair>;
+  deleteChair: (id: string) => Promise<void>;
+  setChairDisabled: (id: string, disabled: boolean) => Promise<Chair>;
+  addOrder: (order: Omit<RepairOrder, 'id' | 'status' | 'createdAt'>) => Promise<RepairOrder>;
+  updateOrder: (id: string, patch: Partial<RepairOrder>) => Promise<RepairOrder>;
+  assignOrder: (id: string, assignee: string) => Promise<RepairOrder>;
+  changeOrderStatus: (id: string, status: string) => Promise<RepairOrder>;
+  addRepair: (orderId: string, repair: Omit<RepairRecord, 'id' | 'orderId'>) => Promise<RepairRecord>;
+  updateRepair: (id: string, patch: Partial<RepairRecord>) => Promise<RepairRecord>;
   getChairById: (id: string) => Chair | undefined;
   getOrderById: (id: string) => RepairOrder | undefined;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-const LS_CHAIRS = 'trae_chairs_v1';
-const LS_ORDERS = 'trae_orders_v1';
-
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [chairs, setChairs] = useState<Chair[]>([]);
   const [orders, setOrders] = useState<RepairOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const savedChairs = localStorage.getItem(LS_CHAIRS);
-      const savedOrders = localStorage.getItem(LS_ORDERS);
-      setChairs(savedChairs ? JSON.parse(savedChairs) : MOCK_CHAIRS);
-      setOrders(savedOrders ? JSON.parse(savedOrders) : MOCK_ORDERS);
-    } catch {
-      setChairs(MOCK_CHAIRS);
-      setOrders(MOCK_ORDERS);
+      const [chairData, orderData] = await Promise.all([
+        api.chairs.list(),
+        api.orders.list(),
+      ]);
+      setChairs(Array.isArray(chairData) ? chairData : []);
+      setOrders(Array.isArray(orderData) ? orderData : []);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '加载数据失败';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (chairs.length) localStorage.setItem(LS_CHAIRS, JSON.stringify(chairs));
-  }, [chairs]);
+    loadAll();
+  }, [loadAll]);
 
-  useEffect(() => {
-    if (orders.length) localStorage.setItem(LS_ORDERS, JSON.stringify(orders));
-  }, [orders]);
+  const refreshAll = useCallback(async () => {
+    await loadAll();
+  }, [loadAll]);
 
-  const addChair = useCallback((chair: Omit<Chair, 'id'>) => {
-    const id = `chair-${Date.now()}`;
-    setChairs((prev) => [...prev, { ...chair, id }]);
+  const addChair = useCallback(async (chair: Omit<Chair, 'id'>) => {
+    const newChair = await api.chairs.create(chair);
+    setChairs((prev) => [...prev, newChair]);
+    message.success('椅子已添加');
+    return newChair;
   }, []);
 
-  const updateChair = useCallback((id: string, patch: Partial<Chair>) => {
-    setChairs((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const updateChair = useCallback(async (id: string, patch: Partial<Chair>) => {
+    const updated = await api.chairs.update(id, patch);
+    setChairs((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    return updated;
   }, []);
 
-  const deleteChair = useCallback((id: string) => {
+  const setChairDisabled = useCallback(async (id: string, disabled: boolean) => {
+    const updated = await api.chairs.setDisabled(id, disabled);
+    setChairs((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    return updated;
+  }, []);
+
+  const deleteChair = useCallback(async (id: string) => {
+    await api.chairs.remove(id);
     setChairs((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  const addOrder = useCallback(
-    (order: Omit<RepairOrder, 'id' | 'status' | 'createdAt'>) => {
-      const id = `order-${Date.now()}`;
-      const newOrder: RepairOrder = {
-        ...order,
-        id,
-        status: 'pending',
-        createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      };
-      setOrders((prev) => [newOrder, ...prev]);
-    },
-    []
-  );
+  const addOrder = useCallback(async (order: Omit<RepairOrder, 'id' | 'status' | 'createdAt'>) => {
+    const newOrder = await api.orders.create(order);
+    setOrders((prev) => [newOrder, ...prev]);
+    message.success('工单已提交');
+    return newOrder;
+  }, []);
 
-  const updateOrder = useCallback((id: string, patch: Partial<RepairOrder>) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const updateOrder = useCallback(async (id: string, patch: Partial<RepairOrder>) => {
+    const updated = await api.orders.update(id, patch);
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    return updated;
+  }, []);
+
+  const assignOrder = useCallback(async (id: string, assignee: string) => {
+    const updated = await api.orders.assign(id, assignee);
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    message.success('已分配处理人');
+    return updated;
+  }, []);
+
+  const changeOrderStatus = useCallback(async (id: string, status: string) => {
+    const updated = await api.orders.changeStatus(id, status);
+    setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+    return updated;
   }, []);
 
   const addRepair = useCallback(
-    (orderId: string, repair: Omit<RepairRecord, 'id' | 'orderId'>) => {
-      const id = `repair-${Date.now()}`;
+    async (orderId: string, repair: Omit<RepairRecord, 'id' | 'orderId'>) => {
+      const result = await api.repairs.create({ ...repair, orderId });
       setOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId
-            ? { ...o, status: 'done', repair: { ...repair, id, orderId } }
-            : o
-        )
+        prev.map((o) => (o.id === orderId ? result.order : o))
       );
+      // 同时刷新椅子列表以更新 disabled 状态
+      await loadAll();
+      message.success('维修记录已保存');
+      return result.record;
     },
-    []
+    [loadAll]
   );
+
+  const updateRepair = useCallback(async (id: string, patch: Partial<RepairRecord>) => {
+    const result = await api.repairs.update(id, patch);
+    setOrders((prev) =>
+      prev.map((o) => (o.id === result.order.id ? result.order : o))
+    );
+    return result.record;
+  }, []);
 
   const getChairById = useCallback(
     (id: string) => chairs.find((c) => c.id === id),
@@ -104,12 +151,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       value={{
         chairs,
         orders,
+        loading,
+        error,
+        refreshAll,
         addChair,
         updateChair,
+        setChairDisabled,
         deleteChair,
         addOrder,
         updateOrder,
+        assignOrder,
+        changeOrderStatus,
         addRepair,
+        updateRepair,
         getChairById,
         getOrderById,
       }}

@@ -37,7 +37,7 @@ import { useStore } from '@/store';
 import dayjs, { Dayjs } from 'dayjs';
 
 export default function Repairs() {
-  const { chairs, orders, addRepair, updateOrder } = useStore();
+  const { chairs, orders, addRepair, updateRepair, updateOrder, setChairDisabled, loading } = useStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -94,7 +94,7 @@ export default function Repairs() {
       const parts: Part[] = (values.parts || []).filter((p: Part) => p.name);
       const partsCost = parts.reduce((s, p) => s + (p.unitCost || 0) * (p.quantity || 0), 0);
       const totalCost = partsCost + (values.laborCost || 0);
-      addRepair(orderId, {
+      await addRepair(orderId, {
         startedAt,
         finishedAt,
         partsReplaced: parts,
@@ -117,10 +117,11 @@ export default function Repairs() {
     setDrawerOpen(true);
   };
 
-  const toggleDisable = (record: RepairRecord, order: RepairOrder, val: boolean) => {
-    updateOrder(order.id, {
-      repair: { ...record, needDisable: val },
-    });
+  const toggleDisable = async (record: RepairRecord, order: RepairOrder, val: boolean) => {
+    await updateRepair(record.id, { needDisable: val });
+    if (val) {
+      await setChairDisabled(order.chairId, true);
+    }
     message.success(val ? '椅子已标记为停用' : '椅子已解除停用');
   };
 
@@ -332,6 +333,7 @@ export default function Repairs() {
           rowKey={(r) => r.record.id}
           columns={columns}
           dataSource={filtered}
+          loading={loading}
           scroll={{ x: 1500 }}
           pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 条维修记录` }}
         />
