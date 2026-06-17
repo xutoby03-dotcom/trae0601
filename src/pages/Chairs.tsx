@@ -27,6 +27,9 @@ import {
   UploadOutlined,
   StopOutlined,
   CheckCircleOutlined,
+  SafetyCertificateOutlined,
+  ToolOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import type { Chair, ArmrestType } from '@/types';
 import { AREAS, MODELS, ARMREST_TYPE_LABEL } from '@/types';
@@ -45,6 +48,7 @@ export default function Chairs() {
   const [filterArea, setFilterArea] = useState<string | undefined>();
   const [filterModel, setFilterModel] = useState<string | undefined>();
   const [filterArmrest, setFilterArmrest] = useState<ArmrestType | undefined>();
+  const [filterDisabled, setFilterDisabled] = useState<boolean | undefined>();
 
   const chairOrderCount = useMemo(() => {
     const map: Record<string, number> = {};
@@ -62,9 +66,18 @@ export default function Chairs() {
       if (filterArea && c.area !== filterArea) return false;
       if (filterModel && c.model !== filterModel) return false;
       if (filterArmrest && c.armrestType !== filterArmrest) return false;
+      if (filterDisabled !== undefined && c.disabled !== filterDisabled) return false;
       return true;
     });
-  }, [chairs, searchText, filterArea, filterModel, filterArmrest]);
+  }, [chairs, searchText, filterArea, filterModel, filterArmrest, filterDisabled]);
+
+  const filteredStats = useMemo(() => {
+    const total = filteredChairs.length;
+    const normal = filteredChairs.filter((c) => !c.disabled).length;
+    const disabled = filteredChairs.filter((c) => c.disabled).length;
+    const repairCount = filteredChairs.reduce((s, c) => s + (chairOrderCount[c.id] || 0), 0);
+    return { total, normal, disabled, repairCount };
+  }, [filteredChairs, chairOrderCount]);
 
   const openAdd = () => {
     setEditing(null);
@@ -194,6 +207,45 @@ export default function Chairs() {
       <h2 className="page-header">椅子管理</h2>
       <p className="page-subheader">维护所有工学椅的档案信息，支持批量筛选和停用标记。</p>
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+        <div className="stat-card" style={{ borderLeft: '4px solid #0ea5e9' }}>
+          <div className="label">
+            <Space><UnorderedListOutlined style={{ color: '#0ea5e9' }} />椅子总数</Space>
+          </div>
+          <div className="value" style={{ color: '#0ea5e9' }}>{filteredStats.total}</div>
+          <div className="trend" style={{ color: '#6b7280' }}>
+            当前筛选结果
+          </div>
+        </div>
+        <div className="stat-card" style={{ borderLeft: '4px solid #10b981' }}>
+          <div className="label">
+            <Space><SafetyCertificateOutlined style={{ color: '#10b981' }} />正常使用</Space>
+          </div>
+          <div className="value" style={{ color: '#10b981' }}>{filteredStats.normal}</div>
+          <div className="trend" style={{ color: '#6b7280' }}>
+            占比 {filteredStats.total ? Math.round((filteredStats.normal / filteredStats.total) * 100) : 0}%
+          </div>
+        </div>
+        <div className="stat-card" style={{ borderLeft: '4px solid #6b7280' }}>
+          <div className="label">
+            <Space><StopOutlined style={{ color: '#6b7280' }} />已停用</Space>
+          </div>
+          <div className="value" style={{ color: '#6b7280' }}>{filteredStats.disabled}</div>
+          <div className="trend" style={{ color: '#6b7280' }}>
+            占比 {filteredStats.total ? Math.round((filteredStats.disabled / filteredStats.total) * 100) : 0}%
+          </div>
+        </div>
+        <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div className="label">
+            <Space><ToolOutlined style={{ color: '#f59e0b' }} />累计维修次数</Space>
+          </div>
+          <div className="value" style={{ color: '#f59e0b' }}>{filteredStats.repairCount}</div>
+          <div className="trend" style={{ color: '#6b7280' }}>
+            平均 {filteredStats.total ? (filteredStats.repairCount / filteredStats.total).toFixed(1) : 0} 次/椅
+          </div>
+        </div>
+      </div>
+
       <Card style={{ marginBottom: 20, borderRadius: 12 }} bordered={false}>
         <Space wrap size={14}>
           <Input
@@ -203,6 +255,17 @@ export default function Chairs() {
             style={{ width: 260 }}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
+          />
+          <Select
+            allowClear
+            placeholder="状态"
+            style={{ width: 140 }}
+            value={filterDisabled}
+            onChange={setFilterDisabled}
+            options={[
+              { value: false, label: '正常使用' },
+              { value: true, label: '已停用' },
+            ]}
           />
           <Select
             allowClear
