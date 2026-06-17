@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #FFF8E7;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+.font-display {
+  font-family: 'Noto Serif SC', serif;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-md border border-bread-100 overflow-hidden transition-all duration-300;
+  }
+  .card:hover {
+    @apply shadow-lg -translate-y-0.5;
+  }
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn bg-bread-500 text-white hover:bg-bread-600 focus:ring-bread-500;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-bread-700 border border-bread-300 hover:bg-bread-50 focus:ring-bread-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600 focus:ring-red-500;
+  }
+  .btn-success {
+    @apply btn bg-green-500 text-white hover:bg-green-600 focus:ring-green-500;
+  }
+  .input {
+    @apply w-full px-3 py-2 border border-bread-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-bread-500 focus:border-transparent transition-all duration-200 bg-white;
+  }
+  .label {
+    @apply block text-sm font-medium text-bread-700 mb-1;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F5E6C8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: #DAA520;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C4911B;
+}
