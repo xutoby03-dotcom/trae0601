@@ -30,6 +30,9 @@ interface CylinderState {
 }
 
 const updateCylinderStatus = (cylinder: Cylinder): Cylinder => {
+  if (cylinder.status === 'abnormal') {
+    return cylinder;
+  }
   if (isExpired(cylinder.nextInspectionDate)) {
     return { ...cylinder, status: 'expired' };
   }

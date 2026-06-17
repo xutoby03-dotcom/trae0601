@@ -3,7 +3,7 @@ import { Search, X, Gauge, MapPin, Calendar, DollarSign, Clock, Cylinder } from 
 import { useCylinderStore } from '@/store/useCylinderStore';
 import { CylinderCard } from '@/components/CylinderCard';
 import { StatusBadge } from '@/components/StatusBadge';
-import type { Cylinder as CylinderType, CylinderStatus } from '@/types';
+import type { CylinderStatus } from '@/types';
 import { formatDate, formatDateTime } from '@/utils/date';
 import { calculatePressurePercentage } from '@/utils/calculator';
 
@@ -16,10 +16,10 @@ const statusFilters: { value: CylinderStatus | 'all'; label: string }[] = [
 ];
 
 export default function Cylinders() {
-  const { cylinders, getInflationByCylinder, getAbnormalByCylinder } = useCylinderStore();
+  const { cylinders, getCylinderById, getInflationByCylinder, getAbnormalByCylinder } = useCylinderStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<CylinderStatus | 'all'>('all');
-  const [selectedCylinder, setSelectedCylinder] = useState<CylinderType | null>(null);
+  const [selectedCylinderId, setSelectedCylinderId] = useState<string | null>(null);
 
   const filteredCylinders = cylinders.filter((cylinder) => {
     const matchesSearch = cylinder.cylinderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -28,6 +28,7 @@ export default function Cylinders() {
     return matchesSearch && matchesStatus;
   });
 
+  const selectedCylinder = selectedCylinderId ? getCylinderById(selectedCylinderId) : null;
   const inflations = selectedCylinder ? getInflationByCylinder(selectedCylinder.id) : [];
   const abnormals = selectedCylinder ? getAbnormalByCylinder(selectedCylinder.id) : [];
   const pressurePercent = selectedCylinder
@@ -78,7 +79,7 @@ export default function Cylinders() {
           <CylinderCard
             key={cylinder.id}
             cylinder={cylinder}
-            onClick={() => setSelectedCylinder(cylinder)}
+            onClick={() => setSelectedCylinderId(cylinder.id)}
           />
         ))}
       </div>
@@ -93,7 +94,7 @@ export default function Cylinders() {
       )}
 
       {selectedCylinder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCylinder(null)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCylinderId(null)}>
           <div
             className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
@@ -102,7 +103,7 @@ export default function Cylinders() {
               <Cylinder className="w-28 h-28 text-white/25" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
               <button
-                onClick={() => setSelectedCylinder(null)}
+                onClick={() => setSelectedCylinderId(null)}
                 className="absolute top-4 right-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
               >
                 <X className="w-5 h-5" />
