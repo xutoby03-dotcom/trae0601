@@ -1,13 +1,15 @@
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Download, Printer, CheckCircle, AlertTriangle,
-  Car, Armchair, ShieldCheck, Calendar, FileText
+  Car, Armchair, ShieldCheck, Calendar, FileText,
+  Clock, AlertCircle, ChevronRight, ListTodo
 } from 'lucide-react';
 import { useVehicleStore } from '@/store/useVehicleStore';
 import { useSeatStore } from '@/store/useSeatStore';
 import { useInstallationStore } from '@/store/useInstallationStore';
 import { useInspectionStore } from '@/store/useInspectionStore';
-import { INSPECTION_ITEMS, ORIENTATION_LABELS } from '@/types';
+import { useTaskStore } from '@/store/useTaskStore';
+import { INSPECTION_ITEMS, ORIENTATION_LABELS, Task, InspectionItemKey } from '@/types';
 import { formatDate, formatDateTime } from '@/utils/date';
 
 export default function QuickCheckCard() {
@@ -16,6 +18,7 @@ export default function QuickCheckCard() {
   const { seats } = useSeatStore();
   const { installations } = useInstallationStore();
   const { inspections } = useInspectionStore();
+  const { getTasksByInspectionId } = useTaskStore();
   
   let inspection = id ? inspections.find(i => i.id === id) : undefined;
   
@@ -36,6 +39,24 @@ export default function QuickCheckCard() {
   const seat = installation 
     ? seats.find(s => s.id === installation.seatId)
     : undefined;
+
+  const relatedTasks = inspection ? getTasksByInspectionId(inspection.id) : [];
+
+  const getTaskForItem = (itemKey: InspectionItemKey): Task | undefined => {
+    return relatedTasks.find(t => t.itemKey === itemKey);
+  };
+
+  const getTaskStatusConfig = (task?: Task) => {
+    if (!task) return null;
+    const configs = {
+      pending: { bg: 'bg-amber-500', label: '待处理', icon: Clock, text: 'text-amber-700', badgeBg: 'bg-amber-100' },
+      in_progress: { bg: 'bg-blue-500', label: '进行中', icon: AlertCircle, text: 'text-blue-700', badgeBg: 'bg-blue-100' },
+      completed: { bg: 'bg-emerald-500', label: '已完成', icon: CheckCircle, text: 'text-emerald-700', badgeBg: 'bg-emerald-100' },
+    };
+    return configs[task.status];
+  };
+
+  const tasksUrl = inspection ? `/tasks?inspectionId=${inspection.id}` : '/tasks';
 
   const handlePrint = () => {
     window.print();
@@ -62,19 +83,24 @@ export default function QuickCheckCard() {
 ║  ──────────────────────────────────────────────────────────  ║
 ║  品牌型号: ${`${seat.brand} ${seat.model}`.padEnd(47)}║
 ║  适用体重: ${seat.weightRange.padEnd(50)}║
-║  安装朝向: ${ORIENTATION_LABELS[installation.orientation].padEnd(50)}║
-║  固定方式: ${installation.installationMethod === 'seatbelt' ? '安全带' : 'ISOFIX'.padEnd(50)}║
+║  安装朝向: ${ORIENTATION_LABELS[installation!.orientation].padEnd(50)}║
+║  固定方式: ${installation!.installationMethod === 'seatbelt' ? '安全带' : 'ISOFIX'.padEnd(50)}║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  检查项目                                                    ║
 ║  ──────────────────────────────────────────────────────────  ║
 ${INSPECTION_ITEMS.map(item => {
-  const checked = inspection[item.key].checked;
-  return `║  ${checked ? '✓' : '✗'} ${item.label.padEnd(30)} ${checked ? '通过' : '未通过'.padEnd(10)}         ║`;
+  const checked = inspection![item.key].checked;
+  const task = getTaskForItem(item.key);
+  let statusStr = checked ? '通过' : '未通过';
+  if (task && task.status === 'completed') statusStr = '已处理';
+  return `║  ${checked ? '✓' : '✗'} ${item.label.padEnd(30)} ${statusStr.padEnd(10)}         ║`;
 }).join('\n')}
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
-║  检查结果: ${inspection.passed ? '✅ 全部通过，可以安全出行' : '⚠️  需要调整，请完成相关任务'.padEnd(30)}║
+║  检查结果: ${inspection.passed 
+  ? '✅ 全部通过，可以安全出行' 
+  : `⚠️  ${relatedTasks.filter(t => t.status === 'completed').length}/${relatedTasks.length}项任务已处理`.padEnd(30)}║
 ║                                                              ║
 ║  检查员签字: ______________    日期: ______________         ║
 ║                                                              ║
@@ -119,6 +145,9 @@ ${INSPECTION_ITEMS.map(item => {
   }
 
   const passedCount = INSPECTION_ITEMS.filter(item => inspection[item.key].checked).length;
+  const totalTasks = relatedTasks.length;
+  const completedTasks = relatedTasks.filter(t => t.status === 'completed').length;
+  const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -146,6 +175,47 @@ ${INSPECTION_ITEMS.map(item => {
         </div>
       </div>
 
+      {!inspection.passed && totalTasks > 0 && (
+        <div className={`card p-4 no-print ${
+          allTasksCompleted 
+            ? 'bg-emerald-50 border border-emerald-200' 
+            : 'bg-amber-50 border border-amber-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                allTasksCompleted ? 'bg-emerald-100' : 'bg-amber-100'
+              }`}>
+                <ListTodo className={`w-5 h-5 ${
+                  allTasksCompleted ? 'text-emerald-600' : 'text-amber-600'
+                }`} />
+              </div>
+              <div>
+                <p className={`font-semibold ${
+                  allTasksCompleted ? 'text-emerald-700' : 'text-amber-700'
+                }`}>
+                  任务处理进度：{completedTasks}/{totalTasks} 已完成
+                </p>
+                <p className={`text-sm ${
+                  allTasksCompleted ? 'text-emerald-600' : 'text-amber-600'
+                }`}>
+                  {allTasksCompleted 
+                    ? '太棒了！所有待办任务已处理完成，可以重新进行检查确认'
+                    : '点击下方异常项进入任务管理，处理完成后状态会实时更新'
+                  }
+                </p>
+              </div>
+            </div>
+            <Link to={tasksUrl} className={`${
+              allTasksCompleted ? 'btn-success' : 'btn-primary'
+            } text-sm whitespace-nowrap`}>
+              <ChevronRight className="w-4 h-4 mr-1" />
+              任务管理
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="card p-8 bg-gradient-to-br from-white to-gray-50 border-2 border-primary-200 shadow-xl">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -162,20 +232,40 @@ ${INSPECTION_ITEMS.map(item => {
         <div className={`p-4 rounded-xl mb-6 flex items-center gap-3 ${
           inspection.passed 
             ? 'bg-emerald-50 border border-emerald-200' 
-            : 'bg-amber-50 border border-amber-200'
+            : allTasksCompleted
+              ? 'bg-blue-50 border border-blue-200'
+              : 'bg-amber-50 border border-amber-200'
         }`}>
           {inspection.passed 
             ? <CheckCircle className="w-8 h-8 text-emerald-500 flex-shrink-0" />
-            : <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0" />
+            : allTasksCompleted
+              ? <CheckCircle className="w-8 h-8 text-blue-500 flex-shrink-0" />
+              : <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0" />
           }
           <div>
-            <h3 className={`font-bold ${inspection.passed ? 'text-emerald-700' : 'text-amber-700'}`}>
+            <h3 className={`font-bold ${
+              inspection.passed 
+                ? 'text-emerald-700' 
+                : allTasksCompleted
+                  ? 'text-blue-700'
+                  : 'text-amber-700'
+            }`}>
               {inspection.passed 
-                ? '✅ 全部通过，可以安全出行' 
-                : '⚠️ 需要调整，请完成相关任务'}
+                ? '✅ 全部通过，可以安全出行'
+                : allTasksCompleted
+                  ? '🔧 所有任务已处理，建议重新检查' 
+                  : '⚠️ 需要调整，请完成相关任务'
+              }
             </h3>
-            <p className={`text-sm ${inspection.passed ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <p className={`text-sm ${
+              inspection.passed 
+                ? 'text-emerald-600' 
+                : allTasksCompleted
+                  ? 'text-blue-600'
+                  : 'text-amber-600'
+            }`}>
               {passedCount}/{INSPECTION_ITEMS.length} 项检查通过
+              {!inspection.passed && totalTasks > 0 && ` · ${completedTasks}/${totalTasks} 任务已处理`}
             </p>
           </div>
         </div>
@@ -227,34 +317,74 @@ ${INSPECTION_ITEMS.map(item => {
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-500 mb-3">检查明细</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-500">检查明细</h3>
+            {!inspection.passed && (
+              <span className="text-xs text-gray-400">
+                点击异常项查看对应任务
+              </span>
+            )}
+          </div>
           {INSPECTION_ITEMS.map(item => {
             const checked = inspection[item.key].checked;
+            const task = getTaskForItem(item.key);
+            const taskConfig = getTaskStatusConfig(task);
+            const isClickable = !checked && task;
+
             return (
               <div 
                 key={item.key}
-                className={`flex items-center justify-between p-3 rounded-lg ${
-                  checked ? 'bg-emerald-50' : 'bg-red-50'
+                className={`relative flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
+                  checked 
+                    ? 'bg-emerald-50' 
+                    : task?.status === 'completed'
+                      ? 'bg-emerald-50'
+                      : 'bg-red-50'
+                } ${
+                  isClickable 
+                    ? 'cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]' 
+                    : ''
                 }`}
+                onClick={() => isClickable && (window.location.href = tasksUrl)}
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                    checked ? 'bg-emerald-500' : 'bg-red-500'
+                    checked || task?.status === 'completed' 
+                      ? 'bg-emerald-500' 
+                      : 'bg-red-500'
                   }`}>
-                    {checked 
+                    {checked || task?.status === 'completed'
                       ? <CheckCircle className="w-3 h-3 text-white" />
                       : <AlertTriangle className="w-3 h-3 text-white" />
                     }
                   </div>
-                  <span className={checked ? 'text-emerald-700' : 'text-red-700'}>
+                  <span className={`${
+                    checked || task?.status === 'completed' 
+                      ? 'text-emerald-700' 
+                      : 'text-red-700'
+                  }`}>
                     {item.label}
                   </span>
                 </div>
-                <span className={`text-sm font-medium ${
-                  checked ? 'text-emerald-600' : 'text-red-600'
-                }`}>
-                  {checked ? '通过' : '未通过'}
-                </span>
+                
+                <div className="flex items-center gap-2">
+                  {task && taskConfig && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${taskConfig.badgeBg} ${taskConfig.text} no-print`}>
+                      <taskConfig.icon className="w-3 h-3" />
+                      {taskConfig.label}
+                    </span>
+                  )}
+                  <span className={`text-sm font-medium ${
+                    checked || task?.status === 'completed'
+                      ? 'text-emerald-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {checked ? '通过' : task?.status === 'completed' ? '已处理' : '未通过'}
+                  </span>
+                  {isClickable && (
+                    <ChevronRight className="w-4 h-4 text-gray-400 no-print" />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -279,8 +409,14 @@ ${INSPECTION_ITEMS.map(item => {
           重新检查
         </Link>
         {!inspection.passed && (
-          <Link to="/tasks" className="btn-secondary flex-1">
-            查看待办任务
+          <Link to={tasksUrl} className={`${
+            allTasksCompleted ? 'btn-success' : 'btn-secondary'
+          } flex-1`}>
+            <ListTodo className="w-4 h-4 mr-2" />
+            {allTasksCompleted 
+              ? `${completedTasks}/${totalTasks} 已完成`
+              : `待办任务 ${completedTasks}/${totalTasks}`
+            }
           </Link>
         )}
       </div>

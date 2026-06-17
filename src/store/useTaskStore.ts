@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Task } from '@/types';
+import { Task, InspectionItemKey } from '@/types';
 import { generateId, STORAGE_KEYS } from '@/utils/storage';
 
 interface TaskState {
@@ -13,7 +13,7 @@ interface TaskState {
   getTasksByInspectionId: (inspectionId: string) => Task[];
   getPendingTasks: () => Task[];
   completeTask: (id: string) => void;
-  generateTasksFromFailedInspection: (inspectionId: string, failedItems: Array<{ key: string; label: string; instruction: string; notes?: string }>, manualPage?: string) => void;
+  generateTasksFromFailedInspection: (inspectionId: string, failedItems: Array<{ key: InspectionItemKey; label: string; instruction: string; notes?: string }>, manualPage?: string) => void;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -77,6 +77,7 @@ export const useTaskStore = create<TaskState>()(
         const newTasks: Task[] = failedItems.map(item => ({
           id: generateId(),
           inspectionId,
+          itemKey: item.key,
           title: `重新检查：${item.label}`,
           description: item.notes 
             ? `${item.instruction.replace('{page}', manualPage || '?')}\n\n上次检查备注：${item.notes}`

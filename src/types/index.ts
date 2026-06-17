@@ -55,6 +55,7 @@ export interface Inspection {
 export interface Task {
   id: string;
   inspectionId: string;
+  itemKey?: InspectionItemKey;
   title: string;
   description: string;
   status: 'pending' | 'in_progress' | 'completed';
