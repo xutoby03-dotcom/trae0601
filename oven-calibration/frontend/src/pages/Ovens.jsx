@@ -15,13 +15,15 @@ import {
   Row,
   Col,
   Descriptions,
-  Statistic
+  Statistic,
+  Tooltip
 } from 'antd'
 import {
   PlusOutlined,
   EditOutlined,
   EyeOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  WarningOutlined
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import {
@@ -33,6 +35,7 @@ import {
   updateOvenStatus
 } from '@/api/ovens'
 import { getEmployees } from '@/api/employees'
+import { getOvenBatches, getBatch } from '@/api/batches'
 
 const { Option } = Select
 const { Search } = Input
@@ -79,6 +82,10 @@ const Ovens = () => {
   const [detailVisible, setDetailVisible] = useState(false)
   const [editingOven, setEditingOven] = useState(null)
   const [ovenDetail, setOvenDetail] = useState(null)
+  const [failedBatches, setFailedBatches] = useState([])
+  const [batchDetailVisible, setBatchDetailVisible] = useState(false)
+  const [batchDetail, setBatchDetail] = useState(null)
+  const [batchDetailLoading, setBatchDetailLoading] = useState(false)
 
   const fetchOvens = async (page = 1, pageSize = 10, status = null, search = '') => {
     setLoading(true)
@@ -182,11 +189,26 @@ const Ovens = () => {
     try {
       const data = await getOven(record.id)
       setOvenDetail(data)
+      const batchRes = await getOvenBatches(record.id, { pageSize: 100, result: 'failed' })
+      setFailedBatches(batchRes.list || [])
       setDetailVisible(true)
     } catch (err) {
       console.error('获取烤箱详情失败:', err)
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  const handleViewBatchDetail = async (batchId) => {
+    setBatchDetailLoading(true)
+    setBatchDetailVisible(true)
+    try {
+      const data = await getBatch(batchId)
+      setBatchDetail(data)
+    } catch (err) {
+      console.error('获取批次详情失败:', err)
+    } finally {
+      setBatchDetailLoading(false)
     }
   }
 
@@ -362,6 +384,62 @@ const Ovens = () => {
       dataIndex: 'employeeName',
       key: 'employeeName',
       render: (text) => text || '-'
+    }
+  ]
+
+  const failedBatchColumns = [
+    {
+      title: '生产时间',
+      dataIndex: 'producedAt',
+      key: 'producedAt',
+      width: 140,
+      render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-'
+    },
+    {
+      title: '产品',
+      dataIndex: 'recipeName',
+      key: 'recipeName',
+      render: (text) => text || '-'
+    },
+    {
+      title: '层位',
+      dataIndex: 'layerUsed',
+      key: 'layerUsed',
+      width: 60,
+      render: (val) => val ? `第${val}层` : '-'
+    },
+    {
+      title: '实际温度',
+      dataIndex: 'actualTemp',
+      key: 'actualTemp',
+      width: 90,
+      render: (temp) => temp ? `${temp}℃` : '-'
+    },
+    {
+      title: '失败原因',
+      dataIndex: 'failureReason',
+      key: 'failureReason',
+      ellipsis: { showTitle: false },
+      render: (reason) => reason ? (
+        <Tooltip placement="topLeft" title={reason}>
+          <span style={{ color: '#cf1322' }}>{reason}</span>
+        </Tooltip>
+      ) : '-'
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 70,
+      render: (_, record) => (
+        <Button
+          type="link"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handleViewBatchDetail(record.id)}
+        >
+          详情
+        </Button>
+      )
     }
   ]
 
@@ -618,7 +696,7 @@ const Ovens = () => {
               </Col>
             </Row>
 
-            <Card title="最近10条校准历史">
+            <Card title="最近10条校准历史" style={{ marginBottom: 16 }}>
               <Table
                 rowKey="id"
                 columns={calibrationColumns}
@@ -627,7 +705,64 @@ const Ovens = () => {
                 size="small"
               />
             </Card>
+
+            <Card
+              title={
+                <Space>
+                  <WarningOutlined style={{ color: '#fa8c16' }} />
+                  <span>最近失败批次</span>
+                  <Tag color="red">{failedBatches.length} 条</Tag>
+                </Space>
+              }
+            >
+              {failedBatches.length > 0 ? (
+                <Table
+                  rowKey="id"
+                  columns={failedBatchColumns}
+                  dataSource={failedBatches}
+                  pagination={false}
+                  size="small"
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: '#52c41a' }}>
+                  暂无失败批次记录 ✅
+                </div>
+              )}
+            </Card>
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        title="批次详情"
+        open={batchDetailVisible}
+        onCancel={() => setBatchDetailVisible(false)}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        {batchDetailLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>
+        ) : batchDetail && (
+          <Descriptions column={2} size="small" bordered>
+            <Descriptions.Item label="产品">{batchDetail.recipeName || '-'}</Descriptions.Item>
+            <Descriptions.Item label="使用烤箱">{batchDetail.ovenModel || '-'}</Descriptions.Item>
+            <Descriptions.Item label="层位">{batchDetail.layerUsed ? `第${batchDetail.layerUsed}层` : '-'}</Descriptions.Item>
+            <Descriptions.Item label="实际温度">{batchDetail.actualTemp ? `${batchDetail.actualTemp}℃` : '-'}</Descriptions.Item>
+            <Descriptions.Item label="结果">
+              <Tag color={batchDetail.result === 'success' ? 'green' : 'red'}>
+                {batchDetail.result === 'success' ? '成功' : '失败'}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="生产时间">
+              {batchDetail.producedAt ? dayjs(batchDetail.producedAt).format('YYYY-MM-DD HH:mm') : '-'}
+            </Descriptions.Item>
+            {batchDetail.failureReason && (
+              <Descriptions.Item label="失败原因" span={2}>
+                <span style={{ color: '#cf1322' }}>{batchDetail.failureReason}</span>
+              </Descriptions.Item>
+            )}
+          </Descriptions>
         )}
       </Modal>
     </div>

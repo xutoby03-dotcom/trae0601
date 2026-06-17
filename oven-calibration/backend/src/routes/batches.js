@@ -123,7 +123,7 @@ router.get('/', (req, res, next) => {
 router.get('/oven/:oven_id', (req, res, next) => {
   try {
     const { oven_id } = req.params;
-    const { page = 1, page_size = 10 } = req.query;
+    const { page = 1, page_size = 10, result } = req.query;
     const pageNum = parseInt(page);
     const pageSizeNum = parseInt(page_size);
     const offset = (pageNum - 1) * pageSizeNum;
@@ -137,10 +137,14 @@ router.get('/oven/:oven_id', (req, res, next) => {
       });
     }
 
+    const whereExtra = result ? ` AND b.result = ?` : '';
+    const countParams = result ? [oven_id, result] : [oven_id];
+    const listParams = result ? [oven_id, result] : [oven_id];
+
     const countStmt = db.prepare(
-      'SELECT COUNT(*) as total FROM batches WHERE oven_id = ?'
+      `SELECT COUNT(*) as total FROM batches b WHERE b.oven_id = ?${whereExtra}`
     );
-    const { total } = countStmt.get(oven_id);
+    const { total } = countStmt.get(...countParams);
 
     const listStmt = db.prepare(`
       SELECT 
@@ -159,12 +163,12 @@ router.get('/oven/:oven_id', (req, res, next) => {
       FROM batches b
       LEFT JOIN recipes r ON b.recipe_id = r.id
       LEFT JOIN ovens o ON b.oven_id = o.id
-      WHERE b.oven_id = ?
+      WHERE b.oven_id = ?${whereExtra}
       ORDER BY b.produced_at DESC
       LIMIT ? OFFSET ?
     `);
 
-    const list = listStmt.all(oven_id, pageSizeNum, offset).map(addPhotoUrl);
+    const list = listStmt.all(...listParams, pageSizeNum, offset).map(addPhotoUrl);
 
     res.json(success(pagination(list, total, pageNum, pageSizeNum)));
   } catch (err) {
