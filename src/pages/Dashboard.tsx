@@ -18,6 +18,7 @@ export default function Dashboard() {
   const batteryStock = useStore((s) => s.batteryStock);
   const feedbacks = useStore((s) => s.feedbacks);
   const getDeviceBatteryDaysLeft = useStore((s) => s.getDeviceBatteryDaysLeft);
+  const getDeviceNextBatteryDate = useStore((s) => s.getDeviceNextBatteryDate);
   const getDeviceById = useStore((s) => s.getDeviceById);
   const addBatteryRecord = useStore((s) => s.addBatteryRecord);
   const addCleanRecord = useStore((s) => s.addCleanRecord);
@@ -27,13 +28,17 @@ export default function Dashboard() {
 
   const batteryAlerts = useMemo(() => {
     return devices
-      .map((d) => ({
-        device: d,
-        daysLeft: getDeviceBatteryDaysLeft(d.id),
-      }))
+      .map((d) => {
+        const nextDate = getDeviceNextBatteryDate(d.id);
+        return {
+          device: d,
+          daysLeft: getDeviceBatteryDaysLeft(d.id),
+          nextDate,
+        };
+      })
       .filter((x) => x.daysLeft <= 3)
       .sort((a, b) => a.daysLeft - b.daysLeft);
-  }, [devices, getDeviceBatteryDaysLeft]);
+  }, [devices, getDeviceBatteryDaysLeft, getDeviceNextBatteryDate]);
 
   const lowStockBatteries = useMemo(() => {
     return batteryStock
@@ -144,7 +149,7 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {batteryAlerts.map(({ device, daysLeft }) => (
+              {batteryAlerts.map(({ device, daysLeft, nextDate }) => (
                 <div
                   key={device.id}
                   onClick={() => navigate(`/devices/${device.id}`)}
@@ -160,21 +165,28 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span
-                      className={`tag font-bold ${
-                        daysLeft <= 1
-                          ? 'bg-accent-red text-white animate-pulse-soft'
-                          : daysLeft === 2
-                          ? 'bg-accent-orange text-accent-blue'
-                          : 'bg-brand-100 text-brand-700'
-                      }`}
-                    >
-                      {daysLeft === 0
-                        ? '今天要换！'
-                        : daysLeft === 1
-                        ? '明天换'
-                        : `还有${daysLeft}天`}
-                    </span>
+                    <div className="text-right">
+                      <span
+                        className={`inline-flex tag font-bold ${
+                          daysLeft <= 1
+                            ? 'bg-accent-red text-white animate-pulse-soft'
+                            : daysLeft === 2
+                            ? 'bg-accent-orange text-accent-blue'
+                            : 'bg-brand-100 text-brand-700'
+                        }`}
+                      >
+                        {daysLeft === 0
+                          ? '今天到期'
+                          : daysLeft === 1
+                          ? '明天到期'
+                          : `还有${daysLeft}天`}
+                      </span>
+                      {nextDate && (
+                        <p className="text-sm text-warm-500 mt-1">
+                          📅 {format(parseISO(nextDate), 'M月d日 EEEE', { locale: zhCN })}
+                        </p>
+                      )}
+                    </div>
                     <ArrowRight
                       size={18}
                       className="text-warm-300 group-hover:text-brand-500 group-hover:translate-x-1 transition-all"

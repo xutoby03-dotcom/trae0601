@@ -211,6 +211,7 @@ interface AppState {
   getDeviceById: (id: string) => Device | undefined;
   getDeviceLastBatteryDate: (deviceId: string) => string | null;
   getDeviceBatteryDaysLeft: (deviceId: string) => number;
+  getDeviceNextBatteryDate: (deviceId: string) => string | null;
 }
 
 export const useStore = create<AppState>()(
@@ -367,6 +368,16 @@ export const useStore = create<AppState>()(
           (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24),
         );
         return Math.max(0, device.batteryLifeDays - diff);
+      },
+
+      getDeviceNextBatteryDate: (deviceId) => {
+        const device = get().devices.find((d) => d.id === deviceId);
+        if (!device) return null;
+        const lastDate = get().getDeviceLastBatteryDate(deviceId);
+        const baseDate = lastDate ?? new Date().toISOString().split('T')[0];
+        const d = new Date(baseDate);
+        d.setDate(d.getDate() + device.batteryLifeDays);
+        return d.toISOString().split('T')[0];
       },
     }),
     {

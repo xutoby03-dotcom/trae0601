@@ -31,6 +31,7 @@ export default function DeviceDetail() {
   const cleanRecords = useStore((s) => s.cleanRecords);
   const feedbacks = useStore((s) => s.feedbacks);
   const getDeviceBatteryDaysLeft = useStore((s) => s.getDeviceBatteryDaysLeft);
+  const getDeviceNextBatteryDate = useStore((s) => s.getDeviceNextBatteryDate);
   const getDeviceLastBatteryDate = useStore((s) => s.getDeviceLastBatteryDate);
   const updateDevice = useStore((s) => s.updateDevice);
   const addBatteryRecord = useStore((s) => s.addBatteryRecord);
@@ -78,6 +79,7 @@ export default function DeviceDetail() {
   }
 
   const daysLeft = getDeviceBatteryDaysLeft(device.id);
+  const nextDate = getDeviceNextBatteryDate(device.id);
   const lastBatteryDate = getDeviceLastBatteryDate(device.id);
 
   const handleUpdateDevice = (data: Omit<Device, 'id' | 'createdAt'>) => {
@@ -146,29 +148,46 @@ export default function DeviceDetail() {
                     : 'bg-brand-50 border border-brand-100'
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Battery
                       size={20}
                       className={daysLeft <= 1 ? 'text-accent-red' : 'text-brand-600'}
                     />
-                    <span className="font-bold text-accent-blue">电池状态</span>
+                    <span className="font-bold text-accent-blue">下次换电日期</span>
                   </div>
-                  <span
-                    className={`text-2xl font-bold ${
-                      daysLeft <= 1
-                        ? 'text-accent-red animate-pulse-soft'
-                        : daysLeft <= 3
-                        ? 'text-accent-orange'
-                        : 'text-brand-600'
-                    }`}
-                  >
-                    {daysLeft === 0 ? '今天要换！' : `${daysLeft} 天`}
-                  </span>
+                  <div className="text-right">
+                    <span
+                      className={`text-2xl font-bold ${
+                        daysLeft <= 1
+                          ? 'text-accent-red animate-pulse-soft'
+                          : daysLeft <= 3
+                          ? 'text-accent-orange'
+                          : 'text-brand-600'
+                      }`}
+                    >
+                      {nextDate
+                        ? format(parseISO(nextDate), 'M月d日', { locale: zhCN })
+                        : '--'}
+                    </span>
+                    <p className="text-xs text-warm-400 mt-0.5">
+                      {daysLeft === 0
+                        ? '就是今天！'
+                        : daysLeft === 1
+                        ? '明天到期'
+                        : `还有 ${daysLeft} 天`}
+                    </p>
+                  </div>
                 </div>
+                {nextDate && (
+                  <p className="text-sm text-warm-500 mt-3 pt-3 border-t border-black/5">
+                    📆 {format(parseISO(nextDate), 'yyyy年M月d日 EEEE', { locale: zhCN })}
+                  </p>
+                )}
                 {lastBatteryDate && (
                   <p className="text-xs text-warm-400 mt-2">
                     上次更换：{format(parseISO(lastBatteryDate), 'M月d日', { locale: zhCN })}
+                    （{device.batteryLifeDays}天一换）
                   </p>
                 )}
               </div>

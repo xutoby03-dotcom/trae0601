@@ -20,7 +20,11 @@ export default function DeviceCard({
   const getDeviceBatteryDaysLeft = useStore(
     (s) => s.getDeviceBatteryDaysLeft,
   );
+  const getDeviceNextBatteryDate = useStore(
+    (s) => s.getDeviceNextBatteryDate,
+  );
   const daysLeft = getDeviceBatteryDaysLeft(device.id);
+  const nextDate = getDeviceNextBatteryDate(device.id);
 
   const isWarrantyExpired = device.warrantyDate
     ? isBefore(parseISO(device.warrantyDate), new Date())
@@ -83,9 +87,16 @@ export default function DeviceCard({
           </button>
         </div>
         <div className="absolute bottom-3 right-3">
-          <span className={`tag ${batteryColor} shadow-soft gap-1.5`}>
-            <Battery size={14} />
-            剩 {daysLeft} 天
+          <span className={`tag ${batteryColor} shadow-soft gap-1.5 flex-col py-2`}>
+            <span className="flex items-center gap-1">
+              <Battery size={14} />
+              {daysLeft === 0 ? '今天到期' : daysLeft === 1 ? '明天到期' : `${daysLeft}天后`}
+            </span>
+            {nextDate && (
+              <span className="text-[11px] opacity-90">
+                📅 {format(parseISO(nextDate), 'M月d日', { locale: zhCN })}
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -139,11 +150,11 @@ export default function DeviceCard({
           </div>
         </div>
 
-        {daysLeft <= 2 && (
+        {daysLeft <= 2 && nextDate && (
           <div className="mt-4 pt-4 border-t border-warm-100 flex items-center gap-2 text-accent-red animate-pulse-soft">
             <AlertCircle size={16} />
             <span className="text-sm font-medium">
-              {daysLeft === 0 ? '今天需要更换电池！' : `请在${daysLeft}天内更换电池`}
+              📅 {format(parseISO(nextDate), 'M月d日 EEEE', { locale: zhCN })} 需要更换电池
             </span>
           </div>
         )}
