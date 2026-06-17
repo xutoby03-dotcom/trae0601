@@ -328,6 +328,21 @@ function GenerateReportModal({
   const handleGenerate = () => {
     setIsGenerating(true);
     setTimeout(() => {
+      const defaultSummary = abnormalities.length > 0
+        ? '除上述异常外，其他代喂事项均已按要求完成。'
+        : '本次代喂一切正常，宠物状态良好。';
+
+      const finalSummaryParts: string[] = [];
+      if (abnormalitySummary.trim()) {
+        finalSummaryParts.push('【异常提醒】');
+        finalSummaryParts.push(abnormalitySummary.trim());
+        finalSummaryParts.push('');
+      }
+      finalSummaryParts.push('【代喂总结】');
+      finalSummaryParts.push(summary.trim() || defaultSummary);
+
+      const finalSummary = finalSummaryParts.join('\n');
+
       generateReport(
         taskId,
         remainingFood,
@@ -335,7 +350,7 @@ function GenerateReportModal({
         remainingMedicine,
         nextReminder,
         abnormalitySummary,
-        summary || '本次代喂一切正常，宠物状态良好。'
+        finalSummary
       );
       setIsGenerating(false);
       onGenerated();
