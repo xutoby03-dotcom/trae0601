@@ -55,9 +55,11 @@ interface StoreState {
   createRepair: (data: RepairCreateData) => Repair;
   updateRepairStatus: (id: string, status: RepairStatus) => void;
   setCurrentUser: (user: User | null) => void;
+  processNoShows: () => number;
+  processBookingStatusUpdates: () => { noShows: number; checkins: number };
 }
 
-const STORAGE_KEY = 'music-studio-store';
+const STORAGE_KEY = 'music-studio-store-v2';
 
 function reviveDates(key: string, value: unknown): unknown {
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
@@ -185,5 +187,163 @@ export const useStore = create<StoreState>((set, get) => ({
       saveToStorage(newState);
       return newState;
     });
+  },
+
+  processNoShows: () => {
+    const now = new Date().getTime();
+    const allBookings = get().bookings;
+    const CHECKIN_GRACE_MS = 15 * 60 * 1000;
+
+    const overdueBookings = allBookings.filter((b) => {
+      if (b.status !== 'waiting_checkin') return false;
+      const deadline = new Date(b.startTime).getTime() + CHECKIN_GRACE_MS;
+      return now > deadline;
+    });
+
+    if (overdueBookings.length === 0) return 0;
+
+    let updatedBookings = [...allBookings];
+    let processedCount = 0;
+
+    for (const overdueBooking of overdueBookings) {
+      updatedBookings = updatedBookings.map((b) =>
+        b.id === overdueBooking.id
+          ? { ...b, status: 'no_show' as BookingStatus }
+          : b,
+      );
+      processedCount++;
+
+      const waitlist = updatedBookings
+        .filter(
+          (b) =>
+            b.parentBookingId === overdueBooking.id &&
+            b.status === 'waitlisted',
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+
+      if (waitlist.length > 0) {
+        const nextBooking = waitlist[0];
+        const start = new Date(nextBooking.startTime).getTime();
+        const checkinOpen = start - CHECKIN_GRACE_MS;
+        const checkinDeadline = start + CHECKIN_GRACE_MS;
+
+        let newStatus: BookingStatus = 'approved';
+        if (now >= checkinOpen && now < checkinDeadline) {
+          newStatus = 'waiting_checkin';
+        } else if (now >= checkinDeadline) {
+          newStatus = 'waiting_checkin';
+        }
+
+        updatedBookings = updatedBookings.map((b) =>
+          b.id === nextBooking.id
+            ? {
+                ...b,
+                status: newStatus,
+                parentBookingId: undefined,
+              }
+            : b,
+        );
+      }
+    }
+
+    set((state) => {
+      const newState = { ...state, bookings: updatedBookings };
+      saveToStorage(newState);
+      return newState;
+    });
+
+    return processedCount;
+  },
+
+  processBookingStatusUpdates: () => {
+    const now = new Date().getTime();
+    const CHECKIN_GRACE_MS = 15 * 60 * 1000;
+    let allBookings = get().bookings;
+    let noShowCount = 0;
+    let checkinCount = 0;
+
+    const toWaitingCheckin = allBookings.filter((b) => {
+      if (b.status !== 'approved') return false;
+      const start = new Date(b.startTime).getTime();
+      const checkinOpen = start - CHECKIN_GRACE_MS;
+      return now >= checkinOpen && now < start + CHECKIN_GRACE_MS;
+    });
+
+    if (toWaitingCheckin.length > 0) {
+      allBookings = allBookings.map((b) =>
+        toWaitingCheckin.some((w) => w.id === b.id)
+          ? { ...b, status: 'waiting_checkin' as BookingStatus }
+          : b,
+      );
+      checkinCount = toWaitingCheckin.length;
+    }
+
+    const overdueBookings = allBookings.filter((b) => {
+      if (b.status !== 'waiting_checkin') return false;
+      const deadline = new Date(b.startTime).getTime() + CHECKIN_GRACE_MS;
+      return now > deadline;
+    });
+
+    if (overdueBookings.length > 0) {
+      for (const overdueBooking of overdueBookings) {
+        allBookings = allBookings.map((b) =>
+          b.id === overdueBooking.id
+            ? { ...b, status: 'no_show' as BookingStatus }
+            : b,
+        );
+        noShowCount++;
+
+        const waitlist = allBookings
+          .filter(
+            (b) =>
+              b.parentBookingId === overdueBooking.id &&
+              b.status === 'waitlisted',
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() -
+              new Date(b.createdAt).getTime(),
+          );
+
+        if (waitlist.length > 0) {
+          const nextBooking = waitlist[0];
+          const start = new Date(nextBooking.startTime).getTime();
+          const checkinOpen = start - CHECKIN_GRACE_MS;
+          const checkinDeadline = start + CHECKIN_GRACE_MS;
+
+          let newStatus: BookingStatus = 'approved';
+          if (now >= checkinOpen && now < checkinDeadline) {
+            newStatus = 'waiting_checkin';
+          } else if (now >= checkinDeadline) {
+            newStatus = 'waiting_checkin';
+          }
+
+          allBookings = allBookings.map((b) =>
+            b.id === nextBooking.id
+              ? {
+                  ...b,
+                  status: newStatus,
+                  parentBookingId: undefined,
+                }
+              : b,
+          );
+        }
+      }
+    }
+
+    if (noShowCount === 0 && checkinCount === 0) {
+      return { noShows: 0, checkins: 0 };
+    }
+
+    set((state) => {
+      const newState = { ...state, bookings: allBookings };
+      saveToStorage(newState);
+      return newState;
+    });
+
+    return { noShows: noShowCount, checkins: checkinCount };
   },
 }));

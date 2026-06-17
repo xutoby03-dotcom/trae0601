@@ -7,6 +7,8 @@ import {
   Wrench,
   AlertTriangle,
   CheckCircle2,
+  XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { StatusBadge, Empty } from '@/components';
@@ -80,13 +82,22 @@ export default function CheckIn() {
   const rooms = useStore((s) => s.rooms);
   const instruments = useStore((s) => s.instruments);
   const checkInBooking = useStore((s) => s.checkInBooking);
+  const processBookingStatusUpdates = useStore(
+    (s) => s.processBookingStatusUpdates,
+  );
+
+  const handleProcessStatus = useCallback(() => {
+    processBookingStatusUpdates();
+  }, [processBookingStatusUpdates]);
 
   useEffect(() => {
+    handleProcessStatus();
     const timer = setInterval(() => {
       setNow(Date.now());
+      handleProcessStatus();
     }, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [handleProcessStatus]);
 
   const today = useMemo(() => {
     const n = new Date(now);
@@ -129,12 +140,26 @@ export default function CheckIn() {
       );
   }, [bookings, isToday]);
 
+  const noShowBookings = useMemo(() => {
+    return bookings
+      .filter((b) => b.status === 'no_show' && isToday(b.startTime))
+      .sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+      );
+  }, [bookings, isToday]);
+
   const handleCheckIn = (id: string) => {
     checkInBooking(id);
   };
 
   const handleRepair = () => {
     navigate('/repairs');
+  };
+
+  const handleManualRefresh = () => {
+    setNow(Date.now());
+    handleProcessStatus();
   };
 
   const qrPattern = useMemo(() => {
@@ -171,6 +196,13 @@ export default function CheckIn() {
             管理今日预约的签到流程
           </p>
         </div>
+        <button
+          onClick={handleManualRefresh}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-tertiary text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all text-sm font-medium"
+        >
+          <RefreshCw className="w-4 h-4" />
+          刷新状态
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -197,7 +229,7 @@ export default function CheckIn() {
               <Empty
                 icon={Clock}
                 title="暂无待签到预约"
-                description="今日所有预约已完成签到"
+                description="今日所有预约已完成签到或已超时"
                 className="py-8"
               />
             ) : (
@@ -374,6 +406,73 @@ export default function CheckIn() {
               </div>
             )}
           </div>
+
+          {noShowBookings.length > 0 && (
+            <div
+              className={cn(
+                'bg-bg-secondary rounded-2xl p-6 border border-border-subtle',
+                'transition-shadow duration-300 hover:shadow-card-hover',
+              )}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-state-danger/20 flex items-center justify-center">
+                  <XCircle className="w-4 h-4 text-state-danger-light" />
+                </div>
+                <h2 className="text-lg font-semibold text-text-primary">
+                  今日爽约
+                </h2>
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-state-danger/20 text-state-danger-light text-xs font-medium">
+                  {noShowBookings.length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {noShowBookings.map((booking) => {
+                  const room = rooms.find((r) => r.id === booking.roomId);
+                  const instrument = instruments.find(
+                    (i) => i.id === booking.instrumentId,
+                  );
+
+                  return (
+                    <div
+                      key={booking.id}
+                      className={cn(
+                        'p-4 rounded-xl bg-bg-tertiary/50 border border-border-subtle/50',
+                        'opacity-70',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div
+                              className="w-2.5 h-2.5 rounded-full opacity-50"
+                              style={{ backgroundColor: room?.color }}
+                            />
+                            <h3 className="font-medium text-text-secondary line-through">
+                              {room?.name || '未知房间'}
+                            </h3>
+                            <StatusBadge
+                              status={booking.status}
+                              size="sm"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-text-muted">
+                            <Music className="w-3.5 h-3.5" />
+                            <span>{instrument?.name || '未知乐器'}</span>
+                            <span>·</span>
+                            <span>
+                              {formatTime(booking.startTime)} -{' '}
+                              {formatTime(booking.endTime)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div
@@ -428,6 +527,7 @@ export default function CheckIn() {
                 <div className="text-xs text-text-secondary space-y-1">
                   <p className="font-medium text-text-primary">签到须知</p>
                   <p>• 超过预约开始时间15分钟未签到将自动取消</p>
+                  <p>• 取消后候补充位，按候补顺序自动转正</p>
                   <p>• 签到后请保持安静，遵守练习室规则</p>
                   <p>• 如设备有故障请点击"报修"按钮上报</p>
                 </div>

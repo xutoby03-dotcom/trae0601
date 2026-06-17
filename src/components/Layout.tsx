@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/types';
-import { mockUsers } from '@/data/mockData';
+import { useStore } from '@/store/useStore';
 
 interface NavItem {
   icon: typeof LayoutDashboard;
@@ -53,8 +53,21 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const [currentUser, setCurrentUser] = useState(mockUsers[0]);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const users = useStore((s) => s.users);
+  const currentUser = useStore((s) => s.currentUser);
+  const setCurrentUser = useStore((s) => s.setCurrentUser);
+  const processBookingStatusUpdates = useStore(
+    (s) => s.processBookingStatusUpdates,
+  );
+
+  useEffect(() => {
+    processBookingStatusUpdates();
+    const timer = setInterval(() => {
+      processBookingStatusUpdates();
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [processBookingStatusUpdates]);
 
   const currentTitle = pageTitles[location.pathname] || '和声练习房';
 
@@ -112,7 +125,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {showRoleMenu && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-bg-tertiary border border-border-subtle rounded-lg shadow-card overflow-hidden">
-                {mockUsers.map((user) => (
+                {users.map((user) => (
                   <button
                     key={user.id}
                     onClick={() => {

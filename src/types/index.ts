@@ -39,7 +39,8 @@ export type BookingStatus =
   | 'checked_in'
   | 'completed'
   | 'no_show'
-  | 'cancelled';
+  | 'cancelled'
+  | 'waitlisted';
 
 export interface Booking {
   id: string;

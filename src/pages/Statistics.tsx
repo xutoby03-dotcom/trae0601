@@ -47,6 +47,7 @@ const bookingStatusLabels: Record<BookingStatus, string> = {
   completed: '已完成',
   no_show: '爽约',
   cancelled: '已取消',
+  waitlisted: '候补中',
 };
 
 const statusColors: Record<string, string> = {

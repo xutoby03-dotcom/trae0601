@@ -37,7 +37,8 @@ export function checkTimeConflict(
     if (
       booking.status === 'cancelled' ||
       booking.status === 'rejected' ||
-      booking.status === 'no_show'
+      booking.status === 'no_show' ||
+      booking.status === 'waitlisted'
     ) {
       return false;
     }

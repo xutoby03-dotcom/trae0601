@@ -52,6 +52,11 @@ const statusConfig: Record<
     text: 'text-white',
     label: '已取消',
   },
+  waitlisted: {
+    bg: 'bg-state-warning/60',
+    text: 'text-white',
+    label: '候补中',
+  },
   pending: {
     bg: 'bg-state-warning',
     text: 'text-white',

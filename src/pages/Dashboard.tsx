@@ -35,7 +35,14 @@ export default function Dashboard() {
         d.getDate() === today.getDate()
       );
     };
-    const todayBookings = bookings.filter((b) => isToday(b.startTime));
+    const todayBookings = bookings.filter(
+      (b) =>
+        isToday(b.startTime) &&
+        b.status !== 'cancelled' &&
+        b.status !== 'rejected' &&
+        b.status !== 'no_show' &&
+        b.status !== 'waitlisted',
+    );
     const pendingApproval = bookings.filter((b) => b.status === 'pending_approval');
     const waitingCheckin = bookings.filter((b) => b.status === 'waiting_checkin');
     const pendingRepairs = repairs.filter(

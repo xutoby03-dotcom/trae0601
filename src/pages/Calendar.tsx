@@ -99,7 +99,8 @@ interface TooltipData {
 
 export default function Calendar() {
   const navigate = useNavigate();
-  const { rooms, bookings, instruments, users } = useStore();
+  const { rooms, bookings, instruments, users, processBookingStatusUpdates } =
+    useStore();
 
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState<Date>(new Date('2026-06-17'));
@@ -108,9 +109,13 @@ export default function Calendar() {
   const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    processBookingStatusUpdates();
+    const timer = setInterval(() => {
+      setNow(new Date());
+      processBookingStatusUpdates();
+    }, 60000);
     return () => clearInterval(timer);
-  }, []);
+  }, [processBookingStatusUpdates]);
 
   const dateRange = useMemo(() => {
     if (viewMode === 'day') {
@@ -144,6 +149,8 @@ export default function Calendar() {
     const positions: BookingPosition[] = [];
 
     for (const booking of bookings) {
+      if (booking.status === 'waitlisted') continue;
+
       const room = rooms.find((r) => r.id === booking.roomId);
       if (!room) continue;
 
