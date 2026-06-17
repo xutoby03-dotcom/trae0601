@@ -130,7 +130,6 @@ export default function FeedingPage() {
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
-    navigate('/');
   };
 
   return (
@@ -142,10 +141,23 @@ export default function FeedingPage() {
         >
           <ArrowLeft className="w-5 h-5 text-bread-600" />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-display font-bold text-bread-800">记录喂养</h1>
           <p className="text-bread-500 mt-1">记录酸种喂养参数，系统自动计算活性评分</p>
         </div>
+        {selectedStarter && (
+          <div className="flex items-center gap-3 bg-bread-50 border border-bread-200 rounded-xl px-4 py-2.5">
+            <img
+              src={selectedStarter.photoUrl}
+              alt={selectedStarter.name}
+              className="w-9 h-9 rounded-lg object-cover"
+            />
+            <div className="text-right">
+              <p className="font-medium text-bread-800 text-sm">{selectedStarter.name}</p>
+              <p className="text-xs text-bread-500">{selectedStarter.currentWeight}g</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card p-6 animate-fade-in-up" style={{ animationDelay: '0ms', opacity: 0 }}>
@@ -513,15 +525,17 @@ export default function FeedingPage() {
             <button
               onClick={() => {
                 setShowSuccessModal(false);
-                navigate(`/feeding/${selectedStarterId}`);
               }}
-              className="flex-1 btn-secondary"
+              className="flex-1 btn-primary"
             >
               继续记录
             </button>
             <button
-              onClick={handleSuccessClose}
-              className="flex-1 btn-primary"
+              onClick={() => {
+                setShowSuccessModal(false);
+                navigate('/');
+              }}
+              className="flex-1 btn-secondary"
             >
               返回看板
             </button>

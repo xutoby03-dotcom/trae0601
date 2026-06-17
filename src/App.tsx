@@ -19,6 +19,7 @@ export default function App() {
           <Route path="/starters/:id/edit" element={<StarterForm />} />
           <Route path="/starters/:id" element={<StarterDetail />} />
           <Route path="/feeding" element={<FeedingPage />} />
+          <Route path="/feeding/:starterId" element={<FeedingPage />} />
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/anomalies" element={<AnomalyPage />} />
         </Routes>
