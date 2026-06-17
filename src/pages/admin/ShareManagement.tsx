@@ -9,6 +9,8 @@ import {
   MapPin,
   RefreshCw,
   Filter,
+  AlertTriangle,
+  Handshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
@@ -19,7 +21,7 @@ import { TextArea } from '@/components/ui/TextArea';
 import { useAuthStore } from '@/context/authStore';
 import { umbrellaService } from '@/services/umbrellaService';
 import { shareService } from '@/services/shareService';
-import type { Umbrella, ShareRecord } from '@/types';
+import type { Umbrella, ShareRecord, SharedFrom } from '@/types';
 import { formatDate, formatRelativeTime } from '@/utils/dateUtils';
 import { BUILDINGS } from '@/utils/constants';
 
@@ -29,6 +31,7 @@ export const ShareManagement: React.FC = () => {
   const [sharedUmbrellas, setSharedUmbrellas] = useState<Umbrella[]>([]);
   const [borrowRecords, setBorrowRecords] = useState<ShareRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'borrowed'>('all');
+  const [filterSource, setFilterSource] = useState<'all' | SharedFrom>('all');
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [selectedUmbrella, setSelectedUmbrella] = useState<Umbrella | null>(null);
@@ -129,6 +132,10 @@ export const ShareManagement: React.FC = () => {
   };
 
   const filteredUmbrellas = sharedUmbrellas.filter(u => {
+    if (filterSource !== 'all') {
+      if (filterSource === 'auto_expired' && u.sharedFrom !== 'auto_expired') return false;
+      if (filterSource === 'manual' && u.sharedFrom !== 'manual' && u.sharedFrom !== undefined) return false;
+    }
     if (filterStatus === 'all') return true;
     if (filterStatus === 'available') {
       const record = shareService.getActiveRecord(u.id);
@@ -143,6 +150,8 @@ export const ShareManagement: React.FC = () => {
 
   const activeBorrows = borrowRecords.filter(r => r.status === 'borrowed');
   const availableCount = sharedUmbrellas.length - activeBorrows.length;
+  const autoExpiredCount = sharedUmbrellas.filter(u => u.sharedFrom === 'auto_expired').length;
+  const manualCount = sharedUmbrellas.filter(u => u.sharedFrom === 'manual' || !u.sharedFrom).length;
 
   if (!isLoggedIn) return null;
 
@@ -155,7 +164,7 @@ export const ShareManagement: React.FC = () => {
         <p className="text-gray-500">管理共享伞的借用和归还</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -183,25 +192,45 @@ export const ShareManagement: React.FC = () => {
             <Clock className="w-12 h-12 text-white/30" />
           </div>
         </div>
+        <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-white/80 text-sm">超期转入</p>
+              <p className="text-4xl font-bold mt-2">{autoExpiredCount}</p>
+              <p className="text-white/60 text-xs mt-1">手动转入 {manualCount}</p>
+            </div>
+            <AlertTriangle className="w-12 h-12 text-white/30" />
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h2 className="text-lg font-semibold text-gray-800">共享伞列表</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-400" />
               <Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
+                value={filterSource}
+                onChange={(e) => setFilterSource(e.target.value as any)}
                 className="w-32"
                 options={[
-                  { value: 'all', label: '全部' },
-                  { value: 'available', label: '可借用' },
-                  { value: 'borrowed', label: '借用中' },
+                  { value: 'all', label: '全部来源' },
+                  { value: 'auto_expired', label: '超期转入' },
+                  { value: 'manual', label: '手动转入' },
                 ]}
               />
             </div>
+            <Select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="w-32"
+              options={[
+                { value: 'all', label: '全部状态' },
+                { value: 'available', label: '可借用' },
+                { value: 'borrowed', label: '借用中' },
+              ]}
+            />
             <Button variant="ghost" size="sm" onClick={loadData}>
               <RefreshCw className="w-4 h-4 mr-1" />
               刷新
@@ -218,16 +247,40 @@ export const ShareManagement: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredUmbrellas.map((umbrella) => {
               const activeRecord = shareService.getActiveRecord(umbrella.id);
+              const isAutoExpired = umbrella.sharedFrom === 'auto_expired';
               return (
                 <div
                   key={umbrella.id}
-                  className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-purple-200 transition-colors"
+                  className={`p-4 rounded-xl border transition-colors hover:shadow-md ${
+                    isAutoExpired
+                      ? 'bg-[#FFF8E6] border-[#FFE4A3] hover:border-[#FF8C42]'
+                      : 'bg-gray-50 border-gray-100 hover:border-purple-200'
+                  }`}
                 >
+                  <div className="flex items-start justify-between mb-3">
+                    {isAutoExpired ? (
+                      <Badge variant="warning" className="inline-flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        超期转入
+                      </Badge>
+                    ) : (
+                      <Badge variant="info" className="inline-flex items-center gap-1">
+                        <Handshake className="w-3 h-3" />
+                        手动转入
+                      </Badge>
+                    )}
+                    {umbrella.sharedAt && (
+                      <span className="text-xs text-gray-400">
+                        {formatRelativeTime(umbrella.sharedAt)}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="flex gap-3">
                     <img
                       src={umbrella.canopyPhoto}
                       alt=""
-                      className="w-20 h-20 rounded-lg object-cover"
+                      className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -239,24 +292,36 @@ export const ShareManagement: React.FC = () => {
                           {umbrella.color}伞 · {umbrella.brand}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500 mb-1">
-                        存放位置：{umbrella.storageCell}
-                      </p>
-                      {activeRecord ? (
-                        <div className="mt-2 p-2 bg-orange-50 rounded-lg">
-                          <p className="text-xs text-orange-700 font-medium">
-                            借用中 · {activeRecord.borrowerName}
-                          </p>
-                          <p className="text-xs text-orange-600">
-                            {formatRelativeTime(activeRecord.borrowTime)}
-                          </p>
-                        </div>
-                      ) : (
-                        <Badge variant="success" className="mt-2">可借用</Badge>
-                      )}
+                      <div className="text-xs text-gray-500 space-y-0.5">
+                        <p className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          原拾到：{umbrella.foundLocation.building}
+                        </p>
+                        <p className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          原拾到：{formatDate(umbrella.foundTime).split(' ')[0]}
+                        </p>
+                        <p>存放格：{umbrella.storageCell}</p>
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-100">
+
+                  <div className="mt-3">
+                    {activeRecord ? (
+                      <div className="p-2 bg-orange-50 rounded-lg mb-3">
+                        <p className="text-xs text-orange-700 font-medium">
+                          借用中 · {activeRecord.borrowerName}
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          {formatRelativeTime(activeRecord.borrowTime)}
+                        </p>
+                      </div>
+                    ) : (
+                      <Badge variant="success" className="mb-2">可借用</Badge>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-200/50">
                     {activeRecord ? (
                       <Button
                         size="sm"

@@ -85,13 +85,18 @@ export const generateMockUmbrellas = (count: number = 25): Umbrella[] => {
     const features = getRandomItems(FEATURES, Math.floor(Math.random() * 3) + 1);
     
     let status: Umbrella['status'] = 'pending';
+    let sharedFrom: Umbrella['sharedFrom'];
+    let sharedAt: Umbrella['sharedAt'];
+    
     const rand = Math.random();
     if (rand > 0.75) {
       status = 'claimed';
       foundTime = getRandomDate(14);
     } else if (rand > 0.65) {
       status = 'shared';
-      foundTime = getRandomDate(14);
+      foundTime = getRandomDate(20);
+      sharedFrom = 'manual';
+      sharedAt = getRandomDate(3);
     } else if (rand > 0.6) {
       status = 'scrapped';
       foundTime = getRandomDate(14);
@@ -120,7 +125,9 @@ export const generateMockUmbrellas = (count: number = 25): Umbrella[] => {
       status,
       storagePeriodDays: STORAGE_PERIOD_DAYS,
       createdAt: foundTime,
-      updatedAt: foundTime,
+      updatedAt: sharedAt || foundTime,
+      sharedFrom,
+      sharedAt,
     });
   }
   

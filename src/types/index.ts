@@ -1,5 +1,7 @@
 export type UmbrellaStatus = 'pending' | 'claimed' | 'shared' | 'scrapped';
 
+export type SharedFrom = 'auto_expired' | 'manual';
+
 export type ClaimStatus = 'pending' | 'approved' | 'rejected';
 
 export type ShareStatus = 'borrowed' | 'returned';
@@ -25,6 +27,8 @@ export interface Umbrella {
   storagePeriodDays: number;
   createdAt: string;
   updatedAt: string;
+  sharedFrom?: SharedFrom;
+  sharedAt?: string;
 }
 
 export interface ClaimApplication {

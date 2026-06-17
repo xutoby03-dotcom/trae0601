@@ -17,20 +17,23 @@ let lastCheckTime = 0;
 const CHECK_INTERVAL = 60 * 1000;
 
 const checkAndTransferExpiredUmbrellas = (): number => {
-  const now = Date.now();
-  if (now - lastCheckTime < CHECK_INTERVAL) return 0;
-  lastCheckTime = now;
+  const nowMs = Date.now();
+  if (nowMs - lastCheckTime < CHECK_INTERVAL) return 0;
+  lastCheckTime = nowMs;
 
   const umbrellas = storage.umbrellas.getAll();
   let transferredCount = 0;
   let hasChanges = false;
 
+  const nowIso = new Date().toISOString();
   umbrellas.forEach((umbrella, index) => {
     if (umbrella.status === 'pending' && isExpired(umbrella.foundTime, umbrella.storagePeriodDays)) {
       umbrellas[index] = {
         ...umbrella,
         status: 'shared',
-        updatedAt: new Date().toISOString(),
+        sharedFrom: 'auto_expired',
+        sharedAt: nowIso,
+        updatedAt: nowIso,
       };
       transferredCount++;
       hasChanges = true;
@@ -221,7 +224,22 @@ export const umbrellaService = {
   },
 
   transferToShared: (id: string): Umbrella | null => {
-    return umbrellaService.updateStatus(id, 'shared');
+    const umbrellas = storage.umbrellas.getAll();
+    const index = umbrellas.findIndex(u => u.id === id);
+
+    if (index === -1) return null;
+
+    const now = new Date().toISOString();
+    umbrellas[index] = {
+      ...umbrellas[index],
+      status: 'shared',
+      sharedFrom: 'manual',
+      sharedAt: now,
+      updatedAt: now,
+    };
+
+    storage.umbrellas.setAll(umbrellas);
+    return umbrellas[index];
   },
 
   scrapUmbrella: (id: string, reason: string, operator: string): ScrapRecord | null => {

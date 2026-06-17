@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -7,9 +8,16 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isLoggedIn: false,
-  userRole: null,
-  login: (role) => set({ isLoggedIn: true, userRole: role }),
-  logout: () => set({ isLoggedIn: false, userRole: null }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      isLoggedIn: false,
+      userRole: null,
+      login: (role) => set({ isLoggedIn: true, userRole: role }),
+      logout: () => set({ isLoggedIn: false, userRole: null }),
+    }),
+    {
+      name: 'umbrella-auth',
+    }
+  )
+);
