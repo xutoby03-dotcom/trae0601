@@ -106,7 +106,7 @@ export default function MonitorPage() {
         </button>
       </div>
 
-      {(lateTasks.length > 0 || unconfirmedHandovers.length > 0) && (
+      {(lateTasks.length > 0 || pendingTasks.length > 0 || unconfirmedHandovers.length > 0) && (
         <div className="mb-8 animate-fade-in-up" style={{ opacity: 0 }}>
           <div className="bg-wine/5 border border-wine/30 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -118,7 +118,7 @@ export default function MonitorPage() {
                   需要立即关注
                 </h3>
                 <p className="text-sm text-wine/70">
-                  共 {lateTasks.length} 项任务迟到，{unconfirmedHandovers.length} 项交接待确认
+                  共 {lateTasks.length} 项任务迟到，{pendingTasks.length} 项任务待确认，{unconfirmedHandovers.length} 项交接待确认
                 </p>
               </div>
             </div>
@@ -160,6 +160,62 @@ export default function MonitorPage() {
                           >
                             <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
                             标记处理
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {pendingTasks.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-wine mb-3">⏰ 待确认任务</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {pendingTasks.map((task, index) => {
+                    const responsible = getMemberById(task.responsibleId);
+                    const node = timelineNodes.find(n => n.id === task.timelineNodeId);
+
+                    return (
+                      <div
+                        key={task.id}
+                        className="bg-white rounded-xl p-4 border border-rose-gold/20 animate-fade-in-up"
+                        style={{ opacity: 0, animationDelay: `${index * 0.1}s` }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h5 className="font-medium text-gray-800">{task.name}</h5>
+                          <StatusBadge status="pending" size="sm" />
+                        </div>
+                        <div className="text-xs text-gray-500 mb-2 space-y-1">
+                          <p className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-rose-gold" />
+                            {node?.name} · {task.location}
+                          </p>
+                          <p className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-champagne-gold" />
+                            提醒时间：{task.remindTime}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MemberAvatar member={responsible} size="sm" showName />
+                            {responsible && (
+                              <a
+                                href={`tel:${responsible.phone}`}
+                                className="p-1.5 bg-rose-gold/10 text-rose-gold rounded-lg hover:bg-rose-gold/20 transition-colors"
+                                title={`拨打 ${responsible.phone}`}
+                              >
+                                <Phone className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'confirmed')}
+                            className="text-xs px-3 py-1.5 bg-champagne-gold/10 text-champagne-gold rounded-lg hover:bg-champagne-gold/20 transition-colors"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
+                            确认任务
                           </button>
                         </div>
                       </div>
@@ -278,7 +334,7 @@ export default function MonitorPage() {
             <div>
               <p className="text-sm text-gray-500">异常情况</p>
               <p className="font-display text-2xl font-bold text-gray-800">
-                {lateTasks.length + unconfirmedHandovers.length} 项
+                {lateTasks.length + pendingTasks.length + unconfirmedHandovers.length} 项
               </p>
             </div>
           </div>
