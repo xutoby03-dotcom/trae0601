@@ -533,6 +533,15 @@ export default function FeedingPage() {
             <button
               onClick={() => {
                 setShowSuccessModal(false);
+                navigate(`/starters/${selectedStarterId}`);
+              }}
+              className="flex-1 btn-secondary"
+            >
+              去看档案
+            </button>
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
                 navigate('/');
               }}
               className="flex-1 btn-secondary"
