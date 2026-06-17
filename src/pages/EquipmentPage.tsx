@@ -69,14 +69,39 @@ export default function EquipmentPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxEquipmentId, setLightboxEquipmentId] = useState<string | null>(null);
 
-  // 获取同类有照片的装备列表
+  // 加载失败的图片集合
+  const [failedPhotoIds, setFailedPhotoIds] = useState<Set<string>>(new Set());
+
+  // 判断装备是否有有效照片（有 photo 且未加载失败）
+  const hasValidPhoto = (equipId: string): boolean => {
+    const equip = equipment.find((e) => e.id === equipId);
+    return !!(equip?.photo && !failedPhotoIds.has(equipId));
+  };
+
+  // 标记图片加载失败
+  const markPhotoFailed = (equipId: string) => {
+    setFailedPhotoIds((prev) => new Set(prev).add(equipId));
+    // 如果正在看的图失败了，自动关闭或切图
+    if (lightboxEquipmentId === equipId && lightboxOpen) {
+      const siblings = getSiblingEquipmentWithPhotos(equipId);
+      if (siblings.length > 0) {
+        setLightboxEquipmentId(siblings[0].id);
+      } else {
+        closeLightbox();
+      }
+    }
+  };
+
+  // 获取同类有有效照片的装备列表
   const getSiblingEquipmentWithPhotos = useCallback(
     (currentEquipId: string): Equipment[] => {
       const current = equipment.find((e) => e.id === currentEquipId);
       if (!current) return [];
-      return equipment.filter((e) => e.type === current.type && e.photo);
+      return equipment.filter(
+        (e) => e.type === current.type && e.photo && !failedPhotoIds.has(e.id)
+      );
     },
-    [equipment]
+    [equipment, failedPhotoIds]
   );
 
   // 获取当前 Lightbox 装备
@@ -108,6 +133,7 @@ export default function EquipmentPage() {
 
   // 打开 Lightbox
   const openLightbox = (equipId: string) => {
+    if (!hasValidPhoto(equipId)) return;
     setLightboxEquipmentId(equipId);
     setLightboxOpen(true);
   };
@@ -254,31 +280,18 @@ export default function EquipmentPage() {
               key={equip.id}
               className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl hover:border-blue-100 transition-all duration-300 hover:-translate-y-1"
             >
-              {equip.photo ? (
+              {hasValidPhoto(equip.id) ? (
                 <div
                   className="relative h-44 bg-slate-100 cursor-zoom-in group/photo"
                   onClick={() => openLightbox(equip.id)}
                 >
                   <img
-                    src={equip.photo}
+                    src={equip.photo as string}
                     alt={equip.name || EQUIPMENT_TYPE_LABELS[equip.type]}
                     className="w-full h-full object-cover group-hover/photo:scale-110 transition-transform duration-500"
                     loading="lazy"
                     draggable={false}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      const parent = (e.currentTarget as HTMLImageElement)
-                        .parentElement as HTMLElement;
-                      if (parent) {
-                        const fallback = document.createElement('div');
-                        fallback.className = `absolute inset-0 flex items-center justify-center bg-gradient-to-br ${equipmentColors[equip.type]}`;
-                        fallback.innerHTML = `<span class="text-5xl">${emoji}</span>`;
-                        parent.appendChild(fallback);
-                        // 加载失败移除点击事件
-                        parent.classList.remove('cursor-zoom-in');
-                        parent.onclick = null;
-                      }
-                    }}
+                    onError={() => markPhotoFailed(equip.id)}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 opacity-60 group-hover/photo:opacity-80 transition-opacity" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -600,7 +613,7 @@ export default function EquipmentPage() {
       )}
 
       {/* Lightbox 大图查看 */}
-      {lightboxOpen && lightboxEquipment && lightboxEquipment.photo && (
+      {lightboxOpen && lightboxEquipment && hasValidPhoto(lightboxEquipment.id) && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] p-4 sm:p-6"
           onClick={closeLightbox}
@@ -655,9 +668,10 @@ export default function EquipmentPage() {
             {/* 大图 */}
             <div className="relative w-full aspect-square max-w-[500px] sm:max-w-[560px] rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
               <img
-                src={lightboxEquipment.photo}
+                src={lightboxEquipment.photo as string}
                 alt={lightboxEquipment.name || EQUIPMENT_TYPE_LABELS[lightboxEquipment.type]}
                 className="w-full h-full object-cover"
+                onError={() => markPhotoFailed(lightboxEquipment.id)}
               />
               <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/10 to-transparent" />
             </div>
