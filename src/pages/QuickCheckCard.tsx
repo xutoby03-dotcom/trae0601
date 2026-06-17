@@ -54,17 +54,41 @@ export default function QuickCheckCard() {
     return keywordMap[itemKey] || [];
   };
 
-  const getTaskForItem = (itemKey: InspectionItemKey): Task | undefined => {
-    let task = relatedTasks.find(t => t.itemKey === itemKey);
-    if (task) return task;
+  const buildItemTaskMap = (): Map<InspectionItemKey, Task> => {
+    const map = new Map<InspectionItemKey, Task>();
+    if (!inspection) return map;
 
-    const keywords = getItemKeyMatchKeywords(itemKey);
-    task = relatedTasks.find(t => {
-      if (t.itemKey) return false;
-      const text = `${t.title} ${t.description}`;
-      return keywords.some(kw => text.includes(kw));
-    });
-    return task;
+    const usedTaskIds = new Set<string>();
+    const failedItems = INSPECTION_ITEMS.filter(item => !inspection[item.key].checked);
+
+    for (const item of failedItems) {
+      let task = relatedTasks.find(t => !usedTaskIds.has(t.id) && t.itemKey === item.key);
+      if (task) {
+        map.set(item.key, task);
+        usedTaskIds.add(task.id);
+        continue;
+      }
+
+      const keywords = getItemKeyMatchKeywords(item.key);
+      task = relatedTasks.find(t => {
+        if (usedTaskIds.has(t.id)) return false;
+        if (t.itemKey) return false;
+        const text = `${t.title} ${t.description}`;
+        return keywords.some(kw => text.includes(kw));
+      });
+      if (task) {
+        map.set(item.key, task);
+        usedTaskIds.add(task.id);
+      }
+    }
+
+    return map;
+  };
+
+  const itemTaskMap = buildItemTaskMap();
+
+  const getTaskForItem = (itemKey: InspectionItemKey): Task | undefined => {
+    return itemTaskMap.get(itemKey);
   };
 
   const getTaskStatusConfig = (task?: Task) => {
