@@ -142,8 +142,8 @@ export default function MonitorPage() {
                           <StatusBadge status="late" size="sm" />
                         </div>
                         <p className="text-xs text-gray-500 mb-3">{node?.name} · {task.remindTime}</p>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 min-w-0">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <MemberAvatar member={responsible} size="sm" />
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-800 truncate">
@@ -152,10 +152,10 @@ export default function MonitorPage() {
                               {responsible && (
                                 <a
                                   href={`tel:${responsible.phone}`}
-                                  className="flex items-center gap-1 text-xs text-rose-gold hover:text-rose-gold/80 transition-colors"
+                                  className="flex items-center gap-1 text-xs text-rose-gold hover:text-rose-gold/80 transition-colors whitespace-nowrap flex-shrink-0"
                                 >
                                   <Phone className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{responsible.phone}</span>
+                                  <span>{responsible.phone}</span>
                                 </a>
                               )}
                             </div>
@@ -203,8 +203,8 @@ export default function MonitorPage() {
                             提醒时间：{task.remindTime}
                           </p>
                         </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 min-w-0">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <MemberAvatar member={responsible} size="sm" />
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-gray-800 truncate">
@@ -213,10 +213,10 @@ export default function MonitorPage() {
                               {responsible && (
                                 <a
                                   href={`tel:${responsible.phone}`}
-                                  className="flex items-center gap-1 text-xs text-rose-gold hover:text-rose-gold/80 transition-colors"
+                                  className="flex items-center gap-1 text-xs text-rose-gold hover:text-rose-gold/80 transition-colors whitespace-nowrap flex-shrink-0"
                                 >
                                   <Phone className="w-3 h-3 flex-shrink-0" />
-                                  <span className="truncate">{responsible.phone}</span>
+                                  <span>{responsible.phone}</span>
                                 </a>
                               )}
                             </div>
