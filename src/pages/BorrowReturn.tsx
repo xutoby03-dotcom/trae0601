@@ -19,9 +19,8 @@ export function BorrowReturn() {
   const [selected, setSelected] = useState<BorrowRecord | null>(null);
   const [box, setBox] = useState<ArchiveBox | null>(null);
 
-  const [sealIntact, setSealIntact] = useState(true);
+  const [actualSealNumber, setActualSealNumber] = useState('');
   const [sealRemark, setSealRemark] = useState('');
-  const [pagesComplete, setPagesComplete] = useState(true);
   const [actualPageCount, setActualPageCount] = useState(0);
   const [missingPages, setMissingPages] = useState('');
   const [cabinetCorrect, setCabinetCorrect] = useState(true);
@@ -31,9 +30,8 @@ export function BorrowReturn() {
     const foundBox = archiveBoxes.find((b) => b.id === record.archiveBoxId);
     setSelected(record);
     setBox(foundBox || null);
-    setSealIntact(true);
+    setActualSealNumber(foundBox?.sealNumber || '');
     setSealRemark('');
-    setPagesComplete(true);
     setActualPageCount(foundBox?.pageCount || 0);
     setMissingPages('');
     setCabinetCorrect(true);
@@ -41,13 +39,29 @@ export function BorrowReturn() {
     setShowCheck(true);
   };
 
+  const registeredSeal = box?.sealNumber || '';
+  const registeredPages = box?.pageCount || 0;
+  const sealIntact = actualSealNumber.trim().toUpperCase() === registeredSeal.trim().toUpperCase() && actualSealNumber.trim() !== '';
+  const pageDiff = Number(actualPageCount) - registeredPages;
+  const pagesComplete = Number(actualPageCount) === registeredPages;
+  const hasAnomaly = !sealIntact || !pagesComplete || !cabinetCorrect;
+
+  const anomalyMessages = [];
+  if (!sealIntact) anomalyMessages.push('封条号不符');
+  if (!pagesComplete) anomalyMessages.push(`页数不符（差 ${pageDiff > 0 ? '+' : ''}${pageDiff} 页）`);
+  if (!cabinetCorrect) anomalyMessages.push('柜位错误');
+
   const handleSubmit = () => {
     if (!selected) return;
     returnBorrow(selected.id, {
+      registeredSealNumber: registeredSeal,
+      actualSealNumber: actualSealNumber.trim(),
       sealIntact,
       sealRemark: sealRemark || undefined,
-      pagesComplete,
+      registeredPageCount: registeredPages,
       actualPageCount: Number(actualPageCount),
+      pageDiff,
+      pagesComplete,
       missingPages: missingPages || undefined,
       cabinetCorrect,
       checkerId: currentUser.id,
@@ -58,14 +72,6 @@ export function BorrowReturn() {
     setSelected(null);
     setBox(null);
   };
-
-  const hasAnomaly = !sealIntact || !pagesComplete || !cabinetCorrect;
-  const pageDiff = box ? (box.pageCount || 0) - Number(actualPageCount) : 0;
-
-  const anomalyMessages = [];
-  if (!sealIntact) anomalyMessages.push('封条异常');
-  if (!pagesComplete) anomalyMessages.push(`页数不符（差 ${Math.abs(pageDiff)} 页）`);
-  if (!cabinetCorrect) anomalyMessages.push('柜位错误');
 
   return (
     <div className="animate-fade-in">
@@ -206,20 +212,35 @@ export function BorrowReturn() {
                   封条检查
                 </span>
               </label>
+              {actualSealNumber.trim() !== '' && (
+                <span className={`text-xs font-medium ${sealIntact ? 'text-green-600' : 'text-red-600'}`}>
+                  {sealIntact ? '✓ 封条一致' : '✗ 封条不符'}
+                </span>
+              )}
             </div>
-            <div className="flex gap-3 mb-2">
-              <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border-2 cursor-pointer transition-all ${sealIntact ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600'}`}>
-                <input type="radio" checked={sealIntact} onChange={() => setSealIntact(true)} className="sr-only" />
-                <Check size={16} />
-                <span className="text-sm font-medium">封条完好</span>
-              </label>
-              <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border-2 cursor-pointer transition-all ${!sealIntact ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600'}`}>
-                <input type="radio" checked={!sealIntact} onChange={() => setSealIntact(false)} className="sr-only" />
-                <AlertTriangle size={16} />
-                <span className="text-sm font-medium">封条异常</span>
-              </label>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">登记封条号</label>
+                <input type="text" value={registeredSeal} readOnly className="input-base text-sm bg-gray-50 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">实际封条号 <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={actualSealNumber}
+                  onChange={(e) => setActualSealNumber(e.target.value)}
+                  placeholder="请输入实际封条号"
+                  className={`input-base text-sm font-mono ${!sealIntact && actualSealNumber.trim() !== '' ? 'border-red-400 bg-red-50 focus:ring-red-500' : ''}`}
+                />
+              </div>
             </div>
-            {!sealIntact && (
+            {!sealIntact && actualSealNumber.trim() !== '' && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-2 mb-2">
+              <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+              <span>封条号与登记不一致，请核实是否为原封</span>
+            </div>
+            )}
+            {!sealIntact && actualSealNumber.trim() !== '' && (
               <input
                 type="text"
                 value={sealRemark}
@@ -231,46 +252,45 @@ export function BorrowReturn() {
           </div>
 
           <div>
-            <label className="label-base">
-              <span className="flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-gold-100 text-gold-700 text-xs inline-flex items-center justify-center">2</span>
-                文件页数检查
+            <div className="flex items-center justify-between mb-2">
+              <label className="label-base !mb-0">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-gold-100 text-gold-700 text-xs inline-flex items-center justify-center">2</span>
+                  文件页数检查
+                </span>
+              </label>
+              <span className={`text-xs font-medium ${pagesComplete ? 'text-green-600' : 'text-red-600'}`}>
+                {pagesComplete ? '✓ 页数一致' : `✗ 页数不符（${pageDiff > 0 ? '多' : '少'} ${Math.abs(pageDiff)} 页）`}
               </span>
-            </label>
-            <div className="flex gap-3 mb-2">
-              <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border-2 cursor-pointer transition-all ${pagesComplete ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600'}`}>
-                <input type="radio" checked={pagesComplete} onChange={() => setPagesComplete(true)} className="sr-only" />
-                <FileText size={16} />
-                <span className="text-sm font-medium">页数完整</span>
-              </label>
-              <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-md border-2 cursor-pointer transition-all ${!pagesComplete ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600'}`}>
-                <input type="radio" checked={!pagesComplete} onChange={() => setPagesComplete(false)} className="sr-only" />
-                <AlertTriangle size={16} />
-                <span className="text-sm font-medium">缺页</span>
-              </label>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mb-2">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">实际清点页数</label>
+                <label className="text-xs text-gray-500 block mb-1">登记页数</label>
+                <input type="text" value={registeredPages} readOnly className="input-base text-sm bg-gray-50" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">实际清点页数 <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   value={actualPageCount}
                   onChange={(e) => setActualPageCount(Number(e.target.value))}
-                  className="input-base text-sm"
+                  className={`input-base text-sm ${!pagesComplete ? 'border-red-400 bg-red-50 focus:ring-red-500' : ''}`}
                 />
               </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">登记页数</label>
-                <input type="text" value={box?.pageCount || 0} readOnly className="input-base text-sm bg-gray-50" />
-              </div>
             </div>
+            {!pagesComplete && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-2 mb-2">
+              <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
+              <span>实际页数与登记不符，请确认是否有缺页或多出</span>
+            </div>
+            )}
             {!pagesComplete && (
               <input
                 type="text"
                 value={missingPages}
                 onChange={(e) => setMissingPages(e.target.value)}
                 placeholder="请说明缺失页码，如：第45-48页"
-                className="input-base text-sm mt-2"
+                className="input-base text-sm"
               />
             )}
           </div>

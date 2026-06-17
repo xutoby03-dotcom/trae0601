@@ -65,7 +65,7 @@ export function BorrowTimeline({ records }: BorrowTimelineProps) {
                         </span>
                       )}
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-xs mb-2">
+                    <div className="grid grid-cols-3 gap-2 text-xs mb-3">
                       <div className={`p-2 rounded-md ${record.returnCheck.sealIntact ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                         <p className="font-medium">封条</p>
                         <p>{record.returnCheck.sealIntact ? '完好' : '异常'}</p>
@@ -81,9 +81,23 @@ export function BorrowTimeline({ records }: BorrowTimelineProps) {
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <p>检查人：{record.returnCheck.checkerName}</p>
-                      <p>实际清点：{record.returnCheck.actualPageCount} 页</p>
+                      <p>
+                        封条号：<span className="font-mono">{record.returnCheck.registeredSealNumber}</span>
+                        {!record.returnCheck.sealIntact && (
+                          <span className="text-red-600 ml-1">→ 实际 {record.returnCheck.actualSealNumber}</span>
+                        )}
+                      </p>
+                      <p>
+                        页数：{record.returnCheck.registeredPageCount} 页
+                        {!record.returnCheck.pagesComplete && (
+                          <span className="text-red-600 ml-1">
+                            → 实际 {record.returnCheck.actualPageCount} 页
+                            （{record.returnCheck.pageDiff > 0 ? '多' : '少'} {Math.abs(record.returnCheck.pageDiff)} 页）
+                          </span>
+                        )}
+                      </p>
                       {record.returnCheck.sealRemark && (
-                        <p className="text-red-600">封条异常说明：{record.returnCheck.sealRemark}</p>
+                        <p className="text-red-600">封条说明：{record.returnCheck.sealRemark}</p>
                       )}
                       {record.returnCheck.missingPages && (
                         <p className="text-red-600">缺页说明：{record.returnCheck.missingPages}</p>

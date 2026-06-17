@@ -34,10 +34,14 @@ export interface ArchiveBox {
 export interface ReturnCheck {
   id: string;
   borrowRecordId: string;
+  registeredSealNumber: string;
+  actualSealNumber: string;
   sealIntact: boolean;
   sealRemark?: string;
-  pagesComplete: boolean;
+  registeredPageCount: number;
   actualPageCount: number;
+  pageDiff: number;
+  pagesComplete: boolean;
   missingPages?: string;
   cabinetCorrect: boolean;
   checkerId: string;

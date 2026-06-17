@@ -208,7 +208,21 @@ export function ArchiveDetail() {
                 </div>
                 <div className="text-xs text-gray-600 space-y-1">
                   <p>检查人：{latestReturnRecord.returnCheck.checkerName}</p>
-                  <p>实际清点：{latestReturnRecord.returnCheck.actualPageCount} 页</p>
+                  <p>
+                    封条号：<span className="font-mono">{latestReturnRecord.returnCheck.registeredSealNumber}</span>
+                    {!latestReturnRecord.returnCheck.sealIntact && (
+                      <span className="text-red-600 ml-1">→ {latestReturnRecord.returnCheck.actualSealNumber}</span>
+                    )}
+                  </p>
+                  <p>
+                    页数：{latestReturnRecord.returnCheck.registeredPageCount} 页
+                    {!latestReturnRecord.returnCheck.pagesComplete && (
+                      <span className="text-red-600 ml-1">
+                        → {latestReturnRecord.returnCheck.actualPageCount} 页
+                        （{latestReturnRecord.returnCheck.pageDiff > 0 ? '多' : '少'} {Math.abs(latestReturnRecord.returnCheck.pageDiff)} 页）
+                      </span>
+                    )}
+                  </p>
                   {latestReturnRecord.returnCheck.sealRemark && (
                     <p className="text-red-600">封条说明：{latestReturnRecord.returnCheck.sealRemark}</p>
                   )}
