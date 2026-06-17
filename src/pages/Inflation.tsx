@@ -9,7 +9,7 @@ import { calculateGasUsed, calculateRemainingPressure, calculatePressurePercenta
 const operators = ['张师傅', '李师傅', '王师傅', '赵师傅'];
 
 export default function Inflation() {
-  const { getAvailableCylinders, addInflation } = useCylinderStore();
+  const { cylinders, addInflation } = useCylinderStore();
   const { orders, balloonTypes, getOrderById, getBalloonTypeById } = useOrderStore();
 
   const [orderId, setOrderId] = useState('');
@@ -18,13 +18,17 @@ export default function Inflation() {
   const [operator, setOperator] = useState(operators[0]);
   const [selectedCylinderId, setSelectedCylinderId] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+  const [pressureBeforeInflation, setPressureBeforeInflation] = useState<number | null>(null);
   const [showOrderDropdown, setShowOrderDropdown] = useState(false);
   const [showBalloonDropdown, setShowBalloonDropdown] = useState(false);
   const [showOperatorDropdown, setShowOperatorDropdown] = useState(false);
 
   const availableCylinders = useMemo(() => {
-    return getAvailableCylinders().sort((a, b) => b.pressure - a.pressure);
-  }, [getAvailableCylinders]);
+    return cylinders
+      .filter((c) => c.status !== 'expired' && c.status !== 'abnormal')
+      .sort((a, b) => b.pressure - a.pressure);
+  }, [cylinders]);
 
   const selectedOrder = orderId ? getOrderById(orderId) : null;
   const selectedBalloon = balloonTypeId ? getBalloonTypeById(balloonTypeId) : null;
@@ -35,25 +39,33 @@ export default function Inflation() {
   const estimatedGas = selectedBalloon ? calculateGasUsed(selectedBalloon.gasPerUnit, quantity) : 0;
 
   const remainingPressure = selectedCylinder
-    ? calculateRemainingPressure(
-        selectedCylinder.pressure,
-        selectedCylinder.ratedPressure,
-        selectedCylinder.capacity,
-        estimatedGas
-      )
+    ? justSubmitted
+      ? selectedCylinder.pressure
+      : calculateRemainingPressure(
+          selectedCylinder.pressure,
+          selectedCylinder.ratedPressure,
+          selectedCylinder.capacity,
+          estimatedGas
+        )
     : 0;
 
   const remainingPercent = selectedCylinder
     ? calculatePressurePercentage(remainingPressure, selectedCylinder.ratedPressure)
     : 0;
 
-  const willBeLow = remainingPercent < 20 && remainingPercent > 0;
-  const notEnoughGas = selectedCylinder && remainingPressure <= 0;
+  const willBeLow = !justSubmitted && remainingPercent < 20 && remainingPercent > 0;
+  const notEnoughGas = !justSubmitted && selectedCylinder && remainingPressure <= 0;
+  const isCompletedSuccess = justSubmitted && remainingPressure > 0;
 
   const canSubmit = orderId && balloonTypeId && quantity > 0 && selectedCylinderId && operator && !notEnoughGas;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+
+    const currentCylinder = availableCylinders.find((c) => c.id === selectedCylinderId);
+    if (currentCylinder) {
+      setPressureBeforeInflation(currentCylinder.pressure);
+    }
 
     addInflation({
       cylinderId: selectedCylinderId,
@@ -64,9 +76,12 @@ export default function Inflation() {
       operator,
     });
 
+    setJustSubmitted(true);
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
+      setJustSubmitted(false);
+      setPressureBeforeInflation(null);
       setOrderId('');
       setBalloonTypeId('');
       setQuantity(10);
@@ -277,20 +292,29 @@ export default function Inflation() {
 
           {selectedCylinder && (
             <div className={`rounded-xl p-5 border ${
-              notEnoughGas ? 'bg-red-50 border-red-200' : willBeLow ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+              notEnoughGas ? 'bg-red-50 border-red-200' : willBeLow ? 'bg-amber-50 border-amber-200' : isCompletedSuccess ? 'bg-emerald-50 border-emerald-200' : 'bg-emerald-50 border-emerald-200'
             }`}>
               <h4 className={`font-medium mb-3 ${
-                notEnoughGas ? 'text-red-700' : willBeLow ? 'text-amber-700' : 'text-emerald-700'
+                notEnoughGas ? 'text-red-700' : willBeLow ? 'text-amber-700' : isCompletedSuccess ? 'text-emerald-700' : 'text-emerald-700'
               }`}>
-                {notEnoughGas ? '⚠️ 气量不足' : willBeLow ? '⚠️ 充气后将达低压' : '✓ 充气后状态'}
+                {notEnoughGas ? '⚠️ 气量不足' : willBeLow ? '⚠️ 充气后将达低压' : isCompletedSuccess ? '✓ 充气完成' : '✓ 充气后状态'}
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className={notEnoughGas ? 'text-red-600' : 'text-slate-600'}>当前压力</span>
-                  <span className="font-medium">{selectedCylinder.pressure} MPa</span>
+                  <span className={notEnoughGas ? 'text-red-600' : 'text-slate-600'}>
+                    {justSubmitted ? '充气前压力' : '当前压力'}
+                  </span>
+                  <span className="font-medium">
+                    {justSubmitted && pressureBeforeInflation !== null
+                      ? `${pressureBeforeInflation} → ${selectedCylinder.pressure}`
+                      : `${selectedCylinder.pressure}`
+                    } MPa
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className={notEnoughGas ? 'text-red-600' : 'text-slate-600'}>预计剩余</span>
+                  <span className={notEnoughGas ? 'text-red-600' : 'text-slate-600'}>
+                    {justSubmitted ? '实际剩余' : '预计剩余'}
+                  </span>
                   <span className={`font-medium ${notEnoughGas ? 'text-red-600' : ''}`}>
                     {remainingPressure.toFixed(1)} MPa
                   </span>
@@ -298,7 +322,7 @@ export default function Inflation() {
                 <div className="h-2 bg-white/50 rounded-full overflow-hidden mt-2">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      notEnoughGas ? 'bg-red-500' : willBeLow ? 'bg-amber-500' : 'bg-emerald-500'
+                      notEnoughGas ? 'bg-red-500' : willBeLow ? 'bg-amber-500' : isCompletedSuccess ? 'bg-emerald-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${Math.max(0, remainingPercent)}%` }}
                   ></div>
