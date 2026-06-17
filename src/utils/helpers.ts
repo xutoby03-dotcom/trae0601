@@ -191,6 +191,76 @@ export function getSmartSearchHint(parsed: SmartSearchResult): string[] {
   return hints;
 }
 
+function diagnoseEmptyResult(
+  activeClothes: Clothing[],
+  owner: string,
+  category: ClothingCategory | '',
+  size: string,
+  season: Season | '',
+  scenario: string
+): string {
+  const hints: string[] = [];
+
+  let pool = activeClothes;
+
+  if (owner) {
+    const ownerPool = pool.filter(c => c.owner === owner);
+    if (ownerPool.length === 0) {
+      return `${owner}还没有入箱衣物`;
+    }
+    pool = ownerPool;
+    hints.push(`${owner}有 ${pool.length} 件`);
+  }
+
+  if (category) {
+    const catPool = pool.filter(c => c.category === category);
+    if (catPool.length === 0) {
+      const cats = [...new Set(pool.map(c => getCategoryLabel(c.category)))];
+      hints.push(`有${getCategoryLabel(category)}但尺码/季节不匹配`);
+      hints.push(`${owner || '该归属人'}的${getCategoryLabel(category)}：无，现有 ${cats.join('、')}`);
+      return hints.join('；');
+    }
+    pool = catPool;
+    hints.push(`${getCategoryLabel(category)} ${pool.length} 件`);
+  }
+
+  if (size) {
+    const sizePool = pool.filter(c => c.size.toUpperCase() === size.toUpperCase());
+    if (sizePool.length === 0) {
+      const sizes = [...new Set(pool.map(c => c.size))].sort();
+      hints.push(`尺码「${size}」无匹配`);
+      hints.push(`现有尺码: ${sizes.join('、')}`);
+      return hints.join('；');
+    }
+    pool = sizePool;
+    hints.push(`尺码${size} ${pool.length} 件`);
+  }
+
+  if (season && season !== 'all') {
+    const seasonPool = pool.filter(c => c.season === season || c.season === 'all');
+    if (seasonPool.length === 0) {
+      const seasons = [...new Set(pool.map(c => getSeasonLabel(c.season)))];
+      hints.push(`季节「${getSeasonLabel(season)}」无匹配`);
+      hints.push(`现有季节: ${seasons.join('、')}`);
+      return hints.join('；');
+    }
+    pool = seasonPool;
+  }
+
+  if (scenario) {
+    const scenarioObj = SCENARIOS.find(s => s.value === scenario);
+    if (scenarioObj) {
+      const scenarioPool = pool.filter(c => scenarioObj.categories.includes(c.category));
+      if (scenarioPool.length === 0) {
+        hints.push(`场景「${scenarioObj.label}」无匹配`);
+        return hints.join('；');
+      }
+    }
+  }
+
+  return hints.join('；');
+}
+
 export function getEmptyHint(
   searchTerm: string,
   selectedOwner: string,
@@ -199,12 +269,30 @@ export function getEmptyHint(
   selectedSeason: string,
   clothes: Clothing[]
 ): string {
+  const activeClothes = clothes.filter(c => c.status !== 'pending');
+
   if (!searchTerm && !selectedOwner && !selectedScenario && !selectedSize && !selectedSeason) {
     return '添加你的第一件衣物吧';
   }
 
-  const parts: string[] = [];
+  if (searchTerm) {
+    const parsed = parseSmartSearch(searchTerm);
+    const smartHints = getSmartSearchHint(parsed);
+    const owner = selectedOwner || parsed.matchedOwner;
+    const category = parsed.matchedCategory;
+    const size = selectedSize || parsed.matchedSize;
+    const season = (selectedSeason || '') as Season | '';
+    const scenario = selectedScenario || parsed.matchedScenario;
 
+    if (smartHints.length > 0 && searchTerm.length > 1) {
+      const recognized = smartHints.join('、');
+      const diag = diagnoseEmptyResult(activeClothes, owner, category, size, season, scenario);
+      return `已识别 ${recognized}；${diag}`;
+    }
+    return `没有找到包含「${searchTerm}」的衣物`;
+  }
+
+  const parts: string[] = [];
   if (selectedOwner) parts.push(`归属人「${selectedOwner}」`);
   if (selectedScenario) {
     const label = SCENARIOS.find(s => s.value === selectedScenario)?.label || selectedScenario;
@@ -216,32 +304,12 @@ export function getEmptyHint(
     parts.push(`季节「${label}」`);
   }
 
-  if (searchTerm) {
-    const parsed = parseSmartSearch(searchTerm);
-    const smartHints = getSmartSearchHint(parsed);
-    if (smartHints.length > 0 && searchTerm.length > 1) {
-      const recognized = smartHints.join('、');
-      const ownerClothes = parsed.matchedOwner
-        ? clothes.filter(c => c.owner === parsed.matchedOwner && c.status !== 'pending')
-        : [];
-      const ownerHasOther = ownerClothes.length > 0;
-
-      if (parsed.matchedOwner && parsed.matchedCategory && ownerHasOther) {
-        return `已识别 ${recognized}，该归属人暂无此类别衣物，试试其他类别？`;
-      }
-      if (parsed.matchedOwner && !parsed.matchedCategory && ownerClothes.length > 0) {
-        const cats = [...new Set(ownerClothes.map(c => getCategoryLabel(c.category)))];
-        return `已识别 ${recognized}，该归属人有: ${cats.join('、')}`;
-      }
-      return `已识别 ${recognized}，未找到匹配衣物`;
-    }
-    return `没有找到包含「${searchTerm}」的衣物`;
-  }
-
   if (parts.length > 0) {
-    const ownerPart = selectedOwner ? clothes.filter(c => c.owner === selectedOwner && c.status !== 'pending') : [];
-    if (selectedOwner && ownerPart.length === 0) {
-      return `${selectedOwner}还没有入箱衣物`;
+    const diag = diagnoseEmptyResult(
+      activeClothes, selectedOwner, '', selectedSize, selectedSeason as Season | '', selectedScenario
+    );
+    if (diag) {
+      return `没有同时满足 ${parts.join(' + ')} 的衣物；${diag}`;
     }
     return `没有同时满足 ${parts.join(' + ')} 的衣物，试试减少筛选条件？`;
   }
