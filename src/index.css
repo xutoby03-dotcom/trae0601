@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family: 'Noto Serif SC', Georgia, serif;
+    line-height: 1.6;
+    font-weight: 400;
+    color: #333333;
+    background-color: #FDF5F0;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #FDF5F0 0%, #FFFAF0 100%);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', Georgia, serif;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-rose-gold text-white rounded-lg font-medium transition-all duration-300 border-2 border-rose-gold hover:bg-white hover:text-rose-gold hover:shadow-rose;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-white text-rose-gold rounded-lg font-medium transition-all duration-300 border-2 border-rose-gold hover:bg-rose-gold hover:text-white;
+  }
+
+  .btn-gold {
+    @apply px-6 py-3 bg-champagne-gold text-white rounded-lg font-medium transition-all duration-300 border-2 border-champagne-gold hover:bg-white hover:text-champagne-gold hover:shadow-gold;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-card border border-champagne-pale transition-all duration-300 hover:shadow-card-hover;
+  }
+
+  .card-bordered {
+    @apply bg-ivory rounded-xl shadow-card border-2 border-transparent bg-gradient-to-br from-champagne-pale to-rose-pale p-[2px];
+  }
+
+  .card-bordered > div {
+    @apply bg-white rounded-[10px] p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-rose-pale bg-white focus:outline-none focus:ring-2 focus:ring-rose-gold/30 focus:border-rose-gold transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .badge-confirmed {
+    @apply bg-forest/10 text-forest;
+  }
+
+  .badge-pending {
+    @apply bg-champagne-gold/10 text-champagne-gold;
+  }
+
+  .badge-late {
+    @apply bg-wine/10 text-wine animate-pulse-slow;
+  }
+
+  .timeline-line {
+    @apply absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-rose-gold via-champagne-gold to-rose-gold;
+  }
+
+  .timeline-dot {
+    @apply absolute left-4 w-3 h-3 rounded-full -translate-x-1/2 border-2 border-white;
+  }
+
+  .status-pulse {
+    animation: statusPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+  .stagger-7 { animation-delay: 0.7s; }
+  .stagger-8 { animation-delay: 0.8s; }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent bg-gold-gradient;
+  }
+
+  .text-gradient-rose {
+    @apply bg-clip-text text-transparent bg-rose-gradient;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
