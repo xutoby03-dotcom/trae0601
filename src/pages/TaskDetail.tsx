@@ -6,6 +6,7 @@ import { AbnormalityBadge, AddAbnormalityModal } from '../components/Abnormality
 import { ArrowLeft, MapPin, Key, Clock, AlertTriangle, CheckCircle2, FileText, RefreshCw } from 'lucide-react';
 import { formatDate, getStatusLabel, getStatusColor, cn } from '../utils/helpers';
 import type { AbnormalityType } from '../types';
+import { abnormalityLabels } from '../types';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -309,11 +310,18 @@ function GenerateReportModal({
   onClose: () => void;
   onGenerated: () => void;
 }) {
-  const { generateReport } = usePetStore();
+  const { generateReport, getAbnormalitiesByTaskId } = usePetStore();
+  const abnormalities = getAbnormalitiesByTaskId(taskId);
+
+  const defaultAbnormalitySummary = abnormalities.length > 0
+    ? abnormalities.map((a) => `⚠ ${abnormalityLabels[a.type]}：${a.description}`).join('\n')
+    : '';
+
   const [remainingFood, setRemainingFood] = useState(85);
   const [remainingLitter, setRemainingLitter] = useState(70);
   const [remainingMedicine, setRemainingMedicine] = useState(60);
   const [nextReminder, setNextReminder] = useState('明天上午9点上门');
+  const [abnormalitySummary, setAbnormalitySummary] = useState(defaultAbnormalitySummary);
   const [summary, setSummary] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -326,6 +334,7 @@ function GenerateReportModal({
         remainingLitter,
         remainingMedicine,
         nextReminder,
+        abnormalitySummary,
         summary || '本次代喂一切正常，宠物状态良好。'
       );
       setIsGenerating(false);
@@ -407,6 +416,20 @@ function GenerateReportModal({
               placeholder="下次上门时间和注意事项"
             />
           </div>
+
+          {abnormalities.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <label className="block text-sm font-medium text-red-700 mb-2 flex items-center gap-1">
+                <AlertTriangle size={14} />
+                异常提醒（将醒目展示给主人）
+              </label>
+              <textarea
+                value={abnormalitySummary}
+                onChange={(e) => setAbnormalitySummary(e.target.value)}
+                className="w-full h-28 px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 resize-none text-sm bg-white text-red-800"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

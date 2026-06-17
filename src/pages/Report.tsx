@@ -88,12 +88,16 @@ export default function Report() {
   };
 
   const handleDownload = () => {
+    const abnormalitySection = report.abnormalitySummary
+      ? `\n⚠️ 异常提醒（请重点关注）\n${report.abnormalitySummary}\n`
+      : '';
+
     const content = `
 ${pet.name}的代喂日报
 ====================
 日期：${formatDate(task.date)}
 时间：${task.time}
-
+${abnormalitySection}
 一、物资剩余
 - 猫粮：${report.remainingFood}%
 - 猫砂：${report.remainingLitter}%
@@ -176,6 +180,24 @@ ${report.nextReminder}
           </div>
         </div>
       </div>
+
+      {report.abnormalitySummary && (
+        <div className="bg-gradient-to-r from-red-500 to-rose-500 rounded-2xl p-5 text-white shadow-lg shadow-red-200 animate-slideUp border-2 border-red-300" style={{ animationDelay: '50ms' }}>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+              <AlertTriangle size={22} className="animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
+                ⚠️ 异常提醒
+              </h3>
+              <div className="text-white/95 text-sm whitespace-pre-line leading-relaxed">
+                {report.abnormalitySummary}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="animate-slideUp" style={{ animationDelay: '100ms' }}>
         <h3 className="text-lg font-bold text-[#2D2A26] mb-4 flex items-center gap-2" style={{ fontFamily: "'Noto Serif SC', serif" }}>

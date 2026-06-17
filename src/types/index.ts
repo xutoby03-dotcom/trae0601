@@ -54,6 +54,7 @@ export interface Report {
   remainingLitter: number;
   remainingMedicine: number;
   nextReminder: string;
+  abnormalitySummary: string;
   summary: string;
   createdAt: string;
 }

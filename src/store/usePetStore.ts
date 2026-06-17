@@ -19,7 +19,7 @@ interface PetState {
   completeCheckItem: (taskId: string, itemId: string, photo?: string, note?: string) => void;
   addAbnormality: (taskId: string, type: Abnormality['type'], description: string, photo?: string) => void;
   getAbnormalitiesByTaskId: (taskId: string) => Abnormality[];
-  generateReport: (taskId: string, remainingFood: number, remainingLitter: number, remainingMedicine: number, nextReminder: string, summary: string) => Report;
+  generateReport: (taskId: string, remainingFood: number, remainingLitter: number, remainingMedicine: number, nextReminder: string, abnormalitySummary: string, summary: string) => Report;
   getReportByTaskId: (taskId: string) => Report | undefined;
   resetTask: (taskId: string) => void;
 }
@@ -107,7 +107,7 @@ export const usePetStore = create<PetState>()(
         return get().abnormalities.filter((a) => a.taskId === taskId);
       },
 
-      generateReport: (taskId, remainingFood, remainingLitter, remainingMedicine, nextReminder, summary) => {
+      generateReport: (taskId, remainingFood, remainingLitter, remainingMedicine, nextReminder, abnormalitySummary, summary) => {
         const newReport: Report = {
           id: generateId(),
           taskId,
@@ -115,6 +115,7 @@ export const usePetStore = create<PetState>()(
           remainingLitter,
           remainingMedicine,
           nextReminder,
+          abnormalitySummary,
           summary,
           createdAt: new Date().toISOString(),
         };

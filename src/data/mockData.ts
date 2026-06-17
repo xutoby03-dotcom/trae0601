@@ -145,6 +145,7 @@ export const mockReport: Report = {
   remainingLitter: 70,
   remainingMedicine: 60,
   nextReminder: '明天（6月17日）上午9点上门，记得带上备用钥匙以防密码锁没电',
+  abnormalitySummary: '',
   summary: '今天橘子状态很好，食欲正常，玩得也很开心。猫砂盆清理干净了，水也换了新鲜的。晚上9点再来看它一次。',
   createdAt: '2026-06-16T19:30:00',
 };
