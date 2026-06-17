@@ -377,14 +377,6 @@ const Dashboard = () => {
     })
   }, [decommissionCandidates, ovens, affectedProducts])
 
-  const handleViewOvenDetail = (ovenId) => {
-    const ovenInfo = ovens.find((o) => o.id === ovenId)
-    if (ovenInfo) {
-      setDetailOven(ovenInfo)
-      setDetailVisible(true)
-    }
-  }
-
   const handleGoToOvens = (ovenId) => {
     navigate('/ovens', { state: { openOvenId: ovenId } })
   }
@@ -603,7 +595,7 @@ const Dashboard = () => {
                       cursor: 'pointer',
                       transition: 'box-shadow 0.2s',
                     }}
-                    onClick={() => handleViewOvenDetail(item.ovenId)}
+                    onClick={() => handleGoToOvens(item.ovenId)}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(255,77,79,0.2)'
                     }}
@@ -629,14 +621,24 @@ const Dashboard = () => {
                       <Descriptions.Item label="失败产品">
                         <Text type="danger">{item.failedProductCount} 个</Text>
                       </Descriptions.Item>
+                      <Descriptions.Item label="30天失败批次">
+                        <Text type="danger">{item.recentFailureCount || 0} 批</Text>
+                      </Descriptions.Item>
+                      <Descriptions.Item label="偏差超阈值">
+                        <Text type="warning">{item.highDeviationCount30 || 0} 次</Text>
+                      </Descriptions.Item>
                     </Descriptions>
                     <Button
                       type="link"
                       size="small"
                       style={{ padding: 0, marginTop: 4 }}
                       icon={<EyeOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGoToOvens(item.ovenId)
+                      }}
                     >
-                      查看详情
+                      查看设备详情
                     </Button>
                   </div>
                 </Col>
@@ -784,7 +786,9 @@ const Dashboard = () => {
                             >
                               标记维修
                             </Button>
-                            <Button size="small">查看详情</Button>
+                            <Button size="small" onClick={() => handleGoToOvens(item.ovenId)}>
+                              查看详情
+                            </Button>
                           </Space>
                         </div>
                       }
@@ -879,7 +883,9 @@ const Dashboard = () => {
                           >
                             确认停用
                           </Button>
-                          <Button size="small">查看详情</Button>
+                          <Button size="small" onClick={() => handleGoToOvens(item.ovenId)}>
+                            查看详情
+                          </Button>
                         </Space>
                       </Card>
                     </Col>

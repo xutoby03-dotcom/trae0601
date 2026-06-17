@@ -267,7 +267,14 @@ router.get('/decommission-candidates', (req, res, next) => {
           FROM batches
           WHERE oven_id = o.id
             AND produced_at >= datetime('now', '-30 days')
-        ) as recent_total_count
+        ) as recent_total_count,
+        (
+          SELECT COUNT(*)
+          FROM calibration_records
+          WHERE oven_id = o.id
+            AND ABS(deviation) > 10
+            AND calibrated_at >= datetime('now', '-30 days')
+        ) as high_deviation_count_30
       FROM ovens o
       WHERE o.status != 'decommissioned'
     `);
@@ -309,9 +316,16 @@ router.get('/decommission-candidates', (req, res, next) => {
         avg_deviation: oven.avg_deviation || 0,
         failure_rate: oven.failure_rate,
         maintenance_count,
+        recent_failure_count: oven.recent_failure_count,
+        high_deviation_count_30: oven.high_deviation_count_30 || 0,
         recommendation: `该烤箱存在${reasons.length}项问题：${reasons.join('；')}，建议考虑停用更换`
       };
-    }).filter(Boolean);
+    }).filter(Boolean).sort((a, b) => {
+      if (b.recent_failure_count !== a.recent_failure_count) {
+        return b.recent_failure_count - a.recent_failure_count;
+      }
+      return b.high_deviation_count_30 - a.high_deviation_count_30;
+    });
     
     res.json(success(candidates));
   } catch (err) {
