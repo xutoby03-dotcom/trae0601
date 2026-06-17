@@ -45,18 +45,18 @@ const TaskQueue = () => {
     }
 
     filtered.sort((a, b) => {
-      const priorityOrder = { urgent: 0, normal: 1, low: 2 };
+      const priorityOrder = { urgent: 3, normal: 2, low: 1 };
       let comparison = 0;
 
       if (sortField === 'priority') {
         comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
       } else if (sortField === 'deadline') {
-        comparison = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        comparison = new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
       } else if (sortField === 'createdAt') {
-        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
 
-      return sortAsc ? comparison : -comparison;
+      return sortAsc ? -comparison : comparison;
     });
 
     return filtered;

@@ -94,6 +94,10 @@ const TaskDetail = () => {
   };
 
   const handleComplete = () => {
+    if (!photoAfter) {
+      alert('请上传修复后照片，便于留档对比');
+      return;
+    }
     const totalMinutes = Math.floor(timerSeconds / 60) + (parseInt(timeSpent) || 0);
     if (totalMinutes === 0 && !timeSpent) {
       alert('请输入或计时记录耗时');
@@ -419,7 +423,8 @@ const TaskDetail = () => {
                 <PhotoUpload
                   value={photoAfter}
                   onChange={setPhotoAfter}
-                  label="修复后照片（可选）"
+                  label="修复后照片（必填）"
+                  required
                 />
 
                 <div>

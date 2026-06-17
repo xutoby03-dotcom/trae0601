@@ -100,14 +100,41 @@ const ClothingCard = ({ clothing, showActions = true, className = '', style }: C
         </div>
       </div>
 
-      {clothing.photoBefore && (
+      {clothing.status === 'completed' ? (
         <div className="mt-4 pt-4 border-t border-brown-100">
-          <img
-            src={clothing.photoBefore}
-            alt="衣物照片"
-            className="w-full h-32 object-cover rounded-lg"
-          />
+          <div className="grid grid-cols-2 gap-2">
+            {clothing.photoBefore && (
+              <div>
+                <p className="text-xs text-brown-400 mb-1">修复前</p>
+                <img
+                  src={clothing.photoBefore}
+                  alt="修复前"
+                  className="w-full h-24 object-cover rounded-lg border border-brown-200"
+                />
+              </div>
+            )}
+            {clothing.photoAfter && (
+              <div>
+                <p className="text-xs text-success-500 mb-1">修复后</p>
+                <img
+                  src={clothing.photoAfter}
+                  alt="修复后"
+                  className="w-full h-24 object-cover rounded-lg border border-success-300"
+                />
+              </div>
+            )}
+          </div>
         </div>
+      ) : (
+        clothing.photoBefore && (
+          <div className="mt-4 pt-4 border-t border-brown-100">
+            <img
+              src={clothing.photoBefore}
+              alt="衣物照片"
+              className="w-full h-32 object-cover rounded-lg"
+            />
+          </div>
+        )
       )}
 
       {clothing.timeSpent && clothing.status === 'completed' && (

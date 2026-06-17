@@ -5,9 +5,10 @@ interface PhotoUploadProps {
   value?: string;
   onChange: (value: string | undefined) => void;
   label?: string;
+  required?: boolean;
 }
 
-const PhotoUpload = ({ value, onChange, label }: PhotoUploadProps) => {
+const PhotoUpload = ({ value, onChange, label, required }: PhotoUploadProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | undefined>(value);
 
@@ -38,7 +39,12 @@ const PhotoUpload = ({ value, onChange, label }: PhotoUploadProps) => {
 
   return (
     <div>
-      {label && <p className="form-label">{label}</p>}
+      {label && (
+        <p className="form-label">
+          {label}
+          {required && <span className="text-warning-600 ml-1">*</span>}
+        </p>
+      )}
       <div className="relative">
         {preview ? (
           <div className="relative w-full h-48 rounded-xl overflow-hidden border-2 border-brown-200">
@@ -59,7 +65,11 @@ const PhotoUpload = ({ value, onChange, label }: PhotoUploadProps) => {
           <button
             type="button"
             onClick={handleClick}
-            className="w-full h-48 rounded-xl border-2 border-dashed border-brown-300 flex flex-col items-center justify-center gap-2 text-brown-400 hover:border-primary-400 hover:text-primary-500 transition-colors bg-brown-50/50"
+            className={`w-full h-48 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors ${
+              required
+                ? 'border-warning-400 text-warning-500 hover:border-warning-500 hover:text-warning-600 bg-warning-50/50'
+                : 'border-brown-300 text-brown-400 hover:border-primary-400 hover:text-primary-500 bg-brown-50/50'
+            }`}
           >
             <div className="w-16 h-16 rounded-full bg-brown-100 flex items-center justify-center">
               <Camera className="w-8 h-8" />
