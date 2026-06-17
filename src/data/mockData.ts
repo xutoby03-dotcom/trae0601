@@ -47,7 +47,13 @@ export const mockMembers: Member[] = [
   },
 ];
 
+const img = (prompt: string) =>
+  `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+    prompt
+  )}&image_size=square_hd`;
+
 export const mockEquipment: Equipment[] = [
+  // 雪板
   {
     id: 'e1',
     type: 'snowboard',
@@ -57,6 +63,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: false,
+    photo: img('高端单板滑雪板，Burton品牌，蓝色渐变涂装，纯白色雪道背景，专业产品摄影，高清细节'),
   },
   {
     id: 'e2',
@@ -67,6 +74,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('女生单板滑雪板，Ride品牌，粉色和白色配色，可爱图案，雪地上平放，专业产品摄影'),
   },
   {
     id: 'e3',
@@ -77,6 +85,7 @@ export const mockEquipment: Equipment[] = [
     status: 'worn',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('Capita单板滑雪板，专业自由式，黑色底配彩色涂鸦图案，底板有轻微使用痕迹，雪山背景'),
   },
   {
     id: 'e4',
@@ -87,7 +96,10 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('GNU女款单板滑雪板，紫色和薄荷绿配色，艺术涂鸦图案，雪道上平放展示，阳光反射'),
   },
+
+  // 雪鞋
   {
     id: 'e5',
     type: 'shoes',
@@ -97,6 +109,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: false,
+    photo: img('ThirtyTwo单板滑雪靴，黑色经典款，42码，皮革质感，白色背景专业产品摄影'),
   },
   {
     id: 'e6',
@@ -107,6 +120,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('Vans女款单板滑雪靴，白色和淡紫色，37码，时尚设计，白色背景产品展示'),
   },
   {
     id: 'e7',
@@ -117,6 +131,7 @@ export const mockEquipment: Equipment[] = [
     status: 'worn',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('DC单板滑雪靴，大码44码，深灰色，使用过的鞋带有磨损痕迹，专业产品摄影'),
   },
   {
     id: 'e8',
@@ -127,7 +142,10 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('K2 Maysis单板滑雪靴，38码，蓝黑色，BOA钢丝扣系统，白色背景高清产品图'),
   },
+
+  // 头盔
   {
     id: 'e9',
     type: 'helmet',
@@ -137,6 +155,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: false,
+    photo: img('Smith Mission滑雪头盔，哑光黑色，L码，带通风孔设计，雪山背景专业摄影'),
   },
   {
     id: 'e10',
@@ -147,6 +166,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('Giro女款滑雪头盔，淡粉色S码，圆润造型，带护耳，白色背景产品摄影'),
   },
   {
     id: 'e11',
@@ -157,6 +177,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('Oakley MOD5滑雪头盔，哑光军绿色XL码，现代流线型设计，雪场背景实拍'),
   },
   {
     id: 'e12',
@@ -167,7 +188,10 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('POC Obex滑雪头盔，深蓝色M码，瑞典品牌，简约安全设计，纯白背景展示'),
   },
+
+  // 护目镜
   {
     id: 'e13',
     type: 'goggles',
@@ -177,6 +201,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: true,
+    photo: img('Oakley Flight Deck滑雪护目镜，大球面设计，银色反光镜片，带近视镜片卡槽，黑色镜框，专业产品图'),
   },
   {
     id: 'e14',
@@ -187,6 +212,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('Dragon NFX2滑雪护目镜，无边框设计，粉紫色镜片，白色镜框，雪场光线反光，高清细节'),
   },
   {
     id: 'e15',
@@ -197,6 +223,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('Anon M4专业滑雪护目镜，大视野L码，墨绿色镜片，磁吸换片技术，黑色镜框，雪山背景'),
   },
   {
     id: 'e16',
@@ -207,7 +234,10 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('Smith I/O Mag滑雪护目镜，蓝色镜框，黄色增光镜片，M码，磁力镜片交换系统，白色背景展示'),
   },
+
+  // 手套
   {
     id: 'e17',
     type: 'gloves',
@@ -217,6 +247,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: false,
+    photo: img('Dakine单板滑雪手套，男士L码，黑色皮革掌面，防水面料，手指分开设计，白色背景产品摄影'),
   },
   {
     id: 'e18',
@@ -227,6 +258,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('Burton女款滑雪手套，S码，粉白配色，连指闷子设计，保暖加绒，可爱风格，白色背景'),
   },
   {
     id: 'e19',
@@ -237,6 +269,7 @@ export const mockEquipment: Equipment[] = [
     status: 'worn',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('Mountain Hardwear专业滑雪手套，XL加大码，深棕色，GORE-TEX防水，手掌有磨损痕迹，使用过状态'),
   },
   {
     id: 'e20',
@@ -247,7 +280,10 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('REI女款滑雪手套，M码，蓝灰色配色，分指设计，防风保暖面料，手腕有魔术贴，产品展示图'),
   },
+
+  // 护具
   {
     id: 'e21',
     type: 'protector',
@@ -257,6 +293,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm1',
     hasMyopiaLens: false,
+    photo: img('Demon单板滑雪护臀垫，黑色L码，内置硅胶减震，短裤式设计，白色背景专业产品图'),
   },
   {
     id: 'e22',
@@ -267,6 +304,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm2',
     hasMyopiaLens: false,
+    photo: img('初学者滑雪护具套装，女款S码，护膝护肘护腕全套，粉色和白色配色，柔软防护材料，产品展示'),
   },
   {
     id: 'e23',
@@ -277,6 +315,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm3',
     hasMyopiaLens: false,
+    photo: img('Pro-Tec专业滑雪护腕，L码，硬壳防护，黑色尼龙绑带，金属支撑板，白色背景高清产品图'),
   },
   {
     id: 'e24',
@@ -287,6 +326,7 @@ export const mockEquipment: Equipment[] = [
     status: 'good',
     assignedTo: 'm4',
     hasMyopiaLens: false,
+    photo: img('G-Form智能护臀垫，女款M码，超薄设计，黑色透气面料，内置智能减震材料，白色背景产品摄影'),
   },
 ];
 
