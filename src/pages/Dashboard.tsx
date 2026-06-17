@@ -13,7 +13,7 @@ export function Dashboard() {
 
   const stats = useMemo(() => {
     const overdueBoxes = borrowRecords
-      .filter((r) => r.status === '借出中' && isOverdue(r.expectedReturnDate))
+      .filter((r) => (r.status === '借出中' && isOverdue(r.expectedReturnDate)) || r.status === '已逾期')
       .map((r) => archiveBoxes.find((b) => b.id === r.archiveBoxId))
       .filter(Boolean).length;
     const sealAlerts = archiveBoxes.filter((b) => b.status === '异常').length;

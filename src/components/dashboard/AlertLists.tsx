@@ -11,7 +11,7 @@ export function OverdueList() {
   const records = useAppStore((s) => s.borrowRecords);
   const boxes = useMemo(() => {
     return records
-      .filter((r) => r.status === '借出中' && isOverdue(r.expectedReturnDate))
+      .filter((r) => (r.status === '借出中' && isOverdue(r.expectedReturnDate)) || r.status === '已逾期')
       .map((r) => archiveBoxes.find((b) => b.id === r.archiveBoxId))
       .filter((b): b is NonNullable<typeof b> => !!b);
   }, [archiveBoxes, records]);
