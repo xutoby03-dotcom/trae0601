@@ -91,7 +91,7 @@ export default function StarterForm() {
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/mother-starters')}
+          onClick={() => navigate('/starters')}
           className="p-2 hover:bg-bread-100 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-bread-600" />
@@ -241,7 +241,7 @@ export default function StarterForm() {
         <div className="flex justify-end gap-4">
           <button
             type="button"
-            onClick={() => navigate('/mother-starters')}
+            onClick={() => navigate('/starters')}
             className="btn-secondary"
           >
             取消

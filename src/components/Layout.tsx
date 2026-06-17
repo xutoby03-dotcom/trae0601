@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Cookie, 
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 interface LayoutProps {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -66,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <main className="flex-1 overflow-auto">
         <div className="p-8">
-          <Outlet />
+          {children}
         </div>
       </main>
     </div>
