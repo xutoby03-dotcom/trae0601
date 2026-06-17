@@ -49,15 +49,22 @@ export function BatteryForm({
     }
   };
 
-  const isValid = form.deviceId && form.replacedBy.trim() && (!isOut || confirm('该规格电池已缺货，确定要记录换电吗？'));
+  const isValid = form.deviceId && form.replacedBy.trim();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid) return;
+    if (isOut) {
+      const confirmed = window.confirm('该规格电池已缺货，确定要记录换电吗？');
+      if (!confirmed) return;
+    }
+    onSubmit(form);
+  };
 
   return (
     <>
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (isValid) onSubmit(form);
-        }}
+        onSubmit={handleSubmit}
         className="space-y-5"
       >
       <div>
