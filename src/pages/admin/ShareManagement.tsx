@@ -362,6 +362,7 @@ export const ShareManagement: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">来源</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">雨伞</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">借用人</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">借用地点</th>
@@ -373,8 +374,24 @@ export const ShareManagement: React.FC = () => {
               <tbody>
                 {borrowRecords.slice(0, 20).map((record) => {
                   const umbrella = umbrellaService.getById(record.umbrellaId);
+                  const isAutoExpired = umbrella?.sharedFrom === 'auto_expired';
                   return (
                     <tr key={record.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        {umbrella && (
+                          isAutoExpired ? (
+                            <Badge variant="warning" size="sm" className="inline-flex items-center gap-1">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              超期
+                            </Badge>
+                          ) : (
+                            <Badge variant="info" size="sm" className="inline-flex items-center gap-1">
+                              <Handshake className="w-2.5 h-2.5" />
+                              手动
+                            </Badge>
+                          )
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         {umbrella && (
                           <div className="flex items-center gap-2">
@@ -420,29 +437,63 @@ export const ShareManagement: React.FC = () => {
         title="登记借用"
         size="md"
       >
-        {selectedUmbrella && (
-          <div className="space-y-5">
-            <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-              <img
-                src={selectedUmbrella.canopyPhoto}
-                alt=""
-                className="w-20 h-20 rounded-lg object-cover"
-              />
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: selectedUmbrella.colorHex }}
-                  />
-                  <span className="font-medium text-gray-800">
-                    {selectedUmbrella.color}伞 · {selectedUmbrella.brand}
-                  </span>
+        {selectedUmbrella && (() => {
+          const isAutoExpired = selectedUmbrella.sharedFrom === 'auto_expired';
+          return (
+            <div className="space-y-5">
+              <div className={`p-4 rounded-xl border ${
+                isAutoExpired
+                  ? 'bg-[#FFF8E6] border-[#FFE4A3]'
+                  : 'bg-gray-50 border-gray-100'
+              }`}>
+                <div className="flex items-start justify-between mb-3">
+                  {isAutoExpired ? (
+                    <Badge variant="warning" className="inline-flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      超期转入
+                    </Badge>
+                  ) : (
+                    <Badge variant="info" className="inline-flex items-center gap-1">
+                      <Handshake className="w-3 h-3" />
+                      手动转入
+                    </Badge>
+                  )}
+                  {selectedUmbrella.sharedAt && (
+                    <span className="text-xs text-gray-400">
+                      {formatRelativeTime(selectedUmbrella.sharedAt)}转入
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm text-gray-500">
-                  存放位置：{selectedUmbrella.storageCell}
-                </p>
+                <div className="flex gap-4">
+                  <img
+                    src={selectedUmbrella.canopyPhoto}
+                    alt=""
+                    className="w-20 h-20 rounded-lg object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: selectedUmbrella.colorHex }}
+                      />
+                      <span className="font-medium text-gray-800">
+                        {selectedUmbrella.color}伞 · {selectedUmbrella.brand}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500 space-y-1">
+                      <p className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        原拾到：{selectedUmbrella.foundLocation.building}
+                      </p>
+                      <p className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        原拾到：{formatDate(selectedUmbrella.foundTime).split(' ')[0]}
+                      </p>
+                      <p>存放格：{selectedUmbrella.storageCell}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -493,8 +544,9 @@ export const ShareManagement: React.FC = () => {
                 确认借用
               </Button>
             </div>
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal
@@ -529,27 +581,59 @@ export const ShareManagement: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                <img
-                  src={umbrella.canopyPhoto}
-                  alt=""
-                  className="w-20 h-20 rounded-lg object-cover"
-                />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: umbrella.colorHex }}
-                    />
-                    <span className="font-medium text-gray-800">
-                      {umbrella.color}伞 · {umbrella.brand}
-                    </span>
+              {(() => {
+                const isAutoExpired = umbrella.sharedFrom === 'auto_expired';
+                return (
+                  <div className={`p-4 rounded-xl border ${
+                    isAutoExpired
+                      ? 'bg-[#FFF8E6] border-[#FFE4A3]'
+                      : 'bg-gray-50 border-gray-100'
+                  }`}>
+                    <div className="flex items-start justify-between mb-3">
+                      {isAutoExpired ? (
+                        <Badge variant="warning" className="inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          超期转入
+                        </Badge>
+                      ) : (
+                        <Badge variant="info" className="inline-flex items-center gap-1">
+                          <Handshake className="w-3 h-3" />
+                          手动转入
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-4">
+                      <img
+                        src={umbrella.canopyPhoto}
+                        alt=""
+                        className="w-20 h-20 rounded-lg object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: umbrella.colorHex }}
+                          />
+                          <span className="font-medium text-gray-800">
+                            {umbrella.color}伞 · {umbrella.brand}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500 space-y-1">
+                          <p className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5" />
+                            原拾到：{umbrella.foundLocation.building}
+                          </p>
+                          <p className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            原拾到：{formatDate(umbrella.foundTime).split(' ')[0]}
+                          </p>
+                          <p>存放格：{umbrella.storageCell}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    存放位置：{umbrella.storageCell}
-                  </p>
-                </div>
-              </div>
+                );
+              })()}
 
               <div>
                 <Select
