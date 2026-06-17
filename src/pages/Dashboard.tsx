@@ -1,18 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, getEarLabel, getFeedbackTypeEmoji, getFeedbackTypeLabel } from '@/store/useStore';
-import { Battery, Package, AlertTriangle, CalendarDays, ArrowRight, Sparkles, Plus } from 'lucide-react';
-import { format, parseISO, differenceInDays, isWithinInterval, addDays } from 'date-fns';
+import { Battery, Package, AlertTriangle, CalendarDays, ArrowRight, Sparkles, Plus, ShoppingCart } from 'lucide-react';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Modal from '@/components/Modal';
+import StockModal from '@/components/StockModal';
 import { BatteryForm, CleanForm, FeedbackForm } from '@/components/RecordForms';
-import { useState } from 'react';
+import type { BatterySize } from '@/types';
 
 type ModalType = 'battery' | 'clean' | 'feedback' | null;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [stockDefaultSize, setStockDefaultSize] = useState<BatterySize | undefined>(undefined);
 
   const devices = useStore((s) => s.devices);
   const batteryStock = useStore((s) => s.batteryStock);
@@ -210,50 +213,133 @@ export default function Dashboard() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/devices')}
-              className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+              onClick={() => {
+                setStockDefaultSize(undefined);
+                setShowStockModal(true);
+              }}
+              className="btn-secondary py-2"
             >
-              管理库存 →
+              <Plus size={16} />
+              补货
             </button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {batteryStock.map((s) => {
               const isLow = s.quantity <= 5;
+              const isVeryLow = s.quantity <= 2;
+              const isOut = s.quantity === 0;
               return (
                 <div
                   key={s.size}
-                  className={`p-4 rounded-2xl text-center transition-all ${
-                    isLow
-                      ? 'bg-accent-red/10 border-2 border-accent-red/30'
-                      : 'bg-warm-50 border-2 border-transparent'
+                  className={`p-4 rounded-2xl text-center transition-all relative group ${
+                    isOut
+                      ? 'bg-accent-red/15 border-2 border-accent-red shadow-soft'
+                      : isVeryLow
+                      ? 'bg-accent-red/10 border-2 border-accent-red/50 animate-pulse-soft'
+                      : isLow
+                      ? 'bg-accent-orange/10 border-2 border-accent-orange/40'
+                      : 'bg-warm-50 border-2 border-transparent hover:border-brand-200'
                   }`}
                 >
+                  {isOut && (
+                    <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-accent-red text-white text-xs font-bold rounded-full shadow-soft">
+                      缺货！
+                    </div>
+                  )}
+                  {isVeryLow && !isOut && (
+                    <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-accent-red text-white text-xs font-bold rounded-full shadow-soft">
+                      紧急
+                    </div>
+                  )}
+                  {isLow && !isVeryLow && !isOut && (
+                    <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-accent-orange text-accent-blue text-xs font-bold rounded-full shadow-soft">
+                      偏低
+                    </div>
+                  )}
                   <p className="text-xs text-warm-400 mb-1">#{s.size}号电池</p>
                   <p
-                    className={`text-3xl font-bold ${
-                      isLow ? 'text-accent-red animate-pulse-soft' : 'text-accent-blue'
+                    className={`text-4xl font-bold ${
+                      isOut
+                        ? 'text-accent-red'
+                        : isVeryLow
+                        ? 'text-accent-red animate-pulse-soft'
+                        : isLow
+                        ? 'text-accent-orange'
+                        : 'text-accent-blue'
                     }`}
                   >
                     {s.quantity}
                   </p>
                   <p className="text-xs text-warm-400 mt-1">
-                    {s.quantity === 0 ? '缺货！' : isLow ? '库存低' : '充足'}
+                    {isOut ? '已缺货' : isVeryLow ? '库存紧急' : isLow ? '库存偏低' : '充足'}
                   </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setStockDefaultSize(s.size as BatterySize);
+                      setShowStockModal(true);
+                    }}
+                    className="mt-3 w-full py-2 rounded-lg text-xs font-bold transition-all opacity-0 group-hover:opacity-100 bg-brand-500 text-white hover:bg-brand-600"
+                  >
+                    + 补货
+                  </button>
                 </div>
               );
             })}
           </div>
 
           {lowStockBatteries.length > 0 && (
-            <div className="p-4 rounded-2xl bg-accent-orange/10 border border-accent-orange/30">
-              <div className="flex items-center gap-2 text-accent-orange text-sm font-medium mb-1">
-                <AlertTriangle size={16} />
-                建议尽快补货
+            <div
+              className={`p-5 rounded-2xl border-2 ${
+                lowStockBatteries.some((s) => s.quantity === 0)
+                  ? 'bg-accent-red/10 border-accent-red/40 animate-pulse-soft'
+                  : 'bg-accent-orange/10 border-accent-orange/30'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <AlertTriangle
+                  size={22}
+                  className={
+                    lowStockBatteries.some((s) => s.quantity === 0)
+                      ? 'text-accent-red mt-0.5'
+                      : 'text-accent-orange mt-0.5'
+                  }
+                />
+                <div className="flex-1">
+                  <p
+                    className={`font-bold ${
+                      lowStockBatteries.some((s) => s.quantity === 0)
+                        ? 'text-accent-red'
+                        : 'text-accent-orange'
+                    }`}
+                  >
+                    {lowStockBatteries.some((s) => s.quantity === 0)
+                      ? '⚠️ 有电池已缺货！请立即补货'
+                      : '⚠️ 以下电池库存偏低，建议尽快补货'}
+                  </p>
+                  <p className="text-sm text-warm-500 mt-1">
+                    {lowStockBatteries
+                      .map((s) =>
+                        s.quantity === 0
+                          ? `#${s.size}号 已缺货！`
+                          : `#${s.size}号 仅剩 ${s.quantity} 颗`,
+                      )
+                      .join('，')}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const needRestock = lowStockBatteries.find((s) => s.quantity === 0) ?? lowStockBatteries[0];
+                    setStockDefaultSize(needRestock.size as BatterySize);
+                    setShowStockModal(true);
+                  }}
+                  className="btn-primary py-2.5"
+                >
+                  <ShoppingCart size={16} />
+                  去补货
+                </button>
               </div>
-              <p className="text-xs text-warm-500">
-                {lowStockBatteries.map((s) => `#${s.size}号仅剩${s.quantity}颗`).join('，')}
-              </p>
             </div>
           )}
         </div>
@@ -440,6 +526,12 @@ export default function Dashboard() {
           onCancel={() => setActiveModal(null)}
         />
       </Modal>
+
+      <StockModal
+        open={showStockModal}
+        onClose={() => setShowStockModal(false)}
+        defaultSize={stockDefaultSize}
+      />
     </div>
   );
 }

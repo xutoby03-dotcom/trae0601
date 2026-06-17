@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import type { BatteryRecord, CleanRecord, Device, FeedbackType } from '@/types';
+import { useState, useMemo } from 'react';
+import type { BatteryRecord, CleanRecord, Device, FeedbackType, BatterySize } from '@/types';
 import { useStore, getEarLabel, getFeedbackTypeLabel } from '@/store/useStore';
-import { Battery, Sparkles, AlertTriangle, Check } from 'lucide-react';
+import { Battery, Sparkles, AlertTriangle, Check, ShoppingCart, Package } from 'lucide-react';
+import StockModal from './StockModal';
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -15,6 +16,8 @@ export function BatteryForm({
   onCancel: () => void;
 }) {
   const devices = useStore((s) => s.devices);
+  const batteryStock = useStore((s) => s.batteryStock);
+  const updateBatteryStock = useStore((s) => s.updateBatteryStock);
   const [form, setForm] = useState({
     deviceId: device?.id ?? devices[0]?.id ?? '',
     date: today,
@@ -23,17 +26,40 @@ export function BatteryForm({
     hasLeakage: false,
     notes: '',
   });
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [stockDefaultSize, setStockDefaultSize] = useState<BatterySize | undefined>(undefined);
 
-  const isValid = form.deviceId && form.replacedBy.trim();
+  const selectedDevice = useMemo(() => {
+    return devices.find((d) => d.id === form.deviceId);
+  }, [devices, form.deviceId]);
+
+  const currentStock = useMemo(() => {
+    if (!selectedDevice) return null;
+    const stock = batteryStock.find((s) => s.size === selectedDevice.batterySize);
+    return stock ? { ...stock, size: stock.size as BatterySize } : null;
+  }, [batteryStock, selectedDevice]);
+
+  const isLow = currentStock && currentStock.quantity <= 3;
+  const isVeryLow = currentStock && currentStock.quantity <= 1;
+  const isOut = currentStock && currentStock.quantity === 0;
+
+  const handleQuickAddOne = () => {
+    if (selectedDevice) {
+      updateBatteryStock(selectedDevice.batterySize, 1);
+    }
+  };
+
+  const isValid = form.deviceId && form.replacedBy.trim() && (!isOut || confirm('该规格电池已缺货，确定要记录换电吗？'));
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (isValid) onSubmit(form);
-      }}
-      className="space-y-5"
-    >
+    <>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (isValid) onSubmit(form);
+        }}
+        className="space-y-5"
+      >
       <div>
         <label className="label">选择设备 *</label>
         <select
@@ -48,6 +74,87 @@ export function BatteryForm({
           ))}
         </select>
       </div>
+
+      {currentStock && (
+        <div
+          className={`p-4 rounded-2xl border-2 transition-all ${
+            isOut
+              ? 'bg-accent-red/10 border-accent-red'
+              : isVeryLow
+              ? 'bg-accent-red/10 border-accent-red/50 animate-pulse-soft'
+              : isLow
+              ? 'bg-accent-orange/10 border-accent-orange/40'
+              : 'bg-brand-50 border-brand-100'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  isOut || isVeryLow ? 'bg-accent-red/20' : isLow ? 'bg-accent-orange/20' : 'bg-brand-100'
+                }`}
+              >
+                <Package
+                  size={20}
+                  className={
+                    isOut || isVeryLow ? 'text-accent-red' : isLow ? 'text-accent-orange' : 'text-brand-600'
+                  }
+                />
+              </div>
+              <div>
+                <p className="text-sm text-warm-400">#{currentStock.size}号电池库存</p>
+                <div className="flex items-center gap-2">
+                  <p
+                    className={`text-xl font-bold ${
+                      isOut
+                        ? 'text-accent-red'
+                        : isVeryLow
+                        ? 'text-accent-red animate-pulse-soft'
+                        : isLow
+                        ? 'text-accent-orange'
+                        : 'text-brand-600'
+                    }`}
+                  >
+                    {currentStock.quantity} 颗
+                  </p>
+                  {isOut && <span className="px-2 py-0.5 bg-accent-red text-white text-xs rounded-full font-bold">缺货</span>}
+                  {isVeryLow && !isOut && <span className="px-2 py-0.5 bg-accent-red text-white text-xs rounded-full font-bold">紧急</span>}
+                  {isLow && !isVeryLow && !isOut && <span className="px-2 py-0.5 bg-accent-orange text-accent-blue text-xs rounded-full font-bold">偏低</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleQuickAddOne}
+                className="px-3 py-2 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 text-sm font-bold transition-all"
+              >
+                +1
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStockDefaultSize(selectedDevice!.batterySize as BatterySize);
+                  setShowStockModal(true);
+                }}
+                className="btn-primary py-2"
+              >
+                <ShoppingCart size={16} />
+                补货
+              </button>
+            </div>
+          </div>
+          {(isOut || isVeryLow || isLow) && (
+            <p className="text-xs text-warm-500 mt-3 pt-3 border-t border-black/5">
+              {isOut
+                ? '⚠️ 该规格电池已完全缺货！请先补货再记录换电，或确认有备用电池可用。'
+                : isVeryLow
+                ? `⚠️ 库存仅剩 ${currentStock.quantity} 颗，换完后可能就没了，建议立即补货。`
+                : `⚠️ 库存偏低（仅 ${currentStock.quantity} 颗），建议尽快补货避免断供。`}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
@@ -122,14 +229,27 @@ export function BatteryForm({
         <button type="button" onClick={onCancel} className="btn-secondary">
           取消
         </button>
-        <button type="submit" disabled={!isValid} className="btn-primary">
+        <button
+          type="submit"
+          disabled={!isValid}
+          className={`btn-primary ${isOut ? 'opacity-70' : ''}`}
+        >
           <Battery size={18} />
-          记录换电池
+          {isOut ? '已缺货，仍要记录' : '记录换电池'}
         </button>
       </div>
     </form>
+
+    <StockModal
+      open={showStockModal}
+      onClose={() => setShowStockModal(false)}
+      defaultSize={stockDefaultSize}
+    />
+    </>
   );
 }
+
+// 分隔：CleanForm 和 FeedbackForm 部分保持不变
 
 export function CleanForm({
   device,

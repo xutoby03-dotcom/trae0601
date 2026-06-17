@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
-import { Plus, Package2, Trash2, Minus, Search } from 'lucide-react';
+import { Plus, Package2, Trash2, Search } from 'lucide-react';
 import DeviceCard from '@/components/DeviceCard';
 import Modal from '@/components/Modal';
+import StockModal from '@/components/StockModal';
 import DeviceForm from '@/components/DeviceForm';
-import type { BatterySize, Device } from '@/types';
+import type { Device } from '@/types';
 
 export default function Devices() {
   const navigate = useNavigate();
@@ -14,8 +15,6 @@ export default function Devices() {
   const addDevice = useStore((s) => s.addDevice);
   const updateDevice = useStore((s) => s.updateDevice);
   const deleteDevice = useStore((s) => s.deleteDevice);
-  const updateBatteryStock = useStore((s) => s.updateBatteryStock);
-  const setBatteryStock = useStore((s) => s.setBatteryStock);
 
   const [showForm, setShowForm] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
@@ -183,86 +182,10 @@ export default function Devices() {
         </div>
       </Modal>
 
-      <Modal
+      <StockModal
         open={showStock}
         onClose={() => setShowStock(false)}
-        title="🔋 电池库存管理"
-        subtitle="管理各规格助听器电池的库存数量"
-        size="lg"
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {batteryStock.map((stock) => (
-              <div
-                key={stock.size}
-                className={`p-5 rounded-2xl border-2 ${
-                  stock.quantity <= 5
-                    ? 'bg-accent-red/5 border-accent-red/30'
-                    : 'bg-warm-50 border-transparent'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-sm text-warm-400">电池规格</p>
-                    <p className="text-2xl font-bold text-accent-blue">#{stock.size}号</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-warm-400">当前库存</p>
-                    <p
-                      className={`text-2xl font-bold ${
-                        stock.quantity <= 5 ? 'text-accent-red animate-pulse-soft' : 'text-brand-600'
-                      }`}
-                    >
-                      {stock.quantity} 颗
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateBatteryStock(stock.size as BatterySize, -1)}
-                    disabled={stock.quantity === 0}
-                    className="w-11 h-11 rounded-xl bg-white border-2 border-warm-100 flex items-center justify-center hover:border-warm-200 hover:bg-warm-50 disabled:opacity-40 transition-all"
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={stock.quantity}
-                    onChange={(e) =>
-                      setBatteryStock(stock.size as BatterySize, Number(e.target.value) || 0)
-                    }
-                    className="input flex-1 text-center text-lg font-bold"
-                  />
-                  <button
-                    onClick={() => updateBatteryStock(stock.size as BatterySize, 1)}
-                    className="w-11 h-11 rounded-xl bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 shadow-soft transition-all"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-                <p className="text-xs text-warm-400 mt-3">
-                  {stock.quantity === 0
-                    ? '⚠️ 库存为零，请尽快补货'
-                    : stock.quantity <= 5
-                    ? '库存偏低，建议补货'
-                    : '库存充足'}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="p-4 rounded-2xl bg-brand-50 border border-brand-100">
-            <p className="text-sm text-brand-700">
-              💡 每次记录换电池时，系统会自动扣除对应规格电池 1 颗
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <button onClick={() => setShowStock(false)} className="btn-primary">
-              完成
-            </button>
-          </div>
-        </div>
-      </Modal>
+      />
     </div>
   );
 }
