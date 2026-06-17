@@ -6,7 +6,7 @@ import { generateId, STORAGE_KEYS } from '@/utils/storage';
 interface InspectionState {
   inspections: Inspection[];
   setInspections: (inspections: Inspection[]) => void;
-  addInspection: (inspection: Omit<Inspection, 'id'>) => void;
+  addInspection: (inspection: Omit<Inspection, 'id'>) => Inspection;
   updateInspection: (id: string, data: Partial<Inspection>) => void;
   deleteInspection: (id: string) => void;
   getInspectionById: (id: string) => Inspection | undefined;
@@ -28,6 +28,7 @@ export const useInspectionStore = create<InspectionState>()(
           id: generateId(),
         };
         set({ inspections: [...get().inspections, newInspection] });
+        return newInspection;
       },
       
       updateInspection: (id, data) => {

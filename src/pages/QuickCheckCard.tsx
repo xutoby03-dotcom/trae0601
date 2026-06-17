@@ -1,4 +1,4 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Download, Printer, CheckCircle, AlertTriangle,
   Car, Armchair, ShieldCheck, Calendar, FileText
@@ -11,16 +11,13 @@ import { INSPECTION_ITEMS, ORIENTATION_LABELS } from '@/types';
 import { formatDate, formatDateTime } from '@/utils/date';
 
 export default function QuickCheckCard() {
-  const location = useLocation();
+  const { id } = useParams<{ id: string }>();
   const { vehicles } = useVehicleStore();
   const { seats } = useSeatStore();
   const { installations } = useInstallationStore();
-  const { inspections, getLatestInspectionByInstallationId } = useInspectionStore();
+  const { inspections } = useInspectionStore();
   
-  const state = location.state as { inspectionId?: string } | null;
-  const inspectionId = state?.inspectionId;
-
-  let inspection = inspectionId ? inspections.find(i => i.id === inspectionId) : undefined;
+  let inspection = id ? inspections.find(i => i.id === id) : undefined;
   
   if (!inspection && inspections.length > 0) {
     inspection = [...inspections].sort((a, b) => 

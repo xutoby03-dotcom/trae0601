@@ -11,7 +11,7 @@ import { useInspectionStore } from '@/store/useInspectionStore';
 import { useTaskStore } from '@/store/useTaskStore';
 import InspectionCheckItem from '@/components/common/InspectionCheckItem';
 import { 
-  INSPECTION_ITEMS, InspectionItemKey, Installation,
+  INSPECTION_ITEMS, InspectionItemKey, Installation, Inspection,
   ORIENTATION_LABELS, INSTALLATION_TYPE_LABELS
 } from '@/types';
 import { formatDate } from '@/utils/date';
@@ -87,15 +87,21 @@ export default function InspectionPage() {
     e.preventDefault();
     if (!inspection || !currentInstallation) return;
 
-    const finalInspection = {
-      ...inspection,
+    const inspectionItems = INSPECTION_ITEMS.reduce((acc, item) => ({
+      ...acc,
+      [item.key]: inspection[item.key],
+    }), {} as Pick<Inspection, InspectionItemKey>);
+
+    const inspectionData = {
+      installationId: inspection.installationId,
+      date: new Date().toISOString().split('T')[0],
       manualPage,
       notes,
       passed: allChecked,
-      date: new Date().toISOString().split('T')[0],
+      ...inspectionItems,
     };
 
-    addInspection(finalInspection);
+    const savedInspection = addInspection(inspectionData);
 
     updateInstallation(currentInstallation.id, {
       ...installationData,
@@ -109,10 +115,10 @@ export default function InspectionPage() {
         instruction: item.instruction,
         notes: inspection[item.key].notes,
       }));
-      generateTasksFromFailedInspection(finalInspection.id, failedItems, manualPage);
+      generateTasksFromFailedInspection(savedInspection.id, failedItems, manualPage);
     }
 
-    navigate('/inspection/quick', { state: { inspectionId: finalInspection.id } });
+    navigate(`/quick-check/${savedInspection.id}`);
   };
 
   const handleSaveInstallation = () => {
