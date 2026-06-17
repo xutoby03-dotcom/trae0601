@@ -9,35 +9,10 @@
     ],
     "frequency": "frequent",
     "description": "这是一条端到端测试的问题工单，测试数据持久化功能。",
-    "status": "done",
+    "status": "repairing",
     "createdAt": "2026-06-17 09:49:38",
     "needDisable": false,
-    "assignee": "王师傅",
-    "repair": {
-      "id": "repair-xwVB__Kr",
-      "orderId": "order-UmqaiG2a",
-      "startedAt": "2026-06-17 10:00:00",
-      "finishedAt": "2026-06-17 11:30:00",
-      "partsReplaced": [
-        {
-          "name": "气压杆",
-          "quantity": 1,
-          "unitCost": 180
-        },
-        {
-          "name": "静音轮子",
-          "quantity": 5,
-          "unitCost": 25
-        }
-      ],
-      "laborCost": 80,
-      "totalCost": 385,
-      "handler": "王师傅",
-      "needDisable": true,
-      "beforePhoto": "https://picsum.photos/seed/repair-xwVB__Kr-b/400/300",
-      "afterPhoto": "https://picsum.photos/seed/repair-xwVB__Kr-a/400/300",
-      "notes": "更换了整套气压杆和5个轮子，测试无异响和下沉问题。"
-    }
+    "assignee": "王师傅"
   },
   {
     "id": "order-UKCfxh_-",

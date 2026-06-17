@@ -37,7 +37,7 @@ import { useStore } from '@/store';
 import dayjs, { Dayjs } from 'dayjs';
 
 export default function Repairs() {
-  const { chairs, orders, addRepair, updateRepair, updateOrder, setChairDisabled, loading } = useStore();
+  const { chairs, orders, addRepair, updateRepair, updateOrder, setChairDisabled, refreshAll, loading } = useStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -104,7 +104,8 @@ export default function Repairs() {
         needDisable: !!values.needDisable,
         notes: values.notes || '',
       });
-      message.success('维修记录已保存，工单已办结');
+      await refreshAll();
+      message.success(values.needDisable ? '维修记录已保存，椅子已标记停用' : '维修记录已保存，工单已办结');
       setAddModalOpen(false);
       form.resetFields();
     } catch (e) {
@@ -119,9 +120,8 @@ export default function Repairs() {
 
   const toggleDisable = async (record: RepairRecord, order: RepairOrder, val: boolean) => {
     await updateRepair(record.id, { needDisable: val });
-    if (val) {
-      await setChairDisabled(order.chairId, true);
-    }
+    await setChairDisabled(order.chairId, val);
+    await refreshAll();
     message.success(val ? '椅子已标记为停用' : '椅子已解除停用');
   };
 

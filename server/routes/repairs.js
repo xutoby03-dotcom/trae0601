@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { nanoid } from 'nanoid';
-import { readOrders, writeOrders } from '../db.js';
+import { readOrders, writeOrders, readChairs, writeChairs } from '../db.js';
 
 const router = Router();
 
@@ -92,7 +92,12 @@ router.post('/', (req, res) => {
     orders[orderIdx].repair = repair;
     orders[orderIdx].status = 'done';
     if (body.needDisable) {
-      // 同时标记椅子为停用 - 由前端另外调用
+      const chairs = readChairs();
+      const chairIdx = chairs.findIndex((c) => c.id === orders[orderIdx].chairId);
+      if (chairIdx !== -1) {
+        chairs[chairIdx].disabled = true;
+        writeChairs(chairs);
+      }
     }
     writeOrders(orders);
     res.status(201).json({ success: true, data: { record: repair, order: orders[orderIdx] } });
@@ -133,6 +138,14 @@ router.put('/:id', (req, res) => {
       laborCost,
       totalCost,
     };
+    if (body.needDisable !== undefined && body.needDisable !== oldRepair.needDisable) {
+      const chairs = readChairs();
+      const chairIdx = chairs.findIndex((c) => c.id === orders[orderIdx].chairId);
+      if (chairIdx !== -1) {
+        chairs[chairIdx].disabled = !!body.needDisable;
+        writeChairs(chairs);
+      }
+    }
     writeOrders(orders);
     res.json({ success: true, data: { record: orders[orderIdx].repair, order: orders[orderIdx] } });
   } catch (err) {

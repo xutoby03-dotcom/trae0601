@@ -8,7 +8,7 @@
     "gasRodBatch": "GR2024-150",
     "armrestType": "3d",
     "photo": "https://picsum.photos/seed/chair1/400/300",
-    "disabled": true
+    "disabled": false
   },
   {
     "id": "chair-2",
@@ -1856,6 +1856,6 @@
     "gasRodBatch": "E2E-BATCH-2026",
     "armrestType": "4D调节扶手",
     "photo": "https://example.com/chair-e2e.jpg",
-    "disabled": true
+    "disabled": false
   }
 ]
