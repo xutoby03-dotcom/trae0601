@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shirt, Search, Filter, User, Calendar, Ruler } from 'lucide-react';
+import { Shirt, Search, Filter, User, Calendar, Ruler, Tag, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ClothingCard from '@/components/shared/ClothingCard';
 import EmptyState from '@/components/ui/EmptyState';
 import Badge from '@/components/ui/Badge';
 import { useStore } from '@/store/useStore';
-import { searchClothes } from '@/utils/helpers';
-import { OWNERS, SEASONS, SCENARIOS, type Season } from '@/types';
+import { searchClothes, parseSmartSearch, getSmartSearchHint, getEmptyHint } from '@/utils/helpers';
+import { SEASONS, SCENARIOS, type Season } from '@/types';
 
 export default function ClothingList() {
   const navigate = useNavigate();
@@ -19,13 +19,41 @@ export default function ClothingList() {
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedSeason, setSelectedSeason] = useState<Season | ''>('');
 
-  const filteredClothes = searchClothes(clothes.filter(c => c.status !== 'pending'), {
-    owner: selectedOwner || undefined,
-    scenario: selectedScenario || undefined,
-    size: selectedSize || undefined,
-    keyword: searchTerm || undefined,
-    season: selectedSeason || undefined,
-  });
+  const activeClothes = useMemo(() => clothes.filter(c => c.status !== 'pending'), [clothes]);
+
+  const availableSizes = useMemo(() => {
+    const sizeSet = new Set<string>();
+    activeClothes.forEach(c => {
+      if (c.size) sizeSet.add(c.size);
+    });
+    return Array.from(sizeSet).sort((a, b) => {
+      const numA = parseInt(a);
+      const numB = parseInt(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+      const idxA = sizeOrder.indexOf(a.toUpperCase());
+      const idxB = sizeOrder.indexOf(b.toUpperCase());
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      return a.localeCompare(b);
+    });
+  }, [activeClothes]);
+
+  const searchHints = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    const parsed = parseSmartSearch(searchTerm);
+    return getSmartSearchHint(parsed);
+  }, [searchTerm]);
+
+  const filteredClothes = useMemo(() => 
+    searchClothes(activeClothes, {
+      owner: selectedOwner || undefined,
+      scenario: selectedScenario || undefined,
+      size: selectedSize || undefined,
+      keyword: searchTerm || undefined,
+      season: selectedSeason || undefined,
+    }),
+    [activeClothes, selectedOwner, selectedScenario, selectedSize, searchTerm, selectedSeason]
+  );
 
   const activeFilterCount = [selectedOwner, selectedScenario, selectedSize, selectedSeason].filter(Boolean).length;
 
@@ -35,6 +63,11 @@ export default function ClothingList() {
     setSelectedSize('');
     setSelectedSeason('');
   };
+
+  const emptyHint = useMemo(() =>
+    getEmptyHint(searchTerm, selectedOwner, selectedScenario, selectedSize, selectedSeason, activeClothes),
+    [searchTerm, selectedOwner, selectedScenario, selectedSize, selectedSeason, activeClothes]
+  );
 
   return (
     <Layout
@@ -48,11 +81,19 @@ export default function ClothingList() {
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-400" />
             <input
               type="text"
-              placeholder="搜索衣物名称..."
+              placeholder="搜索：孩子 春游 外套 120cm..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-field pl-11"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-600"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -70,6 +111,20 @@ export default function ClothingList() {
             )}
           </button>
         </div>
+
+        {searchHints.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap animate-fade-in-up">
+            <span className="text-xs text-warm-500">已识别:</span>
+            {searchHints.map((hint, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sage-50 text-sage-700 border border-sage-200"
+              >
+                {hint}
+              </span>
+            ))}
+          </div>
+        )}
 
         {showFilters && (
           <div className="card p-4 space-y-4 animate-fade-in-up">
@@ -89,7 +144,7 @@ export default function ClothingList() {
                 >
                   全部
                 </button>
-                {OWNERS.map((owner) => (
+                {['爸爸', '妈妈', '孩子', '其他'].map((owner) => (
                   <button
                     key={owner}
                     onClick={() => setSelectedOwner(selectedOwner === owner ? '' : owner)}
@@ -140,6 +195,42 @@ export default function ClothingList() {
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-warm-700 mb-2">
                 <Ruler size={14} className="text-coral-500" />
+                尺码
+              </label>
+              {availableSizes.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSize('')}
+                    className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                      !selectedSize
+                        ? 'bg-coral-500 text-white'
+                        : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+                    }`}
+                  >
+                    全部
+                  </button>
+                  {availableSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(selectedSize === size ? '' : size)}
+                      className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
+                        selectedSize === size
+                          ? 'bg-coral-500 text-white'
+                          : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-warm-400">暂无衣物尺码数据</p>
+              )}
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-warm-700 mb-2">
+                <Tag size={14} className="text-amber-500" />
                 季节
               </label>
               <div className="flex flex-wrap gap-2">
@@ -147,7 +238,7 @@ export default function ClothingList() {
                   onClick={() => setSelectedSeason('')}
                   className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                     !selectedSeason
-                      ? 'bg-coral-500 text-white'
+                      ? 'bg-amber-500 text-white'
                       : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
                   }`}
                 >
@@ -159,7 +250,7 @@ export default function ClothingList() {
                     onClick={() => setSelectedSeason(selectedSeason === s.value ? '' : s.value)}
                     className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                       selectedSeason === s.value
-                        ? 'bg-coral-500 text-white'
+                        ? 'bg-amber-500 text-white'
                         : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
                     }`}
                   >
@@ -207,7 +298,7 @@ export default function ClothingList() {
           <EmptyState
             icon={Shirt}
             title={searchTerm || activeFilterCount > 0 ? '没有找到匹配的衣物' : '还没有衣物'}
-            description={searchTerm || activeFilterCount > 0 ? '试试其他搜索条件' : '添加你的第一件衣物吧'}
+            description={emptyHint}
             action={
               !searchTerm && activeFilterCount === 0 && (
                 <button
