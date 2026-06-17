@@ -22,7 +22,7 @@ import { useAuthStore } from '@/context/authStore';
 import { umbrellaService } from '@/services/umbrellaService';
 import { shareService } from '@/services/shareService';
 import type { Umbrella, ShareRecord, SharedFrom } from '@/types';
-import { formatDate, formatRelativeTime } from '@/utils/dateUtils';
+import { formatDate, formatDateTime, formatRelativeTime } from '@/utils/dateUtils';
 import { BUILDINGS } from '@/utils/constants';
 
 export const ShareManagement: React.FC = () => {
@@ -299,7 +299,7 @@ export const ShareManagement: React.FC = () => {
                         </p>
                         <p className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          原拾到：{formatDate(umbrella.foundTime).split(' ')[0]}
+                          原拾到：{formatDateTime(umbrella.foundTime)}
                         </p>
                         <p>存放格：{umbrella.storageCell}</p>
                       </div>
@@ -487,7 +487,7 @@ export const ShareManagement: React.FC = () => {
                       </p>
                       <p className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
-                        原拾到：{formatDate(selectedUmbrella.foundTime).split(' ')[0]}
+                        原拾到：{formatDateTime(selectedUmbrella.foundTime)}
                       </p>
                       <p>存放格：{selectedUmbrella.storageCell}</p>
                     </div>
@@ -625,7 +625,7 @@ export const ShareManagement: React.FC = () => {
                           </p>
                           <p className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5" />
-                            原拾到：{formatDate(umbrella.foundTime).split(' ')[0]}
+                            原拾到：{formatDateTime(umbrella.foundTime)}
                           </p>
                           <p>存放格：{umbrella.storageCell}</p>
                         </div>
