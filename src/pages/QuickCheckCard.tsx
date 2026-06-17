@@ -42,8 +42,29 @@ export default function QuickCheckCard() {
 
   const relatedTasks = inspection ? getTasksByInspectionId(inspection.id) : [];
 
+  const getItemKeyMatchKeywords = (itemKey: InspectionItemKey): string[] => {
+    const keywordMap: Record<InspectionItemKey, string[]> = {
+      seatbeltLocked: ['安全带'],
+      isofixLocked: ['ISOFIX', 'isofix'],
+      supportLeg: ['支撑腿'],
+      headrestHeight: ['头枕'],
+      harnessPosition: ['肩带'],
+      wobbleAmount: ['晃动', '摇晃', '稳固'],
+    };
+    return keywordMap[itemKey] || [];
+  };
+
   const getTaskForItem = (itemKey: InspectionItemKey): Task | undefined => {
-    return relatedTasks.find(t => t.itemKey === itemKey);
+    let task = relatedTasks.find(t => t.itemKey === itemKey);
+    if (task) return task;
+
+    const keywords = getItemKeyMatchKeywords(itemKey);
+    task = relatedTasks.find(t => {
+      if (t.itemKey) return false;
+      const text = `${t.title} ${t.description}`;
+      return keywords.some(kw => text.includes(kw));
+    });
+    return task;
   };
 
   const getTaskStatusConfig = (task?: Task) => {

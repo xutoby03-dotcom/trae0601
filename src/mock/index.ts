@@ -105,6 +105,7 @@ export const mockTasks: Task[] = [
   {
     id: 't1',
     inspectionId: 'ins2',
+    itemKey: 'supportLeg',
     title: '调整支撑腿高度',
     description: '展开支撑腿并调节高度，使其与车底紧密接触，锁止开关应处于锁定位置。参考说明书第 18 页。',
     status: 'pending',
@@ -113,8 +114,9 @@ export const mockTasks: Task[] = [
   {
     id: 't2',
     inspectionId: 'ins2',
-    title: '重新检查 ISOFIX 连接',
-    description: '确保 ISOFIX 接口完全卡入车辆锚点，听到"咔嗒"声后尝试摇晃座椅确认牢固。',
+    itemKey: 'wobbleAmount',
+    title: '检查座椅晃动幅度',
+    description: '在座椅前后左右方向用力摇晃，晃动幅度不应超过 2.5 厘米。参考说明书第 18 页。',
     status: 'pending',
     dueDate: addDays(new Date(), 3)
   }
