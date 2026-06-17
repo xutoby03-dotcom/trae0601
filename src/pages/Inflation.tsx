@@ -80,13 +80,15 @@ export default function Inflation() {
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
+    }, 2000);
+    setTimeout(() => {
       setJustSubmitted(false);
       setPressureBeforeInflation(null);
       setOrderId('');
       setBalloonTypeId('');
       setQuantity(10);
       setSelectedCylinderId('');
-    }, 2000);
+    }, 2100);
   };
 
   return (
@@ -346,13 +348,31 @@ export default function Inflation() {
       </div>
 
       {showSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 text-center animate-fade-in-up">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-emerald-600" />
+        <div className="fixed top-6 right-6 z-50 animate-fade-in-up">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-emerald-200 min-w-[320px]">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Check className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-display font-bold text-slate-900 mb-1">充气完成</h3>
+                <p className="text-sm text-slate-500 mb-3">已成功扣减库存并记录操作</p>
+                {selectedCylinder && pressureBeforeInflation !== null && (
+                  <div className="bg-emerald-50 rounded-lg p-3 text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-slate-600">{selectedCylinder.cylinderNo}</span>
+                      <span className="font-medium text-emerald-700">
+                        {pressureBeforeInflation} → {selectedCylinder.pressure} MPa
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">用气量</span>
+                      <span className="font-medium text-slate-700">-{estimatedGas.toFixed(1)} L</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <h3 className="text-xl font-display font-bold text-slate-900 mb-2">充气完成</h3>
-            <p className="text-slate-500">已成功扣减库存并记录操作</p>
           </div>
         </div>
       )}
