@@ -199,43 +199,48 @@ export default function Damages() {
                       </div>
                       <p className="text-gray-600 text-sm mb-3 font-medium">{record.description}</p>
                       
-                      {(record.phone || record.bookingCode || record.returnedAt || record.note) && (
+                      {(record.phone || record.bookingCode || record.returnedAt) && (
                         <div className="bg-white rounded-lg p-3 mb-3 border border-gray-100">
                           <div className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
                             <Calendar size={12} />
                             预约相关信息
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            {record.phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone size={13} className="text-table-500" />
-                                <a
-                                  href={`tel:${record.phone}`}
-                                  className="text-table-600 hover:text-table-700 hover:underline font-mono"
-                                >
-                                  {record.phone}
-                                </a>
-                              </div>
-                            )}
-                            {record.bookingCode && (
-                              <div className="flex items-center gap-2">
-                                <Hash size={13} className="text-primary-500" />
-                                <span className="text-gray-700 font-mono">{record.bookingCode}</span>
-                              </div>
-                            )}
-                            {record.returnedAt && (
-                              <div className="flex items-center gap-2">
-                                <Clock size={13} className="text-floor-500" />
-                                <span className="text-gray-600">{formatDateTimeChinese(record.returnedAt)}</span>
-                              </div>
-                            )}
-                          </div>
-                          {record.note && (
-                            <div className="mt-2 pt-2 border-t border-gray-100 flex items-start gap-2">
-                              <FileText size={13} className="text-gray-400 mt-0.5" />
-                              <span className="text-sm text-gray-500">{record.note}</span>
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              {record.phone && (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone size={12} className="text-table-500 shrink-0" />
+                                  <a
+                                    href={`tel:${record.phone}`}
+                                    className="text-table-600 hover:text-table-700 hover:underline font-mono text-xs truncate"
+                                  >
+                                    {record.phone}
+                                  </a>
+                                </div>
+                              )}
+                              {record.bookingCode && (
+                                <div className="flex items-center gap-1.5">
+                                  <Hash size={12} className="text-primary-500 shrink-0" />
+                                  <span className="text-gray-700 font-mono text-xs">{record.bookingCode}</span>
+                                </div>
+                              )}
+                              {record.returnedAt && (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock size={12} className="text-floor-500 shrink-0" />
+                                  <span className="text-gray-600 text-xs">{formatDateTimeChinese(record.returnedAt)}</span>
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <div className="flex items-start gap-1.5 pt-2 border-t border-gray-100">
+                              <FileText size={12} className="text-gray-400 shrink-0 mt-0.5" />
+                              <div className="text-xs">
+                                <span className="text-gray-400">其他说明：</span>
+                                <span className={record.note ? 'text-gray-600' : 'text-gray-300 italic'}>
+                                  {record.note || '未填写'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                       
