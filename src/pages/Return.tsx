@@ -1,17 +1,43 @@
-import { useState } from 'react';
-import { Droplets, Scissors, XCircle, Sparkles, User, StickyNote } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import {
+  Droplets,
+  Scissors,
+  XCircle,
+  Sparkles,
+  User,
+  StickyNote,
+  HelpCircle,
+  ClipboardList,
+} from 'lucide-react';
 import { useDiveStore } from '@/store/useDiveStore';
 import PageHeader from '@/components/ui/PageHeader';
 import Badge from '@/components/ui/Badge';
 import type { Equipment } from '@/types';
 import { EQUIPMENT_TYPE_LABELS } from '@/types';
 
+interface CleanerStat {
+  memberId: string | null;
+  memberName: string;
+  memberAvatar: string;
+  total: number;
+  waterIntrusion: number;
+  scratches: number;
+  lost: number;
+  isUnassigned?: boolean;
+}
+
 export default function Return() {
-  const { equipment, members, updateReturnCheck, getReturnCheck, returnChecks } =
-    useDiveStore();
+  const {
+    equipment,
+    members,
+    updateReturnCheck,
+    getReturnCheck,
+    returnChecks,
+  } = useDiveStore();
 
   const [filter, setFilter] = useState<'all' | 'checked' | 'unchecked'>('all');
   const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null);
+  const [highlightCleanerId, setHighlightCleanerId] = useState<string | null>(null);
 
   const getEquipmentIcon = (type: string) => {
     const icons: Record<string, string> = {
@@ -35,6 +61,66 @@ export default function Return() {
     const check = getReturnCheck(eqId);
     return check && (check.waterIntrusion || check.scratches || check.lost);
   };
+
+  const cleanerStats = useMemo<CleanerStat[]>(() => {
+    const statsMap = new Map<string | null, CleanerStat>();
+
+    members.forEach((m) => {
+      statsMap.set(m.id, {
+        memberId: m.id,
+        memberName: m.name,
+        memberAvatar: m.avatar || '🧑',
+        total: 0,
+        waterIntrusion: 0,
+        scratches: 0,
+        lost: 0,
+      });
+    });
+
+    statsMap.set(null, {
+      memberId: null,
+      memberName: '待认领',
+      memberAvatar: '❓',
+      total: 0,
+      waterIntrusion: 0,
+      scratches: 0,
+      lost: 0,
+      isUnassigned: true,
+    });
+
+    equipment.forEach((eq) => {
+      if (eq.status === 'lost') return;
+
+      const check = getReturnCheck(eq.id);
+
+      if (check) {
+        const cleanerId = check.cleanedBy || null;
+        const stat = statsMap.get(cleanerId);
+        if (!stat) {
+          statsMap.set(cleanerId, {
+            memberId: cleanerId,
+            memberName: cleanerId ? '未知成员' : '待认领',
+            memberAvatar: '🧑',
+            total: 0,
+            waterIntrusion: 0,
+            scratches: 0,
+            lost: 0,
+            isUnassigned: !cleanerId,
+          });
+        }
+        const targetStat = statsMap.get(cleanerId)!;
+        targetStat.total++;
+        if (check.waterIntrusion) targetStat.waterIntrusion++;
+        if (check.scratches) targetStat.scratches++;
+        if (check.lost) targetStat.lost++;
+      } else {
+        const unassignedStat = statsMap.get(null)!;
+        unassignedStat.total++;
+      }
+    });
+
+    return Array.from(statsMap.values()).filter((s) => s.total > 0);
+  }, [equipment, members, returnChecks, getReturnCheck]);
 
   const filteredEquipment = equipment.filter((eq) => {
     if (filter === 'checked') return isChecked(eq.id);
@@ -81,10 +167,15 @@ export default function Return() {
     });
   };
 
-  const getCleanedByName = (memberId?: string) => {
-    if (!memberId) return null;
-    const member = members.find((m) => m.id === memberId);
-    return member ? member.name : null;
+  const handleToggleHighlight = (memberId: string | null) => {
+    setHighlightCleanerId((prev) => (prev === memberId ? null : memberId));
+  };
+
+  const isHighlighted = (eqId: string) => {
+    if (highlightCleanerId === null) return false;
+    const check = getReturnCheck(eqId);
+    if (!check) return highlightCleanerId === '';
+    return check.cleanedBy === highlightCleanerId;
   };
 
   const stats = {
@@ -95,6 +186,11 @@ export default function Return() {
     ).length,
     cleaned: returnChecks.filter((r) => r.cleanedBy).length,
   };
+
+  const totalWaterIntrusion = returnChecks.filter((r) => r.waterIntrusion).length;
+  const totalScratches = returnChecks.filter((r) => r.scratches).length;
+  const totalLost = returnChecks.filter((r) => r.lost).length;
+  const totalUnassigned = cleanerStats.find((s) => s.isUnassigned)?.total || 0;
 
   return (
     <div>
@@ -129,6 +225,142 @@ export default function Return() {
           </p>
         </div>
       </div>
+
+      {cleanerStats.length > 0 && (
+        <div className="glass-card rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardList className="w-5 h-5 text-ocean-600" />
+            <h3 className="font-display font-bold text-ocean-800">
+              责任人汇总
+            </h3>
+            <span className="text-sm text-ocean-500 ml-1">
+              — 按人统计问题{highlightCleanerId !== null ? '，点击取消高亮' : '，点击名字高亮对应装备'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {cleanerStats.map((stat) => {
+              const isHighlightedCard =
+                highlightCleanerId === (stat.memberId || '');
+
+              return (
+                <button
+                  key={stat.memberId || 'unassigned'}
+                  onClick={() => handleToggleHighlight(stat.memberId || '')}
+                  className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                    isHighlightedCard
+                      ? 'border-ocean-500 bg-ocean-50 shadow-lg shadow-ocean-500/15 scale-[1.02]'
+                      : stat.isUnassigned
+                        ? 'border-sand-200 bg-sand-50/50 hover:border-sand-400 hover:bg-sand-50'
+                        : 'border-ocean-100 bg-white/70 hover:border-ocean-300 hover:bg-ocean-50/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-2xl">{stat.memberAvatar}</span>
+                    <div className="min-w-0 flex-1">
+                      <span
+                        className={`font-display font-bold text-sm block truncate ${
+                          isHighlightedCard ? 'text-ocean-700' : 'text-ocean-800'
+                        }`}
+                      >
+                        {stat.memberName}
+                      </span>
+                      <span className="text-[10px] text-ocean-400">
+                        {stat.total} 件装备
+                      </span>
+                    </div>
+                    {isHighlightedCard && (
+                      <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-ocean-500 animate-pulse" />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <Droplets className="w-3.5 h-3.5 text-coral-500" />
+                      </div>
+                      <p
+                        className={`font-display font-bold text-lg leading-none ${
+                          stat.waterIntrusion > 0
+                            ? 'text-coral-600'
+                            : 'text-ocean-300'
+                        }`}
+                      >
+                        {stat.waterIntrusion}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">进水</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <Scissors className="w-3.5 h-3.5 text-amber-500" />
+                      </div>
+                      <p
+                        className={`font-display font-bold text-lg leading-none ${
+                          stat.scratches > 0
+                            ? 'text-amber-600'
+                            : 'text-ocean-300'
+                        }`}
+                      >
+                        {stat.scratches}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">划痕</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <XCircle className="w-3.5 h-3.5 text-coral-600" />
+                      </div>
+                      <p
+                        className={`font-display font-bold text-lg leading-none ${
+                          stat.lost > 0 ? 'text-coral-700' : 'text-ocean-300'
+                        }`}
+                      >
+                        {stat.lost}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">丢失</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        {stat.isUnassigned ? (
+                          <HelpCircle className="w-3.5 h-3.5 text-sand-600" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-seafoam-500" />
+                        )}
+                      </div>
+                      <p className="font-display font-bold text-lg leading-none text-ocean-600">
+                        {stat.total}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">
+                        {stat.isUnassigned ? '待认领' : '负责'}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-ocean-100">
+            <div className="flex items-center gap-4 text-sm text-ocean-500">
+              <span className="flex items-center gap-1">
+                <Droplets className="w-4 h-4 text-coral-500" />
+                进水 {totalWaterIntrusion} 件
+              </span>
+              <span className="flex items-center gap-1">
+                <Scissors className="w-4 h-4 text-amber-500" />
+                划痕 {totalScratches} 件
+              </span>
+              <span className="flex items-center gap-1">
+                <XCircle className="w-4 h-4 text-coral-600" />
+                丢失 {totalLost} 件
+              </span>
+              <span className="flex items-center gap-1">
+                <HelpCircle className="w-4 h-4 text-sand-600" />
+                待认领 {totalUnassigned} 件
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="glass-card rounded-2xl p-2 mb-6 inline-flex">
         <button
@@ -168,18 +400,34 @@ export default function Return() {
           const check = getReturnCheck(eq.id);
           const checked = isChecked(eq.id);
           const issues = hasIssues(eq.id);
+          const eqHighlighted = isHighlighted(eq.id);
+          const isUnassignedMode = highlightCleanerId === '';
+          const dimmed =
+            highlightCleanerId !== null &&
+            !eqHighlighted &&
+            !(isUnassignedMode && !check?.cleanedBy);
+
+          const showHighlight =
+            highlightCleanerId !== null &&
+            (eqHighlighted || (isUnassignedMode && !check?.cleanedBy));
 
           return (
             <div
               key={eq.id}
-              className={`glass-card rounded-2xl overflow-hidden transition-all ${
+              className={`glass-card rounded-2xl overflow-hidden transition-all duration-200 ${
                 selectedEquipment === eq.id ? 'shadow-float' : 'hover:shadow-lg'
-              }`}
+              } ${
+                showHighlight
+                  ? 'ring-2 ring-ocean-500 ring-offset-2 shadow-lg shadow-ocean-500/20'
+                  : ''
+              } ${dimmed ? 'opacity-40' : ''}`}
             >
               <div
                 className="p-5 cursor-pointer"
                 onClick={() =>
-                  setSelectedEquipment(selectedEquipment === eq.id ? null : eq.id)
+                  setSelectedEquipment(
+                    selectedEquipment === eq.id ? null : eq.id
+                  )
                 }
               >
                 <div className="flex items-center gap-4">
@@ -202,29 +450,57 @@ export default function Return() {
                       )}
                     </div>
                     <p className="text-sm text-ocean-500">
-                      {EQUIPMENT_TYPE_LABELS[eq.type]} · {eq.size} · 拥有者: {eq.owner}
+                      {EQUIPMENT_TYPE_LABELS[eq.type]} · {eq.size} · 拥有者:{' '}
+                      {eq.owner}
                     </p>
+                    {check?.cleanedBy && (
+                      <p className="text-xs text-seafoam-600 mt-1 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        由 {members.find((m) => m.id === check.cleanedBy)?.name}{' '}
+                        负责清洗
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
                     {check?.waterIntrusion && (
-                      <div className="w-9 h-9 rounded-lg bg-coral-100 flex items-center justify-center" title="进水">
+                      <div
+                        className="w-9 h-9 rounded-lg bg-coral-100 flex items-center justify-center"
+                        title="进水"
+                      >
                         <Droplets className="w-5 h-5 text-coral-600" />
                       </div>
                     )}
                     {check?.scratches && (
-                      <div className="w-9 h-9 rounded-lg bg-sand-100 flex items-center justify-center" title="划痕">
+                      <div
+                        className="w-9 h-9 rounded-lg bg-sand-100 flex items-center justify-center"
+                        title="划痕"
+                      >
                         <Scissors className="w-5 h-5 text-amber-600" />
                       </div>
                     )}
                     {check?.lost && (
-                      <div className="w-9 h-9 rounded-lg bg-coral-100 flex items-center justify-center" title="丢失">
+                      <div
+                        className="w-9 h-9 rounded-lg bg-coral-100 flex items-center justify-center"
+                        title="丢失"
+                      >
                         <XCircle className="w-5 h-5 text-coral-600" />
                       </div>
                     )}
                     {check?.cleanedBy && (
-                      <div className="w-9 h-9 rounded-lg bg-seafoam-100 flex items-center justify-center" title="已分配清洗">
+                      <div
+                        className="w-9 h-9 rounded-lg bg-seafoam-100 flex items-center justify-center"
+                        title="已分配清洗"
+                      >
                         <Sparkles className="w-5 h-5 text-seafoam-600" />
+                      </div>
+                    )}
+                    {!check?.cleanedBy && checked && (
+                      <div
+                        className="w-9 h-9 rounded-lg bg-sand-100 flex items-center justify-center"
+                        title="待认领清洗"
+                      >
+                        <HelpCircle className="w-5 h-5 text-amber-600" />
                       </div>
                     )}
                   </div>
@@ -296,7 +572,9 @@ export default function Return() {
                             e.stopPropagation();
                             setCleanedBy(
                               eq.id,
-                              check?.cleanedBy === member.id ? '' : member.id
+                              check?.cleanedBy === member.id
+                                ? ''
+                                : member.id
                             );
                           }}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-all ${
@@ -336,7 +614,9 @@ export default function Return() {
           <div className="glass-card rounded-2xl p-12 text-center">
             <div className="text-5xl mb-4">🏖️</div>
             <p className="text-ocean-500">
-              {filter === 'checked' ? '还没有检查过的装备' : '所有装备都已检查完毕'}
+              {filter === 'checked'
+                ? '还没有检查过的装备'
+                : '所有装备都已检查完毕'}
             </p>
           </div>
         )}
