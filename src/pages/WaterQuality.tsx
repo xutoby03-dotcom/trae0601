@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAquaStore } from '@/store/aquaStore';
 import type { WaterColor, MaintenanceLog, WaterQuality } from '@/types';
-import { Plus, AlertTriangle, TrendingUp, X, Trash2, Droplets, FlaskConical, AlertCircle } from 'lucide-react';
+import { Plus, AlertTriangle, TrendingUp, X, Trash2, Droplets, FlaskConical, AlertCircle, CheckCircle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -358,7 +358,24 @@ function AbnormalPanel({ tankId, highlightDate }: { tankId: string; highlightDat
 
   const abnormalities = getAbnormalIndicators(targetRecord);
 
-  if (abnormalities.length === 0) return null;
+  if (abnormalities.length === 0) {
+    return (
+      <div className="rounded-2xl border border-seaweed/30 bg-seaweed/5 p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-seaweed/15 flex items-center justify-center shrink-0">
+          <CheckCircle className="w-5 h-5 text-seaweed" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-seaweed font-semibold text-sm">水质正常</p>
+          <p className="text-foam/50 text-xs">最近检测日期：{targetRecord.date}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-seaweed/10 text-seaweed text-[10px] font-medium">
+            {targetRecord.ammonia}mg/L · {targetRecord.nitrite}mg/L · pH {targetRecord.pH}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const recentMaintenance = maintenanceLogs
     .filter((m) => m.tankId === tankId && new Date(m.date) <= new Date(targetRecord.date))
