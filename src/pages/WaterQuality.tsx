@@ -203,33 +203,19 @@ function getAbnormalIndicators(wq: WaterQuality): { label: string; value: string
   return items;
 }
 
-function AbnormalPanel({ tankId, highlightDate }: { tankId: string; highlightDate?: string }) {
-  const waterQualities = useAquaStore((s) => s.waterQualities);
-  const maintenanceLogs = useAquaStore((s) => s.maintenanceLogs);
-
+function AbnormalPanelContent({
+  targetRecord,
+  abnormalities,
+  recentMaintenance,
+  isHighlighted,
+}: {
+  targetRecord: WaterQuality;
+  abnormalities: ReturnType<typeof getAbnormalIndicators>;
+  recentMaintenance: MaintenanceLog[];
+  isHighlighted: boolean;
+}) {
   const [expanded, setExpanded] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  const tankWQ = waterQualities
-    .filter((w) => w.tankId === tankId)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const targetRecord = highlightDate
-    ? tankWQ.find((w) => w.date === highlightDate) ?? tankWQ[0]
-    : tankWQ[0];
-
-  if (!targetRecord) return null;
-
-  const abnormalities = getAbnormalIndicators(targetRecord);
-
-  if (abnormalities.length === 0) return null;
-
-  const recentMaintenance = maintenanceLogs
-    .filter((m) => m.tankId === tankId && new Date(m.date) <= new Date(targetRecord.date))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
-
-  const isHighlighted = highlightDate === targetRecord.date;
 
   useEffect(() => {
     if (isHighlighted && panelRef.current) {
@@ -353,6 +339,41 @@ function AbnormalPanel({ tankId, highlightDate }: { tankId: string; highlightDat
         </div>
       )}
     </div>
+  );
+}
+
+function AbnormalPanel({ tankId, highlightDate }: { tankId: string; highlightDate?: string }) {
+  const waterQualities = useAquaStore((s) => s.waterQualities);
+  const maintenanceLogs = useAquaStore((s) => s.maintenanceLogs);
+
+  const tankWQ = waterQualities
+    .filter((w) => w.tankId === tankId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const targetRecord = highlightDate
+    ? tankWQ.find((w) => w.date === highlightDate) ?? tankWQ[0]
+    : tankWQ[0];
+
+  if (!targetRecord) return null;
+
+  const abnormalities = getAbnormalIndicators(targetRecord);
+
+  if (abnormalities.length === 0) return null;
+
+  const recentMaintenance = maintenanceLogs
+    .filter((m) => m.tankId === tankId && new Date(m.date) <= new Date(targetRecord.date))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3);
+
+  const isHighlighted = highlightDate === targetRecord.date;
+
+  return (
+    <AbnormalPanelContent
+      targetRecord={targetRecord}
+      abnormalities={abnormalities}
+      recentMaintenance={recentMaintenance}
+      isHighlighted={isHighlighted}
+    />
   );
 }
 
