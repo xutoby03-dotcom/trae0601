@@ -5,6 +5,9 @@ import {
   CheckCircle,
   Phone,
   X,
+  Camera,
+  Link,
+  Image,
 } from "lucide-react";
 import {
   Order,
@@ -25,18 +28,41 @@ const abnormalityOptions: AbnormalityType[] = [
   "nail_bleeding",
 ];
 
+const abnormalitySamplePhotos: Record<AbnormalityType, string[]> = {
+  skin_redness: [
+    "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=300&fit=crop",
+  ],
+  severe_matting: [
+    "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop",
+  ],
+  nail_bleeding: [
+    "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=300&fit=crop",
+  ],
+};
+
 export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [selectedType, setSelectedType] = useState<AbnormalityType | null>(null);
   const [description, setDescription] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const { addAbnormality, notifyOwner } = usePetStore();
 
   const handleSubmit = () => {
     if (!selectedType || !description.trim()) return;
-    addAbnormality(order.id, selectedType, description);
+    addAbnormality(order.id, selectedType, description, photoUrl || undefined);
     setIsAdding(false);
     setSelectedType(null);
     setDescription("");
+    setPhotoUrl("");
   };
 
   const typeColorClass = (type: AbnormalityType) => {
@@ -46,6 +72,10 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
     }
     return "bg-amber-500/15 text-amber-600 border-amber-500/30";
   };
+
+  const samplePhotos = selectedType
+    ? abnormalitySamplePhotos[selectedType]
+    : [];
 
   return (
     <div className="card p-6 animate-fade-in-up" style={{ animationDelay: "250ms" }}>
@@ -86,11 +116,14 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-2 mb-4">
             {abnormalityOptions.map((type) => (
               <button
                 key={type}
-                onClick={() => setSelectedType(type)}
+                onClick={() => {
+                  setSelectedType(type);
+                  setPhotoUrl("");
+                }}
                 className={`chip border-2 px-4 py-2 transition-all ${
                   selectedType === type
                     ? typeColorClass(type)
@@ -102,6 +135,84 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
               </button>
             ))}
           </div>
+
+          {selectedType && (
+            <div className="space-y-4 mb-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="label-text mb-0 flex items-center gap-1">
+                    <Camera className="w-4 h-4" />
+                    现场照片
+                  </p>
+                  {photoUrl && (
+                    <button
+                      onClick={() => setPhotoUrl("")}
+                      className="text-xs text-brown-700/50 hover:text-danger-500 inline-flex items-center gap-1"
+                    >
+                      <X className="w-3 h-3" />
+                      清除
+                    </button>
+                  )}
+                </div>
+
+                {photoUrl && (
+                  <div className="mb-3 w-48 h-36 rounded-xl overflow-hidden ring-2 ring-danger-200">
+                    <img
+                      src={photoUrl}
+                      alt="预览"
+                      className="w-full h-full object-cover"
+                      onError={() => setPhotoUrl("")}
+                    />
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Link className="w-3.5 h-3.5 text-brown-700/50" />
+                    <span className="text-xs text-brown-700/60">
+                      图片链接
+                    </span>
+                  </div>
+                  <input
+                    type="url"
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                    placeholder="粘贴现场照片URL..."
+                    className="input-field text-sm"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Image className="w-3.5 h-3.5 text-brown-700/50" />
+                    <span className="text-xs text-brown-700/60">
+                      或选择示例图
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {samplePhotos.map((url, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setPhotoUrl(url)}
+                        className={`aspect-[4/3] rounded-lg overflow-hidden transition-all ${
+                          photoUrl === url
+                            ? "ring-2 ring-danger-500 ring-offset-2"
+                            : "opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={url}
+                          alt={`示例${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <textarea
             value={description}
@@ -122,7 +233,8 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
               disabled={!selectedType || !description.trim()}
               className="btn-danger text-sm"
             >
-              确认记录
+              <Camera className="w-4 h-4" />
+              确认记录{photoUrl && "（含照片）"}
             </button>
           </div>
         </div>
@@ -145,17 +257,48 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
               style={{ animationDelay: `${300 + idx * 80}ms` }}
             >
               <div className="flex items-start justify-between mb-2">
-                <span className={`chip ${typeColorClass(ab.type)}`}>
-                  <AlertTriangle className="w-3 h-3" />
-                  {meta.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`chip ${typeColorClass(ab.type)}`}>
+                    <AlertTriangle className="w-3 h-3" />
+                    {meta.name}
+                  </span>
+                  {ab.photoUrl && (
+                    <span className="chip bg-primary-50 text-primary-600 border-primary-100 border text-[10px]">
+                      <Image className="w-3 h-3" />
+                      有照片
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs text-brown-700/50">
                   {formatDateTime(ab.createdAt)}
                 </span>
               </div>
+
+              {ab.photoUrl && (
+                <div className="mb-3">
+                  <div className="w-full h-40 rounded-xl overflow-hidden">
+                    <img
+                      src={ab.photoUrl}
+                      alt="异常照片"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-brown-800 mb-3">{ab.description}</p>
+
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {ab.photoUrl && (
+                    <div className="w-8 h-8 rounded-lg overflow-hidden ring-2 ring-white shadow-sm flex-shrink-0">
+                      <img
+                        src={ab.photoUrl}
+                        alt="缩略图"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                   {ab.notifiedOwner ? (
                     <span className="chip bg-success-400/20 text-success-600 text-[10px]">
                       <CheckCircle className="w-3 h-3" />
