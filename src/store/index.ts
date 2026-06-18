@@ -56,17 +56,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     let admins = storage.getAdmins();
     const currentPhone = storage.getCurrentPhone();
 
-    if (tables.length === 0) {
+    const forceReload = false;
+
+    if (tables.length === 0 || forceReload) {
       tables = initialTables;
       storage.setTables(tables);
     }
-    if (bookings.length === 0) {
+    if (bookings.length === 0 || forceReload) {
       bookings = mockBookings;
       storage.setBookings(bookings);
     }
-    if (damageRecords.length === 0) {
+    if (damageRecords.length === 0 || forceReload) {
       damageRecords = mockDamageRecords;
       storage.setDamageRecords(damageRecords);
+    }
+    if (returnRecords.length === 0 || forceReload) {
+      returnRecords = [];
+      storage.setReturnRecords(returnRecords);
     }
     if (admins.length === 0) {
       admins = initialAdmin;
