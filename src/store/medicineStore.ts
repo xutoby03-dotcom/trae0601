@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Medicine, MedicationRecord, FamilyMember, MedicineCategory } from '@/types';
+import type { Medicine, MedicationRecord, FamilyMember, MedicineCategory, ContraindicatedMedicine, ContraindicationReason } from '@/types';
 import { generateId, getMedicineStatus } from '@/utils/medicine';
 
 interface MedicineStore {
@@ -122,31 +122,63 @@ export const useMedicineStore = create<MedicineStore>((set, get) => ({
     return get().medicines.filter((m) => m.quantity <= 2);
   },
   
-  getContraindicatedMedicines: (memberId) => {
+  getContraindicatedMedicines: (memberId): ContraindicatedMedicine[] => {
     const member = get().familyMembers.find((m) => m.id === memberId);
     if (!member) return [];
     
-    return get().medicines.filter((m) => {
-      const allergyMatch = member.allergies.some((allergy) => 
-        m.name.includes(allergy) || 
-        m.symptoms.includes(allergy) ||
-        m.contraindications.some(c => c.includes(allergy))
-      );
-      
-      const chronicMatch = member.chronicDiseases.some((disease) =>
-        m.contraindications.some(c => 
-          c.includes(disease) || disease.includes(c)
-        )
-      );
-      
-      const allergyConstitutionMatch = 
-        member.allergies.length > 0 && 
-        m.contraindications.some(c => 
-          c.includes('过敏体质') || c.includes('过敏者')
-        );
-      
-      return allergyMatch || chronicMatch || allergyConstitutionMatch;
-    });
+    return get().medicines
+      .map((medicine) => {
+        const reasons: ContraindicationReason[] = [];
+        
+        member.allergies.forEach((allergy) => {
+          const matchedContra = medicine.contraindications.find(c => 
+            c.includes(allergy)
+          );
+          if (matchedContra) {
+            reasons.push({
+              type: 'allergy',
+              label: `${allergy}过敏`,
+              detail: matchedContra
+            });
+          }
+          if (medicine.name.includes(allergy) && !matchedContra) {
+            reasons.push({
+              type: 'allergy',
+              label: `${allergy}过敏`,
+              detail: `药品名称含${allergy}成分`
+            });
+          }
+        });
+        
+        member.chronicDiseases.forEach((disease) => {
+          const matchedContra = medicine.contraindications.find(c => 
+            c.includes(disease) || disease.includes(c)
+          );
+          if (matchedContra) {
+            reasons.push({
+              type: 'chronic',
+              label: disease,
+              detail: matchedContra
+            });
+          }
+        });
+        
+        if (member.allergies.length > 0) {
+          const matchedConstitution = medicine.contraindications.find(c => 
+            c.includes('过敏体质') || c.includes('过敏者')
+          );
+          if (matchedConstitution && reasons.every(r => r.type !== 'allergy')) {
+            reasons.push({
+              type: 'allergy_constitution',
+              label: '过敏体质',
+              detail: matchedConstitution
+            });
+          }
+        }
+        
+        return reasons.length > 0 ? { ...medicine, reasons } : null;
+      })
+      .filter((item): item is ContraindicatedMedicine => item !== null);
   },
   
   getMedicinesByCategory: (category) => {

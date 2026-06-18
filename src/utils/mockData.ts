@@ -108,7 +108,7 @@ export const mockMedicines: Medicine[] = [
     location: '卧室床头柜',
     quantity: 1,
     category: MedicineCategory.GASTROINTESTINAL,
-    contraindications: ['过敏者禁用'],
+    contraindications: ['过敏者禁用', '青霉素过敏者禁用'],
     notes: '爸爸常用药，需长期备用',
     createdAt: '2025-09-15T10:00:00Z',
     updatedAt: '2026-01-01T10:00:00Z',

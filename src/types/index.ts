@@ -86,3 +86,13 @@ export interface FamilyMember {
   chronicDiseases: string[];
   notes?: string;
 }
+
+export interface ContraindicationReason {
+  type: 'allergy' | 'chronic' | 'allergy_constitution';
+  label: string;
+  detail: string;
+}
+
+export interface ContraindicatedMedicine extends Medicine {
+  reasons: ContraindicationReason[];
+}
