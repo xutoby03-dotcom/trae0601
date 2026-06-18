@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BarChart3, Package as PackageIcon, AlertTriangle, Clock, Grid3x3, Users,
+  ChevronDown, ChevronUp, ArrowRight, Snowflake, DollarSign, Phone, Box, MapPin,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend,
@@ -17,6 +19,7 @@ import type {
 } from 'shared/types.js';
 
 export default function Statistics() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [companyStats, setCompanyStats] = useState<CompanyStats[]>([]);
@@ -24,6 +27,7 @@ export default function Statistics() {
   const [abnormalRecords, setAbnormalRecords] = useState<AbnormalRecord[]>([]);
   const [tab, setTab] = useState<'waiting' | 'overdue' | 'abnormal'>('waiting');
   const [loading, setLoading] = useState(true);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -165,6 +169,7 @@ export default function Statistics() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
+                {tab === 'overdue' && <th className="px-3 py-3 w-10"></th>}
                 <th className="px-6 py-3 text-left font-medium">收件人</th>
                 <th className="px-6 py-3 text-left font-medium">快递公司</th>
                 <th className="px-6 py-3 text-left font-medium">单号</th>
@@ -177,64 +182,186 @@ export default function Statistics() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400">加载中...</td></tr>
+                <tr><td colSpan={tab === 'overdue' ? 8 : 7} className="px-6 py-12 text-center text-slate-400">加载中...</td></tr>
               ) : (
                 (tab === 'waiting' ? waitingPackages :
                  tab === 'overdue' ? overdueSorted :
-                 abnormalRecords).map((item: any, i: number) => (
-                  <tr key={i} className="hover:bg-slate-50">
-                    <td className="px-6 py-3.5">
-                      <div className="font-medium text-slate-800">{item.recipientName}</div>
-                      {item.phoneLast4 && (
-                        <div className="text-xs text-slate-400 font-mono">****{item.phoneLast4}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <span
-                        className="tag text-white text-xs"
-                        style={{ backgroundColor: COMPANY_COLORS[item.company] || '#64748b' }}
+                 abnormalRecords).map((item: any, i: number) => {
+                  const rowKey = `${tab}-${i}`;
+                  const isExpanded = expandedRow === rowKey;
+                  return (
+                    <React.Fragment key={rowKey}>
+                      <tr
+                        className={`hover:bg-slate-50 ${tab === 'overdue' ? 'cursor-pointer' : ''} ${
+                          isExpanded ? 'bg-primary-500/5' : ''
+                        }`}
+                        onClick={() => {
+                          if (tab === 'overdue') {
+                            setExpandedRow(isExpanded ? null : rowKey);
+                          }
+                        }}
                       >
-                        {item.company}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 font-mono text-xs text-slate-600">
-                      {item.trackingNumber}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      {item.lockerCode && (
-                        <span className="font-semibold text-primary-500">{item.lockerCode}</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-600">
-                      {formatDateTime(item.createdAt)}
-                    </td>
-                    {tab !== 'abnormal' && (
-                      <td className="px-6 py-3.5">
-                        {tab === 'overdue' ? (
-                          <span className="tag bg-rose-100 text-rose-700">
-                            已超期 {Math.floor(getTimeDiffHours(item.createdAt) - 48)} 小时
-                          </span>
-                        ) : (
-                          item.isOverdue ? (
-                            <span className="tag bg-rose-100 text-rose-700">已超期</span>
-                          ) : (
-                            <span className="tag bg-emerald-100 text-emerald-700">待取件</span>
-                          )
+                        {tab === 'overdue' && (
+                          <td className="px-3 py-3.5">
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                            )}
+                          </td>
                         )}
-                      </td>
-                    )}
-                    {tab === 'abnormal' && (
-                      <td className="px-6 py-3.5 text-slate-600 max-w-xs">
-                        {item.abnormalReason}
-                      </td>
-                    )}
-                    {tab === 'overdue' && (
-                      <td className="px-6 py-3.5 text-accent-rose font-semibold">
-                        {Math.floor(getTimeDiffHours(item.createdAt) - 48)} 小时
-                      </td>
-                    )}
-                  </tr>
-                ))
+                        <td className="px-6 py-3.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/?recipient=${encodeURIComponent(item.recipientName)}`);
+                            }}
+                            className="text-left hover:text-primary-600 group"
+                          >
+                            <div className="font-medium text-slate-800 group-hover:text-primary-600 flex items-center gap-1">
+                              {item.recipientName}
+                              <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            {item.phoneLast4 && (
+                              <div className="text-xs text-slate-400 font-mono">****{item.phoneLast4}</div>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/?company=${encodeURIComponent(item.company)}`);
+                            }}
+                            className="hover:opacity-80 transition-opacity"
+                          >
+                            <span
+                              className="tag text-white text-xs inline-flex items-center gap-1"
+                              style={{ backgroundColor: COMPANY_COLORS[item.company] || '#64748b' }}
+                            >
+                              {item.company}
+                              <ArrowRight className="w-3 h-3 opacity-60" />
+                            </span>
+                          </button>
+                        </td>
+                        <td className="px-6 py-3.5 font-mono text-xs text-slate-600">
+                          {item.trackingNumber}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          {item.lockerCode && (
+                            <span className="font-semibold text-primary-500">{item.lockerCode}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 text-slate-600">
+                          {formatDateTime(item.createdAt)}
+                        </td>
+                        {tab !== 'abnormal' && (
+                          <td className="px-6 py-3.5">
+                            {tab === 'overdue' ? (
+                              <span className="tag bg-rose-100 text-rose-700">
+                                已超期 {Math.floor(getTimeDiffHours(item.createdAt) - 48)} 小时
+                              </span>
+                            ) : (
+                              item.isOverdue ? (
+                                <span className="tag bg-rose-100 text-rose-700">已超期</span>
+                              ) : (
+                                <span className="tag bg-emerald-100 text-emerald-700">待取件</span>
+                              )
+                            )}
+                          </td>
+                        )}
+                        {tab === 'abnormal' && (
+                          <td className="px-6 py-3.5 text-slate-600 max-w-xs">
+                            {item.abnormalReason}
+                          </td>
+                        )}
+                        {tab === 'overdue' && (
+                          <td className="px-6 py-3.5 text-accent-rose font-semibold">
+                            {Math.floor(getTimeDiffHours(item.createdAt) - 48)} 小时
+                          </td>
+                        )}
+                      </tr>
+                      {tab === 'overdue' && isExpanded && (
+                        <tr key={`${rowKey}-detail`} className="bg-primary-500/5">
+                          <td></td>
+                          <td colSpan={7} className="px-6 pb-5">
+                            <div className="ml-4 p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className="tag font-semibold text-white"
+                                    style={{ backgroundColor: COMPANY_COLORS[item.company] || '#64748b' }}
+                                  >
+                                    {item.company}
+                                  </span>
+                                  {item.isFragile && (
+                                    <span className="tag bg-amber-100 text-amber-700">
+                                      <AlertTriangle className="w-3 h-3" /> 易碎
+                                    </span>
+                                  )}
+                                  {item.isColdChain && (
+                                    <span className="tag bg-sky-100 text-sky-700">
+                                      <Snowflake className="w-3 h-3" /> 冷链
+                                    </span>
+                                  )}
+                                  {item.isCod && (
+                                    <span className="tag bg-rose-100 text-rose-700">
+                                      <DollarSign className="w-3 h-3" /> 到付
+                                    </span>
+                                  )}
+                                  <span className="tag bg-rose-100 text-rose-700 animate-pulse">
+                                    <Clock className="w-3 h-3" />
+                                    超期 {Math.floor(getTimeDiffHours(item.createdAt) - 48)} 小时
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => navigate('/pickup', { state: { preselectId: item.id } })}
+                                  className="btn-danger !py-1.5 text-xs"
+                                >
+                                  催促取件 <ArrowRight className="w-3 h-3 inline ml-1" />
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">收件人</div>
+                                  <div className="font-medium text-slate-800 flex items-center gap-1">
+                                    <span>{item.recipientName}</span>
+                                    <Phone className="w-3 h-3 text-slate-400" />
+                                    <span className="font-mono text-xs text-slate-500">****{item.phoneLast4}</span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">单号</div>
+                                  <div className="font-mono text-xs text-slate-700 flex items-center gap-1">
+                                    <Box className="w-3 h-3 text-slate-400" />
+                                    {item.trackingNumber}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">柜格</div>
+                                  <div className="font-semibold text-primary-600 flex items-center gap-1">
+                                    <MapPin className="w-3 h-3 text-slate-400" />
+                                    {item.lockerCode} ({item.size})
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-slate-400 mb-1">存放时间</div>
+                                  <div className="text-slate-700">{formatDateTime(item.createdAt)}</div>
+                                </div>
+                              </div>
+                              {item.photoUrl && (
+                                <div className="mt-3">
+                                  <div className="text-xs text-slate-400 mb-1">包裹照片</div>
+                                  <img src={item.photoUrl} alt="包裹" className="w-32 h-32 object-cover rounded-lg border border-slate-200" />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
               {!loading && (
                 (tab === 'waiting' && waitingPackages.length === 0) ||
@@ -242,7 +369,7 @@ export default function Statistics() {
                 (tab === 'abnormal' && abnormalRecords.length === 0)
               ) && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={tab === 'overdue' ? 8 : 7} className="px-6 py-12 text-center text-slate-400">
                     暂无记录
                   </td>
                 </tr>
