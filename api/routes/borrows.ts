@@ -116,7 +116,7 @@ router.get('/:id', (req: Request, res: Response) => {
       JOIN molds m ON br.mold_id = m.id
       JOIN masters ma ON br.master_id = ma.id
       LEFT JOIN return_inspections ri ON ri.borrow_record_id = br.id
-      LEFT JOIN exceptions ex ON ex.borrow_record_id = br.id
+      LEFT JOIN exception_records ex ON ex.borrow_record_id = br.id
       WHERE br.id = ?
     `).get(req.params.id) as any;
 
@@ -186,10 +186,22 @@ router.post('/', (req: Request, res: Response) => {
     transaction();
 
     const row = db.prepare(`
-      SELECT br.*, m.name as mold_name, m.type as mold_type, m.size as mold_size, ma.name as master_name
+      SELECT br.*,
+             m.name as mold_name, m.type as mold_type, m.size as mold_size, m.photo_url as mold_photo,
+             ma.name as master_name,
+             ri.id as inspection_id, ri.borrow_record_id as inspection_borrow_record_id,
+             ri.has_deformation as inspection_has_deformation,
+             ri.has_coating_loss as inspection_has_coating_loss,
+             ri.has_oil_residue as inspection_has_oil_residue,
+             ri.has_missing_parts as inspection_has_missing_parts,
+             ri.remark as inspection_remark, ri.created_at as inspection_created_at,
+             ex.id as exception_id, ex.type as exception_type,
+             ex.status as exception_status, ex.description as exception_description
       FROM borrow_records br
       JOIN molds m ON br.mold_id = m.id
       JOIN masters ma ON br.master_id = ma.id
+      LEFT JOIN return_inspections ri ON ri.borrow_record_id = br.id
+      LEFT JOIN exception_records ex ON ex.borrow_record_id = br.id
       WHERE br.id = ?
     `).get(id) as any;
 
@@ -233,10 +245,22 @@ router.put('/:id', (req: Request, res: Response) => {
     );
 
     const row = db.prepare(`
-      SELECT br.*, m.name as mold_name, m.type as mold_type, m.size as mold_size, ma.name as master_name
+      SELECT br.*,
+             m.name as mold_name, m.type as mold_type, m.size as mold_size, m.photo_url as mold_photo,
+             ma.name as master_name,
+             ri.id as inspection_id, ri.borrow_record_id as inspection_borrow_record_id,
+             ri.has_deformation as inspection_has_deformation,
+             ri.has_coating_loss as inspection_has_coating_loss,
+             ri.has_oil_residue as inspection_has_oil_residue,
+             ri.has_missing_parts as inspection_has_missing_parts,
+             ri.remark as inspection_remark, ri.created_at as inspection_created_at,
+             ex.id as exception_id, ex.type as exception_type,
+             ex.status as exception_status, ex.description as exception_description
       FROM borrow_records br
       JOIN molds m ON br.mold_id = m.id
       JOIN masters ma ON br.master_id = ma.id
+      LEFT JOIN return_inspections ri ON ri.borrow_record_id = br.id
+      LEFT JOIN exception_records ex ON ex.borrow_record_id = br.id
       WHERE br.id = ?
     `).get(id) as any;
 
