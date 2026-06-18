@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle, AlertCircle, Ban, CheckSquare, Square } from 'l
 import { useFurnitureStore } from '../store/furnitureStore';
 import { useInspectionStore } from '../store/inspectionStore';
 import { useRepairStore } from '../store/repairStore';
+import { useMaintenanceStore } from '../store/maintenanceStore';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';
 import { FURNITURE_TYPE_LABELS, ISSUE_TYPE_LABELS } from '../types';
@@ -23,6 +24,8 @@ export function RoomInspection() {
   const furnitureList = useFurnitureStore((state) => state.furnitureList);
   const addBatchRecords = useInspectionStore((state) => state.addBatchRecords);
   const addRepairOrder = useRepairStore((state) => state.addRepairOrder);
+  const getRepairOrders = useRepairStore((state) => state.repairOrders);
+  const addMaintenance = useMaintenanceStore((state) => state.addRecord);
   const updateFurnitureStatus = useFurnitureStore((state) => state.updateStatus);
 
   const roomFurniture = useMemo(
@@ -99,29 +102,43 @@ export function RoomInspection() {
     }));
     addBatchRecords(records);
 
-    // 更新桌椅状态并创建报修单
-    inspectionItems.forEach((item) => {
+    // 更新桌椅状态并创建报修单 + 维修记录
+    const problemItems = inspectionItems.filter(
+      (item) => item.result === 'out_of_service' || item.result === 'issue'
+    );
+
+    problemItems.forEach((item) => {
       if (item.result === 'out_of_service') {
         updateFurnitureStatus(item.furnitureId, 'out_of_service');
-        addRepairOrder({
-          furnitureId: item.furnitureId,
-          reporter: '巡检员',
-          issueType: item.issueType || 'wobble',
-          description: item.remark || '巡检发现问题，已停用',
-          severity: 'high',
-          photos: [],
-        });
-      } else if (item.result === 'issue') {
+      } else {
         updateFurnitureStatus(item.furnitureId, 'pending_repair');
-        addRepairOrder({
-          furnitureId: item.furnitureId,
-          reporter: '巡检员',
-          issueType: item.issueType || 'wobble',
-          description: item.remark || '巡检发现问题',
-          severity: 'medium',
-          photos: [],
-        });
       }
+
+      const severity = item.result === 'out_of_service' ? 'high' : 'medium';
+      const description = item.remark || (item.result === 'out_of_service' ? '巡检发现问题，已停用' : '巡检发现问题');
+
+      addRepairOrder({
+        furnitureId: item.furnitureId,
+        reporter: '巡检员',
+        issueType: item.issueType || 'wobble',
+        description,
+        severity,
+        photos: [],
+      });
+
+      const latestRepairs = useRepairStore.getState().repairOrders;
+      const newRepairOrder = latestRepairs[0];
+      const repairOrderId = newRepairOrder?.id || '';
+
+      addMaintenance({
+        repairOrderId,
+        furnitureId: item.furnitureId,
+        handler: '',
+        parts: '',
+        cost: 0,
+        reviewPhotos: [],
+        finishDate: '',
+      });
     });
 
     // 更新最近巡检日期
