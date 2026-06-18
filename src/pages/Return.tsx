@@ -62,6 +62,32 @@ export default function Return() {
     return check && (check.waterIntrusion || check.scratches || check.lost);
   };
 
+  const normalizeCleanedById = (rawCleanedBy?: string): string | null => {
+    if (!rawCleanedBy) return null;
+    const byId = members.find((m) => m.id === rawCleanedBy);
+    if (byId) return byId.id;
+    const byName = members.find((m) => m.name === rawCleanedBy);
+    if (byName) return byName.id;
+    return rawCleanedBy;
+  };
+
+  const getCleanerMember = (
+    equipmentId: string
+  ): { id: string | null; name: string; avatar: string } | null => {
+    const check = getReturnCheck(equipmentId);
+    if (!check?.cleanedBy) return null;
+    const normalizedId = normalizeCleanedById(check.cleanedBy);
+    const member = members.find((m) => m.id === normalizedId);
+    if (member) {
+      return { id: member.id, name: member.name, avatar: member.avatar || '🧑' };
+    }
+    return {
+      id: normalizedId,
+      name: check.cleanedBy,
+      avatar: '🧑',
+    };
+  };
+
   const cleanerStats = useMemo<CleanerStat[]>(() => {
     const statsMap = new Map<string | null, CleanerStat>();
 
@@ -94,18 +120,40 @@ export default function Return() {
       const check = getReturnCheck(eq.id);
 
       if (check) {
-        const cleanerId = check.cleanedBy || null;
+        const rawCleaner = check.cleanedBy || null;
+        let cleanerId: string | null = null;
+        let cleanerName = '待认领';
+        let cleanerAvatar = '❓';
+        let isUnassigned = true;
+
+        if (rawCleaner) {
+          const byId = members.find((m) => m.id === rawCleaner);
+          const byName = members.find((m) => m.name === rawCleaner);
+          const matched = byId || byName;
+          if (matched) {
+            cleanerId = matched.id;
+            cleanerName = matched.name;
+            cleanerAvatar = matched.avatar || '🧑';
+            isUnassigned = false;
+          } else {
+            cleanerId = rawCleaner;
+            cleanerName = rawCleaner;
+            cleanerAvatar = '🧑';
+            isUnassigned = false;
+          }
+        }
+
         const stat = statsMap.get(cleanerId);
         if (!stat) {
           statsMap.set(cleanerId, {
             memberId: cleanerId,
-            memberName: cleanerId ? '未知成员' : '待认领',
-            memberAvatar: '🧑',
+            memberName: cleanerName,
+            memberAvatar: cleanerAvatar,
             total: 0,
             waterIntrusion: 0,
             scratches: 0,
             lost: 0,
-            isUnassigned: !cleanerId,
+            isUnassigned,
           });
         }
         const targetStat = statsMap.get(cleanerId)!;
@@ -173,9 +221,9 @@ export default function Return() {
 
   const isHighlighted = (eqId: string) => {
     if (highlightCleanerId === null) return false;
-    const check = getReturnCheck(eqId);
-    if (!check) return highlightCleanerId === '';
-    return check.cleanedBy === highlightCleanerId;
+    const cleaner = getCleanerMember(eqId);
+    if (!cleaner) return highlightCleanerId === '';
+    return cleaner.id === highlightCleanerId;
   };
 
   const stats = {
@@ -456,7 +504,7 @@ export default function Return() {
                     {check?.cleanedBy && (
                       <p className="text-xs text-seafoam-600 mt-1 flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" />
-                        由 {members.find((m) => m.id === check.cleanedBy)?.name}{' '}
+                        由 {getCleanerMember(eq.id)?.name}{' '}
                         负责清洗
                       </p>
                     )}
