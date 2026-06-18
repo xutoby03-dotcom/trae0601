@@ -219,6 +219,15 @@ export const useStore = create<StoreState>()(
         const newMaintenance: MaintenanceRecord[] = [];
         const updatedEquipment: Record<string, Partial<Equipment>> = {};
 
+        const calcStatus = (
+          check: Omit<ReturnCheck, "id" | "tripId" | "checkedAt">
+        ): EquipmentStatus => {
+          if (check.isDamaged) return "repairing";
+          if (check.isWet) return "drying";
+          if (check.isMissingParts) return "missing";
+          return "available";
+        };
+
         checks.forEach((check) => {
           newReturnChecks.push({
             ...check,
@@ -230,27 +239,28 @@ export const useStore = create<StoreState>()(
           const eq = eqList.find((e) => e.id === check.equipmentId);
           if (!eq) return;
 
-          let newStatus: EquipmentStatus = "available";
+          const detailText = `泥土${check.hasDirt ? "是" : "否"}、潮湿${
+            check.isWet ? "是" : "否"
+          }、缺件${check.isMissingParts ? "是" : "否"}、破损${
+            check.isDamaged ? "是" : "否"
+          }`;
+
           if (check.isDamaged) {
-            newStatus = "repairing";
             newMaintenance.push({
               id: uid(),
               equipmentId: eq.id,
               type: "repair",
               title: `${eq.name} - 破损维修`,
-              description:
-                check.notes ||
-                `在露营活动中发现破损，需要维修处理。检查详情：泥土${
-                  check.hasDirt ? "是" : "否"
-                }、潮湿${check.isWet ? "是" : "否"}、缺件${
-                  check.isMissingParts ? "是" : "否"
-                }、破损是`,
+              description: check.notes
+                ? `${check.notes}\n检查详情：${detailText}`
+                : `在露营活动中发现破损，需要维修处理。检查详情：${detailText}`,
               priority: 2,
               status: "pending",
               createdAt: now,
             });
-          } else if (check.isWet) {
-            newStatus = "drying";
+          }
+
+          if (check.isWet) {
             newDrying.push({
               id: uid(),
               equipmentId: eq.id,
@@ -260,22 +270,24 @@ export const useStore = create<StoreState>()(
               status: "drying",
               notes: check.notes,
             });
-          } else if (check.isMissingParts) {
-            newStatus = "missing";
+          }
+
+          if (check.isMissingParts) {
             newMaintenance.push({
               id: uid(),
               equipmentId: eq.id,
               type: "purchase",
               title: `${eq.name} - 缺件补购`,
-              description:
-                check.notes ||
-                `在露营活动中发现缺件，需要补购配件或更换。`,
+              description: check.notes
+                ? `${check.notes}\n检查详情：${detailText}`
+                : `在露营活动中发现缺件，需要补购配件或更换。检查详情：${detailText}`,
               priority: 2,
               status: "pending",
               createdAt: now,
             });
           }
 
+          const newStatus = calcStatus(check);
           if (
             eq.batteryLevel !== undefined &&
             check.batteryLevel !== undefined
@@ -337,16 +349,44 @@ export const useStore = create<StoreState>()(
         });
       },
       completeDrying: (id) => {
-        const { equipment, dryingRecords } = get();
+        const { equipment, dryingRecords, maintenance } = get();
         const record = dryingRecords.find((d) => d.id === id);
         const now = new Date().toISOString();
+
+        const calcFinalStatus = (equipmentId: string): EquipmentStatus => {
+          const hasActiveRepair = maintenance.some(
+            (m) =>
+              m.equipmentId === equipmentId && m.status !== "completed"
+          );
+          const hasOtherDrying = dryingRecords.some(
+            (d) =>
+              d.equipmentId === equipmentId &&
+              d.status === "drying" &&
+              d.id !== id
+          );
+          const hasMissingPurchase = maintenance.some(
+            (m) =>
+              m.equipmentId === equipmentId &&
+              m.type === "purchase" &&
+              m.status !== "completed"
+          );
+          if (hasActiveRepair) return "repairing";
+          if (hasOtherDrying) return "drying";
+          if (hasMissingPurchase) return "missing";
+          return "available";
+        };
+
         set({
           dryingRecords: dryingRecords.map((d) =>
             d.id === id ? { ...d, endTime: now, status: "completed" as const } : d
           ),
           equipment: equipment.map((e) =>
-            e.id === record?.equipmentId && e.status === "drying"
-              ? { ...e, status: "available", updatedAt: now }
+            e.id === record?.equipmentId
+              ? {
+                  ...e,
+                  status: calcFinalStatus(record.equipmentId),
+                  updatedAt: now,
+                }
               : e
           ),
         });
@@ -394,9 +434,25 @@ export const useStore = create<StoreState>()(
         });
       },
       completeMaintenance: (id, actualCost) => {
-        const { equipment, maintenance } = get();
+        const { equipment, maintenance, dryingRecords } = get();
         const record = maintenance.find((m) => m.id === id);
         const now = new Date().toISOString();
+
+        const calcFinalStatus = (equipmentId: string): EquipmentStatus | null => {
+          const hasActiveRepair = maintenance.some(
+            (m) =>
+              m.equipmentId === equipmentId &&
+              m.status !== "completed" &&
+              m.id !== id
+          );
+          const hasActiveDrying = dryingRecords.some(
+            (d) => d.equipmentId === equipmentId && d.status === "drying"
+          );
+          if (hasActiveRepair) return "repairing";
+          if (hasActiveDrying) return "drying";
+          return "available";
+        };
+
         set({
           maintenance: maintenance.map((m) =>
             m.id === id
@@ -412,10 +468,8 @@ export const useStore = create<StoreState>()(
             record?.equipmentId
               ? equipment.map((e) => {
                   if (e.id !== record.equipmentId) return e;
-                  if (e.status === "repairing" || e.status === "missing") {
-                    return { ...e, status: "available", updatedAt: now };
-                  }
-                  return e;
+                  const newStatus = calcFinalStatus(record.equipmentId!);
+                  return { ...e, status: newStatus, updatedAt: now };
                 })
               : equipment,
         });
