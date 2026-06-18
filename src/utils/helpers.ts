@@ -42,3 +42,21 @@ export const round = (n: number, d = 1): number => Math.round(n * Math.pow(10, d
 export const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 
 export const todayStr = (): string => new Date().toISOString().slice(0, 10);
+
+export const calculateStability = (actualSalinity: number, targetSalinity: number, tolerance: number = 0.1): number => {
+  const deviation = Math.abs(actualSalinity - targetSalinity);
+  const maxDeviation = targetSalinity * tolerance;
+  if (deviation <= maxDeviation) {
+    const stability = 100 - (deviation / maxDeviation) * 15;
+    return clamp(round(stability, 1), 85, 100);
+  } else {
+    const excessDeviation = deviation - maxDeviation;
+    const penalty = (excessDeviation / targetSalinity) * 100;
+    return clamp(round(85 - penalty * 2, 1), 0, 84.9);
+  }
+};
+
+export const getBatchFinalSalinity = (batch: { cookingRecords: { salinity: number }[] }): number | null => {
+  if (batch.cookingRecords.length === 0) return null;
+  return batch.cookingRecords[batch.cookingRecords.length - 1].salinity;
+};

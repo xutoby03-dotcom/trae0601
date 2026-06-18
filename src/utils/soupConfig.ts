@@ -111,3 +111,13 @@ export const COOKING_DURATION_MIN = {
   'seafood': 120,
   'vegetarian': 90,
 };
+
+export const SOUP_TARGET_SALINITY: Record<SoupType, number> = {
+  'pork-bone': 0.85,
+  'beef-bone': 0.80,
+  'chicken': 0.75,
+  'seafood': 0.90,
+  'vegetarian': 0.70,
+};
+
+export const SOUP_SALINITY_TOLERANCE = 0.1;

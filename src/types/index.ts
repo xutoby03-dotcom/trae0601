@@ -1,4 +1,6 @@
 export type SoupType = 'pork-bone' | 'beef-bone' | 'chicken' | 'seafood' | 'vegetarian';
+
+export const SOUP_TYPES: SoupType[] = ['pork-bone', 'beef-bone', 'chicken', 'seafood', 'vegetarian'];
 export type FireLevel = 'low' | 'medium' | 'high' | 'simmer';
 export type BatchStatus = 'preparing' | 'cooking' | 'finished' | 'sold';
 export type FeedbackType = 'too-salty' | 'too-light' | 'oily' | 'other';
