@@ -38,6 +38,7 @@ const issueDescriptions: Record<RepairIssueType, string> = {
 export default function Submit() {
   const navigate = useNavigate();
   const stations = useStationStore((s) => s.stations);
+  const updateStationStatus = useStationStore((s) => s.updateStationStatus);
   const submitRepair = useRepairStore((s) => s.submitRepair);
 
   const [issueType, setIssueType] = useState<RepairIssueType | null>(null);
@@ -91,6 +92,9 @@ export default function Submit() {
       reporterPhone: reporterPhone.trim(),
       reporterBuilding,
     });
+
+    updateStationStatus(stationId, "fault");
+    useStationStore.getState().computeStats();
 
     setTicketNo(ticket.ticketNo);
     setSubmitted(true);

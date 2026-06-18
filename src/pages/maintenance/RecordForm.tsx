@@ -134,10 +134,15 @@ export default function RecordForm() {
     });
 
     updateStationStatus(formStationId, stationStatusAfter);
+    useStationStore.getState().computeStats();
 
     setTimeout(() => {
       setSubmitting(false);
-      navigate("/maintenance/history");
+      if (ticketId) {
+        navigate(`/repairs/tickets/${ticketId}`);
+      } else {
+        navigate("/maintenance/history");
+      }
     }, 500);
   };
 
@@ -200,7 +205,10 @@ export default function RecordForm() {
             >
               <option value="">请选择充电桩</option>
               {stations
-                .filter((s) => s.status === "fault" || s.status === "maintenance")
+                .filter((s) => {
+                  if (s.id === stationId) return true;
+                  return s.status === "fault" || s.status === "maintenance";
+                })
                 .map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.code} - {s.building} {s.location}

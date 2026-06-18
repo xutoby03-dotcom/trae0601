@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
   Clock,
@@ -43,6 +43,7 @@ const statusColorMap: Record<RepairStatus, string> = {
 const mockTechnicians = ["张工", "李工", "王工", "赵工", "陈工"];
 
 export default function Tickets() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -107,8 +108,8 @@ export default function Tickets() {
     updateTicketStatus(ticketId, "maintenance", "维修人员已到达现场，开始维修作业");
   };
 
-  const handleComplete = (ticketId: string) => {
-    updateTicketStatus(ticketId, "completed", "现场测试正常，维修完成");
+  const handleComplete = (ticketId: string, stationId: string) => {
+    navigate(`/maintenance/record?stationId=${stationId}&ticketId=${ticketId}`);
   };
 
   return (
@@ -317,7 +318,7 @@ export default function Tickets() {
 
                         {ticket.status === "maintenance" && (
                           <button
-                            onClick={() => handleComplete(ticket.id)}
+                            onClick={() => handleComplete(ticket.id, ticket.stationId)}
                             className="btn-success !py-1.5 !px-3.5 !text-xs"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />

@@ -98,6 +98,9 @@ export default function InspectionExecute() {
   const updateLastInspection = useStationStore(
     (s) => s.updateLastInspection
   );
+  const updateStationStatus = useStationStore(
+    (s) => s.updateStationStatus
+  );
   const stations = useStationStore((s) => s.stations);
 
   const [currentStationIndex, setCurrentStationIndex] = useState(0);
@@ -173,11 +176,16 @@ export default function InspectionExecute() {
 
   const handleSubmit = () => {
     if (!canSubmit || !currentInspection || !task) return;
+    const hasAbnormal = abnormalItems.length > 0;
     updateInspectionRemarks(remarks);
     submitInspection();
     completeTaskStation(task.id);
     if (currentStation) {
       updateLastInspection(currentStation.id);
+      if (hasAbnormal) {
+        updateStationStatus(currentStation.id, "fault");
+        useStationStore.getState().computeStats();
+      }
     }
 
     if (currentStationIndex < taskStations.length - 1) {

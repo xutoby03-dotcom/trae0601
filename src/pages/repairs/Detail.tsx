@@ -117,10 +117,12 @@ export default function Detail() {
       return;
     }
 
-    const noteMsg = ticket.status === "maintenance"
-      ? resolutionNote || "维修完成，设备恢复正常"
-      : note || undefined;
+    if (ticket.status === "maintenance") {
+      navigate(`/maintenance/record?stationId=${ticket.stationId}&ticketId=${ticket.id}`);
+      return;
+    }
 
+    const noteMsg = note || undefined;
     updateTicketStatus(ticket.id, flowConfig.nextStatus, noteMsg);
     setNote("");
     setResolutionNote("");
@@ -312,19 +314,9 @@ export default function Detail() {
 
               {ticket.status === "maintenance" && (
                 <div className="mt-4 p-4 bg-success-50 rounded-xl border border-success-100">
-                  <label className="input-label !mb-2">
-                    维修完成说明
-                    <span className="text-slate-400 font-normal ml-1 text-xs">
-                      （请填写维修方案和结果）
-                    </span>
-                  </label>
-                  <textarea
-                    value={resolutionNote}
-                    onChange={(e) => setResolutionNote(e.target.value)}
-                    placeholder="请详细描述维修处理过程、更换的配件、测试结果等..."
-                    rows={3}
-                    className="input resize-none"
-                  />
+                  <div className="text-sm text-success-700 font-medium">
+                    点击上方「完成维修」按钮，填写维修记录（配件、维修人等信息）后收尾工单
+                  </div>
                 </div>
               )}
             </div>
