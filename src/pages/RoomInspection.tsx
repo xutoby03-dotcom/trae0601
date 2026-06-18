@@ -14,6 +14,7 @@ interface InspectionItem {
   result: InspectionResult;
   remark: string;
   issueType?: IssueType;
+  inspected: boolean;
 }
 
 export function RoomInspection() {
@@ -34,6 +35,7 @@ export function RoomInspection() {
       furnitureId: f.id,
       result: 'normal' as InspectionResult,
       remark: '',
+      inspected: false,
     }))
   );
 
@@ -48,11 +50,12 @@ export function RoomInspection() {
   });
 
   const progress = useMemo(() => {
-    const inspected = inspectionItems.filter((i) => i.result !== 'normal' || i.remark).length;
+    const inspected = inspectionItems.filter((i) => i.inspected).length;
     return {
       inspected,
       total: inspectionItems.length,
       percent: inspectionItems.length > 0 ? (inspected / inspectionItems.length) * 100 : 0,
+      allInspected: inspected === inspectionItems.length,
     };
   }, [inspectionItems]);
 
@@ -61,7 +64,7 @@ export function RoomInspection() {
       setInspectionItems((prev) =>
         prev.map((item) =>
           item.furnitureId === furnitureId
-            ? { ...item, result, remark: '', issueType: undefined }
+            ? { ...item, result, remark: '', issueType: undefined, inspected: true }
             : item
         )
       );
@@ -76,7 +79,7 @@ export function RoomInspection() {
       setInspectionItems((prev) =>
         prev.map((item) =>
           item.furnitureId === showIssueModal
-            ? { ...item, result: issueForm.result, remark: issueForm.remark, issueType: issueForm.issueType }
+            ? { ...item, result: issueForm.result, remark: issueForm.remark, issueType: issueForm.issueType, inspected: true }
             : item
         )
       );
@@ -179,7 +182,7 @@ export function RoomInspection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {roomFurniture.map((furniture) => {
           const inspection = inspectionItems.find((i) => i.furnitureId === furniture.id);
-          const isInspected = inspection?.result !== 'normal' || inspection?.remark;
+          const isInspected = inspection?.inspected;
 
           return (
             <div
@@ -273,9 +276,13 @@ export function RoomInspection() {
         <button onClick={() => navigate('/inspection')} className="btn btn-outline">
           取消
         </button>
-        <button onClick={handleFinish} className="btn btn-primary flex items-center gap-2">
+        <button
+          onClick={handleFinish}
+          disabled={!progress.allInspected}
+          className="btn btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <CheckCircle className="w-4 h-4" />
-          完成巡检
+          {progress.allInspected ? '完成巡检' : `还剩 ${progress.total - progress.inspected} 件未巡检`}
         </button>
       </div>
 

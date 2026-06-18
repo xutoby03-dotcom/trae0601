@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, Wrench, User, DollarSign, FileText, CheckCircle } from 'lucide-react';
+import { Search, Filter, Wrench, User, DollarSign, FileText, CheckCircle, Plus, X, Image } from 'lucide-react';
 import { useMaintenanceStore } from '../store/maintenanceStore';
 import { useFurnitureStore } from '../store/furnitureStore';
 import { useRepairStore } from '../store/repairStore';
@@ -25,6 +25,25 @@ export function MaintenanceList() {
     cost: 0,
     reviewPhotos: [] as string[],
   });
+
+  const [photoInput, setPhotoInput] = useState('');
+
+  const handleAddPhoto = () => {
+    if (photoInput.trim()) {
+      setCompleteForm({
+        ...completeForm,
+        reviewPhotos: [...completeForm.reviewPhotos, photoInput.trim()],
+      });
+      setPhotoInput('');
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setCompleteForm({
+      ...completeForm,
+      reviewPhotos: completeForm.reviewPhotos.filter((_, i) => i !== index),
+    });
+  };
 
   const filteredList = useMemo(() => {
     return maintenanceRecords.filter((item) => {
@@ -63,6 +82,7 @@ export function MaintenanceList() {
       cost: 0,
       reviewPhotos: [],
     });
+    setPhotoInput('');
   };
 
   const handleConfirmComplete = () => {
@@ -275,6 +295,26 @@ export function MaintenanceList() {
               </div>
             )}
 
+            {selectedRecord.reviewPhotos && selectedRecord.reviewPhotos.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 mb-2">复查照片</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedRecord.reviewPhotos.map((photo, index) => (
+                    <div
+                      key={index}
+                      className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      <img
+                        src={photo}
+                        alt={`复查照片${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
               <button onClick={() => setShowDetailModal(null)} className="btn btn-outline">
                 关闭
@@ -347,6 +387,58 @@ export function MaintenanceList() {
                 className="input pl-8"
               />
             </div>
+          </div>
+          <div>
+            <label className="label">复查照片</label>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={photoInput}
+                onChange={(e) => setPhotoInput(e.target.value)}
+                placeholder="输入照片链接"
+                className="input flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddPhoto();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleAddPhoto}
+                className="btn btn-secondary flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                添加
+              </button>
+            </div>
+            {completeForm.reviewPhotos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {completeForm.reviewPhotos.map((photo, index) => (
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group">
+                    <img
+                      src={photo}
+                      alt={`复查照片${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(index)}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {completeForm.reviewPhotos.length === 0 && (
+              <p className="text-xs text-gray-400">暂未添加复查照片</p>
+            )}
           </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
             <p className="text-sm text-green-700">
