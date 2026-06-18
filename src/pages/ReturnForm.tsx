@@ -107,6 +107,33 @@ export default function ReturnForm() {
           </div>
         </div>
 
+        {/* 档案信息提示 */}
+        <div className="mb-6 p-4 rounded-2xl bg-cream-50 border border-cream-200">
+          <p className="text-sm font-semibold text-gray-700 mb-3">📋 档案登记信息（供核对参考）</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500 w-20 shrink-0">机关书：</span>
+              {book.hasMechanism ? (
+                <span className="tag-orange">🎲 有机关，注意检查翻翻/立体/推拉结构</span>
+              ) : (
+                <span className="text-gray-400">无机关</span>
+              )}
+            </div>
+            <div className="flex items-start gap-2 text-sm">
+              <span className="text-gray-500 w-20 shrink-0 pt-0.5">原有破损：</span>
+              {book.damageLocation ? (
+                <span className="text-coral-600 font-medium">⚠️ {book.damageLocation}</span>
+              ) : (
+                <span className="text-mint-600">✓ 档案里暂时没登记破损</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500 w-20 shrink-0">页数：</span>
+              <span className="text-gray-700">{book.pages} 页（请核对是否缺页）</span>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit}>
           <DamageForm
             value={damageCheck}
