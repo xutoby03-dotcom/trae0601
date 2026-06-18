@@ -628,11 +628,16 @@ export function PackagesPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-slate-700">{formatDateTime(pkg.storedAt)}</div>
-                        {isStored && (
+                        {isStored ? (
                           <div className={cn('text-[11px] font-bold mt-0.5', getDelayLevelTextColor(level))}>
-                            已{isStored ? '存放' : ''} {formatDelayTime(pkg.storedAt)}
+                            已存放 {formatDelayTime(pkg.storedAt)}
                           </div>
-                        )}
+                        ) : pkg.status === 'picked' && pkg.pickedAt ? (
+                          <div className="text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            取件：{formatDateTime(pkg.pickedAt)}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="py-3 px-4">
                         {pkg.status === 'stored' ? (
