@@ -13,18 +13,21 @@ export const calculateFlavorTotalStock = (
 export const getFlavorStockStatus = (
   totalStock: number,
   safetyStock: number,
-  batches: InventoryBatch[]
+  batches: InventoryBatch[],
+  flavorId: string
 ): 'normal' | 'low' | 'expired' | 'damp' | 'out_of_stock' => {
+  const flavorBatches = batches.filter(b => b.flavorId === flavorId);
+  
   if (totalStock === 0) {
-    const hasDamp = batches.some(b => b.status === 'damp');
-    const hasExpired = batches.some(b => b.status === 'expired');
+    const hasDamp = flavorBatches.some(b => b.status === 'damp');
+    const hasExpired = flavorBatches.some(b => b.status === 'expired');
     if (hasDamp) return 'damp';
     if (hasExpired) return 'expired';
     return 'out_of_stock';
   }
   if (totalStock <= safetyStock) return 'low';
-  const hasDamp = batches.some(b => b.status === 'damp');
-  const hasExpired = batches.some(b => b.status === 'expired');
+  const hasDamp = flavorBatches.some(b => b.status === 'damp');
+  const hasExpired = flavorBatches.some(b => b.status === 'expired');
   if (hasDamp) return 'damp';
   if (hasExpired) return 'expired';
   return 'normal';

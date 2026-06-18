@@ -195,7 +195,7 @@ export const useCoffeeStore = create<CoffeeState>((set, get) => ({
     if (!flavor) return null;
 
     const totalStock = calculateFlavorTotalStock(flavorId, state.batches);
-    const stockStatus = getFlavorStockStatus(totalStock, flavor.safetyStock, state.batches);
+    const stockStatus = getFlavorStockStatus(totalStock, flavor.safetyStock, state.batches, flavorId);
     const nearestExpiry = getNearestExpiry(flavorId, state.batches);
 
     return { ...flavor, totalStock, stockStatus, nearestExpiry };
@@ -205,7 +205,7 @@ export const useCoffeeStore = create<CoffeeState>((set, get) => ({
     const state = get();
     return state.flavors.map((flavor) => {
       const totalStock = calculateFlavorTotalStock(flavor.id, state.batches);
-      const stockStatus = getFlavorStockStatus(totalStock, flavor.safetyStock, state.batches);
+      const stockStatus = getFlavorStockStatus(totalStock, flavor.safetyStock, state.batches, flavor.id);
       const nearestExpiry = getNearestExpiry(flavor.id, state.batches);
       return { ...flavor, totalStock, stockStatus, nearestExpiry };
     });

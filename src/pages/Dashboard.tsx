@@ -32,7 +32,7 @@ export function Dashboard() {
   }, [flavorsWithStock]);
 
   const handleConsume = (flavor: FlavorWithStock) => {
-    if (flavor.stockStatus === 'out_of_stock' || flavor.stockStatus === 'expired' || flavor.stockStatus === 'damp') {
+    if (flavor.totalStock === 0 || flavor.stockStatus === 'expired') {
       showToast('error', '该口味当前无法取用');
       return;
     }

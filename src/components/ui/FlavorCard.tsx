@@ -83,7 +83,7 @@ export function FlavorCard({ flavor, onConsume, onEdit, index = 0 }: FlavorCardP
         {onConsume && (
           <button
             onClick={onConsume}
-            disabled={flavor.stockStatus === 'out_of_stock' || flavor.stockStatus === 'expired' || flavor.stockStatus === 'damp'}
+            disabled={flavor.totalStock === 0 || flavor.stockStatus === 'expired'}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             快速取用
