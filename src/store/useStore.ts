@@ -22,6 +22,7 @@ interface AppState {
   getDeviceById: (id: string) => Device | undefined;
   getRecordsByDeviceId: (deviceId: string) => BorrowRecord[];
   getActiveRecords: () => BorrowRecord[];
+  getRecentRecords: (limit?: number) => BorrowRecord[];
   
   addBorrowRecord: (data: BorrowFormData & { deviceId: string }) => void;
   returnDevice: (recordId: string, returnData: ReturnFormData) => void;
@@ -45,10 +46,17 @@ export const useStore = create<AppState>((set, get) => ({
   getDashboardStats: () => {
     const { devices, borrowRecords } = get();
     const now = new Date();
+    const nowTime = now.getTime();
     
-    const activeRecords = borrowRecords.filter(
-      (r) => r.status === 'borrowed' || r.status === 'pending'
-    );
+    const activeRecords = borrowRecords.filter((r) => {
+      const startTime = new Date(r.startTime).getTime();
+      const endTime = new Date(r.endTime).getTime();
+      return (
+        (r.status === 'borrowed' || r.status === 'pending') &&
+        startTime <= nowTime &&
+        nowTime < endTime
+      );
+    });
     
     const overdueRecords = borrowRecords.filter(
       (r) =>
@@ -84,9 +92,24 @@ export const useStore = create<AppState>((set, get) => ({
   },
   
   getActiveRecords: () => {
-    return get().borrowRecords.filter(
-      (r) => r.status === 'borrowed' || r.status === 'pending'
+    const now = new Date();
+    const nowTime = now.getTime();
+    return get().borrowRecords.filter((r) => {
+      const startTime = new Date(r.startTime).getTime();
+      const endTime = new Date(r.endTime).getTime();
+      return (
+        (r.status === 'borrowed' || r.status === 'pending') &&
+        startTime <= nowTime &&
+        nowTime < endTime
+      );
+    });
+  },
+  
+  getRecentRecords: (limit) => {
+    const records = [...get().borrowRecords].sort(
+      (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
+    return limit ? records.slice(0, limit) : records;
   },
   
   addBorrowRecord: (data) => {
@@ -197,6 +220,7 @@ export const useStore = create<AppState>((set, get) => ({
   getHighDemandTypes: () => {
     const { devices, borrowRecords } = get();
     const now = new Date();
+    const nowTime = now.getTime();
     
     const typeStats: Record<
       string,
@@ -210,11 +234,15 @@ export const useStore = create<AppState>((set, get) => ({
       typeStats[device.type].total++;
     }
     
-    const activeRecords = borrowRecords.filter(
-      (r) =>
+    const activeRecords = borrowRecords.filter((r) => {
+      const startTime = new Date(r.startTime).getTime();
+      const endTime = new Date(r.endTime).getTime();
+      return (
         (r.status === 'borrowed' || r.status === 'pending') &&
-        new Date(r.endTime) > now
-    );
+        startTime <= nowTime &&
+        nowTime < endTime
+      );
+    });
     
     for (const record of activeRecords) {
       const device = devices.find((d) => d.id === record.deviceId);

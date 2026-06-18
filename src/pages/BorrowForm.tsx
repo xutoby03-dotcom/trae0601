@@ -368,6 +368,12 @@ const BorrowForm = () => {
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">{device.name}</p>
                           <p className="text-sm text-slate-500">{device.serialNumber}</p>
+                          {device.status === 'borrowed' && (
+                            <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              当前借出中，您预约时段可用
+                            </p>
+                          )}
                         </div>
                         <StatusBadge status={device.status} size="sm" />
                         {selectedDeviceId === device.id && (

@@ -15,9 +15,9 @@ import { formatDateTime, isOverdue } from '@/utils/date';
 import { rooms } from '@/data/rooms';
 
 const Dashboard = () => {
-  const { getDashboardStats, getActiveRecords, getOverdueRecords, getFaultyDevices } = useStore();
+  const { getDashboardStats, getRecentRecords, getOverdueRecords, getFaultyDevices } = useStore();
   const stats = getDashboardStats();
-  const activeRecords = getActiveRecords().slice(0, 5);
+  const recentRecords = getRecentRecords(5);
   const overdueRecords = getOverdueRecords();
   const faultyDevices = getFaultyDevices();
 
@@ -135,8 +135,8 @@ const Dashboard = () => {
           </div>
           
           <div className="divide-y divide-slate-100">
-            {activeRecords.length > 0 ? (
-              activeRecords.map((record) => {
+            {recentRecords.length > 0 ? (
+              recentRecords.map((record) => {
                 const overdue = isOverdue(record.endTime, record.status);
                 
                 return (

@@ -40,7 +40,9 @@ export const getAvailableDevices = (
   type?: string,
   roomId?: string
 ): Device[] => {
-  let filtered = devices.filter((d) => d.status === 'available');
+  let filtered = devices.filter(
+    (d) => d.status !== 'faulty' && d.status !== 'maintenance'
+  );
   
   if (type) {
     filtered = filtered.filter((d) => d.type === type);
@@ -112,7 +114,11 @@ export const getConflictAlternatives = (
   }
   
   const laterAvailable = devices.filter(
-    (d) => d.type === deviceType && d.roomId === roomId && d.status === 'available'
+    (d) =>
+      d.type === deviceType &&
+      d.roomId === roomId &&
+      d.status !== 'faulty' &&
+      d.status !== 'maintenance'
   );
   
   if (laterAvailable.length > 0) {
