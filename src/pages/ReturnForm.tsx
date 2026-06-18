@@ -40,24 +40,35 @@ export default function ReturnForm() {
       const record = await api.borrows.get(borrowId);
       setBorrowRecord(record);
 
-      if (record.status === 'returned' && record.returnCheck) {
-        const returnCheck = record.returnCheck;
-        setFormData({
-          actualReturnDate: returnCheck.returnDate,
-          checks: returnCheck.checks || {} as Record<ReturnCheckItem, boolean>,
-          hasDamage: returnCheck.hasDamage || false,
-          damageDescription: returnCheck.damageDescription || '',
-          remark: returnCheck.remark || '',
-        });
-      }
-
       const initChecks = {} as Record<ReturnCheckItem, boolean>;
       checkItems.forEach(item => {
-        if (!initChecks[item.key]) {
-          initChecks[item.key] = false;
-        }
+        initChecks[item.key] = false;
       });
-      setFormData(prev => ({ ...prev, checks: { ...initChecks, ...prev.checks } }));
+
+      let hasDamage = false;
+      let remark = '';
+      let actualReturnDate = new Date().toISOString().split('T')[0];
+
+      if (record.inspection) {
+        const ins = record.inspection;
+        initChecks.deformation = ins.hasDeformation;
+        initChecks.coating_loss = ins.hasCoatingLoss;
+        initChecks.oil_residue = ins.hasOilResidue;
+        initChecks.missing_parts = ins.hasMissingParts;
+        hasDamage = ins.hasDeformation || ins.hasCoatingLoss || ins.hasOilResidue || ins.hasMissingParts;
+        remark = ins.remark || '';
+      }
+      if (record.actualReturnDate) {
+        actualReturnDate = record.actualReturnDate;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        actualReturnDate,
+        checks: initChecks,
+        hasDamage,
+        remark,
+      }));
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -105,7 +116,7 @@ export default function ReturnForm() {
     }
   };
 
-  const isReadOnly = borrowRecord?.status === 'returned';
+  const isReadOnly = borrowRecord?.status === 'returned' || borrowRecord?.status === 'exception';
 
   if (loading) {
     return (
@@ -235,6 +246,15 @@ export default function ReturnForm() {
                 />
               </div>
             )}
+            {isReadOnly && formData.actualReturnDate && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl">
+                <div className="text-sm text-gray-500 flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4" />
+                  实际归还日期
+                </div>
+                <div className="text-lg font-medium text-gray-800">{formData.actualReturnDate}</div>
+              </div>
+            )}
 
             <div className="mb-6">
               <h4 className="text-base font-medium text-gray-700 mb-4 flex items-center gap-2">
@@ -311,6 +331,36 @@ export default function ReturnForm() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-caramel-500 focus:border-transparent transition-all resize-none"
               />
             </div>
+
+            {isReadOnly && borrowRecord?.exception && (
+              <div className="mb-6 border-2 border-tomato-200 bg-tomato-50/60 rounded-xl p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-tomato-600" />
+                    <span className="font-medium text-gray-800">关联异常</span>
+                  </div>
+                  <StatusBadge status={borrowRecord.exception.status as any} type="exception" />
+                </div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-2 py-1 bg-white border border-tomato-200 text-tomato-700 rounded text-xs font-medium">
+                    {borrowRecord.exception.type === 'damage_on_return' ? '归还损坏' :
+                     borrowRecord.exception.type === 'high_temp' ? '高温损坏' :
+                     borrowRecord.exception.type === 'overdue' ? '逾期未还' : '损坏异常'}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 mb-4 leading-relaxed bg-white/70 p-3 rounded-lg border border-tomato-100">
+                  {borrowRecord.exception.description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/exception/${borrowRecord.exception!.id}`)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-tomato-500 text-white text-sm rounded-lg font-medium hover:bg-tomato-600 transition-colors"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  查看异常详情
+                </button>
+              </div>
+            )}
 
             {!isReadOnly && (
               <div className="flex items-center gap-4 pt-6 border-t border-gray-100">

@@ -79,6 +79,24 @@ export interface BorrowRecordWithDetails extends BorrowRecord {
   moldSize: string;
   masterName: string;
   photoUrl?: string;
+  inspection?: ReturnInspection;
+  exception?: {
+    id: string;
+    type: ExceptionType;
+    status: ExceptionStatus;
+    description: string;
+  };
+}
+
+export interface ReturnInspection {
+  id: string;
+  borrowRecordId: string;
+  hasDeformation: boolean;
+  hasCoatingLoss: boolean;
+  hasOilResidue: boolean;
+  hasMissingParts: boolean;
+  remark: string;
+  createdAt: string;
 }
 
 export type ExceptionType = 'high_temp' | 'overdue' | 'damage' | 'damage_on_return';

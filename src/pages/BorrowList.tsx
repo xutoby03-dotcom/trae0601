@@ -234,7 +234,7 @@ export default function BorrowList() {
                           归还检查
                         </button>
                       )}
-                      {record.status === 'returned' && (
+                      {(record.status === 'returned' || record.status === 'exception') && (
                         <button
                           onClick={() => navigate(`/return/${record.id}`)}
                           className="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg font-medium hover:bg-gray-200 transition-colors"

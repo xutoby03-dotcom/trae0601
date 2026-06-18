@@ -22,14 +22,42 @@ function rowToBorrowRecord(row: any): BorrowRecord {
 }
 
 function rowToBorrowWithDetails(row: any): BorrowRecordWithDetails {
-  return {
+  const base: BorrowRecordWithDetails = {
     ...rowToBorrowRecord(row),
     moldName: row.mold_name,
     moldType: row.mold_type as MoldType,
     moldSize: row.mold_size,
     masterName: row.master_name,
+    photoUrl: row.mold_photo,
   };
+
+  if (row.inspection_id) {
+    base.inspection = {
+      id: row.inspection_id,
+      borrowRecordId: row.inspection_borrow_record_id,
+      hasDeformation: !!row.inspection_has_deformation,
+      hasCoatingLoss: !!row.inspection_has_coating_loss,
+      hasOilResidue: !!row.inspection_has_oil_residue,
+      hasMissingParts: !!row.inspection_has_missing_parts,
+      remark: row.inspection_remark || '',
+      createdAt: row.inspection_created_at,
+    };
+  }
+
+  if (row.exception_id) {
+    base.exception = {
+      id: row.exception_id,
+      type: row.exception_type as ExceptionType,
+      status: row.exception_status as ExceptionStatus,
+      description: row.exception_description,
+    };
+  }
+
+  return base;
 }
+
+type ExceptionType = 'high_temp' | 'overdue' | 'damage' | 'damage_on_return';
+type ExceptionStatus = 'pending' | 'processing' | 'resolved' | 'scrapped';
 
 router.get('/', (req: Request, res: Response) => {
   try {
@@ -73,10 +101,22 @@ router.get('/:id', (req: Request, res: Response) => {
   try {
     const db = getDb();
     const row = db.prepare(`
-      SELECT br.*, m.name as mold_name, m.type as mold_type, m.size as mold_size, ma.name as master_name
+      SELECT br.*,
+             m.name as mold_name, m.type as mold_type, m.size as mold_size, m.photo_url as mold_photo,
+             ma.name as master_name,
+             ri.id as inspection_id, ri.borrow_record_id as inspection_borrow_record_id,
+             ri.has_deformation as inspection_has_deformation,
+             ri.has_coating_loss as inspection_has_coating_loss,
+             ri.has_oil_residue as inspection_has_oil_residue,
+             ri.has_missing_parts as inspection_has_missing_parts,
+             ri.remark as inspection_remark, ri.created_at as inspection_created_at,
+             ex.id as exception_id, ex.type as exception_type,
+             ex.status as exception_status, ex.description as exception_description
       FROM borrow_records br
       JOIN molds m ON br.mold_id = m.id
       JOIN masters ma ON br.master_id = ma.id
+      LEFT JOIN return_inspections ri ON ri.borrow_record_id = br.id
+      LEFT JOIN exceptions ex ON ex.borrow_record_id = br.id
       WHERE br.id = ?
     `).get(req.params.id) as any;
 
