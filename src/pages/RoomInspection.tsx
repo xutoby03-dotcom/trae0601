@@ -117,7 +117,7 @@ export function RoomInspection() {
       const severity = item.result === 'out_of_service' ? 'high' : 'medium';
       const description = item.remark || (item.result === 'out_of_service' ? '巡检发现问题，已停用' : '巡检发现问题');
 
-      addRepairOrder({
+      const repairOrderId = addRepairOrder({
         furnitureId: item.furnitureId,
         reporter: '巡检员',
         issueType: item.issueType || 'wobble',
@@ -125,10 +125,6 @@ export function RoomInspection() {
         severity,
         photos: [],
       });
-
-      const latestRepairs = useRepairStore.getState().repairOrders;
-      const newRepairOrder = latestRepairs[0];
-      const repairOrderId = newRepairOrder?.id || '';
 
       addMaintenance({
         repairOrderId,

@@ -102,7 +102,7 @@ export const useMaintenanceStore = create<MaintenanceState>()(
       },
     }),
     {
-      name: 'maintenance-storage-v2',
+      name: 'maintenance-storage-v3',
     }
   )
 );

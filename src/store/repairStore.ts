@@ -6,7 +6,7 @@ import { useFurnitureStore } from './furnitureStore';
 
 interface RepairState {
   repairOrders: RepairOrder[];
-  addRepairOrder: (order: Omit<RepairOrder, 'id' | 'createdAt' | 'status'>) => void;
+  addRepairOrder: (order: Omit<RepairOrder, 'id' | 'createdAt' | 'status'>) => string;
   updateRepairOrder: (id: string, data: Partial<RepairOrder>) => void;
   updateStatus: (id: string, status: RepairStatus) => void;
   getRepairById: (id: string) => RepairOrder | undefined;
@@ -14,22 +14,21 @@ interface RepairState {
   getRepairsByStatus: (status: RepairStatus) => RepairOrder[];
 }
 
-const generateId = () => {
-  const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const count = mockRepairOrders.filter((o) => o.id.includes(dateStr)).length + 1;
-  return `BX-${dateStr}-${String(count).padStart(3, '0')}`;
-};
-
 export const useRepairStore = create<RepairState>()(
   persist(
     (set, get) => ({
       repairOrders: mockRepairOrders,
 
       addRepairOrder: (order) => {
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const existingOrders = get().repairOrders;
+        const todayCount = existingOrders.filter((o) => o.id.includes(dateStr)).length;
+        const newId = `BX-${dateStr}-${String(todayCount + 1).padStart(3, '0')}`;
+
         const newOrder: RepairOrder = {
           ...order,
-          id: generateId(),
+          id: newId,
           status: 'pending',
           createdAt: new Date().toISOString(),
         };
@@ -42,6 +41,8 @@ export const useRepairStore = create<RepairState>()(
         } else {
           useFurnitureStore.getState().updateStatus(order.furnitureId, 'pending_repair');
         }
+
+        return newId;
       },
 
       updateRepairOrder: (id, data) => {
@@ -73,7 +74,7 @@ export const useRepairStore = create<RepairState>()(
       },
     }),
     {
-      name: 'repair-storage-v2',
+      name: 'repair-storage-v3',
     }
   )
 );
