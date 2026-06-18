@@ -39,7 +39,11 @@ export default function FeedbackForm() {
         type: feedbackType,
         description: description || FEEDBACK_TYPE_LABELS[feedbackType],
       });
-      setStep(3);
+      if (fromRoom && roomId) {
+        navigate(`/rooms/${roomId}`);
+      } else {
+        setStep(3);
+      }
     }
   };
 

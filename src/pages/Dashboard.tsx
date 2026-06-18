@@ -28,27 +28,36 @@ export default function Dashboard() {
   const pendingFeedbacks = feedbacks.filter((f) => f.status === 'pending');
 
   const recentActivities = [
-    ...tasks.slice(0, 3).map((t) => ({
-      id: t.id,
-      type: 'task' as const,
-      title: `补给任务：${SUPPLY_TYPE_LABELS[t.supplyType]}`,
-      time: t.createdAt,
-      description: t.description,
-    })),
-    ...feedbacks.slice(0, 3).map((f) => ({
-      id: f.id,
-      type: 'feedback' as const,
-      title: `员工反馈：${FEEDBACK_TYPE_LABELS[f.type]}`,
-      time: f.createdAt,
-      description: f.description,
-    })),
-    ...inspections.slice(0, 3).map((i) => ({
-      id: i.id,
-      type: 'inspection' as const,
-      title: `巡检记录`,
-      time: i.inspectionDate,
-      description: i.notes,
-    })),
+    ...tasks.slice(0, 3).map((t) => {
+      const room = rooms.find((r) => r.id === t.roomId);
+      return {
+        id: t.id,
+        type: 'task' as const,
+        title: `${room?.name || '未知'} · 补给任务：${SUPPLY_TYPE_LABELS[t.supplyType]}`,
+        time: t.createdAt,
+        description: t.description,
+      };
+    }),
+    ...feedbacks.slice(0, 3).map((f) => {
+      const room = rooms.find((r) => r.id === f.roomId);
+      return {
+        id: f.id,
+        type: 'feedback' as const,
+        title: `${room?.name || '未知'}（${room?.floor || '-'}）· 员工反馈：${FEEDBACK_TYPE_LABELS[f.type]}`,
+        time: f.createdAt,
+        description: f.description,
+      };
+    }),
+    ...inspections.slice(0, 3).map((i) => {
+      const room = rooms.find((r) => r.id === i.roomId);
+      return {
+        id: i.id,
+        type: 'inspection' as const,
+        title: `${room?.name || '未知'} · 巡检记录`,
+        time: i.inspectionDate,
+        description: i.notes,
+      };
+    }),
   ]
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     .slice(0, 6);
@@ -201,7 +210,14 @@ export default function Dashboard() {
                   return (
                     <div key={fb.id} className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-slate-700">{room?.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-slate-700">{room?.name}</span>
+                          {room && (
+                            <span className="text-xs text-slate-400 bg-white px-1.5 py-0.5 rounded">
+                              {room.floor}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-slate-400">{fb.reporter}</span>
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-2">{fb.description}</p>
