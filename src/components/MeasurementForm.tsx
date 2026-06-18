@@ -14,7 +14,7 @@ import { useAppStore } from '../store';
 import type { Arm, Posture } from '../types';
 import { armLabels, postureLabels } from '../types';
 import { checkMeasurementAbnormal } from '../services/alertService';
-import { cn } from '../lib/utils';
+import { cn, getRecentMeasurements } from '../lib/utils';
 
 interface MeasurementFormProps {
   onSuccess?: () => void;
@@ -53,12 +53,14 @@ export default function MeasurementForm({ onSuccess }: MeasurementFormProps) {
       const diastolic = Number(formData.diastolic);
       const heartRate = Number(formData.heartRate);
 
+      const recent3 = getRecentMeasurements(measurements, 3);
+      
       const result = checkMeasurementAbnormal(
         systolic,
         diastolic,
         heartRate,
         settings,
-        measurements.slice(-3)
+        recent3
       );
       setAbnormalCheckResult(result);
 

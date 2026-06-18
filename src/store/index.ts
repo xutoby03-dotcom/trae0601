@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Device, Measurement, Settings, Alert } from '../types';
 import { mockDevice, mockMeasurements, mockSettings } from '../mock/data';
 import { generateAlerts, checkMeasurementAbnormal } from '../services/alertService';
+import { getRecentMeasurements } from '../lib/utils';
 
 interface AppState {
   device: Device | null;
@@ -48,12 +49,14 @@ export const useAppStore = create<AppState>()(
       addMeasurement: (measurementData) => {
         const { settings, measurements } = get();
         
+        const recent3 = getRecentMeasurements(measurements, 3);
+        
         const { isAbnormal, abnormalReason } = checkMeasurementAbnormal(
           measurementData.systolic,
           measurementData.diastolic,
           measurementData.heartRate,
           settings,
-          measurements.slice(-3)
+          recent3
         );
 
         const newMeasurement: Measurement = {

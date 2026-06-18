@@ -19,7 +19,7 @@ import {
 import { useAppStore } from '../store';
 import { checkIfMeasuredToday, getAbnormalCount, getDaysUntilVisit } from '../services/alertService';
 import { getSummaryStats } from '../services/exportService';
-import { cn } from '../lib/utils';
+import { cn, getRecentMeasurements } from '../lib/utils';
 import AlertBanner from '../components/AlertBanner';
 
 export default function Home() {
@@ -336,7 +336,7 @@ export default function Home() {
             </Link>
           </div>
           <div className="space-y-3">
-            {measurements.slice(0, 5).map((measurement) => {
+            {getRecentMeasurements(measurements, 5).map((measurement) => {
               const pulsePressure = measurement.systolic - measurement.diastolic;
               return (
                 <div

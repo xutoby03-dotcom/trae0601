@@ -1,4 +1,5 @@
 import type { Device, Measurement, Settings, Alert, CuffSize } from '../types';
+import { getRecentMeasurements, getTodayMeasurements } from '../lib/utils';
 
 const getRecommendedCuffSize = (armCircumference: number): CuffSize | null => {
   if (armCircumference >= 22 && armCircumference <= 26) return 'small';
@@ -126,8 +127,7 @@ export const generateAlerts = (
     });
   }
 
-  const todayStr = now.toISOString().split('T')[0];
-  const todayMeasurements = measurements.filter((m) => m.date === todayStr);
+  const todayMeasurements = getTodayMeasurements(measurements);
   
   if (todayMeasurements.length > 0) {
     const abnormalToday = todayMeasurements.filter((m) => m.isAbnormal);
@@ -143,7 +143,7 @@ export const generateAlerts = (
     }
   }
 
-  const last3Measurements = measurements.slice(0, 3);
+  const last3Measurements = getRecentMeasurements(measurements, 3);
   if (last3Measurements.length === 3) {
     const allAbnormal = last3Measurements.every((m) => m.isAbnormal);
     if (allAbnormal) {

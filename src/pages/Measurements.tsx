@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../store';
 import { armLabels, postureLabels } from '../types';
-import { cn } from '../lib/utils';
+import { cn, sortMeasurementsByDateTimeDesc } from '../lib/utils';
 import MeasurementForm from '../components/MeasurementForm';
 import AlertBanner from '../components/AlertBanner';
 
@@ -22,9 +22,11 @@ export default function Measurements() {
   const [filterAbnormal, setFilterAbnormal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const sortedMeasurements = sortMeasurementsByDateTimeDesc(measurements);
+  
   const displayedMeasurements = filterAbnormal
-    ? measurements.filter((m) => m.isAbnormal)
-    : measurements;
+    ? sortedMeasurements.filter((m) => m.isAbnormal)
+    : sortedMeasurements;
 
   const groupedByDate = displayedMeasurements.reduce((groups, measurement) => {
     const date = measurement.date;
