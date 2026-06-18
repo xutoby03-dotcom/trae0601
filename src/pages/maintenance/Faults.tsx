@@ -283,12 +283,17 @@ export default function Faults() {
                       >
                         {sourceBadgeLabel[source]}
                       </span>
-                      {pendingTicketCount > 0 && (
-                        <span className="badge-danger !py-0 flex items-center gap-1">
-                          <Ticket className="w-3 h-3" />
-                          {pendingTicketCount} 单待处理
-                        </span>
-                      )}
+                      <span
+                        className={clsx(
+                          "!py-0 flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium",
+                          pendingTicketCount > 0
+                            ? "bg-danger-100 text-danger-700"
+                            : "bg-slate-100 text-slate-500"
+                        )}
+                      >
+                        <Ticket className="w-3 h-3" />
+                        {pendingTicketCount > 0 ? `${pendingTicketCount} 单待处理` : "无待处理工单"}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
