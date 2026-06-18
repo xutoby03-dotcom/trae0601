@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Package,
@@ -86,6 +86,15 @@ export function RegisterPage() {
     : [];
   const allSlots = form.shelfId ? slots.filter((s) => s.shelfId === form.shelfId) : [];
 
+  useEffect(() => {
+    if (form.shelfSlotId) {
+      const selected = allSlots.find((s) => s.id === form.shelfSlotId);
+      if (!selected || selected.isOccupied || selected.sizeLevel !== form.packageSize) {
+        setForm((f) => ({ ...f, shelfSlotId: '', floor: 1, slotNumber: 1 }));
+      }
+    }
+  }, [form.packageSize, form.shelfId, allSlots]);
+
   const handleSubmit = () => {
     setError('');
     if (!form.recipientName.trim()) return setError('请填写收件人姓名');
@@ -95,6 +104,8 @@ export function RegisterPage() {
 
     const selectedSlot = allSlots.find((s) => s.id === form.shelfSlotId);
     if (!selectedSlot) return setError('格口无效');
+    if (selectedSlot.isOccupied) return setError('该格口已被占用');
+    if (selectedSlot.sizeLevel !== form.packageSize) return setError('格口尺寸与包裹尺寸不匹配');
 
     const pkg = registerRef.current({
       recipientName: form.recipientName.trim(),
