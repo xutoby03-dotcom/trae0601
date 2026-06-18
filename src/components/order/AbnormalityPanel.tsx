@@ -324,27 +324,13 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
                   </div>
 
                   {!ab.notifiedOwner ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          setExpandedPreview(isExpanded ? null : ab.id)
-                        }
-                        className="btn-ghost text-xs py-1.5 px-3"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        {isExpanded ? "收起预览" : "预览通知"}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setExpandedPreview(ab.id);
-                          setTimeout(() => handleSendNotification(ab.id), 100);
-                        }}
-                        className="btn-secondary text-xs py-1.5 px-3"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        通知主人
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setExpandedPreview(isExpanded ? null : ab.id)}
+                      className="btn-secondary text-xs py-1.5 px-3"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {isExpanded ? "收起预览" : "通知主人"}
+                    </button>
                   ) : (
                     <button
                       onClick={() =>
@@ -463,6 +449,25 @@ export default function AbnormalityPanel({ order }: AbnormalityPanelProps) {
                         将以上内容发送至 {order.ownerPhone}
                       </span>
                     </div>
+
+                    {!ab.notifiedOwner && (
+                      <div className="mt-4 flex gap-2">
+                        <button
+                          onClick={() => setExpandedPreview(null)}
+                          className="flex-1 btn-ghost text-xs py-2"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          再看看
+                        </button>
+                        <button
+                          onClick={() => handleSendNotification(ab.id)}
+                          className="flex-1 btn-danger text-xs py-2"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          确认发送通知
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
