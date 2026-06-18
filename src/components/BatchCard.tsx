@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Droplets, Clock, Scale, Coffee } from 'lucide-react';
+import { Droplets, Clock, Scale, Coffee, Package } from 'lucide-react';
 import type { CoffeeBatch } from '../types';
 import StatusBadge from './StatusBadge';
 import FlavorTags from './FlavorTags';
@@ -25,25 +25,41 @@ export default function BatchCard({ batch, onQuickBrew }: BatchCardProps) {
 
   return (
     <div
-      className="card relative overflow-hidden cursor-pointer group"
+      className="card relative overflow-hidden cursor-pointer group flex flex-col"
       onClick={handleClick}
     >
       <div
-        className="absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-300"
+        className="absolute left-0 top-0 bottom-0 w-1.5 z-10 transition-all duration-300"
         style={{ backgroundColor: statusInfo.color }}
       />
 
-      <div className="p-5 pl-6">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-coffee-900 font-serif truncate group-hover:text-coffee-700 transition-colors">
-              {batch.origin}
-            </h3>
-            <p className="text-sm text-coffee-500 mt-0.5">
-              {batch.processMethod}
-            </p>
+      <div className="relative h-32 bg-gradient-to-br from-cream-100 to-cream-50 overflow-hidden">
+        {batch.photo ? (
+          <img
+            src={batch.photo}
+            alt={batch.origin}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-coffee-300">
+            <Package className="w-12 h-12 mb-1" />
+            <span className="text-xs font-medium">袋身照片</span>
           </div>
+        )}
+        <div className="absolute top-2 right-2">
           <StatusBadge status={status} size="sm" />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-white/50 to-transparent" />
+      </div>
+
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-3">
+          <h3 className="text-lg font-semibold text-coffee-900 font-serif truncate group-hover:text-coffee-700 transition-colors">
+            {batch.origin}
+          </h3>
+          <p className="text-sm text-coffee-500 mt-0.5">
+            {batch.processMethod}
+          </p>
         </div>
 
         <div className="mb-3">

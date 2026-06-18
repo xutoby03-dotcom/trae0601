@@ -10,6 +10,8 @@ import {
   Star,
   Coffee,
   Trash2,
+  Package,
+  Camera,
 } from 'lucide-react';
 import { useBatchStore } from '../store/useBatchStore';
 import { getBatchStatus, getStatusInfo, getWeightProgress } from '../utils/statusUtils';
@@ -89,20 +91,35 @@ export default function BatchDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <div className="card overflow-hidden">
-              <div
-                className="h-3 relative"
-                style={{ backgroundColor: statusInfo.color }}
-              />
+              <div className="relative h-56 bg-gradient-to-br from-cream-100 to-cream-200 overflow-hidden">
+                {batch.photo ? (
+                  <img
+                    src={batch.photo}
+                    alt={batch.origin}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-coffee-300">
+                    <Package className="w-20 h-20 mb-2" />
+                    <span className="text-sm font-medium">暂无袋身照片</span>
+                  </div>
+                )}
+                <div
+                  className="absolute top-0 left-0 right-0 h-1.5"
+                  style={{ backgroundColor: statusInfo.color }}
+                />
+                <div className="absolute top-3 right-3">
+                  <StatusBadge status={status} />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent" />
+              </div>
 
               <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 className="text-2xl font-bold text-coffee-900 font-serif">
-                      {batch.origin}
-                    </h1>
-                    <p className="text-coffee-500 mt-1">{batch.processMethod}</p>
-                  </div>
-                  <StatusBadge status={status} />
+                <div className="mb-4">
+                  <h1 className="text-2xl font-bold text-coffee-900 font-serif">
+                    {batch.origin}
+                  </h1>
+                  <p className="text-coffee-500 mt-1">{batch.processMethod}</p>
                 </div>
 
                 <div className="mb-6">
