@@ -8,9 +8,48 @@ import type { CoatSize, CoatStatus, LabCoat, Lending, DamageRecord, CleaningBatc
 import { formatDate, getTodayStr } from '../utils/helpers';
 import { cn } from '../lib/utils';
 
+function resolveCleaningBatches(
+  coat: LabCoat,
+  allBatches: CleaningBatch[],
+  coatIdBatches: CleaningBatch[]
+): CleaningBatch[] {
+  const result: CleaningBatch[] = [];
+  const seen = new Set<string>();
+
+  if (coat.lastCleaningBatchId) {
+    const batchById = allBatches.find((b) => b.id === coat.lastCleaningBatchId);
+    if (batchById) {
+      result.push(batchById);
+      seen.add(batchById.id);
+    }
+  }
+
+  for (const batch of coatIdBatches) {
+    if (!seen.has(batch.id)) {
+      result.push(batch);
+      seen.add(batch.id);
+    }
+  }
+
+  return result;
+}
+
+function resolveLastBatch(
+  coat: LabCoat,
+  allBatches: CleaningBatch[],
+  coatIdBatches: CleaningBatch[]
+): CleaningBatch | undefined {
+  if (coat.lastCleaningBatchId) {
+    const batchById = allBatches.find((b) => b.id === coat.lastCleaningBatchId);
+    if (batchById) return batchById;
+  }
+  return coatIdBatches[0];
+}
+
 export function CoatList() {
   const {
     coats,
+    cleaningBatches,
     addCoat,
     updateCoat,
     deleteCoat,
@@ -521,7 +560,7 @@ export function CoatList() {
           onClose={() => setDetailCoat(null)}
           lendings={getLendingsForCoat(detailCoat.id)}
           damageRecords={getDamageRecordsForCoat(detailCoat.id)}
-          cleaningBatches={getCleaningBatchesForCoat(detailCoat.id)}
+          cleaningBatches={resolveCleaningBatches(detailCoat, cleaningBatches, getCleaningBatchesForCoat(detailCoat.id))}
         />
       )}
     </div>
@@ -584,9 +623,9 @@ function CoatRow({
   onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const { getCleaningBatchesForCoat } = useStore();
-  const cleaningBatches = getCleaningBatchesForCoat(coat.id);
-  const lastBatch = cleaningBatches[0];
+  const { cleaningBatches: allBatches, getCleaningBatchesForCoat } = useStore();
+  const coatIdBatches = getCleaningBatchesForCoat(coat.id);
+  const lastBatch = resolveLastBatch(coat, allBatches, coatIdBatches);
 
   return (
     <>
@@ -796,10 +835,6 @@ function CoatDetailModal({
                   <p className="text-xs text-gray-400 mb-1">入库日期</p>
                   <p className="text-sm font-medium text-gray-900">{formatDate(coat.createdAt)}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-400 mb-1">最近清洗批次ID</p>
-                  <p className="text-sm font-medium text-gray-900">{coat.lastCleaningBatchId || '-'}</p>
-                </div>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-xl">
@@ -855,21 +890,29 @@ function CoatDetailModal({
                 )}
               </div>
 
-              {cleaningBatches.length > 0 && (
+              {coat.lastCleaningBatchId || cleaningBatches.length > 0 ? (
                 <div>
                   <p className="text-xs text-gray-400 mb-2">最近清洗批次</p>
-                  <div className="p-3 border border-gray-100 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">{cleaningBatches[0].batchNo}</span>
-                      <StatusBadge type="batch" status={cleaningBatches[0].status} />
+                  {cleaningBatches[0] ? (
+                    <div className="p-3 border border-gray-100 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">{cleaningBatches[0].batchNo}</span>
+                        <StatusBadge type="batch" status={cleaningBatches[0].status} />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {formatDate(cleaningBatches[0].createdAt)}
+                        {cleaningBatches[0].notes && ` · ${cleaningBatches[0].notes}`}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {formatDate(cleaningBatches[0].createdAt)}
-                      {cleaningBatches[0].notes && ` · ${cleaningBatches[0].notes}`}
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="p-3 border border-dashed border-gray-200 rounded-lg">
+                      <p className="text-xs text-gray-400">
+                        批次ID {coat.lastCleaningBatchId} 未找到对应记录
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               <div>
                 <p className="text-xs text-gray-400 mb-1">备注</p>
