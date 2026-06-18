@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Wrench,
   CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
@@ -180,40 +179,80 @@ export default function DeviceDetail() {
                   </Link>
                 </div>
               ) : (
-                checkRecords.map((record) => (
-                  <div key={record.id} className="border border-gray-200 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm text-gray-500">
-                        {formatDateTime(record.checkDate)}
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        检查人: {record.inspector}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
-                      {CHECK_ITEMS.map((item) => (
-                        <div
-                          key={item.key}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          {record[item.key] ? (
-                            <CheckCircle2 className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-warning-500" />
-                          )}
-                          <span className={record[item.key] ? "text-gray-600" : "text-warning-600 font-medium"}>
-                            {item.label}
+                checkRecords.map((record) => {
+                  const failedCount = CHECK_ITEMS.filter(
+                    (item) => !record[item.key]
+                  ).length;
+                  const hasIssues = failedCount > 0;
+
+                  return (
+                    <div
+                      key={record.id}
+                      className={cn(
+                        "rounded-2xl p-4 border-2 transition-all",
+                        hasIssues
+                          ? "border-warning-200 bg-warning-50/50"
+                          : "border-gray-200 bg-white"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">
+                            {formatDateTime(record.checkDate)}
                           </span>
+                          {hasIssues && (
+                            <span className="px-2 py-0.5 bg-warning-100 text-warning-700 text-xs font-semibold rounded-full">
+                              {failedCount} 项异常
+                            </span>
+                          )}
+                          {!hasIssues && (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                              全部正常
+                            </span>
+                          )}
                         </div>
-                      ))}
+                        <span className="text-sm text-gray-600">
+                          检查人: {record.inspector}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                        {CHECK_ITEMS.map((item) => (
+                          <div
+                            key={item.key}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            {record[item.key] ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <AlertTriangle className="w-4 h-4 text-warning-500 flex-shrink-0" />
+                            )}
+                            <span
+                              className={cn(
+                                record[item.key]
+                                  ? "text-gray-600"
+                                  : "text-warning-700 font-medium"
+                              )}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {record.notes && (
+                        <p
+                          className={cn(
+                            "text-sm rounded-lg p-2",
+                            hasIssues
+                              ? "text-warning-700 bg-warning-100/50"
+                              : "text-gray-500 bg-gray-50"
+                          )}
+                        >
+                          💬 {record.notes}
+                        </p>
+                      )}
                     </div>
-                    {record.notes && (
-                      <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-2">
-                        💬 {record.notes}
-                      </p>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}

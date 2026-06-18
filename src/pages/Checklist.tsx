@@ -7,6 +7,7 @@ import {
   Clock,
   History,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { CHECK_ITEMS, type CheckItem } from "@/types";
@@ -35,7 +36,8 @@ export default function Checklist() {
 
   const completedCount = Object.values(checks).filter(Boolean).length;
   const progress = (completedCount / CHECK_ITEMS.length) * 100;
-  const allChecked = completedCount === CHECK_ITEMS.length;
+  const allPassed = completedCount === CHECK_ITEMS.length;
+  const failedItems = CHECK_ITEMS.filter((item) => !checks[item.key]);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
@@ -45,7 +47,7 @@ export default function Checklist() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDeviceId || !inspector.trim() || !allChecked) return;
+    if (!selectedDeviceId || !inspector.trim()) return;
 
     const record: Omit<CheckRecord, "id"> = {
       deviceId: selectedDeviceId,
@@ -126,51 +128,80 @@ export default function Checklist() {
             </div>
           ) : (
             <div className="space-y-4">
-              {deviceCheckHistory.map((record) => (
-                <div
-                  key={record.id}
-                  className="border border-gray-200 rounded-2xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-gray-500">
-                      {formatDateTime(record.checkDate)}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      检查人: {record.inspector}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {CHECK_ITEMS.map((item: CheckItem) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        {record[item.key] ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full bg-warning-100 text-warning-600 flex items-center justify-center text-xs">
-                            !
+              {deviceCheckHistory.map((record) => {
+                const failedCount = CHECK_ITEMS.filter(
+                  (item) => !record[item.key]
+                ).length;
+                const hasIssues = failedCount > 0;
+
+                return (
+                  <div
+                    key={record.id}
+                    className={cn(
+                      "rounded-2xl p-4 border-2 transition-all",
+                      hasIssues
+                        ? "border-warning-200 bg-warning-50/50"
+                        : "border-gray-200 bg-white"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {formatDateTime(record.checkDate)}
+                        </span>
+                        {hasIssues && (
+                          <span className="px-2 py-0.5 bg-warning-100 text-warning-700 text-xs font-semibold rounded-full">
+                            {failedCount} 项异常
                           </span>
                         )}
-                        <span
-                          className={
-                            record[item.key]
-                              ? "text-gray-600"
-                              : "text-warning-600 font-medium"
-                          }
-                        >
-                          {item.label}
-                        </span>
+                        {!hasIssues && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                            全部正常
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      <span className="text-sm text-gray-600">
+                        检查人: {record.inspector}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {CHECK_ITEMS.map((item: CheckItem) => (
+                        <div
+                          key={item.key}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          {record[item.key] ? (
+                            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-warning-500 flex-shrink-0" />
+                          )}
+                          <span
+                            className={cn(
+                              record[item.key]
+                                ? "text-gray-600"
+                                : "text-warning-700 font-medium"
+                            )}
+                          >
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {record.notes && (
+                      <p
+                        className={cn(
+                          "text-sm rounded-lg p-2 mt-3",
+                          hasIssues
+                            ? "text-warning-700 bg-warning-100/50"
+                            : "text-gray-500 bg-gray-50"
+                        )}
+                      >
+                        💬 {record.notes}
+                      </p>
+                    )}
                   </div>
-                  {record.notes && (
-                    <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-2 mt-3">
-                      💬 {record.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -238,11 +269,9 @@ export default function Checklist() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              {allChecked && (
-                <p className="mt-3 text-center text-white/90 font-medium">
-                  ✅ 所有检查项已完成！
-                </p>
-              )}
+              <p className="mt-3 text-center text-white/90 font-medium">
+                {allPassed ? "✅ 所有检查项已通过" : `⚠️ 还有 ${failedItems.length} 项待确认`}
+              </p>
             </div>
           )}
 
@@ -308,10 +337,10 @@ export default function Checklist() {
             </button>
             <button
               type="submit"
-              disabled={!selectedDeviceId || !inspector.trim() || !allChecked}
+              disabled={!selectedDeviceId || !inspector.trim()}
               className={cn(
                 "btn-primary flex items-center gap-2",
-                (!selectedDeviceId || !inspector.trim() || !allChecked) &&
+                (!selectedDeviceId || !inspector.trim()) &&
                   "opacity-50 cursor-not-allowed"
               )}
             >
@@ -325,13 +354,41 @@ export default function Checklist() {
       {showSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl p-8 text-center max-w-sm mx-4 animate-bounce-in">
-            <div className="w-20 h-20 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle2 className="w-12 h-12 text-green-500" />
+            <div
+              className={cn(
+                "w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center",
+                allPassed ? "bg-green-100" : "bg-warning-100"
+              )}
+            >
+              {allPassed ? (
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
+              ) : (
+                <AlertTriangle className="w-12 h-12 text-warning-500" />
+              )}
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">检查完成！</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              {allPassed ? "检查完成！" : "检查完成，请注意！"}
+            </h3>
             <p className="text-gray-600 mb-4">
-              检查记录已成功保存，设备状态良好
+              {allPassed
+                ? "检查记录已成功保存，设备状态良好"
+                : `检查记录已保存，发现 ${failedItems.length} 项异常，请及时处理`}
             </p>
+            {!allPassed && failedItems.length > 0 && (
+              <div className="bg-warning-50 rounded-2xl p-4 mb-4 text-left">
+                <p className="text-sm font-semibold text-warning-700 mb-2">
+                  异常项：
+                </p>
+                <ul className="text-sm text-warning-600 space-y-1">
+                  {failedItems.map((item) => (
+                  <li key={item.key} className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-warning-500 rounded-full" />
+                  {item.label}
+                </li>
+                ))}
+                </ul>
+              </div>
+            )}
             <button
               onClick={() => setShowSuccess(false)}
               className="btn-primary flex items-center justify-center gap-2 mx-auto"
