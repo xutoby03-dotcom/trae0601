@@ -46,12 +46,20 @@ export default function RecordForm() {
   };
 
   const contraindicationWarning = useMemo(() => {
-    if (!formData.familyMemberId || !formData.medicineId) return null;
+    if (!formData.familyMemberId || (!formData.medicineId && !formData.medicineName.trim())) return null;
     
     const contraindicatedList = getContraindicatedMedicines(formData.familyMemberId) as ContraindicatedMedicine[];
-    const matched = contraindicatedList.find(
-      (m) => m.id === formData.medicineId
-    );
+    
+    let matched: ContraindicatedMedicine | undefined;
+    
+    if (formData.medicineId) {
+      matched = contraindicatedList.find((m) => m.id === formData.medicineId);
+    } else if (formData.medicineName.trim()) {
+      const nameToMatch = formData.medicineName.trim();
+      matched = contraindicatedList.find(
+        (m) => m.name === nameToMatch || m.name.includes(nameToMatch) || nameToMatch.includes(m.name)
+      );
+    }
     
     if (!matched) return null;
     
@@ -61,7 +69,7 @@ export default function RecordForm() {
       medicineName: matched.name,
       reasons: matched.reasons,
     };
-  }, [formData.familyMemberId, formData.medicineId, formData.userName, getContraindicatedMedicines, familyMembers]);
+  }, [formData.familyMemberId, formData.medicineId, formData.medicineName, formData.userName, getContraindicatedMedicines, familyMembers]);
 
   const availableMedicines = medicines.filter(m => {
     const status = getMedicineStatus(m);
