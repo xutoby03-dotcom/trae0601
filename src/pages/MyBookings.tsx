@@ -4,6 +4,7 @@ import { ChevronLeft, Calendar, Clock, Users, BadgeCheck, QrCode, X } from 'luci
 import { useAppStore } from '../store';
 import Header from '../components/layout/Header';
 import { BookingStatusBadge } from '../components/common/StatusBadge';
+import BookingTimer from '../components/common/BookingTimer';
 import { formatDateChinese } from '../utils/timeUtils';
 import type { Booking } from '../types';
 
@@ -157,6 +158,12 @@ export default function MyBookings() {
                         球拍 {booking.racketBorrowed} 副
                       </div>
                     </div>
+
+                    {canReturn && (
+                      <div className="mb-4">
+                        <BookingTimer date={booking.date} endTime={booking.endTime} />
+                      </div>
+                    )}
 
                     <div className="flex gap-3">
                       {canCheckIn && (

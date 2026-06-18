@@ -21,7 +21,8 @@ export default function CheckIn() {
 
   const booking = bookingId && bookingId !== 'quick' ? getBookingById(bookingId) : undefined;
   const table = booking ? getTableById(booking.tableId) : undefined;
-  const timer = booking && checkedIn ? useTimer(booking.endTime) : null;
+  const timer = useTimer(booking?.date, booking?.endTime);
+  const isCheckedInView = booking?.status === 'checked-in' || checkedIn;
 
   const handleQuickCheckIn = () => {
     refreshData();
@@ -184,7 +185,7 @@ export default function CheckIn() {
     );
   }
 
-  if (booking.status === 'checked-in' || checkedIn) {
+  if (isCheckedInView) {
     return (
       <div className="min-h-screen">
         <Header />
@@ -204,12 +205,12 @@ export default function CheckIn() {
             <h2 className="font-display text-2xl font-bold text-gray-800 mb-2">签到成功！</h2>
             <p className="text-gray-500 mb-6">祝您打球愉快 🏓</p>
 
-            <div className={`rounded-2xl p-6 mb-6 ${timer?.isUrgent ? 'bg-red-50 border-2 border-red-300' : 'bg-table-50'}`}>
+            <div className={`rounded-2xl p-6 mb-6 ${timer.isUrgent ? 'bg-red-50 border-2 border-red-300' : 'bg-table-50'}`}>
               <div className="text-sm text-gray-500 mb-2">剩余时间</div>
-              <div className={`font-display text-5xl font-bold tracking-wider ${timer?.isUrgent ? 'text-red-500 animate-pulse-soft' : 'text-table-600'}`}>
-                {timer?.timeString || '00:00:00'}
+              <div className={`font-display text-5xl font-bold tracking-wider ${timer.isUrgent ? 'text-red-500 animate-pulse-soft' : 'text-table-600'}`}>
+                {timer.timeString}
               </div>
-              {timer?.isUrgent && (
+              {timer.isUrgent && (
                 <div className="mt-2 text-sm text-red-500 flex items-center justify-center gap-1">
                   <AlertTriangle size={14} />
                   时间即将结束，请准备归还器材
