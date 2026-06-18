@@ -1,20 +1,64 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Send, CheckCircle, MapPin } from 'lucide-react';
+import { Clock, Send, CheckCircle, MapPin, AlertTriangle, Check } from 'lucide-react';
 import { useFeedbackStore } from '@/store/useFeedbackStore';
 import { NoiseTypeSelector } from './NoiseTypeSelector';
 import { PhotoUploader } from './PhotoUploader';
 import type { NoiseType } from '@/types';
-import { FLOOR_LABELS, ZONE_LABELS } from '@/types';
+import { FLOOR_LABELS, ZONE_LABELS, NOISE_TYPE_LABELS } from '@/types';
 
 interface FeedbackFormProps {
   seatId: string;
 }
 
+const typeColors: Record<NoiseType, string> = {
+  call: 'bg-red-50 border-red-200 text-red-700',
+  keyboard: 'bg-amber-50 border-amber-200 text-amber-700',
+  eating: 'bg-orange-50 border-orange-200 text-orange-700',
+  occupied: 'bg-purple-50 border-purple-200 text-purple-700',
+  talking: 'bg-blue-50 border-blue-200 text-blue-700',
+  equipment: 'bg-teal-50 border-teal-200 text-teal-700',
+};
+
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} 小时前`;
+}
+
 export function FeedbackForm({ seatId }: FeedbackFormProps) {
   const navigate = useNavigate();
-  const { getSeatById, submitFeedback } = useFeedbackStore();
+  const { getSeatById, submitFeedback, feedbacks } = useFeedbackStore();
   const seat = getSeatById(seatId);
+
+  const recentFeedbacks = useMemo(() => {
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    const seatFeedbacks = feedbacks.filter(
+      (f) => f.seatId === seatId && new Date(f.submitTime).getTime() > twoHoursAgo
+    );
+    const grouped = new Map<
+      NoiseType,
+      { count: number; latestTime: string }
+    >();
+    seatFeedbacks.forEach((f) => {
+      const existing = grouped.get(f.noiseType);
+      if (!existing) {
+        grouped.set(f.noiseType, { count: 1, latestTime: f.submitTime });
+      } else {
+        grouped.set(f.noiseType, {
+          count: existing.count + 1,
+          latestTime:
+            new Date(f.submitTime).getTime() > new Date(existing.latestTime).getTime()
+              ? f.submitTime
+              : existing.latestTime,
+        });
+      }
+    });
+    return Array.from(grouped.entries()).sort((a, b) => b[1].count - a[1].count);
+  }, [feedbacks, seatId]);
 
   const [noiseType, setNoiseType] = useState<NoiseType | null>(null);
   const [occurTime, setOccurTime] = useState(() => {
@@ -85,6 +129,35 @@ export function FeedbackForm({ seatId }: FeedbackFormProps) {
         <label className="block text-sm font-medium text-slate-700 mb-3">
           噪音类型 <span className="text-red-500">*</span>
         </label>
+
+        {recentFeedbacks.length > 0 ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-100/70 border-b border-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+              <span className="text-sm font-medium text-amber-800">
+                该座位近 2 小时已有 {recentFeedbacks.reduce((s, [, v]) => s + v.count, 0)} 条反馈记录
+              </span>
+            </div>
+            <div className="px-3 py-2.5 flex flex-wrap gap-2">
+              {recentFeedbacks.map(([type, info]) => (
+                <div
+                  key={type}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium ${typeColors[type]}`}
+                >
+                  <span>{NOISE_TYPE_LABELS[type]}</span>
+                  <span className="px-1 rounded bg-white/60">{info.count} 次</span>
+                  <span className="opacity-70">· {formatRelativeTime(info.latestTime)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span className="text-sm text-emerald-800">近 2 小时暂无重复反馈记录</span>
+          </div>
+        )}
+
         <NoiseTypeSelector value={noiseType} onChange={setNoiseType} />
       </div>
 
