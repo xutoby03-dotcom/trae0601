@@ -19,6 +19,8 @@ export const RouteList = () => {
     if (destinationParam) {
       setFilterDestination(destinationParam);
       setShowFilters(true);
+    } else {
+      setFilterDestination('all');
     }
   }, [searchParams]);
 
@@ -76,8 +78,9 @@ export const RouteList = () => {
     if (key === 'destination') {
       setFilterDestination('all');
       setSearchParams((prev) => {
-        prev.delete('destination');
-        return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('destination');
+        return next;
       });
     } else if (key === 'time') {
       setFilterTime('');
@@ -91,7 +94,7 @@ export const RouteList = () => {
     setFilterTime('');
     setSearchQuery('');
     setActiveStatusFilter('all');
-    setSearchParams({});
+    setSearchParams(new URLSearchParams());
   };
 
   const displayRoutes = sortedRoutes.filter((route) => {
@@ -147,13 +150,15 @@ export const RouteList = () => {
                   setFilterDestination(e.target.value);
                   if (e.target.value === 'all') {
                     setSearchParams((prev) => {
-                      prev.delete('destination');
-                      return prev;
+                      const next = new URLSearchParams(prev);
+                      next.delete('destination');
+                      return next;
                     });
                   } else {
                     setSearchParams((prev) => {
-                      prev.set('destination', e.target.value);
-                      return prev;
+                      const next = new URLSearchParams(prev);
+                      next.set('destination', e.target.value);
+                      return next;
                     });
                   }
                 }}
