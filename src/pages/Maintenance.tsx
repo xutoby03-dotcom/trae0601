@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useStore } from "@/store";
 import {
   formatDate,
@@ -41,7 +42,20 @@ const STATUS_COLOR: Record<MaintenanceStatus, string> = {
 };
 
 export default function Maintenance() {
-  const [activeTab, setActiveTab] = useState<TabKey>("repair");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabKey | null;
+  const [activeTab, setActiveTab] = useState<TabKey>(tabParam === "completed" ? "completed" : tabParam === "purchase" ? "purchase" : "repair");
+
+  useEffect(() => {
+    if (tabParam && (tabParam === "repair" || tabParam === "purchase" || tabParam === "completed")) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
   const [showAddForm, setShowAddForm] = useState(false);
   const [newType, setNewType] = useState<MaintenanceType>("repair");
   const [newEquipmentId, setNewEquipmentId] = useState("");
@@ -324,7 +338,7 @@ export default function Maintenance() {
           return (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
                 isActive
                   ? "bg-white text-forest-800 shadow-soft"

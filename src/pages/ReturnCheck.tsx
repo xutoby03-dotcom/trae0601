@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStore } from "@/store";
-import { getCategory, getStatus, CATEGORIES } from "@/data/constants";
+import { getCategory } from "@/data/constants";
 import { formatDate } from "@/utils/format";
 import EquipmentPhoto from "@/components/EquipmentPhoto";
 import {
@@ -13,8 +13,12 @@ import {
   Battery,
   FileText,
   Send,
+  Sun,
+  Wrench,
+  ShoppingCart,
+  CheckCircle2,
+  X,
 } from "lucide-react";
-import type { ReturnCheck as ReturnCheckType } from "@/types";
 
 interface CheckItemState {
   equipmentId: string;
@@ -134,6 +138,15 @@ export default function ReturnCheck() {
     return result;
   });
 
+  const [showResult, setShowResult] = useState(false);
+  const [resultStats, setResultStats] = useState({
+    wet: 0,
+    damaged: 0,
+    missing: 0,
+    normal: 0,
+    total: 0,
+  });
+
   const updateCheck = (equipmentId: string, patch: Partial<CheckItemState>) => {
     setCheckStates((prev) => ({
       ...prev,
@@ -154,10 +167,27 @@ export default function ReturnCheck() {
       notes: c.notes || undefined,
     }));
 
+    let wetCount = 0;
+    let damagedCount = 0;
+    let missingCount = 0;
+    let normalCount = 0;
+    checks.forEach((c) => {
+      if (c.isWet) wetCount++;
+      if (c.isDamaged) damagedCount++;
+      if (c.isMissingParts) missingCount++;
+      if (!c.isWet && !c.isDamaged && !c.isMissingParts) normalCount++;
+    });
+
     completeReturnCheck(tripId, checks);
 
-    alert("归还检查提交成功！已自动生成晾晒和维修记录。");
-    navigate("/drying");
+    setResultStats({
+      wet: wetCount,
+      damaged: damagedCount,
+      missing: missingCount,
+      normal: normalCount,
+      total: checks.length,
+    });
+    setShowResult(true);
   };
 
   if (!trip) {
@@ -403,6 +433,148 @@ export default function ReturnCheck() {
               <Send className="w-5 h-5" />
               提交检查结果
             </button>
+          </div>
+        </div>
+      )}
+
+      {showResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="card w-full max-w-md animate-count-up shadow-2xl">
+            <div className="p-6 border-b border-forest-100">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircle2 className="w-6 h-6 text-forest-600" />
+                    <h2 className="text-xl font-bold text-forest-800 font-serif">
+                      检查完成
+                    </h2>
+                  </div>
+                  <p className="text-forest-500 text-sm">
+                    共检查 {resultStats.total} 件装备，已自动生成后续处理记录
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowResult(false)}
+                  className="p-1.5 rounded-lg hover:bg-forest-100 text-forest-400 hover:text-forest-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-3">
+              {resultStats.wet > 0 && (
+                <button
+                  onClick={() => navigate("/drying")}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-sky2-50 border border-sky2-200 hover:bg-sky2-100 hover:border-sky2-300 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-sky2-400 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <Sun className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold text-sky2-800">
+                      需晾晒
+                    </div>
+                    <div className="text-xs text-sky2-600">
+                      点击进入晾晒管理页面
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-sky2-700 font-serif">
+                      {resultStats.wet}
+                    </div>
+                    <div className="text-xs text-sky2-500">件</div>
+                  </div>
+                </button>
+              )}
+
+              {resultStats.damaged > 0 && (
+                <button
+                  onClick={() => navigate("/maintenance?tab=repair")}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <Wrench className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold text-red-800">
+                      需维修
+                    </div>
+                    <div className="text-xs text-red-600">
+                      点击进入维修管理
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-red-700 font-serif">
+                      {resultStats.damaged}
+                    </div>
+                    <div className="text-xs text-red-500">件</div>
+                  </div>
+                </button>
+              )}
+
+              {resultStats.missing > 0 && (
+                <button
+                  onClick={() => navigate("/maintenance?tab=purchase")}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 hover:border-amber-300 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                    <ShoppingCart className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-semibold text-amber-800">
+                      需补购
+                    </div>
+                    <div className="text-xs text-amber-600">
+                      点击进入补购清单
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-amber-700 font-serif">
+                      {resultStats.missing}
+                    </div>
+                    <div className="text-xs text-amber-500">件</div>
+                  </div>
+                </button>
+              )}
+
+              {resultStats.normal > 0 && (
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-forest-50 border border-forest-200">
+                  <div className="w-12 h-12 rounded-xl bg-forest-500 flex items-center justify-center shadow-sm">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-forest-800">
+                      正常入库
+                    </div>
+                    <div className="text-xs text-forest-600">
+                      状态良好，无需额外处理
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-forest-700 font-serif">
+                      {resultStats.normal}
+                    </div>
+                    <div className="text-xs text-forest-500">件</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 pt-2 border-t border-forest-100 flex gap-3">
+              <button
+                onClick={() => setShowResult(false)}
+                className="btn btn-secondary flex-1"
+              >
+                留在此页
+              </button>
+              <button
+                onClick={() => navigate("/trips")}
+                className="btn btn-primary flex-1"
+              >
+                返回活动列表
+              </button>
+            </div>
           </div>
         </div>
       )}
