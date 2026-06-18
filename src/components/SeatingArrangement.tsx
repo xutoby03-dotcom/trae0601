@@ -116,7 +116,7 @@ export default function SeatingArrangement() {
             <div className="bg-red-50 rounded-lg px-4 py-2">
               <span className="text-sm text-gray-500">过敏宾客</span>
               <p className="text-xl font-bold text-red-600">
-                {guests.filter(g => g.allergens.length > 0).length} 人
+                {guests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0)} 人
               </p>
             </div>
           </div>

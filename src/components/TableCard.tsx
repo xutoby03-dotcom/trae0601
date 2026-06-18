@@ -95,8 +95,8 @@ export default function TableCard({ table, guests, headCount, conflicts, special
           {specialMealCount > 0 && (
             <span className="text-orange-600">🍽️ {specialMealCount}份特殊餐</span>
           )}
-          {guests.filter(g => g.allergens.length > 0).length > 0 && (
-            <span className="text-red-500">⚠️ {guests.filter(g => g.allergens.length > 0).length}人过敏</span>
+          {guests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0) > 0 && (
+            <span className="text-red-500">⚠️ {guests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0)}人过敏</span>
           )}
         </div>
         <span className="text-gray-400">详情 →</span>

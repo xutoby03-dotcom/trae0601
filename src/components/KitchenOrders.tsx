@@ -78,7 +78,7 @@ export default function KitchenOrders() {
             <div className="bg-red-50 rounded-xl p-4">
               <p className="text-sm text-red-600">过敏宾客</p>
               <p className="text-3xl font-bold text-red-700 mt-1">
-                {guests.filter(g => g.allergens.length > 0).length}
+                {guests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0)}
               </p>
             </div>
           </div>

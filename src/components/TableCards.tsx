@@ -111,7 +111,7 @@ export default function TableCards() {
           const headCount = getTableHeadCount(table, guests);
           const specialMeals = calculateSpecialMeals(tableGuests);
           const specialMealCount = Object.values(specialMeals).reduce((a, b) => a + b, 0);
-          const allergyCount = tableGuests.filter(g => g.allergens.length > 0).length;
+          const allergyCount = tableGuests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0);
           const needsReprint = !table.printed && table.guestIds.length > 0;
 
           if (tableGuests.length === 0) return null;

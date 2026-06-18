@@ -233,7 +233,7 @@ export default function Dashboard() {
                   const tableGuests = getTableGuests(table, guests);
                   const specialMeals = calculateSpecialMeals(tableGuests);
                   const specialMealCount = Object.values(specialMeals).reduce((a, b) => a + b, 0);
-                  const allergyCount = tableGuests.filter(g => g.allergens.length > 0).length;
+                  const allergyCount = tableGuests.filter(g => g.allergens.length > 0).reduce((sum, g) => sum + g.headCount, 0);
                   return (
                     <div
                       key={table.id}
