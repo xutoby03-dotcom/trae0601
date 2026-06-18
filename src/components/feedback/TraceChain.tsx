@@ -1,27 +1,38 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, User, Flame, Clock, ChefHat } from 'lucide-react';
 import { useBatchStore } from '@/store/useBatchStore';
 import StatusBadge from '@/components/common/StatusBadge';
 import { SOUP_TYPE_LABEL } from '@/utils/soupConfig';
 import { formatDateTime } from '@/utils/helpers';
+import type { FeedbackType } from '@/types';
 
-export default function TraceChain() {
+interface TraceChainProps {
+  filterType?: FeedbackType | 'all';
+}
+
+export default function TraceChain({ filterType = 'all' }: TraceChainProps) {
   const navigate = useNavigate();
   const feedbacks = useBatchStore((s) => s.feedbacks);
   const getBatchById = useBatchStore((s) => s.getBatchById);
 
-  if (feedbacks.length === 0) {
+  const filteredFeedbacks = useMemo(() => {
+    if (filterType === 'all') return feedbacks;
+    return feedbacks.filter((f) => f.feedbackType === filterType);
+  }, [feedbacks, filterType]);
+
+  if (filteredFeedbacks.length === 0) {
     return (
       <div className="card text-center py-16 text-broth-400">
         <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-40" />
-        <p>暂无顾客反馈</p>
+        <p>暂无{filterType !== 'all' ? '该类型' : ''}反馈记录</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {feedbacks.map((f) => {
+      {filteredFeedbacks.map((f) => {
         const batch = getBatchById(f.batchId);
         return (
           <div key={f.id} className="card">
