@@ -65,6 +65,58 @@ const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
   { key: 'vaccine', label: '疫苗记录', icon: <Syringe className="w-4 h-4" /> },
 ];
 
+interface MaterialItemProps {
+  label: string;
+  required?: boolean;
+  hasFile: boolean;
+  description: string;
+}
+
+function MaterialItem({ label, required = false, hasFile, description }: MaterialItemProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between p-4 rounded-xl border-2 transition-all',
+        hasFile ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            'w-10 h-10 rounded-full flex items-center justify-center',
+            hasFile ? 'bg-green-200' : 'bg-red-200'
+          )}
+        >
+          {hasFile ? (
+            <CheckCircle2 className="w-5 h-5 text-green-700" />
+          ) : (
+            <XCircle className="w-5 h-5 text-red-700" />
+          )}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-gray-900">{label}</p>
+            {required && (
+              <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                必检
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 line-clamp-1">{description}</p>
+        </div>
+      </div>
+      <span
+        className={cn(
+          'px-3 py-1 rounded-full text-xs font-medium',
+          hasFile ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+        )}
+      >
+        {hasFile ? '已上传' : '缺失'}
+      </span>
+    </div>
+  );
+}
+
 export default function StayDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -431,9 +483,12 @@ export default function StayDetail() {
             )}
           </div>
 
-          {stay.vaccineCheckResult ? (
+          {stay.vaccineCheckResult || stay.pet ? (
             <div className="space-y-3">
-              {stay.vaccineCheckResult.checks.map((check, idx) => (
+              <div className="text-xs font-medium text-gray-400 uppercase tracking-wider pt-2">
+                疫苗有效期
+              </div>
+              {stay.vaccineCheckResult?.checks.map((check, idx) => (
                 <div
                   key={idx}
                   className={cn(
@@ -505,7 +560,25 @@ export default function StayDetail() {
                 </div>
               ))}
 
-              {stay.vaccineCheckResult.warnings.length > 0 && (
+              <div className="text-xs font-medium text-gray-400 uppercase tracking-wider pt-3">
+                材料文件
+              </div>
+
+              <MaterialItem
+                label="疫苗证"
+                required
+                hasFile={!!stay.vaccineRecords?.some((v) => v.certificateUrl)}
+                description="疫苗接种证明文件"
+              />
+
+              <MaterialItem
+                label="病史记录"
+                required={false}
+                hasFile={!!stay.pet?.medicalHistory}
+                description={stay.pet?.medicalHistory || '暂无病史记录'}
+              />
+
+              {stay.vaccineCheckResult?.warnings && stay.vaccineCheckResult.warnings.length > 0 && (
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />

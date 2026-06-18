@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { EmptyState } from '@/components/common/EmptyState';
-import type { Stay, Pet, Cage, User, VaccinationCheckResult } from '../../../shared/types';
+import type { Stay, Pet, Cage, User, VaccinationCheckResult, VaccineRecord } from '../../../shared/types';
 import { STATUS_NAMES, SPECIES_NAMES } from '../../../shared/types';
 
 type TabType = 'all' | 'pending' | 'checked-in' | 'checked-out' | 'cancelled' | 'pending-materials';
@@ -74,19 +74,43 @@ export default function StayList() {
       ]);
 
       let staysWithVaccine: StayWithDetails[] = [];
+      let petsMap = new Map<number, Pet>();
+
+      if (petsRes.success && petsRes.data) {
+        petsMap = new Map(petsRes.data.map((p) => [p.id, p]));
+        setPets(petsMap);
+      }
 
       if (staysRes.success && staysRes.data) {
-        const vaccineCheckPromises = staysRes.data.map(async (stay) => {
+        const detailPromises = staysRes.data.map(async (stay) => {
           try {
-            const checkRes = await apiClient.get<VaccinationCheckResult>(
-              `/vaccination/check/${stay.petId}`
-            );
+            const [checkRes, vaccinesRes] = await Promise.all([
+              apiClient.get<VaccinationCheckResult>(
+                `/vaccination/check/${stay.petId}`
+              ),
+              apiClient.get<VaccineRecord[]>(`/pets/${stay.petId}/vaccines`),
+            ]);
+
+            const pet = petsMap.get(stay.petId);
+            const pendingMaterials: string[] = [];
+
+            if (checkRes.data?.missingDocuments) {
+              pendingMaterials.push(...checkRes.data.missingDocuments);
+            }
+
+            const hasVaccineCert = vaccinesRes.data?.some((v) => v.certificateUrl);
+            if (!hasVaccineCert) {
+              pendingMaterials.push('疫苗证');
+            }
+
+            if (!pet?.medicalHistory) {
+              pendingMaterials.push('病史记录');
+            }
+
             return {
               ...stay,
               vaccineCheckResult: checkRes.success ? checkRes.data : null,
-              pendingMaterials: checkRes.success && checkRes.data?.missingDocuments
-                ? checkRes.data.missingDocuments
-                : [],
+              pendingMaterials,
             };
           } catch {
             return {
@@ -97,13 +121,8 @@ export default function StayList() {
           }
         });
 
-        staysWithVaccine = await Promise.all(vaccineCheckPromises);
+        staysWithVaccine = await Promise.all(detailPromises);
         setStays(staysWithVaccine);
-      }
-
-      if (petsRes.success && petsRes.data) {
-        const petsMap = new Map(petsRes.data.map((p) => [p.id, p]));
-        setPets(petsMap);
       }
       if (cagesRes.success && cagesRes.data) {
         const cagesMap = new Map(cagesRes.data.map((c) => [c.id, c]));
