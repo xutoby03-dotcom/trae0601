@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root {
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #3D3D3D;
+  background-color: #FFF8F0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFEFE0 50%, #FFF8F0 100%);
+  background-attachment: fixed;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF8F0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FFA561;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF8C42;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-orange-500 text-white font-medium rounded-full shadow-soft hover:bg-orange-600 hover:shadow-hover hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-orange-500 font-medium rounded-full border-2 border-orange-400 hover:bg-orange-50 hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-gray-600 font-medium rounded-full hover:bg-cream-200 transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-3xl shadow-card border border-cream-200 overflow-hidden;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-cream-50 border-2 border-cream-200 rounded-2xl text-gray-700 placeholder-gray-400 focus:outline-none focus:border-orange-400 focus:bg-white transition-all duration-200;
+  }
+
+  .tag {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-lavender-400/20 text-lavender-600;
+  }
+
+  .tag-mint {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-mint-400/20 text-mint-600;
+  }
+
+  .tag-orange {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-orange-400/20 text-orange-600;
+  }
+
+  .tag-coral {
+    @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-coral-400/20 text-coral-600;
+  }
+}
