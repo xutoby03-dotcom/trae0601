@@ -73,6 +73,16 @@ export function updateLockerStatus(id: string, status: string): void {
 }
 
 export function createPackage(data: any): Package {
+  const locker = getLockerById(data.lockerId);
+  if (!locker) {
+    throw new Error('柜格不存在');
+  }
+  if (locker.status === 'occupied') {
+    throw new Error(`柜格 ${locker.code} 已被占用，请选择其他柜格`);
+  }
+  if (locker.status === 'disabled') {
+    throw new Error(`柜格 ${locker.code} 已禁用，请选择其他柜格`);
+  }
   const id = 'PKG' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
   const createdAt = new Date().toISOString();
   const stmt = db.prepare(`
@@ -104,6 +114,16 @@ export function getPackageById(id: string): Package | undefined {
     SELECT p.*, l.code as locker_code FROM packages p
     LEFT JOIN lockers l ON p.locker_id = l.id WHERE p.id = ?
   `).get(id);
+  return row ? rowToPackage(row) : undefined;
+}
+
+export function getPackageByTracking(trackingNumber: string): Package | undefined {
+  const row = db.prepare(`
+    SELECT p.*, l.code as locker_code FROM packages p
+    LEFT JOIN lockers l ON p.locker_id = l.id
+    WHERE p.tracking_number = ? AND p.status = 'waiting'
+    ORDER BY p.created_at DESC LIMIT 1
+  `).get(trackingNumber);
   return row ? rowToPackage(row) : undefined;
 }
 

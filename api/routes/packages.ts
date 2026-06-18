@@ -5,6 +5,7 @@ import {
   getWaitingPackages,
   getOverduePackages,
   getPackagesByPhone,
+  getPackageByTracking,
   pickupPackage,
   markAbnormal,
   getAllPackages,
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get('/', (req: Request, res: Response) => {
   const status = req.query.status as string | undefined;
   const phone = req.query.phone as string | undefined;
+  const tracking = req.query.tracking as string | undefined;
   let packages: Package[];
   if (status === 'waiting') {
     packages = getWaitingPackages();
@@ -25,6 +27,9 @@ router.get('/', (req: Request, res: Response) => {
     packages = getOverduePackages();
   } else if (phone) {
     packages = getPackagesByPhone(phone);
+  } else if (tracking) {
+    const pkg = getPackageByTracking(tracking);
+    packages = pkg ? [pkg] : [];
   } else {
     packages = getAllPackages();
   }

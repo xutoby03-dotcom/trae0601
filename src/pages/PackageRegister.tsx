@@ -34,6 +34,7 @@ export default function PackageRegister() {
   const [showLockerPicker, setShowLockerPicker] = useState(false);
   const [selectedLocker, setSelectedLocker] = useState<Locker | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [lockerError, setLockerError] = useState<string>('');
 
   useEffect(() => {
     loadLockers();
@@ -68,6 +69,7 @@ export default function PackageRegister() {
     setSelectedLocker(l);
     updateField('lockerId', l.id);
     setShowLockerPicker(false);
+    setLockerError('');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -82,13 +84,20 @@ export default function PackageRegister() {
     }
     try {
       setSubmitting(true);
+      setLockerError('');
       const payload = photoUrl ? { ...form, photoUrl } : form;
       const pkg = await api.createPackage(payload);
       addPackage(pkg);
       showToast('包裹登记成功！', 'success');
+      loadLockers();
       navigate('/');
     } catch (e: any) {
-      showToast(e.message, 'error');
+      const msg = e.message || '登记失败';
+      showToast(msg, 'error');
+      if (msg.includes('柜格')) {
+        setLockerError(msg);
+        loadLockers();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -190,7 +199,7 @@ export default function PackageRegister() {
             onClick={() => setShowLockerPicker(true)}
             className={`w-full input-field text-left flex items-center justify-between ${
               !selectedLocker ? 'text-slate-400' : ''
-            }`}
+            } ${lockerError ? 'border-accent-rose focus:border-accent-rose' : ''}`}
           >
             <span>
               {selectedLocker
@@ -200,6 +209,12 @@ export default function PackageRegister() {
             </span>
             <Grid3x3 className="w-4 h-4" />
           </button>
+          {lockerError && (
+            <p className="mt-1.5 text-xs text-accent-rose flex items-center gap-1">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {lockerError}
+            </p>
+          )}
         </div>
 
         <div>

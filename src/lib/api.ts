@@ -18,10 +18,11 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  getPackages: (params?: { status?: string; phone?: string }) => {
+  getPackages: (params?: { status?: string; phone?: string; tracking?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set('status', params.status);
     if (params?.phone) qs.set('phone', params.phone);
+    if (params?.tracking) qs.set('tracking', params.tracking);
     const query = qs.toString();
     return request<(Package & { isOverdue: boolean })[]>(`/packages${query ? `?${query}` : ''}`);
   },

@@ -36,6 +36,10 @@ export default function Pickup() {
   const [showAbnormalModal, setShowAbnormalModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanInput, setScanInput] = useState('');
+  const [scanSearching, setScanSearching] = useState(false);
+
   useEffect(() => {
     if (preselectId) {
       loadById(preselectId);
@@ -94,6 +98,39 @@ export default function Pickup() {
     setAbnormalPkg(pkg);
     setAbnormalReason('');
     setShowAbnormalModal(true);
+  }
+
+  async function handleScanSearch() {
+    const code = scanInput.trim();
+    if (!code) {
+      showToast('请输入单号或包裹码', 'warning');
+      return;
+    }
+    try {
+      setScanSearching(true);
+      let found: (PackageType & { isOverdue: boolean }) | undefined;
+      if (code.startsWith('PKG')) {
+        try {
+          const pkg = await api.getPackage(code);
+          if (pkg.status === 'waiting') found = pkg;
+        } catch { /* 忽略不存在的包裹码 */ }
+      }
+      if (!found) {
+        const list = await api.getPackages({ tracking: code });
+        if (list.length > 0) found = list[0];
+      }
+      if (found) {
+        setShowScanModal(false);
+        setScanInput('');
+        openPickup(found);
+      } else {
+        showToast('未找到匹配的待取包裹', 'warning');
+      }
+    } catch (e: any) {
+      showToast(e.message, 'error');
+    } finally {
+      setScanSearching(false);
+    }
   }
 
   async function confirmPickup() {
@@ -173,10 +210,13 @@ export default function Pickup() {
           </button>
           <button
             className="btn-secondary"
-            onClick={() => showToast('扫码功能模拟触发', 'info')}
+            onClick={() => {
+              setScanInput('');
+              setShowScanModal(true);
+            }}
           >
             <QrCode className="w-4 h-4 inline mr-1.5" />
-            扫码
+            扫码/输单号
           </button>
         </div>
       </div>
@@ -315,6 +355,60 @@ export default function Pickup() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        title="扫码 / 输入单号取件"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-primary-500/5 border border-primary-500/20">
+            <p className="text-sm text-slate-600">
+              扫描包裹上的二维码，或手动输入快递单号、包裹码，快速定位并取件。
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              单号 / 包裹码
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="input-field flex-1 font-mono text-sm"
+                placeholder="粘贴或输入单号，如 SF1234567890 或 PKGXXXX"
+                value={scanInput}
+                onChange={e => setScanInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleScanSearch()}
+                autoFocus
+              />
+              <button
+                onClick={handleScanSearch}
+                disabled={scanSearching || !scanInput.trim()}
+                className="btn-primary"
+              >
+                {scanSearching ? '查询中...' : '查询'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              💡 支持粘贴快递单号，或输入以 PKG 开头的包裹码
+            </p>
+          </div>
+          <div className="flex gap-3 pt-2 border-t border-slate-100">
+            <button onClick={() => setShowScanModal(false)} className="btn-secondary flex-1">
+              取消
+            </button>
+            <button
+              onClick={handleScanSearch}
+              disabled={scanSearching || !scanInput.trim()}
+              className="btn-primary flex-1"
+            >
+              <QrCode className="w-4 h-4 inline mr-1.5" />
+              {scanSearching ? '查询中...' : '查询并取件'}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       <Modal
