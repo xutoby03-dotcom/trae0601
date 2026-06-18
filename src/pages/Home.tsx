@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Wind, Clock, Package, Activity, Plus } from 'lucide-react';
+import { Wind, Clock, Package, Activity, Plus, Check } from 'lucide-react';
 import dayjs from 'dayjs';
 import Header from '../components/Header';
 import {
@@ -22,6 +22,8 @@ type TimelineItem = {
   date: string;
   type: TimelineType;
   message: string;
+  alertId?: string;
+  resolved?: boolean;
 };
 
 function getFilterProgressColor(percent: number) {
@@ -40,6 +42,7 @@ export default function Home() {
   const getRemainingFilterDays = useAppStore((s) => s.getRemainingFilterDays);
   const getFilterPercent = useAppStore((s) => s.getFilterPercent);
   const getTotalStockBySpec = useAppStore((s) => s.getTotalStockBySpec);
+  const resolveAlert = useAppStore((s) => s.resolveAlert);
 
   const sortedByRemainingDays = useMemo(() => {
     return [...devices]
@@ -71,11 +74,15 @@ export default function Home() {
       message: `${r.deviceName} · 更换「${r.newFilterSpec}」· 操作人：${r.installer}`,
     }));
 
-    const alertItems: TimelineItem[] = alerts.map((a: Alert) => ({
-      date: a.triggeredAt,
-      type: 'alert' as TimelineType,
-      message: a.message,
-    }));
+    const alertItems: TimelineItem[] = alerts
+      .filter((a: Alert) => !a.resolved)
+      .map((a: Alert) => ({
+        date: a.triggeredAt,
+        type: 'alert' as TimelineType,
+        message: a.message,
+        alertId: a.id,
+        resolved: a.resolved,
+      }));
 
     const cleanItems: TimelineItem[] = cleanRecords.map((c: CleanRecord) => {
       const device = devices.find((d) => d.id === c.deviceId);
@@ -322,12 +329,25 @@ export default function Home() {
                   </div>
 
                   <div className="flex-1 pb-1 min-w-0">
-                    <span className={`tag ${getTimelineTagStyle(item.type)}`}>
-                      {getTimelineLabel(item.type)}
-                    </span>
-                    <p className="text-sm text-brand-700 mt-1 break-words">
-                      {item.message}
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className={`tag ${getTimelineTagStyle(item.type)}`}>
+                          {getTimelineLabel(item.type)}
+                        </span>
+                        <p className="text-sm text-brand-700 mt-1 break-words">
+                          {item.message}
+                        </p>
+                      </div>
+                      {item.type === 'alert' && item.alertId && !item.resolved && (
+                        <button
+                          onClick={() => resolveAlert(item.alertId!)}
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-500 bg-brand-50 border border-brand-100 hover:bg-brand-100 hover:text-brand-600 transition-all duration-200 group"
+                        >
+                          <Check className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" strokeWidth={2} />
+                          <span>已处理</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
