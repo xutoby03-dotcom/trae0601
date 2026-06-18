@@ -84,7 +84,12 @@ const Dashboard = () => {
           icon={TrendingUp}
           color="purple"
           subtitle={stats.highDemandTypes[0] ? `缺口 ${stats.highDemandTypes[0].deficit} 个` : '暂无数据'}
-          onClick={() => stats.highDemandTypes[0] && navigate(`/devices?type=${stats.highDemandTypes[0].type}`)}
+          onClick={() => {
+            const top = stats.highDemandTypes[0];
+            if (!top) return;
+            const status = top.borrowed > 0 ? 'borrowed' : top.faulty > 0 ? 'faulty_all' : 'available';
+            navigate(`/devices?type=${top.type}&status=${status}`);
+          }}
         />
       </div>
 
@@ -103,10 +108,9 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {stats.highDemandTypes.map((item) => (
-              <Link
+              <div
                 key={item.type}
-                to={`/devices?type=${item.type}`}
-                className="group p-4 rounded-xl border border-slate-200 hover:border-teal-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                className="group p-4 rounded-xl border border-slate-200 hover:border-teal-300 hover:shadow-md transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-base font-bold text-slate-800">{item.type}</span>
@@ -118,21 +122,30 @@ const Dashboard = () => {
                 </div>
                 
                 <div className="flex items-center gap-3 text-xs mb-2">
-                  <span className="flex items-center gap-1">
+                  <Link
+                    to={`/devices?type=${item.type}&status=available`}
+                    className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                  >
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-slate-500">空闲</span>
                     <span className="font-semibold text-emerald-700">{item.available}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
+                  </Link>
+                  <Link
+                    to={`/devices?type=${item.type}&status=borrowed`}
+                    className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                  >
                     <span className="w-2 h-2 rounded-full bg-blue-500" />
                     <span className="text-slate-500">借出</span>
                     <span className="font-semibold text-blue-700">{item.borrowed}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
+                  </Link>
+                  <Link
+                    to={`/devices?type=${item.type}&status=faulty_all`}
+                    className="flex items-center gap-1 hover:opacity-70 transition-opacity"
+                  >
                     <span className="w-2 h-2 rounded-full bg-red-500" />
                     <span className="text-slate-500">故障</span>
                     <span className="font-semibold text-red-700">{item.faulty}</span>
-                  </span>
+                  </Link>
                 </div>
                 
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
@@ -153,7 +166,7 @@ const Dashboard = () => {
                 <p className="text-xs text-slate-400 mt-2">
                   共 {item.total} 个 · 在用 {item.count}
                 </p>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
