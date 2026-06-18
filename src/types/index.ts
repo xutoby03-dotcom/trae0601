@@ -45,7 +45,15 @@ export interface DashboardStats {
   totalBorrowed: number;
   overdueCount: number;
   faultyCount: number;
-  highDemandTypes: { type: ConnectorType; count: number; deficit: number }[];
+  highDemandTypes: {
+    type: ConnectorType;
+    count: number;
+    deficit: number;
+    available: number;
+    borrowed: number;
+    faulty: number;
+    total: number;
+  }[];
 }
 
 export interface ConflictAlternative {

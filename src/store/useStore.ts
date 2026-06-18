@@ -35,7 +35,7 @@ interface AppState {
   getOverdueRecords: () => BorrowRecord[];
   getFaultyDevices: () => Device[];
   
-  getHighDemandTypes: () => { type: ConnectorType; count: number; deficit: number }[];
+  getHighDemandTypes: () => DashboardStats['highDemandTypes'];
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -224,16 +224,20 @@ export const useStore = create<AppState>((set, get) => ({
     
     const typeStats: Record<
       string,
-      { total: number; borrowed: number }
+      { total: number; borrowed: number; available: number; faulty: number }
     > = {};
     
     for (const device of devices) {
       if (!typeStats[device.type]) {
-        typeStats[device.type] = { total: 0, borrowed: 0 };
+        typeStats[device.type] = { total: 0, borrowed: 0, available: 0, faulty: 0 };
       }
       typeStats[device.type].total++;
+      if (device.status === 'available') typeStats[device.type].available++;
+      if (device.status === 'borrowed') typeStats[device.type].borrowed++;
+      if (device.status === 'faulty' || device.status === 'maintenance') typeStats[device.type].faulty++;
     }
     
+    const inUseCount: Record<string, number> = {};
     const activeRecords = borrowRecords.filter((r) => {
       const startTime = new Date(r.startTime).getTime();
       const endTime = new Date(r.endTime).getTime();
@@ -247,18 +251,22 @@ export const useStore = create<AppState>((set, get) => ({
     for (const record of activeRecords) {
       const device = devices.find((d) => d.id === record.deviceId);
       if (device) {
-        typeStats[device.type].borrowed++;
+        inUseCount[device.type] = (inUseCount[device.type] || 0) + 1;
       }
     }
     
     const result = Object.entries(typeStats)
       .map(([type, stats]) => ({
         type: type as ConnectorType,
-        count: stats.borrowed,
-        deficit: Math.max(0, stats.borrowed - Math.floor(stats.total / 2)),
+        count: inUseCount[type] || 0,
+        deficit: Math.max(0, (inUseCount[type] || 0) - Math.floor(stats.total / 2)),
+        available: stats.available,
+        borrowed: stats.borrowed,
+        faulty: stats.faulty,
+        total: stats.total,
       }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+      .slice(0, 5);
     
     return result;
   },

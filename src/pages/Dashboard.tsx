@@ -86,36 +86,69 @@ const Dashboard = () => {
       {stats.highDemandTypes.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-800">高频缺口接口类型</h2>
-            <span className="text-sm text-slate-500">按借出数量排序</span>
+            <h2 className="text-lg font-semibold text-slate-800">接口类型概览</h2>
+            <Link
+              to="/devices"
+              className="text-sm text-teal-600 hover:text-teal-700 font-medium flex items-center gap-1"
+            >
+              查看全部设备
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
           
-          <div className="space-y-3">
-            {stats.highDemandTypes.map((item, index) => (
-              <div key={item.type} className="flex items-center gap-4">
-                <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                  {index + 1}
-                </span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-slate-700">{item.type}</span>
-                    <span className="text-sm text-slate-500">
-                      借出 {item.count} 个
-                      {item.deficit > 0 && (
-                        <span className="text-amber-600 ml-2">· 缺口 {item.deficit}</span>
-                      )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {stats.highDemandTypes.map((item) => (
+              <Link
+                key={item.type}
+                to={`/devices?type=${item.type}`}
+                className="group p-4 rounded-xl border border-slate-200 hover:border-teal-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-base font-bold text-slate-800">{item.type}</span>
+                  {item.deficit > 0 && (
+                    <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-md">
+                      缺{item.deficit}
                     </span>
-                  </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        item.deficit > 0 ? 'bg-amber-500' : 'bg-teal-500'
-                      }`}
-                      style={{ width: `${Math.min(100, (item.count / 10) * 100)}%` }}
-                    />
-                  </div>
+                  )}
                 </div>
-              </div>
+                
+                <div className="flex items-center gap-3 text-xs mb-2">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-slate-500">空闲</span>
+                    <span className="font-semibold text-emerald-700">{item.available}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-slate-500">借出</span>
+                    <span className="font-semibold text-blue-700">{item.borrowed}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-slate-500">故障</span>
+                    <span className="font-semibold text-red-700">{item.faulty}</span>
+                  </span>
+                </div>
+                
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-emerald-400 h-full"
+                    style={{ width: `${(item.available / item.total) * 100}%` }}
+                  />
+                  <div
+                    className="bg-blue-400 h-full"
+                    style={{ width: `${(item.borrowed / item.total) * 100}%` }}
+                  />
+                  <div
+                    className="bg-red-400 h-full"
+                    style={{ width: `${(item.faulty / item.total) * 100}%` }}
+                  />
+                </div>
+                
+                <p className="text-xs text-slate-400 mt-2">
+                  共 {item.total} 个 · 在用 {item.count}
+                </p>
+              </Link>
             ))}
           </div>
         </div>
