@@ -6,7 +6,7 @@ import { today, addDays } from '../utils/storage';
 
 export default function BorrowForm() {
   const navigate = useNavigate();
-  const { books, families, selectedFamilyId, createBorrowRecord, addFamily } = useStore();
+  const { books, families, selectedFamilyId, createBorrowRecord, addFamily, setSelectedFamily } = useStore();
 
   const availableBooks = books.filter((b) => b.status === 'available');
 
@@ -27,7 +27,9 @@ export default function BorrowForm() {
 
   const handleAddFamily = () => {
     if (!newFamily.name.trim()) return;
-    addFamily(newFamily);
+    const created = addFamily(newFamily);
+    setForm((prev) => ({ ...prev, familyId: created.id, childAge: created.childAge }));
+    setSelectedFamily(created.id);
     setShowNewFamily(false);
     setNewFamily({ name: '', childAge: 4, contact: '' });
   };

@@ -13,7 +13,7 @@ interface AppState {
   addBook: (book: Omit<Book, 'id' | 'createdAt'>) => void;
   updateBook: (id: string, updates: Partial<Book>) => void;
   deleteBook: (id: string) => void;
-  addFamily: (family: Omit<Family, 'id'>) => void;
+  addFamily: (family: Omit<Family, 'id'>) => Family;
   updateFamily: (id: string, updates: Partial<Family>) => void;
   setSelectedFamily: (id: string | null) => void;
   createBorrowRecord: (data: {
@@ -76,6 +76,7 @@ export const useStore = create<AppState>((set, get) => ({
     const families = [...get().families, newFamily];
     saveToStorage('families', families);
     set({ families });
+    return newFamily;
   },
 
   updateFamily: (id, updates) => {
