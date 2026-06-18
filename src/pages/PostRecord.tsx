@@ -22,7 +22,7 @@ export default function PostRecord() {
   const navigate = useNavigate()
   const { devices, usageRecords, addCleanRecord, completeUsage, addMaintenanceAlert, updateDevice } = useStore()
 
-  const inUseDevices = devices.filter((d) => d.status === 'in_use')
+  const cleanableDevices = devices.filter((d) => d.status === 'in_use' || d.status === 'pending_clean')
   const [selectedDevice, setSelectedDevice] = useState('')
   const [cleaner, setCleaner] = useState('')
   const [disinfectMethod, setDisinfectMethod] = useState<DisinfectMethod>('alcohol')
@@ -64,7 +64,7 @@ export default function PostRecord() {
         resolvedBy: null,
       })
     } else {
-      updateDevice(selectedDevice, { status: 'pending_clean' })
+      updateDevice(selectedDevice, { status: 'available' })
     }
 
     setSubmitted(true)
@@ -101,7 +101,7 @@ export default function PostRecord() {
               <Check className="w-8 h-8 text-teal-600" />
             </div>
             <h2 className="text-xl font-bold text-zinc-800 font-display">记录完成</h2>
-            <p className="text-sm text-zinc-500 mt-2">清洁记录已保存，设备待清洁</p>
+            <p className="text-sm text-zinc-500 mt-2">清洁记录已保存，设备已恢复可用</p>
             <div className="mt-6 flex gap-3 justify-center">
               <button
                 onClick={() => navigate('/')}
@@ -119,20 +119,20 @@ export default function PostRecord() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
       <div>
-        <h2 className="text-2xl font-bold text-zinc-800 font-display">使用后记录</h2>
-        <p className="text-sm text-zinc-400 mt-1">记录清洁消毒信息与设备状态</p>
+        <h2 className="text-2xl font-bold text-zinc-800 font-display">清洁记录</h2>
+        <p className="text-sm text-zinc-400 mt-1">记录清洁消毒信息，完成后设备恢复可用</p>
       </div>
 
       <div className="bg-white rounded-xl border border-zinc-100 shadow-sm p-5 space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-700 mb-1.5">选择设备</label>
-          {inUseDevices.length === 0 ? (
+          {cleanableDevices.length === 0 ? (
             <div className="px-4 py-3 rounded-lg bg-zinc-50 text-sm text-zinc-400">
-              暂无使用中的设备
+              暂无待清洁或使用中的设备
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {inUseDevices.map((d) => (
+              {cleanableDevices.map((d) => (
                 <button
                   key={d.id}
                   type="button"
