@@ -77,8 +77,8 @@ export default function DryingQueue() {
 
   const displayList = useMemo(() => {
     if (activeFilter === "pending") return pendingLocation;
-    return activeDrying;
-  }, [activeFilter, pendingLocation, activeDrying]);
+    return assignedDrying;
+  }, [activeFilter, pendingLocation, assignedDrying]);
 
   const getEquipment = (id: string) => equipment.find((e) => e.id === id);
 
@@ -159,7 +159,7 @@ export default function DryingQueue() {
               : "bg-sky2-50 text-sky2-700 hover:bg-sky2-100"
           }`}
         >
-          全部 ({activeDrying.length})
+          全部队列 ({assignedDrying.length})
         </button>
         <button
           onClick={() => handleFilterChange("pending")}
