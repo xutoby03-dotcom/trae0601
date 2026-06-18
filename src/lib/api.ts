@@ -101,18 +101,17 @@ export const api = {
 
   returns: {
     list: () => request<ReturnCheck[]>('/returns'),
-    create: (data: {
-      borrowId: string;
-      returnDate: string;
-      checks: Record<ReturnCheckItem, boolean>;
-      hasDamage: boolean;
-      damageDescription?: string;
+    create: (borrowId: string, data: {
+      hasDeformation: boolean;
+      hasCoatingLoss: boolean;
+      hasOilResidue: boolean;
+      hasMissingParts: boolean;
       remark?: string;
-    }) => request<{ success: boolean; hasDamage: boolean; exceptionId?: string }>(`/returns`, {
+    }) => request<{ inspection: ReturnCheck; hasDamage: boolean }>(`/returns/${borrowId}`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    get: (borrowId: string) => request<ReturnCheck>(`/returns/${borrowId}`),
+    get: (borrowId: string) => request<ReturnCheck>(`/returns/inspection/${borrowId}`),
     pending: () => request<BorrowRecordWithDetails[]>('/returns/pending'),
   },
 

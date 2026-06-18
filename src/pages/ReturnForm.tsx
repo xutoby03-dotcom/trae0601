@@ -84,16 +84,15 @@ export default function ReturnForm() {
 
     setSaving(true);
     try {
-      await api.returns.create({
-        borrowId: id,
-        returnDate: formData.actualReturnDate,
-        checks: formData.checks,
-        hasDamage: formData.hasDamage,
-        damageDescription: formData.damageDescription,
-        remark: formData.remark,
+      const result = await api.returns.create(id, {
+        hasDeformation: !!formData.checks.deformation,
+        hasCoatingLoss: !!formData.checks.coating_loss,
+        hasOilResidue: !!formData.checks.oil_residue,
+        hasMissingParts: !!formData.checks.missing_parts,
+        remark: [formData.damageDescription, formData.remark].filter(Boolean).join('；') || undefined,
       });
 
-      if (formData.hasDamage) {
+      if (result.hasDamage) {
         toast.success('归还登记成功，已生成异常记录');
       } else {
         toast.success('归还登记成功，模具完好');

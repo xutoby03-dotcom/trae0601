@@ -60,7 +60,7 @@ router.post('/:borrowId', (req: Request, res: Response) => {
       return res.status(400).json({ error: '该借用记录已归还' });
     }
 
-    const hasDamage = hasDeformation || hasCoatingLoss || hasMissingParts;
+    const hasDamage = hasDeformation || hasCoatingLoss || hasOilResidue || hasMissingParts;
     const today = new Date().toISOString().split('T')[0];
     const inspectionId = uuidv4();
 
@@ -105,6 +105,7 @@ router.post('/:borrowId', (req: Request, res: Response) => {
         const damageDescriptions: string[] = [];
         if (hasDeformation) damageDescriptions.push('变形');
         if (hasCoatingLoss) damageDescriptions.push('掉涂层');
+        if (hasOilResidue) damageDescriptions.push('油污残留');
         if (hasMissingParts) damageDescriptions.push('缺件');
 
         const exceptionId = uuidv4();
