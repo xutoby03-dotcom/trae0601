@@ -219,7 +219,13 @@ export default function RoomDetail() {
                     </div>
                     <p className="text-sm text-slate-600 mt-1.5 line-clamp-2">{fb.description}</p>
                     <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
-                      <span className="text-xs text-slate-400">{fb.reporter}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-500">{fb.reporter}</span>
+                        <span className="text-xs text-slate-400">·</span>
+                        <span className="text-xs text-slate-400">
+                          {room?.name}（{room?.floor}）
+                        </span>
+                      </div>
                       <span className="text-xs text-slate-400">{formatDateTime(fb.createdAt)}</span>
                     </div>
                   </div>
