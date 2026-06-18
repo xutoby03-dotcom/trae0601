@@ -19,28 +19,15 @@ interface TemperatureChartProps {
   records: TemperatureRecord[];
 }
 
-interface CustomDotProps {
+interface DotProps {
   cx?: number;
   cy?: number;
-  value?: number;
-  isAbnormal?: boolean;
-  key?: string | number;
-  payload?: { time?: string };
-}
-
-function CustomDot({ cx, cy, isAbnormal, payload }: CustomDotProps) {
-  if (!isAbnormal || cx === undefined || cy === undefined) return null;
-  return (
-    <circle
-      key={payload?.time || 'dot'}
-      cx={cx}
-      cy={cy}
-      r={5}
-      fill="#EF4444"
-      stroke="white"
-      strokeWidth={2}
-    />
-  );
+  payload?: {
+    time: string;
+    isAbnormal: boolean;
+    temperature: number;
+    formattedTime: string;
+  };
 }
 
 export default function TemperatureChart({ records }: TemperatureChartProps) {
@@ -50,6 +37,34 @@ export default function TemperatureChart({ records }: TemperatureChartProps) {
   }));
 
   const abnormalRecords = chartData.filter((r) => r.isAbnormal);
+
+  const renderDot = (props: DotProps) => {
+    const { cx, cy, payload } = props;
+    if (cx === undefined || cy === undefined) return null;
+    
+    if (payload?.isAbnormal) {
+      return (
+        <circle
+          key={payload.time}
+          cx={cx}
+          cy={cy}
+          r={5}
+          fill="#EF4444"
+          stroke="white"
+          strokeWidth={2}
+        />
+      );
+    }
+    return (
+      <circle
+        key={payload.time}
+        cx={cx}
+        cy={cy}
+        r={0}
+        fill="transparent"
+      />
+    );
+  };
 
   return (
     <div className="card animate-fadeInUp">
@@ -119,10 +134,7 @@ export default function TemperatureChart({ records }: TemperatureChartProps) {
               dataKey="temperature"
               stroke="#0EA5E9"
               strokeWidth={2}
-              dot={(props) => {
-                const { cx, cy, payload } = props;
-                return <CustomDot cx={cx} cy={cy} isAbnormal={payload?.isAbnormal} />;
-              }}
+              dot={renderDot}
               activeDot={{ r: 6, fill: '#0EA5E9', stroke: 'white', strokeWidth: 2 }}
             />
 

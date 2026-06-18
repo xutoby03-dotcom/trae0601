@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Filter } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -6,15 +6,10 @@ import InspectionTable from '@/components/inspection/InspectionTable';
 
 export default function InspectionList() {
   const navigate = useNavigate();
-  const initData = useStore((state) => state.initData);
   const inspections = useStore((state) => state.inspections);
   const equipments = useStore((state) => state.equipments);
 
   const [filterEquipmentId, setFilterEquipmentId] = useState<string>('all');
-
-  useEffect(() => {
-    initData();
-  }, [initData]);
 
   const filteredInspections = inspections.filter((inspection) => {
     if (filterEquipmentId === 'all') return true;

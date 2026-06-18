@@ -1,16 +1,9 @@
-import { useEffect } from 'react';
 import { Refrigerator } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import EquipmentCard from '@/components/equipment/EquipmentCard';
 
 export default function EquipmentList() {
-  const { equipments, probes, maintenances, initData } = useStore();
-
-  useEffect(() => {
-    if (equipments.length === 0) {
-      initData();
-    }
-  }, [equipments.length, initData]);
+  const { equipments, probes, maintenances } = useStore();
 
   return (
     <div className="space-y-6">

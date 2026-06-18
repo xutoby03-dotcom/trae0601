@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { formatISO } from 'date-fns';
 import { Refrigerator, Layers, Droplets, Calendar, MapPin, Plus, ArrowLeft, Thermometer, Image, AlertCircle } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { formatDateTime } from '@/utils/dateUtils';
@@ -8,18 +7,11 @@ import { cn } from '@/lib/utils';
 import ProbeList from '@/components/equipment/ProbeList';
 import MaintenanceForm from '@/components/equipment/MaintenanceForm';
 import StatusBadge from '@/components/common/StatusBadge';
-import type { Probe } from '@/types';
 
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
-  const { equipments, probes, maintenances, initData, addMaintenance, updateProbeStatus } = useStore();
+  const { equipments, probes, maintenances, addMaintenance, calibrateProbe } = useStore();
   const [showForm, setShowForm] = useState(false);
-
-  useEffect(() => {
-    if (equipments.length === 0) {
-      initData();
-    }
-  }, [equipments.length, initData]);
 
   const equipment = equipments.find(eq => eq.id === id);
   const equipmentProbes = probes.filter(p => p.equipmentId === id);
@@ -28,16 +20,7 @@ export default function EquipmentDetail() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const handleCalibrate = (probeId: string) => {
-    updateProbeStatus(probeId, 'normal');
-    const updatedProbes = probes.map((p: Probe) =>
-      p.id === probeId
-        ? { ...p, lastCalibration: formatISO(new Date()), status: 'normal' as const }
-        : p
-    );
-    const probe = updatedProbes.find((p: Probe) => p.id === probeId);
-    if (probe) {
-      useStore.setState({ probes: updatedProbes });
-    }
+    calibrateProbe(probeId);
   };
 
   const handleAddMaintenance = (data: { equipmentId: string; date: string; content: string; photo?: string }) => {

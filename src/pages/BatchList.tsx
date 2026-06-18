@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Filter } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -9,15 +9,10 @@ type FilterStatus = 'all' | Batch['status'];
 
 export default function BatchList() {
   const navigate = useNavigate();
-  const initData = useStore((state) => state.initData);
   const batches = useStore((state) => state.batches);
   const equipments = useStore((state) => state.equipments);
 
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-
-  useEffect(() => {
-    initData();
-  }, [initData]);
 
   const filteredBatches = batches.filter((batch) => {
     if (filterStatus === 'all') return true;

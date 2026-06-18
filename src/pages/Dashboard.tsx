@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Thermometer, Droplets, Activity } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { getTempStatus } from '@/utils/tempUtils';
@@ -11,17 +10,12 @@ import NumberAnimation from '@/components/common/NumberAnimation';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
-  const initData = useStore((state) => state.initData);
   const batches = useStore((state) => state.batches);
   const equipments = useStore((state) => state.equipments);
   const inspections = useStore((state) => state.inspections);
   const temperatureRecords = useStore((state) => state.temperatureRecords);
   const abnormalLogs = useStore((state) => state.abnormalLogs);
   const probes = useStore((state) => state.probes);
-
-  useEffect(() => {
-    initData();
-  }, [initData]);
 
   const latestInspection = inspections[0];
   const currentTemp = latestInspection?.actualTemp ?? 4.0;

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { formatISO } from 'date-fns';
 import type { Equipment, Probe, Maintenance, Batch, Inspection, TemperatureRecord, AbnormalLog } from '@/types';
 import * as mockData from '@/data/mockData';
 import { getTempStatus, getDeviation } from '@/utils/tempUtils';
@@ -17,6 +18,7 @@ interface StoreState {
   addInspection: (inspection: Omit<Inspection, 'id'>) => void;
   addMaintenance: (maintenance: Omit<Maintenance, 'id'>) => void;
   updateProbeStatus: (id: string, status: Probe['status']) => void;
+  calibrateProbe: (id: string) => void;
   resolveAbnormalLog: (id: string) => void;
 }
 
@@ -34,14 +36,27 @@ export const useStore = create<StoreState>((set) => ({
   abnormalLogs: [],
 
   initData: () => {
-    set({
-      equipments: mockData.equipments,
-      probes: mockData.probes,
-      maintenances: mockData.maintenances,
-      batches: mockData.batches,
-      inspections: mockData.inspections,
-      temperatureRecords: mockData.temperatureRecords,
-      abnormalLogs: mockData.abnormalLogs,
+    set((state) => {
+      if (
+        state.equipments.length === 0 &&
+        state.probes.length === 0 &&
+        state.maintenances.length === 0 &&
+        state.batches.length === 0 &&
+        state.inspections.length === 0 &&
+        state.temperatureRecords.length === 0 &&
+        state.abnormalLogs.length === 0
+      ) {
+        return {
+          equipments: mockData.equipments,
+          probes: mockData.probes,
+          maintenances: mockData.maintenances,
+          batches: mockData.batches,
+          inspections: mockData.inspections,
+          temperatureRecords: mockData.temperatureRecords,
+          abnormalLogs: mockData.abnormalLogs,
+        };
+      }
+      return {};
     });
   },
 
@@ -120,6 +135,16 @@ export const useStore = create<StoreState>((set) => ({
     set((state) => ({
       probes: state.probes.map((probe) =>
         probe.id === id ? { ...probe, status } : probe
+      ),
+    }));
+  },
+
+  calibrateProbe: (id) => {
+    set((state) => ({
+      probes: state.probes.map((probe) =>
+        probe.id === id
+          ? { ...probe, status: 'normal' as const, lastCalibration: formatISO(new Date()) }
+          : probe
       ),
     }));
   },
