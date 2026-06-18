@@ -73,19 +73,24 @@ export default function Checklist() {
     addCheckRecord(record);
     setRepairTaskCreated(false);
     setShowSuccess(true);
+  };
 
-    setTimeout(() => {
-      setShowSuccess(false);
-      setChecks({
-        footPad: false,
-        antiSlipCover: false,
-        brakeLine: false,
-        armrestSponge: false,
-        foldLock: false,
-        wheelRotation: false,
-      });
-      setNotes("");
-    }, 2000);
+  const resetForm = () => {
+    setChecks({
+      footPad: false,
+      antiSlipCover: false,
+      brakeLine: false,
+      armrestSponge: false,
+      foldLock: false,
+      wheelRotation: false,
+    });
+    setNotes("");
+    setInspector("");
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    resetForm();
   };
 
   const handleCreateRepairTask = () => {
@@ -95,6 +100,12 @@ export default function Checklist() {
       criticalFailedItems.map((item) => item.key)
     );
     setRepairTaskCreated(true);
+  };
+
+  const handleViewRepairs = () => {
+    setShowSuccess(false);
+    resetForm();
+    navigate("/repairs");
   };
 
   const deviceCheckHistory = checkRecords
@@ -425,10 +436,7 @@ export default function Checklist() {
             <div className="flex gap-3">
               {hasCriticalFailures && repairTaskCreated && (
                 <button
-                  onClick={() => {
-                    setShowSuccess(false);
-                    navigate("/repairs");
-                  }}
+                  onClick={handleViewRepairs}
                   className="flex-1 btn-secondary flex items-center justify-center gap-2"
                 >
                   查看维修
@@ -436,7 +444,7 @@ export default function Checklist() {
                 </button>
               )}
               <button
-                onClick={() => setShowSuccess(false)}
+                onClick={handleCloseSuccess}
                 className={cn(
                   "flex items-center justify-center gap-2",
                   hasCriticalFailures && repairTaskCreated ? "flex-1" : "",
