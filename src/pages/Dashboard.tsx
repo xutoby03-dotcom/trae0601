@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Cable,
   Clock,
@@ -15,6 +15,7 @@ import { formatDateTime, isOverdue } from '@/utils/date';
 import { rooms } from '@/data/rooms';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { getDashboardStats, getRecentRecords, getOverdueRecords, getFaultyDevices } = useStore();
   const stats = getDashboardStats();
   const recentRecords = getRecentRecords(5);
@@ -59,6 +60,7 @@ const Dashboard = () => {
           icon={Cable}
           color="blue"
           subtitle="借出中的转接头"
+          onClick={() => navigate('/devices?status=borrowed')}
         />
         <StatCard
           title="逾期未还"
@@ -66,6 +68,7 @@ const Dashboard = () => {
           icon={Clock}
           color="red"
           subtitle="超过预计归还时间"
+          onClick={() => navigate('/records?status=overdue')}
         />
         <StatCard
           title="故障线材"
@@ -73,6 +76,7 @@ const Dashboard = () => {
           icon={AlertTriangle}
           color="amber"
           subtitle="故障或维修中"
+          onClick={() => navigate('/devices?status=faulty_all')}
         />
         <StatCard
           title="高频缺口"
@@ -80,6 +84,7 @@ const Dashboard = () => {
           icon={TrendingUp}
           color="purple"
           subtitle={stats.highDemandTypes[0] ? `缺口 ${stats.highDemandTypes[0].deficit} 个` : '暂无数据'}
+          onClick={() => stats.highDemandTypes[0] && navigate(`/devices?type=${stats.highDemandTypes[0].type}`)}
         />
       </div>
 

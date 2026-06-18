@@ -16,7 +16,24 @@ import { rooms } from '@/data/rooms';
 import { cn } from '@/lib/utils';
 
 const connectorTypes: ConnectorType[] = ['HDMI', 'Type-C', 'Mac', 'VGA', 'DP'];
-const statusOptions: DeviceStatus[] = ['available', 'borrowed', 'faulty', 'maintenance'];
+const statusOptions: (DeviceStatus | 'faulty_all')[] = ['available', 'borrowed', 'faulty', 'maintenance', 'faulty_all'];
+
+const getStatusLabel = (status: DeviceStatus | 'faulty_all') => {
+  switch (status) {
+    case 'available': return '可用';
+    case 'borrowed': return '借出中';
+    case 'faulty': return '故障';
+    case 'maintenance': return '维修中';
+    case 'faulty_all': return '故障/维修中';
+    default: return status;
+  }
+};
+
+const matchStatus = (deviceStatus: DeviceStatus, filter: DeviceStatus | 'faulty_all' | 'all') => {
+  if (filter === 'all') return true;
+  if (filter === 'faulty_all') return deviceStatus === 'faulty' || deviceStatus === 'maintenance';
+  return deviceStatus === filter;
+};
 
 const DeviceList = () => {
   const navigate = useNavigate();
@@ -25,7 +42,7 @@ const DeviceList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<ConnectorType | 'all'>('all');
   const [selectedRoom, setSelectedRoom] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<DeviceStatus | 'all'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<DeviceStatus | 'faulty_all' | 'all'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
@@ -34,8 +51,8 @@ const DeviceList = () => {
       setSelectedType(typeParam as ConnectorType);
     }
     const statusParam = searchParams.get('status');
-    if (statusParam && statusOptions.includes(statusParam as DeviceStatus)) {
-      setSelectedStatus(statusParam as DeviceStatus);
+    if (statusParam && statusOptions.includes(statusParam as DeviceStatus | 'faulty_all')) {
+      setSelectedStatus(statusParam as DeviceStatus | 'faulty_all');
     }
   }, [searchParams]);
 
@@ -52,7 +69,7 @@ const DeviceList = () => {
       
       if (selectedType !== 'all' && device.type !== selectedType) return false;
       if (selectedRoom !== 'all' && device.roomId !== selectedRoom) return false;
-      if (selectedStatus !== 'all' && device.status !== selectedStatus) return false;
+      if (!matchStatus(device.status, selectedStatus)) return false;
       
       return true;
     });
@@ -67,13 +84,17 @@ const DeviceList = () => {
       ? base.filter((d) => d.roomId === selectedRoom)
       : base;
 
-    const avail = roomFiltered.filter((d) => d.status === 'available').length;
-    const borr = roomFiltered.filter((d) => d.status === 'borrowed').length;
-    const flty = roomFiltered.filter((d) => d.status === 'faulty' || d.status === 'maintenance').length;
-    const total = roomFiltered.length;
+    const statusFiltered = selectedStatus !== 'all'
+      ? roomFiltered.filter((d) => matchStatus(d.status, selectedStatus))
+      : roomFiltered;
+
+    const avail = statusFiltered.filter((d) => d.status === 'available').length;
+    const borr = statusFiltered.filter((d) => d.status === 'borrowed').length;
+    const flty = statusFiltered.filter((d) => d.status === 'faulty' || d.status === 'maintenance').length;
+    const total = statusFiltered.length;
 
     return { available: avail, borrowed: borr, faulty: flty, total };
-  }, [devices, selectedType, selectedRoom]);
+  }, [devices, selectedType, selectedRoom, selectedStatus]);
 
   const roomBreakdown = useMemo(() => {
     if (selectedType === 'all') return [];
@@ -83,18 +104,21 @@ const DeviceList = () => {
     for (const room of rooms) {
       const roomDevices = typeDevices.filter((d) => d.roomId === room.id);
       if (roomDevices.length === 0) continue;
+      const statusFiltered = selectedStatus !== 'all'
+        ? roomDevices.filter((d) => matchStatus(d.status, selectedStatus))
+        : roomDevices;
       grouped.push({
         roomId: room.id,
         roomName: room.name,
         floor: room.floor,
-        available: roomDevices.filter((d) => d.status === 'available').length,
-        borrowed: roomDevices.filter((d) => d.status === 'borrowed').length,
-        faulty: roomDevices.filter((d) => d.status === 'faulty' || d.status === 'maintenance').length,
-        total: roomDevices.length,
+        available: statusFiltered.filter((d) => d.status === 'available').length,
+        borrowed: statusFiltered.filter((d) => d.status === 'borrowed').length,
+        faulty: statusFiltered.filter((d) => d.status === 'faulty' || d.status === 'maintenance').length,
+        total: statusFiltered.length,
       });
     }
     return grouped.sort((a, b) => b.borrowed - a.borrowed);
-  }, [devices, selectedType]);
+  }, [devices, selectedType, selectedStatus]);
 
   const handleDeviceClick = (deviceId: string) => {
     navigate(`/devices/${deviceId}`);
@@ -164,16 +188,13 @@ const DeviceList = () => {
             <div>
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as DeviceStatus | 'all')}
+                onChange={(e) => setSelectedStatus(e.target.value as DeviceStatus | 'faulty_all' | 'all')}
                 className="px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 text-sm bg-white"
               >
                 <option value="all">全部状态</option>
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
-                    {status === 'available' && '可用'}
-                    {status === 'borrowed' && '借出中'}
-                    {status === 'faulty' && '故障'}
-                    {status === 'maintenance' && '维修中'}
+                    {getStatusLabel(status)}
                   </option>
                 ))}
               </select>
