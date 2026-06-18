@@ -502,6 +502,15 @@ export const RouteDetail = () => {
                 否
               </button>
             </div>
+            {bookingForm.hasElderlyOrChild && !route?.hasChildSeat && (
+              <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">该路线未配备儿童座椅</p>
+                  <p className="text-xs text-amber-700 mt-0.5">如需儿童座椅请选择其他路线，或在备注中与车主协商</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

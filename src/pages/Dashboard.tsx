@@ -231,6 +231,7 @@ export const Dashboard = () => {
                       <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">路线</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">出发时间</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">人数</th>
+                      <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">儿童座椅</th>
                       <th className="text-left py-3 px-4 text-xs font-medium text-gray-500">状态</th>
                     </tr>
                   </thead>
@@ -256,6 +257,19 @@ export const Dashboard = () => {
                             {route ? formatTime(route.departureTime) : '-'}
                           </td>
                           <td className="py-3 px-4 text-sm text-gray-700">{booking.passengerCount} 人</td>
+                          <td className="py-3 px-4">
+                            {route?.hasChildSeat ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
+                                <Baby className="w-3 h-3" />
+                                已配备
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                <AlertTriangle className="w-3 h-3" />
+                                未配备
+                              </span>
+                            )}
+                          </td>
                           <td className="py-3 px-4">
                             <StatusBadge type="booking" status={booking.status} />
                           </td>
