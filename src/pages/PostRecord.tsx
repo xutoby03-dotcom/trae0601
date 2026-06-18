@@ -18,6 +18,14 @@ const DRYING_OPTIONS: { value: DryingLocation; label: string }[] = [
   { value: 'other', label: '其他' },
 ]
 
+const ABNORMAL_OPTIONS = [
+  { key: 'footPadCracked', label: '防滑脚垫开裂', icon: '🦶' },
+  { key: 'backrestLoose', label: '靠背晃动', icon: '🛋️' },
+  { key: 'screwsMissing', label: '螺丝缺失/松动', icon: '🔩' },
+] as const
+
+type AbnormalKey = typeof ABNORMAL_OPTIONS[number]['key']
+
 export default function PostRecord() {
   const navigate = useNavigate()
   const { devices, usageRecords, addCleanRecord, completeUsage, addMaintenanceAlert, updateDevice } = useStore()
@@ -28,6 +36,7 @@ export default function PostRecord() {
   const [disinfectMethod, setDisinfectMethod] = useState<DisinfectMethod>('alcohol')
   const [dryingLocation, setDryingLocation] = useState<DryingLocation>('bathroom')
   const [foundLoose, setFoundLoose] = useState(false)
+  const [abnormalItems, setAbnormalItems] = useState<AbnormalKey[]>([])
   const [notes, setNotes] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
@@ -37,6 +46,7 @@ export default function PostRecord() {
 
   const handleSubmit = () => {
     if (!selectedDevice || !cleaner.trim()) return
+    if (foundLoose && abnormalItems.length === 0) return
 
     const cleanRecordId = addCleanRecord({
       deviceId: selectedDevice,
@@ -53,10 +63,14 @@ export default function PostRecord() {
     }
 
     if (foundLoose) {
+      const reason = abnormalItems
+        .map((k) => ABNORMAL_OPTIONS.find((o) => o.key === k)?.label)
+        .filter(Boolean)
+        .join('、')
       updateDevice(selectedDevice, { status: 'disabled' })
       addMaintenanceAlert({
         deviceId: selectedDevice,
-        reason: '使用后发现设备松动',
+        reason,
         triggerSource: 'post_check',
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -71,6 +85,9 @@ export default function PostRecord() {
   }
 
   if (submitted) {
+    const abnormalLabels = abnormalItems
+      .map((k) => ABNORMAL_OPTIONS.find((o) => o.key === k)?.label)
+      .filter(Boolean) as string[]
     return (
       <div className="max-w-lg mx-auto text-center py-16 animate-fadeIn">
         {foundLoose ? (
@@ -79,7 +96,15 @@ export default function PostRecord() {
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
             <h2 className="text-xl font-bold text-red-700 font-display">设备已停用</h2>
-            <p className="text-sm text-zinc-500 mt-2">发现松动，已生成维修提醒</p>
+            <p className="text-sm text-zinc-500 mt-2">已生成维修提醒</p>
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-left max-w-sm mx-auto">
+              <p className="text-sm font-semibold text-red-700 mb-1">异常项：</p>
+              <ul className="space-y-1">
+                {abnormalLabels.map((label, i) => (
+                  <li key={i} className="text-sm text-red-600">• {label}</li>
+                ))}
+              </ul>
+            </div>
             <div className="mt-6 flex gap-3 justify-center">
               <button
                 onClick={() => navigate('/maintenance')}
@@ -224,7 +249,10 @@ export default function PostRecord() {
             </button>
             <button
               type="button"
-              onClick={() => setFoundLoose(false)}
+              onClick={() => {
+                setFoundLoose(false)
+                setAbnormalItems([])
+              }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                 foundLoose === false
                   ? 'bg-teal-50 border-teal-400 text-teal-700'
@@ -237,11 +265,39 @@ export default function PostRecord() {
         </div>
 
         {foundLoose && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-red-700">发现设备松动</p>
-              <p className="text-xs text-red-600 mt-1">设备将自动停用并生成维修提醒，直至维修完成方可重新使用</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-700">请选择异常项（至少选一项）</p>
+                <p className="text-xs text-red-600 mt-0.5">选中的内容将写入维修提醒原因</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {ABNORMAL_OPTIONS.map((opt) => {
+                const selected = abnormalItems.includes(opt.key)
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => {
+                      setAbnormalItems((prev) =>
+                        prev.includes(opt.key)
+                          ? prev.filter((k) => k !== opt.key)
+                          : [...prev, opt.key]
+                      )
+                    }}
+                    className={`flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium border transition-colors ${
+                      selected
+                        ? 'bg-red-100 border-red-400 text-red-700'
+                        : 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                    }`}
+                  >
+                    <span>{opt.icon}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -260,16 +316,16 @@ export default function PostRecord() {
 
       <button
         onClick={handleSubmit}
-        disabled={!selectedDevice || !cleaner.trim()}
+        disabled={!selectedDevice || !cleaner.trim() || (foundLoose && abnormalItems.length === 0)}
         className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
-          selectedDevice && cleaner.trim()
+          selectedDevice && cleaner.trim() && (!foundLoose || abnormalItems.length > 0)
             ? foundLoose
               ? 'bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow-md'
               : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm hover:shadow-md'
             : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
         }`}
       >
-        {foundLoose ? '确认并停用设备' : '确认清洁记录'}
+        {foundLoose ? '确认异常并停用设备' : '确认清洁记录'}
       </button>
     </div>
   )
