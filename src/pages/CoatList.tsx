@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Search, Eye, Pencil, Trash2, ChevronDown, ChevronUp, Camera, X, Image, AlertCircle, Droplets } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { StatusBadge } from '../components/StatusBadge';
@@ -58,6 +59,8 @@ export function CoatList() {
     getCleaningBatchesForCoat,
   } = useStore();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [searchCode, setSearchCode] = useState('');
   const [filterSize, setFilterSize] = useState<CoatSize | ''>('');
   const [filterLab, setFilterLab] = useState<string>('');
@@ -66,6 +69,23 @@ export function CoatList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCoat, setEditingCoat] = useState<LabCoat | null>(null);
   const [detailCoat, setDetailCoat] = useState<LabCoat | null>(null);
+
+  const coatIdFromUrl = searchParams.get('coatId');
+
+  useEffect(() => {
+    if (coatIdFromUrl && !detailCoat) {
+      const target = coats.find((c) => c.id === coatIdFromUrl);
+      if (target) setDetailCoat(target);
+    }
+  }, [coatIdFromUrl, coats, detailCoat]);
+
+  useEffect(() => {
+    if (!detailCoat && coatIdFromUrl) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('coatId');
+      setSearchParams(next, { replace: true });
+    }
+  }, [detailCoat, coatIdFromUrl, searchParams, setSearchParams]);
 
   const [formData, setFormData] = useState({
     code: '',

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Droplets, Check, Calendar, Clock, ChevronDown, ChevronUp, Shirt } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { StatusBadge } from '../components/StatusBadge';
@@ -220,22 +221,54 @@ export function CleaningManagement() {
                       </div>
                     )}
                     <div className="pt-2">
-                      <p className="text-xs text-gray-400 mb-3">包含实验服</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                        {batchCoats.map((coat) =>
-                          coat ? (
-                            <div
-                              key={coat.id}
-                              className="p-2.5 bg-gray-50 rounded-lg border border-gray-100"
-                            >
-                              <p className="text-sm font-medium text-gray-900">{coat.code}</p>
-                              <p className="text-xs text-gray-400">
-                                {coat.size} · {coat.lab}
-                              </p>
-                            </div>
-                          ) : null
+                      <p className="text-xs text-gray-400 mb-3">
+                        包含实验服（{batchCoats.length}
+                        {batch.coatIds.length > batchCoats.length && (
+                          <span className="text-amber-600">
+                            {' · '}
+                            {batch.coatIds.length - batchCoats.length} 件未找到对应档案
+                          </span>
                         )}
-                      </div>
+                        ）
+                      </p>
+                      {batchCoats.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {batchCoats.map((coat) =>
+                            coat ? (
+                              <div
+                                key={coat.id}
+                                className="p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition-colors"
+                              >
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <Link
+                                    to={`/coats?coatId=${coat.id}`}
+                                    className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                                  >
+                                    {coat.code}
+                                  </Link>
+                                  <StatusBadge type="coat" status={coat.status} />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Shirt className="w-3 h-3 text-gray-400" />
+                                    {coat.size}
+                                  </span>
+                                  <span>{coat.lab}</span>
+                                </div>
+                              </div>
+                            ) : null
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-6 border border-dashed border-gray-200 rounded-lg text-center">
+                          <Droplets className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-sm text-gray-400">
+                            {batch.coatIds.length === 0
+                              ? '该批次未关联任何实验服'
+                              : `未找到对应档案的 ${batch.coatIds.length} 件实验服`}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
