@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, User, Pill, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, User, Pill, FileText, AlertCircle, ShieldAlert, AlertTriangle, Heart } from 'lucide-react';
 import { useMedicineStore } from '@/store/medicineStore';
 import { getMedicineStatus } from '@/utils/medicine';
-import type { Medicine } from '@/types';
+import type { Medicine, ContraindicatedMedicine, ContraindicationReason } from '@/types';
 
 export default function RecordForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { addRecord, medicines } = useMedicineStore();
+  const { addRecord, medicines, familyMembers, getContraindicatedMedicines } = useMedicineStore();
   
   const medicineId = searchParams.get('medicineId');
   const preselectedMedicine = medicineId ? medicines.find(m => m.id === medicineId) : undefined;
@@ -16,6 +16,7 @@ export default function RecordForm() {
   const [formData, setFormData] = useState({
     medicineId: preselectedMedicine?.id || '',
     medicineName: preselectedMedicine?.name || '',
+    familyMemberId: '',
     userName: '',
     dosage: '',
     symptoms: '',
@@ -25,6 +26,42 @@ export default function RecordForm() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleMemberChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const member = familyMembers.find(m => m.id === selectedId);
+    if (member) {
+      setFormData(prev => ({
+        ...prev,
+        familyMemberId: member.id,
+        userName: member.name,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        familyMemberId: '',
+        userName: '',
+      }));
+    }
+  };
+
+  const contraindicationWarning = useMemo(() => {
+    if (!formData.familyMemberId || !formData.medicineId) return null;
+    
+    const contraindicatedList = getContraindicatedMedicines(formData.familyMemberId) as ContraindicatedMedicine[];
+    const matched = contraindicatedList.find(
+      (m) => m.id === formData.medicineId
+    );
+    
+    if (!matched) return null;
+    
+    const member = familyMembers.find(m => m.id === formData.familyMemberId);
+    return {
+      memberName: member?.name || formData.userName,
+      medicineName: matched.name,
+      reasons: matched.reasons,
+    };
+  }, [formData.familyMemberId, formData.medicineId, formData.userName, getContraindicatedMedicines, familyMembers]);
 
   const availableMedicines = medicines.filter(m => {
     const status = getMedicineStatus(m);
@@ -104,12 +141,29 @@ export default function RecordForm() {
                 使用者 <span className="text-danger-500">*</span>
               </div>
             </label>
+            {familyMembers.length > 0 ? (
+              <div className="space-y-2">
+                <select
+                  value={formData.familyMemberId}
+                  onChange={handleMemberChange}
+                  className={`w-full px-4 py-2.5 rounded-xl border ${errors.userName ? 'border-danger-300 focus:ring-danger-200' : 'border-gray-200 focus:ring-primary-200'} focus:outline-none focus:ring-2 transition-colors bg-white`}
+                >
+                  <option value="">-- 选择家庭成员 --</option>
+                  {familyMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}（{member.relation}）
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 text-center">或手动输入</p>
+              </div>
+            ) : null}
             <input
               type="text"
               value={formData.userName}
-              onChange={(e) => setFormData(prev => ({ ...prev, userName: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, userName: e.target.value, familyMemberId: '' }))}
               className={`w-full px-4 py-2.5 rounded-xl border ${errors.userName ? 'border-danger-300 focus:ring-danger-200' : 'border-gray-200 focus:ring-primary-200'} focus:outline-none focus:ring-2 transition-colors`}
-              placeholder="如：爸爸、妈妈、小明"
+              placeholder="手动输入使用者姓名，如：爸爸、妈妈、小明"
             />
             {errors.userName && <p className="text-xs text-danger-500 mt-1">{errors.userName}</p>}
           </div>
@@ -147,6 +201,45 @@ export default function RecordForm() {
             />
             {errors.medicineName && <p className="text-xs text-danger-500 mt-1">{errors.medicineName}</p>}
           </div>
+
+          {contraindicationWarning && (
+            <div className="bg-danger-50 border border-danger-200 rounded-xl p-4 animate-pulse-slow">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-danger-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-danger-600" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <p className="font-semibold text-danger-800 text-sm">
+                    ⚠️ 禁忌提醒：{contraindicationWarning.memberName} 不宜使用 {contraindicationWarning.medicineName}
+                  </p>
+                  <div className="space-y-1.5">
+                    {contraindicationWarning.reasons.map((reason: ContraindicationReason, idx: number) => (
+                      <div key={idx} className="flex items-start gap-1.5 bg-white/60 rounded-lg px-3 py-2">
+                        {reason.type === 'allergy' || reason.type === 'allergy_constitution' ? (
+                          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Heart className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="text-xs">
+                          <span className={`font-semibold ${
+                            reason.type === 'allergy' || reason.type === 'allergy_constitution'
+                              ? 'text-red-600'
+                              : 'text-orange-600'
+                          }`}>
+                            {reason.label}
+                          </span>
+                          <span className="text-gray-600 ml-1">· {reason.detail}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-danger-600 font-medium">
+                    请斟酌后再决定是否保存记录，或咨询医生意见
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
