@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Clock, Package, ShieldAlert, Plus, ClipboardList, Pill, ChevronRight, Thermometer, UtensilsCrossed, Bandage, Shield } from 'lucide-react';
+import { AlertTriangle, Clock, Package, ShieldAlert, Plus, ClipboardList, Pill, ChevronRight, Thermometer, UtensilsCrossed, Bandage, Shield, User, ExternalLink } from 'lucide-react';
 import { useMedicineStore } from '@/store/medicineStore';
-import { CATEGORY_LABELS, ESSENTIAL_CATEGORIES, MedicineCategory } from '@/types';
+import { CATEGORY_LABELS, ESSENTIAL_CATEGORIES, MedicineCategory, Medicine } from '@/types';
 import { getMissingCategories } from '@/utils/medicine';
 import StatCard from '@/components/StatCard';
 import MedicineCard from '@/components/MedicineCard';
@@ -25,6 +25,13 @@ export default function Home() {
     (sum, member) => sum + getContraindicatedMedicines(member.id).length,
     0
   );
+
+  const contraindicatedDetails = familyMembers
+    .map(member => ({
+      member,
+      medicines: getContraindicatedMedicines(member.id)
+    }))
+    .filter(item => item.medicines.length > 0);
 
   const missingCategories = getMissingCategories(medicines);
 
@@ -122,6 +129,55 @@ export default function Home() {
               <div className="space-y-2">
                 {expiringMedicines.slice(0, 2).map((medicine) => (
                   <MedicineCard key={medicine.id} medicine={medicine} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {contraindicatedDetails.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldAlert className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-800">家庭禁忌药提醒</h3>
+              </div>
+              <div className="space-y-4">
+                {contraindicatedDetails.map(({ member, medicines: memberMedicines }) => (
+                  <div key={member.id} className="bg-white rounded-xl p-3 border border-blue-100">
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-blue-50">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-sm">{member.name}</p>
+                        <p className="text-xs text-gray-500">{member.relation} · 禁忌 {memberMedicines.length} 种</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 ml-10">
+                      {memberMedicines.map((medicine) => (
+                        <Link
+                          key={medicine.id}
+                          to={`/medicines/${medicine.id}`}
+                          className="flex items-center justify-between p-2 bg-blue-50/50 rounded-lg hover:bg-blue-100/50 transition-colors group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Pill className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm text-gray-700">{medicine.name}</span>
+                          </div>
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                        </Link>
+                      ))}
+                    </div>
+                    {(member.allergies.length > 0 || member.chronicDiseases.length > 0) && (
+                      <div className="mt-2 ml-10 text-xs text-gray-500">
+                        {member.allergies.length > 0 && (
+                          <span className="mr-2">过敏：{member.allergies.join('、')}</span>
+                        )}
+                        {member.chronicDiseases.length > 0 && (
+                          <span>慢病：{member.chronicDiseases.join('、')}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

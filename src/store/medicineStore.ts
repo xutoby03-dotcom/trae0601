@@ -127,13 +127,25 @@ export const useMedicineStore = create<MedicineStore>((set, get) => ({
     if (!member) return [];
     
     return get().medicines.filter((m) => {
-      const allergyMatch = member.allergies.some((a) => 
-        m.name.includes(a) || m.symptoms.includes(a)
+      const allergyMatch = member.allergies.some((allergy) => 
+        m.name.includes(allergy) || 
+        m.symptoms.includes(allergy) ||
+        m.contraindications.some(c => c.includes(allergy))
       );
-      const contraMatch = m.contraindications.some((c) => 
-        member.name.includes(c) || member.chronicDiseases.includes(c)
+      
+      const chronicMatch = member.chronicDiseases.some((disease) =>
+        m.contraindications.some(c => 
+          c.includes(disease) || disease.includes(c)
+        )
       );
-      return allergyMatch || contraMatch;
+      
+      const allergyConstitutionMatch = 
+        member.allergies.length > 0 && 
+        m.contraindications.some(c => 
+          c.includes('过敏体质') || c.includes('过敏者')
+        );
+      
+      return allergyMatch || chronicMatch || allergyConstitutionMatch;
     });
   },
   
