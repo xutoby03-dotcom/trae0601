@@ -92,7 +92,11 @@ export default function Maintenance() {
                           查看设备
                         </button>
                         <button
-                          onClick={() => setResolveMode(alert.id)}
+                          onClick={() => {
+                            setResolvedBy('')
+                            setResolvedNotes('')
+                            setResolveMode(alert.id)
+                          }}
                           className="flex-1 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-1.5"
                         >
                           <Check className="w-3.5 h-3.5" />
