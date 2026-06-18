@@ -20,6 +20,7 @@ interface StoreState {
   updateProbeStatus: (id: string, status: Probe['status']) => void;
   calibrateProbe: (id: string) => void;
   resolveAbnormalLog: (id: string) => void;
+  updateEquipmentPhoto: (id: string, photo: string, photoName?: string) => void;
 }
 
 const generateId = (prefix: string): string => {
@@ -160,6 +161,14 @@ export const useStore = create<StoreState>((set) => ({
     set((state) => ({
       abnormalLogs: state.abnormalLogs.map((log) =>
         log.id === id ? { ...log, status: 'resolved' } : log
+      ),
+    }));
+  },
+
+  updateEquipmentPhoto: (id, photo, photoName) => {
+    set((state) => ({
+      equipments: state.equipments.map((eq) =>
+        eq.id === id ? { ...eq, photo, photoName } : eq
       ),
     }));
   },

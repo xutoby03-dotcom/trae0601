@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Refrigerator, Layers, Droplets, Calendar, MapPin, Plus, ArrowLeft, Thermometer, Image, AlertCircle } from 'lucide-react';
+import { Refrigerator, Layers, Droplets, Calendar, MapPin, Plus, ArrowLeft, Thermometer, Image, AlertCircle, Upload, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { formatDateTime } from '@/utils/dateUtils';
+import { formatDateTime, formatDate } from '@/utils/dateUtils';
 import { cn } from '@/lib/utils';
 import ProbeList from '@/components/equipment/ProbeList';
 import MaintenanceForm from '@/components/equipment/MaintenanceForm';
@@ -10,14 +10,17 @@ import StatusBadge from '@/components/common/StatusBadge';
 
 export default function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
-  const { equipments, probes, maintenances, addMaintenance, calibrateProbe } = useStore();
+  const { equipments, probes, maintenances, addMaintenance, calibrateProbe, updateEquipmentPhoto } = useStore();
   const [showForm, setShowForm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const equipment = equipments.find(eq => eq.id === id);
   const equipmentProbes = probes.filter(p => p.equipmentId === id);
   const equipmentMaintenances = maintenances
     .filter(m => m.equipmentId === id)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const lastMaintenance = equipmentMaintenances[0];
 
   const handleCalibrate = (probeId: string) => {
     calibrateProbe(probeId);
@@ -31,6 +34,28 @@ export default function EquipmentDetail() {
       photo: data.photo,
     });
     setShowForm(false);
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !equipment) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      updateEquipmentPhoto(equipment.id, dataUrl, file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    if (equipment) {
+      updateEquipmentPhoto(equipment.id, '', '');
+    }
   };
 
   if (!equipment) {
@@ -84,20 +109,78 @@ export default function EquipmentDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <div className="card">
-            <div className="w-full aspect-[3/4] rounded-xl bg-gradient-to-br from-cold-400 via-cold-500 to-cold-600 shadow-inner relative overflow-hidden mb-4">
-              {Array.from({ length: equipment.layers }).map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute left-0 right-0 h-px bg-white/20"
-                  style={{ top: `${((i + 1) / (equipment.layers + 1)) * 100}%` }}
-                />
-              ))}
-              <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/30" />
-              <div className="absolute bottom-6 right-6 w-3 h-12 rounded bg-white/20" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Refrigerator className="w-16 h-16 text-white/60" />
-              </div>
+            <div className="relative mb-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {equipment.photo ? (
+                <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden group">
+                  <img
+                    src={equipment.photo}
+                    alt={equipment.code}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                    <button
+                      onClick={handleRemovePhoto}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-all mr-2"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handlePhotoClick}
+                      className="opacity-0 group-hover:opacity-100 p-2 rounded-full bg-primary-500 text-white hover:bg-primary-600 transition-all"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handlePhotoClick}
+                  className="w-full aspect-[3/4] rounded-xl bg-gradient-to-br from-cold-400 via-cold-500 to-cold-600 shadow-inner relative overflow-hidden hover:from-cold-500 hover:via-cold-600 hover:to-cold-700 transition-all group"
+                >
+                  {Array.from({ length: equipment.layers }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute left-0 right-0 h-px bg-white/20"
+                      style={{ top: `${((i + 1) / (equipment.layers + 1)) * 100}%` }}
+                    />
+                  ))}
+                  <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/30" />
+                  <div className="absolute bottom-6 right-6 w-3 h-12 rounded bg-white/20" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                    <Refrigerator className="w-16 h-16 text-white/60 group-hover:text-white/80 transition-colors" />
+                    <div className="flex items-center gap-1 text-white/80 group-hover:text-white text-sm">
+                      <Upload className="w-4 h-4" />
+                      <span>点击上传照片</span>
+                    </div>
+                  </div>
+                </button>
+              )}
+              {equipment.photoName && (
+                <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                  <Image className="w-3.5 h-3.5" />
+                  <span className="truncate">{equipment.photoName}</span>
+                </div>
+              )}
             </div>
+
+            {lastMaintenance && (
+              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-100">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-green-600" />
+                  <div>
+                    <p className="text-xs text-green-600 font-medium">最近保养</p>
+                    <p className="text-sm font-semibold text-green-800">{formatDate(lastMaintenance.date)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <h3 className="font-display text-lg font-semibold text-gray-900 mb-4">设备信息</h3>
 

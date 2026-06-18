@@ -8,6 +8,14 @@ export const formatDateTime = (date: Date | string): string => {
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
 
+export const formatDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const formatTime = (date: Date | string): string => {
   const d = new Date(date);
   const hours = String(d.getHours()).padStart(2, '0');

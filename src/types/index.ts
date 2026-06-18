@@ -5,6 +5,7 @@ export interface Equipment {
   layers: number;
   probePositions: string[];
   photo?: string;
+  photoName?: string;
   createdAt: string;
 }
 
