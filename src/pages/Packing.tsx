@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Package, Trash2, Edit2, RefreshCw, Users } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Check, Package, Trash2, Edit2, RefreshCw, Users, UserCheck, UserX, ClipboardCheck } from 'lucide-react';
 import { useDiveStore } from '@/store/useDiveStore';
 import PageHeader from '@/components/ui/PageHeader';
 import Button from '@/components/ui/Button';
@@ -16,6 +16,16 @@ const colorOptions = [
   { value: '#8B5CF6', label: '紫色' },
   { value: '#EC4899', label: '粉色' },
 ];
+
+interface MemberPackingStat {
+  memberId: string;
+  memberName: string;
+  memberAvatar: string;
+  totalAllocated: number;
+  inBox: number;
+  notInBox: number;
+  checked: number;
+}
 
 export default function Packing() {
   const {
@@ -39,12 +49,64 @@ export default function Packing() {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [selectedLuggageId, setSelectedLuggageId] = useState<string | null>(null);
 
+  const [highlightMemberId, setHighlightMemberId] = useState<string | null>(null);
+
   const getEquipmentById = (id: string) => equipment.find((e) => e.id === id);
 
   const getMemberByEquipmentId = (equipmentId: string) => {
     const alloc = allocations.find((a) => a.equipmentId === equipmentId);
     if (!alloc) return null;
     return members.find((m) => m.id === alloc.memberId) || null;
+  };
+
+  const getMemberIdByEquipmentId = (equipmentId: string): string | null => {
+    const alloc = allocations.find((a) => a.equipmentId === equipmentId);
+    return alloc ? alloc.memberId : null;
+  };
+
+  const memberPackingStats = useMemo<MemberPackingStat[]>(() => {
+    const inBoxIds = new Set(packingItems.map((p) => p.equipmentId));
+    const checkedIds = new Set(
+      packingItems.filter((p) => p.packed).map((p) => p.equipmentId)
+    );
+
+    const statsMap = new Map<string, MemberPackingStat>();
+
+    members.forEach((m) => {
+      statsMap.set(m.id, {
+        memberId: m.id,
+        memberName: m.name,
+        memberAvatar: m.avatar || '🧑',
+        totalAllocated: 0,
+        inBox: 0,
+        notInBox: 0,
+        checked: 0,
+      });
+    });
+
+    allocations.forEach((alloc) => {
+      const eq = equipment.find((e) => e.id === alloc.equipmentId);
+      if (!eq || eq.status === 'lost') return;
+
+      const stat = statsMap.get(alloc.memberId);
+      if (!stat) return;
+
+      stat.totalAllocated++;
+      if (inBoxIds.has(alloc.equipmentId)) {
+        stat.inBox++;
+        if (checkedIds.has(alloc.equipmentId)) {
+          stat.checked++;
+        }
+      } else {
+        stat.notInBox++;
+      }
+    });
+
+    return Array.from(statsMap.values()).filter((s) => s.totalAllocated > 0);
+  }, [members, allocations, equipment, packingItems]);
+
+  const handleToggleHighlight = (memberId: string) => {
+    setHighlightMemberId((prev) => (prev === memberId ? null : memberId));
   };
 
   const getLuggageItems = (luggageId: string) => {
@@ -202,6 +264,93 @@ export default function Packing() {
         </div>
       )}
 
+      {memberPackingStats.length > 0 && (
+        <div className="glass-card rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <ClipboardCheck className="w-5 h-5 text-ocean-600" />
+            <h3 className="font-display font-bold text-ocean-800">
+              出发核对
+            </h3>
+            <span className="text-sm text-ocean-500 ml-1">
+              — 按成员看装箱进度{highlightMemberId ? '，点击可取消高亮' : '，点击名字高亮装备'}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {memberPackingStats.map((stat) => {
+              const isHighlighted = highlightMemberId === stat.memberId;
+              const allDone = stat.notInBox === 0 && stat.checked === stat.totalAllocated;
+
+              return (
+                <button
+                  key={stat.memberId}
+                  onClick={() => handleToggleHighlight(stat.memberId)}
+                  className={`relative text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                    isHighlighted
+                      ? 'border-ocean-500 bg-ocean-50 shadow-lg shadow-ocean-500/15 scale-[1.02]'
+                      : 'border-ocean-100 bg-white/70 hover:border-ocean-300 hover:bg-ocean-50/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <span className="text-2xl">{stat.memberAvatar}</span>
+                    <span className={`font-display font-bold text-sm ${isHighlighted ? 'text-ocean-700' : 'text-ocean-800'}`}>
+                      {stat.memberName}
+                    </span>
+                    {allDone && (
+                      <Badge variant="success" size="sm">✓ 齐了</Badge>
+                    )}
+                    {isHighlighted && (
+                      <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-ocean-500 animate-pulse" />
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Package className="w-3.5 h-3.5 text-seafoam-500" />
+                      </div>
+                      <p className="font-display font-bold text-lg text-seafoam-600 leading-none">
+                        {stat.inBox}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">已装箱</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <UserX className="w-3.5 h-3.5 text-coral-500" />
+                      </div>
+                      <p className={`font-display font-bold text-lg leading-none ${stat.notInBox > 0 ? 'text-coral-600' : 'text-ocean-300'}`}>
+                        {stat.notInBox}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">未装箱</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <UserCheck className="w-3.5 h-3.5 text-ocean-500" />
+                      </div>
+                      <p className="font-display font-bold text-lg text-ocean-600 leading-none">
+                        {stat.checked}
+                      </p>
+                      <p className="text-[10px] text-ocean-500 mt-0.5">已勾选</p>
+                    </div>
+                  </div>
+
+                  {stat.totalAllocated > 0 && (
+                    <div className="mt-3 h-1.5 bg-ocean-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.round((stat.checked / stat.totalAllocated) * 100)}%`,
+                          backgroundColor: allDone ? '#4ECDC4' : '#0B3D91',
+                        }}
+                      />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {getSyncCount() > 0 && (
         <div className="glass-card rounded-2xl p-5 mb-6 flex items-center justify-between bg-gradient-to-r from-sand-50 to-ocean-50">
           <div className="flex items-center gap-3">
@@ -294,14 +443,22 @@ export default function Packing() {
                     const eq = getEquipmentById(item.equipmentId);
                     if (!eq) return null;
                     const owner = getMemberByEquipmentId(item.equipmentId);
+                    const itemMemberId = getMemberIdByEquipmentId(item.equipmentId);
+                    const isHighlighted = highlightMemberId !== null && itemMemberId === highlightMemberId;
 
                     return (
                       <div
                         key={item.id}
-                        className={`group/item flex items-center gap-3 p-3 rounded-xl transition-all ${
-                          item.packed
-                            ? 'bg-seafoam-50 border border-seafoam-200'
-                            : 'bg-ocean-50/50 border border-transparent hover:bg-ocean-50'
+                        className={`group/item flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
+                          isHighlighted
+                            ? 'bg-ocean-100 border-2 border-ocean-400 shadow-md shadow-ocean-500/20 ring-1 ring-ocean-300'
+                            : item.packed
+                              ? 'bg-seafoam-50 border border-seafoam-200'
+                              : 'bg-ocean-50/50 border border-transparent hover:bg-ocean-50'
+                        } ${
+                          highlightMemberId !== null && !isHighlighted
+                            ? 'opacity-40'
+                            : ''
                         }`}
                       >
                         <button
