@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Wind, Clock, Package, Activity, Plus, Check } from 'lucide-react';
 import dayjs from 'dayjs';
@@ -44,6 +44,20 @@ export default function Home() {
   const getTotalStockBySpec = useAppStore((s) => s.getTotalStockBySpec);
   const resolveAlert = useAppStore((s) => s.resolveAlert);
 
+  const [processingAlerts, setProcessingAlerts] = useState<Set<string>>(new Set());
+
+  const handleResolveAlert = useCallback((alertId: string) => {
+    setProcessingAlerts((prev) => new Set(prev).add(alertId));
+    resolveAlert(alertId);
+    setTimeout(() => {
+      setProcessingAlerts((prev) => {
+        const next = new Set(prev);
+        next.delete(alertId);
+        return next;
+      });
+    }, 900);
+  }, [resolveAlert]);
+
   const sortedByRemainingDays = useMemo(() => {
     return [...devices]
       .map((device) => ({
@@ -75,13 +89,13 @@ export default function Home() {
     }));
 
     const alertItems: TimelineItem[] = alerts
-      .filter((a: Alert) => !a.resolved)
+      .filter((a: Alert) => !a.resolved || processingAlerts.has(a.id))
       .map((a: Alert) => ({
         date: a.triggeredAt,
         type: 'alert' as TimelineType,
         message: a.message,
         alertId: a.id,
-        resolved: a.resolved,
+        resolved: a.resolved || processingAlerts.has(a.id),
       }));
 
     const cleanItems: TimelineItem[] = cleanRecords.map((c: CleanRecord) => {
@@ -97,7 +111,7 @@ export default function Home() {
     const allItems = [...replacementItems, ...alertItems, ...cleanItems];
     allItems.sort((a, b) => (dayjs(b.date).isAfter(dayjs(a.date)) ? 1 : -1));
     return allItems.slice(0, 10);
-  }, [replacements, alerts, cleanRecords, devices]);
+  }, [replacements, alerts, cleanRecords, devices, processingAlerts]);
 
   const getTimelineColor = (type: TimelineType) => {
     switch (type) {
@@ -328,7 +342,11 @@ export default function Home() {
                     )}
                   </div>
 
-                  <div className="flex-1 pb-1 min-w-0">
+                  <div className={`flex-1 pb-1 min-w-0 transition-all duration-300 ${
+                    item.type === 'alert' && processingAlerts.has(item.alertId!)
+                      ? 'opacity-50'
+                      : ''
+                  }`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <span className={`tag ${getTimelineTagStyle(item.type)}`}>
@@ -340,11 +358,20 @@ export default function Home() {
                       </div>
                       {item.type === 'alert' && item.alertId && !item.resolved && (
                         <button
-                          onClick={() => resolveAlert(item.alertId!)}
+                          onClick={() => handleResolveAlert(item.alertId!)}
                           className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-500 bg-brand-50 border border-brand-100 hover:bg-brand-100 hover:text-brand-600 transition-all duration-200 group"
                         >
                           <Check className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" strokeWidth={2} />
                           <span>已处理</span>
+                        </button>
+                      )}
+                      {item.type === 'alert' && item.alertId && processingAlerts.has(item.alertId) && (
+                        <button
+                          disabled
+                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-brand-300 bg-brand-50/50 border border-brand-100/60 cursor-default"
+                        >
+                          <Check className="w-3.5 h-3.5" strokeWidth={2} fill="currentColor" />
+                          <span>处理完了</span>
                         </button>
                       )}
                     </div>
