@@ -153,6 +153,13 @@ export const useAppStore = create<AppState>()(
           }
         }
 
+        const cleanerSupply = supplies.find(
+          (s) => s.roomId === inspection.roomId && s.type === 'cleaner'
+        );
+        if (cleanerSupply) {
+          updateSupply(cleanerSupply.id, { remainingPercent: inspection.cleanerLevel });
+        }
+
         setTimeout(() => get().checkLowStock(), 0);
       },
 
