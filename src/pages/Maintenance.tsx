@@ -11,6 +11,7 @@ export default function Maintenance() {
 
   const [resolveMode, setResolveMode] = useState<string | null>(null)
   const [resolvedBy, setResolvedBy] = useState('')
+  const [resolvedNotes, setResolvedNotes] = useState('')
 
   const pendingAlerts = maintenanceAlerts
     .filter((a) => a.status === 'pending')
@@ -24,9 +25,10 @@ export default function Maintenance() {
 
   const handleResolve = (alertId: string) => {
     if (!resolvedBy.trim()) return
-    resolveAlertAndRestoreDevice(alertId, resolvedBy.trim())
+    resolveAlertAndRestoreDevice(alertId, resolvedBy.trim(), resolvedNotes.trim())
     setResolveMode(null)
     setResolvedBy('')
+    setResolvedNotes('')
   }
 
   return (
@@ -99,34 +101,44 @@ export default function Maintenance() {
                       </div>
 
                       {resolveMode === alert.id && (
-                        <div className="mt-4 pt-4 border-t border-zinc-100 flex gap-2">
+                        <div className="mt-4 pt-4 border-t border-zinc-100 space-y-2">
                           <input
                             type="text"
                             value={resolvedBy}
                             onChange={(e) => setResolvedBy(e.target.value)}
                             placeholder="维修人姓名"
-                            className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400"
+                            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400"
                           />
-                          <button
-                            onClick={() => handleResolve(alert.id)}
-                            disabled={!resolvedBy.trim()}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              resolvedBy.trim()
-                                ? 'bg-teal-600 text-white hover:bg-teal-700'
-                                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                            }`}
-                          >
-                            确认
-                          </button>
-                          <button
-                            onClick={() => {
-                              setResolveMode(null)
-                              setResolvedBy('')
-                            }}
-                            className="px-4 py-2 rounded-lg border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
-                          >
-                            取消
-                          </button>
+                          <textarea
+                            value={resolvedNotes}
+                            onChange={(e) => setResolvedNotes(e.target.value)}
+                            placeholder="处理结果，如：脚垫更换、螺丝拧紧、靠背加固..."
+                            rows={2}
+                            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 resize-none"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              onClick={() => {
+                                setResolveMode(null)
+                                setResolvedBy('')
+                                setResolvedNotes('')
+                              }}
+                              className="px-4 py-2 rounded-lg border border-zinc-200 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+                            >
+                              取消
+                            </button>
+                            <button
+                              onClick={() => handleResolve(alert.id)}
+                              disabled={!resolvedBy.trim()}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                resolvedBy.trim()
+                                  ? 'bg-teal-600 text-white hover:bg-teal-700'
+                                  : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                              }`}
+                            >
+                              确认完成
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -154,6 +166,9 @@ export default function Maintenance() {
                         <p className="text-sm text-zinc-700">
                           <span className="font-semibold">{device?.code ?? alert.deviceId}</span> · {alert.reason}
                         </p>
+                        {alert.resolvedNotes && (
+                          <p className="text-xs text-teal-600 mt-1">处理：{alert.resolvedNotes}</p>
+                        )}
                         <p className="text-[11px] text-zinc-400 mt-0.5">
                           维修人：{alert.resolvedBy} · {formatDateTime(alert.resolvedAt!)}
                         </p>

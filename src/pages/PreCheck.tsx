@@ -71,6 +71,7 @@ export default function PreCheck() {
         createdAt: new Date().toISOString(),
         resolvedAt: null,
         resolvedBy: null,
+        resolvedNotes: null,
       })
     } else {
       startUsage(selectedDevice, checkRecordId)

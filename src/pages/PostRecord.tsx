@@ -76,6 +76,7 @@ export default function PostRecord() {
         createdAt: new Date().toISOString(),
         resolvedAt: null,
         resolvedBy: null,
+        resolvedNotes: null,
       })
     } else {
       updateDevice(selectedDevice, { status: 'available' })

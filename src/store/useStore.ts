@@ -33,8 +33,8 @@ interface AppState {
   addCleanRecord: (record: Omit<CleanRecord, 'id'>) => string
 
   addMaintenanceAlert: (alert: Omit<MaintenanceAlert, 'id'>) => string
-  resolveMaintenanceAlert: (alertId: string, resolvedBy: string) => void
-  resolveAlertAndRestoreDevice: (alertId: string, resolvedBy: string) => void
+  resolveMaintenanceAlert: (alertId: string, resolvedBy: string, resolvedNotes: string) => void
+  resolveAlertAndRestoreDevice: (alertId: string, resolvedBy: string, resolvedNotes: string) => void
 
   getWeeklyUsageCount: () => number
   getDeviceCheckRecords: (deviceId: string) => CheckRecord[]
@@ -99,6 +99,7 @@ const INITIAL_ALERTS: MaintenanceAlert[] = [
     createdAt: new Date().toISOString(),
     resolvedAt: null,
     resolvedBy: null,
+    resolvedNotes: null,
   },
 ]
 
@@ -222,23 +223,23 @@ export const useStore = create<AppState>()(
         return id
       },
 
-      resolveMaintenanceAlert: (alertId, resolvedBy) => {
+      resolveMaintenanceAlert: (alertId, resolvedBy, resolvedNotes) => {
         set((s) => ({
           maintenanceAlerts: s.maintenanceAlerts.map((a) =>
             a.id === alertId
-              ? { ...a, status: 'resolved' as const, resolvedAt: now(), resolvedBy }
+              ? { ...a, status: 'resolved' as const, resolvedAt: now(), resolvedBy, resolvedNotes }
               : a
           ),
         }))
       },
 
-      resolveAlertAndRestoreDevice: (alertId, resolvedBy) => {
+      resolveAlertAndRestoreDevice: (alertId, resolvedBy, resolvedNotes) => {
         const alert = get().maintenanceAlerts.find((a) => a.id === alertId)
         if (!alert) return
         set((s) => ({
           maintenanceAlerts: s.maintenanceAlerts.map((a) =>
             a.id === alertId
-              ? { ...a, status: 'resolved' as const, resolvedAt: now(), resolvedBy }
+              ? { ...a, status: 'resolved' as const, resolvedAt: now(), resolvedBy, resolvedNotes }
               : a
           ),
           devices: s.devices.map((d) =>

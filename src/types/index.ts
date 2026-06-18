@@ -52,6 +52,7 @@ export interface MaintenanceAlert {
   createdAt: string
   resolvedAt: string | null
   resolvedBy: string | null
+  resolvedNotes: string | null
 }
 
 export interface UsageRecord {
