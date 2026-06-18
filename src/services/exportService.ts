@@ -1,6 +1,6 @@
 import type { Device, Measurement, Settings, CuffSize } from '../types';
 import { armLabels, postureLabels, cuffSizeLabels } from '../types';
-import { sortMeasurementsByDateTimeDesc } from '../lib/utils';
+import { sortMeasurementsByDateTimeDesc, getMeasurementsWithinDays } from '../lib/utils';
 
 const CUFF_SIZE_RANGES: Record<CuffSize, [number, number]> = {
   small: [22, 26],
@@ -17,16 +17,17 @@ const getRecommendedCuffSize = (armCircumference: number): CuffSize | null => {
   return null;
 };
 
-const buildVisitChecklist = (
-  filteredMeasurements: Measurement[],
+export const buildVisitChecklist = (
+  allMeasurements: Measurement[],
   device: Device | null,
   settings: Settings
 ): string[] => {
   const items: string[] = [];
   const now = new Date();
 
-  if (filteredMeasurements.length > 0) {
-    const abnormalRecords = filteredMeasurements.filter((m) => m.isAbnormal);
+  const recent30Days = getMeasurementsWithinDays(allMeasurements, 30);
+  if (recent30Days.length > 0) {
+    const abnormalRecords = recent30Days.filter((m) => m.isAbnormal);
     if (abnormalRecords.length > 0) {
       const reasonCounts: Record<string, number> = {};
       abnormalRecords.forEach((m) => {
@@ -40,14 +41,14 @@ const buildVisitChecklist = (
         }
       });
 
-      items.push(`【异常读数】共 ${abnormalRecords.length} 次异常，原因汇总：`);
+      items.push(`【异常读数】近30天共 ${abnormalRecords.length} 次异常，原因汇总：`);
       Object.entries(reasonCounts)
         .sort((a, b) => b[1] - a[1])
         .forEach(([reason, count]) => {
           items.push(`  - ${reason}（${count}次）`);
         });
     } else {
-      items.push('【异常读数】无异常');
+      items.push('【异常读数】近30天无异常');
     }
   }
 
@@ -139,7 +140,7 @@ export const generateCSV = (
   lines.push('');
 
   lines.push('=== 复诊问题清单（请优先关注）===');
-  const checklist = buildVisitChecklist(sortedMeasurements, device, settings);
+  const checklist = buildVisitChecklist(measurements, device, settings);
   if (checklist.length > 0) {
     checklist.forEach((item) => lines.push(item));
   } else {
