@@ -17,25 +17,29 @@ import {
   Dog,
   Cat,
   ChevronDown,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/apiClient';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { EmptyState } from '@/components/common/EmptyState';
-import type { Stay, Pet, Cage, User } from '../../../shared/types';
+import type { Stay, Pet, Cage, User, VaccinationCheckResult } from '../../../shared/types';
 import { STATUS_NAMES, SPECIES_NAMES } from '../../../shared/types';
 
-type TabType = 'all' | 'pending' | 'checked-in' | 'checked-out' | 'cancelled';
+type TabType = 'all' | 'pending' | 'checked-in' | 'checked-out' | 'cancelled' | 'pending-materials';
 type CageTypeFilter = 'all' | 'normal' | 'isolation';
 
 interface StayWithDetails extends Stay {
   pet?: Pet;
   cage?: Cage;
   assignedStaff?: User;
+  vaccineCheckResult?: VaccinationCheckResult | null;
+  pendingMaterials: string[];
 }
 
 const tabs: { key: TabType; label: string }[] = [
   { key: 'all', label: '全部' },
+  { key: 'pending-materials', label: '待补材料' },
   { key: 'pending', label: '待确认' },
   { key: 'checked-in', label: '已入住' },
   { key: 'checked-out', label: '已退房' },
@@ -69,9 +73,34 @@ export default function StayList() {
         apiClient.get<User[]>('/users'),
       ]);
 
+      let staysWithVaccine: StayWithDetails[] = [];
+
       if (staysRes.success && staysRes.data) {
-        setStays(staysRes.data);
+        const vaccineCheckPromises = staysRes.data.map(async (stay) => {
+          try {
+            const checkRes = await apiClient.get<VaccinationCheckResult>(
+              `/vaccination/check/${stay.petId}`
+            );
+            return {
+              ...stay,
+              vaccineCheckResult: checkRes.success ? checkRes.data : null,
+              pendingMaterials: checkRes.success && checkRes.data?.missingDocuments
+                ? checkRes.data.missingDocuments
+                : [],
+            };
+          } catch {
+            return {
+              ...stay,
+              vaccineCheckResult: null,
+              pendingMaterials: [],
+            };
+          }
+        });
+
+        staysWithVaccine = await Promise.all(vaccineCheckPromises);
+        setStays(staysWithVaccine);
       }
+
       if (petsRes.success && petsRes.data) {
         const petsMap = new Map(petsRes.data.map((p) => [p.id, p]));
         setPets(petsMap);
@@ -102,6 +131,9 @@ export default function StayList() {
 
   const filteredStays = useMemo(() => {
     return staysWithDetails.filter((stay) => {
+      if (activeTab === 'pending-materials') {
+        return stay.pendingMaterials.length > 0 || !stay.vaccineCheckResult?.overallPass;
+      }
       if (activeTab !== 'all' && stay.status !== activeTab) return false;
 
       if (searchKeyword) {
@@ -363,7 +395,14 @@ export default function StayList() {
                         {STATUS_NAMES[stay.status]}
                       </StatusBadge>
                     </div>
-                    <div className="absolute top-3 right-3 flex gap-2">
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
+                    {stay.pendingMaterials.length > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
+                        <FileText className="w-3 h-3" />
+                        待补材料
+                      </span>
+                    )}
+                    <div className="flex gap-2">
                       {stay.highRisk && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
                           <AlertTriangle className="w-3 h-3" />
@@ -376,6 +415,7 @@ export default function StayList() {
                         </span>
                       )}
                     </div>
+                  </div>
                   </div>
 
                   <div className="p-5">

@@ -414,6 +414,122 @@ export default function StayDetail() {
           </div>
         </div>
 
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary-600" />
+              材料清单
+            </h3>
+            {stay.pet && (
+              <button
+                onClick={() => navigate(`/vaccination/check/${stay.pet!.id}`)}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+              >
+                查看详情
+                <ArrowLeft className="w-4 h-4 rotate-180" />
+              </button>
+            )}
+          </div>
+
+          {stay.vaccineCheckResult ? (
+            <div className="space-y-3">
+              {stay.vaccineCheckResult.checks.map((check, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    'flex items-center justify-between p-4 rounded-xl border-2 transition-all',
+                    check.status === 'valid'
+                      ? 'bg-green-50 border-green-200'
+                      : check.status === 'expiring'
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : check.status === 'expired'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-gray-50 border-gray-200'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-full flex items-center justify-center',
+                        check.status === 'valid'
+                          ? 'bg-green-200'
+                          : check.status === 'expiring'
+                          ? 'bg-yellow-200'
+                          : check.status === 'expired'
+                          ? 'bg-red-200'
+                          : 'bg-gray-200'
+                      )}
+                    >
+                      {check.status === 'valid' ? (
+                        <CheckCircle2 className="w-5 h-5 text-green-700" />
+                      ) : check.status === 'expiring' ? (
+                        <Clock className="w-5 h-5 text-yellow-700" />
+                      ) : check.status === 'expired' ? (
+                        <XCircle className="w-5 h-5 text-red-700" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-gray-700" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900">{check.name}</p>
+                        {check.required && (
+                          <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                            必检
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">{check.message}</p>
+                    </div>
+                  </div>
+                  <span
+                    className={cn(
+                      'px-3 py-1 rounded-full text-xs font-medium',
+                      check.status === 'valid'
+                        ? 'bg-green-200 text-green-800'
+                        : check.status === 'expiring'
+                        ? 'bg-yellow-200 text-yellow-800'
+                        : check.status === 'expired'
+                        ? 'bg-red-200 text-red-800'
+                        : 'bg-gray-200 text-gray-800'
+                    )}
+                  >
+                    {check.status === 'valid'
+                      ? '有效'
+                      : check.status === 'expiring'
+                      ? `临期${check.daysRemaining}天`
+                      : check.status === 'expired'
+                      ? '已过期'
+                      : '缺失'}
+                  </span>
+                </div>
+              ))}
+
+              {stay.vaccineCheckResult.warnings.length > 0 && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-yellow-800">注意事项</p>
+                      {stay.vaccineCheckResult.warnings.map((w, i) => (
+                        <p key={i} className="text-sm text-yellow-700 mt-1">
+                          • {w}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<FileText className="w-10 h-10" />}
+              title="暂无材料信息"
+              description="无法获取该宠物的疫苗核验信息"
+            />
+          )}
+        </div>
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
           <div className="border-b border-gray-100 px-6">
             <div className="flex gap-1">
