@@ -93,22 +93,24 @@ export default function StayDetail() {
   const fetchStayDetail = async (stayId: number) => {
     try {
       setLoading(true);
-      const [stayRes, recordsRes, vaccinesRes] = await Promise.all([
-        apiClient.get<Stay>(`/stays/${stayId}`),
-        apiClient.get<DailyRecord[]>(`/daily-records/stay/${stayId}`),
-        apiClient.get<VaccinationCheckResult>(`/vaccination/check/stay/${stayId}`),
-      ]);
+      const stayRes = await apiClient.get<Stay>(`/stays/${stayId}`);
 
       if (stayRes.success && stayRes.data) {
         const stayData = stayRes.data;
-        const [petRes, cageRes, staffRes] = await Promise.all([
+
+        const [petRes, cageRes, staffRes, recordsRes] = await Promise.all([
           stayData.petId ? apiClient.get<Pet>(`/pets/${stayData.petId}`) : Promise.resolve(null),
           stayData.cageId ? apiClient.get<Cage>(`/cages/${stayData.cageId}`) : Promise.resolve(null),
           stayData.assignedStaffId ? apiClient.get<User>(`/users/${stayData.assignedStaffId}`) : Promise.resolve(null),
+          apiClient.get<DailyRecord[]>(`/stays/${stayId}/records`),
         ]);
 
         const petVaccinesRes = stayData.petId
           ? await apiClient.get<VaccineRecord[]>(`/pets/${stayData.petId}/vaccines`)
+          : null;
+
+        const vaccineCheckRes = stayData.petId
+          ? await apiClient.get<VaccinationCheckResult>(`/vaccination/check/${stayData.petId}`)
           : null;
 
         setStay({
@@ -118,7 +120,7 @@ export default function StayDetail() {
           assignedStaff: staffRes?.success ? staffRes.data : undefined,
           dailyRecords: recordsRes.success ? recordsRes.data : [],
           vaccineRecords: petVaccinesRes?.success ? petVaccinesRes.data : [],
-          vaccineCheckResult: vaccinesRes.success ? vaccinesRes.data : undefined,
+          vaccineCheckResult: vaccineCheckRes?.success ? vaccineCheckRes.data : undefined,
         });
       }
     } catch (error) {

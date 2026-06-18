@@ -28,6 +28,7 @@ export default function App() {
           <Route path="vaccination/check/:petId" element={<VaccinationCheck />} />
           <Route path="stays" element={<StayList />} />
           <Route path="stays/new" element={<StayForm />} />
+          <Route path="stays/:id/checkin" element={<StayForm />} />
           <Route path="stays/:id" element={<StayDetail />} />
           <Route path="daily-records" element={<DailyRecordList />} />
           <Route path="daily-records/calendar" element={<RecordCalendar />} />
