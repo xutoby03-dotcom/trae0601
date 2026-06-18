@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Wrench, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Wrench, CheckCircle, AlertCircle, Plus, Phone, Calendar, Hash, FileText, Clock } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { DamageStatusBadge } from '../../components/common/StatusBadge';
-import { formatDateChinese } from '../../utils/timeUtils';
+import { formatDateChinese, formatDateTimeChinese } from '../../utils/timeUtils';
 import type { DamageType } from '../../types';
 
 export default function Damages() {
@@ -186,7 +186,7 @@ export default function Damages() {
                       : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className="font-medium text-gray-800">
@@ -197,7 +197,48 @@ export default function Damages() {
                         </span>
                         <DamageStatusBadge status={record.status} />
                       </div>
-                      <p className="text-gray-600 text-sm mb-2">{record.description}</p>
+                      <p className="text-gray-600 text-sm mb-3 font-medium">{record.description}</p>
+                      
+                      {(record.phone || record.bookingCode || record.returnedAt || record.note) && (
+                        <div className="bg-white rounded-lg p-3 mb-3 border border-gray-100">
+                          <div className="text-xs text-gray-400 font-medium mb-2 flex items-center gap-1">
+                            <Calendar size={12} />
+                            预约相关信息
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {record.phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone size={13} className="text-table-500" />
+                                <a
+                                  href={`tel:${record.phone}`}
+                                  className="text-table-600 hover:text-table-700 hover:underline font-mono"
+                                >
+                                  {record.phone}
+                                </a>
+                              </div>
+                            )}
+                            {record.bookingCode && (
+                              <div className="flex items-center gap-2">
+                                <Hash size={13} className="text-primary-500" />
+                                <span className="text-gray-700 font-mono">{record.bookingCode}</span>
+                              </div>
+                            )}
+                            {record.returnedAt && (
+                              <div className="flex items-center gap-2">
+                                <Clock size={13} className="text-floor-500" />
+                                <span className="text-gray-600">{formatDateTimeChinese(record.returnedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                          {record.note && (
+                            <div className="mt-2 pt-2 border-t border-gray-100 flex items-start gap-2">
+                              <FileText size={13} className="text-gray-400 mt-0.5" />
+                              <span className="text-sm text-gray-500">{record.note}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <div className="flex gap-4 text-xs text-gray-400">
                         <span>
                           上报: {formatDateChinese(record.reportedAt)}
@@ -212,7 +253,7 @@ export default function Damages() {
                     {record.status === 'pending' && (
                       <button
                         onClick={() => handleResolve(record.id)}
-                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-full transition-colors"
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-full transition-colors shrink-0"
                       >
                         标记修复
                       </button>

@@ -70,11 +70,21 @@ export default function Return() {
       note,
     });
 
+    const now = new Date().toISOString();
+    const sharedDamageInfo = {
+      bookingId: booking.id,
+      bookingCode: booking.bookingCode,
+      phone: booking.phone,
+      returnedAt: now,
+      note: note || undefined,
+    };
+
     if (hasDamage && damageDesc) {
       createDamageRecord({
         tableId: booking.tableId,
         type: 'racket',
         description: damageDesc,
+        ...sharedDamageInfo,
       });
     }
 
@@ -83,6 +93,7 @@ export default function Return() {
         tableId: booking.tableId,
         type: 'ball',
         description: '乒乓球遗失',
+        ...sharedDamageInfo,
       });
     }
 
@@ -91,7 +102,8 @@ export default function Return() {
       createDamageRecord({
         tableId: booking.tableId,
         type: 'racket',
-        description: `球拍遗失 ${missingCount} 副${note ? `，备注：${note}` : ''}`,
+        description: `球拍遗失 ${missingCount} 副`,
+        ...sharedDamageInfo,
       });
     }
 

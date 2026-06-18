@@ -51,6 +51,11 @@ export interface DamageRecord {
   status: DamageStatus;
   reportedAt: string;
   resolvedAt?: string;
+  bookingId?: string;
+  bookingCode?: string;
+  phone?: string;
+  returnedAt?: string;
+  note?: string;
 }
 
 export interface Admin {

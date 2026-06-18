@@ -34,6 +34,11 @@ export function formatDateChinese(date: Date | string): string {
   return format(d, 'M月d日 EEEE', { locale: zhCN });
 }
 
+export function formatDateTimeChinese(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return format(d, 'M月d日 HH:mm', { locale: zhCN });
+}
+
 export function getTodayString(): string {
   return format(new Date(), 'yyyy-MM-dd');
 }
