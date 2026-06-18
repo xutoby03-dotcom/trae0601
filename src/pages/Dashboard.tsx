@@ -134,7 +134,8 @@ function AbnormalWaterCard({ tankId }: { tankId: string }) {
 
       {hasAbnormal && (
         <Link
-          to="/maintenance"
+          to="/water-quality"
+          state={{ fromDashboard: true, abnormalDate: latest?.date }}
           className="flex items-center gap-1 text-surface hover:text-shallow text-xs mt-4 self-end transition-colors"
         >
           查看关联维护记录 <ArrowRight className="w-3 h-3" />

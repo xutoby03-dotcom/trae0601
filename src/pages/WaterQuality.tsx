@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAquaStore } from '@/store/aquaStore';
-import type { WaterColor, MaintenanceLog } from '@/types';
-import { Plus, AlertTriangle, TrendingUp, X, Trash2 } from 'lucide-react';
+import type { WaterColor, MaintenanceLog, WaterQuality } from '@/types';
+import { Plus, AlertTriangle, TrendingUp, X, Trash2, Droplets, FlaskConical, AlertCircle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -13,7 +13,7 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 interface FormState {
   date: string;
@@ -186,55 +186,169 @@ function LatestCard({ tankId }: { tankId: string }) {
   );
 }
 
-function AbnormalPanel({ tankId }: { tankId: string }) {
+function getAbnormalIndicators(wq: WaterQuality): { label: string; value: string; severity: 'high' | 'warn' }[] {
+  const items: { label: string; value: string; severity: 'high' | 'warn' }[] = [];
+  if (wq.ammonia > 0.5) {
+    items.push({ label: '氨氮', value: `${wq.ammonia} mg/L`, severity: 'high' });
+  }
+  if (wq.nitrite > 0.1) {
+    items.push({ label: '亚硝酸盐', value: `${wq.nitrite} mg/L`, severity: 'high' });
+  }
+  if (wq.waterColor === '发绿') {
+    items.push({ label: '水色', value: wq.waterColor, severity: 'warn' });
+  }
+  if (wq.waterColor === '浑浊') {
+    items.push({ label: '水色', value: wq.waterColor, severity: 'high' });
+  }
+  return items;
+}
+
+function AbnormalPanel({ tankId, highlightDate }: { tankId: string; highlightDate?: string }) {
   const waterQualities = useAquaStore((s) => s.waterQualities);
   const maintenanceLogs = useAquaStore((s) => s.maintenanceLogs);
 
   const [expanded, setExpanded] = useState(true);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const tankWQ = waterQualities
     .filter((w) => w.tankId === tankId)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const latest = tankWQ[0];
-  if (!latest) return null;
+  const targetRecord = highlightDate
+    ? tankWQ.find((w) => w.date === highlightDate) ?? tankWQ[0]
+    : tankWQ[0];
 
-  const isAbnormal =
-    latest.ammonia > 0.5 ||
-    latest.nitrite > 0.1 ||
-    latest.waterColor === '发绿' ||
-    latest.waterColor === '浑浊';
+  if (!targetRecord) return null;
 
-  if (!isAbnormal) return null;
+  const abnormalities = getAbnormalIndicators(targetRecord);
+
+  if (abnormalities.length === 0) return null;
 
   const recentMaintenance = maintenanceLogs
-    .filter((m) => m.tankId === tankId && new Date(m.date) <= new Date(latest.date))
+    .filter((m) => m.tankId === tankId && new Date(m.date) <= new Date(targetRecord.date))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 3);
 
+  const isHighlighted = highlightDate === targetRecord.date;
+
+  useEffect(() => {
+    if (isHighlighted && panelRef.current) {
+      setTimeout(() => {
+        panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
+  }, [isHighlighted]);
+
+  const maintIcon = (type: MaintenanceLog['type']) => {
+    if (type === '换水') return <Droplets size={12} />;
+    if (type === '清洗过滤桶') return <FlaskConical size={12} />;
+    return <AlertCircle size={12} />;
+  };
+
   return (
-    <div className="rounded-2xl border border-coral/30 bg-coral/5 overflow-hidden">
+    <div
+      ref={panelRef}
+      className={`rounded-2xl border overflow-hidden transition-all duration-500 ${
+        isHighlighted
+          ? 'border-coral bg-coral/10 animate-pulse-glow ring-2 ring-coral/40'
+          : 'border-coral/30 bg-coral/5'
+      }`}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 p-4 hover:bg-coral/10 transition-colors"
       >
         <AlertTriangle className="w-5 h-5 text-coral shrink-0" />
-        <span className="text-foam font-semibold flex-1 text-left">⚠️ 水质异常 - 关联维护记录</span>
+        <span className="text-foam font-semibold flex-1 text-left">
+          ⚠️ 水质异常 - {targetRecord.date}
+        </span>
         <span className="text-foam/40 text-xs">{expanded ? '收起' : '展开'}</span>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-2">
-          {recentMaintenance.length === 0 ? (
-            <p className="text-foam/40 text-sm py-2">在此次水质记录前暂无维护记录</p>
-          ) : (
-            recentMaintenance.map((log) => (
-              <div key={log.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${getMaintenanceColor(log.type)}`}>
-                <span className="text-sm font-medium flex-1">{log.type}</span>
-                <span className="text-xs opacity-70">{log.date}</span>
-                <span className="text-xs opacity-80 max-w-[200px] truncate">{log.description}</span>
+        <div className="px-4 pb-4 space-y-4">
+          <div className="space-y-2">
+            <p className="text-xs text-foam/50 font-medium">异常指标</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {abnormalities.map((item, i) => {
+                const bgColor = item.severity === 'high' ? 'bg-red-500/10' : 'bg-orange-400/10';
+                const borderColor = item.severity === 'high' ? 'border-red-500/60' : 'border-orange-400/60';
+                const textColor = item.severity === 'high' ? 'text-red-400' : 'text-orange-400';
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-2 rounded-lg border ${borderColor} ${bgColor} px-3 py-2`}
+                  >
+                    <AlertCircle className={`w-4 h-4 ${textColor} shrink-0`} />
+                    <span className="text-foam text-sm flex-1">{item.label}</span>
+                    <span className={`text-xs font-medium ${textColor}`}>{item.value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs text-foam/50 font-medium">关联维护记录（此次检测前的3次维护）</p>
+            {recentMaintenance.length === 0 ? (
+              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-4 text-center">
+                <p className="text-foam/40 text-sm">在此次水质记录前暂无维护记录</p>
+                <p className="text-foam/30 text-xs mt-1">建议尽快排查水质异常原因</p>
               </div>
-            ))
+            ) : (
+              recentMaintenance.map((log) => (
+                <div
+                  key={log.id}
+                  className={`rounded-lg border px-3 py-3 ${getMaintenanceColor(log.type)}`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium flex items-center gap-1.5">
+                      {maintIcon(log.type)}
+                      {log.type}
+                    </span>
+                    <span className="text-xs opacity-70 ml-auto">{log.date}</span>
+                  </div>
+                  {log.description && (
+                    <p className="text-xs opacity-80">{log.description}</p>
+                  )}
+                  {log.type === '换水' && (log.waterChangeAmount != null || log.waterChangePercent != null) && (
+                    <div className="flex gap-2 mt-1.5">
+                      {log.waterChangeAmount != null && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 opacity-80">
+                          {log.waterChangeAmount}L
+                        </span>
+                      )}
+                      {log.waterChangePercent != null && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 opacity-80">
+                          {log.waterChangePercent}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {log.type === '添加硝化细菌' && (log.nitrifyingBrand || log.nitrifyingDosage) && (
+                    <div className="flex gap-2 mt-1.5">
+                      {log.nitrifyingBrand && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 opacity-80">
+                          {log.nitrifyingBrand}
+                        </span>
+                      )}
+                      {log.nitrifyingDosage && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20 opacity-80">
+                          {log.nitrifyingDosage}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {targetRecord.note && (
+            <div className="rounded-lg border border-sand/30 bg-sand/10 px-3 py-2">
+              <p className="text-xs text-sand/70 font-medium mb-0.5">检测备注</p>
+              <p className="text-sm text-foam/80">{targetRecord.note}</p>
+            </div>
           )}
         </div>
       )}
@@ -296,6 +410,9 @@ export default function WaterQuality() {
   const { waterQualities, activeTankId, addWaterQuality } = useAquaStore();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const location = useLocation();
+  const locationState = location.state as { fromDashboard?: boolean; abnormalDate?: string } | null;
+  const highlightDate = locationState?.abnormalDate;
 
   if (!activeTankId) {
     return (
@@ -372,7 +489,7 @@ export default function WaterQuality() {
         ) : (
           <div className="space-y-6">
             <LatestCard tankId={activeTankId} />
-            <AbnormalPanel tankId={activeTankId} />
+            <AbnormalPanel tankId={activeTankId} highlightDate={highlightDate} />
             <TrendCharts tankId={activeTankId} />
             <HistoryTable tankId={activeTankId} />
           </div>
