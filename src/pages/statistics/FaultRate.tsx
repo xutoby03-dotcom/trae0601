@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   TrendingDown,
   TrendingUp,
@@ -10,6 +10,9 @@ import {
   ChevronRight,
   Award,
   Minus,
+  MessageSquareWarning,
+  ClipboardCheck,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   LineChart,
@@ -32,6 +35,7 @@ import { formatPercent, formatDate } from "../../utils/formatters";
 import { clsx } from "clsx";
 
 export default function FaultRate() {
+  const navigate = useNavigate();
   const stations = useStationStore((s) => s.stations);
   const stats = useStationStore((s) => s.stats);
   const maintenanceRecords = useRepairStore((s) => s.maintenanceRecords);
@@ -44,6 +48,37 @@ export default function FaultRate() {
     ),
     [records]
   );
+
+  const faultSourceBreakdown = useMemo(() => {
+    const openTickets = tickets.filter(
+      (t) => t.status === "pending" || t.status === "processing" || t.status === "maintenance"
+    );
+    const stationIdsFromRepair = new Set(openTickets.map((t) => t.stationId));
+    const stationIdsFromInspection = new Set(
+      abnormalRecords.map((r: any) => r.stationId)
+    );
+
+    const faultStations = stations.filter(
+      (s) => s.status === "fault" || s.status === "maintenance"
+    );
+
+    const fromRepair = faultStations.filter((s) => stationIdsFromRepair.has(s.id));
+    const fromInspection = faultStations.filter(
+      (s) => !stationIdsFromRepair.has(s.id) && stationIdsFromInspection.has(s.id)
+    );
+    const other = faultStations.filter(
+      (s) => !stationIdsFromRepair.has(s.id) && !stationIdsFromInspection.has(s.id)
+    );
+
+    return {
+      total: faultStations.length,
+      fromRepair: fromRepair.length,
+      fromInspection: fromInspection.length,
+      other: other.length,
+      fromRepairStations: fromRepair,
+      fromInspectionStations: fromInspection,
+    };
+  }, [stations, tickets, abnormalRecords]);
 
   const monthlyTrend = useMemo(() => {
     const months: { name: string; month: number; year: number }[] = [];
@@ -207,6 +242,7 @@ export default function FaultRate() {
           icon={AlertTriangle}
           variant="danger"
           trend={{ value: faultRateTrend, label: "较上月" }}
+          onClick={() => navigate("/maintenance/faults?source=all")}
         />
         <StatCard
           title="累计报修次数"
@@ -214,6 +250,7 @@ export default function FaultRate() {
           icon={TrendingUp}
           variant="warning"
           subtext={`覆盖 ${new Set(tickets.map((t) => t.stationId)).size} 个桩位`}
+          onClick={() => navigate("/maintenance/faults?source=repair")}
         />
         <StatCard
           title="累计维修次数"
@@ -225,12 +262,99 @@ export default function FaultRate() {
             : 0}`}
         />
         <StatCard
-          title="TOP10 故障桩"
+          title="当前故障桩"
           value={topFaultStations.length}
           icon={Award}
           variant="warning"
           subtext={`${stats.fault + stats.maintenance} 个当前故障中`}
+          onClick={() => navigate("/maintenance/faults?source=all")}
         />
+      </div>
+
+      <div>
+        <h2 className="section-title flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-primary-500" />
+          故障来源拆分
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div
+            className="card p-6 border-danger-100 bg-gradient-to-br from-danger-50/50 to-white cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            onClick={() => navigate("/maintenance/faults?source=repair")}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-danger-100 flex items-center justify-center">
+                  <MessageSquareWarning className="w-5 h-5 text-danger-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">居民报修来源</div>
+                  <div className="text-xs text-slate-500">用户主动上报故障</div>
+                </div>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="font-display text-3xl font-bold text-danger-600 mb-1">
+              {faultSourceBreakdown.fromRepair}
+            </div>
+            <div className="text-xs text-slate-500">
+              占当前故障的 {faultSourceBreakdown.total > 0
+                ? formatPercent(faultSourceBreakdown.fromRepair / faultSourceBreakdown.total)
+                : "0%"}
+            </div>
+          </div>
+
+          <div
+            className="card p-6 border-warning-100 bg-gradient-to-br from-warning-50/50 to-white cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            onClick={() => navigate("/maintenance/faults?source=inspection")}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-warning-100 flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-warning-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">巡检异常来源</div>
+                  <div className="text-xs text-slate-500">日常巡检发现异常</div>
+                </div>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="font-display text-3xl font-bold text-warning-600 mb-1">
+              {faultSourceBreakdown.fromInspection}
+            </div>
+            <div className="text-xs text-slate-500">
+              占当前故障的 {faultSourceBreakdown.total > 0
+                ? formatPercent(faultSourceBreakdown.fromInspection / faultSourceBreakdown.total)
+                : "0%"}
+            </div>
+          </div>
+
+          <div
+            className="card p-6 border-slate-100 bg-gradient-to-br from-slate-50/50 to-white cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+            onClick={() => navigate("/maintenance/faults?source=all")}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-slate-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-slate-700">其他/待确认</div>
+                  <div className="text-xs text-slate-500">历史遗留待核实</div>
+                </div>
+              </div>
+              <ArrowUpRight className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="font-display text-3xl font-bold text-slate-600 mb-1">
+              {faultSourceBreakdown.other}
+            </div>
+            <div className="text-xs text-slate-500">
+              占当前故障的 {faultSourceBreakdown.total > 0
+                ? formatPercent(faultSourceBreakdown.other / faultSourceBreakdown.total)
+                : "0%"}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

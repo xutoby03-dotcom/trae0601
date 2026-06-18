@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Wrench,
@@ -8,32 +8,129 @@ import {
   Building2,
   Clock,
   ChevronRight,
+  MessageSquareWarning,
+  ClipboardCheck,
+  XCircle,
+  Ticket,
 } from "lucide-react";
 import { useStationStore } from "../../store/stationStore";
 import { useRepairStore } from "../../store/repairStore";
+import { useInspectionStore } from "../../store/inspectionStore";
 import { StationStatusBadge } from "../../components/ui/StatusBadge";
 import { formatRelative } from "../../utils/formatters";
 import { clsx } from "clsx";
 
-export default function Faults() {
-  const stations = useStationStore((s: any) => s.stations);
-  const faultStations = useMemo(() =>
-    stations.filter((st: any) => st.status === "fault" || st.status === "maintenance"),
-    [stations]
-  );
-  const tickets = useRepairStore((s) => s.tickets);
+type FaultSource = "all" | "repair" | "inspection";
 
-  const stationsWithTickets = faultStations.map((station) => {
-    const relatedTickets = tickets.filter((t) => t.stationId === station.id);
-    const latestTicket = relatedTickets.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )[0];
+export default function Faults() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sourceParam = (searchParams.get("source") as FaultSource) || "all";
+
+  const stations = useStationStore((s: any) => s.stations);
+  const tickets = useRepairStore((s) => s.tickets);
+  const records = useInspectionStore((s: any) => s.records);
+
+  const { filteredStations, sourceCounts } = useMemo(() => {
+    const abnormalRecords = records.filter((r: any) => r.hasAbnormal);
+    const stationIdsFromInspection = new Set(
+      abnormalRecords.map((r: any) => r.stationId)
+    );
+    const openTickets = tickets.filter(
+      (t) => t.status === "pending" || t.status === "processing" || t.status === "maintenance"
+    );
+    const stationIdsFromRepair = new Set(openTickets.map((t) => t.stationId));
+
+    const faultStations = stations.filter(
+      (st: any) => st.status === "fault" || st.status === "maintenance"
+    );
+
+    const fromRepair = faultStations.filter((s) => stationIdsFromRepair.has(s.id));
+    const fromInspection = faultStations.filter(
+      (s) => !stationIdsFromRepair.has(s.id) && stationIdsFromInspection.has(s.id)
+    );
+    const other = faultStations.filter(
+      (s) => !stationIdsFromRepair.has(s.id) && !stationIdsFromInspection.has(s.id)
+    );
+
+    let filtered = faultStations;
+    if (sourceParam === "repair") filtered = fromRepair;
+    else if (sourceParam === "inspection") filtered = fromInspection;
+
     return {
-      station,
-      ticketCount: relatedTickets.length,
-      latestTicket,
+      filteredStations: filtered,
+      sourceCounts: {
+        all: faultStations.length,
+        repair: fromRepair.length,
+        inspection: fromInspection.length,
+        other: other.length,
+      },
     };
-  });
+  }, [stations, tickets, records, sourceParam]);
+
+  const stationsWithDetails = useMemo(() => {
+    const openTickets = tickets.filter(
+      (t) => t.status === "pending" || t.status === "processing" || t.status === "maintenance"
+    );
+    const abnormalRecords = records.filter((r: any) => r.hasAbnormal);
+
+    return filteredStations.map((station: any) => {
+      const relatedTickets = tickets.filter((t) => t.stationId === station.id);
+      const pendingTickets = openTickets.filter((t) => t.stationId === station.id);
+      const latestTicket = relatedTickets.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+      const latestAbnormal = abnormalRecords
+        .filter((r: any) => r.stationId === station.id)
+        .sort(
+          (a: any, b: any) => new Date(b.inspectDate).getTime() - new Date(a.inspectDate).getTime()
+        )[0];
+
+      const source: "repair" | "inspection" | "other" =
+        pendingTickets.length > 0 ? "repair" : latestAbnormal ? "inspection" : "other";
+
+      const latestIssue =
+        source === "repair" && latestTicket
+          ? latestTicket.description
+          : source === "inspection" && latestAbnormal
+          ? `巡检异常：${Object.entries(latestAbnormal.items)
+              .filter(([, v]) => v === "abnormal")
+              .map(([k]) => k)
+              .join("、") || "多项异常"}`
+          : "待确认问题";
+
+      return {
+        station,
+        ticketCount: relatedTickets.length,
+        pendingTicketCount: pendingTickets.length,
+        latestTicket,
+        latestAbnormal,
+        source,
+        latestIssue,
+      };
+    });
+  }, [filteredStations, tickets, records]);
+
+  const handleSourceChange = (source: FaultSource) => {
+    setSearchParams(source === "all" ? {} : { source });
+  };
+
+  const sourceTabs: { key: FaultSource; label: string; icon: any; count: number }[] = [
+    { key: "all", label: "全部故障", icon: AlertTriangle, count: sourceCounts.all },
+    { key: "repair", label: "居民报修", icon: MessageSquareWarning, count: sourceCounts.repair },
+    { key: "inspection", label: "巡检异常", icon: ClipboardCheck, count: sourceCounts.inspection },
+  ];
+
+  const sourceBadgeColor = {
+    repair: "bg-danger-100 text-danger-700",
+    inspection: "bg-warning-100 text-warning-700",
+    other: "bg-slate-100 text-slate-700",
+  };
+
+  const sourceBadgeLabel = {
+    repair: "报修来源",
+    inspection: "巡检来源",
+    other: "待确认",
+  };
 
   return (
     <div className="space-y-6">
@@ -44,7 +141,7 @@ export default function Faults() {
             故障桩列表
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            当前共有 <span className="font-semibold text-danger-600">{faultStations.length}</span> 台故障/维修中充电桩，已暂停预约功能
+            当前共有 <span className="font-semibold text-danger-600">{sourceCounts.all}</span> 台故障/维修中充电桩，已暂停预约功能
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -53,6 +150,32 @@ export default function Faults() {
             维修历史
           </Link>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 bg-slate-100/60 p-1.5 rounded-xl w-fit">
+        {sourceTabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleSourceChange(tab.key)}
+            className={clsx(
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+              sourceParam === tab.key
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            )}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+            <span
+              className={clsx(
+                "text-xs px-1.5 py-0.5 rounded-md font-medium",
+                sourceParam === tab.key ? "bg-primary-100 text-primary-700" : "bg-slate-200 text-slate-600"
+              )}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -64,7 +187,7 @@ export default function Faults() {
             <div>
               <div className="text-xs text-slate-500">故障中</div>
               <div className="text-2xl font-bold text-danger-600 font-display">
-                {faultStations.filter((s) => s.status === "fault").length}
+                {filteredStations.filter((s) => s.status === "fault").length}
               </div>
             </div>
           </div>
@@ -77,7 +200,7 @@ export default function Faults() {
             <div>
               <div className="text-xs text-slate-500">维修中</div>
               <div className="text-2xl font-bold text-warning-600 font-display">
-                {faultStations.filter((s) => s.status === "maintenance").length}
+                {filteredStations.filter((s) => s.status === "maintenance").length}
               </div>
             </div>
           </div>
@@ -90,7 +213,7 @@ export default function Faults() {
             <div>
               <div className="text-xs text-slate-500">覆盖楼栋</div>
               <div className="text-2xl font-bold text-primary-600 font-display">
-                {new Set(faultStations.map((s) => s.building)).size}
+                {new Set(filteredStations.map((s) => s.building)).size}
               </div>
             </div>
           </div>
@@ -104,18 +227,18 @@ export default function Faults() {
             需维修充电桩
           </h2>
           <div className="text-xs text-slate-500">
-            共 {stationsWithTickets.length} 条记录
+            共 {stationsWithDetails.length} 条记录
           </div>
         </div>
 
-        {stationsWithTickets.length === 0 ? (
+        {stationsWithDetails.length === 0 ? (
           <div className="p-12 text-center text-slate-400">
-            <AlertTriangle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <div>暂无故障充电桩</div>
+            <XCircle className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+            <div>暂无符合条件的故障充电桩</div>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {stationsWithTickets.map(({ station, ticketCount, latestTicket }) => (
+            {stationsWithDetails.map(({ station, pendingTicketCount, source, latestIssue }) => (
               <div
                 key={station.id}
                 className={clsx(
@@ -143,55 +266,59 @@ export default function Faults() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
                       <h3 className="font-semibold text-slate-800">
                         {station.code}
                       </h3>
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5" />
+                        {station.building}
+                      </span>
                       <StationStatusBadge status={station.status} />
-                      {ticketCount > 0 && (
-                        <span className="badge-danger !py-0">
-                          {ticketCount} 条报修
+                      <span
+                        className={clsx(
+                          "text-[10px] px-2 py-0.5 rounded-md font-medium",
+                          sourceBadgeColor[source]
+                        )}
+                      >
+                        {sourceBadgeLabel[source]}
+                      </span>
+                      {pendingTicketCount > 0 && (
+                        <span className="badge-danger !py-0 flex items-center gap-1">
+                          <Ticket className="w-3 h-3" />
+                          {pendingTicketCount} 单待处理
                         </span>
                       )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-3">
-                      <span className="flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5" />
-                        {station.building} · {station.location}
+                      <span>
+                        {station.location}
                       </span>
                       <span>
                         {station.socketCount} 个插座 · {station.power}kW
                       </span>
-                      {latestTicket && (
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          最近报修 {formatRelative(latestTicket.createdAt)}
-                        </span>
-                      )}
                     </div>
 
-                    {latestTicket && (
-                      <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-100">
-                        <span className="text-slate-400 text-xs mr-2">最新问题：</span>
-                        {latestTicket.description}
-                      </div>
-                    )}
+                    <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                      <span className="text-slate-400 text-xs mr-2">最近问题：</span>
+                      {latestIssue}
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-2 shrink-0">
                     <Link
-                      to={`/maintenance/record?stationId=${station.id}${latestTicket ? `&ticketId=${latestTicket.id}` : ""}`}
+                      to={`/maintenance/record?stationId=${station.id}`}
                       className="btn-primary !px-5"
                     >
                       <Plus className="w-4 h-4" />
                       创建维修记录
                     </Link>
                     <Link
-                      to={`/maintenance/history?stationId=${station.id}`}
+                      to={`/stations/${station.id}`}
                       className="btn-ghost !py-1.5 text-xs"
                     >
-                      历史记录 <ChevronRight className="w-3.5 h-3.5" />
+                      桩位详情 <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>

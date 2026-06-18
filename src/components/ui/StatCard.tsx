@@ -9,6 +9,7 @@ interface StatCardProps {
   variant?: "primary" | "success" | "warning" | "danger";
   trend?: { value: number; label: string };
   subtext?: string;
+  onClick?: () => void;
 }
 
 const variantStyles = {
@@ -41,15 +42,18 @@ export default function StatCard({
   variant = "primary",
   trend,
   subtext,
+  onClick,
 }: StatCardProps) {
   const styles = variantStyles[variant];
   return (
     <div
+      onClick={onClick}
       className={clsx(
         "relative rounded-2xl bg-gradient-to-br text-white p-5 overflow-hidden",
         styles.bg,
         styles.ring,
-        "transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01]"
+        "transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01]",
+        onClick && "cursor-pointer hover:shadow-xl"
       )}
     >
       <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
