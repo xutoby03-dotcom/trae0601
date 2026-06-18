@@ -45,6 +45,7 @@ export function NoiseTypeSelector({ value, onChange }: NoiseTypeSelectorProps) {
         return (
           <button
             key={type}
+            type="button"
             onClick={() => onChange(type)}
             className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${
               isActive ? typeActiveColors[type] + ' shadow-md' : typeColors[type]

@@ -48,7 +48,12 @@ export function PhotoUploader({ value, onChange, maxPhotos = 3 }: PhotoUploaderP
           <div key={index} className="relative w-24 h-24 rounded-lg overflow-hidden group">
             <img src={photo} alt={`照片 ${index + 1}`} className="w-full h-full object-cover" />
             <button
-              onClick={() => removePhoto(index)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                removePhoto(index);
+              }}
               className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X className="w-4 h-4" />
