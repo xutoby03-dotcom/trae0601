@@ -52,7 +52,7 @@ export default function Dashboard() {
     }
   }
 
-  const filteredPackages = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     let result = packages;
     if (filterRecipient) {
       result = result.filter(p => p.recipientName === filterRecipient);
@@ -60,14 +60,19 @@ export default function Dashboard() {
     if (filterCompany) {
       result = result.filter(p => p.company === filterCompany);
     }
+    return result;
+  }, [packages, filterRecipient, filterCompany]);
+
+  const filteredPackages = useMemo(() => {
+    let result = baseFiltered;
     if (priorityFilter === 'fragile') result = result.filter(p => p.isFragile);
     else if (priorityFilter === 'cold') result = result.filter(p => p.isColdChain);
     else if (priorityFilter === 'cod') result = result.filter(p => p.isCod);
     else if (priorityFilter === 'overdue') result = result.filter(p => p.isOverdue);
     return result;
-  }, [packages, filterRecipient, filterCompany, priorityFilter]);
+  }, [baseFiltered, priorityFilter]);
 
-  const priorityPackages = packages.filter(
+  const priorityPackages = baseFiltered.filter(
     p => p.isFragile || p.isColdChain || p.isCod || p.isOverdue
   );
   const normalPackages = filteredPackages.filter(
