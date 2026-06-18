@@ -132,8 +132,9 @@ export default function Export() {
         <div className="p-4 bg-blue-50 rounded-xl mb-6">
           <h4 className="font-medium text-blue-800 mb-2">导出内容包括</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• 设备信息（品牌、型号、校准日期等）</li>
-            <li>• 测量记录（日期、时间、血压值、心率等）</li>
+            <li>• <strong>复诊问题清单</strong>（异常原因汇总、电量、袖带、校准状态）</li>
+            <li>• 设备信息（品牌、型号、袖带尺寸、校准日期等）</li>
+            <li>• 测量记录（按时间倒序，最新的在前）</li>
             <li>• 异常标记和备注</li>
             <li>• 统计摘要（平均值、最高/最低值等）</li>
           </ul>
