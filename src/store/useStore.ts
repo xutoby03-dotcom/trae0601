@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { LabCoat, Lending, DamageRecord, CleaningBatch, CoatSize, CoatStatus } from '../types';
+import type { LabCoat, Lending, DamageRecord, CleaningBatch, CoatSize, CoatStatus, DamageStatus } from '../types';
 import { mockCoats, mockLendings, mockDamageRecords, mockCleaningBatches } from '../data/mockData';
 import { generateId, generateBatchNo, getTodayStr, isOverdue } from '../utils/helpers';
 
@@ -85,6 +85,18 @@ export const useStore = create<AppState>()(
           createdAt: today,
         };
 
+        const newDamageStatus: DamageStatus = {
+          hasStain: damageRecord.hasStain,
+          hasHole: damageRecord.hasHole,
+          missingButton: damageRecord.missingButton,
+          pocketResidue: damageRecord.pocketResidue,
+          contactHazard: damageRecord.contactHazard,
+          stainLevel: damageRecord.stainLevel,
+          holeLevel: damageRecord.holeLevel,
+          buttonLevel: damageRecord.buttonLevel,
+          lastCheckAt: today,
+        };
+
         let newStatus: CoatStatus = 'available';
         if (damageRecord.needRepair) {
           newStatus = 'repairing';
@@ -97,7 +109,11 @@ export const useStore = create<AppState>()(
             l.id === lendingId ? { ...l, status: 'returned' as const, actualReturn: today } : l
           ),
           damageRecords: [...state.damageRecords, newDamageRecord],
-          coats: state.coats.map((c) => (c.id === lending.coatId ? { ...c, status: newStatus } : c)),
+          coats: state.coats.map((c) =>
+            c.id === lending.coatId
+              ? { ...c, status: newStatus, damageStatus: newDamageStatus }
+              : c
+          ),
         }));
       },
 

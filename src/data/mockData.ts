@@ -4,21 +4,21 @@ import { addDays, getTodayStr } from '../utils/helpers';
 const today = getTodayStr();
 
 export const mockCoats: LabCoat[] = [
-  { id: 'c1', code: 'LC-001', size: 'M', lab: '化学实验室A', status: 'available', createdAt: '2025-09-01' },
-  { id: 'c2', code: 'LC-002', size: 'L', lab: '化学实验室A', status: 'in_use', createdAt: '2025-09-01' },
-  { id: 'c3', code: 'LC-003', size: 'L', lab: '化学实验室B', status: 'pending_cleaning', createdAt: '2025-09-05' },
-  { id: 'c4', code: 'LC-004', size: 'XL', lab: '生物实验室A', status: 'available', createdAt: '2025-09-10' },
-  { id: 'c5', code: 'LC-005', size: 'S', lab: '生物实验室A', status: 'cleaning', createdAt: '2025-09-10', lastCleaningBatchId: 'b1' },
-  { id: 'c6', code: 'LC-006', size: 'M', lab: '物理实验室', status: 'available', createdAt: '2025-09-15' },
+  { id: 'c1', code: 'LC-001', size: 'M', lab: '化学实验室A', status: 'available', createdAt: '2025-09-01', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20lab%20coat%20hanging%20on%20hook%20in%20clean%20laboratory%2C%20professional%2C%20bright%20lighting&image_size=square_hd', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-10' } },
+  { id: 'c2', code: 'LC-002', size: 'L', lab: '化学实验室A', status: 'in_use', createdAt: '2025-09-01', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20lab%20coat%20on%20student%20in%20chemistry%20lab%2C%20scientific%20research&image_size=square_hd' },
+  { id: 'c3', code: 'LC-003', size: 'L', lab: '化学实验室B', status: 'pending_cleaning', createdAt: '2025-09-05', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=dirty%20white%20lab%20coat%20with%20stains%20on%20sleeves%2C%20needs%20washing&image_size=square_hd', damageStatus: { hasStain: true, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'moderate', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-15' }, lastCleaningBatchId: 'b1' },
+  { id: 'c4', code: 'LC-004', size: 'XL', lab: '生物实验室A', status: 'available', createdAt: '2025-09-10', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=pristine%20white%20lab%20coat%20for%20biology%20lab%2C%20clean%20and%20new&image_size=square_hd', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-12' } },
+  { id: 'c5', code: 'LC-005', size: 'S', lab: '生物实验室A', status: 'cleaning', createdAt: '2025-09-10', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20lab%20coat%20in%20laundry%20basket%2C%20being%20washed&image_size=square_hd', lastCleaningBatchId: 'b1', damageStatus: { hasStain: true, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'minor', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-14' } },
+  { id: 'c6', code: 'LC-006', size: 'M', lab: '物理实验室', status: 'available', createdAt: '2025-09-15', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-11' } },
   { id: 'c7', code: 'LC-007', size: 'L', lab: '材料科学实验室', status: 'in_use', createdAt: '2025-09-15' },
-  { id: 'c8', code: 'LC-008', size: 'XXL', lab: '环境工程实验室', status: 'available', createdAt: '2025-09-20' },
-  { id: 'c9', code: 'LC-009', size: 'M', lab: '化学实验室A', status: 'repairing', createdAt: '2025-09-20' },
-  { id: 'c10', code: 'LC-010', size: 'L', lab: '生物实验室B', status: 'available', createdAt: '2025-10-01' },
-  { id: 'c11', code: 'LC-011', size: 'XL', lab: '化学实验室B', status: 'pending_cleaning', createdAt: '2025-10-05' },
+  { id: 'c8', code: 'LC-008', size: 'XXL', lab: '环境工程实验室', status: 'available', createdAt: '2025-09-20', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=extra%20large%20white%20lab%20coat%20for%20environmental%20engineering&image_size=square_hd' },
+  { id: 'c9', code: 'LC-009', size: 'M', lab: '化学实验室A', status: 'repairing', createdAt: '2025-09-20', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=damaged%20lab%20coat%20with%20holes%20and%20missing%20buttons%2C%20needs%20repair&image_size=square_hd', damageStatus: { hasStain: false, hasHole: true, missingButton: true, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'moderate', buttonLevel: 'moderate', lastCheckAt: '2026-06-13' } },
+  { id: 'c10', code: 'LC-010', size: 'L', lab: '生物实验室B', status: 'available', createdAt: '2025-10-01', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-16' } },
+  { id: 'c11', code: 'LC-011', size: 'XL', lab: '化学实验室B', status: 'pending_cleaning', createdAt: '2025-10-05', damageStatus: { hasStain: true, hasHole: true, missingButton: true, pocketResidue: false, contactHazard: false, stainLevel: 'minor', holeLevel: 'minor', buttonLevel: 'minor', lastCheckAt: '2026-06-16' } },
   { id: 'c12', code: 'LC-012', size: 'S', lab: '物理实验室', status: 'available', createdAt: '2025-10-10' },
-  { id: 'c13', code: 'LC-013', size: 'M', lab: '生物实验室A', status: 'available', createdAt: '2025-10-15' },
+  { id: 'c13', code: 'LC-013', size: 'M', lab: '生物实验室A', status: 'available', createdAt: '2025-10-15', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=clean%20white%20lab%20coat%20medium%20size%2C%20ready%20for%20use&image_size=square_hd', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-17' } },
   { id: 'c14', code: 'LC-014', size: 'L', lab: '化学实验室A', status: 'in_use', createdAt: '2025-10-20' },
-  { id: 'c15', code: 'LC-015', size: 'XL', lab: '材料科学实验室', status: 'available', createdAt: '2025-11-01' },
+  { id: 'c15', code: 'LC-015', size: 'XL', lab: '材料科学实验室', status: 'available', createdAt: '2025-11-01', photoUrl: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=white%20lab%20coat%20extra%20large%20for%20materials%20science%20lab&image_size=square_hd', damageStatus: { hasStain: false, hasHole: false, missingButton: false, pocketResidue: false, contactHazard: false, stainLevel: 'none', holeLevel: 'none', buttonLevel: 'none', lastCheckAt: '2026-06-18' } },
 ];
 
 export const mockLendings: Lending[] = [

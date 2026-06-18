@@ -4,16 +4,29 @@ export type DamageLevel = 'none' | 'minor' | 'moderate' | 'severe';
 export type LendingStatus = 'active' | 'returned' | 'overdue';
 export type BatchStatus = 'cleaning' | 'completed';
 
+export interface DamageStatus {
+  hasStain: boolean;
+  hasHole: boolean;
+  missingButton: boolean;
+  pocketResidue: boolean;
+  contactHazard: boolean;
+  stainLevel: DamageLevel;
+  holeLevel: DamageLevel;
+  buttonLevel: DamageLevel;
+  lastCheckAt: string;
+}
+
 export interface LabCoat {
   id: string;
   code: string;
   size: CoatSize;
   lab: string;
   status: CoatStatus;
-  photo?: string;
+  photoUrl?: string;
   notes?: string;
   createdAt: string;
   lastCleaningBatchId?: string;
+  damageStatus?: DamageStatus;
 }
 
 export interface Lending {
