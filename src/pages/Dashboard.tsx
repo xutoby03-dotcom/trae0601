@@ -6,18 +6,53 @@ import { usePurchaseStore } from '../store/usePurchaseStore';
 import { FlavorCard } from '../components/ui/FlavorCard';
 import { Modal } from '../components/ui/Modal';
 import { ConsumeForm } from '../components/ui/ConsumeForm';
+import { BatchManager } from '../components/ui/BatchManager';
 import { useToast } from '../components/ui/Toast';
-import type { FlavorWithStock } from '../types';
+import type { FlavorWithStock, InventoryBatch } from '../types';
 
 export function Dashboard() {
   const [selectedFlavor, setSelectedFlavor] = useState<FlavorWithStock | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [selectedFlavorForBatch, setSelectedFlavorForBatch] = useState<FlavorWithStock | null>(null);
   const flavorsWithStock = useCoffeeStore((state) => state.getAllFlavorsWithStock());
+  const batches = useCoffeeStore((state) => state.batches);
+  const addBatch = useCoffeeStore((state) => state.addBatch);
+  const markBatchStatus = useCoffeeStore((state) => state.markBatchStatus);
   const lowStockFlavors = useCoffeeStore((state) => state.getLowStockFlavors());
   const lowStockSupplies = useSupplyStore((state) => state.getLowStockSupplies());
   const consumeCoffee = useCoffeeStore((state) => state.consumeCoffee);
   const autoGeneratePurchaseList = usePurchaseStore((state) => state.autoGeneratePurchaseList);
   const { showToast } = useToast();
+
+  const flavorBatches = useMemo<InventoryBatch[]>(() => {
+    if (!selectedFlavorForBatch) return [];
+    return batches
+      .filter((b) => b.flavorId === selectedFlavorForBatch.id)
+      .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  }, [selectedFlavorForBatch, batches]);
+
+  const handleCardClick = (flavor: FlavorWithStock) => {
+    setSelectedFlavorForBatch(flavor);
+    setIsBatchModalOpen(true);
+  };
+
+  const handleAddBatch = (quantity: number, expiryDate: string) => {
+    if (!selectedFlavorForBatch) return;
+    addBatch({
+      flavorId: selectedFlavorForBatch.id,
+      quantity,
+      expiryDate,
+      status: 'normal',
+    });
+    showToast('success', `已添加批次：${quantity}颗，过期日期 ${expiryDate}`);
+  };
+
+  const handleMarkBatchStatus = (batchId: string, status: 'expired' | 'damp' | 'normal') => {
+    markBatchStatus(batchId, status);
+    const label = status === 'normal' ? '恢复正常' : status === 'expired' ? '标记过期' : '标记受潮';
+    showToast('success', `${label}成功`);
+  };
 
   const stats = useMemo(() => {
     const totalStock = flavorsWithStock.reduce((sum, f) => sum + f.totalStock, 0);
@@ -160,6 +195,7 @@ export function Dashboard() {
               flavor={flavor}
               index={index}
               onConsume={() => handleConsume(flavor)}
+              onClick={() => handleCardClick(flavor)}
             />
           ))}
         </div>
@@ -182,6 +218,40 @@ export function Dashboard() {
               setIsModalOpen(false);
               setSelectedFlavor(null);
             }}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={isBatchModalOpen}
+        onClose={() => {
+          setIsBatchModalOpen(false);
+          setSelectedFlavorForBatch(null);
+        }}
+        title={`批次管理 - ${selectedFlavorForBatch?.name || ''}`}
+        size="lg"
+      >
+        {selectedFlavorForBatch && (
+          <div className="mb-4 flex items-center gap-4 p-4 bg-cream-50 rounded-xl">
+            <img
+              src={selectedFlavorForBatch.boxPhoto}
+              alt={selectedFlavorForBatch.name}
+              className="w-16 h-16 object-cover rounded-lg"
+            />
+            <div className="flex-1">
+              <h3 className="font-bold text-coffee-900">{selectedFlavorForBatch.name}</h3>
+              <p className="text-sm text-coffee-500">{selectedFlavorForBatch.brand}</p>
+              <p className="text-sm text-coffee-600">
+                当前可用: <span className="font-bold text-coffee-800">{selectedFlavorForBatch.totalStock}</span> 颗
+              </p>
+            </div>
+          </div>
+        )}
+        {selectedFlavorForBatch && (
+          <BatchManager
+            batches={flavorBatches}
+            onAddBatch={handleAddBatch}
+            onMarkStatus={handleMarkBatchStatus}
           />
         )}
       </Modal>

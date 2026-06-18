@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Coffee, Flame, Droplets, Calendar, Package } from 'lucide-react';
 import { useCoffeeStore } from '../store/useCoffeeStore';
 import { FlavorCard } from '../components/ui/FlavorCard';
 import { Modal } from '../components/ui/Modal';
+import { BatchManager } from '../components/ui/BatchManager';
 import { useToast } from '../components/ui/Toast';
 import type { CoffeeFlavor, FlavorWithStock, InventoryBatch } from '../types';
 import { formatDate } from '../utils/date';
@@ -101,9 +102,12 @@ export function FlavorProfile() {
     }));
   };
 
-  const flavorBatches = selectedFlavorForBatch
-    ? batches.filter((b) => b.flavorId === selectedFlavorForBatch.id)
-    : [];
+  const flavorBatches = useMemo<InventoryBatch[]>(() => {
+    if (!selectedFlavorForBatch) return [];
+    return batches
+      .filter((b) => b.flavorId === selectedFlavorForBatch.id)
+      .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  }, [selectedFlavorForBatch, batches]);
 
   const handleAddBatch = (quantity: number, expiryDate: string) => {
     if (!selectedFlavorForBatch) return;
@@ -341,144 +345,29 @@ export function FlavorProfile() {
         size="lg"
       >
         {selectedFlavorForBatch && (
+          <div className="mb-4 flex items-center gap-4 p-4 bg-cream-50 rounded-xl">
+            <img
+              src={selectedFlavorForBatch.boxPhoto}
+              alt={selectedFlavorForBatch.name}
+              className="w-16 h-16 object-cover rounded-lg"
+            />
+            <div className="flex-1">
+              <h3 className="font-bold text-coffee-900">{selectedFlavorForBatch.name}</h3>
+              <p className="text-sm text-coffee-500">{selectedFlavorForBatch.brand}</p>
+              <p className="text-sm text-coffee-600">
+                当前可用: <span className="font-bold text-coffee-800">{selectedFlavorForBatch.totalStock}</span> 颗
+              </p>
+            </div>
+          </div>
+        )}
+        {selectedFlavorForBatch && (
           <BatchManager
-            flavor={selectedFlavorForBatch}
             batches={flavorBatches}
             onAddBatch={handleAddBatch}
             onMarkStatus={handleMarkBatchStatus}
           />
         )}
       </Modal>
-    </div>
-  );
-}
-
-interface BatchManagerProps {
-  flavor: FlavorWithStock;
-  batches: InventoryBatch[];
-  onAddBatch: (quantity: number, expiryDate: string) => void;
-  onMarkStatus: (batchId: string, status: 'expired' | 'damp' | 'normal') => void;
-}
-
-function BatchManager({ flavor, batches, onAddBatch, onMarkStatus }: BatchManagerProps) {
-  const [quantity, setQuantity] = useState(10);
-  const [expiryDate, setExpiryDate] = useState(
-    new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onAddBatch(quantity, expiryDate);
-    setQuantity(10);
-  };
-
-  const statusBadgeClass = {
-    normal: 'badge-normal',
-    expired: 'badge-expired',
-    damp: 'badge-damp',
-  };
-
-  const statusLabels = {
-    normal: '正常',
-    expired: '已过期',
-    damp: '已受潮',
-  };
-
-  return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="bg-cream-50 rounded-xl p-4 space-y-4">
-        <h4 className="font-bold text-coffee-800">新增批次</h4>
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="label">数量 (颗)</label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value))}
-              className="input"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="label">
-              <Calendar className="w-4 h-4 inline mr-1" />
-              过期日期
-            </label>
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="input"
-            />
-          </div>
-          <div className="flex items-end">
-            <button type="submit" className="btn-primary">
-              <Plus className="w-4 h-4" />
-              添加
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <div>
-        <h4 className="font-bold text-coffee-800 mb-3">批次列表</h4>
-        {batches.length === 0 ? (
-          <p className="text-coffee-500 text-center py-8">暂无批次记录</p>
-        ) : (
-          <div className="space-y-3">
-            {batches.map((batch) => (
-              <div
-                key={batch.id}
-                className="flex items-center justify-between p-4 bg-white rounded-xl border border-coffee-100"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="font-display text-2xl font-bold text-coffee-800">
-                      {batch.quantity}
-                    </p>
-                    <p className="text-xs text-coffee-500">颗</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-coffee-600">
-                      过期: {formatDate(batch.expiryDate)}
-                    </p>
-                    <p className="text-xs text-coffee-400">
-                      入库: {formatDate(batch.createdAt)}
-                    </p>
-                  </div>
-                  <span className={statusBadgeClass[batch.status]}>
-                    {statusLabels[batch.status]}
-                  </span>
-                </div>
-                {batch.status === 'normal' && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onMarkStatus(batch.id, 'expired')}
-                      className="btn-danger text-xs py-1 px-2"
-                    >
-                      标记过期
-                    </button>
-                    <button
-                      onClick={() => onMarkStatus(batch.id, 'damp')}
-                      className="btn-secondary text-xs py-1 px-2"
-                    >
-                      标记受潮
-                    </button>
-                  </div>
-                )}
-                {batch.status !== 'normal' && (
-                  <button
-                    onClick={() => onMarkStatus(batch.id, 'normal')}
-                    className="btn-success text-xs py-1 px-2"
-                  >
-                    恢复正常
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

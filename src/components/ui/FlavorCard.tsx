@@ -7,6 +7,7 @@ interface FlavorCardProps {
   flavor: FlavorWithStock;
   onConsume?: () => void;
   onEdit?: () => void;
+  onClick?: () => void;
   index?: number;
 }
 
@@ -16,13 +17,14 @@ const roastLevelLabels = {
   dark: '深烘',
 };
 
-export function FlavorCard({ flavor, onConsume, onEdit, index = 0 }: FlavorCardProps) {
+export function FlavorCard({ flavor, onConsume, onEdit, onClick, index = 0 }: FlavorCardProps) {
   const animationDelay = `${index * 0.05}s`;
 
   return (
     <div
-      className="card-hover group animate-fade-in-up"
+      className={`card-hover group animate-fade-in-up ${onClick ? 'cursor-pointer' : ''}`}
       style={{ animationDelay, opacity: 0 }}
+      onClick={onClick}
     >
       <div className="relative aspect-square overflow-hidden bg-cream-100">
         <img
@@ -82,7 +84,10 @@ export function FlavorCard({ flavor, onConsume, onEdit, index = 0 }: FlavorCardP
 
         {onConsume && (
           <button
-            onClick={onConsume}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConsume();
+            }}
             disabled={flavor.totalStock === 0 || flavor.stockStatus === 'expired'}
             className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
