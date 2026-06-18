@@ -35,6 +35,12 @@ interface AppStore {
     incident: Omit<Incident, "id">
   ) => { incident: Incident; repairTask: RepairTask };
 
+  createRepairTaskFromCheck: (
+    deviceId: string,
+    failedItems: string[],
+    checkRecordId?: string
+  ) => RepairTask;
+
   updateRepairStatus: (id: string, status: RepairStatus) => void;
 
   getDeviceById: (id: string) => Device | undefined;
@@ -47,6 +53,36 @@ interface AppStore {
   getIncidentsByDevice: (deviceId: string) => Incident[];
   getRepairTasksByDevice: (deviceId: string) => RepairTask[];
 }
+
+const CHECK_ITEM_REPAIR_CONFIG: Record<
+  string,
+  { title: string; description: string }
+> = {
+  footPad: {
+    title: "脚垫更换或维修",
+    description: "脚垫磨损严重，需要检查并更换脚垫，确保防滑效果",
+  },
+  antiSlipCover: {
+    title: "防滑套更换",
+    description: "防滑套损坏或老化，需要更换新的防滑套",
+  },
+  brakeLine: {
+    title: "刹车系统检修",
+    description: "刹车线检查不通过，需要检查刹车线松紧度、刹车片磨损情况并进行调整或更换",
+  },
+  armrestSponge: {
+    title: "扶手海绵更换",
+    description: "扶手海绵破损或塌陷，需要更换新的扶手海绵",
+  },
+  foldLock: {
+    title: "折叠卡扣维修",
+    description: "折叠卡扣不牢固或开合不顺畅，需要检查并维修",
+  },
+  wheelRotation: {
+    title: "车轮检修及润滑",
+    description: "车轮转动不顺畅或有异响，需要检查轴承、清洁并添加润滑油",
+  },
+};
 
 const generateRepairTaskFromIncident = (
   incident: Incident
@@ -159,6 +195,47 @@ export const useAppStore = create<AppStore>()(
         }));
 
         return { incident: newIncident, repairTask: newRepairTask };
+      },
+
+      createRepairTaskFromCheck: (deviceId, failedItems, checkRecordId) => {
+        const validFailedItems = failedItems.filter(
+          (key) => CHECK_ITEM_REPAIR_CONFIG[key]
+        );
+
+        let title: string;
+        let description: string;
+
+        if (validFailedItems.length === 1) {
+          title = CHECK_ITEM_REPAIR_CONFIG[validFailedItems[0]].title;
+          description = CHECK_ITEM_REPAIR_CONFIG[validFailedItems[0]].description;
+        } else {
+          const titles = validFailedItems.map(
+            (key) => CHECK_ITEM_REPAIR_CONFIG[key].title
+          );
+          title = titles.slice(0, 2).join(" + ") + (titles.length > 2 ? ` 等${titles.length}项` : "") + "维修";
+          const descs = validFailedItems.map(
+            (key) => CHECK_ITEM_REPAIR_CONFIG[key].description
+          );
+          description = descs.join("；");
+        }
+
+        const newRepairTask: RepairTask = {
+          id: generateId(),
+          deviceId,
+          incidentId: checkRecordId || "",
+          title,
+          description,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+          completedAt: "",
+          assignee: "维修师傅陈师傅",
+        };
+
+        set((state) => ({
+          repairTasks: [...state.repairTasks, newRepairTask],
+        }));
+
+        return newRepairTask;
       },
 
       updateRepairStatus: (id, status) =>

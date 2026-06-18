@@ -8,6 +8,7 @@ import {
   History,
   ChevronRight,
   AlertTriangle,
+  Wrench,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { CHECK_ITEMS, type CheckItem } from "@/types";
@@ -15,15 +16,18 @@ import type { CheckRecord } from "@/types";
 import CheckBoxItem from "@/components/CheckBoxItem";
 import { formatDateTime, cn } from "@/utils/helpers";
 
+const CRITICAL_ITEMS = ["footPad", "antiSlipCover", "brakeLine"];
+
 export default function Checklist() {
   const navigate = useNavigate();
-  const { devices, checkRecords, addCheckRecord } = useAppStore();
+  const { devices, checkRecords, addCheckRecord, createRepairTaskFromCheck } = useAppStore();
 
   const [selectedDeviceId, setSelectedDeviceId] = useState(devices[0]?.id || "");
   const [inspector, setInspector] = useState("");
   const [notes, setNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [repairTaskCreated, setRepairTaskCreated] = useState(false);
 
   const [checks, setChecks] = useState<Record<string, boolean>>({
     footPad: false,
@@ -38,6 +42,10 @@ export default function Checklist() {
   const progress = (completedCount / CHECK_ITEMS.length) * 100;
   const allPassed = completedCount === CHECK_ITEMS.length;
   const failedItems = CHECK_ITEMS.filter((item) => !checks[item.key]);
+  const criticalFailedItems = failedItems.filter((item) =>
+    CRITICAL_ITEMS.includes(item.key)
+  );
+  const hasCriticalFailures = criticalFailedItems.length > 0;
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
@@ -63,6 +71,7 @@ export default function Checklist() {
     };
 
     addCheckRecord(record);
+    setRepairTaskCreated(false);
     setShowSuccess(true);
 
     setTimeout(() => {
@@ -77,6 +86,15 @@ export default function Checklist() {
       });
       setNotes("");
     }, 2000);
+  };
+
+  const handleCreateRepairTask = () => {
+    if (!selectedDeviceId) return;
+    createRepairTaskFromCheck(
+      selectedDeviceId,
+      criticalFailedItems.map((item) => item.key)
+    );
+    setRepairTaskCreated(true);
   };
 
   const deviceCheckHistory = checkRecords
@@ -389,13 +407,46 @@ export default function Checklist() {
                 </ul>
               </div>
             )}
-            <button
-              onClick={() => setShowSuccess(false)}
-              className="btn-primary flex items-center justify-center gap-2 mx-auto"
-            >
-              好的
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {hasCriticalFailures && !repairTaskCreated && (
+              <button
+                onClick={handleCreateRepairTask}
+                className="w-full mb-3 flex items-center justify-center gap-2 px-6 py-3 bg-warning-500 text-white rounded-2xl font-semibold hover:bg-warning-600 transition-colors"
+              >
+                <Wrench className="w-5 h-5" />
+                生成维修任务
+              </button>
+            )}
+            {hasCriticalFailures && repairTaskCreated && (
+              <div className="mb-3 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-2xl font-semibold">
+                <CheckCircle2 className="w-5 h-5" />
+                维修任务已生成，待处理
+              </div>
+            )}
+            <div className="flex gap-3">
+              {hasCriticalFailures && repairTaskCreated && (
+                <button
+                  onClick={() => {
+                    setShowSuccess(false);
+                    navigate("/repairs");
+                  }}
+                  className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                >
+                  查看维修
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                onClick={() => setShowSuccess(false)}
+                className={cn(
+                  "flex items-center justify-center gap-2",
+                  hasCriticalFailures && repairTaskCreated ? "flex-1" : "",
+                  !hasCriticalFailures || !repairTaskCreated ? "btn-primary mx-auto" : "btn-primary"
+                )}
+              >
+                好的
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
