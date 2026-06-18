@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, ChangeEvent } from "react";
 import { useStore } from "@/store";
 import { today } from "@/utils/date";
 import { TaskCard } from "@/components/TaskCard";
@@ -17,6 +17,7 @@ import {
   Eye,
   ImagePlus,
   Sparkles,
+  X,
 } from "lucide-react";
 
 export default function DailyTasks() {
@@ -37,6 +38,7 @@ export default function DailyTasks() {
     temperature: "",
     humidity: "",
     healthObservation: "",
+    abnormalPhotos: [] as string[],
   });
 
   const allTasks = useMemo(() => getTasksByDate(selectedDate), [getTasksByDate, selectedDate]);
@@ -72,6 +74,7 @@ export default function DailyTasks() {
       temperature: task.temperature?.toString() || "",
       humidity: task.humidity?.toString() || "",
       healthObservation: task.healthObservation || "",
+      abnormalPhotos: task.abnormalPhotos || [],
     });
   }
 
@@ -86,7 +89,7 @@ export default function DailyTasks() {
       temperature: form.temperature ? parseFloat(form.temperature) : null,
       humidity: form.humidity ? parseFloat(form.humidity) : null,
       healthObservation: form.healthObservation || null,
-      abnormalPhotos: [],
+      abnormalPhotos: form.abnormalPhotos,
     };
     completeTask(editingTask.id, data, "管理员");
     setEditingTask(null);
@@ -305,8 +308,43 @@ function TaskForm({
   setForm: any;
   onSubmit: (e: React.FormEvent) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const cage = useStore.getState().getCageById(task.cageId);
   if (!cage) return null;
+
+  function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newPhotos: string[] = [];
+    let processed = 0;
+    const total = files.length;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          newPhotos.push(ev.target.result as string);
+        }
+        processed++;
+        if (processed === total) {
+          setForm({ ...form, abnormalPhotos: [...form.abnormalPhotos, ...newPhotos] });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function removePhoto(index: number) {
+    const updated = [...form.abnormalPhotos];
+    updated.splice(index, 1);
+    setForm({ ...form, abnormalPhotos: updated });
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -408,10 +446,49 @@ function TaskForm({
         <label className="label flex items-center gap-1.5">
           <ImagePlus className="w-3.5 h-3.5 text-slate-400" />
           异常照片
+          {form.abnormalPhotos.length > 0 && (
+            <span className="ml-1 text-xs text-primary-600">({form.abnormalPhotos.length}张)</span>
+          )}
         </label>
-        <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl text-center hover:border-primary-300 hover:bg-primary-50/30 transition-colors cursor-pointer">
-          <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p className="text-xs text-slate-500">点击或拖拽上传照片（演示模式，暂不支持真实上传）</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <div className="space-y-3">
+          {form.abnormalPhotos.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {form.abnormalPhotos.map((photo: string, idx: number) => (
+                <div
+                  key={idx}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group"
+                >
+                  <img
+                    src={photo}
+                    alt={`异常照片 ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(idx)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-danger-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="p-6 border-2 border-dashed border-slate-200 rounded-xl text-center hover:border-primary-300 hover:bg-primary-50/30 transition-colors cursor-pointer"
+          >
+            <ImagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs text-slate-500">点击或拖拽上传照片（支持多选）</p>
+          </div>
         </div>
       </div>
     </form>

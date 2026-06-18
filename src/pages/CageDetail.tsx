@@ -259,31 +259,58 @@ export default function CageDetail() {
                             <TaskStatusTag status={task.status} />
                           </div>
                           {task.status === "completed" && (
-                            <div className="grid grid-cols-3 gap-3 text-xs">
-                              <div>
-                                <p className="text-slate-400">饲料量</p>
-                                <p className="font-medium text-slate-700">
-                                  {task.feedAmount?.toFixed(1)} g
-                                </p>
+                            <div className="space-y-3 text-xs">
+                              <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                  <p className="text-slate-400">饲料量</p>
+                                  <p className="font-medium text-slate-700">
+                                    {task.feedAmount?.toFixed(1)} g
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-slate-400">温度</p>
+                                  <p className="font-medium text-slate-700">
+                                    {task.temperature?.toFixed(1)}°C
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-slate-400">湿度</p>
+                                  <p className="font-medium text-slate-700">
+                                    {task.humidity?.toFixed(0)}%
+                                  </p>
+                                </div>
                               </div>
                               <div>
-                                <p className="text-slate-400">温度</p>
-                                <p className="font-medium text-slate-700">
-                                  {task.temperature?.toFixed(1)}°C
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-slate-400">湿度</p>
-                                <p className="font-medium text-slate-700">
-                                  {task.humidity?.toFixed(0)}%
-                                </p>
-                              </div>
-                              <div className="col-span-3">
                                 <p className="text-slate-400">健康观察</p>
                                 <p className="font-medium text-slate-700">
                                   {task.healthObservation}
                                 </p>
                               </div>
+                              {task.abnormalPhotos && task.abnormalPhotos.length > 0 && (
+                                <div>
+                                  <p className="text-slate-400 mb-1.5 flex items-center gap-1">
+                                    异常照片
+                                    <span className="text-danger-500 font-medium">({task.abnormalPhotos.length}张)</span>
+                                  </p>
+                                  <div className="flex gap-2 flex-wrap">
+                                    {task.abnormalPhotos.map((photo, idx) => (
+                                      <a
+                                        key={idx}
+                                        href={photo}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-primary-400 hover:shadow-md transition-all block"
+                                      >
+                                        <img
+                                          src={photo}
+                                          alt={`异常照片 ${idx + 1}`}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
