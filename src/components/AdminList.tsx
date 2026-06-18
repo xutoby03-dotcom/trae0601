@@ -139,15 +139,20 @@ export function AdminList({ statusFilter }: AdminListProps) {
                       }}
                       className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-slate-100 transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <History className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <History className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span className="text-sm font-medium text-slate-700 shrink-0">
                           近 2 小时同座位记录
                         </span>
                         {getRecentSeatFeedbacks(feedback).length > 0 ? (
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                            {getRecentSeatFeedbacks(feedback).length} 条
-                          </span>
+                          <>
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium shrink-0">
+                              {getRecentSeatFeedbacks(feedback).length} 条
+                            </span>
+                            <span className="text-xs text-slate-400 truncate">
+                              最近 {formatTime(getRecentSeatFeedbacks(feedback)[0].submitTime)}
+                            </span>
+                          </>
                         ) : (
                           <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
                             0 条
@@ -155,9 +160,9 @@ export function AdminList({ statusFilter }: AdminListProps) {
                         )}
                       </div>
                       {recordsExpandedId === feedback.id ? (
-                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                        <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
                       )}
                     </button>
 
