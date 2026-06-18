@@ -17,7 +17,9 @@ export default function Dashboard() {
   const abnormalLogs = useStore((state) => state.abnormalLogs);
   const probes = useStore((state) => state.probes);
 
-  const latestInspection = inspections[0];
+  const latestInspection = [...inspections].sort(
+    (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+  )[0];
   const currentTemp = latestInspection?.actualTemp ?? 4.0;
   const currentHumidity = latestInspection?.humidity ?? 70;
   const tempStatus = getTempStatus(currentTemp);

@@ -87,9 +87,16 @@ export const useStore = create<StoreState>((set) => ({
     const tempStatus = getTempStatus(inspection.actualTemp);
     const isTempAbnormal = tempStatus !== 'normal';
 
+    const newTempRecord: TemperatureRecord = {
+      time: inspection.time,
+      temperature: inspection.actualTemp,
+      isAbnormal: isTempAbnormal,
+    };
+
     set((state) => {
       const newState: Partial<StoreState> = {
         inspections: [...state.inspections, newInspection],
+        temperatureRecords: [...state.temperatureRecords, newTempRecord],
       };
 
       if (isTempAbnormal) {

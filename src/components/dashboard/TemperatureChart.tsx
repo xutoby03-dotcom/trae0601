@@ -31,10 +31,12 @@ interface DotProps {
 }
 
 export default function TemperatureChart({ records }: TemperatureChartProps) {
-  const chartData = records.map((record) => ({
-    ...record,
-    formattedTime: formatTime(record.time),
-  }));
+  const chartData = [...records]
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+    .map((record) => ({
+      ...record,
+      formattedTime: formatTime(record.time),
+    }));
 
   const abnormalRecords = chartData.filter((r) => r.isAbnormal);
 
