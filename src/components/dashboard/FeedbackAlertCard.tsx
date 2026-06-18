@@ -5,19 +5,23 @@ import { useBatchStore } from '@/store/useBatchStore';
 import StatusBadge from '@/components/common/StatusBadge';
 import { formatDateTime } from '@/utils/helpers';
 import { SOUP_TYPE_LABEL, SOUP_TYPE_COLOR, SOUP_TYPE_CHART_COLOR } from '@/utils/soupConfig';
-import type { SoupType, CustomerFeedback } from '@/types';
+import type { SoupType, CustomerFeedback, FeedbackType } from '@/types';
 
 interface FeedbackWithBatch extends CustomerFeedback {
   soupType?: SoupType;
   potNumber?: string;
 }
 
+const ABNORMAL_TYPES: FeedbackType[] = ['too-salty', 'too-light', 'oily'];
+
+const isAbnormal = (t: FeedbackType) => ABNORMAL_TYPES.includes(t);
+
 export default function FeedbackAlertCard() {
   const navigate = useNavigate();
   const feedbacks = useBatchStore((s) => s.feedbacks);
   const batches = useBatchStore((s) => s.batches);
 
-  const { feedbacksWithBatch, groupedBySoup, hasSerious, summary } = useMemo(() => {
+  const { displayFeedbacks, groupedBySoup, hasSerious, summary } = useMemo(() => {
     const getBatchById = (id: string) => batches.find((b) => b.id === id);
 
     const withBatch: FeedbackWithBatch[] = feedbacks.map((f) => {
@@ -25,8 +29,10 @@ export default function FeedbackAlertCard() {
       return { ...f, soupType: batch?.soupType, potNumber: batch?.potNumber };
     });
 
+    const abnormalFeedbacks = withBatch.filter((f) => isAbnormal(f.feedbackType));
+
     const grouped = new Map<SoupType, FeedbackWithBatch[]>();
-    withBatch.forEach((f) => {
+    abnormalFeedbacks.forEach((f) => {
       if (f.soupType) {
         const list = grouped.get(f.soupType) || [];
         list.push(f);
@@ -34,18 +40,18 @@ export default function FeedbackAlertCard() {
       }
     });
 
-    const hasSeriousIssue = withBatch.some(
-      (f) => f.severity === 'serious' || f.feedbackType !== 'other'
+    const hasSeriousIssue = abnormalFeedbacks.some(
+      (f) => f.severity === 'serious'
     );
 
-    const totalAbnormal = withBatch.filter((f) => f.feedbackType !== 'other').length;
+    const totalAbnormal = abnormalFeedbacks.length;
     const today = new Date().toISOString().slice(0, 10);
-    const todayAbnormal = withBatch.filter(
-      (f) => f.feedbackType !== 'other' && f.createdAt.startsWith(today)
+    const todayAbnormal = abnormalFeedbacks.filter(
+      (f) => f.createdAt.startsWith(today)
     ).length;
 
     return {
-      feedbacksWithBatch: withBatch.slice(0, 6),
+      displayFeedbacks: withBatch.slice(0, 6),
       groupedBySoup: grouped,
       hasSerious: hasSeriousIssue,
       summary: { total: totalAbnormal, today: todayAbnormal },
@@ -106,21 +112,21 @@ export default function FeedbackAlertCard() {
         </div>
       )}
 
-      {feedbacksWithBatch.length === 0 ? (
+      {displayFeedbacks.length === 0 ? (
         <div className="py-12 text-center text-broth-400">
           <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p>暂无顾客反馈</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {feedbacksWithBatch.map((f) => {
-            const isAbnormal = f.feedbackType !== 'other';
+          {displayFeedbacks.map((f) => {
+            const fAbnormal = isAbnormal(f.feedbackType);
             return (
               <div
                 key={f.id}
                 onClick={() => navigate(`/feedback`)}
                 className={`p-3 rounded-xl border transition-colors cursor-pointer hover:bg-broth-50/50 ${
-                  isAbnormal
+                  fAbnormal
                     ? 'border-orange-100 bg-orange-50/30 hover:bg-orange-50/60'
                     : 'border-broth-50 hover:bg-broth-50/50'
                 }`}
@@ -148,7 +154,7 @@ export default function FeedbackAlertCard() {
                   </span>
                 </div>
                 <p className="text-sm text-broth-700 line-clamp-2">{f.remark}</p>
-                {isAbnormal && f.soupType && (
+                {fAbnormal && f.soupType && (
                   <div className="mt-2 flex items-center gap-1.5 text-xs text-orange-600">
                     <TrendingDown className="w-3.5 h-3.5" />
                     <span>该汤底稳定度可能受影响，建议追溯批次调整配方</span>
