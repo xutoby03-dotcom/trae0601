@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, User, Calendar, Handshake, BookOpen } from 'lucide-react';
 import { useStore } from '../store';
-import { today, addDays } from '../utils/storage';
+import { today, addDays, formatDate } from '../utils/storage';
 
 export default function BorrowForm() {
   const navigate = useNavigate();
-  const { books, families, selectedFamilyId, createBorrowRecord, addFamily, setSelectedFamily } = useStore();
+  const { books, families, selectedFamilyId, borrowRecords, createBorrowRecord, addFamily, setSelectedFamily } = useStore();
 
   const availableBooks = books.filter((b) => b.status === 'available');
 
@@ -24,6 +24,11 @@ export default function BorrowForm() {
 
   const selectedFamily = families.find((f) => f.id === form.familyId);
   const selectedBook = books.find((b) => b.id === form.bookId);
+
+  const prevBorrows = borrowRecords
+    .filter((r) => r.familyId === form.familyId && r.bookId === form.bookId)
+    .sort((a, b) => b.borrowDate.localeCompare(a.borrowDate));
+  const lastBorrow = prevBorrows[0];
 
   const handleAddFamily = () => {
     if (!newFamily.name.trim()) return;
@@ -240,6 +245,40 @@ export default function BorrowForm() {
               }`} />
             </button>
           </div>
+
+          {lastBorrow && (
+            <div className="mb-1 p-4 rounded-2xl bg-orange-50 border-2 border-orange-200 animate-slide-up">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0">🔄</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-orange-700">
+                    重复借阅提醒
+                  </p>
+                  <p className="text-sm text-orange-600 mt-0.5">
+                    <strong>{selectedFamily?.name}</strong> 之前借过《{selectedBook?.title}》
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    <span className="text-orange-600">
+                      上次借出：{formatDate(lastBorrow.borrowDate)}
+                    </span>
+                    {lastBorrow.status === 'returned' ? (
+                      <span className="tag-mint">✓ 已归还（{formatDate(lastBorrow.actualReturnDate!)}）</span>
+                    ) : lastBorrow.status === 'overdue' ? (
+                      <span className="tag-coral">⚠️ 上次逾期归还</span>
+                    ) : (
+                      <span className="tag-orange">📖 上次至今未还</span>
+                    )}
+                    {lastBorrow.damageCheck && Object.values(lastBorrow.damageCheck).some(Boolean) && (
+                      <span className="tag-coral">上次归还时有损坏记录</span>
+                    )}
+                    <span className="text-orange-500">
+                      共借过 {prevBorrows.length} 次
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-cream-200">
             <Link to="/borrow" className="btn-secondary">取消</Link>
