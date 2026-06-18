@@ -45,7 +45,7 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
       setTables(prev =>
         prev.map(t =>
           t.id === guest.tableId
-            ? { ...t, guestIds: t.guestIds.filter(gid => gid !== id) }
+            ? { ...t, guestIds: t.guestIds.filter(gid => gid !== id), printed: false }
             : t
         )
       );
@@ -75,17 +75,22 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const seatGuest = useCallback((guestId: string, tableId: string) => {
+    const guest = guests.find(g => g.id === guestId);
     setGuests(prev =>
       prev.map(g => (g.id === guestId ? { ...g, tableId } : g))
     );
     setTables(prev =>
-      prev.map(t =>
-        t.id === tableId && !t.guestIds.includes(guestId)
-          ? { ...t, guestIds: [...t.guestIds, guestId] }
-          : t
-      )
+      prev.map(t => {
+        if (t.id === tableId && !t.guestIds.includes(guestId)) {
+          return { ...t, guestIds: [...t.guestIds, guestId], printed: false };
+        }
+        if (guest?.tableId && t.id === guest.tableId) {
+          return { ...t, printed: false };
+        }
+        return t;
+      })
     );
-  }, []);
+  }, [guests]);
 
   const unseatGuest = useCallback((guestId: string) => {
     const guest = guests.find(g => g.id === guestId);
@@ -93,7 +98,7 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
       setTables(prev =>
         prev.map(t =>
           t.id === guest.tableId
-            ? { ...t, guestIds: t.guestIds.filter(gid => gid !== guestId) }
+            ? { ...t, guestIds: t.guestIds.filter(gid => gid !== guestId), printed: false }
             : t
         )
       );
@@ -110,10 +115,10 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
     setTables(prev =>
       prev.map(t => {
         if (t.id === fromTableId) {
-          return { ...t, guestIds: t.guestIds.filter(gid => gid !== guestId) };
+          return { ...t, guestIds: t.guestIds.filter(gid => gid !== guestId), printed: false };
         }
         if (t.id === toTableId) {
-          return { ...t, guestIds: [...t.guestIds, guestId] };
+          return { ...t, guestIds: [...t.guestIds, guestId], printed: false };
         }
         return t;
       })
