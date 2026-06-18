@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useWedding } from '../context/WeddingContext';
-import { getTableGuests, getTableHeadCount, getUnprintedTables } from '../utils/seatingUtils';
+import { getTableGuests, getTableHeadCount, getUnprintedTables, calculateSpecialMeals } from '../utils/seatingUtils';
 import TableCardPrint from './TableCardPrint';
 
 export default function TableCards() {
@@ -109,32 +109,57 @@ export default function TableCards() {
         {tables.map(table => {
           const tableGuests = getTableGuests(table, guests);
           const headCount = getTableHeadCount(table, guests);
+          const specialMeals = calculateSpecialMeals(tableGuests);
+          const specialMealCount = Object.values(specialMeals).reduce((a, b) => a + b, 0);
+          const allergyCount = tableGuests.filter(g => g.allergens.length > 0).length;
+          const needsReprint = !table.printed && table.guestIds.length > 0;
 
           if (tableGuests.length === 0) return null;
 
           return (
-            <div key={table.id} className="bg-white rounded-xl shadow-sm border border-wedding-pink/20 overflow-hidden">
+            <div
+              key={table.id}
+              className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden transition-all ${
+                needsReprint ? 'border-orange-300 ring-2 ring-orange-100' : 'border-wedding-pink/20'
+              }`}
+            >
               <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-bold text-lg text-wedding-dark">
-                      {table.tableName || `第 ${table.tableNumber} 桌`}
-                    </h3>
-                    <p className="text-sm text-gray-500">{headCount} 位宾客</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-lg text-wedding-dark">
+                        {table.tableName || `第 ${table.tableNumber} 桌`}
+                      </h3>
+                      {needsReprint && (
+                        <span className="px-2 py-0.5 bg-orange-500 text-white rounded text-xs font-medium animate-pulse">
+                          ⚠️ 待重打
+                        </span>
+                      )}
+                      {!needsReprint && (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                          已打印
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{headCount} 位宾客</p>
                   </div>
-                  {table.printed ? (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                      已打印
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">
-                      待打印
-                    </span>
-                  )}
+
+                  <div className="flex flex-col items-end gap-1">
+                    {specialMealCount > 0 && (
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
+                        🍽️ {specialMealCount} 份特殊餐
+                      </span>
+                    )}
+                    {allergyCount > 0 && (
+                      <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">
+                        ⚠️ {allergyCount} 人过敏
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-4 max-h-64 overflow-y-auto scrollbar-thin">
+              <div className="p-4 max-h-48 overflow-y-auto scrollbar-thin">
                 <div className="space-y-1">
                   {tableGuests.map(guest => (
                     <div key={guest.id} className="flex items-center justify-between text-sm py-1">
@@ -153,9 +178,13 @@ export default function TableCards() {
               <div className="p-4 border-t border-gray-100 bg-gray-50">
                 <button
                   onClick={() => handlePrintSingle(table.id)}
-                  className="w-full py-2 bg-white border border-wedding-gold text-wedding-gold rounded-lg hover:bg-wedding-gold/10 transition-colors text-sm font-medium"
+                  className={`w-full py-2 rounded-lg transition-colors text-sm font-medium ${
+                    needsReprint
+                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                      : 'bg-white border border-wedding-gold text-wedding-gold hover:bg-wedding-gold/10'
+                  }`}
                 >
-                  打印此桌桌卡
+                  {needsReprint ? '🔄 重新打印桌卡' : '打印此桌桌卡'}
                 </button>
               </div>
             </div>

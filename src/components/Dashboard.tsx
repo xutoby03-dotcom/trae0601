@@ -229,27 +229,46 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-2">
-                {unprintedTables.map(table => (
-                  <div
-                    key={table.id}
-                    className="flex items-center justify-between p-3 bg-blue-50/50 rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        {table.tableName || `第 ${table.tableNumber} 桌`}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {getTableGuests(table, guests).length} 位宾客
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => togglePrinted(table.id)}
-                      className="text-xs px-3 py-1 bg-blue-200 text-blue-800 rounded-full hover:bg-blue-300 transition-colors"
+                {unprintedTables.map(table => {
+                  const tableGuests = getTableGuests(table, guests);
+                  const specialMeals = calculateSpecialMeals(tableGuests);
+                  const specialMealCount = Object.values(specialMeals).reduce((a, b) => a + b, 0);
+                  const allergyCount = tableGuests.filter(g => g.allergens.length > 0).length;
+                  return (
+                    <div
+                      key={table.id}
+                      className="p-3 bg-blue-50/50 rounded-lg"
                     >
-                      标记已打印
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            {table.tableName || `第 ${table.tableNumber} 桌`}
+                          </p>
+                          <span className="px-1.5 py-0.5 bg-orange-500 text-white rounded text-xs font-medium">
+                            待重打
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => togglePrinted(table.id)}
+                          className="text-xs px-3 py-1 bg-blue-200 text-blue-800 rounded-full hover:bg-blue-300 transition-colors"
+                        >
+                          标记已打印
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{tableGuests.length} 位宾客</span>
+                        <div className="flex gap-2">
+                          {specialMealCount > 0 && (
+                            <span className="text-orange-600">🍽️ {specialMealCount}份特殊餐</span>
+                          )}
+                          {allergyCount > 0 && (
+                            <span className="text-red-600">⚠️ {allergyCount}人过敏</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
