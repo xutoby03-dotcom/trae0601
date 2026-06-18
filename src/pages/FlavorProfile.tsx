@@ -354,9 +354,6 @@ export function FlavorProfile() {
             <div className="flex-1">
               <h3 className="font-bold text-coffee-900">{selectedFlavorForBatch.name}</h3>
               <p className="text-sm text-coffee-500">{selectedFlavorForBatch.brand}</p>
-              <p className="text-sm text-coffee-600">
-                当前可用: <span className="font-bold text-coffee-800">{selectedFlavorForBatch.totalStock}</span> 颗
-              </p>
             </div>
           </div>
         )}

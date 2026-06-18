@@ -38,6 +38,7 @@ export function BatchManager({ batches, onAddBatch, onMarkStatus, showAddForm = 
   const normalCount = batches.filter(b => b.status === 'normal').reduce((s, b) => s + b.quantity, 0);
   const dampCount = batches.filter(b => b.status === 'damp').reduce((s, b) => s + b.quantity, 0);
   const expiredCount = batches.filter(b => b.status === 'expired').reduce((s, b) => s + b.quantity, 0);
+  const totalAvailable = normalCount;
 
   return (
     <div className="space-y-6">
@@ -45,7 +46,7 @@ export function BatchManager({ batches, onAddBatch, onMarkStatus, showAddForm = 
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-accent-green"></span>
-            <span className="text-coffee-600">正常: <span className="font-bold text-coffee-900">{normalCount}</span> 颗</span>
+            <span className="text-coffee-600">正常可用: <span className="font-bold text-coffee-900">{totalAvailable}</span> 颗</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-accent-orange"></span>
@@ -126,31 +127,37 @@ export function BatchManager({ batches, onAddBatch, onMarkStatus, showAddForm = 
                     {statusLabels[batch.status]}
                   </span>
                 </div>
-                <div className="flex gap-2">
-                  {batch.status === 'normal' && (
-                    <>
-                      <button
-                        onClick={() => onMarkStatus(batch.id, 'expired')}
-                        className="btn-danger text-xs py-1 px-2"
-                      >
-                        标记过期
-                      </button>
-                      <button
-                        onClick={() => onMarkStatus(batch.id, 'damp')}
-                        className="btn-secondary text-xs py-1 px-2"
-                      >
-                        标记受潮
-                      </button>
-                    </>
-                  )}
-                  {batch.status !== 'normal' && (
-                    <button
-                      onClick={() => onMarkStatus(batch.id, 'normal')}
-                      className="btn-success text-xs py-1 px-2"
-                    >
-                      恢复正常
-                    </button>
-                  )}
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => onMarkStatus(batch.id, 'normal')}
+                    className={`text-xs py-1 px-2.5 rounded-lg font-medium transition-all ${
+                      batch.status === 'normal'
+                        ? 'bg-accent-green text-white shadow-sm'
+                        : 'bg-coffee-50 text-coffee-600 hover:bg-green-100 hover:text-accent-green'
+                    }`}
+                  >
+                    正常
+                  </button>
+                  <button
+                    onClick={() => onMarkStatus(batch.id, 'damp')}
+                    className={`text-xs py-1 px-2.5 rounded-lg font-medium transition-all ${
+                      batch.status === 'damp'
+                        ? 'bg-accent-orange text-white shadow-sm'
+                        : 'bg-coffee-50 text-coffee-600 hover:bg-orange-100 hover:text-accent-orange'
+                    }`}
+                  >
+                    受潮
+                  </button>
+                  <button
+                    onClick={() => onMarkStatus(batch.id, 'expired')}
+                    className={`text-xs py-1 px-2.5 rounded-lg font-medium transition-all ${
+                      batch.status === 'expired'
+                        ? 'bg-accent-red text-white shadow-sm'
+                        : 'bg-coffee-50 text-coffee-600 hover:bg-red-100 hover:text-accent-red'
+                    }`}
+                  >
+                    过期
+                  </button>
                 </div>
               </div>
             ))}
