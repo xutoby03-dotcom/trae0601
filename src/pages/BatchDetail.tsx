@@ -12,6 +12,8 @@ import {
   Trash2,
   Package,
   Camera,
+  ZoomIn,
+  X,
 } from 'lucide-react';
 import { useBatchStore } from '../store/useBatchStore';
 import { getBatchStatus, getStatusInfo, getWeightProgress } from '../utils/statusUtils';
@@ -39,6 +41,7 @@ export default function BatchDetail() {
 
   const [brewingModalOpen, setBrewingModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
 
   const batch = getBatchById(id || '');
   const records = getRecordsByBatchId(id || '');
@@ -91,13 +94,26 @@ export default function BatchDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <div className="card overflow-hidden">
-              <div className="relative h-56 bg-gradient-to-br from-cream-100 to-cream-200 overflow-hidden">
+              <div
+                className={`relative h-56 bg-gradient-to-br from-cream-100 to-cream-200 overflow-hidden ${
+                  batch.photo ? 'cursor-zoom-in' : ''
+                }`}
+                onClick={() => batch.photo && setPhotoPreviewOpen(true)}
+              >
                 {batch.photo ? (
-                  <img
-                    src={batch.photo}
-                    alt={batch.origin}
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={batch.photo}
+                      alt={batch.origin}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
+                      <div className="opacity-0 hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+                        <ZoomIn size={18} className="text-coffee-700" />
+                        <span className="text-sm font-medium text-coffee-800">点击放大</span>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-coffee-300">
                     <Package className="w-20 h-20 mb-2" />
@@ -105,13 +121,13 @@ export default function BatchDetail() {
                   </div>
                 )}
                 <div
-                  className="absolute top-0 left-0 right-0 h-1.5"
+                  className="absolute top-0 left-0 right-0 h-1.5 pointer-events-none"
                   style={{ backgroundColor: statusInfo.color }}
                 />
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 pointer-events-none">
                   <StatusBadge status={status} />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
               </div>
 
               <div className="p-6">
@@ -361,6 +377,31 @@ export default function BatchDetail() {
         batchName={batch.origin}
         currentWeight={batch.currentWeight}
       />
+
+      {photoPreviewOpen && batch.photo && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-8 animate-fade-in"
+          onClick={() => setPhotoPreviewOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <button
+            onClick={() => setPhotoPreviewOpen(false)}
+            className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-105"
+          >
+            <X size={24} />
+          </button>
+          <div
+            className="relative max-w-5xl max-h-[90vh] animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={batch.photo}
+              alt={batch.origin}
+              className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -116,7 +116,8 @@ export const useBatchStore = create<BatchState>()(
       },
     }),
     {
-      name: 'coffee-batch-storage',
+      name: 'coffee-batch-storage-v2',
+      version: 2,
     }
   )
 );
