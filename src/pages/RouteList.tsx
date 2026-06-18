@@ -1,16 +1,26 @@
-import { useState, useMemo } from 'react';
-import { Search, Filter, MapPin, Clock } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, Filter, MapPin, Clock, X } from 'lucide-react';
 import { RouteCard } from '@/components/RouteCard';
 import { useCarpoolStore } from '@/store/useCarpoolStore';
 import { isTimeWithin30Minutes } from '@/utils/helpers';
 import type { Route } from '@/types';
 
 export const RouteList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const store = useCarpoolStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDestination, setFilterDestination] = useState('all');
   const [filterTime, setFilterTime] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const destinationParam = searchParams.get('destination');
+    if (destinationParam) {
+      setFilterDestination(destinationParam);
+      setShowFilters(true);
+    }
+  }, [searchParams]);
 
   const allRoutes = store.routes;
 
@@ -47,6 +57,42 @@ export const RouteList = () => {
   );
 
   const [activeStatusFilter, setActiveStatusFilter] = useState<'all' | 'open' | 'full' | 'other'>('all');
+
+  const activeFilters = useMemo(() => {
+    const filters: { key: string; label: string; value: string }[] = [];
+    if (filterDestination !== 'all') {
+      filters.push({ key: 'destination', label: '目的地', value: filterDestination });
+    }
+    if (filterTime) {
+      filters.push({ key: 'time', label: '出发时间', value: filterTime });
+    }
+    if (searchQuery) {
+      filters.push({ key: 'search', label: '搜索', value: searchQuery });
+    }
+    return filters;
+  }, [filterDestination, filterTime, searchQuery]);
+
+  const clearFilter = (key: string) => {
+    if (key === 'destination') {
+      setFilterDestination('all');
+      setSearchParams((prev) => {
+        prev.delete('destination');
+        return prev;
+      });
+    } else if (key === 'time') {
+      setFilterTime('');
+    } else if (key === 'search') {
+      setSearchQuery('');
+    }
+  };
+
+  const clearAllFilters = () => {
+    setFilterDestination('all');
+    setFilterTime('');
+    setSearchQuery('');
+    setActiveStatusFilter('all');
+    setSearchParams({});
+  };
 
   const displayRoutes = sortedRoutes.filter((route) => {
     if (activeStatusFilter === 'all') return true;
@@ -97,7 +143,20 @@ export const RouteList = () => {
               </label>
               <select
                 value={filterDestination}
-                onChange={(e) => setFilterDestination(e.target.value)}
+                onChange={(e) => {
+                  setFilterDestination(e.target.value);
+                  if (e.target.value === 'all') {
+                    setSearchParams((prev) => {
+                      prev.delete('destination');
+                      return prev;
+                    });
+                  } else {
+                    setSearchParams((prev) => {
+                      prev.set('destination', e.target.value);
+                      return prev;
+                    });
+                  }
+                }}
                 className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
                 <option value="all">全部目的地</option>
@@ -122,6 +181,37 @@ export const RouteList = () => {
           </div>
         )}
       </div>
+
+      {activeFilters.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700">筛选条件</span>
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+            >
+              清除全部
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((filter) => (
+              <span
+                key={filter.key}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm"
+              >
+                <span className="text-orange-500">{filter.label}:</span>
+                <span className="font-medium">{filter.value}</span>
+                <button
+                  onClick={() => clearFilter(filter.key)}
+                  className="ml-1 p-0.5 hover:bg-orange-100 rounded-full transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-2">
         {[

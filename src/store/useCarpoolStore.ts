@@ -28,6 +28,7 @@ interface CarpoolStore {
   getMyBookings: () => Booking[];
 
   getDestinationStats: () => DestinationStat[];
+  getTodayDestinationSeats: () => DestinationStat[];
   getNoShowList: () => User[];
   getChildSeatBookings: () => Booking[];
 
@@ -219,6 +220,24 @@ export const useCarpoolStore = create<CarpoolStore>((set, get) => ({
     return Object.entries(stats)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  },
+
+  getTodayDestinationSeats: () => {
+    const todayRoutes = get().getTodayRoutes();
+    const stats: Record<string, { count: number; seats: number }> = {};
+
+    todayRoutes.forEach((r) => {
+      if (!stats[r.destination]) {
+        stats[r.destination] = { count: 0, seats: 0 };
+      }
+      stats[r.destination].count += 1;
+      stats[r.destination].seats += r.availableSeats;
+    });
+
+    return Object.entries(stats)
+      .map(([name, data]) => ({ name, count: data.count, seats: data.seats }))
+      .sort((a, b) => b.seats - a.seats)
       .slice(0, 5);
   },
 

@@ -16,6 +16,7 @@ export const Dashboard = () => {
   const todayRoutes = store.getTodayRoutes();
   const pendingBookings = store.getPendingBookings();
   const destinationStats = store.getDestinationStats();
+  const todayDestinationSeats = store.getTodayDestinationSeats();
   const noShowList = store.getNoShowList();
   const childSeatBookings = store.getChildSeatBookings();
   const activeChildSeatBookings = childSeatBookings.filter(
@@ -143,35 +144,55 @@ export const Dashboard = () => {
       {activeTab === 'stats' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-teal-500" />
-              <h3 className="font-semibold text-gray-900">常用目的地</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-orange-500" />
+                <h3 className="font-semibold text-gray-900">今日目的地空座</h3>
+              </div>
+              <button
+                onClick={() => navigate('/routes')}
+                className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+              >
+                查看全部
+              </button>
             </div>
-            {destinationStats.length === 0 ? (
-              <p className="text-gray-500 text-sm">暂无数据</p>
+            {todayDestinationSeats.length === 0 ? (
+              <p className="text-gray-500 text-sm">今日暂无路线</p>
             ) : (
-              <div className="space-y-3">
-                {destinationStats.map((stat, index) => {
-                  const maxCount = Math.max(...destinationStats.map((s) => s.count));
-                  const percentage = (stat.count / maxCount) * 100;
+              <div className="space-y-2">
+                {todayDestinationSeats.map((stat, index) => {
+                  const maxSeats = Math.max(...todayDestinationSeats.map((s) => s.seats || 0));
+                  const percentage = maxSeats > 0 ? ((stat.seats || 0) / maxSeats) * 100 : 0;
                   return (
-                    <div key={stat.name}>
-                      <div className="flex items-center justify-between mb-1">
+                    <button
+                      key={stat.name}
+                      onClick={() => navigate(`/routes?destination=${encodeURIComponent(stat.name)}`)}
+                      className="w-full text-left p-3 rounded-lg hover:bg-orange-50 transition-colors group"
+                    >
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-xs font-bold flex items-center justify-center">
                             {index + 1}
                           </span>
-                          <span className="text-sm font-medium text-gray-700">{stat.name}</span>
+                          <span className="text-sm font-medium text-gray-700 group-hover:text-orange-600">
+                            {stat.name}
+                          </span>
                         </div>
-                        <span className="text-sm text-gray-500">{stat.count} 次</span>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-orange-600">{stat.seats}</span>
+                          <span className="text-xs text-gray-500 ml-1">空座</span>
+                        </div>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-orange-400 to-teal-400 rounded-full"
-                          style={{ width: `${percentage}%` }}
-                        />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400">{stat.count} 趟</span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

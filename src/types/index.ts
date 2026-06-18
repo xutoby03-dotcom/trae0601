@@ -44,6 +44,7 @@ export interface Booking {
 export interface DestinationStat {
   name: string;
   count: number;
+  seats?: number;
 }
 
 export interface RouteFormData {
