@@ -419,13 +419,19 @@ export default function Checklist() {
               </div>
             )}
             {hasCriticalFailures && !repairTaskCreated && (
-              <button
-                onClick={handleCreateRepairTask}
-                className="w-full mb-3 flex items-center justify-center gap-2 px-6 py-3 bg-warning-500 text-white rounded-2xl font-semibold hover:bg-warning-600 transition-colors"
-              >
-                <Wrench className="w-5 h-5" />
-                生成维修任务
-              </button>
+              <>
+                <div className="mb-3 flex items-center gap-2 px-4 py-2 bg-warning-50 border border-warning-200 rounded-xl text-sm text-warning-700">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>检测到安全隐患，请先生成维修任务</span>
+                </div>
+                <button
+                  onClick={handleCreateRepairTask}
+                  className="w-full mb-3 flex items-center justify-center gap-2 px-6 py-3 bg-warning-500 text-white rounded-2xl font-semibold hover:bg-warning-600 transition-colors"
+                >
+                  <Wrench className="w-5 h-5" />
+                  生成维修任务
+                </button>
+              </>
             )}
             {hasCriticalFailures && repairTaskCreated && (
               <div className="mb-3 flex items-center justify-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-2xl font-semibold">
@@ -443,17 +449,18 @@ export default function Checklist() {
                   <ChevronRight className="w-5 h-5" />
                 </button>
               )}
-              <button
-                onClick={handleCloseSuccess}
-                className={cn(
-                  "flex items-center justify-center gap-2",
-                  hasCriticalFailures && repairTaskCreated ? "flex-1" : "",
-                  !hasCriticalFailures || !repairTaskCreated ? "btn-primary mx-auto" : "btn-primary"
-                )}
-              >
-                好的
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              {(!hasCriticalFailures || repairTaskCreated) && (
+                <button
+                  onClick={handleCloseSuccess}
+                  className={cn(
+                    "flex items-center justify-center gap-2",
+                    hasCriticalFailures && repairTaskCreated ? "flex-1 btn-primary" : "btn-primary mx-auto"
+                  )}
+                >
+                  好的
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
