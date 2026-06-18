@@ -20,7 +20,7 @@ export default function Layout() {
   );
   const pageInfo = pageTitles[pathKey || '/'] || { title: '白板补给系统' };
 
-  const isFeedbackPage = location.pathname === '/feedback';
+  const isFeedbackPage = location.pathname === '/feedback' || location.pathname.startsWith('/feedback/');
 
   if (isFeedbackPage) {
     return (

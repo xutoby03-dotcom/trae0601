@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { QrCode, PenOff, PackageOpen, HelpCircle, Send, CheckCircle, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { QrCode, PenOff, PackageOpen, HelpCircle, Send, CheckCircle, ArrowLeft, MapPin } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { FEEDBACK_TYPE_LABELS } from '@/utils/constants';
 import type { FeedbackType } from '@/types';
@@ -13,12 +13,23 @@ const feedbackOptions: { type: FeedbackType; icon: typeof PenOff; label: string;
 
 export default function FeedbackForm() {
   const navigate = useNavigate();
+  const { roomId } = useParams<{ roomId: string }>();
+  const [searchParams] = useSearchParams();
+  const fromRoom = searchParams.get('from') === 'room';
   const { rooms, addFeedback } = useAppStore();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedRoom, setSelectedRoom] = useState('');
+
+  const [step, setStep] = useState<1 | 2 | 3>(roomId ? 2 : 1);
+  const [selectedRoom, setSelectedRoom] = useState(roomId || '');
   const [feedbackType, setFeedbackType] = useState<FeedbackType | null>(null);
   const [description, setDescription] = useState('');
   const [reporter, setReporter] = useState('');
+
+  useEffect(() => {
+    if (roomId) {
+      setSelectedRoom(roomId);
+      setStep(2);
+    }
+  }, [roomId]);
 
   const handleSubmit = () => {
     if (selectedRoom && feedbackType) {
@@ -32,6 +43,28 @@ export default function FeedbackForm() {
     }
   };
 
+  const handleBack = () => {
+    if (fromRoom && roomId) {
+      navigate(`/rooms/${roomId}`);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleContinueFeedback = () => {
+    setFeedbackType(null);
+    setDescription('');
+    setReporter('');
+    if (roomId) {
+      setStep(2);
+    } else {
+      setSelectedRoom('');
+      setStep(1);
+    }
+  };
+
+  const lockedRoom = roomId ? rooms.find((r) => r.id === roomId) : null;
+
   if (step === 3) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-6">
@@ -44,11 +77,11 @@ export default function FeedbackForm() {
             感谢您的反馈，行政人员会尽快处理并补充用品
           </p>
           <div className="space-y-3">
-            <button onClick={() => setStep(1)} className="w-full btn btn-secondary">
+            <button onClick={handleContinueFeedback} className="w-full btn btn-secondary">
               继续反馈
             </button>
-            <button onClick={() => navigate('/')} className="w-full btn btn-primary">
-              返回首页
+            <button onClick={handleBack} className="w-full btn btn-primary">
+              {fromRoom ? '返回会议室详情' : '返回首页'}
             </button>
           </div>
         </div>
@@ -61,7 +94,15 @@ export default function FeedbackForm() {
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <button
-            onClick={() => (step === 1 ? navigate('/') : setStep((step - 1) as 1 | 2))}
+            onClick={() => {
+              if (step === 1) {
+                handleBack();
+              } else if (roomId) {
+                handleBack();
+              } else {
+                setStep((step - 1) as 1 | 2);
+              }
+            }}
             className="p-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600" />
@@ -74,7 +115,9 @@ export default function FeedbackForm() {
               <div>
                 <h1 className="font-bold text-slate-800">用品反馈</h1>
                 <p className="text-xs text-slate-500">
-                  第 {step} / 2 步 · {step === 1 ? '选择会议室' : '描述问题'}
+                  {roomId && lockedRoom
+                    ? `${lockedRoom.name} · 第 ${step - 1} / 1 步`
+                    : `第 ${step} / 2 步 · ${step === 1 ? '选择会议室' : '描述问题'}`}
                 </p>
               </div>
             </div>
@@ -86,7 +129,7 @@ export default function FeedbackForm() {
             <div
               key={s}
               className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                step >= s ? 'bg-primary-600' : 'bg-slate-200'
+                (roomId ? step > s : step >= s) ? 'bg-primary-600' : 'bg-slate-200'
               }`}
             />
           ))}
@@ -128,6 +171,50 @@ export default function FeedbackForm() {
           </div>
         ) : (
           <div className="space-y-5">
+            {lockedRoom ? (
+              <div className="p-4 rounded-xl bg-primary-50 border border-primary-100 flex items-center gap-3">
+                <img
+                  src={lockedRoom.photoUrl}
+                  alt={lockedRoom.name}
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-primary-800">{lockedRoom.name}</p>
+                  <p className="text-sm text-primary-600">
+                    {lockedRoom.floor} · {lockedRoom.capacity}人
+                  </p>
+                </div>
+                <MapPin className="w-5 h-5 text-primary-500 flex-shrink-0" />
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const room = rooms.find((r) => r.id === selectedRoom);
+                    return room ? (
+                      <>
+                        <img
+                          src={room.photoUrl}
+                          alt={room.name}
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                        />
+                        <div>
+                          <p className="font-medium text-slate-700 text-sm">{room.name}</p>
+                          <p className="text-xs text-slate-500">{room.floor}</p>
+                        </div>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-sm text-primary-700 hover:text-primary-800 font-medium"
+                >
+                  更换
+                </button>
+              </div>
+            )}
+
             <div>
               <p className="text-sm font-medium text-slate-700 mb-3">选择问题类型</p>
               <div className="space-y-2">

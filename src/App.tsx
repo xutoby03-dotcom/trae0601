@@ -24,6 +24,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/feedback" element={<FeedbackForm />} />
+      <Route path="/feedback/:roomId" element={<FeedbackForm />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/rooms" element={<RoomList />} />

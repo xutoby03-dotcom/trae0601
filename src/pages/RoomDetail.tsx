@@ -1,18 +1,23 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit3, ClipboardCheck, Package, Users, PenTool, User } from 'lucide-react';
+import { ArrowLeft, Edit3, ClipboardCheck, Package, Users, PenTool, User, MessageSquare } from 'lucide-react';
 import { useAppStore } from '@/store';
 import SupplyCard from '@/components/SupplyCard';
-import { formatDate } from '@/utils/helpers';
+import { formatDate, formatDateTime } from '@/utils/helpers';
+import { FEEDBACK_TYPE_LABELS } from '@/utils/constants';
 
 export default function RoomDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { rooms, supplies, inspections, tasks } = useAppStore();
+  const { rooms, supplies, inspections, tasks, feedbacks } = useAppStore();
 
   const room = rooms.find((r) => r.id === id);
   const roomSupplies = supplies.filter((s) => s.roomId === id);
   const roomInspections = inspections.filter((i) => i.roomId === id).slice(0, 5);
   const roomTasks = tasks.filter((t) => t.roomId === id).slice(0, 5);
+  const roomFeedbacks = feedbacks
+    .filter((f) => f.roomId === id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 10);
 
   if (!room) {
     return (
@@ -42,6 +47,10 @@ export default function RoomDetail() {
         <button onClick={() => navigate(`/inspection/${id}`)} className="btn btn-primary btn-sm">
           <ClipboardCheck className="w-4 h-4" />
           开始巡检
+        </button>
+        <button onClick={() => navigate(`/feedback/${id}?from=room`)} className="btn btn-accent btn-sm">
+          <MessageSquare className="w-4 h-4" />
+          反馈问题
         </button>
       </div>
 
@@ -165,6 +174,54 @@ export default function RoomDetail() {
                   <div key={task.id} className="p-3 rounded-lg bg-slate-50 text-sm">
                     <p className="font-medium text-slate-700 line-clamp-1">{task.description}</p>
                     <p className="text-xs text-slate-400 mt-1">{formatDate(task.createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                员工反馈
+              </h3>
+              <button
+                onClick={() => navigate(`/feedback/${id}?from=room`)}
+                className="text-xs text-primary-700 hover:text-primary-800 font-medium inline-flex items-center gap-1"
+              >
+                + 反馈
+              </button>
+            </div>
+            {roomFeedbacks.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">暂无反馈记录</p>
+            ) : (
+              <div className="space-y-2">
+                {roomFeedbacks.map((fb) => (
+                  <div key={fb.id} className="p-3 rounded-lg bg-slate-50">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`badge ${
+                          fb.type === 'pen_empty'
+                            ? 'bg-red-100 text-red-700'
+                            : fb.type === 'supply_missing'
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {FEEDBACK_TYPE_LABELS[fb.type]}
+                        </span>
+                        <span className={`badge ${
+                          fb.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {fb.status === 'pending' ? '待处理' : '已解决'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1.5 line-clamp-2">{fb.description}</p>
+                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-100">
+                      <span className="text-xs text-slate-400">{fb.reporter}</span>
+                      <span className="text-xs text-slate-400">{formatDateTime(fb.createdAt)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
