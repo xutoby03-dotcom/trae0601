@@ -465,7 +465,7 @@ export default function ReturnCheck() {
             <div className="p-6 space-y-3">
               {resultStats.wet > 0 && (
                 <button
-                  onClick={() => navigate("/drying")}
+                  onClick={() => navigate("/drying?filter=pending")}
                   className="w-full flex items-center gap-4 p-4 rounded-xl bg-sky2-50 border border-sky2-200 hover:bg-sky2-100 hover:border-sky2-300 transition-all group"
                 >
                   <div className="w-12 h-12 rounded-xl bg-sky2-400 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
