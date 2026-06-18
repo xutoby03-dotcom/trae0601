@@ -81,7 +81,7 @@ export const RouteCard = ({ route, showActions = true }: RouteCardProps) => {
         </div>
       </div>
 
-      {showActions && route.status === 'open' && (
+      {showActions && route.status === 'open' && route.availableSeats > 0 && (
         <button
           className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200"
           onClick={(e) => {
@@ -91,6 +91,12 @@ export const RouteCard = ({ route, showActions = true }: RouteCardProps) => {
         >
           立即申请
         </button>
+      )}
+
+      {showActions && route.status === 'full' && (
+        <div className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-lg font-medium text-center">
+          已满座
+        </div>
       )}
     </div>
   );

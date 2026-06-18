@@ -35,6 +35,7 @@ export const BookingCard = ({
   };
 
   const warning = getNoShowWarning();
+  const notEnoughSeats = route && booking.passengerCount > route.availableSeats;
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
@@ -105,11 +106,22 @@ export const BookingCard = ({
         </div>
       )}
 
+      {notEnoughSeats && (
+        <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs text-center">
+          剩余座位不足（需{booking.passengerCount}座，剩{route?.availableSeats}座）
+        </div>
+      )}
+
       {showActions && booking.status === 'pending' && (
         <div className="flex gap-2">
           <button
             onClick={onConfirm}
-            className="flex-1 py-2 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
+            disabled={notEnoughSeats}
+            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${
+              notEnoughSeats
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-teal-500 text-white hover:bg-teal-600'
+            }`}
           >
             确认
           </button>

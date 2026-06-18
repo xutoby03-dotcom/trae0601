@@ -135,6 +135,17 @@ export const useCarpoolStore = create<CarpoolStore>((set, get) => ({
   },
 
   updateBookingStatus: (bookingId: string, status: BookingStatus) => {
+    const booking = get().bookings.find((b) => b.id === bookingId);
+    if (!booking) return;
+
+    if (status === 'confirmed') {
+      const route = get().getRouteById(booking.routeId);
+      if (route && booking.passengerCount > route.availableSeats) {
+        console.warn('剩余座位不足，无法确认');
+        return;
+      }
+    }
+
     set((state) => {
       const newBookings = state.bookings.map((b) =>
         b.id === bookingId ? { ...b, status } : b
@@ -143,7 +154,6 @@ export const useCarpoolStore = create<CarpoolStore>((set, get) => ({
       return { bookings: newBookings };
     });
 
-    const booking = get().bookings.find((b) => b.id === bookingId);
     if (booking) {
       get().checkAndUpdateFullStatus(booking.routeId);
 

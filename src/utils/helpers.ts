@@ -93,7 +93,19 @@ export const getTimeMinutes = (timeStr: string): number => {
   return hours * 60 + minutes;
 };
 
+export const extractTime = (dateTimeStr: string): string => {
+  if (dateTimeStr.includes('T')) {
+    const date = new Date(dateTimeStr);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+  return dateTimeStr;
+};
+
 export const isTimeWithin30Minutes = (time1: string, time2: string): boolean => {
-  const diff = Math.abs(getTimeMinutes(time1) - getTimeMinutes(time2));
+  const t1 = extractTime(time1);
+  const t2 = extractTime(time2);
+  const diff = Math.abs(getTimeMinutes(t1) - getTimeMinutes(t2));
   return diff <= 30;
 };
