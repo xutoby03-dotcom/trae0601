@@ -121,8 +121,8 @@ export default function ReturnForm() {
             </div>
             <div className="flex items-start gap-2 text-sm">
               <span className="text-gray-500 w-20 shrink-0 pt-0.5">原有破损：</span>
-              {book.damageLocation ? (
-                <span className="text-coral-600 font-medium">⚠️ {book.damageLocation}</span>
+              {book.damageLocation.trim() ? (
+                <span className="text-coral-600 font-medium">⚠️ {book.damageLocation.trim()}</span>
               ) : (
                 <span className="text-mint-600">✓ 档案里暂时没登记破损</span>
               )}
