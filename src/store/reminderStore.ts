@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { differenceInHours } from 'date-fns';
-import type { ReminderLog, ReminderType, ReminderLevel, PackageItem } from '@/types';
+import type { ReminderLog, ReminderType, ReminderLevel, PackageItem, ExceptionRecord } from '@/types';
 import { generateId } from '@/utils';
 import { MOCK_REMINDERS } from '@/mock/data';
 import { usePackageStore } from './packageStore';
+import { useExceptionStore } from './exceptionStore';
 
 interface ReminderState {
   logs: ReminderLog[];
@@ -32,11 +33,13 @@ export const useReminderStore = create<ReminderState>()(
       checkedPackageIds: new Set<string>(),
 
       checkAndTriggerReminders: () => {
-        const stored = usePackageStore.getState().getStoredPackages();
+        const { packages, markTransferred } = usePackageStore.getState();
+        const stored = packages.filter((p) => p.status === 'stored');
         const new24h: ReminderLog[] = [];
         const new48h: ReminderLog[] = [];
         const new72h: PackageItem[] = [];
         const newLogs: ReminderLog[] = [];
+        const newExceptionRecords: ExceptionRecord[] = [];
         const now = new Date();
 
         stored.forEach((pkg) => {
@@ -44,6 +47,7 @@ export const useReminderStore = create<ReminderState>()(
           const pkgLogs = get().logs.filter((l) => l.packageId === pkg.id);
           const has24h = pkgLogs.some((l) => l.type === 'auto_24h');
           const has48h = pkgLogs.some((l) => l.type === 'auto_48h');
+          const hasManual72h = pkgLogs.some((l) => l.type === 'manual_72h');
 
           if (hours >= 24 && !has24h) {
             const log: ReminderLog = {
@@ -73,13 +77,41 @@ export const useReminderStore = create<ReminderState>()(
             newLogs.push(log);
             new48h.push(log);
           }
-          if (hours >= 72) {
+          if (hours >= 72 && !hasManual72h) {
+            const manualLog: ReminderLog = {
+              id: generateId(),
+              packageId: pkg.id,
+              recipientName: pkg.recipientName,
+              slotLabel: pkg.slotLabel,
+              type: 'manual_72h',
+              level: 'critical',
+              remindedAt: now.toISOString(),
+              operator: '系统自动',
+              result: '存放超过72小时无人认领，自动转人工处理并释放格口',
+            };
+            newLogs.push(manualLog);
+            newExceptionRecords.push({
+              id: generateId(),
+              packageId: pkg.id,
+              recipientName: pkg.recipientName,
+              slotLabel: pkg.slotLabel,
+              type: 'unclaimed',
+              description: `存放超过${Math.floor(hours / 24)}天无人认领，系统自动转人工处理，已释放对应格口`,
+              handler: '系统自动',
+              createdAt: now.toISOString(),
+            });
+            markTransferred(pkg.id);
             new72h.push(pkg);
           }
         });
 
         if (newLogs.length > 0) {
           set((state) => ({ logs: [...newLogs, ...state.logs] }));
+        }
+        if (newExceptionRecords.length > 0) {
+          useExceptionStore.setState((state) => ({
+            records: [...newExceptionRecords, ...state.records],
+          }));
         }
 
         return { new24h, new48h, new72h };

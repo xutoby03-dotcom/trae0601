@@ -263,7 +263,7 @@ export function RegisterPage() {
                                 return (
                                   <button
                                     key={slot.id}
-                                    disabled={isOccupied}
+                                    disabled={isOccupied || !isAvail}
                                     onClick={() => setForm({
                                       ...form,
                                       shelfSlotId: slot.id,
