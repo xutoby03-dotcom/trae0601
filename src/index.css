@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: linear-gradient(135deg, #FBF9F4 0%, #F5F0E6 50%, #FCE4CB 150%);
+  min-height: 100vh;
+  color: #1f2937;
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-cream-200/60 transition-all duration-300;
+  }
+  .card-hover:hover {
+    @apply shadow-md -translate-y-0.5;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-full font-medium shadow-sm hover:bg-brand-600 hover:shadow-md active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-full font-medium hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-200;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-danger-500 text-white rounded-full font-medium shadow-sm hover:bg-danger-600 hover:shadow-md active:scale-[0.98] transition-all duration-200;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-all duration-200;
+  }
+  .label-text {
+    @apply block text-sm font-medium text-gray-600 mb-1.5;
+  }
+  .tag {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full;
+  }
+  .anomaly-card {
+    @apply bg-white rounded-2xl border-l-4 border-danger-500 shadow-sm bg-gradient-to-r from-danger-50/60 to-white;
+  }
+  .section-title {
+    @apply text-lg font-bold text-gray-800 flex items-center gap-2;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* 动画延迟工具类 */
+.delay-75 { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* 红色边框闪烁（异常提醒） */
+@keyframes borderPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(193, 18, 31, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(193, 18, 31, 0); }
+}
+.border-pulse {
+  animation: borderPulse 2s ease-in-out infinite;
+}
