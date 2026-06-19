@@ -66,7 +66,16 @@ export default function BatchDetail({ batch, onBack }: Props) {
     }
   };
 
+  const getDiscardTime = () => {
+    const abnormalInspection = inspections.find((i) => i.isAbnormal);
+    if (abnormalInspection) {
+      return format(new Date(abnormalInspection.inspectTime), 'yyyy年M月d日 HH:mm', { locale: zhCN });
+    }
+    return null;
+  };
+
   if (batch.status === 'discarded') {
+    const discardTime = getDiscardTime();
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="bg-white rounded-2xl shadow-tea-lg p-8 max-w-md w-full text-center ring-2 ring-danger-200">
@@ -74,28 +83,21 @@ export default function BatchDetail({ batch, onBack }: Props) {
             <Trash2 className="w-10 h-10 text-danger-500" />
           </div>
 
-          <div className="inline-block px-4 py-1.5 mb-4 bg-danger-100 text-danger-600 rounded-full font-bold text-sm">
+          <div className="inline-block px-4 py-1.5 mb-6 bg-danger-100 text-danger-600 rounded-full font-bold text-sm">
             已报废
           </div>
 
-          <h1 className="text-xl font-display font-bold text-tea-800 mb-2">
-            {teapot?.teaType}
-          </h1>
-          <p className="text-sm text-tea-500 mb-6">
-            {teapot?.code} · 煮制 {format(new Date(batch.brewTime), 'M月d日 HH:mm', { locale: zhCN })}
-          </p>
-
-          <div className="bg-danger-50 border border-danger-200 rounded-xl p-4 mb-6 text-left">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-danger-500 flex-shrink-0 mt-0.5" />
+          <div className="bg-danger-50 border border-danger-200 rounded-xl p-5 mb-6 text-left">
+            <div className="space-y-3">
               <div>
-                <p className="font-semibold text-danger-700 mb-1">异常原因</p>
-                <p className="text-danger-600">{getAbnormalReason()}</p>
-                {inspections.length > 0 && (
-                  <p className="text-xs text-danger-500 mt-2">
-                    报废时间: {format(new Date(inspections[0].inspectTime), 'yyyy年M月d日 HH:mm', { locale: zhCN })}
-                  </p>
-                )}
+                <p className="text-xs text-danger-500 mb-1">异常原因</p>
+                <p className="text-danger-700 font-medium">{getAbnormalReason()}</p>
+              </div>
+              <div className="pt-3 border-t border-danger-200">
+                <p className="text-xs text-danger-500 mb-1">报废时间</p>
+                <p className="text-danger-700 font-medium">
+                  {discardTime || '暂无报废时间'}
+                </p>
               </div>
             </div>
           </div>
