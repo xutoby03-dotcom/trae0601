@@ -138,6 +138,32 @@ export default function BorrowRecords() {
       ),
     },
     {
+      key: 'return_check',
+      title: '归还异常',
+      render: (row: BorrowRecordWithInfo) => {
+        if (row.status !== '已归还') {
+          return <span className="text-sm text-gray-400">-</span>
+        }
+        const tags: { label: string; variant: 'success' | 'warning' | 'danger' | 'info' }[] = []
+        if (row.has_missing_pages) tags.push({ label: '缺页', variant: 'danger' })
+        if (row.has_damage) tags.push({ label: '破损', variant: 'danger' })
+        if (row.has_writing) tags.push({ label: '涂写', variant: 'warning' })
+        if (row.needs_reprint) tags.push({ label: '需重印', variant: 'info' })
+        if (tags.length === 0) {
+          return <Badge variant="success">正常</Badge>
+        }
+        return (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <Badge key={tag.label} variant={tag.variant}>
+                {tag.label}
+              </Badge>
+            ))}
+          </div>
+        )
+      },
+    },
+    {
       key: 'with_pencil_mark',
       title: '铅笔标记',
       render: (row: BorrowRecordWithInfo) => (
