@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Save,
@@ -50,12 +50,15 @@ const presetWaterPoints = [
 
 export default function InspectionForm() {
   const { areaId } = useParams<{ areaId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const linkedTaskId = searchParams.get('taskId') || '';
 
   const { getAreaById } = useAreaStore();
   const { addInspection, inspections } = useInspectionStore();
   const { getLatestRainEvent, rainEvents } = useRainEventStore();
-  const { tasks } = useTaskStore();
+  const { updateTask, tasks } = useTaskStore();
 
   const area = areaId ? getAreaById(areaId) : undefined;
 
@@ -137,6 +140,10 @@ export default function InspectionForm() {
       hasAnomaly,
     });
 
+    if (linkedTaskId) {
+      updateTask(linkedTaskId, { recheckInspectionId: newInspectionId });
+    }
+
     if (hasAnomaly) {
       if (confirm('检查发现异常，是否立即创建维修任务？')) {
         navigate(`/tasks/new?areaId=${areaId}&inspectionId=${newInspectionId}`);
@@ -179,6 +186,30 @@ export default function InspectionForm() {
           }
         />
       )}
+
+      {linkedTaskId && (() => {
+        const linkedTask = tasks.find((t) => t.id === linkedTaskId);
+        return linkedTask ? (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-blue-700" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-700 flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded">复查不通过</span>
+                  来自维修任务
+                </h4>
+                <p className="text-sm text-blue-800 mt-1 font-medium">{linkedTask.title}</p>
+                {linkedTask.reviewNotes && (
+                  <p className="text-sm text-blue-600 mt-1">复查备注：{linkedTask.reviewNotes}</p>
+                )}
+                <p className="text-xs text-blue-500 mt-2">请对该区域进行新一轮雨后检查，检查结果将自动关联回维修任务</p>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       <div className="bg-white rounded-2xl p-6 shadow-sm">
         <div className="flex items-start justify-between mb-6">

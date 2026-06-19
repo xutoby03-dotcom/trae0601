@@ -55,6 +55,7 @@ export default function TaskForm() {
     actualCost: undefined as number | undefined,
     reviewDate: '',
     reviewNotes: '' as string | undefined,
+    recheckInspectionId: '' as string | undefined,
     isRepeatedAnomaly: false,
     photos: [] as string[],
   });
@@ -74,6 +75,7 @@ export default function TaskForm() {
         actualCost: existingTask.actualCost,
         reviewDate: existingTask.reviewDate || '',
         reviewNotes: existingTask.reviewNotes || '',
+        recheckInspectionId: existingTask.recheckInspectionId,
         isRepeatedAnomaly: existingTask.isRepeatedAnomaly,
         photos: existingTask.photos,
       });
@@ -146,8 +148,8 @@ export default function TaskForm() {
         ...formData,
         reviewDate: formData.reviewDate || formatDate(new Date()),
       });
+      navigate(`/inspections/${recheckAreaId}?taskId=${id}`);
     }
-    navigate(`/inspections/${recheckAreaId}`);
   };
 
   const handleDelete = () => {
@@ -474,6 +476,61 @@ export default function TaskForm() {
                     </button>
                   </div>
                 )}
+
+                {formData.recheckInspectionId && (() => {
+                  const recheckInsp = inspections.find((i) => i.id === formData.recheckInspectionId);
+                  if (!recheckInsp) return null;
+                  const recheckArea = areas.find((a) => a.id === recheckInsp.areaId);
+                  return (
+                    <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold text-blue-700 flex items-center gap-1.5">
+                          <ClipboardCheck className="w-4 h-4" />
+                          复查后检查记录
+                        </span>
+                        <Link
+                          to={`/inspections/${recheckInsp.areaId}`}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-0.5"
+                        >
+                          查看区域检查 →
+                        </Link>
+                      </div>
+                      <div className="space-y-1 text-sm text-blue-800">
+                        <p>
+                          <span className="text-blue-500">检查日期：</span>
+                          {formatDate(recheckInsp.inspectionDate)}
+                          {recheckArea && ` · ${recheckArea.name}`}
+                        </p>
+                        <p>
+                          <span className="text-blue-500">检查结果：</span>
+                          {recheckInsp.hasAnomaly ? (
+                            <span className="text-danger-600 font-medium">仍有异常</span>
+                          ) : (
+                            <span className="text-success-600 font-medium">正常</span>
+                          )}
+                        </p>
+                        {recheckInsp.waterPoints.length > 0 && (
+                          <p>
+                            <span className="text-blue-500">积水点：</span>
+                            {recheckInsp.waterPoints.join('、')}
+                          </p>
+                        )}
+                        {recheckInsp.thresholdLeak && (
+                          <p>
+                            <span className="text-blue-500">门槛渗水：</span>
+                            <span className="text-danger-600">是</span>
+                          </p>
+                        )}
+                        {recheckInsp.notes && (
+                          <p>
+                            <span className="text-blue-500">备注：</span>
+                            {recheckInsp.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
