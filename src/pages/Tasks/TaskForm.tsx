@@ -10,6 +10,9 @@ import {
   Calendar,
   Trash2,
   AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useTaskStore } from '../../store/useTaskStore';
 import { useAreaStore } from '../../store/useAreaStore';
@@ -51,9 +54,12 @@ export default function TaskForm() {
     estimatedCost: undefined as number | undefined,
     actualCost: undefined as number | undefined,
     reviewDate: '',
+    reviewNotes: '' as string | undefined,
     isRepeatedAnomaly: false,
     photos: [] as string[],
   });
+
+  const [recheckAreaId, setRecheckAreaId] = useState('');
 
   useEffect(() => {
     if (existingTask) {
@@ -67,9 +73,11 @@ export default function TaskForm() {
         estimatedCost: existingTask.estimatedCost,
         actualCost: existingTask.actualCost,
         reviewDate: existingTask.reviewDate || '',
+        reviewNotes: existingTask.reviewNotes || '',
         isRepeatedAnomaly: existingTask.isRepeatedAnomaly,
         photos: existingTask.photos,
       });
+      setRecheckAreaId(existingTask.areaId);
     } else if (preselectedAreaId) {
       const isRepeated = checkRepeatedAnomaly(preselectedAreaId, inspections);
       const area = areas.find((a) => a.id === preselectedAreaId);
@@ -84,6 +92,7 @@ export default function TaskForm() {
         title: area ? `${area.name}维修` : '',
         constructionPlan: inspection && inspection.notes ? `检查备注：${inspection.notes}\n\n` : '',
       }));
+      setRecheckAreaId(preselectedAreaId);
     }
   }, [existingTask, preselectedAreaId, preselectedInspectionId, areas, inspections]);
 
@@ -109,6 +118,36 @@ export default function TaskForm() {
       addTask(formData);
     }
     navigate('/tasks');
+  };
+
+  const handleReviewPass = () => {
+    if (!isEdit || !id) return;
+    if (!formData.reviewNotes?.trim()) {
+      if (!confirm('复查备注为空，确认直接通过？')) return;
+    }
+    updateTask(id, {
+      ...formData,
+      status: 'completed',
+      reviewDate: formData.reviewDate || formatDate(new Date()),
+    });
+    navigate('/tasks');
+  };
+
+  const handleReviewFail = () => {
+    if (!recheckAreaId) {
+      alert('请选择要重新检查的区域');
+      return;
+    }
+    if (!formData.reviewNotes?.trim()) {
+      if (!confirm('复查备注为空，确认不通过？')) return;
+    }
+    if (isEdit && id) {
+      updateTask(id, {
+        ...formData,
+        reviewDate: formData.reviewDate || formatDate(new Date()),
+      });
+    }
+    navigate(`/inspections/${recheckAreaId}`);
   };
 
   const handleDelete = () => {
@@ -340,6 +379,104 @@ export default function TaskForm() {
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none transition-all"
             />
           </div>
+
+          {(isEdit && (formData.status === 'review' || formData.status === 'completed')) && (
+            <div className="md:col-span-2">
+              <div className={`rounded-2xl p-5 border-2 ${
+                formData.status === 'completed'
+                  ? 'border-success-200 bg-success-50/50'
+                  : 'border-warning-300 bg-warning-50'
+              }`}>
+                <div className="flex items-center gap-2 mb-4">
+                  {formData.status === 'completed' ? (
+                    <CheckCircle2 className="w-5 h-5 text-success-600" />
+                  ) : (
+                    <ClipboardCheck className="w-5 h-5 text-warning-600" />
+                  )}
+                  <h3 className={`font-bold ${
+                    formData.status === 'completed' ? 'text-success-700' : 'text-warning-700'
+                  }`}>
+                    {formData.status === 'completed' ? '复查结果（已完成）' : '复查流程'}
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Calendar className="w-4 h-4 inline mr-1.5 text-primary-500" />
+                      复查日期
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.reviewDate}
+                      onChange={(e) => setFormData({ ...formData, reviewDate: e.target.value })}
+                      disabled={formData.status === 'completed'}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                    />
+                  </div>
+                  {formData.status === 'review' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <MapPin className="w-4 h-4 inline mr-1.5 text-danger-500" />
+                        复查不通过 → 重新检查的区域
+                      </label>
+                      <select
+                        value={recheckAreaId}
+                        onChange={(e) => setRecheckAreaId(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-danger-500 focus:border-danger-500 outline-none transition-all bg-white"
+                      >
+                        <option value="">请选择区域</option>
+                        {areas.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}（{a.orientation}面 · {a.areaSize}㎡）
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        复查不通过时将跳转该区域开启新一轮雨后检查
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FileText className="w-4 h-4 inline mr-1.5 text-primary-500" />
+                    复查备注
+                  </label>
+                  <textarea
+                    value={formData.reviewNotes || ''}
+                    onChange={(e) => setFormData({ ...formData, reviewNotes: e.target.value })}
+                    disabled={formData.status === 'completed'}
+                    placeholder="记录复查情况：是否仍有积水、潮痕是否消退、地漏排水是否恢复..."
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                </div>
+
+                {formData.status === 'review' && (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={handleReviewPass}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      复查通过 → 标记已完成
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReviewFail}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      复查不通过 → 开启雨后检查
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-3">

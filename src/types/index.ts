@@ -48,6 +48,7 @@ export interface MaintenanceTask {
   estimatedCost?: number;
   actualCost?: number;
   reviewDate?: string;
+  reviewNotes?: string;
   isRepeatedAnomaly: boolean;
   photos: string[];
   createdAt: string;
