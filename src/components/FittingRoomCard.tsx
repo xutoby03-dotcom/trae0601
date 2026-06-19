@@ -81,7 +81,7 @@ export default function FittingRoomCard({ room, onClick }: Props) {
         {isOverLimit && (
           <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
             <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-            <span>超{overDiff}件，请收衣</span>
+            <span>{room.currentItemsCount}/{room.maxItems}件 差{overDiff}件，请收衣</span>
           </div>
         )}
 
