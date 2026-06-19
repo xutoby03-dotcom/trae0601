@@ -57,18 +57,18 @@ router.put('/:id/complete', (req, res) => {
 
 router.put('/:id/timeout', (req, res) => {
   const { id } = req.params;
-  const item = store.markTimeout(id);
+  const result = store.markTimeout(id);
   
-  if (!item) {
+  if (!result) {
     return res.status(404).json({ error: '排队记录不存在或状态不正确' });
   }
   
-  res.json(item);
+  res.json(result);
 });
 
 router.get('/check-timeouts', (req, res) => {
-  const timedOut = store.checkTimeouts();
-  res.json({ timedOut });
+  const results = store.checkTimeouts();
+  res.json({ results });
 });
 
 export default router;

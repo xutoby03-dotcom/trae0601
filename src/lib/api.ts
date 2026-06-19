@@ -35,8 +35,8 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(record),
       }),
-    markTimeout: (id: string) => request<QueueItem>(`/queue/${id}/timeout`, { method: 'PUT' }),
-    checkTimeouts: () => request<{ timedOut: QueueItem[] }>('/queue/check-timeouts'),
+    markTimeout: (id: string) => request<{ oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } }>(`/queue/${id}/timeout`, { method: 'PUT' }),
+    checkTimeouts: () => request<{ results: { oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } }[] }>('/queue/check-timeouts'),
   },
 
   records: {

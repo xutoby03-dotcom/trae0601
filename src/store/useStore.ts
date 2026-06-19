@@ -31,10 +31,10 @@ interface AppState {
   callNext: () => Promise<boolean>;
   confirmEnter: (queueId: string) => Promise<void>;
   completeFitting: (queueId: string, record: Partial<FittingRecord>) => Promise<void>;
-  markTimeout: (queueId: string) => Promise<void>;
+  markTimeout: (queueId: string) => Promise<{ oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } } | null>;
 
   setTimeoutThreshold: (seconds: number) => Promise<void>;
-  checkTimeouts: () => Promise<QueueItem[]>;
+  checkTimeouts: () => Promise<{ oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } }[]>;
   clearError: () => void;
 }
 
@@ -224,10 +224,32 @@ export const useStore = create<AppState>((set, get) => ({
   markTimeout: async (queueId) => {
     set({ loading: true });
     try {
-      await api.queue.markTimeout(queueId);
-      await Promise.all([get().fetchQueue(), get().fetchRooms()]);
+      const result = await api.queue.markTimeout(queueId);
+      
+      const currentQueue = get().queue;
+      const updatedQueue = currentQueue.map(q => {
+        if (q.id === result.oldTimedOut.id) return result.oldTimedOut;
+        if (result.nextCalled && q.id === result.nextCalled.queue.id) return result.nextCalled.queue;
+        return q;
+      });
+      
+      const currentRooms = get().rooms;
+      const updatedRooms = currentRooms.map(r => {
+        if (result.nextCalled && r.id === result.nextCalled.room.id) return result.nextCalled.room;
+        if (r.id === result.oldTimedOut.roomId) return { ...r, status: 'available' as const, currentQueueId: undefined };
+        return r;
+      });
+      
+      set({ 
+        queue: updatedQueue, 
+        rooms: updatedRooms,
+        currentCalledNumber: result.nextCalled?.queue.queueNumber ?? null,
+      });
+      
+      return result;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '标记超时失败' });
+      return null;
     } finally {
       set({ loading: false });
     }
@@ -244,11 +266,40 @@ export const useStore = create<AppState>((set, get) => ({
 
   checkTimeouts: async () => {
     try {
-      const { timedOut } = await api.queue.checkTimeouts();
-      if (timedOut.length > 0) {
-        await Promise.all([get().fetchQueue(), get().fetchRooms()]);
+      const { results } = await api.queue.checkTimeouts();
+      if (results.length > 0) {
+        let currentQueue = get().queue;
+        let currentRooms = get().rooms;
+        let latestCalledNumber: number | null = null;
+        
+        results.forEach(result => {
+          currentQueue = currentQueue.map(q => {
+            if (q.id === result.oldTimedOut.id) return result.oldTimedOut;
+            if (result.nextCalled && q.id === result.nextCalled.queue.id) return result.nextCalled.queue;
+            return q;
+          });
+          
+          if (result.nextCalled) {
+            currentRooms = currentRooms.map(r => {
+              if (r.id === result.nextCalled.room.id) return result.nextCalled.room;
+              return r;
+            });
+            latestCalledNumber = result.nextCalled.queue.queueNumber;
+          } else {
+            currentRooms = currentRooms.map(r => {
+              if (r.id === result.oldTimedOut.roomId) return { ...r, status: 'available' as const, currentQueueId: undefined };
+              return r;
+            });
+          }
+        });
+        
+        set({ 
+          queue: currentQueue, 
+          rooms: currentRooms,
+          currentCalledNumber: latestCalledNumber,
+        });
       }
-      return timedOut;
+      return results;
     } catch (error) {
       return [];
     }

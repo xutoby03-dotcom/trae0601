@@ -184,7 +184,7 @@ class DataStore {
     return { queue: queueItem, record };
   }
 
-  markTimeout(queueId: string): QueueItem | null {
+  markTimeout(queueId: string): { oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } } | null {
     const item = this.queue.find(q => q.id === queueId);
     if (!item || item.status !== 'called') return null;
 
@@ -197,21 +197,28 @@ class DataStore {
       room.currentQueueId = undefined;
     }
 
-    return item;
+    const nextCallResult = this.callNext();
+
+    return {
+      oldTimedOut: item,
+      nextCalled: nextCallResult ?? undefined,
+    };
   }
 
-  checkTimeouts(): QueueItem[] {
+  checkTimeouts(): { oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } }[] {
     const now = Date.now();
-    const timedOut: QueueItem[] = [];
+    const results: { oldTimedOut: QueueItem; nextCalled?: { queue: QueueItem; room: FittingRoom } }[] = [];
 
     this.queue.forEach(item => {
       if (item.status === 'called' && item.calledAt && (now - item.calledAt) > this.timeoutThreshold * 1000) {
-        this.markTimeout(item.id);
-        timedOut.push(item);
+        const result = this.markTimeout(item.id);
+        if (result) {
+          results.push(result);
+        }
       }
     });
 
-    return timedOut;
+    return results;
   }
 
   getRecords(): FittingRecord[] {
