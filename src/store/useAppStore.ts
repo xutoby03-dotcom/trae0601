@@ -117,7 +117,8 @@ export const useAppStore = create<AppState>()(
             sizeMap.set(item.size, { ...existing, available: existing.available + (item.status === "完好" ? item.quantity : 0) });
           });
 
-          students.forEach((stu) => {
+          const pendingStudentsList = students.filter((s) => !distributedStudentIds.has(s.id));
+          pendingStudentsList.forEach((stu) => {
             let size: string;
             if (cat === "鞋子") size = String(stu.shoeSize);
             else if (cat === "领结" || cat === "发饰") size = "均码";
