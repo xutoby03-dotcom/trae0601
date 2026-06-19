@@ -1,6 +1,6 @@
 import { useAppStore } from '@/store';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, FileCheck, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, FileCheck, AlertTriangle, Battery, Volume2, Fuel, Wrench, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import {
   SOUND_OPTIONS,
@@ -9,8 +9,19 @@ import {
   HOSE_OPTIONS,
   VALVE_OPTIONS,
   BATTERY_OPTIONS,
+  TASK_TYPE_LABELS,
+  type MaintenanceTask,
+  type TaskType,
 } from '@/constants';
 import { todayStr } from '@/utils/dateUtils';
+
+const taskTypeIcons: Record<TaskType, typeof Battery> = {
+  battery: Battery,
+  sound: Volume2,
+  hose: Fuel,
+  valve: Wrench,
+  other: Wrench,
+};
 
 export default function InspectionFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +40,7 @@ export default function InspectionFormPage() {
     remark: '',
   });
 
-  const [showResult, setShowResult] = useState<null | { hasAnomaly: boolean; newTasks: number }>(null);
+  const [showResult, setShowResult] = useState<null | { hasAnomaly: boolean; newTasks: MaintenanceTask[] }>(null);
 
   if (!device) {
     return (
@@ -68,7 +79,7 @@ export default function InspectionFormPage() {
       photo: form.photo || undefined,
       remark: form.remark,
     });
-    setShowResult({ hasAnomaly: result.inspection.has_anomaly, newTasks: result.newTasks.length });
+    setShowResult({ hasAnomaly: result.inspection.has_anomaly, newTasks: result.newTasks });
   };
 
   const renderOptions = (
@@ -115,7 +126,7 @@ export default function InspectionFormPage() {
 
       {showResult ? (
         <div className="max-w-2xl">
-          <div className={`card p-8 text-center ${showResult.hasAnomaly ? 'border-danger-200' : 'border-success-200'}`}>
+          <div className={`card p-8 ${showResult.hasAnomaly ? 'border-danger-200' : 'border-success-200'}`}>
             <div className={`w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center ${showResult.hasAnomaly ? 'bg-danger-50' : 'bg-success-50'}`}>
               {showResult.hasAnomaly ? (
                 <AlertTriangle className="w-10 h-10 text-danger-500" />
@@ -123,20 +134,55 @@ export default function InspectionFormPage() {
                 <FileCheck className="w-10 h-10 text-success-500" />
               )}
             </div>
-            <h2 className={`text-2xl font-bold mb-2 ${showResult.hasAnomaly ? 'text-danger-600' : 'text-success-600'}`}>
+            <h2 className={`text-2xl font-bold mb-2 text-center ${showResult.hasAnomaly ? 'text-danger-600' : 'text-success-600'}`}>
               {showResult.hasAnomaly ? '发现异常' : '巡检完成'}
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-6 text-center">
               {showResult.hasAnomaly
-                ? `已生成 ${showResult.newTasks} 个维修任务，请及时处理`
+                ? `检测到 ${showResult.newTasks.length} 项异常，已生成维修任务`
                 : '设备运行正常，继续保持'}
             </p>
+
+            {showResult.hasAnomaly && showResult.newTasks.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                  <span className="w-1 h-4 bg-danger-500 rounded-full" />
+                  新增维修任务
+                </h3>
+                <div className="space-y-2">
+                  {showResult.newTasks.map(task => {
+                    const Icon = taskTypeIcons[task.task_type] || Wrench;
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-danger-50 border border-danger-200"
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-danger-500 text-white flex items-center justify-center shrink-0">
+                          <Icon className="w-4.5 h-4.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-bold text-danger-600">
+                              {TASK_TYPE_LABELS[task.task_type]}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 truncate">{task.description}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{device?.location}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-danger-400 shrink-0" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Link to={`/devices/${id}`} className="btn-secondary flex-1">
                 返回详情
               </Link>
-              <Link to="/alerts" className="btn-primary flex-1">
-                查看维修任务
+              <Link to="/alerts?status=pending" className="btn-danger flex-1">
+                查看待处理任务
               </Link>
             </div>
           </div>

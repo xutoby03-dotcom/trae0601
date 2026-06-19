@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BellRing,
   AlertTriangle,
@@ -10,7 +10,7 @@ import {
   Filter,
   Phone,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
@@ -20,7 +20,16 @@ import {
 
 export default function AlertsPage() {
   const { tasks, devices, updateTask } = useAppStore();
-  const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
+  const [searchParams] = useSearchParams();
+  const initialFilter = (searchParams.get('status') as TaskStatus) || 'all';
+  const [filter, setFilter] = useState<TaskStatus | 'all'>(initialFilter);
+
+  useEffect(() => {
+    const status = searchParams.get('status') as TaskStatus | null;
+    if (status && ['pending', 'processing', 'done'].includes(status)) {
+      setFilter(status);
+    }
+  }, [searchParams]);
 
   const filteredTasks = tasks
     .filter(t => filter === 'all' ? true : t.status === filter)
