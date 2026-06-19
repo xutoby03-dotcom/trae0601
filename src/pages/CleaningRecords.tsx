@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '@/store/useStore'
 import type { LintAmount, CondensateStatus } from '@/types'
 import {
@@ -15,6 +15,7 @@ import {
   CalendarClock,
   FileText,
 } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 
 const LINT_AMOUNTS: LintAmount[] = ['少量', '中等', '大量', '极多']
 
@@ -47,6 +48,7 @@ export default function CleaningRecords() {
   const deleteCleaningRecord = useStore((s) => s.deleteCleaningRecord)
   const nextDeepCleanDate = useStore((s) => s.nextDeepCleanDate)
   const setNextDeepCleanDate = useStore((s) => s.setNextDeepCleanDate)
+  const location = useLocation()
 
   const uncleanedRecords = dryingRecords.filter((r) => !r.filterCleaned)
 
@@ -62,6 +64,20 @@ export default function CleaningRecords() {
     notes: '',
     date: new Date().toISOString().slice(0, 10),
   })
+
+  useEffect(() => {
+    const state = location.state as
+      | { prefillDeviceId?: string; prefillDryingRecordId?: string }
+      | undefined
+    if (state?.prefillDeviceId || state?.prefillDryingRecordId) {
+      setForm((prev) => ({
+        ...prev,
+        deviceId: state.prefillDeviceId || prev.deviceId,
+        dryingRecordId: state.prefillDryingRecordId || prev.dryingRecordId,
+      }))
+      setShowForm(true)
+    }
+  }, [location.state])
 
   const [showDeepCleanSetting, setShowDeepCleanSetting] = useState(false)
   const [deepCleanDate, setDeepCleanDate] = useState(nextDeepCleanDate)

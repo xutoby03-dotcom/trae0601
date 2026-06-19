@@ -11,8 +11,12 @@ import {
   ArrowRight,
   CalendarClock,
   XCircle,
+  List,
+  AlertCircle,
+  Sparkles as SparklesIcon,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
 
 function CountdownRing({ days, total }: { days: number; total: number }) {
   const radius = 40
@@ -60,19 +64,39 @@ export default function Home() {
   const getConsecutiveUncleaned = useStore((s) => s.getConsecutiveUncleaned)
   const getAverageDuration = useStore((s) => s.getAverageDuration)
   const isDurationAbnormal = useStore((s) => s.isDurationAbnormal)
+  const navigate = useNavigate()
+
+  type FilterType = 'all' | 'uncleaned' | 'abnormal'
+  const [filter, setFilter] = useState<FilterType>('all')
 
   const devicesNeedingClean = devices.filter(
     (d) => getConsecutiveUncleaned(d.id) >= 1
   )
 
-  const recentRecords = [...dryingRecords]
-    .sort(
+  const recentRecords = useMemo(() => {
+    const sorted = [...dryingRecords].sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
-    .slice(0, 5)
+    let filtered = sorted
+    if (filter === 'uncleaned') {
+      filtered = sorted.filter((r) => !r.filterCleaned)
+    } else if (filter === 'abnormal') {
+      filtered = sorted.filter((r) => isDurationAbnormal(r))
+    }
+    return filtered.slice(0, 5)
+  }, [dryingRecords, filter, isDurationAbnormal])
 
   const abnormalRecords = dryingRecords.filter((r) => isDurationAbnormal(r))
+
+  const uncleanedCount = dryingRecords.filter((r) => !r.filterCleaned).length
+  const abnormalCount = abnormalRecords.length
+
+  const handleGoClean = (deviceId: string, dryingRecordId: string) => {
+    navigate('/cleaning', {
+      state: { prefillDeviceId: deviceId, prefillDryingRecordId: dryingRecordId },
+    })
+  }
 
   const daysUntilDeepClean = (() => {
     if (!nextDeepCleanDate) return null
@@ -292,9 +316,75 @@ export default function Home() {
                   查看全部 →
                 </Link>
               </div>
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border font-body ${
+                    filter === 'all'
+                      ? 'bg-brand-500/20 text-brand-400 border-brand-500/40'
+                      : 'bg-surface-800 text-surface-300 border-surface-500/20 hover:border-surface-500/50'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  全部
+                  <span
+                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                      filter === 'all'
+                        ? 'bg-brand-500/20 text-brand-400'
+                        : 'bg-surface-700 text-surface-400'
+                    }`}
+                  >
+                    {dryingRecords.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setFilter('uncleaned')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border font-body ${
+                    filter === 'uncleaned'
+                      ? 'bg-danger-500/20 text-danger-400 border-danger-500/40'
+                      : 'bg-surface-800 text-surface-300 border-surface-500/20 hover:border-surface-500/50'
+                  }`}
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  未清理
+                  <span
+                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                      filter === 'uncleaned'
+                        ? 'bg-danger-500/20 text-danger-400'
+                        : 'bg-surface-700 text-surface-400'
+                    }`}
+                  >
+                    {uncleanedCount}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setFilter('abnormal')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 border font-body ${
+                    filter === 'abnormal'
+                      ? 'bg-warning-500/20 text-warning-400 border-warning-500/40'
+                      : 'bg-surface-800 text-surface-300 border-surface-500/20 hover:border-surface-500/50'
+                  }`}
+                >
+                  <Timer className="w-3.5 h-3.5" />
+                  耗时异常
+                  <span
+                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                      filter === 'abnormal'
+                        ? 'bg-warning-500/20 text-warning-400'
+                        : 'bg-surface-700 text-surface-400'
+                    }`}
+                  >
+                    {abnormalCount}
+                  </span>
+                </button>
+              </div>
               {recentRecords.length === 0 ? (
                 <div className="py-8 text-center text-surface-400 text-sm font-body">
-                  暂无烘干记录
+                  {filter === 'all'
+                    ? '暂无烘干记录'
+                    : filter === 'uncleaned'
+                    ? '没有未清理的批次'
+                    : '没有耗时异常的批次'}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -304,48 +394,62 @@ export default function Home() {
                     return (
                       <div
                         key={r.id}
-                        className={`flex items-center justify-between py-3 px-4 rounded-lg transition-colors ${
+                        className={`py-3 px-4 rounded-lg transition-colors ${
                           abnormal
                             ? 'bg-danger-500/10 border border-danger-500/20'
                             : 'bg-surface-800/50 hover:bg-surface-600/50'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              r.filterCleaned
-                                ? 'bg-success-500/15'
-                                : 'bg-danger-500/15'
-                            }`}
-                          >
-                            {r.filterCleaned ? (
-                              <CheckCircle2 className="w-4 h-4 text-success-400" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-danger-400" />
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                r.filterCleaned
+                                  ? 'bg-success-500/15'
+                                  : 'bg-danger-500/15'
+                              }`}
+                            >
+                              {r.filterCleaned ? (
+                                <CheckCircle2 className="w-4 h-4 text-success-400" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-danger-400" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm text-white font-body truncate">
+                                {device?.model || '未知设备'}
+                              </p>
+                              <p className="text-xs text-surface-400 font-body truncate">
+                                {r.clothingTypes.join('、')} · {r.weight}kg ·{' '}
+                                {r.program}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <p
+                                className={`text-sm font-display ${
+                                  abnormal ? 'text-danger-400' : 'text-white'
+                                }`}
+                              >
+                                {r.duration}
+                                <span className="text-xs ml-0.5">min</span>
+                              </p>
+                              <p className="text-xs text-surface-400 font-body">
+                                {r.date}
+                              </p>
+                            </div>
+                            {!r.filterCleaned && (
+                              <button
+                                onClick={() => handleGoClean(r.deviceId, r.id)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 text-xs transition-colors border border-brand-500/30 font-body"
+                                title="去清理"
+                              >
+                                <SparklesIcon className="w-3 h-3" />
+                                <span className="hidden sm:inline">清理</span>
+                              </button>
                             )}
                           </div>
-                          <div>
-                            <p className="text-sm text-white font-body">
-                              {device?.model || '未知设备'}
-                            </p>
-                            <p className="text-xs text-surface-400 font-body">
-                              {r.clothingTypes.join('、')} · {r.weight}kg ·{' '}
-                              {r.program}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`text-sm font-display ${
-                              abnormal ? 'text-danger-400' : 'text-white'
-                            }`}
-                          >
-                            {r.duration}
-                            <span className="text-xs ml-0.5">min</span>
-                          </p>
-                          <p className="text-xs text-surface-400 font-body">
-                            {r.date}
-                          </p>
                         </div>
                       </div>
                     )
