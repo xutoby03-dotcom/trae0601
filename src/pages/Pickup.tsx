@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   QrCode,
   Users,
@@ -10,6 +10,8 @@ import {
   X,
   Bell,
   Calendar,
+  Search,
+  AlertCircle,
 } from "lucide-react";
 import Tag from "@/components/UI/Tag";
 import { useOrderStore } from "@/store/order";
@@ -26,12 +28,17 @@ export default function PickupPage() {
   const [activePoint, setActivePoint] = useState<PickupPoint | "all">("all");
   const [mode, setMode] = useState<"scan" | "name">("scan");
   const [dateFilter, setDateFilter] = useState(todayStr());
-  const [scanning, setScanning] = useState(false);
+  const [scanInput, setScanInput] = useState<string>("");
   const [scanResult, setScanResult] = useState<{
     order: Order;
     empName: string;
   } | null>(null);
   const [scanError, setScanError] = useState<string>("");
+  const [multiMatch, setMultiMatch] = useState<{
+    employees: { id: string; name: string }[];
+    pendingOrders: Order[];
+  } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const todayOrders = useMemo(
     () => orders.filter((o) => o.orderDate === dateFilter),
@@ -89,31 +96,95 @@ export default function PickupPage() {
   const notPickedCount =
     pointStats[activePoint].total - pointStats[activePoint].picked;
 
-  // 模拟扫码
-  const startScan = () => {
-    setScanning(true);
+  useEffect(() => {
+    if (mode === "scan") {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [mode, scanResult, scanError, multiMatch]);
+
+  const handleScanSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const input = scanInput.trim();
+    if (!input) return;
+
     setScanResult(null);
     setScanError("");
+    setMultiMatch(null);
+
+    const isPhoneLast4 = /^\d{4}$/.test(input);
+    let matchedEmployees = [];
+
+    if (isPhoneLast4) {
+      matchedEmployees = employees.filter((e) => e.phoneLast4 === input);
+    } else {
+      const matched = employees.find((e) => e.id === input);
+      if (matched) matchedEmployees = [matched];
+    }
+
+    if (matchedEmployees.length === 0) {
+      if (isPhoneLast4) {
+        setScanError(`未找到手机号后四位为 ${input} 的员工`);
+      } else {
+        setScanError(`未找到员工码为 ${input} 的员工`);
+      }
+      setScanInput("");
+      return;
+    }
+
+    const pendingOrdersOfMatched = pendingList.filter((o) =>
+      matchedEmployees.some((e) => e.id === o.employeeId)
+    );
+
+    if (pendingOrdersOfMatched.length === 0) {
+      const empNames = matchedEmployees.map((e) => e.name).join("、");
+      setScanError(`${empNames} 今日没有待取的餐品`);
+      setScanInput("");
+      return;
+    }
+
+    if (matchedEmployees.length > 1) {
+      setMultiMatch({
+        employees: matchedEmployees.map((e) => ({ id: e.id, name: e.name })),
+        pendingOrders: pendingOrdersOfMatched,
+      });
+      setScanInput("");
+      return;
+    }
+
+    if (pendingOrdersOfMatched.length === 1) {
+      confirmPickup(pendingOrdersOfMatched[0].id);
+      return;
+    }
+
+    if (pendingOrdersOfMatched.length > 1) {
+      setMultiMatch({
+        employees: matchedEmployees.map((e) => ({ id: e.id, name: e.name })),
+        pendingOrders: pendingOrdersOfMatched,
+      });
+      setScanInput("");
+    }
   };
 
-  useEffect(() => {
-    if (!scanning) return;
-    const timer = setTimeout(() => {
-      const available = pendingList[Math.floor(Math.random() * pendingList.length)];
-      if (available) {
-        const emp = empOf(available.employeeId);
-        markPicked(available.id);
-        setScanResult({
-          order: available,
-          empName: emp?.name ?? "",
-        });
-      } else {
-        setScanError("所有餐品均已取餐完毕！");
-      }
-      setScanning(false);
-    }, 2200);
-    return () => clearTimeout(timer);
-  }, [scanning]);
+  const confirmPickup = (orderId: string) => {
+    const order = pendingList.find((o) => o.id === orderId);
+    if (!order) return;
+
+    const emp = empOf(order.employeeId);
+    markPicked(orderId);
+    setScanResult({
+      order,
+      empName: emp?.name ?? "",
+    });
+    setScanInput("");
+    setMultiMatch(null);
+  };
+
+  const clearScanState = () => {
+    setScanResult(null);
+    setScanError("");
+    setMultiMatch(null);
+    setScanInput("");
+  };
 
   return (
     <div className="space-y-6">
@@ -239,66 +310,155 @@ export default function PickupPage() {
                 扫码取餐
               </h3>
               <p className="text-xs text-neutral-500 mb-5">
-                将员工取餐码对准扫描框，识别成功自动确认
+                输入或粘贴员工码、手机号后四位，命中订单后确认取餐
               </p>
 
-              <div className="relative aspect-square w-full max-w-[280px] mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-neutral-900 to-neutral-800 p-3">
-                <div className="absolute inset-3 border-2 rounded-xl z-10">
-                  <div className="absolute -top-0.5 -left-0.5 w-8 h-8 border-t-4 border-l-4 border-brand-400 rounded-tl-xl" />
-                  <div className="absolute -top-0.5 -right-0.5 w-8 h-8 border-t-4 border-r-4 border-brand-400 rounded-tr-xl" />
-                  <div className="absolute -bottom-0.5 -left-0.5 w-8 h-8 border-b-4 border-l-4 border-brand-400 rounded-bl-xl" />
-                  <div className="absolute -bottom-0.5 -right-0.5 w-8 h-8 border-b-4 border-r-4 border-brand-400 rounded-br-xl" />
-                </div>
-                {scanning && (
-                  <div className="absolute left-3 right-3 top-0 h-1 bg-gradient-to-r from-transparent via-brand-400 to-transparent animate-scan-line rounded-full shadow-[0_0_12px_#FF7A45] z-20" />
-                )}
-                <div className="absolute inset-0 flex items-center justify-center flex-col gap-2 text-center z-0">
-                  {scanning ? (
-                    <>
-                      <QrCode className="w-10 h-10 text-brand-400/80 animate-pulse" />
-                      <p className="text-sm text-brand-300/90">正在扫描识别...</p>
-                    </>
-                  ) : scanResult ? (
-                    <>
-                      <div className="w-14 h-14 rounded-full bg-success-500 text-white flex items-center justify-center animate-check-in shadow-[0_0_24px_#22C55E]">
-                        <Check className="w-8 h-8" />
-                      </div>
-                      <p className="font-display text-xl font-bold text-success-300 mt-1">
-                        取餐成功
-                      </p>
-                      <p className="text-sm text-white/80 mt-0.5">
-                        {scanResult.empName}
-                      </p>
-                      <p className="text-xs text-white/50">
-                        {scanResult.order.restaurant} · {scanResult.order.dish}
-                      </p>
-                    </>
-                  ) : scanError ? (
-                    <>
-                      <div className="w-14 h-14 rounded-full bg-warning-500 text-white flex items-center justify-center">
-                        <Bell className="w-7 h-7" />
-                      </div>
-                      <p className="text-sm text-warning-300 mt-2">{scanError}</p>
-                    </>
-                  ) : (
-                    <>
-                      <QrCode className="w-10 h-10 text-neutral-500" />
-                      <p className="text-sm text-neutral-400 mt-1">
-                        准备就绪，等待扫码
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
+              {!scanResult && !scanError && !multiMatch && (
+                <>
+                  <form onSubmit={handleScanSubmit}>
+                    <div className="relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={scanInput}
+                        onChange={(e) => setScanInput(e.target.value)}
+                        placeholder="输入员工码或手机号后四位"
+                        className="w-full input-base !pl-11 !pr-24 !py-3 !text-base"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                      />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                      <button
+                        type="submit"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 btn-primary !py-1.5 !px-4 !text-sm"
+                      >
+                        确认
+                      </button>
+                    </div>
+                  </form>
 
-              <button
-                onClick={startScan}
-                disabled={scanning}
-                className="w-full btn-primary mt-6 disabled:opacity-50"
-              >
-                <QrCode className="w-4 h-4" />
-                {scanning ? "扫描中..." : scanResult ? "继续扫描下一份" : "开始扫描"}
-              </button>
+                  <div className="mt-4 p-3 rounded-xl bg-neutral-50 text-xs text-neutral-500">
+                    <p className="mb-1">
+                      <span className="font-medium text-neutral-700">使用方式：</span>
+                    </p>
+                    <ul className="space-y-1 list-disc list-inside">
+                      <li>扫码枪扫描员工取餐码</li>
+                      <li>手动输入员工ID或手机号后四位</li>
+                      <li>复制粘贴后按回车确认</li>
+                    </ul>
+                  </div>
+                </>
+              )}
+
+              {multiMatch && (
+                <div className="space-y-3 animate-fade-in-up">
+                  <div className="p-4 rounded-xl bg-warning-50 border border-warning-100">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-warning-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-warning-700">
+                          匹配到 {multiMatch.pendingOrders.length} 份待取餐
+                        </p>
+                        <p className="text-xs text-warning-600 mt-0.5">
+                          请选择要确认的订单
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto scroll-thin">
+                    {multiMatch.pendingOrders.map((o) => {
+                      const emp = empOf(o.employeeId);
+                      return (
+                        <div
+                          key={o.id}
+                          className="p-3 rounded-xl border border-neutral-200 bg-white flex items-center gap-3"
+                        >
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+                            style={{ backgroundColor: emp?.avatarColor }}
+                          >
+                            {emp?.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-neutral-800 text-sm">
+                              {emp?.name}
+                            </p>
+                            <p className="text-[11px] text-neutral-500 truncate">
+                              {o.restaurant} · {o.dish}
+                              {o.extraRice && " · +饭"}
+                              {o.drink !== "无" && ` · ${o.drink}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => confirmPickup(o.id)}
+                            className="px-3 py-1.5 rounded-lg bg-success-500 text-white text-xs font-medium hover:bg-success-600 transition-colors shrink-0 inline-flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            确认取餐
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={clearScanState}
+                    className="w-full btn-secondary text-sm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    返回重新输入
+                  </button>
+                </div>
+              )}
+
+              {scanResult && (
+                <div className="flex flex-col items-center justify-center py-8 animate-fade-in-up">
+                  <div className="w-20 h-20 rounded-full bg-success-500 text-white flex items-center justify-center animate-check-in shadow-[0_0_32px_#22C55E]">
+                    <Check className="w-10 h-10" />
+                  </div>
+                  <p className="font-display text-2xl font-bold text-success-600 mt-4">
+                    取餐成功
+                  </p>
+                  <p className="text-base text-neutral-700 mt-1">
+                    {scanResult.empName}
+                  </p>
+                  <p className="text-sm text-neutral-500 mt-0.5">
+                    {scanResult.order.restaurant} · {scanResult.order.dish}
+                    {scanResult.order.extraRice && " · +饭"}
+                    {scanResult.order.drink !== "无" &&
+                      ` · ${scanResult.order.drink}`}
+                  </p>
+                  <button
+                    onClick={clearScanState}
+                    className="mt-6 btn-primary w-full"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    继续扫描下一份
+                  </button>
+                </div>
+              )}
+
+              {scanError && (
+                <div className="flex flex-col items-center justify-center py-8 animate-fade-in-up">
+                  <div className="w-20 h-20 rounded-full bg-danger-100 text-danger-500 flex items-center justify-center">
+                    <X className="w-10 h-10" />
+                  </div>
+                  <p className="font-display text-lg font-bold text-danger-600 mt-4">
+                    取餐失败
+                  </p>
+                  <p className="text-sm text-neutral-600 mt-2 max-w-[240px] text-center">
+                    {scanError}
+                  </p>
+                  <button
+                    onClick={clearScanState}
+                    className="mt-6 btn-primary w-full"
+                  >
+                    <Search className="w-4 h-4" />
+                    重新输入
+                  </button>
+                </div>
+              )}
 
               <div className="mt-5 grid grid-cols-3 gap-2 text-center">
                 <div className="p-3 rounded-xl bg-neutral-50">
