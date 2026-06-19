@@ -14,6 +14,7 @@ import {
   List,
   AlertCircle,
   Sparkles as SparklesIcon,
+  FileText,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
@@ -439,16 +440,24 @@ export default function Home() {
                                 {r.date}
                               </p>
                             </div>
-                            {!r.filterCleaned && (
-                              <button
-                                onClick={() => handleGoClean(r.deviceId, r.id)}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 text-xs transition-colors border border-brand-500/30 font-body"
-                                title="去清理"
-                              >
+                            <button
+                              onClick={() => handleGoClean(r.deviceId, r.id)}
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs transition-colors border font-body ${
+                                r.filterCleaned
+                                  ? 'bg-surface-600/30 hover:bg-surface-600/50 text-surface-300 border-surface-500/30'
+                                  : 'bg-brand-500/20 hover:bg-brand-500/30 text-brand-400 border-brand-500/30'
+                              }`}
+                              title={r.filterCleaned ? '查看/补录清理记录' : '去清理'}
+                            >
+                              {r.filterCleaned ? (
+                                <FileText className="w-3 h-3" />
+                              ) : (
                                 <SparklesIcon className="w-3 h-3" />
-                                <span className="hidden sm:inline">清理</span>
-                              </button>
-                            )}
+                              )}
+                              <span className="hidden sm:inline">
+                                {r.filterCleaned ? '记录' : '清理'}
+                              </span>
+                            </button>
                           </div>
                         </div>
                       </div>
