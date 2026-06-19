@@ -1,0 +1,68 @@
+import type { BulletinBoard } from '../types';
+
+export const mockBulletinBoards: BulletinBoard[] = [
+  {
+    id: 'bb1',
+    name: '一教公告栏A区',
+    location: '第一教学楼一楼大厅',
+    totalSlots: 20,
+    occupiedSlots: 12,
+    area: '教学区',
+  },
+  {
+    id: 'bb2',
+    name: '一教公告栏B区',
+    location: '第一教学楼二楼走廊',
+    totalSlots: 15,
+    occupiedSlots: 8,
+    area: '教学区',
+  },
+  {
+    id: 'bb3',
+    name: '二教公告栏',
+    location: '第二教学楼入口',
+    totalSlots: 25,
+    occupiedSlots: 18,
+    area: '教学区',
+  },
+  {
+    id: 'bb4',
+    name: '食堂公告栏',
+    location: '第一食堂门口',
+    totalSlots: 30,
+    occupiedSlots: 22,
+    area: '食堂区',
+  },
+  {
+    id: 'bb5',
+    name: '宿舍区公告栏',
+    location: '学生宿舍1号楼前',
+    totalSlots: 20,
+    occupiedSlots: 15,
+    area: '宿舍区',
+  },
+  {
+    id: 'bb6',
+    name: '图书馆公告栏',
+    location: '图书馆一楼大厅',
+    totalSlots: 15,
+    occupiedSlots: 5,
+    area: '图书馆',
+  },
+  {
+    id: 'bb7',
+    name: '体育馆公告栏',
+    location: '体育馆入口',
+    totalSlots: 10,
+    occupiedSlots: 3,
+    area: '体育馆',
+  },
+  {
+    id: 'bb8',
+    name: '生活区公告栏',
+    location: '生活服务中心门口',
+    totalSlots: 20,
+    occupiedSlots: 10,
+    area: '生活区',
+  },
+];
