@@ -27,9 +27,10 @@ import { formatPercent, formatDateTime } from '../../utils/format';
 import { severityLabels, reportStatusLabels } from '../../data/mockData';
 
 const Dashboard = () => {
-  const { dashboardStats, windowDamageRates, damageTypeStats, repairReports } =
+  const { getDashboardStats, windowDamageRates, damageTypeStats, repairReports } =
     useTablewareStore();
 
+  const dashboardStats = getDashboardStats();
   const pendingReports = repairReports.filter((r) => r.status !== 'completed').slice(0, 5);
 
   const barCustomTooltip = ({ active, payload, label }: any) => {

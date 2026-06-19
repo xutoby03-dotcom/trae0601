@@ -135,6 +135,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 1,
     oilStainCount: 0,
     disinfectionStatus: 'qualified',
+    severity: 'minor',
     remark: '整体状况良好，少量划痕',
   },
   {
@@ -148,6 +149,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 0,
     oilStainCount: 2,
     disinfectionStatus: 'unqualified',
+    severity: 'moderate',
     remark: '发现油污残留，需加强清洗',
   },
   {
@@ -161,6 +163,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 3,
     oilStainCount: 1,
     disinfectionStatus: 'qualified',
+    severity: 'moderate',
     remark: '使用时间较长，破损率偏高',
   },
   {
@@ -174,6 +177,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 15,
     oilStainCount: 5,
     disinfectionStatus: 'unqualified',
+    severity: 'severe',
     remark: '严重变形，建议全部更换',
   },
   {
@@ -187,6 +191,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 5,
     oilStainCount: 2,
     disinfectionStatus: 'qualified',
+    severity: 'minor',
     remark: '少量变形，继续观察',
   },
   {
@@ -200,6 +205,7 @@ export const inspectionRecords: InspectionRecord[] = [
     deformationCount: 0,
     oilStainCount: 0,
     disinfectionStatus: 'qualified',
+    severity: 'minor',
     remark: '新批次，状况良好',
   },
 ];

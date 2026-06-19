@@ -11,9 +11,9 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { disinfectionLabels, tablewareList } from '../../data/mockData';
-import { formatDate, formatNumber } from '../../utils/format';
-import type { DisinfectionStatus } from '../../types';
+import { disinfectionLabels, severityLabels } from '../../data/mockData';
+import { formatDate, formatNumber, cn } from '../../utils/format';
+import type { DisinfectionStatus, SeverityLevel } from '../../types';
 
 const Inspection = () => {
   const { inspectionRecords, addInspection, tablewareList: tablewares } =
@@ -30,6 +30,7 @@ const Inspection = () => {
     deformationCount: 0,
     oilStainCount: 0,
     disinfectionStatus: 'qualified' as DisinfectionStatus,
+    severity: 'minor' as SeverityLevel,
     remark: '',
   });
 
@@ -52,6 +53,7 @@ const Inspection = () => {
       deformationCount: 0,
       oilStainCount: 0,
       disinfectionStatus: 'qualified',
+      severity: 'minor',
       remark: '',
     });
     setShowModal(true);
@@ -135,6 +137,10 @@ const Inspection = () => {
                     <h3 className="font-semibold text-gray-900">
                       {record.tablewareBatchNo}
                     </h3>
+                    <StatusBadge
+                      status={record.severity}
+                      label={severityLabels[record.severity]}
+                    />
                     <StatusBadge
                       status={record.disinfectionStatus}
                       label={disinfectionLabels[record.disinfectionStatus]}
@@ -391,6 +397,68 @@ const Inspection = () => {
                     </span>
                   </label>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  严重程度
+                </label>
+                <div className="flex gap-3">
+                  {(['minor', 'severe'] as SeverityLevel[]).map((s) => (
+                    <label
+                      key={s}
+                      className={cn(
+                        'flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition-colors',
+                        formData.severity === s
+                          ? s === 'severe'
+                            ? 'border-danger-500 bg-danger-50'
+                            : 'border-success-500 bg-success-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="severity"
+                        value={s}
+                        checked={formData.severity === s}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            severity: e.target.value as SeverityLevel,
+                          })
+                        }
+                        className="sr-only"
+                      />
+                      <AlertCircle
+                        className={cn(
+                          'w-5 h-5',
+                          formData.severity === s
+                            ? s === 'severe'
+                              ? 'text-danger-500'
+                              : 'text-success-500'
+                            : 'text-gray-400'
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          'text-sm font-medium',
+                          formData.severity === s
+                            ? s === 'severe'
+                              ? 'text-danger-600'
+                              : 'text-success-600'
+                            : 'text-gray-600'
+                        )}
+                      >
+                        {severityLabels[s]}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  {formData.severity === 'severe'
+                    ? '严重破损将自动下架该批次餐具'
+                    : '轻微问题将进入待复查状态'}
+                </p>
               </div>
 
               <div>

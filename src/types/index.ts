@@ -41,6 +41,7 @@ export interface InspectionRecord {
   deformationCount: number;
   oilStainCount: number;
   disinfectionStatus: DisinfectionStatus;
+  severity: SeverityLevel;
   remark: string;
 }
 
