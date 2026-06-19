@@ -170,15 +170,35 @@ export async function generateTableCards(plan: Plan, tables: Table[]): Promise<s
       .map(id => memberMap.get(id))
       .filter((m): m is Member => m !== undefined);
 
-    const tableAllergies = new Set<string>();
-    const tableReligious = new Set<string>();
-    const nonDrinkers: string[] = [];
+    if (tableMembers.length === 0) {
+      return;
+    }
+
+    const allergyCounts = new Map<string, number>();
+    const religiousCounts = new Map<string, number>();
+    const nonDrinkerNames: string[] = [];
+    let vegetarianCount = 0;
+    const importantNotes: string[] = [];
 
     tableMembers.forEach(m => {
-      m.allergies.forEach(a => tableAllergies.add(a));
-      if (m.religiousDiet) tableReligious.add(m.religiousDiet);
-      if (!m.drinksAlcohol) nonDrinkers.push(m.name);
+      m.allergies.forEach(a => {
+        allergyCounts.set(a, (allergyCounts.get(a) || 0) + 1);
+      });
+      if (m.religiousDiet) {
+        religiousCounts.set(m.religiousDiet, (religiousCounts.get(m.religiousDiet) || 0) + 1);
+        if (m.religiousDiet === 'vegetarian' || m.religiousDiet === 'vegan') {
+          vegetarianCount++;
+        }
+      }
+      if (!m.drinksAlcohol) {
+        nonDrinkerNames.push(m.name);
+      }
+      if (m.notes && m.notes.trim()) {
+        importantNotes.push(`${m.name}：${m.notes.trim()}`);
+      }
     });
+
+    const hasWarnings = allergyCounts.size > 0 || religiousCounts.size > 0 || nonDrinkerNames.length > 0 || importantNotes.length > 0;
 
     content += `╔════════════════════════════════════════════╗\n`;
     content += `║              ${table.name}               ║\n`;
@@ -186,26 +206,63 @@ export async function generateTableCards(plan: Plan, tables: Table[]): Promise<s
     content += `║ ${plan.name}                    ║\n`;
     content += `║ ${plan.restaurant} · ${plan.date}              ║\n`;
     content += `╠════════════════════════════════════════════╣\n`;
-    content += `║  成员名单：                                ║\n`;
+    content += `║  成员名单（${tableMembers.length}人）：                      ║\n`;
     
     for (let i = 0; i < tableMembers.length; i += 2) {
       const names = tableMembers.slice(i, i + 2).map(m => m.name);
       content += `║    ${names.join(' · ').padEnd(38)}║\n`;
     }
 
-    if (tableAllergies.size > 0 || tableReligious.size > 0 || nonDrinkers.length > 0) {
+    if (hasWarnings) {
       content += `╠════════════════════════════════════════════╣\n`;
-      content += `║  【注意事项】                              ║\n`;
+      content += `║  【忌口摘要】                              ║\n`;
       
-      if (tableAllergies.size > 0) {
-        content += `║  ⚠️  过敏：${Array.from(tableAllergies).map(a => allergyLabels[a] || a).join('、').padEnd(30)}║\n`;
+      if (allergyCounts.size > 0) {
+        const parts: string[] = [];
+        allergyCounts.forEach((count, allergy) => {
+          parts.push(`${allergyLabels[allergy] || allergy}${count}人`);
+        });
+        const line = `⚠️  过敏：${parts.join('、')}`;
+        content += `║  ${line.padEnd(40)}║\n`;
       }
-      if (tableReligious.size > 0) {
-        content += `║  🕊️  禁忌：${Array.from(tableReligious).map(r => religiousLabels[r] || r).join('、').padEnd(30)}║\n`;
+      if (religiousCounts.size > 0) {
+        const parts: string[] = [];
+        religiousCounts.forEach((count, religion) => {
+          parts.push(`${religiousLabels[religion] || religion}${count}人`);
+        });
+        const line = `🕊️  禁忌：${parts.join('、')}`;
+        content += `║  ${line.padEnd(40)}║\n`;
       }
-      if (nonDrinkers.length > 0) {
-        content += `║  🚫  不饮酒：${nonDrinkers.join('、').padEnd(30)}║\n`;
+      if (nonDrinkerNames.length > 0) {
+        const namesStr = nonDrinkerNames.join('、');
+        const displayStr = namesStr.length > 18 ? namesStr.slice(0, 18) + '...' : namesStr;
+        const line = `🚫  不饮酒：${nonDrinkerNames.length}人（${displayStr}）`;
+        content += `║  ${line.padEnd(40)}║\n`;
       }
+      if (vegetarianCount > 0) {
+        const line = `🌿  素食：${vegetarianCount}人`;
+        content += `║  ${line.padEnd(40)}║\n`;
+      }
+    }
+
+    if (importantNotes.length > 0) {
+      content += `╠════════════════════════════════════════════╣\n`;
+      content += `║  【重点提醒】                              ║\n`;
+      importantNotes.forEach(note => {
+        const maxLen = 36;
+        if (note.length <= maxLen) {
+          content += `║  • ${note.padEnd(maxLen)}║\n`;
+        } else {
+          const lines: string[] = [];
+          for (let i = 0; i < note.length; i += maxLen) {
+            lines.push(note.slice(i, i + maxLen));
+          }
+          lines.forEach((line, idx) => {
+            const prefix = idx === 0 ? '• ' : '  ';
+            content += `║  ${prefix}${line.padEnd(maxLen)}║\n`;
+          });
+        }
+      });
     }
 
     content += `╚════════════════════════════════════════════╝\n\n\n`;

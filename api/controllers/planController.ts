@@ -202,10 +202,12 @@ export async function exportRestaurantList(req: Request, res: Response) {
     
     const content = await exportService.generateRestaurantList(plan, seating.tables);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="餐厅忌口清单_${plan.name}.txt"`);
+    const encodedName = encodeURIComponent(`餐厅忌口清单_${plan.name}.txt`);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodedName}"; filename*=UTF-8''${encodedName}`);
     res.send(content);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to export restaurant list' });
+    console.error('exportRestaurantList error:', error);
+    res.status(500).json({ error: 'Failed to export restaurant list', detail: (error as Error).message });
   }
 }
 
@@ -226,10 +228,12 @@ export async function exportTableCards(req: Request, res: Response) {
     
     const content = await exportService.generateTableCards(plan, seating.tables);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="每桌桌签_${plan.name}.txt"`);
+    const encodedName = encodeURIComponent(`每桌桌签_${plan.name}.txt`);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodedName}"; filename*=UTF-8''${encodedName}`);
     res.send(content);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to export table cards' });
+    console.error('exportTableCards error:', error);
+    res.status(500).json({ error: 'Failed to export table cards', detail: (error as Error).message });
   }
 }
 
