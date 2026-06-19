@@ -303,7 +303,7 @@ const Dashboard = () => {
                 </p>
               </div>
               <Link
-                to="/inspection"
+                to="/inspection?abnormal=1"
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
               >
                 查看全部 →
