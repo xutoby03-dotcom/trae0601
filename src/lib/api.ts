@@ -54,8 +54,8 @@ export const api = {
   stockOut: (id: string, data: { quantity: number; operator: string; usageId?: string }) => request(`/inventory/${id}/stock-out`, { method: 'POST', body: JSON.stringify(data) }),
   getScrapRecords: (params?: Record<string, any>) => {
     const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
-    return request(`/scrap${qs}`);
+    return request(`/inventory/scrap${qs}`);
   },
-  createScrap: (data: any) => request('/scrap', { method: 'POST', body: JSON.stringify(data) }),
-  getStockLogs: () => request('/stock-logs'),
+  createScrap: (data: any) => request('/inventory/scrap', { method: 'POST', body: JSON.stringify(data) }),
+  getStockLogs: () => request('/inventory/stock-logs'),
 };

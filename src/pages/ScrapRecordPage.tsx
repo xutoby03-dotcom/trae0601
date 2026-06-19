@@ -82,6 +82,7 @@ function ScrapRecordPage() {
   const [records, setRecords] = useState<ScrapRecord[]>([]);
 
   const [itemType, setItemType] = useState('');
+  const [selectedItemId, setSelectedItemId] = useState('');
   const [itemName, setItemName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ScrapReason | ''>('');
@@ -101,7 +102,7 @@ function ScrapRecordPage() {
     setLoading(true);
     try {
       const result = await api.getScrapRecords({ pageSize: 100 });
-      setRecords(result.data || []);
+      setRecords(Array.isArray(result) ? result : []);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -111,6 +112,7 @@ function ScrapRecordPage() {
 
   const handleReset = () => {
     setItemType('');
+    setSelectedItemId('');
     setItemName('');
     setQuantity(1);
     setReason('');
@@ -129,6 +131,7 @@ function ScrapRecordPage() {
     try {
       const relatedDevice = devices.find((d) => d.id === relatedDeviceId);
       await api.createScrap({
+        itemId: selectedItemId || undefined,
         itemName,
         type: itemType,
         quantity,
@@ -140,6 +143,8 @@ function ScrapRecordPage() {
       });
       alert('报废记录创建成功！');
       handleReset();
+      await fetchInventory();
+      await loadRecords();
       setActiveTab('history');
     } catch (err: any) {
       alert(err.message);
@@ -199,6 +204,7 @@ function ScrapRecordPage() {
                       value={itemType}
                       onChange={(e) => {
                         setItemType(e.target.value);
+                        setSelectedItemId('');
                         setItemName('');
                       }}
                     >
@@ -216,12 +222,17 @@ function ScrapRecordPage() {
                     {inventoryForType.length > 0 ? (
                       <select
                         className="select"
-                        value={itemName}
-                        onChange={(e) => setItemName(e.target.value)}
+                        value={selectedItemId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedItemId(id);
+                          const item = inventoryForType.find((i) => i.id === id);
+                          setItemName(item?.name || '');
+                        }}
                       >
                         <option value="">请选择配件</option>
                         {inventoryForType.map((i) => (
-                          <option key={i.id} value={i.name}>
+                          <option key={i.id} value={i.id}>
                             {i.name}（库存: {i.currentStock}{i.unit}）
                           </option>
                         ))}
@@ -230,7 +241,10 @@ function ScrapRecordPage() {
                       <input
                         type="text" className="input" placeholder="输入配件名称"
                         value={itemName}
-                        onChange={(e) => setItemName(e.target.value)} />
+                        onChange={(e) => {
+                          setItemName(e.target.value);
+                          setSelectedItemId('');
+                        }} />
                     )}
                   </div>
                   <div>
