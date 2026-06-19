@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
   ShoppingBag, CheckCircle, XCircle, AlertTriangle, Package, Users,
-  Search, ChefHat, Coffee, Utensils
+  Search, ChefHat, Coffee, Utensils, ClipboardList, Send, RefreshCcw
 } from 'lucide-react';
 import { useBoxStore } from '../store/useBoxStore';
 import { useRiderStore } from '../store/useRiderStore';
@@ -15,6 +15,23 @@ import { AlertBanner } from '../components/ui/AlertBanner';
 import { formatDate, getTodayString } from '../utils/helpers';
 import { canAssignHotFood } from '../utils/businessRules';
 import { BOX_STATUS_LABELS, USAGE_TYPE_LABELS, type OrderType } from '../types';
+
+interface AssignmentRecord {
+  id: string;
+  boxId: string;
+  boxNumber: string;
+  riderId: string;
+  riderName: string;
+  orderType: OrderType;
+  assignedAt: string;
+  date: string;
+}
+
+const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  hot_food: '热食',
+  cold_drink: '冷饮',
+  other: '其他',
+};
 
 const orderTypeIcons = {
   hot_food: ChefHat,
@@ -32,6 +49,8 @@ export function OrderAssignment() {
   const [orderType, setOrderType] = useState<OrderType>('hot_food');
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [assignmentResults, setAssignmentResults] = useState<Map<string, { allowed: boolean; reason: string }>>(new Map());
+  const [assignmentRecords, setAssignmentRecords] = useState<AssignmentRecord[]>([]);
+  const [assignedBoxIds, setAssignedBoxIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchBoxes();
@@ -70,11 +89,41 @@ export function OrderAssignment() {
     const total = filteredBoxes.length;
     const allowed = Array.from(assignmentResults.values()).filter(r => r.allowed).length;
     const denied = total - allowed;
-    return { total, allowed, denied };
-  }, [filteredBoxes, assignmentResults]);
+    const assigned = Array.from(assignedBoxIds).filter(id =>
+      filteredBoxes.some(b => b.id === id)
+    ).length;
+    return { total, allowed, denied, assigned };
+  }, [filteredBoxes, assignmentResults, assignedBoxIds]);
 
   const getRiderName = (riderId: string) => {
     return riders.find(r => r.id === riderId)?.name || '未分配';
+  };
+
+  const handleAssign = (boxId: string) => {
+    const box = boxes.find(b => b.id === boxId);
+    if (!box) return;
+
+    const rider = riders.find(r => r.id === box.riderId);
+    const now = new Date();
+
+    const record: AssignmentRecord = {
+      id: `assign-${now.getTime()}`,
+      boxId,
+      boxNumber: box.boxNumber,
+      riderId: box.riderId,
+      riderName: rider?.name || '未分配',
+      orderType,
+      assignedAt: now.toISOString(),
+      date: selectedDate,
+    };
+
+    setAssignmentRecords(prev => [record, ...prev]);
+    setAssignedBoxIds(prev => new Set(prev).add(boxId));
+  };
+
+  const handleClearAssignments = () => {
+    setAssignmentRecords([]);
+    setAssignedBoxIds(new Set());
   };
 
   const OrderIcon = orderTypeIcons[orderType];
@@ -86,6 +135,12 @@ export function OrderAssignment() {
           <h1 className="text-2xl font-bold text-gray-900">订单分配校验</h1>
           <p className="text-sm text-gray-500 mt-1">检查保温箱是否符合订单分配条件</p>
         </div>
+        {assignmentRecords.length > 0 && (
+          <Button variant="secondary" onClick={handleClearAssignments}>
+            <RefreshCcw className="w-4 h-4" />
+            清空分配记录
+          </Button>
+        )}
       </div>
 
       {orderType === 'hot_food' && stats.denied > 0 && (
@@ -96,7 +151,7 @@ export function OrderAssignment() {
         />
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -127,6 +182,17 @@ export function OrderAssignment() {
             <div>
               <p className="text-sm text-gray-500">禁止分配</p>
               <p className="text-2xl font-bold text-red-600">{stats.denied}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">已分配</p>
+              <p className="text-2xl font-bold text-purple-600">{stats.assigned}</p>
             </div>
           </div>
         </div>
@@ -188,6 +254,7 @@ export function OrderAssignment() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订单类型</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分配校验</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">原因</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -195,9 +262,11 @@ export function OrderAssignment() {
               const result = assignmentResults.get(box.id) || { allowed: false, reason: '校验中...' };
               const isForcedCheck = orderType !== 'hot_food';
               const finalAllowed = isForcedCheck || result.allowed;
+              const isAssigned = assignedBoxIds.has(box.id);
+              const canShowAssignButton = finalAllowed && !isAssigned;
 
               return (
-                <tr key={box.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={box.id} className={`transition-colors ${isAssigned ? 'bg-purple-50/50' : 'hover:bg-gray-50'}`}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
@@ -221,13 +290,16 @@ export function OrderAssignment() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <OrderIcon className="w-4 h-4 text-orange-500" />
-                      <span className="text-sm text-gray-900">
-                        {orderType === 'hot_food' ? '热食' : orderType === 'cold_drink' ? '冷饮' : '其他'}
-                      </span>
+                      <span className="text-sm text-gray-900">{ORDER_TYPE_LABELS[orderType]}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {finalAllowed ? (
+                    {isAssigned ? (
+                      <div className="flex items-center gap-2 text-purple-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">已分配</span>
+                      </div>
+                    ) : finalAllowed ? (
                       <div className="flex items-center gap-2 text-green-600">
                         <CheckCircle className="w-5 h-5" />
                         <span className="font-medium">可分配</span>
@@ -240,7 +312,9 @@ export function OrderAssignment() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {finalAllowed ? (
+                    {isAssigned ? (
+                      <span className="text-sm text-purple-600">已成功分配订单</span>
+                    ) : finalAllowed ? (
                       <span className="text-sm text-green-600">符合分配条件</span>
                     ) : (
                       <div className="flex items-start gap-2">
@@ -249,12 +323,20 @@ export function OrderAssignment() {
                       </div>
                     )}
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    {canShowAssignButton && (
+                      <Button size="sm" onClick={() => handleAssign(box.id)}>
+                        <Send className="w-3.5 h-3.5" />
+                        分配
+                      </Button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
             {filteredBoxes.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                   没有找到匹配的箱子
                 </td>
               </tr>
@@ -262,6 +344,49 @@ export function OrderAssignment() {
           </tbody>
         </table>
       </div>
+
+      {assignmentRecords.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-purple-500" />
+              分配记录
+              <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
+                共 {assignmentRecords.length} 条
+              </span>
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {assignmentRecords.map((record) => {
+              const RecordIcon = orderTypeIcons[record.orderType];
+              return (
+                <div key={record.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <RecordIcon className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium text-gray-900">{record.boxNumber}</span>
+                        <StatusBadge status="active" label={ORDER_TYPE_LABELS[record.orderType]} />
+                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        骑手：{record.riderName}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-900 font-medium">分配成功</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {formatDate(record.assignedAt, 'yyyy-MM-dd HH:mm:ss')}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
