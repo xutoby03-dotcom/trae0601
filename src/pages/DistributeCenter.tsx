@@ -1,14 +1,23 @@
 import { useState, useMemo } from "react";
-import { Search, QrCode, Check, X, User, Package, Hash, Clock, ArrowRight, RotateCcw } from "lucide-react";
+import { Search, QrCode, Check, X, User, Package, Hash, Clock, ArrowRight, RotateCcw, AlertTriangle } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { recommendSize } from "@/utils/recommend";
 import { formatDateTime } from "@/utils/formatters";
-import type { Student, ClothingCategory } from "@/types";
+import type { Student, ClothingCategory, ClothingItem } from "@/types";
 
 const CATEGORIES: ClothingCategory[] = ["上衣", "裙裤", "鞋子", "领结", "发饰"];
 
 export default function DistributeCenter() {
-  const { students, clothingItems, distributions, addDistribution, markReturned } = useAppStore();
+  const {
+    students,
+    clothingItems,
+    distributions,
+    addDistribution,
+    markReturned,
+    updateClothingItem,
+    addProcessRecord,
+  } = useAppStore();
+
   const [searchInput, setSearchInput] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isFit, setIsFit] = useState(true);
@@ -36,14 +45,24 @@ export default function DistributeCenter() {
 
   const recommendedSizes = useMemo(() => {
     if (!selectedStudent) return [];
-    return CATEGORIES.map((cat) => ({
-      category: cat,
-      recommended: recommendSize(selectedStudent, cat),
-      available: clothingItems
-        .filter((i) => i.category === cat && i.size === recommendSize(selectedStudent, cat) && i.status === "完好")
-        .reduce((s, i) => s + i.quantity, 0),
-    }));
+    return CATEGORIES.map((cat) => {
+      const recSize = recommendSize(selectedStudent, cat);
+      const matchingItems = clothingItems.filter(
+        (i) => i.category === cat && i.size === recSize && i.status === "完好"
+      );
+      const available = matchingItems.reduce((s, i) => s + i.quantity, 0);
+      const matchedItem = matchingItems.find((i) => i.quantity > 0) || null;
+      return {
+        category: cat,
+        recommended: recSize,
+        available,
+        matchedItem,
+      };
+    });
   }, [selectedStudent, clothingItems]);
+
+  const allInStock = recommendedSizes.length > 0 && recommendedSizes.every((r) => r.available > 0);
+  const outOfStockCategories = recommendedSizes.filter((r) => r.available <= 0);
 
   const todayDistributions = useMemo(() => {
     const today = new Date();
@@ -53,26 +72,65 @@ export default function DistributeCenter() {
       .sort((a, b) => (a.distributedAt < b.distributedAt ? 1 : -1));
   }, [distributions]);
 
+  const deductInventory = (items: { matchedItem: ClothingItem | null }[]) => {
+    items.forEach(({ matchedItem }) => {
+      if (matchedItem && matchedItem.quantity > 0) {
+        updateClothingItem(matchedItem.id, { quantity: matchedItem.quantity - 1 });
+      }
+    });
+  };
+
+  const restoreInventory = (clothingIds: string[]) => {
+    clothingIds.forEach((cid) => {
+      const item = clothingItems.find((i) => i.id === cid);
+      if (item) {
+        updateClothingItem(cid, { quantity: item.quantity + 1 });
+      }
+    });
+  };
+
   const handleDistribute = () => {
-    if (!selectedStudent) return;
+    if (!selectedStudent || !allInStock) return;
 
     const clothingIds = recommendedSizes
-      .map((r) => {
-        const item = clothingItems.find(
-          (i) => i.category === r.category && i.size === r.recommended && i.status === "完好"
-        );
-        return item?.id;
-      })
+      .map((r) => r.matchedItem?.id)
       .filter(Boolean) as string[];
+
+    const finalSetNumber = setNumber || `SET-${String(distributions.length + 1).padStart(3, "0")}`;
+
+    deductInventory(recommendedSizes);
 
     addDistribution({
       studentId: selectedStudent.id,
       clothingIds,
-      setNumber: setNumber || `SET-${String(distributions.length + 1).padStart(3, "0")}`,
+      setNumber: finalSetNumber,
       isFit,
       distributedBy: "李老师",
       isReturned: false,
     });
+
+    if (!isFit) {
+      const unfitCategories = CATEGORIES.filter((cat) => {
+        const rec = recommendedSizes.find((r) => r.category === cat);
+        return rec && rec.matchedItem;
+      });
+
+      const recordType = selectedStudent.needAlter ? "改衣" : "换码";
+      const desc = selectedStudent.needAlter
+        ? `${selectedStudent.name}（${selectedStudent.className}）试穿不合身，需改衣处理`
+        : `${selectedStudent.name}（${selectedStudent.className}）试穿不合身，需更换尺码`;
+
+      addProcessRecord({
+        type: recordType,
+        studentId: selectedStudent.id,
+        clothingId: unfitCategories.length > 0
+          ? recommendedSizes.find((r) => r.category === unfitCategories[0])?.matchedItem?.id
+          : undefined,
+        description: desc,
+        status: "待处理",
+        operator: "李老师",
+      });
+    }
 
     setShowSuccess(true);
     setTimeout(() => {
@@ -82,6 +140,26 @@ export default function DistributeCenter() {
       setIsFit(true);
       setSetNumber("");
     }, 2000);
+  };
+
+  const handleReturn = (distributionId: string) => {
+    const dist = distributions.find((d) => d.id === distributionId);
+    if (!dist) return;
+
+    const student = students.find((s) => s.id === dist.studentId);
+
+    markReturned(distributionId);
+
+    restoreInventory(dist.clothingIds);
+
+    addProcessRecord({
+      type: "归还清洗",
+      studentId: dist.studentId,
+      clothingId: dist.clothingIds.length > 0 ? dist.clothingIds[0] : undefined,
+      description: `${student?.name || "学生"}归还套装 ${dist.setNumber}，待清洗入库`,
+      status: "待处理",
+      operator: "李老师",
+    });
   };
 
   return (
@@ -187,15 +265,37 @@ export default function DistributeCenter() {
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
               {recommendedSizes.map((r) => (
-                <div key={r.category} className="rounded-xl bg-gradient-to-br from-slate-50 to-primary-50/30 border border-primary-100 p-4 text-center">
+                <div
+                  key={r.category}
+                  className={`rounded-xl border p-4 text-center transition-colors ${
+                    r.available > 0
+                      ? "bg-gradient-to-br from-slate-50 to-primary-50/30 border-primary-100"
+                      : "bg-gradient-to-br from-red-50 to-red-100/30 border-red-200"
+                  }`}
+                >
                   <p className="text-xs text-slate-500 mb-1">{r.category}</p>
-                  <p className="text-2xl font-display font-bold text-primary-700">{r.recommended}</p>
-                  <p className={`text-xs mt-1 ${r.available > 0 ? "text-green-600" : "text-red-500"}`}>
-                    库存 {r.available} 件
+                  <p className={`text-2xl font-display font-bold ${r.available > 0 ? "text-primary-700" : "text-red-500"}`}>
+                    {r.recommended}
+                  </p>
+                  <p className={`text-xs mt-1 ${r.available > 0 ? "text-green-600" : "text-red-500 font-semibold"}`}>
+                    {r.available > 0 ? `库存 ${r.available} 件` : "库存不足"}
                   </p>
                 </div>
               ))}
             </div>
+
+            {!allInStock && outOfStockCategories.length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-red-700">库存不足，无法发放</p>
+                  <p className="text-xs text-red-600 mt-1">
+                    以下品类缺货：
+                    {outOfStockCategories.map((r) => `${r.category}(${r.recommended}码)`).join("、")}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4 pt-6 border-t border-slate-100">
               <div>
@@ -212,7 +312,11 @@ export default function DistributeCenter() {
                 />
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
+              <label
+                className={`flex items-center gap-3 cursor-pointer p-4 rounded-xl transition-colors ${
+                  isFit ? "bg-slate-50 hover:bg-slate-100" : "bg-amber-50 border border-amber-200"
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={isFit}
@@ -221,7 +325,13 @@ export default function DistributeCenter() {
                 />
                 <div>
                   <p className="font-medium text-slate-900">试穿合身</p>
-                  <p className="text-xs text-slate-500">如不合身请取消勾选，将登记换码或改衣</p>
+                  <p className="text-xs text-slate-500">
+                    {isFit
+                      ? "取消勾选将自动登记换码或改衣记录"
+                      : selectedStudent?.needAlter
+                        ? "将自动生成改衣记录"
+                        : "将自动生成换码记录"}
+                  </p>
                 </div>
               </label>
 
@@ -236,9 +346,17 @@ export default function DistributeCenter() {
                   <RotateCcw className="w-4 h-4" />
                   重新选择
                 </button>
-                <button onClick={handleDistribute} className="btn-primary flex-1">
+                <button
+                  onClick={handleDistribute}
+                  disabled={!allInStock}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 font-medium transition-all duration-200 ${
+                    allInStock
+                      ? "bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-600/20 hover:shadow-xl hover:shadow-primary-600/30 hover:-translate-y-0.5 active:scale-[0.97]"
+                      : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                  }`}
+                >
                   <Check className="w-5 h-5" />
-                  确认发放
+                  {allInStock ? "确认发放" : "库存不足"}
                 </button>
               </div>
             </div>
@@ -263,7 +381,7 @@ export default function DistributeCenter() {
                           <span className="badge bg-slate-100 text-slate-700">已归还</span>
                         ) : (
                           <button
-                            onClick={() => markReturned(d.id)}
+                            onClick={() => handleReturn(d.id)}
                             className="btn-secondary !py-1.5 !px-3 !text-xs"
                           >
                             归还
@@ -286,7 +404,10 @@ export default function DistributeCenter() {
               </div>
               <div>
                 <p className="font-semibold">发放成功</p>
-                <p className="text-sm text-white/90">服装已发放给 {selectedStudent?.name}</p>
+                <p className="text-sm text-white/90">
+                  服装已发放给 {selectedStudent?.name}
+                  {!isFit && "（已自动登记调整记录）"}
+                </p>
               </div>
             </div>
           </div>
