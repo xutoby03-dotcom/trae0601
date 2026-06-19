@@ -660,17 +660,15 @@ export default function CageDetail() {
                   </button>
                 </div>
               </div>
-              {currentPhoto.healthObservation && (
-                <div className="mt-2 p-2.5 bg-white/5 rounded-lg border border-white/10">
-                  <p className="text-[11px] text-slate-400 mb-0.5 flex items-center gap-1">
-                    <ClipboardList className="w-3 h-3" />
-                    当日健康观察
-                  </p>
-                  <p className="text-sm text-slate-100 leading-relaxed">
-                    {currentPhoto.healthObservation}
-                  </p>
-                </div>
-              )}
+              <div className="mt-2 p-2.5 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-[11px] text-slate-400 mb-0.5 flex items-center gap-1">
+                  <ClipboardList className="w-3 h-3" />
+                  当日健康观察
+                </p>
+                <p className="text-sm text-slate-100 leading-relaxed">
+                  {currentPhoto.healthObservation || "未填写健康观察"}
+                </p>
+              </div>
             </div>
             <div className="relative flex items-center justify-center flex-1 bg-black">
               <img
