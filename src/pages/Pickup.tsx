@@ -344,9 +344,9 @@ export default function PickupPage() {
                       <span className="font-medium text-neutral-700">使用方式：</span>
                     </p>
                     <ul className="space-y-1 list-disc list-inside">
-                      <li>扫码枪扫描员工取餐码</li>
-                      <li>手动输入员工ID或手机号后四位</li>
-                      <li>复制粘贴后按回车确认</li>
+                      <li>输入 <span className="text-neutral-700 font-medium">员工码</span>（卡片上的编号，如 L22k3s）</li>
+                      <li>或输入 <span className="text-neutral-700 font-medium">手机号后四位</span>（如 8888）</li>
+                      <li>多人尾号撞号时，核对<span className="text-warning-600 font-medium">部门、取餐点、规格辣度</span>再确认</li>
                     </ul>
                   </div>
                 </>
@@ -359,45 +359,85 @@ export default function PickupPage() {
                       <AlertCircle className="w-5 h-5 text-warning-500 shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-warning-700">
-                          匹配到 {multiMatch.pendingOrders.length} 份待取餐
+                          尾号撞号，匹配到 {multiMatch.employees.length} 人 / {multiMatch.pendingOrders.length} 份餐
                         </p>
                         <p className="text-xs text-warning-600 mt-0.5">
-                          请选择要确认的订单
+                          请核对部门、取餐点、餐品信息后再确认
                         </p>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto scroll-thin">
+                  <div className="space-y-2.5 max-h-[360px] overflow-y-auto scroll-thin pr-1">
                     {multiMatch.pendingOrders.map((o) => {
                       const emp = empOf(o.employeeId);
+                      const shortCode = emp?.id?.slice(-6).toUpperCase() ?? "";
                       return (
                         <div
                           key={o.id}
-                          className="p-3 rounded-xl border border-neutral-200 bg-white flex items-center gap-3"
+                          className="p-3.5 rounded-xl border border-neutral-200 bg-white hover:border-brand-300 hover:shadow-sm transition-all"
                         >
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
-                            style={{ backgroundColor: emp?.avatarColor }}
-                          >
-                            {emp?.name.charAt(0)}
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm"
+                              style={{ backgroundColor: emp?.avatarColor }}
+                            >
+                              {emp?.name.charAt(0)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-neutral-800 text-sm">
+                                  {emp?.name}
+                                </p>
+                                <span className="px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-600 text-[10px] font-mono font-medium tracking-wide">
+                                  {shortCode}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-neutral-100 text-neutral-600 text-[10px] font-medium">
+                                  ****{emp?.phoneLast4}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1 text-[11px] text-neutral-500">
+                                <span className="inline-flex items-center gap-0.5">
+                                  <Users className="w-3 h-3" />
+                                  {emp?.department}
+                                </span>
+                                <span className="text-neutral-300">·</span>
+                                <span className="inline-flex items-center gap-0.5">
+                                  <MapPin className="w-3 h-3" />
+                                  {emp?.pickupPoint}
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                <Tag size="sm" variant="brand">
+                                  {o.restaurant}
+                                </Tag>
+                                <Tag size="sm">{o.dish}</Tag>
+                                <Tag size="sm" variant="info">
+                                  {o.spec}
+                                </Tag>
+                                <Tag
+                                  size="sm"
+                                  className="bg-white"
+                                  style={{ color: SPICE_COLOR[o.spiceLevel] }}
+                                >
+                                  <Flame className="w-3 h-3 inline mr-0.5" />
+                                  {o.spiceLevel}
+                                </Tag>
+                                {o.extraRice && (
+                                  <Tag size="sm" variant="warning">+饭</Tag>
+                                )}
+                                {o.drink !== "无" && (
+                                  <Tag size="sm" variant="info">{o.drink}</Tag>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => confirmPickup(o.id)}
+                              className="px-3 py-2 rounded-lg bg-success-500 text-white text-xs font-medium hover:bg-success-600 transition-colors shrink-0 inline-flex items-center gap-1 self-start mt-1"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              确认
+                            </button>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-neutral-800 text-sm">
-                              {emp?.name}
-                            </p>
-                            <p className="text-[11px] text-neutral-500 truncate">
-                              {o.restaurant} · {o.dish}
-                              {o.extraRice && " · +饭"}
-                              {o.drink !== "无" && ` · ${o.drink}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => confirmPickup(o.id)}
-                            className="px-3 py-1.5 rounded-lg bg-success-500 text-white text-xs font-medium hover:bg-success-600 transition-colors shrink-0 inline-flex items-center gap-1"
-                          >
-                            <Check className="w-3 h-3" />
-                            确认取餐
-                          </button>
                         </div>
                       );
                     })}
