@@ -3,6 +3,7 @@ import type {
   Sample,
   Incident,
   DashboardStats,
+  FridgeSlotInfo,
 } from "../../shared/types";
 
 interface ApiResponse<T> {
@@ -33,6 +34,7 @@ export const dashboardApi = {
   getStats: () => request<DashboardStats>("/api/dashboard"),
   getExpiringSamples: () => request<Sample[]>("/api/dashboard/expiring-samples"),
   getRecentIncidents: () => request<Incident[]>("/api/dashboard/recent-incidents"),
+  getFridgeOccupancy: () => request<FridgeSlotInfo[]>("/api/dashboard/fridge-occupancy"),
 };
 
 export const productsApi = {

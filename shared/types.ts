@@ -64,6 +64,11 @@ export interface DashboardStats {
   categoryCompletion: CategoryCompletion[];
 }
 
+export interface FridgeSlotInfo {
+  slot: string;
+  sample?: Sample;
+}
+
 export const CATEGORY_NAMES: Record<ProductCategory, string> = {
   chicken_feet: "卤鸡爪",
   duck_neck: "卤鸭脖",

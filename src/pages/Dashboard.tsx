@@ -23,8 +23,8 @@ import {
 } from "recharts";
 import { Link } from "react-router-dom";
 import { dashboardApi } from "@/services/api";
-import type { DashboardStats, Sample, Incident } from "../../shared/types";
-import { CATEGORY_NAMES, INCIDENT_TYPE_NAMES } from "../../shared/types";
+import type { DashboardStats, Sample, Incident, FridgeSlotInfo } from "../../shared/types";
+import { CATEGORY_NAMES, INCIDENT_TYPE_NAMES, SAMPLE_STATUS_NAMES } from "../../shared/types";
 import { formatDateTime, getTimeRemaining } from "@/utils/date";
 
 const StatCard = ({
@@ -106,19 +106,22 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [expiring, setExpiring] = useState<Sample[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [fridgeSlots, setFridgeSlots] = useState<FridgeSlotInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [s, e, i] = await Promise.all([
+        const [s, e, i, f] = await Promise.all([
           dashboardApi.getStats(),
           dashboardApi.getExpiringSamples(),
           dashboardApi.getRecentIncidents(),
+          dashboardApi.getFridgeOccupancy(),
         ]);
         setStats(s);
         setExpiring(e);
         setIncidents(i);
+        setFridgeSlots(f);
       } finally {
         setLoading(false);
       }
@@ -425,6 +428,108 @@ export default function Dashboard() {
             color={COLORS[idx % COLORS.length]}
           />
         ))}
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-serif text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Refrigerator size={18} className="text-success-600" />
+            冰箱占用明细
+          </h3>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-success-100 border border-success-300" />
+              留样中
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-warning-100 border border-warning-300" />
+              临期
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-danger-100 border border-danger-300" />
+              到期
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded bg-gray-50 border border-dashed border-gray-300" />
+              空
+            </span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-3">
+          {fridgeSlots.map((fs) => {
+            const s = fs.sample;
+            const isEmpty = !s;
+            const statusClass = isEmpty
+              ? "bg-gray-50 border-dashed border-gray-300"
+              : s?.status === "active"
+              ? "bg-success-50 border-success-200"
+              : s?.status === "expiring"
+              ? "bg-warning-50 border-warning-200"
+              : "bg-danger-50 border-danger-200";
+            const statusBadge = isEmpty
+              ? "bg-gray-200 text-gray-500"
+              : s?.status === "active"
+              ? "badge-success"
+              : s?.status === "expiring"
+              ? "badge-warning"
+              : "badge-danger";
+            const content = (
+              <div
+                className={`p-3 rounded-xl border transition-all ${statusClass} ${
+                  !isEmpty
+                    ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                    : ""
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-bold text-gray-700 font-mono">
+                    {fs.slot}
+                  </span>
+                  <span className={`badge text-[10px] px-2 py-0.5 ${statusBadge}`}>
+                    {isEmpty ? "空位" : SAMPLE_STATUS_NAMES[s.status as keyof typeof SAMPLE_STATUS_NAMES]}
+                  </span>
+                </div>
+                {isEmpty ? (
+                  <div className="h-16 flex flex-col items-center justify-center text-gray-400">
+                    <span className="text-xs">可放置</span>
+                    <span className="text-xs mt-0.5">新留样</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-md overflow-hidden bg-white flex-shrink-0">
+                        {s.product?.photoUrl && (
+                          <img
+                            src={s.product.photoUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {s.product?.name || CATEGORY_NAMES[s.product?.category || "other"]}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          容器 {s.containerNo}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">
+                      到期：{formatDateTime(s.expireTime)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+            if (isEmpty) return <div key={fs.slot}>{content}</div>;
+            return (
+              <Link key={fs.slot} to={`/samples/${s!.id}`}>
+                {content}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

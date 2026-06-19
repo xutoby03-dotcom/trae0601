@@ -1,8 +1,19 @@
 import express from "express";
 import { products, samples, incidents } from "../data/mockData.js";
-import type { DashboardStats, ProductCategory, Incident, Sample } from "../../shared/types.js";
+import type { DashboardStats, ProductCategory, Incident, Sample, FridgeSlotInfo } from "../../shared/types.js";
 
 const router = express.Router();
+
+const FRIDGE_ROWS = [1, 2, 3, 4, 5];
+const FRIDGE_COLS = ["A", "B", "C", "D"];
+const ALL_FRIDGE_SLOTS: string[] = FRIDGE_ROWS.flatMap((r) =>
+  FRIDGE_COLS.map((c) => `${r}-${c}`)
+);
+
+const slotSortKey = (slot: string) => {
+  const [row, col] = slot.split("-");
+  return (parseInt(row, 10) || 0) * 100 + (col?.charCodeAt(0) || 0);
+};
 
 const enrichIncident = (inc: Incident): Incident => {
   if (inc.sampleId) {
@@ -112,6 +123,21 @@ router.get("/recent-incidents", (req, res) => {
     .map(enrichIncident);
 
   res.json({ success: true, data: recent });
+});
+
+router.get("/fridge-occupancy", (req, res) => {
+  const activeSamples = samples.filter((s) => s.status !== "destroyed");
+  const slotMap = new Map<string, Sample>();
+  for (const s of activeSamples) {
+    slotMap.set(s.fridgeSlot, enrichSample(s));
+  }
+
+  const data: FridgeSlotInfo[] = ALL_FRIDGE_SLOTS.map((slot) => {
+    const sample = slotMap.get(slot);
+    return sample ? { slot, sample } : { slot };
+  }).sort((a, b) => slotSortKey(a.slot) - slotSortKey(b.slot));
+
+  res.json({ success: true, data });
 });
 
 export default router;
