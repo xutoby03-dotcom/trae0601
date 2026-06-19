@@ -68,116 +68,45 @@ export default function BatchDetail({ batch, onBack }: Props) {
 
   if (batch.status === 'discarded') {
     return (
-      <div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-tea-600 hover:text-tea-700 mb-6 font-medium"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          返回批次列表
-        </button>
-
-        <div className="bg-white rounded-2xl shadow-tea overflow-hidden mb-6 ring-2 ring-danger-300 ring-offset-2">
-          <div className="bg-gradient-to-r from-danger-500 to-danger-600 p-6 text-white">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 ring-2 ring-white/30">
-                <img
-                  src={teapot?.photo}
-                  alt={teapot?.teaType}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-white/80">{teapot?.code}</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white`}>
-                    {statusLabels[batch.status].label}
-                  </span>
-                </div>
-                <h1 className="text-2xl font-display font-bold">
-                  {teapot?.teaType}
-                </h1>
-                <p className="text-white/80 text-sm mt-1">
-                  煮制时间: {format(new Date(batch.brewTime), 'yyyy年M月d日 HH:mm', { locale: zhCN })}
-                </p>
-              </div>
-            </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="bg-white rounded-2xl shadow-tea-lg p-8 max-w-md w-full text-center ring-2 ring-danger-200">
+          <div className="w-20 h-20 mx-auto mb-5 bg-danger-100 rounded-full flex items-center justify-center">
+            <Trash2 className="w-10 h-10 text-danger-500" />
           </div>
 
-          <div className="p-6">
-            <div className="flex items-start gap-3 p-4 bg-danger-50 border border-danger-200 rounded-xl">
+          <div className="inline-block px-4 py-1.5 mb-4 bg-danger-100 text-danger-600 rounded-full font-bold text-sm">
+            已报废
+          </div>
+
+          <h1 className="text-xl font-display font-bold text-tea-800 mb-2">
+            {teapot?.teaType}
+          </h1>
+          <p className="text-sm text-tea-500 mb-6">
+            {teapot?.code} · 煮制 {format(new Date(batch.brewTime), 'M月d日 HH:mm', { locale: zhCN })}
+          </p>
+
+          <div className="bg-danger-50 border border-danger-200 rounded-xl p-4 mb-6 text-left">
+            <div className="flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-danger-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-danger-700 mb-1">报废原因</p>
+                <p className="font-semibold text-danger-700 mb-1">异常原因</p>
                 <p className="text-danger-600">{getAbnormalReason()}</p>
                 {inspections.length > 0 && (
                   <p className="text-xs text-danger-500 mt-2">
-                    报废时间: {format(new Date(inspections[0].inspectTime), 'M月d日 HH:mm', { locale: zhCN })}
+                    报废时间: {format(new Date(inspections[0].inspectTime), 'yyyy年M月d日 HH:mm', { locale: zhCN })}
                   </p>
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="p-3 bg-tea-50 rounded-xl">
-                <p className="text-xs text-tea-500 mb-1">出汤量</p>
-                <p className="font-bold text-tea-800">{batch.outputAmount}ml</p>
-              </div>
-              <div className="p-3 bg-tea-50 rounded-xl">
-                <p className="text-xs text-tea-500 mb-1">剩余量</p>
-                <p className="font-bold text-danger-600">
-                  {inspections.length > 0 ? inspections[0].remainingAmount : batch.outputAmount}ml
-                </p>
-              </div>
-            </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-tea p-6">
-          <h2 className="text-xl font-display font-bold text-tea-800 mb-4 flex items-center gap-2">
-            <Trash2 className="w-5 h-5 text-danger-500" />
-            报废前巡查记录
-          </h2>
-
-          {inspections.length === 0 ? (
-            <p className="text-center text-tea-500 py-8">暂无巡查记录</p>
-          ) : (
-            <div className="space-y-3">
-              {inspections.map((inspection, index) => (
-                <div
-                  key={inspection.id}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    inspection.isAbnormal
-                      ? 'border-danger-200 bg-danger-50'
-                      : 'border-tea-100 bg-tea-50/30'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        inspection.isAbnormal ? 'bg-danger-100 text-danger-700' : 'bg-tea-100 text-tea-700'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-medium text-tea-800 text-sm">
-                          {format(new Date(inspection.inspectTime), 'M月d日 HH:mm', { locale: zhCN })}
-                        </p>
-                        {inspection.isAbnormal && (
-                          <p className="text-xs text-danger-600">{inspection.abnormalReason}</p>
-                        )}
-                      </div>
-                    </div>
-                    <p className={`text-lg font-bold ${
-                      inspection.isAbnormal ? 'text-danger-600' : 'text-tea-700'
-                    }`}>
-                      {inspection.temperature}°C
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <button
+            onClick={onBack}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-tea-500 text-white rounded-xl font-medium hover:bg-tea-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回批次列表
+          </button>
         </div>
       </div>
     );
