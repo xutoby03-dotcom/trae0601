@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
 import { useScoreStore } from '@/store/useScoreStore'
+import { useBorrowStore } from '@/store/useBorrowStore'
 import type { Score, VoicePart, BindingStatus, ScoreStatus } from '@/types'
 
 interface ScoreFormProps {
@@ -44,6 +45,7 @@ interface FormErrors {
 
 export default function ScoreForm({ isOpen, onClose, initialData }: ScoreFormProps) {
   const { addScore, updateScore } = useScoreStore()
+  const { getBorrowsByScore } = useBorrowStore()
   const [formData, setFormData] = useState({
     name: '',
     voice_part: '' as VoicePart | '',
@@ -58,6 +60,13 @@ export default function ScoreForm({ isOpen, onClose, initialData }: ScoreFormPro
   const [errors, setErrors] = useState<FormErrors>({})
 
   const isEdit = !!initialData
+
+  const borrowedCount = useMemo(() => {
+    if (!isEdit || !initialData) return 0
+    return getBorrowsByScore(initialData.id).filter(
+      (r) => r.status === '借阅中' || r.status === '逾期'
+    ).length
+  }, [isEdit, initialData, getBorrowsByScore])
 
   useEffect(() => {
     if (initialData) {
@@ -117,6 +126,8 @@ export default function ScoreForm({ isOpen, onClose, initialData }: ScoreFormPro
       newErrors.total_stock = '请输入总库存'
     } else if (Number(formData.total_stock) < 0) {
       newErrors.total_stock = '库存不能为负数'
+    } else if (isEdit && Number(formData.total_stock) < borrowedCount) {
+      newErrors.total_stock = `当前有 ${borrowedCount} 册未归还，总库存不能少于已借出数量`
     }
 
     setErrors(newErrors)
@@ -128,14 +139,15 @@ export default function ScoreForm({ isOpen, onClose, initialData }: ScoreFormPro
       return
     }
 
+    const totalStock = Number(formData.total_stock)
     const scoreData = {
       name: formData.name.trim(),
       voice_part: formData.voice_part as VoicePart,
       version: formData.version.trim(),
       pages: Number(formData.pages),
       binding_status: formData.binding_status as BindingStatus,
-      total_stock: Number(formData.total_stock),
-      available_stock: isEdit ? initialData!.available_stock : Number(formData.total_stock),
+      total_stock: totalStock,
+      available_stock: isEdit ? totalStock - borrowedCount : totalStock,
       photo_url: formData.photo_url.trim() || undefined,
       status: formData.status,
       notes: formData.notes.trim() || undefined,
@@ -219,15 +231,22 @@ export default function ScoreForm({ isOpen, onClose, initialData }: ScoreFormPro
             value={formData.binding_status}
             onChange={(e) => handleInputChange('binding_status', e.target.value)}
           />
-          <Input
-            label="总库存"
-            type="number"
-            placeholder="请输入总库存数量"
-            value={formData.total_stock}
-            onChange={(e) => handleInputChange('total_stock', e.target.value)}
-            error={errors.total_stock}
-            min={0}
-          />
+          <div>
+            <Input
+              label="总库存"
+              type="number"
+              placeholder="请输入总库存数量"
+              value={formData.total_stock}
+              onChange={(e) => handleInputChange('total_stock', e.target.value)}
+              error={errors.total_stock}
+              min={0}
+            />
+            {isEdit && borrowedCount > 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                当前已借出 {borrowedCount} 册，可用库存将自动更新为 {formData.total_stock ? Number(formData.total_stock) - borrowedCount : '-'} 册
+              </p>
+            )}
+          </div>
         </div>
 
         {isEdit && (
