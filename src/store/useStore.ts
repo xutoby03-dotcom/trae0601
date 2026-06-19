@@ -92,9 +92,17 @@ export const useStore = create<AppState>()(
           id: generateId(),
           createdAt: new Date().toISOString(),
         }
-        set((state) => ({
-          cleaningRecords: [...state.cleaningRecords, newRecord],
-        }))
+        set((state) => {
+          const updatedDryingRecords = record.dryingRecordId
+            ? state.dryingRecords.map((r) =>
+                r.id === record.dryingRecordId ? { ...r, filterCleaned: true } : r
+              )
+            : state.dryingRecords
+          return {
+            cleaningRecords: [...state.cleaningRecords, newRecord],
+            dryingRecords: updatedDryingRecords,
+          }
+        })
       },
 
       deleteCleaningRecord: (id) => {
