@@ -1,8 +1,24 @@
 import express from "express";
 import { products, samples, incidents } from "../data/mockData.js";
-import type { DashboardStats, ProductCategory } from "../../shared/types.js";
+import type { DashboardStats, ProductCategory, Incident, Sample } from "../../shared/types.js";
 
 const router = express.Router();
+
+const enrichIncident = (inc: Incident): Incident => {
+  if (inc.sampleId) {
+    const s = samples.find((sa) => sa.id === inc.sampleId);
+    if (s) {
+      const p = products.find((prod) => prod.id === s.productId);
+      return { ...inc, sample: { ...s, product: p } };
+    }
+  }
+  return inc;
+};
+
+const enrichSample = (s: Sample): Sample => {
+  const p = products.find((prod) => prod.id === s.productId);
+  return { ...s, product: p };
+};
 
 router.get("/", (req, res) => {
   const now = new Date();
@@ -80,7 +96,8 @@ router.get("/expiring-samples", (req, res) => {
     .sort(
       (a, b) => new Date(a.expireTime).getTime() - new Date(b.expireTime).getTime()
     )
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(enrichSample);
 
   res.json({ success: true, data: expiring });
 });
@@ -91,7 +108,8 @@ router.get("/recent-incidents", (req, res) => {
       (a, b) =>
         new Date(b.occurTime).getTime() - new Date(a.occurTime).getTime()
     )
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(enrichIncident);
 
   res.json({ success: true, data: recent });
 });
