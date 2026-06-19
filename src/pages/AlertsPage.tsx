@@ -9,20 +9,57 @@ import {
   Wrench,
   Filter,
   Phone,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Camera,
+  ClipboardList,
+  Calendar,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
   TASK_TYPE_LABELS,
+  SOUND_OPTIONS,
+  LIGHT_OPTIONS,
+  VENTILATION_OPTIONS,
+  HOSE_OPTIONS,
+  VALVE_OPTIONS,
+  BATTERY_OPTIONS,
   type TaskStatus,
+  type TaskType,
+  type Inspection,
 } from '@/constants';
+import { formatDate, todayStr } from '@/utils/dateUtils';
+
+const taskTypeToFields: Record<TaskType, string[]> = {
+  battery: ['battery_level'],
+  sound: ['sound_status', 'light_status'],
+  hose: ['hose_status'],
+  valve: ['valve_status'],
+  other: [],
+};
+
+const triggerFieldLabels: Record<string, string> = {
+  sound_status: '声响测试',
+  light_status: '指示灯状态',
+  ventilation: '通风情况',
+  hose_status: '灶具软管',
+  valve_status: '阀门状态',
+  battery_level: '电池电量',
+};
+
+const allOpts = [...SOUND_OPTIONS, ...LIGHT_OPTIONS, ...VENTILATION_OPTIONS, ...HOSE_OPTIONS, ...VALVE_OPTIONS, ...BATTERY_OPTIONS];
+const optionLabel = (value: string): string => allOpts.find(o => o.value === value)?.label || value;
+const isDangerLevel = (value: string): boolean => allOpts.find(o => o.value === value)?.level === 'danger';
 
 export default function AlertsPage() {
-  const { tasks, devices, updateTask } = useAppStore();
+  const { tasks, devices, inspections, updateTask, getInspectionsByDevice } = useAppStore();
   const [searchParams] = useSearchParams();
   const initialFilter = (searchParams.get('status') as TaskStatus) || 'all';
   const [filter, setFilter] = useState<TaskStatus | 'all'>(initialFilter);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const status = searchParams.get('status') as TaskStatus | null;
@@ -30,6 +67,35 @@ export default function AlertsPage() {
       setFilter(status);
     }
   }, [searchParams]);
+
+  const toggleTask = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const getInspection = (task: { inspection_id?: string; device_id: string }): Inspection | undefined => {
+    if (!task.inspection_id) return undefined;
+    return getInspectionsByDevice(task.device_id).find(i => i.id === task.inspection_id);
+  };
+
+  const getTriggerItems = (task: { task_type: TaskType; inspection_id?: string; device_id: string }) => {
+    const inspection = getInspection(task);
+    if (!inspection) return [];
+    return (taskTypeToFields[task.task_type] || [])
+      .filter(f => inspection[f as keyof Inspection] !== undefined)
+      .map(field => ({
+        field,
+        label: triggerFieldLabels[field] || field,
+        value: inspection[field as keyof Inspection] as string,
+        labelText: optionLabel(inspection[field as keyof Inspection] as string),
+        isDanger: isDangerLevel(inspection[field as keyof Inspection] as string),
+      }))
+      .filter(item => item.isDanger);
+  };
 
   const filteredTasks = tasks
     .filter(t => filter === 'all' ? true : t.status === filter)
@@ -45,8 +111,13 @@ export default function AlertsPage() {
   const processingCount = tasks.filter(t => t.status === 'processing').length;
   const doneCount = tasks.filter(t => t.status === 'done').length;
 
-  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    updateTask(taskId, { status: newStatus });
+  const handleStatusChange = (taskId: string, newStatus: TaskStatus, remark?: string) => {
+    const patch: any = { status: newStatus };
+    if (newStatus === 'done') {
+      patch.handle_time = todayStr();
+      if (remark) patch.handle_remark = remark;
+    }
+    updateTask(taskId, patch);
   };
 
   const statusTabs = [
@@ -205,7 +276,7 @@ export default function AlertsPage() {
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <Wrench className="w-4 h-4" />
-                        {task.assignee}
+                        {task.assignee || '未指派'}
                       </span>
                       {device && (
                         <a href={`tel:${device.maintenance_phone}`} className="inline-flex items-center gap-1 text-success-600 hover:underline">
@@ -215,6 +286,97 @@ export default function AlertsPage() {
                       )}
                     </div>
                   </div>
+
+                  {(() => {
+                    const inspection = getInspection(task);
+                    const triggerItems = getTriggerItems(task);
+                    const expanded = expandedTasks.has(task.id);
+                    if (!inspection) return null;
+                    return (
+                      <div className="mt-4 pt-4 border-t border-cream-200">
+                        <button
+                          type="button"
+                          onClick={() => toggleTask(task.id)}
+                          className="w-full flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-cream-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+                            <ClipboardList className="w-4 h-4 text-brand-500" />
+                            <span>自检来源</span>
+                            {triggerItems.length > 0 && (
+                              <span className="text-xs text-danger-500 bg-danger-50 px-1.5 py-0.5 rounded-full">
+                                {triggerItems.length} 项异常
+                              </span>
+                            )}
+                          </div>
+                          {expanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+
+                        {expanded && (
+                          <div className="pl-6 pt-3 space-y-3 animate-fade-in-up">
+                            {triggerItems.length > 0 && (
+                              <div className="space-y-1.5">
+                                <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-danger-500" />
+                                  触发项
+                                </div>
+                                <div className="space-y-1">
+                                  {triggerItems.map(item => (
+                                    <div key={item.field} className="flex items-center gap-2 text-sm">
+                                      <span className="text-gray-500">{item.label}：</span>
+                                      <span className="text-danger-600 font-medium">{item.labelText}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="space-y-1">
+                              <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                巡检日期
+                              </div>
+                              <p className="text-sm text-gray-700">{formatDate(inspection.inspect_date)}</p>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                <Camera className="w-3.5 h-3.5 text-gray-400" />
+                                现场照片
+                              </div>
+                              {inspection.photo ? (
+                                <img
+                                  src={inspection.photo}
+                                  alt="巡检现场照片"
+                                  className="rounded-lg border border-gray-200 max-h-40 w-full object-cover"
+                                />
+                              ) : (
+                                <div className="p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 text-center">
+                                  <Camera className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                                  <p className="text-xs text-gray-400">本次巡检未拍摄照片</p>
+                                </div>
+                              )}
+                            </div>
+
+                            {inspection.remark && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                  <FileText className="w-3.5 h-3.5 text-gray-400" />
+                                  备注
+                                </div>
+                                <p className="text-sm text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                  {inspection.remark}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex sm:flex-col gap-2 sm:w-32 shrink-0">
                     {task.status === 'pending' && (
@@ -231,11 +393,7 @@ export default function AlertsPage() {
                         onClick={() => {
                           const remark = prompt('请填写处理结果备注：', '已完成维修');
                           if (remark !== null) {
-                            updateTask(task.id, {
-                              status: 'done',
-                              handle_remark: remark,
-                              handle_time: new Date().toISOString().slice(0, 10),
-                            });
+                            handleStatusChange(task.id, 'done', remark);
                           }
                         }}
                         className="flex-1 sm:flex-none btn-secondary py-2 text-xs"
