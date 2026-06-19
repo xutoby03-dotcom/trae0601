@@ -50,8 +50,12 @@ export function OrderAssignment() {
   const [selectedDate, setSelectedDate] = useState(getTodayString());
   const [assignmentResults, setAssignmentResults] = useState<Map<string, { allowed: boolean; reason: string }>>(new Map());
   const [assignmentRecords, setAssignmentRecords] = useState<AssignmentRecord[]>([]);
-  const [assignedBoxIds, setAssignedBoxIds] = useState<Set<string>>(new Set());
+  const [assignedBoxIdsByDate, setAssignedBoxIdsByDate] = useState<Map<string, Set<string>>>(new Map());
   const [recordOrderType, setRecordOrderType] = useState<OrderType | 'all'>('all');
+
+  const getAssignedBoxIdsForDate = (date: string): Set<string> => {
+    return assignedBoxIdsByDate.get(date) || new Set();
+  };
 
   useEffect(() => {
     fetchBoxes();
@@ -90,11 +94,12 @@ export function OrderAssignment() {
     const total = filteredBoxes.length;
     const allowed = Array.from(assignmentResults.values()).filter(r => r.allowed).length;
     const denied = total - allowed;
-    const assigned = Array.from(assignedBoxIds).filter(id =>
+    const currentAssignedIds = getAssignedBoxIdsForDate(selectedDate);
+    const assigned = Array.from(currentAssignedIds).filter(id =>
       filteredBoxes.some(b => b.id === id)
     ).length;
     return { total, allowed, denied, assigned };
-  }, [filteredBoxes, assignmentResults, assignedBoxIds]);
+  }, [filteredBoxes, assignmentResults, assignedBoxIdsByDate, selectedDate]);
 
   const filteredRecords = useMemo(() => {
     return assignmentRecords.filter(record => {
@@ -127,12 +132,22 @@ export function OrderAssignment() {
     };
 
     setAssignmentRecords(prev => [record, ...prev]);
-    setAssignedBoxIds(prev => new Set(prev).add(boxId));
+    setAssignedBoxIdsByDate(prev => {
+      const next = new Map(prev);
+      const current = next.get(selectedDate) || new Set();
+      current.add(boxId);
+      next.set(selectedDate, current);
+      return next;
+    });
   };
 
   const handleClearAssignments = () => {
-    setAssignmentRecords([]);
-    setAssignedBoxIds(new Set());
+    setAssignmentRecords(prev => prev.filter(r => r.date !== selectedDate));
+    setAssignedBoxIdsByDate(prev => {
+      const next = new Map(prev);
+      next.delete(selectedDate);
+      return next;
+    });
   };
 
   const OrderIcon = orderTypeIcons[orderType];
@@ -144,10 +159,10 @@ export function OrderAssignment() {
           <h1 className="text-2xl font-bold text-gray-900">订单分配校验</h1>
           <p className="text-sm text-gray-500 mt-1">检查保温箱是否符合订单分配条件</p>
         </div>
-        {assignmentRecords.length > 0 && (
+        {getAssignedBoxIdsForDate(selectedDate).size > 0 && (
           <Button variant="secondary" onClick={handleClearAssignments}>
             <RefreshCcw className="w-4 h-4" />
-            清空分配记录
+            清空 {selectedDate} 分配记录
           </Button>
         )}
       </div>
@@ -271,7 +286,7 @@ export function OrderAssignment() {
               const result = assignmentResults.get(box.id) || { allowed: false, reason: '校验中...' };
               const isForcedCheck = orderType !== 'hot_food';
               const finalAllowed = isForcedCheck || result.allowed;
-              const isAssigned = assignedBoxIds.has(box.id);
+              const isAssigned = getAssignedBoxIdsForDate(selectedDate).has(box.id);
               const canShowAssignButton = finalAllowed && !isAssigned;
 
               return (
