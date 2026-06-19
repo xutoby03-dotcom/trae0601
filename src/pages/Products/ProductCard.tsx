@@ -1,8 +1,8 @@
 import { Product } from '@/types';
-import { getBatchStatusLabel, getBatchStatusColor } from '@/utils/priceUtils';
-import { formatMoney } from '@/utils/dateUtils';
+import { getBatchStatusLabel, getBatchStatusColor, getBatchPrice, getPriceType, getPriceTypeLabel } from '@/utils/priceUtils';
+import { formatMoney, getDaysUntilExpiry } from '@/utils/dateUtils';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { Package, MapPin, Calendar } from 'lucide-react';
+import { Package, MapPin, Calendar, Clock, Tag, AlertTriangle } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -15,12 +15,24 @@ export default function ProductCard({ product, onEdit, onDelete, onAddStock }: P
   const batches = useInventoryStore((state) => state.getBatchesByProductId(product.id));
   const totalStock = batches.reduce((sum, b) => sum + b.remainingQuantity, 0);
   
-  const earliestExpiry = batches.length > 0 && batches[0].remainingQuantity > 0
-    ? batches[0].expiryDate
-    : null;
+  const availableBatches = batches.filter(b => b.remainingQuantity > 0);
+  const earliestBatch = availableBatches.length > 0 ? availableBatches[0] : null;
+  const earliestExpiry = earliestBatch?.expiryDate || null;
+  const daysUntilExpiry = earliestExpiry ? getDaysUntilExpiry(earliestExpiry) : null;
+
+  const nearExpiryCount = batches
+    .filter(b => b.status === 'near_expiry')
+    .reduce((sum, b) => sum + b.remainingQuantity, 0);
+  
+  const clearanceCount = batches
+    .filter(b => b.status === 'clearance')
+    .reduce((sum, b) => sum + b.remainingQuantity, 0);
+
+  const currentPrice = earliestBatch ? getBatchPrice(product.salePrice, earliestBatch.expiryDate) : product.salePrice;
+  const currentPriceType = earliestBatch ? getPriceType(earliestBatch.expiryDate) : 'normal';
+  const hasDiscount = currentPriceType !== 'normal' && earliestBatch;
 
   const getWorstStatus = () => {
-    const availableBatches = batches.filter(b => b.remainingQuantity > 0);
     if (availableBatches.length === 0) return 'sold_out';
     return availableBatches[0].status;
   };
@@ -43,6 +55,15 @@ export default function ProductCard({ product, onEdit, onDelete, onAddStock }: P
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700">
           {product.brand}
         </div>
+        {hasDiscount && (
+          <div className="absolute bottom-3 left-3 right-3 flex gap-2">
+            <div className={`px-3 py-1 rounded-full text-xs font-bold text-white ${
+              currentPriceType === 'discount' ? 'bg-orange-500' : 'bg-red-500'
+            }`}>
+              {getPriceTypeLabel(currentPriceType)} · {formatMoney(currentPrice)}
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="p-4">
@@ -52,27 +73,61 @@ export default function ProductCard({ product, onEdit, onDelete, onAddStock }: P
             <p className="text-gray-500 text-sm">{product.specification}</p>
           </div>
           <div className="text-right">
-            <p className="text-xl font-bold text-blue-600">{formatMoney(product.salePrice)}</p>
-            <p className="text-xs text-gray-400 line-through">{formatMoney(product.costPrice)}</p>
+            {hasDiscount ? (
+              <>
+                <p className="text-xl font-bold text-blue-600">{formatMoney(currentPrice)}</p>
+                <p className="text-xs text-gray-400 line-through">{formatMoney(product.salePrice)}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xl font-bold text-blue-600">{formatMoney(product.salePrice)}</p>
+                <p className="text-xs text-gray-400 line-through">{formatMoney(product.costPrice)}</p>
+              </>
+            )}
           </div>
         </div>
         
-        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+        <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
           <div className="flex items-center gap-1">
             <Package className="w-4 h-4" />
             <span>库存: {totalStock}</span>
           </div>
-          {earliestExpiry && (
+          {earliestExpiry && daysUntilExpiry !== null && (
             <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              <span>{earliestExpiry}</span>
+              <Clock className="w-4 h-4" />
+              <span className={daysUntilExpiry <= 1 ? 'text-red-500 font-medium' : daysUntilExpiry <= 3 ? 'text-orange-500 font-medium' : ''}>
+                {daysUntilExpiry < 0 ? '已过期' : `${daysUntilExpiry}天到期`}
+              </span>
             </div>
           )}
         </div>
+
+        {(nearExpiryCount > 0 || clearanceCount > 0) && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {nearExpiryCount > 0 && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 rounded-md text-xs">
+                <AlertTriangle className="w-3 h-3" />
+                <span>临期{nearExpiryCount}件</span>
+              </div>
+            )}
+            {clearanceCount > 0 && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-md text-xs">
+                <Tag className="w-3 h-3" />
+                <span>清仓{clearanceCount}件</span>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="flex items-center gap-1 text-sm text-gray-500 mb-4">
           <MapPin className="w-4 h-4" />
           <span>{product.fridgeLocation}</span>
+          {earliestExpiry && (
+            <span className="ml-auto text-xs text-gray-400 flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {earliestExpiry}
+            </span>
+          )}
         </div>
         
         <div className="flex gap-2">
