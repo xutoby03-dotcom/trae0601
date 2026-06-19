@@ -10,7 +10,6 @@ import {
   Flower2,
   StickyNote,
   Image as ImageIcon,
-  Wrench,
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
@@ -124,7 +123,7 @@ export default function InspectionForm() {
     e.preventDefault();
     if (!areaId) return;
 
-    addInspection({
+    const newInspectionId = addInspection({
       areaId,
       inspectionDate: formData.inspectionDate,
       rainEventId: formData.rainEventId,
@@ -140,7 +139,7 @@ export default function InspectionForm() {
 
     if (hasAnomaly) {
       if (confirm('检查发现异常，是否立即创建维修任务？')) {
-        navigate(`/tasks/new?areaId=${areaId}&hasAnomaly=true`);
+        navigate(`/tasks/new?areaId=${areaId}&inspectionId=${newInspectionId}`);
       } else {
         navigate('/inspections');
       }
@@ -474,24 +473,13 @@ export default function InspectionForm() {
                   下一步
                 </button>
               ) : (
-                <div className="flex gap-3">
-                  {hasAnomaly && (
-                    <Link
-                      to={`/tasks/new?areaId=${area.id}&hasAnomaly=true`}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 border border-warning-500 text-warning-600 rounded-xl hover:bg-warning-50 transition-colors text-sm font-medium"
-                    >
-                      <Wrench className="w-4 h-4" />
-                      先创建维修任务
-                    </Link>
-                  )}
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all text-sm"
-                  >
-                    <Save className="w-4 h-4" />
-                    保存检查记录
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all text-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  保存检查记录
+                </button>
               )}
             </div>
           </div>

@@ -6,7 +6,7 @@ import { generateId } from '../utils/date';
 
 interface InspectionState {
   inspections: Inspection[];
-  addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => void;
+  addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt'>) => string;
   updateInspection: (id: string, inspection: Partial<Inspection>) => void;
   deleteInspection: (id: string) => void;
   getInspectionsByArea: (areaId: string) => Inspection[];
@@ -17,17 +17,18 @@ export const useInspectionStore = create<InspectionState>()(
   persist(
     (set, get) => ({
       inspections: mockInspections,
-      addInspection: (inspection) =>
+      addInspection: (inspection) => {
+        const newId = generateId();
+        const newInspection: Inspection = {
+          ...inspection,
+          id: newId,
+          createdAt: new Date().toISOString(),
+        };
         set((state) => ({
-          inspections: [
-            ...state.inspections,
-            {
-              ...inspection,
-              id: generateId(),
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        })),
+          inspections: [...state.inspections, newInspection],
+        }));
+        return newId;
+      },
       updateInspection: (id, inspection) =>
         set((state) => ({
           inspections: state.inspections.map((i) =>

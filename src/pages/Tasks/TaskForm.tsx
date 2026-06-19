@@ -15,7 +15,7 @@ import { useTaskStore } from '../../store/useTaskStore';
 import { useAreaStore } from '../../store/useAreaStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
 import { checkRepeatedAnomaly } from '../../utils/anomaly';
-import { formatCurrency } from '../../utils/date';
+import { formatCurrency, formatDate } from '../../utils/date';
 import PhotoUpload from '../../components/PhotoUpload';
 import type { TaskStatus } from '../../types';
 
@@ -39,10 +39,11 @@ export default function TaskForm() {
   const existingTask = isEdit ? getTaskById(id || '') : undefined;
 
   const preselectedAreaId = searchParams.get('areaId') || '';
-  const hasAnomalyParam = searchParams.get('hasAnomaly') === 'true';
+  const preselectedInspectionId = searchParams.get('inspectionId') || '';
 
   const [formData, setFormData] = useState({
     areaId: '',
+    inspectionId: '' as string | undefined,
     title: '',
     status: 'pending' as TaskStatus,
     responsiblePerson: '',
@@ -58,6 +59,7 @@ export default function TaskForm() {
     if (existingTask) {
       setFormData({
         areaId: existingTask.areaId,
+        inspectionId: existingTask.inspectionId,
         title: existingTask.title,
         status: existingTask.status,
         responsiblePerson: existingTask.responsiblePerson,
@@ -71,14 +73,19 @@ export default function TaskForm() {
     } else if (preselectedAreaId) {
       const isRepeated = checkRepeatedAnomaly(preselectedAreaId, inspections);
       const area = areas.find((a) => a.id === preselectedAreaId);
+      const inspection = preselectedInspectionId
+        ? inspections.find((i) => i.id === preselectedInspectionId)
+        : undefined;
       setFormData((prev) => ({
         ...prev,
         areaId: preselectedAreaId,
-        isRepeatedAnomaly: hasAnomalyParam || isRepeated,
+        inspectionId: preselectedInspectionId || undefined,
+        isRepeatedAnomaly: isRepeated,
         title: area ? `${area.name}维修` : '',
+        constructionPlan: inspection && inspection.notes ? `检查备注：${inspection.notes}\n\n` : '',
       }));
     }
-  }, [existingTask, preselectedAreaId, areas, inspections, hasAnomalyParam]);
+  }, [existingTask, preselectedAreaId, preselectedInspectionId, areas, inspections]);
 
   useEffect(() => {
     if (formData.areaId && !isEdit) {
@@ -211,6 +218,16 @@ export default function TaskForm() {
                 </option>
               ))}
             </select>
+            {formData.inspectionId && (() => {
+              const insp = inspections.find((i) => i.id === formData.inspectionId);
+              return insp ? (
+                <p className="mt-2 text-xs text-primary-600">
+                  📋 关联检查：{formatDate(insp.inspectionDate)}
+                  {insp.waterPoints.length > 0 && ` · 积水${insp.waterPoints.length}处`}
+                  {insp.thresholdLeak && ' · 门槛渗水'}
+                </p>
+              ) : null;
+            })()}
           </div>
 
           <div className="md:col-span-2">
