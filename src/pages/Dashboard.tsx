@@ -459,15 +459,17 @@ export default function Dashboard() {
                 </div>
 
                 {/* 最早到期提醒 */}
-                {earliestExpiry.daysLeft <= 15 && (
-                  <div
-                    className={cn(
-                      'p-3 rounded-xl flex items-start gap-2',
-                      earliestExpiry.daysLeft <= 7
-                        ? 'bg-red-50'
-                        : 'bg-amber-50'
-                    )}
-                  >
+                <div
+                  className={cn(
+                    'p-3 rounded-xl flex items-start gap-2',
+                    earliestExpiry.daysLeft <= 7
+                      ? 'bg-red-50'
+                      : earliestExpiry.daysLeft <= 15
+                      ? 'bg-amber-50'
+                      : 'bg-sky-50'
+                  )}
+                >
+                  {earliestExpiry.daysLeft <= 15 ? (
                     <AlertTriangle
                       className={cn(
                         'w-5 h-5 flex-shrink-0 mt-0.5',
@@ -476,31 +478,43 @@ export default function Dashboard() {
                           : 'text-amber-500'
                       )}
                     />
-                    <div>
-                      <p
-                        className={cn(
-                          'text-sm font-medium',
-                          earliestExpiry.daysLeft <= 7
-                            ? 'text-red-800'
-                            : 'text-amber-800'
-                        )}
-                      >
-                        {earliestExpiry.name}（{earliestExpiry.location}）
-                        {earliestExpiry.daysLeft <= 7 ? '即将到期' : '快到期了'}
-                      </p>
-                      <p
-                        className={cn(
-                          'text-xs mt-0.5',
-                          earliestExpiry.daysLeft <= 7
-                            ? 'text-red-600'
-                            : 'text-amber-600'
-                        )}
-                      >
-                        仅剩 {earliestExpiry.daysLeft} 天寿命，建议优先为这只壶备货
-                      </p>
-                    </div>
+                  ) : (
+                    <Droplets className="w-5 h-5 flex-shrink-0 mt-0.5 text-sky-500" />
+                  )}
+                  <div>
+                    <p
+                      className={cn(
+                        'text-sm font-medium',
+                        earliestExpiry.daysLeft <= 7
+                          ? 'text-red-800'
+                          : earliestExpiry.daysLeft <= 15
+                          ? 'text-amber-800'
+                          : 'text-sky-800'
+                      )}
+                    >
+                      {earliestExpiry.name}（{earliestExpiry.location}）
+                      {earliestExpiry.daysLeft <= 7
+                        ? '即将到期'
+                        : earliestExpiry.daysLeft <= 15
+                        ? '快到期了'
+                        : '最早到期'}
+                    </p>
+                    <p
+                      className={cn(
+                        'text-xs mt-0.5',
+                        earliestExpiry.daysLeft <= 7
+                          ? 'text-red-600'
+                          : earliestExpiry.daysLeft <= 15
+                          ? 'text-amber-600'
+                          : 'text-sky-600'
+                      )}
+                    >
+                      {earliestExpiry.daysLeft <= 15
+                        ? `仅剩 ${earliestExpiry.daysLeft} 天寿命，建议优先为这只壶备货`
+                        : `剩余 ${earliestExpiry.daysLeft} 天，暂无紧迫换芯需求`}
+                    </p>
                   </div>
-                )}
+                </div>
 
                 {/* 缺口计算和快捷按钮 */}
                 <div className="p-3 bg-sky-50 rounded-xl">
