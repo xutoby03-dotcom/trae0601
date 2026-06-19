@@ -9,9 +9,6 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  Fish,
-  Wine,
-  Moon,
   GripVertical,
 } from 'lucide-react';
 import { usePlanStore } from '@/store/usePlanStore';
@@ -159,13 +156,12 @@ export default function SeatingArrangement() {
     conflicts.filter((c) => c.tableId === tableId);
 
   const getMemberBadges = (member: Member) => {
-    const badges: { icon: React.ComponentType<{ size?: number }>; label: string; color: string }[] = [];
+    const badges: { label: string; color: string }[] = [];
 
     member.allergies.forEach((allergy) => {
       const option = ALLERGY_OPTIONS.find((o) => o.value === allergy);
       if (option) {
         badges.push({
-          icon: Fish,
           label: option.label,
           color: 'bg-red-50 text-red-700 border-red-200',
         });
@@ -176,7 +172,6 @@ export default function SeatingArrangement() {
       const option = RELIGIOUS_DIET_OPTIONS.find((o) => o.value === member.religiousDiet);
       if (option) {
         badges.push({
-          icon: Moon,
           label: option.label,
           color: 'bg-purple-50 text-purple-700 border-purple-200',
         });
@@ -185,7 +180,6 @@ export default function SeatingArrangement() {
 
     if (!member.drinksAlcohol) {
       badges.push({
-        icon: Wine,
         label: '不喝酒',
         color: 'bg-amber-50 text-amber-700 border-amber-200',
       });
