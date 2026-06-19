@@ -14,6 +14,7 @@ import Select from '@/components/ui/Select';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Empty from '@/components/ui/Empty';
+import Avatar from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 
 type TabType = 'friends' | 'plans';
@@ -369,13 +370,12 @@ export default function Friends() {
                     <Card hoverable>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center overflow-hidden border-2 border-primary/20">
-                            {friend.avatar ? (
-                              <span className="text-3xl">{friend.avatar}</span>
-                            ) : (
-                              <User size={24} className="text-primary" />
-                            )}
-                          </div>
+                          <Avatar
+                            src={friend.avatar}
+                            alt={friend.name}
+                            fallback={friend.name.charAt(0)}
+                            size="xl"
+                          />
                           <div>
                             <h3 className="font-semibold text-foreground text-lg">
                               {friend.name}
@@ -453,13 +453,13 @@ export default function Friends() {
                       <Card hoverable>
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                           <div className="flex items-start gap-4 flex-1">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-                              {friend?.avatar ? (
-                                <span className="text-2xl">{friend.avatar}</span>
-                              ) : (
-                                <Calendar size={20} className="text-primary" />
-                              )}
-                            </div>
+                            <Avatar
+                              src={friend?.avatar}
+                              alt={friend?.name}
+                              fallback={friend?.name?.charAt(0) || '?'}
+                              size="lg"
+                              className="flex-shrink-0"
+                            />
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap items-center gap-2 mb-2">
                                 <Calendar size={14} className="text-primary" />
@@ -468,12 +468,24 @@ export default function Friends() {
                                 </span>
                                 <Badge variant="info">{friend?.name || '未知朋友'}</Badge>
                               </div>
-                              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-2">
-                                <MapPin size={14} className="text-green-500 flex-shrink-0" />
-                                <span className="truncate">{plan.fromCommunity}</span>
-                                <ArrowRight size={14} className="flex-shrink-0" />
-                                <MapPin size={14} className="text-red-500 flex-shrink-0" />
-                                <span className="truncate">{plan.toCommunity}</span>
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-3 mb-3">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <MapPin size={16} className="text-green-500 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-foreground truncate">
+                                    {plan.fromCommunity}
+                                  </span>
+                                </div>
+
+                                <div className="flex-shrink-0 px-2">
+                                  <ArrowRight size={18} className="text-muted-foreground" />
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <MapPin size={16} className="text-red-500 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-foreground truncate">
+                                    {plan.toCommunity}
+                                  </span>
+                                </div>
                               </div>
                               {plan.notes && (
                                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
