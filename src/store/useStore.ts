@@ -186,8 +186,25 @@ export const useStore = create<AppState>((set, get) => ({
     set({ loading: true });
     try {
       const result = await api.queue.callNext();
-      set({ currentCalledNumber: result.queue.queueNumber });
-      await Promise.all([get().fetchQueue(), get().fetchRooms()]);
+      
+      const currentQueue = get().queue;
+      const updatedQueue = currentQueue.map(q => 
+        q.id === result.queue.id ? result.queue : q
+      );
+      
+      const currentRooms = get().rooms;
+      const updatedRooms = currentRooms.map(r => 
+        r.id === result.room.id 
+          ? { ...result.room, currentItemsCount: result.queue.itemsCount }
+          : r
+      );
+      
+      set({ 
+        queue: updatedQueue, 
+        rooms: updatedRooms,
+        currentCalledNumber: result.queue.queueNumber,
+      });
+      
       return true;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '叫号失败' });
@@ -235,8 +252,15 @@ export const useStore = create<AppState>((set, get) => ({
       
       const currentRooms = get().rooms;
       const updatedRooms = currentRooms.map(r => {
-        if (result.nextCalled && r.id === result.nextCalled.room.id) return result.nextCalled.room;
-        if (r.id === result.oldTimedOut.roomId) return { ...r, status: 'available' as const, currentQueueId: undefined };
+        if (result.nextCalled && r.id === result.nextCalled.room.id) {
+          return { 
+            ...result.nextCalled.room, 
+            currentItemsCount: result.nextCalled.queue.itemsCount 
+          };
+        }
+        if (r.id === result.oldTimedOut.roomId) {
+          return { ...r, status: 'available' as const, currentQueueId: undefined, currentItemsCount: undefined };
+        }
         return r;
       });
       
@@ -281,13 +305,20 @@ export const useStore = create<AppState>((set, get) => ({
           
           if (result.nextCalled) {
             currentRooms = currentRooms.map(r => {
-              if (r.id === result.nextCalled.room.id) return result.nextCalled.room;
+              if (r.id === result.nextCalled.room.id) {
+                return { 
+                  ...result.nextCalled.room, 
+                  currentItemsCount: result.nextCalled.queue.itemsCount 
+                };
+              }
               return r;
             });
             latestCalledNumber = result.nextCalled.queue.queueNumber;
           } else {
             currentRooms = currentRooms.map(r => {
-              if (r.id === result.oldTimedOut.roomId) return { ...r, status: 'available' as const, currentQueueId: undefined };
+              if (r.id === result.oldTimedOut.roomId) {
+                return { ...r, status: 'available' as const, currentQueueId: undefined, currentItemsCount: undefined };
+              }
               return r;
             });
           }
