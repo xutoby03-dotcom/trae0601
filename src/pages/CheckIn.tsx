@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore, api } from '@/store/appStore';
 import SessionSelector from '@/components/SessionSelector';
 import { QRCodeSVG } from 'qrcode.react';
@@ -15,6 +16,11 @@ import {
   Accessibility,
   MapPin,
   RefreshCw,
+  Ticket,
+  Link as LinkIcon,
+  ChevronRight,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 
 const areaLabels: Record<string, string> = {
@@ -31,18 +37,70 @@ const areaColors: Record<string, string> = {
   wheelchair: 'bg-night-teal-50 text-night-teal-600 border border-night-teal-200',
 };
 
+type QRMode = 'master' | { type: 'single'; regId: string; code: string; name: string };
+
 export default function Checkin() {
-  const { selectedSessionId, registrations, fetchRegistrations } = useAppStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    selectedSessionId,
+    registrations,
+    fetchSessions,
+    setSelectedSessionId,
+    refreshAllForSession,
+  } = useAppStore();
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'registered' | 'checked_in' | 'released'>('all');
   const [qrSession, setQrSession] = useState<any>(null);
+  const [qrMode, setQrMode] = useState<QRMode>('master');
+  const [highlightedRegId, setHighlightedRegId] = useState<string | null>(null);
+  const [verifiedCodeInfo, setVerifiedCodeInfo] = useState<any>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; msg: string } | null>(null);
+  const [paramApplied, setParamApplied] = useState(false);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  useEffect(() => {
+    if (paramApplied) return;
+    const urlSessionId = searchParams.get('sessionId');
+    const urlRegId = searchParams.get('regId');
+    const urlCode = searchParams.get('code');
+
+    if (urlSessionId) {
+      setSelectedSessionId(urlSessionId);
+      setParamApplied(true);
+      if (urlRegId) {
+        setHighlightedRegId(urlRegId);
+        setQrMode({ type: 'single', regId: urlRegId, code: urlCode || '', name: '' });
+        if (urlCode) {
+          api(`/api/checkin/verify-code?code=${encodeURIComponent(urlCode)}`)
+            .then((d: any) => {
+              if (d.valid && d.registration) {
+                setVerifiedCodeInfo(d);
+                setQrMode({
+                  type: 'single',
+                  regId: d.registration.id,
+                  code: urlCode,
+                  name: d.registration.name,
+                });
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    } else {
+      setParamApplied(true);
+    }
+  }, [searchParams, paramApplied, setSelectedSessionId]);
 
   useEffect(() => {
     if (selectedSessionId) {
-      fetchRegistrations(selectedSessionId);
+      refreshAllForSession(selectedSessionId);
       loadQrData(selectedSessionId);
     }
-  }, [selectedSessionId, fetchRegistrations]);
+  }, [selectedSessionId, refreshAllForSession]);
 
   const loadQrData = async (sid: string) => {
     try {
@@ -51,37 +109,152 @@ export default function Checkin() {
     } catch {}
   };
 
+  const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 2800);
+  };
+
   const handleCheckin = async (id: string) => {
-    await api(`/api/checkin/${id}`, { method: 'POST' });
-    fetchRegistrations(selectedSessionId);
+    try {
+      const reg = await api<any>(`/api/checkin/${id}`, { method: 'POST' });
+      await refreshAllForSession(selectedSessionId);
+      showToast('success', `✓ ${reg.name || '居民'} 签到成功，已分配至${areaLabels[reg.area] || '座位'}`);
+      if (verifiedCodeInfo?.registration?.id === id) setVerifiedCodeInfo(null);
+    } catch (e: any) {
+      showToast('error', e.message || '签到失败');
+    }
   };
 
   const handleRelease = async (id: string) => {
-    if (!confirm('确定释放该座位吗？迟到超时的座位可被他人使用。')) return;
-    await api(`/api/checkin/release/${id}`, { method: 'POST' });
-    fetchRegistrations(selectedSessionId);
+    if (!confirm('确定释放该座位吗？迟到超时的座位可被他人使用，相关人数将在看板中回算。')) return;
+    try {
+      await api(`/api/checkin/release/${id}`, { method: 'POST' });
+      await refreshAllForSession(selectedSessionId);
+      showToast('info', '座位已释放，看板人数已回算更新');
+    } catch (e: any) {
+      showToast('error', e.message || '释放失败');
+    }
   };
 
-  const filtered = registrations
-    .filter((r) => (filter === 'all' ? true : r.status === filter))
-    .filter((r) => r.name.includes(search) || r.phone.includes(search));
-
-  const stats = {
-    total: registrations.length,
-    checkedIn: registrations.filter((r) => r.status === 'checked_in').length,
-    pending: registrations.filter((r) => r.status === 'registered').length,
-    released: registrations.filter((r) => r.status === 'released').length,
+  const switchSession = (sid: string) => {
+    setSelectedSessionId(sid);
+    setQrMode('master');
+    setHighlightedRegId(null);
+    setVerifiedCodeInfo(null);
+    setSearchParams({});
+    setFilter('all');
+    setSearch('');
   };
+
+  const filtered = useMemo(() => {
+    return registrations
+      .filter((r) => (filter === 'all' ? true : r.status === filter))
+      .filter((r) => r.name.includes(search) || r.phone.includes(search) || r.id.includes(search));
+  }, [registrations, filter, search]);
+
+  const stats = useMemo(() => {
+    const validRegs = registrations.filter((r) => r.status !== 'released');
+    return {
+      total: validRegs.reduce((s, r) => s + r.peopleCount, 0),
+      totalRegs: registrations.length,
+      checkedIn: registrations.filter((r) => r.status === 'checked_in').reduce((s, r) => s + r.peopleCount, 0),
+      pending: registrations.filter((r) => r.status === 'registered').reduce((s, r) => s + r.peopleCount, 0),
+      released: registrations.filter((r) => r.status === 'released').reduce((s, r) => s + r.peopleCount, 0),
+      releasedRegs: registrations.filter((r) => r.status === 'released').length,
+    };
+  }, [registrations]);
+
+  const qrPayload = useMemo(() => {
+    if (!qrSession) return null;
+    if (qrMode === 'master') {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      return JSON.stringify({
+        type: 'MASTER_CHECKIN',
+        code: qrSession.masterCode,
+        sessionId: qrSession.sessionId,
+        title: qrSession.title,
+        time: `${qrSession.date} ${qrSession.time}`,
+        venue: qrSession.venue,
+        deepLink: `${origin}/checkin?sessionId=${qrSession.sessionId}`,
+        genAt: Date.now(),
+      });
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const reg = qrSession?.registrations?.find((r: any) => r.id === qrMode.regId);
+    const code = qrMode.code || reg?.code;
+    return JSON.stringify({
+      type: 'PERSONAL_CHECKIN',
+      code: code || `CINE_${qrSession.sessionId}_${qrMode.regId}_XXXX`,
+      sessionId: qrSession.sessionId,
+      registrationId: qrMode.regId,
+      name: qrMode.name || reg?.name,
+      deepLink: `${origin}/checkin?sessionId=${qrSession.sessionId}&regId=${qrMode.regId}&code=${encodeURIComponent(code || '')}`,
+      genAt: Date.now(),
+    });
+  }, [qrSession, qrMode]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {toast && (
+        <div
+          className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-card-hover border animate-fade-in-up ${
+            toast.type === 'success'
+              ? 'bg-forest text-white border-forest/50'
+              : toast.type === 'error'
+              ? 'bg-red-500 text-white border-red-400'
+              : 'bg-night-teal-700 text-white border-night-teal-600'
+          }`}
+        >
+          <span className="font-medium">{toast.msg}</span>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl text-night-teal-800 mb-1">扫码签到</h1>
           <p className="text-night-teal-500">居民到场扫码或管理员手动签到，管理座位分配</p>
         </div>
-        <SessionSelector />
+        <div onClick={(e) => e.stopPropagation()}>
+          <SessionSelectorWrapper onChange={switchSession} currentId={selectedSessionId} />
+        </div>
       </div>
+
+      {verifiedCodeInfo && verifiedCodeInfo.registration.status !== 'checked_in' && (
+        <div className="card p-6 opacity-0 animate-fade-in-up stagger-1 border-2 border-warm-orange-300 bg-warm-orange-50/40">
+          <div className="flex flex-col md:flex-row md:items-center gap-5">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warm-orange-400 to-warm-orange-600 flex items-center justify-center shadow-glow animate-pulse-ring">
+                <Ticket size={32} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-warm-orange-600 font-medium flex items-center gap-1">
+                  <Sparkles size={14} /> 扫码识别到签到码
+                </p>
+                <p className="font-display text-2xl text-night-teal-800">
+                  {verifiedCodeInfo.registration.name}，{verifiedCodeInfo.registration.peopleCount}人
+                </p>
+                <p className="text-sm text-night-teal-500">
+                  {verifiedCodeInfo.session?.title} · {verifiedCodeInfo.session?.date} {verifiedCodeInfo.session?.time} · {verifiedCodeInfo.session?.venue}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleCheckin(verifiedCodeInfo.registration.id)}
+                className="btn-primary text-base !px-6 !py-3 flex items-center gap-2"
+              >
+                <CheckCircle size={20} /> 确认签到入场
+              </button>
+              <button
+                onClick={() => setVerifiedCodeInfo(null)}
+                className="btn-outline"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {qrSession && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -89,47 +262,150 @@ export default function Checkin() {
             <div className="relative inline-block mb-5">
               <div className="absolute inset-0 rounded-3xl bg-warm-orange-400/20 animate-pulse-ring" />
               <div className="relative bg-white p-4 rounded-3xl border-4 border-night-teal-100">
-                <QRCodeSVG
-                  value={JSON.stringify({
-                    type: 'checkin',
-                    sessionId: qrSession.sessionId,
-                    title: qrSession.title,
-                  })}
-                  size={200}
-                  level="H"
-                  includeMargin={false}
-                  fgColor="#0d4f4f"
-                />
+                {qrPayload ? (
+                  <QRCodeSVG
+                    value={qrPayload}
+                    size={200}
+                    level="H"
+                    includeMargin={false}
+                    fgColor="#0d4f4f"
+                  />
+                ) : (
+                  <div className="w-[200px] h-[200px] flex items-center justify-center text-night-teal-300">
+                    <QrCode size={48} />
+                  </div>
+                )}
               </div>
             </div>
-            <h3 className="font-display text-xl text-night-teal-800 mb-1">{qrSession.title}</h3>
-            <p className="text-sm text-night-teal-500 mb-1">
-              📅 {qrSession.date} {qrSession.time}
-            </p>
-            <p className="text-sm text-night-teal-500">📍 {qrSession.venue}</p>
-            <p className="text-xs text-night-teal-400 mt-4">请让居民使用手机扫描此二维码</p>
+
+            {qrMode === 'master' ? (
+              <>
+                <h3 className="font-display text-xl text-night-teal-800 mb-1">
+                  📽️ {qrSession.title}
+                </h3>
+                <p className="text-sm text-night-teal-500 mb-1">
+                  📅 {qrSession.date} {qrSession.time}
+                </p>
+                <p className="text-sm text-night-teal-500">📍 {qrSession.venue}</p>
+                <div className="mt-4 p-3 rounded-xl bg-night-teal-50 text-xs text-night-teal-600 text-left">
+                  <p className="flex items-center gap-1.5 mb-1">
+                    <LinkIcon size={12} /> 场次通用签到码
+                  </p>
+                  <p className="text-night-teal-500">居民扫码后可搜索自己的姓名或点击报名记录签到</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-warm-orange-600 font-medium mb-1 flex items-center justify-center gap-1">
+                  <Ticket size={13} /> 个人专属签到码
+                </p>
+                <h3 className="font-display text-xl text-night-teal-800 mb-1">
+                  {qrMode.name || '居民签到码'}
+                </h3>
+                <p className="text-sm text-night-teal-500 mb-1">
+                  📽️ {qrSession.title}
+                </p>
+                <p className="text-sm text-night-teal-500">📅 {qrSession.date} {qrSession.time}</p>
+                <div className="mt-4 p-3 rounded-xl bg-warm-orange-50 text-xs text-warm-orange-700 text-left">
+                  <p className="flex items-center gap-1.5 mb-1">
+                    <Sparkles size={12} /> 扫码即自动识别
+                  </p>
+                  <p className="text-warm-orange-600">点击下方按钮确认即可入场</p>
+                </div>
+              </>
+            )}
+
+            <div className="mt-5 border-t border-night-teal-50 pt-5">
+              <p className="text-xs text-night-teal-400 mb-3">切换二维码模式</p>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setQrMode('master')}
+                  className={`w-full text-sm px-4 py-2.5 rounded-xl flex items-center justify-between transition-all ${
+                    qrMode === 'master'
+                      ? 'bg-night-teal-800 text-white shadow-md'
+                      : 'bg-night-teal-50 text-night-teal-700 hover:bg-night-teal-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <QrCode size={16} /> 场次通用码
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+                {qrSession.registrations?.slice(0, 6).map((r: any) => (
+                  <button
+                    key={r.id}
+                    onClick={() =>
+                      setQrMode({ type: 'single', regId: r.id, code: r.code, name: r.name })
+                    }
+                    className={`w-full text-sm px-4 py-2.5 rounded-xl flex items-center justify-between transition-all ${
+                      qrMode !== 'master' && qrMode.regId === r.id
+                        ? 'bg-warm-orange-500 text-white shadow-md'
+                        : 'bg-night-teal-50 text-night-teal-700 hover:bg-warm-orange-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Ticket size={16} /> {r.name} 的专属码
+                    </span>
+                    <ChevronRight size={16} />
+                  </button>
+                ))}
+                {qrSession.registrations?.length > 6 && (
+                  <p className="text-xs text-night-teal-400 pt-1">
+                    + 还有 {qrSession.registrations.length - 6} 位居民
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="lg:col-span-2 space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatMini label="报名家庭" value={stats.total} icon={<Users size={18} />} color="bg-night-teal-100 text-night-teal-700" stagger="stagger-1" />
-              <StatMini label="已签到" value={stats.checkedIn} icon={<CheckCircle size={18} />} color="bg-forest/15 text-forest" stagger="stagger-2" />
-              <StatMini label="待签到" value={stats.pending} icon={<Clock size={18} />} color="bg-warm-orange-100 text-warm-orange-600" stagger="stagger-3" />
-              <StatMini label="已释放" value={stats.released} icon={<Unlock size={18} />} color="bg-night-teal-50 text-night-teal-500" stagger="stagger-4" />
+              <StatMini
+                label="有效报名人数"
+                value={stats.total}
+                sub={`${stats.totalRegs} 个家庭`}
+                icon={<Users size={18} />}
+                color="bg-night-teal-100 text-night-teal-700"
+                stagger="stagger-1"
+              />
+              <StatMini
+                label="已签到入场"
+                value={stats.checkedIn}
+                icon={<CheckCircle size={18} />}
+                color="bg-forest/15 text-forest"
+                stagger="stagger-2"
+              />
+              <StatMini
+                label="待签到 (待释放)"
+                value={stats.pending}
+                icon={<Clock size={18} />}
+                color="bg-warm-orange-100 text-warm-orange-600"
+                stagger="stagger-3"
+              />
+              <StatMini
+                label="已释放座位"
+                value={stats.released}
+                sub={`${stats.releasedRegs} 条记录`}
+                icon={<Unlock size={18} />}
+                color="bg-night-teal-50 text-night-teal-500"
+                stagger="stagger-4"
+              />
             </div>
 
             <div className="card p-5 opacity-0 animate-fade-in-up stagger-2">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
                 <div className="flex gap-2 flex-wrap">
-                  {([
-                    { id: 'all', label: '全部' },
-                    { id: 'registered', label: '待签到' },
-                    { id: 'checked_in', label: '已签到' },
-                    { id: 'released', label: '已释放' },
-                  ] as const).map((f) => (
+                  {(
+                    [
+                      { id: 'all', label: `全部 ${registrations.length}` },
+                      { id: 'registered', label: '待签到' },
+                      { id: 'checked_in', label: '已签到' },
+                      { id: 'released', label: '已释放' },
+                    ] as const
+                  ).map((f) => (
                     <button
                       key={f.id}
-                      onClick={() => setFilter(f.id)}
+                      onClick={() => setFilter(f.id as any)}
                       className={`px-4 py-2 rounded-xl font-medium transition-all ${
                         filter === f.id
                           ? 'bg-night-teal-800 text-white shadow-md'
@@ -146,8 +422,8 @@ export default function Checkin() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="搜索姓名或电话..."
-                    className="input-field pl-10 pr-4 py-2 w-56 !text-sm"
+                    placeholder="搜索姓名、电话、签到码..."
+                    className="input-field pl-10 pr-4 py-2 w-64 !text-sm"
                   />
                 </div>
               </div>
@@ -164,8 +440,19 @@ export default function Checkin() {
                       key={r.id}
                       registration={r}
                       stagger={`stagger-${(i % 6) + 1}`}
+                      highlighted={highlightedRegId === r.id}
+                      verified={verifiedCodeInfo?.registration?.id === r.id}
                       onCheckin={() => handleCheckin(r.id)}
                       onRelease={() => handleRelease(r.id)}
+                      onShowQR={(name) => {
+                        const regInfo = qrSession?.registrations?.find((x: any) => x.id === r.id);
+                        setQrMode({
+                          type: 'single',
+                          regId: r.id,
+                          code: regInfo?.code || '',
+                          name,
+                        });
+                      }}
                     />
                   ))}
                 </div>
@@ -178,15 +465,112 @@ export default function Checkin() {
   );
 }
 
+function SessionSelectorWrapper({
+  onChange,
+  currentId,
+}: {
+  onChange: (sid: string) => void;
+  currentId: string;
+}) {
+  const { sessions, fetchSessions } = useAppStore();
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+  const current = sessions.find((s) => s.id === currentId);
+  const [open, setOpen] = useState(false);
+  return (
+    <SessionSelectorInternal
+      sessions={sessions}
+      current={current}
+      open={open}
+      setOpen={setOpen}
+      onChange={onChange}
+    />
+  );
+}
+
+function SessionSelectorInternal({
+  sessions,
+  current,
+  open,
+  setOpen,
+  onChange,
+}: {
+  sessions: any[];
+  current: any;
+  open: boolean;
+  setOpen: (o: boolean) => void;
+  onChange: (sid: string) => void;
+}) {
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white shadow-card border border-night-teal-100 hover:shadow-card-hover transition-all"
+      >
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-warm-orange-400 to-warm-orange-600 flex items-center justify-center text-white font-display text-lg shrink-0">
+          🎬
+        </div>
+        <div className="text-left">
+          <p className="font-display text-lg text-night-teal-800 leading-tight">
+            {current?.title || '选择场次'}
+          </p>
+          <p className="text-xs text-night-teal-500">
+            {current ? `${current.date} ${current.time} · ${current.venue}` : '请选择电影场次'}
+          </p>
+        </div>
+      </button>
+      {open && (
+        <div className="absolute right-6 mt-2 w-80 bg-white rounded-2xl shadow-card-hover border border-night-teal-100 overflow-hidden z-50">
+          {sessions.length === 0 ? (
+            <p className="p-4 text-sm text-night-teal-500 text-center">暂无场次</p>
+          ) : (
+            sessions.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => {
+                  onChange(s.id);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 p-4 text-left transition-colors ${
+                  s.id === current?.id ? 'bg-warm-orange-50' : 'hover:bg-night-teal-50'
+                }`}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-night-teal-100 shrink-0">
+                    {s.photo ? (
+                      <img src={s.photo} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🎥</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-night-teal-800 truncate">{s.title}</p>
+                    <p className="text-xs text-night-teal-500">
+                      {s.date} {s.time}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatMini({
   label,
   value,
+  sub,
   icon,
   color,
   stagger,
 }: {
   label: string;
   value: number;
+  sub?: string;
   icon: React.ReactNode;
   color: string;
   stagger: string;
@@ -195,9 +579,10 @@ function StatMini({
     <div className={`card p-4 opacity-0 animate-fade-in-up ${stagger}`}>
       <div className="flex items-center gap-3">
         <div className={`p-2.5 rounded-xl ${color}`}>{icon}</div>
-        <div>
-          <p className="text-xs text-night-teal-500">{label}</p>
-          <p className="font-display text-2xl text-night-teal-800">{value}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-night-teal-500 truncate">{label}</p>
+          <p className="font-display text-2xl text-night-teal-800 leading-tight">{value}</p>
+          {sub && <p className="text-[10px] text-night-teal-400">{sub}</p>}
         </div>
       </div>
     </div>
@@ -207,29 +592,58 @@ function StatMini({
 function CheckinRow({
   registration,
   stagger,
+  highlighted,
+  verified,
   onCheckin,
   onRelease,
+  onShowQR,
 }: {
   registration: Registration;
   stagger: string;
+  highlighted?: boolean;
+  verified?: boolean;
   onCheckin: () => void;
   onRelease: () => void;
+  onShowQR: (name: string) => void;
 }) {
   const statusMap = {
-    registered: { label: '待签到', color: 'bg-warm-orange-100 text-warm-orange-700', icon: Clock },
-    checked_in: { label: '已签到', color: 'bg-forest/15 text-forest', icon: CheckCircle },
-    released: { label: '已释放', color: 'bg-night-teal-100 text-night-teal-500', icon: Unlock },
+    registered: {
+      label: '待签到',
+      color: 'bg-warm-orange-100 text-warm-orange-700',
+      icon: Clock,
+    },
+    checked_in: {
+      label: '已签到',
+      color: 'bg-forest/15 text-forest',
+      icon: CheckCircle,
+    },
+    released: {
+      label: '已释放',
+      color: 'bg-night-teal-100 text-night-teal-500',
+      icon: Unlock,
+    },
   };
   const s = statusMap[registration.status];
   const StatusIcon = s.icon;
 
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-cream/40 border border-night-teal-50 opacity-0 animate-fade-in-up ${stagger} hover:bg-cream/70 transition-colors`}
+      className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl border transition-all opacity-0 animate-fade-in-up ${stagger} ${
+        highlighted || verified
+          ? 'bg-warm-orange-50/60 border-warm-orange-300 shadow-md ring-2 ring-warm-orange-200'
+          : 'bg-cream/40 border-night-teal-50 hover:bg-cream/70'
+      }`}
     >
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-night-teal-100 to-night-teal-200 flex items-center justify-center shrink-0">
-          <span className="font-display text-xl text-night-teal-700">{registration.name.charAt(0)}</span>
+      <div className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer" onClick={onCheckin}>
+        <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-night-teal-100 to-night-teal-200 flex items-center justify-center shrink-0">
+          <span className="font-display text-xl text-night-teal-700">
+            {registration.name.charAt(0)}
+          </span>
+          {verified && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-warm-orange-500 text-white flex items-center justify-center animate-pulse-ring">
+              <AlertCircle size={12} />
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -262,16 +676,42 @@ function CheckinRow({
             )}
             <span>{registration.phone}</span>
           </div>
+          {registration.status === 'registered' && (
+            <p className="text-[11px] text-night-teal-400 mt-1.5 flex items-center gap-1">
+              💡 点击整行即可快速签到
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="flex gap-2 sm:justify-end">
+      <div className="flex gap-2 sm:justify-end flex-wrap">
         {registration.status === 'registered' && (
           <>
-            <button onClick={onCheckin} className="btn-primary !py-2 !px-4 text-sm flex items-center gap-1.5">
-              <CheckCircle size={15} /> 签到
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCheckin();
+              }}
+              className="btn-primary !py-2 !px-4 text-sm flex items-center gap-1.5"
+            >
+              <CheckCircle size={15} /> 签到入场
             </button>
-            <button onClick={onRelease} className="btn-outline !py-2 !px-4 text-sm flex items-center gap-1.5 !border-warm-orange-300 text-warm-orange-600 hover:!bg-warm-orange-50">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowQR(registration.name);
+              }}
+              className="btn-outline !py-2 !px-4 text-sm flex items-center gap-1.5"
+            >
+              <QrCode size={15} /> 个人码
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRelease();
+              }}
+              className="btn-outline !py-2 !px-4 text-sm flex items-center gap-1.5 !border-warm-orange-300 text-warm-orange-600 hover:!bg-warm-orange-50"
+            >
               <RefreshCw size={15} /> 释放
             </button>
           </>

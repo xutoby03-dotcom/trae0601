@@ -13,6 +13,7 @@ interface AppState {
   fetchInventory: () => Promise<void>;
   fetchRegistrations: (sessionId?: string) => Promise<void>;
   fetchDashboard: (sessionId: string) => Promise<void>;
+  refreshAllForSession: (sessionId: string) => Promise<void>;
 
   setSelectedSessionId: (id: string) => void;
 }
@@ -73,6 +74,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setSelectedSessionId: (id: string) => set({ selectedSessionId: id }),
+
+  refreshAllForSession: async (sessionId: string) => {
+    if (!sessionId) return;
+    const sid = sessionId;
+    const [regs] = await Promise.all([
+      api<Registration[]>(`/api/registrations?sessionId=${sid}`),
+      (async () => {
+        try {
+          const d = await api<DashboardData>(`/api/dashboard/${sid}`);
+          set({ dashboard: d });
+        } catch {}
+      })(),
+    ]);
+    set({ registrations: regs });
+  },
 }));
 
 export { api };
