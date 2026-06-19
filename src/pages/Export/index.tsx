@@ -252,69 +252,127 @@ export default function ExportCenter() {
   const generateTableCardsText = () => {
     if (!currentPlan || !seating?.tables) return '';
 
-    let text = `══════════════════════════════════════════\n`;
-    text += `           每桌桌签打印\n`;
-    text += `══════════════════════════════════════════\n\n`;
+    const allergyLabels: Record<string, string> = {
+      seafood: '海鲜',
+      nuts: '坚果',
+      spicy: '辣',
+      dairy: '乳制品',
+      gluten: '麸质',
+      soy: '大豆',
+      eggs: '鸡蛋',
+    };
 
-    seating.tables.forEach((table, tableIndex) => {
+    const religiousLabels: Record<string, string> = {
+      halal: '清真',
+      vegetarian: '素食',
+      vegan: '纯素',
+      hindu: '印度教（不食牛肉）',
+      jewish: '犹太洁食',
+    };
+
+    let text = '';
+
+    seating.tables.forEach((table) => {
       const tableMembers = table.memberIds
         .map(getMemberById)
         .filter(Boolean) as Member[];
 
-      text += `┌────────────────────────────────────────┐\n`;
-      text += `│           ${table.name}              │\n`;
-      text += `├────────────────────────────────────────┤\n`;
-      text += `│  本桌用餐注意事项：                    │\n`;
+      if (tableMembers.length === 0) {
+        return;
+      }
 
-      const tableAllergies = new Set<string>();
-      const tableReligious = new Set<string>();
-      const tableNonAlcohol: string[] = [];
+      const allergyCounts = new Map<string, number>();
+      const religiousCounts = new Map<string, number>();
+      const nonDrinkerNames: string[] = [];
+      let vegetarianCount = 0;
+      const importantNotes: string[] = [];
 
-      tableMembers.forEach((member) => {
-        member.allergies.forEach((a) => tableAllergies.add(a));
-        if (member.religiousDiet) tableReligious.add(member.religiousDiet);
-        if (!member.drinksAlcohol) tableNonAlcohol.push(member.name);
+      tableMembers.forEach((m) => {
+        m.allergies.forEach((a) => {
+          allergyCounts.set(a, (allergyCounts.get(a) || 0) + 1);
+        });
+        if (m.religiousDiet) {
+          religiousCounts.set(m.religiousDiet, (religiousCounts.get(m.religiousDiet) || 0) + 1);
+          if (m.religiousDiet === 'vegetarian' || m.religiousDiet === 'vegan') {
+            vegetarianCount++;
+          }
+        }
+        if (!m.drinksAlcohol) {
+          nonDrinkerNames.push(m.name);
+        }
+        if (m.notes && m.notes.trim()) {
+          importantNotes.push(`${m.name}：${m.notes.trim()}`);
+        }
       });
 
-      if (tableAllergies.size > 0) {
-        const allergyLabels = Array.from(tableAllergies)
-          .map((a) => ALLERGY_OPTIONS.find((o) => o.value === a)?.label)
-          .filter(Boolean);
-        text += `│  ⚠️  过敏源：${allergyLabels.join('、')}                  │\n`;
+      const hasWarnings = allergyCounts.size > 0 || religiousCounts.size > 0 || nonDrinkerNames.length > 0 || importantNotes.length > 0;
+
+      text += `╔════════════════════════════════════════════╗\n`;
+      text += `║              ${table.name}               ║\n`;
+      text += `╠════════════════════════════════════════════╣\n`;
+      text += `║ ${currentPlan.name}                    ║\n`;
+      text += `║ ${currentPlan.restaurant} · ${currentPlan.date}              ║\n`;
+      text += `╠════════════════════════════════════════════╣\n`;
+      text += `║  成员名单（${tableMembers.length}人）：                      ║\n`;
+
+      for (let i = 0; i < tableMembers.length; i += 2) {
+        const names = tableMembers.slice(i, i + 2).map((m) => m.name);
+        text += `║    ${names.join(' · ').padEnd(38)}║\n`;
       }
 
-      if (tableReligious.size > 0) {
-        const religiousLabels = Array.from(tableReligious)
-          .map((r) => RELIGIOUS_DIET_OPTIONS.find((o) => o.value === r)?.label)
-          .filter(Boolean);
-        text += `│  ✡️  宗教禁忌：${religiousLabels.join('、')}                │\n`;
+      if (hasWarnings) {
+        text += `╠════════════════════════════════════════════╣\n`;
+        text += `║  【忌口摘要】                              ║\n`;
+
+        if (allergyCounts.size > 0) {
+          const parts: string[] = [];
+          allergyCounts.forEach((count, allergy) => {
+            parts.push(`${allergyLabels[allergy] || allergy}${count}人`);
+          });
+          const line = `⚠️  过敏：${parts.join('、')}`;
+          text += `║  ${line.padEnd(40)}║\n`;
+        }
+        if (religiousCounts.size > 0) {
+          const parts: string[] = [];
+          religiousCounts.forEach((count, religion) => {
+            parts.push(`${religiousLabels[religion] || religion}${count}人`);
+          });
+          const line = `🕊️  禁忌：${parts.join('、')}`;
+          text += `║  ${line.padEnd(40)}║\n`;
+        }
+        if (nonDrinkerNames.length > 0) {
+          const namesStr = nonDrinkerNames.join('、');
+          const displayStr = namesStr.length > 18 ? namesStr.slice(0, 18) + '...' : namesStr;
+          const line = `🚫  不饮酒：${nonDrinkerNames.length}人（${displayStr}）`;
+          text += `║  ${line.padEnd(40)}║\n`;
+        }
+        if (vegetarianCount > 0) {
+          const line = `🌿  素食：${vegetarianCount}人`;
+          text += `║  ${line.padEnd(40)}║\n`;
+        }
       }
 
-      if (tableNonAlcohol.length > 0) {
-        text += `│  🍵  不饮酒：${tableNonAlcohol.length}人                    │\n`;
+      if (importantNotes.length > 0) {
+        text += `╠════════════════════════════════════════════╣\n`;
+        text += `║  【重点提醒】                              ║\n`;
+        importantNotes.forEach((note) => {
+          const maxLen = 36;
+          if (note.length <= maxLen) {
+            text += `║  • ${note.padEnd(maxLen)}║\n`;
+          } else {
+            const lines: string[] = [];
+            for (let i = 0; i < note.length; i += maxLen) {
+              lines.push(note.slice(i, i + maxLen));
+            }
+            lines.forEach((line, idx) => {
+              const prefix = idx === 0 ? '• ' : '  ';
+              text += `║  ${prefix}${line.padEnd(maxLen)}║\n`;
+            });
+          }
+        });
       }
 
-      if (tableAllergies.size === 0 && tableReligious.size === 0 && tableNonAlcohol.length === 0) {
-        text += `│  ✅  无特殊饮食禁忌                    │\n`;
-      }
-
-      text += `├────────────────────────────────────────┤\n`;
-      text += `│  成员名单：                            │\n`;
-
-      tableMembers.forEach((member) => {
-        const tags = [];
-        if (member.allergies.length > 0) tags.push('⚠️');
-        if (member.religiousDiet) tags.push('✡️');
-        if (!member.drinksAlcohol) tags.push('🍵');
-        const tagStr = tags.length > 0 ? ` ${tags.join('')}` : '';
-        text += `│    ${member.name}${tagStr}\n`;
-      });
-
-      text += `└────────────────────────────────────────┘\n`;
-
-      if (tableIndex < seating.tables.length - 1) {
-        text += `\n  ---  切  割  线  ---\n\n`;
-      }
+      text += `╚════════════════════════════════════════════╝\n\n\n`;
     });
 
     return text;
