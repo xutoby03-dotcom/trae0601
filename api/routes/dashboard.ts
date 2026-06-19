@@ -4,10 +4,8 @@ import type { DashboardStats, ProductCategory, Incident, Sample, FridgeSlotInfo 
 
 const router = express.Router();
 
-const FRIDGE_ROWS = [1, 2, 3, 4, 5];
-const FRIDGE_COLS = ["A", "B", "C", "D"];
-const ALL_FRIDGE_SLOTS: string[] = FRIDGE_ROWS.flatMap((r) =>
-  FRIDGE_COLS.map((c) => `${r}-${c}`)
+const STANDARD_SLOTS: string[] = [1, 2, 3, 4, 5].flatMap((r) =>
+  ["A", "B", "C", "D"].map((c) => `${r}-${c}`)
 );
 
 const slotSortKey = (slot: string) => {
@@ -132,10 +130,25 @@ router.get("/fridge-occupancy", (req, res) => {
     slotMap.set(s.fridgeSlot, enrichSample(s));
   }
 
-  const data: FridgeSlotInfo[] = ALL_FRIDGE_SLOTS.map((slot) => {
+  const occupiedSlots = new Set(slotMap.keys());
+  const allSlots = new Set(STANDARD_SLOTS);
+  for (const s of occupiedSlots) allSlots.add(s);
+
+  const sorted = [...allSlots].sort(
+    (a, b) => slotSortKey(a) - slotSortKey(b)
+  );
+
+  const EMPTY_TAIL_LIMIT = 3;
+  let emptyCount = 0;
+  const data: FridgeSlotInfo[] = [];
+  for (const slot of sorted) {
     const sample = slotMap.get(slot);
-    return sample ? { slot, sample } : { slot };
-  }).sort((a, b) => slotSortKey(a.slot) - slotSortKey(b.slot));
+    if (!sample) {
+      emptyCount++;
+      if (emptyCount > EMPTY_TAIL_LIMIT) continue;
+    }
+    data.push(sample ? { slot, sample } : { slot });
+  }
 
   res.json({ success: true, data });
 });
