@@ -111,7 +111,10 @@ function DashboardPage() {
       </div>
 
       {overdueAlerts && overdueAlerts.length > 0 && (
-        <div className="card !p-0 border-red-300 bg-red-50 animate-breathe overflow-hidden">
+        <div
+          onClick={() => navigate('/disinfection?filter=overdue')}
+          className="card !p-0 border-red-300 bg-red-50 animate-breathe overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+        >
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-full bg-red-100">
@@ -125,7 +128,7 @@ function DashboardPage() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/disinfection')}
+              onClick={() => navigate('/disinfection?filter=overdue')}
               className="btn-danger"
             >
               立即处理
@@ -156,10 +159,14 @@ function DashboardPage() {
         {STATISTICS_CONFIG.map((config) => {
           const value = stats ? (stats as any)[config.key] : 0;
           const Icon = config.icon;
+          const isOverdueCard = config.key === 'overdueTasks';
           return (
             <div
               key={config.key}
-              className="card !p-0 overflow-hidden hover:shadow-md transition-shadow"
+              onClick={() => {
+                if (isOverdueCard) navigate('/disinfection?filter=overdue');
+              }}
+              className={`card !p-0 overflow-hidden hover:shadow-md transition-shadow ${isOverdueCard ? 'cursor-pointer' : ''}`}
             >
               <div className="flex">
                 <div className={`w-1.5 bg-gradient-to-b ${config.gradient}`} />
