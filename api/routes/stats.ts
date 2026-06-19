@@ -8,9 +8,23 @@ import {
 } from '../data/database.js';
 import { CROP_GROWTH_CYCLES } from '../../shared/types.js';
 import { differenceInDays, format, startOfWeek, addDays } from 'date-fns';
-import { generateWaterUsageData } from '../data/seedData.js';
 
 const router = express.Router();
+
+const aggregateDailyWaterUsage = (checkIns: { checkInTime: string; waterAmount: number }[], days: number, fromToday = false) => {
+  const result: { date: string; amount: number }[] = [];
+  const today = new Date();
+  const start = fromToday ? addDays(today, -(days - 1)) : startOfWeek(today, { weekStartsOn: 1 });
+  const actualDays = fromToday ? days : 7;
+
+  for (let i = 0; i < actualDays; i++) {
+    const dateStr = format(addDays(start, i), 'yyyy-MM-dd');
+    const dayCheckIns = checkIns.filter(c => c.checkInTime.startsWith(dateStr));
+    const totalWater = dayCheckIns.reduce((sum, c) => sum + c.waterAmount, 0);
+    result.push({ date: dateStr, amount: totalWater });
+  }
+  return result;
+};
 
 router.get('/dashboard', (req, res) => {
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -25,6 +39,7 @@ router.get('/dashboard', (req, res) => {
   
   const anomalies = getAnomalies(false);
   const gardenBeds = getGardenBeds();
+  const checkIns = getCheckIns();
   
   const cropGrowthStatus = gardenBeds.map(bed => {
     const growthCycle = CROP_GROWTH_CYCLES[bed.crop] || CROP_GROWTH_CYCLES['默认'];
@@ -35,7 +50,8 @@ router.get('/dashboard', (req, res) => {
   
   const readyToHarvest = gardenBeds.filter(bed => bed.status === 'harvesting');
   
-  const waterUsageThisWeek = generateWaterUsageData();
+  const waterUsageThisWeek = aggregateDailyWaterUsage(checkIns, 7, false);
+  const waterUsageThisMonth = aggregateDailyWaterUsage(checkIns, 30, true);
   
   res.json({
     success: true,
@@ -43,6 +59,7 @@ router.get('/dashboard', (req, res) => {
       todaySchedules: scheduleStats,
       anomaliesCount: anomalies.length,
       waterUsageThisWeek,
+      waterUsageThisMonth,
       readyToHarvest,
       cropGrowthStatus,
     },

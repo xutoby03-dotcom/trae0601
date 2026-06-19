@@ -112,6 +112,7 @@ export interface DashboardStats {
   };
   anomaliesCount: number;
   waterUsageThisWeek: { date: string; amount: number }[];
+  waterUsageThisMonth: { date: string; amount: number }[];
   readyToHarvest: GardenBed[];
   cropGrowthStatus: { gardenBed: GardenBed; growthProgress: number }[];
 }

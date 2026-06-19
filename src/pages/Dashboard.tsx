@@ -293,7 +293,7 @@ const Dashboard: React.FC = () => {
                     <Bar dataKey="amount" fill="url(#waterGradient)" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 ) : (
-                  <LineChart data={dashboardStats?.waterUsageThisWeek || []}>
+                  <LineChart data={dashboardStats?.waterUsageThisMonth || []}>
                     <defs>
                       <linearGradient id="waterLineGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#4CAF50" stopOpacity={0.3} />
