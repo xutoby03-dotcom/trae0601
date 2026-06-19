@@ -98,9 +98,18 @@ export const useStore = create<AppState>()(
                 r.id === record.dryingRecordId ? { ...r, filterCleaned: true } : r
               )
             : state.dryingRecords
+
+          let updatedNextDeepCleanDate = state.nextDeepCleanDate
+          if (state.nextDeepCleanDate) {
+            const currentDate = new Date(state.nextDeepCleanDate)
+            currentDate.setDate(currentDate.getDate() + 90)
+            updatedNextDeepCleanDate = currentDate.toISOString().slice(0, 10)
+          }
+
           return {
             cleaningRecords: [...state.cleaningRecords, newRecord],
             dryingRecords: updatedDryingRecords,
+            nextDeepCleanDate: updatedNextDeepCleanDate,
           }
         })
       },

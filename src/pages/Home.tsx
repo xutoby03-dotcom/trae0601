@@ -363,15 +363,33 @@ export default function Home() {
               </div>
               <div className="flex flex-col items-center">
                 <CountdownRing
-                  days={daysUntilDeepClean ?? 0}
+                  days={Math.max(0, daysUntilDeepClean ?? 0)}
                   total={90}
                 />
                 <div className="mt-4 text-center">
                   {daysUntilDeepClean !== null ? (
                     <>
+                      {daysUntilDeepClean < 0 && (
+                        <div className="mb-2 px-3 py-1.5 bg-danger-500/20 border border-danger-500/40 rounded-lg animate-pulse">
+                          <p className="text-xs text-danger-400 font-medium font-body">
+                            ⚠️ 已逾期 {Math.abs(daysUntilDeepClean)} 天
+                          </p>
+                        </div>
+                      )}
+                      {daysUntilDeepClean >= 0 && daysUntilDeepClean <= 7 && (
+                        <div className="mb-2 px-3 py-1.5 bg-danger-500/15 border border-danger-500/30 rounded-lg">
+                          <p className="text-xs text-danger-400 font-body">
+                            {daysUntilDeepClean === 0
+                              ? '⚠️ 今日到期！请立即安排深度清洁'
+                              : `⚠️ 仅剩 ${daysUntilDeepClean} 天，尽快安排深度清洁`}
+                          </p>
+                        </div>
+                      )}
                       <p
                         className={`text-sm font-body ${
-                          daysUntilDeepClean <= 3
+                          daysUntilDeepClean < 0
+                            ? 'text-danger-400 font-medium'
+                            : daysUntilDeepClean <= 3
                             ? 'text-danger-400'
                             : daysUntilDeepClean <= 7
                             ? 'text-warning-400'
@@ -380,7 +398,9 @@ export default function Home() {
                       >
                         {daysUntilDeepClean > 0
                           ? `${daysUntilDeepClean} 天后需深度清洁`
-                          : '已到深度清洁时间！'}
+                          : daysUntilDeepClean === 0
+                          ? '今日需深度清洁'
+                          : `已逾期 ${Math.abs(daysUntilDeepClean)} 天，立即清洁！`}
                       </p>
                       <p className="text-xs text-surface-400 mt-1 font-body">
                         目标日期：{nextDeepCleanDate || '未设置'}

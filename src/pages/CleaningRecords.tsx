@@ -365,6 +365,14 @@ export default function CleaningRecords() {
           </div>
 
           <div className="flex items-center gap-3 mt-5 pt-4 border-t border-surface-500/30">
+            {nextDeepCleanDate && (
+              <div className="mr-auto flex items-center gap-2 px-3 py-1.5 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+                <CalendarClock className="w-3.5 h-3.5 text-brand-400" />
+                <span className="text-xs text-brand-400 font-body">
+                  保存后下次深度清洁日期将自动顺延 90 天
+                </span>
+              </div>
+            )}
             <button
               onClick={handleSave}
               disabled={!form.deviceId}
