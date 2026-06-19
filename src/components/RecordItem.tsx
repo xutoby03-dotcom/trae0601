@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Trash2, ChevronDown, ChevronUp, User, Droplets } from 'lucide-react';
+import { AlertTriangle, Trash2, ChevronDown, ChevronUp, User, Droplets, Sparkles } from 'lucide-react';
 import type { CleaningRecord, LitterBox, Cat } from '@/types';
 import { OPERATION_LABELS, ODOR_LABELS, CLUMP_LABELS, ABNORMAL_LABELS } from '@/types';
 import { formatDateTime } from '@/utils/calculation';
@@ -67,6 +67,12 @@ export default function RecordItem({ record, litterBox, cat, delay = 0 }: Record
                     {OPERATION_LABELS[type]}
                   </span>
                 ))}
+                {(record.deodorizerUsed ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-sand-50 text-sand-400 text-sm rounded-full border border-sand-100">
+                    <Sparkles size={12} />
+                    除臭珠 ×{record.deodorizerUsed}
+                  </span>
+                )}
               </div>
             </div>
             
@@ -109,6 +115,12 @@ export default function RecordItem({ record, litterBox, cat, delay = 0 }: Record
                   <div className="flex items-center gap-1">
                     <Droplets size={14} className="text-warm-300" />
                     <span className="text-warm-400">补砂 {record.litterAdded}kg</span>
+                  </div>
+                )}
+                {(record.deodorizerUsed ?? 0) > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Sparkles size={14} className="text-sand-300" />
+                    <span className="text-warm-400">除臭珠 {record.deodorizerUsed}颗</span>
                   </div>
                 )}
               </div>

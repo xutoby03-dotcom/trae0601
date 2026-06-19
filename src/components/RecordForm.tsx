@@ -197,20 +197,33 @@ export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: Re
             <div>
               <label className="block text-sm font-medium text-warm-400 mb-1">
                 除臭珠用量（颗）
-                {selectedBox && typeof selectedBox.deodorizerRemaining === 'number' && (
-                  <span className="text-warm-300 ml-2">
-                    （剩余：{selectedBox.deodorizerRemaining} 颗）
-                  </span>
-                )}
               </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.deodorizerUsed}
-                onChange={(e) => setFormData({ ...formData, deodorizerUsed: parseInt(e.target.value) || 0 })}
-                className="input-field"
-                placeholder="例如：5"
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.deodorizerUsed}
+                  onChange={(e) => setFormData({ ...formData, deodorizerUsed: parseInt(e.target.value) || 0 })}
+                  className="input-field flex-1"
+                  placeholder="例如：5"
+                />
+                {selectedBox && typeof selectedBox.deodorizerRemaining === 'number' && (
+                  <div className="flex-shrink-0 px-4 py-3 rounded-xl bg-cream-50 border border-warm-100 text-sm">
+                    <span className="text-warm-300">当前 </span>
+                    <span className="font-medium text-warm-400">{selectedBox.deodorizerRemaining}</span>
+                    <span className="text-warm-300"> 颗</span>
+                    <span className="text-warm-200 mx-1">→</span>
+                    <span className={`font-medium ${
+                      Math.max(0, selectedBox.deodorizerRemaining - formData.deodorizerUsed) <= 10
+                        ? 'text-coral-400'
+                        : 'text-forest-300'
+                    }`}>
+                      {Math.max(0, selectedBox.deodorizerRemaining - formData.deodorizerUsed)}
+                    </span>
+                    <span className="text-warm-300"> 颗</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
