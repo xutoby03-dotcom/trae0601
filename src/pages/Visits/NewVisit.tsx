@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import StarRating from '@/components/StarRating';
+import PhotoUploader from '@/components/PhotoUploader';
 import { useStore } from '@/store/useStore';
 import { DoctorMark } from '@/types';
 
@@ -16,6 +17,7 @@ export default function NewVisit() {
 
   const [appetite, setAppetite] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [spirit, setSpirit] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [woundPhotos, setWoundPhotos] = useState<string[]>([]);
   const [medication, setMedication] = useState('');
   const [defecation, setDefecation] = useState('');
   const [abnormalDesc, setAbnormalDesc] = useState('');
@@ -34,7 +36,7 @@ export default function NewVisit() {
       planId,
       appetite,
       spirit,
-      woundPhotos: [],
+      woundPhotos,
       medication,
       defecation,
       abnormalDesc,
@@ -75,6 +77,15 @@ export default function NewVisit() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">精神</label>
             <StarRating value={spirit} onChange={(v) => setSpirit(v as 1 | 2 | 3 | 4 | 5)} />
+          </div>
+
+          <div className="pt-2">
+            <PhotoUploader
+              label="伤口照片"
+              value={woundPhotos}
+              onChange={setWoundPhotos}
+              max={9}
+            />
           </div>
 
           <div className="space-y-2">

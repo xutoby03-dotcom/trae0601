@@ -9,6 +9,7 @@ import {
   AnesthesiaType,
 } from '@/types';
 import { getTodayString } from '@/utils/date';
+import PhotoUploader from '@/components/PhotoUploader';
 
 export default function NewCase() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function NewCase() {
   const [doctor, setDoctor] = useState('');
   const [anesthesiaType, setAnesthesiaType] = useState<AnesthesiaType>('general');
   const [dischargeDate, setDischargeDate] = useState(getTodayString());
+  const [photos, setPhotos] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +37,7 @@ export default function NewCase() {
       doctor,
       anesthesiaType,
       dischargeDate,
-      photos: [],
+      photos,
     });
     navigate('/cases');
   };
@@ -138,6 +140,15 @@ export default function NewCase() {
                 className="input-field"
               />
             </div>
+          </div>
+
+          <div className="pt-2">
+            <PhotoUploader
+              label="病例照片（出院时伤口/宠物照片）"
+              value={photos}
+              onChange={setPhotos}
+              max={6}
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">

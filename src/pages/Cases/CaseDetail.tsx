@@ -43,7 +43,7 @@ const VISIT_PLAN_STATUS_ICONS: Record<VisitPlanStatus, typeof Clock> = {
 };
 
 export default function CaseDetail() {
-  const { caseId } = useParams<{ caseId: string }>();
+  const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const cases = useStore((s) => s.cases);
@@ -196,6 +196,29 @@ export default function CaseDetail() {
             </div>
           </div>
         </div>
+
+        {petCase.photos && petCase.photos.length > 0 && (
+          <div className="mt-5 pt-5 border-t border-gray-100">
+            <div className="text-xs text-gray-500 mb-3">病例照片</div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {petCase.photos.map((photo, idx) => (
+                <a
+                  key={idx}
+                  href={photo}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-primary-400 bg-gray-50 hover:shadow-sm transition-all"
+                >
+                  <img
+                    src={photo}
+                    alt={`case-photo-${idx}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card p-6">
@@ -278,6 +301,28 @@ export default function CaseDetail() {
                               {record.abnormalDesc || '无异常'}
                             </div>
                           </div>
+                          {record.woundPhotos && record.woundPhotos.length > 0 && (
+                            <div className="sm:col-span-2">
+                              <div className="text-xs text-gray-500 mb-2">伤口照片</div>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                {record.woundPhotos.map((photo, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={photo}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="aspect-square rounded-md overflow-hidden border border-gray-200 hover:border-primary-400 bg-gray-50 hover:shadow-sm transition-all"
+                                  >
+                                    <img
+                                      src={photo}
+                                      alt={`wound-${idx}`}
+                                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div>
                             <div className="text-xs text-gray-500 mb-1">医生标注</div>
                             {record.doctorMark ? (

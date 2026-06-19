@@ -42,7 +42,7 @@ interface StoreState {
   checkAndGenerateAlerts: () => void;
 }
 
-const STORAGE_KEY = 'pet-clinic-postop-data';
+const STORAGE_KEY = 'pet-clinic-postop-data-v3';
 
 interface StoredData {
   cases: PetCase[];
