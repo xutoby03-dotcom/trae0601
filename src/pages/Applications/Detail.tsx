@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   FileSignature,
@@ -15,6 +15,7 @@ import {
   MapPin,
   FileText,
   AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import { useStore } from '@/store';
 import StatusBadge from '@/components/StatusBadge';
@@ -23,6 +24,7 @@ import { formatDate, getOverdueHours } from '@/utils/helpers';
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     getApplicationById,
@@ -38,6 +40,15 @@ export default function ApplicationDetail() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectError, setRejectError] = useState('');
+  const [showCheckoutToast, setShowCheckoutToast] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.checkoutSuccess) {
+      setShowCheckoutToast(true);
+      const timer = setTimeout(() => setShowCheckoutToast(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   if (!application) {
     return (
@@ -185,6 +196,19 @@ export default function ApplicationDetail() {
                 <div>
                   <p className="text-sm font-medium text-seal-red">驳回原因</p>
                   <p className="text-sm text-red-700 mt-1">{application.rejectReason}</p>
+                </div>
+              </div>
+            )}
+            {(application.status === 'checked_out' || application.status === 'overdue') && record && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-3 mt-4">
+                <ClipboardCheck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-700">印章已外带</p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    封套编号：<span className="font-semibold">{record.envelopeNumber}</span>
+                    <span className="mx-2">·</span>
+                    外带时间：{formatDate(record.checkoutTime)}
+                  </p>
                 </div>
               </div>
             )}
@@ -394,6 +418,26 @@ export default function ApplicationDetail() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showCheckoutToast && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 bg-white rounded-xl shadow-xl border border-green-200 px-5 py-4 animate-in slide-in-from-right duration-300">
+          <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <p className="font-medium text-primary-800">外带登记成功</p>
+            <p className="text-sm text-primary-500">
+              印章已登记外带，封套编号：{record?.envelopeNumber}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCheckoutToast(false)}
+            className="ml-4 text-primary-300 hover:text-primary-500 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

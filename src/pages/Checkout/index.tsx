@@ -28,6 +28,7 @@ export default function Checkout() {
   const [envelopeNumber, setEnvelopeNumber] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [errors, setErrors] = useState<{ envelopeNumber?: string; photoUrl?: string }>({});
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSimulatePhoto = () => {
     setPhotoUrl(SAMPLE_PHOTO_URL);
@@ -62,7 +63,10 @@ export default function Checkout() {
 
     updateApplicationStatus(application.id, 'checked_out');
 
-    navigate('/applications');
+    setShowSuccess(true);
+    setTimeout(() => {
+      navigate(`/applications/${application.id}`, { state: { checkoutSuccess: true } });
+    }, 1200);
   };
 
   if (!application || !seal) {
@@ -265,6 +269,20 @@ export default function Checkout() {
           确认外带
         </button>
       </div>
+
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-6 flex items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="w-7 h-7 text-green-600" />
+            </div>
+            <div>
+              <p className="font-serif text-lg font-semibold text-primary-800">外带登记成功</p>
+              <p className="text-sm text-primary-500 mt-0.5">正在跳转到申请详情...</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
