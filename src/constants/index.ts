@@ -81,7 +81,7 @@ export const VENTILATION_OPTIONS: { value: VentilationStatus; label: string; lev
 
 export const HOSE_OPTIONS: { value: HoseStatus; label: string; level: 'success' | 'warning' | 'danger' }[] = [
   { value: 'normal', label: '软管正常', level: 'success' },
-  { value: 'aging', label: '软管老化', level: 'warning' },
+  { value: 'aging', label: '软管老化', level: 'danger' },
   { value: 'damaged', label: '软管破损', level: 'danger' },
 ];
 
@@ -93,7 +93,7 @@ export const VALVE_OPTIONS: { value: ValveStatus; label: string; level: 'success
 
 export const BATTERY_OPTIONS: { value: BatteryLevel; label: string; level: 'success' | 'warning' | 'danger' }[] = [
   { value: 'good', label: '电量充足', level: 'success' },
-  { value: 'low', label: '电量低', level: 'warning' },
+  { value: 'low', label: '电量低', level: 'danger' },
   { value: 'dead', label: '无电', level: 'danger' },
 ];
 

@@ -23,11 +23,11 @@ const priorityStyles: Record<TaskPriority, string> = {
 };
 
 const typeStyles: Record<string, string> = {
-  battery: 'bg-emerald-100 text-emerald-700',
-  sound: 'bg-blue-100 text-blue-700',
-  hose: 'bg-purple-100 text-purple-700',
-  valve: 'bg-orange-100 text-orange-700',
-  other: 'bg-gray-100 text-gray-700',
+  battery: 'bg-danger-100 text-danger-600 border border-danger-200',
+  sound: 'bg-warning-100 text-warning-600 border border-warning-200',
+  hose: 'bg-danger-100 text-danger-600 border border-danger-200',
+  valve: 'bg-danger-100 text-danger-600 border border-danger-200',
+  other: 'bg-gray-100 text-gray-700 border border-gray-200',
 };
 
 export default function TaskCard({ task, onStatusChange }: TaskCardProps) {
