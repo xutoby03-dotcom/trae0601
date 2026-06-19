@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ClipboardCheck,
@@ -8,7 +9,12 @@ import {
   AlertTriangle,
   Droplets,
   ChevronRight,
+  ChevronDown,
   Building2,
+  Wrench,
+  ArrowDown,
+  LayoutGrid,
+  FileText,
 } from 'lucide-react';
 import {
   BarChart,
@@ -42,18 +48,75 @@ export default function DashboardPage() {
   const normalFacilities = facilities.filter((f) => f.status === 'normal').length;
   const overallRate = facilities.length > 0 ? Math.round((normalFacilities / facilities.length) * 100) : 0;
 
-  // Rain priority: facilities with water logging issues or slide type (outdoor) that haven't been inspected recently
+  // Rain priority: facilities with water-related issues or outdoor types needing inspection
+  // 包含积水、滑面、地垫异常的设施详情
   const rainPriorityFacilities = facilities
-    .filter((f) => {
+    .map((f) => {
+      // 从巡检记录找异常项
+      const latestInspection = inspections
+        .filter((i) => i.facilityId === f.id && i.status === 'completed')
+        .sort((a, b) => new Date(b.inspectionDate).getTime() - new Date(a.inspectionDate).getTime())[0];
+
+      const abnormalItems: { key: string; name: string }[] = [];
+      if (latestInspection) {
+        latestInspection.items
+          .filter((item) => !item.isNormal)
+          .forEach((item) => {
+            if (['water_logging', 'slide_surface', 'floor_mat'].includes(item.key)) {
+              abnormalItems.push({ key: item.key, name: item.name });
+            }
+          });
+      }
+
+      // 从问题记录找水/雨/湿相关
       const hasWaterIssue = issues.some(
-        (i) => i.facilityId === f.id && (i.title.includes('雨') || i.title.includes('水') || i.title.includes('湿'))
+        (i) =>
+          i.facilityId === f.id &&
+          i.status !== 'resolved' &&
+          (i.title.includes('雨') || i.title.includes('水') || i.title.includes('湿'))
       );
+      if (hasWaterIssue && !abnormalItems.find((it) => it.key === 'water_logging')) {
+        abnormalItems.push({ key: 'water_logging', name: '积水湿滑' });
+      }
+
+      // 户外滑梯类默认纳入雨后检查
       const isOutdoor = f.type === 'slide' || f.type === 'swing' || f.type === 'seesaw';
       const lastInsp = f.lastInspectionDate ? new Date(f.lastInspectionDate) : new Date(0);
       const daysSince = Math.floor((Date.now() - lastInsp.getTime()) / (1000 * 60 * 60 * 24));
-      return (hasWaterIssue || isOutdoor) && daysSince > 3;
+      const isPriority = (abnormalItems.length > 0 || (isOutdoor && daysSince > 3)) && f.status !== 'out_of_service';
+
+      return {
+        ...f,
+        abnormalItems,
+        lastInspectionDate: f.lastInspectionDate,
+        isPriority,
+      };
     })
-    .slice(0, 5);
+    .filter((f) => f.isPriority)
+    .sort((a, b) => {
+      // 异常项多的排前面
+      if (b.abnormalItems.length !== a.abnormalItems.length) {
+        return b.abnormalItems.length - a.abnormalItems.length;
+      }
+      // 状态严重的排前面
+      const statusOrder = { needs_repair: 0, normal: 1 };
+      return (statusOrder[a.status as keyof typeof statusOrder] ?? 2) - (statusOrder[b.status as keyof typeof statusOrder] ?? 2);
+    })
+    .slice(0, 6);
+
+  const [rainDetailOpen, setRainDetailOpen] = useState(false);
+
+  const abnormalItemColors: Record<string, string> = {
+    water_logging: 'bg-blue-100 text-blue-700',
+    slide_surface: 'bg-orange-100 text-orange-700',
+    floor_mat: 'bg-purple-100 text-purple-700',
+  };
+
+  const abnormalItemIcons: Record<string, React.ElementType> = {
+    water_logging: Droplets,
+    slide_surface: ArrowDown,
+    floor_mat: LayoutGrid,
+  };
 
   // Area integrity rate data for chart
   const areas = Array.from(new Set(facilities.map((f) => f.area)));
@@ -158,46 +221,168 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Rain Priority */}
-        <div className="card p-5 lg:col-span-1 animate-fade-in-up opacity-0 stagger-3">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="section-title !mb-0 flex items-center gap-2 text-xl">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
-                <CloudRain className="w-5 h-5 text-blue-600" />
+        <div className="card lg:col-span-1 animate-fade-in-up opacity-0 stagger-3 overflow-hidden">
+          <div
+            className="p-5 cursor-pointer select-none"
+            onClick={() => setRainDetailOpen(!rainDetailOpen)}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="section-title !mb-0 flex items-center gap-2 text-xl">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <CloudRain className="w-5 h-5 text-blue-600" />
+                </div>
+                雨后重点检查
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="badge bg-blue-100 text-blue-700">
+                  <Droplets className="w-3 h-3 mr-1" />
+                  {rainPriorityFacilities.length} 项待查
+                </span>
+                <ChevronDown
+                  className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${rainDetailOpen ? 'rotate-180' : ''}`}
+                />
               </div>
-              雨后重点检查
-            </h2>
-            <span className="badge bg-blue-100 text-blue-700">
-              <Droplets className="w-3 h-3 mr-1" />
-              {rainPriorityFacilities.length} 项
-            </span>
-          </div>
+            </div>
 
-          <div className="space-y-2">
-            {rainPriorityFacilities.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <CloudRain className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">暂无雨后需重点检查的设施</p>
+            {!rainDetailOpen && (
+              <div className="mt-3 space-y-2">
+                {rainPriorityFacilities.length === 0 ? (
+                  <div className="text-center py-6 text-gray-400">
+                    <CloudRain className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">暂无雨后需重点检查的设施</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {rainPriorityFacilities.slice(0, 4).map((f) => (
+                      <div
+                        key={f.id}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full text-sm"
+                      >
+                        <img src={f.photo} alt="" className="w-5 h-5 rounded-full object-cover" />
+                        <span className="text-gray-700">{f.name}</span>
+                        {f.abnormalItems.length > 0 && (
+                          <span className="text-xs text-danger-600 font-medium">
+                            {f.abnormalItems.length}项异常
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {rainPriorityFacilities.length > 4 && (
+                      <span className="text-sm text-gray-400 self-center">
+                        +{rainPriorityFacilities.length - 4} 项
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 text-center mt-2">
+                  点击展开查看详情 →
+                </p>
               </div>
-            ) : (
-              rainPriorityFacilities.map((f) => (
-                <Link
-                  key={f.id}
-                  to={`/facilities/${f.id}`}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 transition-colors group"
-                >
-                  <img src={f.photo} alt={f.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate group-hover:text-primary-600 transition-colors">{f.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{f.location}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <StatusBadge type="facility" value={f.status} />
-                    <span className="text-xs text-gray-400">{formatDate(f.lastInspectionDate)}</span>
-                  </div>
-                </Link>
-              ))
             )}
           </div>
+
+          {/* Expanded Detail */}
+          {rainDetailOpen && (
+            <div className="border-t border-gray-100 px-5 py-4 bg-gradient-to-b from-blue-50/30 to-transparent">
+              <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-danger-500" />
+                以下设施雨后需重点检查积水、滑面和地垫情况
+              </p>
+              <div className="space-y-3 max-h-96 overflow-auto scrollbar-thin pr-1">
+                {rainPriorityFacilities.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <CloudRain className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">暂无雨后需重点检查的设施</p>
+                  </div>
+                ) : (
+                  rainPriorityFacilities.map((f, idx) => {
+                    const hasPendingInspection = inspections.some(
+                      (i) => i.facilityId === f.id && i.status === 'pending'
+                    );
+                    return (
+                      <div
+                        key={f.id}
+                        className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up opacity-0"
+                        style={{ animationDelay: `${idx * 0.05}s` }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={f.photo}
+                            alt={f.name}
+                            className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-gray-800 truncate">
+                                {f.name}
+                              </h4>
+                              <StatusBadge type="facility" value={f.status} />
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2 truncate">
+                              {f.location}
+                            </p>
+
+                            {/* 异常项标签 */}
+                            {f.abnormalItems.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {f.abnormalItems.map((item) => {
+                                  const ItemIcon = abnormalItemIcons[item.key] || AlertTriangle;
+                                  return (
+                                    <span
+                                      key={item.key}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${abnormalItemColors[item.key] || 'bg-gray-100 text-gray-700'}`}
+                                    >
+                                      <ItemIcon className="w-3 h-3" />
+                                      {item.name}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-gray-400 mb-2">
+                                建议雨后优先巡检户外设施
+                              </p>
+                            )}
+
+                            <p className="text-xs text-gray-400">
+                              最近巡检：{formatDate(f.lastInspectionDate)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 操作按钮 */}
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                          {hasPendingInspection ? (
+                            <Link
+                              to={`/inspections/${inspections.find((i) => i.facilityId === f.id && i.status === 'pending')?.id}`}
+                              className="flex-1 text-center px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Wrench className="w-3.5 h-3.5" />
+                              去巡检
+                            </Link>
+                          ) : (
+                            <button
+                              className="flex-1 text-center px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed"
+                              disabled
+                            >
+                              暂无待巡检任务
+                            </button>
+                          )}
+                          <Link
+                            to={`/facilities/${f.id}`}
+                            className="flex-1 text-center px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            设施档案
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Area Chart */}
