@@ -10,6 +10,7 @@ import {
   Trash2,
   Pencil,
   Car,
+  DollarSign,
 } from "lucide-react";
 import type { GameSession } from "@/types";
 import { useSessionStore } from "@/store/sessionStore";
@@ -33,7 +34,12 @@ const statusMap: Record<
 
 export default function SessionCard({ session, onDelete, onEdit }: Props) {
   const getCapacityInfo = useSessionStore((s) => s.getCapacityInfo);
+  const getActiveRegistrationsBySession = useSessionStore(
+    (s) => s.getActiveRegistrationsBySession
+  );
   const capacity = getCapacityInfo(session.id);
+  const activeRegs = getActiveRegistrationsBySession(session.id);
+  const unpaidCount = activeRegs.filter((r) => !r.isPaid).length;
 
   const percent = Math.min(
     100,
@@ -128,7 +134,7 @@ export default function SessionCard({ session, onDelete, onEdit }: Props) {
               {session.minPlayers}-{session.maxPlayers}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {capacity.overflow > 0 ? (
               <span className="text-glow-rose font-medium text-sm">
                 超员 +{capacity.overflow}
@@ -140,6 +146,12 @@ export default function SessionCard({ session, onDelete, onEdit }: Props) {
             ) : (
               <span className="text-glow-green font-medium text-sm">
                 ✓ 人够了
+              </span>
+            )}
+            {unpaidCount > 0 && (
+              <span className="chip bg-glow-rose/20 text-glow-rose">
+                <DollarSign className="w-3 h-3" />
+                {unpaidCount} 人未付
               </span>
             )}
             {session.needCarpool && (

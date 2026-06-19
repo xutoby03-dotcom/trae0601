@@ -291,6 +291,7 @@ export default function SessionDetail() {
                   key={reg.id}
                   player={p}
                   reg={reg}
+                  price={session.price}
                   onMarkPaid={() =>
                     setConfirmStatus({ reg, action: "paid" })
                   }
@@ -559,6 +560,7 @@ export default function SessionDetail() {
 interface RowProps {
   player: Player;
   reg: Registration;
+  price: number;
   onMarkPaid: () => void;
   onCheckIn: () => void;
   onWithdraw: () => void;
@@ -569,6 +571,7 @@ interface RowProps {
 function PlayerRow({
   player,
   reg,
+  price,
   onMarkPaid,
   onCheckIn,
   onWithdraw,
@@ -604,11 +607,25 @@ function PlayerRow({
               </span>
             )}
           </div>
-          {player.tabooThemes.length > 0 && (
-            <div className="text-xs text-ink-400 mt-1 truncate">
-              忌讳：{player.tabooThemes.join("、")}
-            </div>
-          )}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {!reg.isPaid ? (
+              <span className="chip bg-glow-amber/25 text-glow-amber">
+                <DollarSign className="w-3 h-3" />
+                应收 ¥{price}
+              </span>
+            ) : (
+              <span className="chip bg-glow-green/20 text-glow-green">
+                <Check className="w-3 h-3" />
+                已付 ¥{price}
+                {reg.paidAt && <> · {reg.paidAt}</>}
+              </span>
+            )}
+            {player.tabooThemes.length > 0 && (
+              <span className="text-xs text-ink-400 truncate">
+                忌讳：{player.tabooThemes.join("、")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -616,11 +633,7 @@ function PlayerRow({
           <button onClick={onMarkPaid} className="btn-warning !py-1.5 !px-3 text-sm">
             <DollarSign className="w-4 h-4" /> 标记已付款
           </button>
-        ) : (
-          <span className="chip bg-glow-green/20 text-glow-green">
-            <Check className="w-3 h-3" /> 已付 ¥
-          </span>
-        )}
+        ) : null}
         {reg.status !== "checkedIn" && (
           <button onClick={onCheckIn} className="btn-success !py-1.5 !px-3 text-sm">
             <CheckCircle2 className="w-4 h-4" /> 签到
