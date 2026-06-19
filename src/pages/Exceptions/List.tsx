@@ -367,6 +367,9 @@ export const ExceptionsList: React.FC = () => {
         <div className="space-y-4">
           {sortedFullPoints.map((point, index) => {
             const ratio = calculateCapacityRatio(point);
+            const lastCollection = collectionRecords
+              .filter(r => r.recoveryPointId === point.id && r.status === 'completed')
+              .sort((a, b) => new Date(b.collectionTime).getTime() - new Date(a.collectionTime).getTime())[0];
             return (
               <div
                 key={point.id}
@@ -402,6 +405,25 @@ export const ExceptionsList: React.FC = () => {
                           </span>
                         </div>
                         <CapacityProgress ratio={ratio} />
+                      </div>
+
+                      <div className="mb-3 p-2.5 bg-gray-50 rounded-lg border border-gray-100">
+                        {lastCollection ? (
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <Check className="w-3.5 h-3.5 text-green-500" />
+                            <span className="text-gray-500">上次清运：</span>
+                            <User className="w-3 h-3 text-gray-400" />
+                            <span className="font-medium text-gray-800">{lastCollection.collector}</span>
+                            <span className="text-gray-300">|</span>
+                            <Clock className="w-3 h-3 text-gray-400" />
+                            <span>{formatDate(lastCollection.collectionTime)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>还没有清运记录</span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4 text-xs text-gray-500">
