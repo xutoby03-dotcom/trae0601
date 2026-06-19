@@ -11,10 +11,14 @@ import {
   Flame,
   Building2,
   User,
+  Wrench,
+  CalendarCheck,
+  DollarSign,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { useComplaintStore } from '@/store/useComplaintStore';
 import { useRoomStore } from '@/store/useRoomStore';
+import { useRepairStore } from '@/store/useRepairStore';
 import {
   getComplaintTypeLabel,
   getComplaintStatusLabel,
@@ -24,6 +28,7 @@ import { cn } from '@/lib/utils';
 const ComplaintList = () => {
   const { complaints } = useComplaintStore();
   const { rooms } = useRoomStore();
+  const { getRepairsBySourceId } = useRepairStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'not_hot' | 'unstable' | 'tripping' | 'other'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'processing' | 'resolved' | 'closed'>('all');
@@ -45,6 +50,16 @@ const ComplaintList = () => {
   const getRoomNumber = (roomId: string) => {
     const room = rooms.find((r) => r.id === roomId);
     return room?.roomNumber || '未知';
+  };
+
+  const getRelatedRepair = (complaintId: string) => {
+    const repairs = getRepairsBySourceId(complaintId);
+    return repairs.length > 0 ? repairs[0] : null;
+  };
+
+  const truncateNotes = (text: string, maxLen = 40) => {
+    if (!text) return '';
+    return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
   };
 
   const complaintIconMap = {
@@ -146,12 +161,19 @@ const ComplaintList = () => {
             </thead>
             <tbody className="divide-y divide-dark-800">
               {filteredComplaints.length > 0 ? (
-                filteredComplaints.map((complaint, index) => {
+                filteredComplaints.flatMap((complaint, index) => {
                   const Icon = complaintIconMap[complaint.complaintType];
-                  return (
+                  const isResolved = complaint.status === 'resolved' || complaint.status === 'closed';
+                  const relatedRepair = getRelatedRepair(complaint.id);
+                  const hasSummary = isResolved && (complaint.handlingNotes || relatedRepair?.completedDate || (relatedRepair && relatedRepair.cost > 0));
+
+                  const mainRow = (
                     <tr
                       key={complaint.id}
-                      className="hover:bg-dark-800/30 transition-colors"
+                      className={cn(
+                        'hover:bg-dark-800/30 transition-colors',
+                        hasSummary && 'border-b-0'
+                      )}
                       style={{ animationDelay: `${index * 30}ms` }}
                     >
                       <td className="px-6 py-4">
@@ -208,6 +230,39 @@ const ComplaintList = () => {
                       </td>
                     </tr>
                   );
+
+                  if (!hasSummary) return [mainRow];
+
+                  const summaryRow = (
+                    <tr key={`${complaint.id}-summary`} className="border-b border-dark-800">
+                      <td colSpan={7} className="px-6 py-3 bg-dark-800/20">
+                        <div className="flex items-center gap-6 text-sm">
+                          {complaint.handlingNotes && (
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Wrench className="w-3.5 h-3.5 text-dark-500 shrink-0" />
+                              <span className="text-dark-400 truncate">
+                                {truncateNotes(complaint.handlingNotes)}
+                              </span>
+                            </div>
+                          )}
+                          {relatedRepair?.completedDate && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <CalendarCheck className="w-3.5 h-3.5 text-success-500" />
+                              <span className="text-success-400">{relatedRepair.completedDate}</span>
+                            </div>
+                          )}
+                          {relatedRepair && relatedRepair.cost > 0 && (
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <DollarSign className="w-3.5 h-3.5 text-warning-500" />
+                              <span className="text-warning-400">¥{relatedRepair.cost}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+
+                  return [mainRow, summaryRow];
                 })
               ) : (
                 <tr>
