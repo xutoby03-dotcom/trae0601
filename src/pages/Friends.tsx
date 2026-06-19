@@ -80,12 +80,31 @@ function FriendForm({ friend, onSubmit, onCancel }: FriendFormProps) {
           onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
           error={errors.name}
         />
-        <Input
-          label="头像 (可选)"
-          placeholder="输入头像emoji或图片链接"
-          value={formData.avatar}
-          onChange={(e) => setFormData((prev) => ({ ...prev, avatar: e.target.value }))}
-        />
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            头像（可选）
+          </label>
+          <div className="flex items-center gap-3">
+            <Avatar
+              src={formData.avatar}
+              alt={formData.name}
+              fallback={formData.name?.charAt(0) || '?'}
+              size="lg"
+            />
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="输入emoji表情或http开头的图片链接"
+                value={formData.avatar}
+                onChange={(e) => setFormData((prev) => ({ ...prev, avatar: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary hover:border-primary/50"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                输入 👨 显示表情，输入 https://... 显示照片
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
