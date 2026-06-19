@@ -274,33 +274,30 @@ export const useStore = create<StoreState>((set, get) => ({
   createCheckIn: async (payload: Omit<CheckIn, 'id' | 'checkInTime' | 'createdAt'>) => {
     set({ loading: true, error: null });
     try {
-      const result = await apiFetch<{
-        success: boolean;
-        data: CheckIn & { anomalies?: Anomaly[] };
-      }>('/check-ins', {
+      const result = await apiFetch<CheckIn & { anomalies?: Anomaly[] }>('/check-ins', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
-      const { data: respData } = result;
-      const anomalies = respData.anomalies || [];
+      const { anomalies: newAnomalies, ...checkInFields } = result;
+      const anomalies = newAnomalies || [];
 
       const checkInOnly: CheckIn = {
-        id: respData.id,
-        gardenBedId: respData.gardenBedId,
-        volunteerId: respData.volunteerId,
-        scheduleId: respData.scheduleId,
-        checkInTime: respData.checkInTime,
-        createdAt: respData.createdAt,
-        waterAmount: respData.waterAmount,
-        soilMoisture: respData.soilMoisture,
-        hasPests: respData.hasPests,
-        pestDetails: respData.pestDetails,
-        hasWeeds: respData.hasWeeds,
-        weedLevel: respData.weedLevel,
-        harvestedAmount: respData.harvestedAmount,
-        notes: respData.notes,
-        photoUrl: respData.photoUrl,
+        id: checkInFields.id,
+        gardenBedId: checkInFields.gardenBedId,
+        volunteerId: checkInFields.volunteerId,
+        scheduleId: checkInFields.scheduleId,
+        checkInTime: checkInFields.checkInTime,
+        createdAt: checkInFields.createdAt,
+        waterAmount: checkInFields.waterAmount,
+        soilMoisture: checkInFields.soilMoisture,
+        hasPests: checkInFields.hasPests,
+        pestDetails: checkInFields.pestDetails,
+        hasWeeds: checkInFields.hasWeeds,
+        weedLevel: checkInFields.weedLevel,
+        harvestedAmount: checkInFields.harvestedAmount,
+        notes: checkInFields.notes,
+        photoUrl: checkInFields.photoUrl,
       };
 
       set(state => ({
