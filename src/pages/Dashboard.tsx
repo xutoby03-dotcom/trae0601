@@ -14,6 +14,7 @@ import {
 import { useSessionStore } from "@/store/sessionStore";
 import { usePlayerStore } from "@/store/playerStore";
 import { useToast } from "@/components/Toast";
+import { useCopy } from "@/hooks/useCopy";
 import {
   getNextWeekDates,
   getAvailabilityHeatmap,
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const { sessions, registrations, getCapacityInfo } = useSessionStore();
   const { players } = usePlayerStore();
   const { showToast } = useToast();
+  const { copy: copyToClipboard } = useCopy();
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const stats = useMemo(() => {
@@ -89,24 +91,12 @@ export default function Dashboard() {
     e.preventDefault();
     if (!item.player || !item.session) return;
     const text = generatePaymentReminder(item.player, item.session);
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-      }
+    const success = await copyToClipboard(text);
+    if (success) {
       setCopiedIndex(idx);
       showToast(`催款文案已复制给 ${item.player.nickname}`);
       setTimeout(() => setCopiedIndex(null), 1800);
-    } catch (err) {
+    } else {
       showToast("复制失败，请手动选择文字", "error");
     }
   }
