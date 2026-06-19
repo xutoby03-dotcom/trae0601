@@ -29,12 +29,15 @@ export const ExceptionsList: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [collectionPointFilter, setCollectionPointFilter] = useState<string>('all');
+  const [justCollectedIds, setJustCollectedIds] = useState<Set<string>>(new Set());
 
   const getRecoveryPointName = (id: string) => {
     return recoveryPoints.find(p => p.id === id)?.name || '未知回收点';
   };
 
-  const fullPoints = recoveryPoints.filter(p => p.status === 'full' || p.status === 'warning');
+  const fullPoints = recoveryPoints.filter(p =>
+    p.status === 'full' || p.status === 'warning' || justCollectedIds.has(p.id)
+  );
   const pendingExceptions = exceptions.filter(e => e.status !== 'resolved');
   const resolvedExceptions = exceptions.filter(e => e.status === 'resolved');
 
@@ -120,6 +123,7 @@ export const ExceptionsList: React.FC = () => {
           status: 'completed',
           collectionTime: new Date().toISOString(),
         });
+        setJustCollectedIds(prev => new Set(prev).add(pointId));
       }
     }
   };
@@ -367,30 +371,39 @@ export const ExceptionsList: React.FC = () => {
         <div className="space-y-4">
           {sortedFullPoints.map((point, index) => {
             const ratio = calculateCapacityRatio(point);
+            const isJustCollected = justCollectedIds.has(point.id);
             const lastCollection = collectionRecords
               .filter(r => r.recoveryPointId === point.id && r.status === 'completed')
               .sort((a, b) => new Date(b.collectionTime).getTime() - new Date(a.collectionTime).getTime())[0];
             return (
               <div
                 key={point.id}
-                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all animate-fade-in-up"
+                className={`bg-white rounded-2xl p-5 shadow-sm border transition-all animate-fade-in-up ${
+                  isJustCollected ? 'border-green-200 bg-green-50/30' : 'border-gray-100 hover:shadow-md'
+                }`}
                 style={{ animationDelay: `${index * 30}ms` }}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
                     <div className={`p-3 rounded-xl ${
+                      isJustCollected ? 'bg-green-100' :
                       ratio >= 0.9 ? 'bg-red-100 animate-breathe' : 'bg-orange-100'
                     }`}>
-                      <TrendingUp className={`w-6 h-6 ${
-                        ratio >= 0.9 ? 'text-red-600' : 'text-orange-600'
-                      }`} />
+                      {isJustCollected ? (
+                        <Check className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <TrendingUp className={`w-6 h-6 ${
+                          ratio >= 0.9 ? 'text-red-600' : 'text-orange-600'
+                        }`} />
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          isJustCollected ? 'bg-green-100 text-green-700' :
                           ratio >= 0.9 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                         }`}>
-                          {ratio >= 0.9 ? '已满' : '即将满'}
+                          {isJustCollected ? '已清运' : ratio >= 0.9 ? '已满' : '即将满'}
                         </span>
                         <StatusBadge status={point.status} />
                       </div>
@@ -439,12 +452,21 @@ export const ExceptionsList: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 ml-4">
-                    <button
-                      onClick={() => handleCollection(point.id)}
-                      className="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all font-medium shadow-md shadow-primary-200"
-                    >
-                      标记已清运
-                    </button>
+                    {isJustCollected ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 bg-gray-100 text-gray-400 text-sm rounded-lg font-medium cursor-not-allowed"
+                      >
+                        已清运
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCollection(point.id)}
+                        className="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all font-medium shadow-md shadow-primary-200"
+                      >
+                        标记已清运
+                      </button>
+                    )}
                     <button
                       onClick={() => handleQuickReport('full', point.id)}
                       className="px-4 py-2 bg-orange-100 text-orange-700 text-sm rounded-lg hover:bg-orange-200 transition-colors font-medium"
