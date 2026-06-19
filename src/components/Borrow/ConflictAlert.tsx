@@ -4,6 +4,7 @@ import type { BorrowRecord, Box, Friend } from '@/types';
 import { getCategoryLabel } from '@/utils/condition';
 import { formatDateCN } from '@/utils/date';
 import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 
 interface ConflictAlertProps {
@@ -68,19 +69,12 @@ export default function ConflictAlert({ box, records, friends, onContact, onCanc
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    {friend?.avatar ? (
-                      <img
-                        src={friend.avatar}
-                        alt={friend.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center">
-                        <span className="text-orange-700 font-medium">
-                          {friend?.name?.charAt(0) || '?'}
-                        </span>
-                      </div>
-                    )}
+                    <Avatar
+                      src={friend?.avatar}
+                      alt={friend?.name}
+                      fallback={friend?.name?.charAt(0) || '?'}
+                      size="md"
+                    />
                     <div>
                       <p className="font-medium text-foreground">{friend?.name || '未知用户'}</p>
                       <p className="text-sm text-muted-foreground">

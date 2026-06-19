@@ -4,10 +4,11 @@ import { MapPin, ArrowRight, Calendar, FileText, Package, Truck } from 'lucide-r
 import { useMovePlanStore } from '@/store/useMovePlanStore';
 import { useFriendStore } from '@/store/useFriendStore';
 import { getDaysFromNow } from '@/utils/condition';
-import { formatDateCN, isToday, getUpcomingDays } from '@/utils/date';
+import { formatDate, formatDateCN, isToday, getUpcomingDays } from '@/utils/date';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Empty from '@/components/ui/Empty';
+import Avatar from '@/components/ui/Avatar';
 import { cn } from '@/lib/utils';
 
 export default function UpcomingMovesBoard() {
@@ -15,15 +16,17 @@ export default function UpcomingMovesBoard() {
   const getFriendById = useFriendStore((state) => state.getFriendById);
 
   const upcomingMoves = useMemo(() => {
+    const today = formatDate(new Date());
     const thresholdDate = getUpcomingDays(30);
     return movePlans
-      .filter((plan) => plan.moveDate <= thresholdDate)
+      .filter((plan) => plan.moveDate >= today && plan.moveDate <= thresholdDate)
       .sort((a, b) => new Date(a.moveDate).getTime() - new Date(b.moveDate).getTime());
   }, [movePlans]);
 
   const getDateLabel = (dateStr: string) => {
-    const daysUntil = getDaysFromNow(dateStr);
     if (isToday(dateStr)) return { label: '今天', color: 'danger' as const };
+    const daysUntil = getDaysFromNow(dateStr);
+    if (daysUntil <= 0) return null;
     if (daysUntil === 1) return { label: '明天', color: 'warning' as const };
     if (daysUntil <= 7) return { label: `${daysUntil}天后`, color: 'info' as const };
     return { label: `${daysUntil}天后`, color: 'default' as const };
@@ -74,19 +77,12 @@ export default function UpcomingMovesBoard() {
                 <div className="bg-muted/30 rounded-xl p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center overflow-hidden border-2 border-primary/20">
-                        {friend?.avatar ? (
-                          <img
-                            src={friend.avatar}
-                            alt={friend.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-lg font-semibold text-primary">
-                            {friend?.name?.charAt(0) || '?'}
-                          </span>
-                        )}
-                      </div>
+                      <Avatar
+                        src={friend?.avatar}
+                        alt={friend?.name}
+                        fallback={friend?.name?.charAt(0) || '?'}
+                        size="lg"
+                      />
 
                       <div>
                         <div className="flex items-center gap-2">

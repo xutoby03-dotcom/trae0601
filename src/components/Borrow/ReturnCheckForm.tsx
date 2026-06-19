@@ -8,6 +8,7 @@ import { evaluateBoxCondition, getCategoryLabel } from '@/utils/condition';
 import { formatDateCN } from '@/utils/date';
 import Button from '@/components/ui/Button';
 import Textarea from '@/components/ui/Textarea';
+import Avatar from '@/components/ui/Avatar';
 import CheckSlider from './CheckSlider';
 
 interface BoxStoreType {
@@ -134,19 +135,13 @@ export default function ReturnCheckForm({ recordId, onSubmit, onCancel }: Return
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <User size={16} className="text-primary" />
-          </div>
-          <div className="flex items-center gap-2">
-            {friend.avatar ? (
-              <img src={friend.avatar} alt={friend.name} className="w-6 h-6 rounded-full object-cover" />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-xs font-medium text-primary">{friend.name.charAt(0)}</span>
-              </div>
-            )}
-            <span className="text-sm">{friend.name}</span>
-          </div>
+          <Avatar
+            src={friend.avatar}
+            alt={friend.name}
+            fallback={friend.name.charAt(0)}
+            size="sm"
+          />
+          <span className="text-sm font-medium text-foreground">{friend.name}</span>
         </div>
 
         <div className="flex items-center gap-3">

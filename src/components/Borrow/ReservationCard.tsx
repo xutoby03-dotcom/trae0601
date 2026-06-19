@@ -8,6 +8,7 @@ import { getCategoryLabel, getBorrowStatusLabel } from '@/utils/condition';
 import { formatDateCN } from '@/utils/date';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Avatar from '@/components/ui/Avatar';
 
 interface BoxStoreType {
   getState: () => {
@@ -164,19 +165,12 @@ export default function ReservationCard({
             whileHover={{ scale: 1.1, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
-            {friend.avatar ? (
-              <img
-                src={friend.avatar}
-                alt={friend.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-primary/20"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
-                <span className="text-lg font-semibold text-primary">
-                  {friend.name.charAt(0)}
-                </span>
-              </div>
-            )}
+            <Avatar
+              src={friend.avatar}
+              alt={friend.name}
+              fallback={friend.name.charAt(0)}
+              size="lg"
+            />
           </motion.div>
           <div>
             <div className="flex items-center gap-2">
