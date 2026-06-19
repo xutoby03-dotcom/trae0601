@@ -81,17 +81,20 @@ export default function BorrowRecords() {
       key: 'score_name',
       title: '曲名',
       render: (row: BorrowRecordWithInfo) => (
-        <div className="font-medium text-gray-900">{row.score_name}</div>
+        <div className="font-medium text-gray-900 truncate" title={row.score_name}>
+          {row.score_name}
+        </div>
       ),
     },
     {
       key: 'member_name',
       title: '借阅人',
+      width: '120px',
       render: (row: BorrowRecordWithInfo) => (
-        <div>
-          <p className="text-gray-900">{row.member_name}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-gray-900 whitespace-nowrap text-sm">{row.member_name}</p>
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mt-1 ${voicePartColors[row.member_voice_part]}`}
+            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${voicePartColors[row.member_voice_part]}`}
           >
             {row.member_voice_part}
           </span>
@@ -99,63 +102,39 @@ export default function BorrowRecords() {
       ),
     },
     {
-      key: 'member_voice_part',
-      title: '声部',
-      render: (row: BorrowRecordWithInfo) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${voicePartColors[row.member_voice_part]}`}
-        >
-          {row.member_voice_part}
-        </span>
-      ),
-    },
-    {
-      key: 'rehearsal_date',
-      title: '排练日期',
-      render: (row: BorrowRecordWithInfo) => (
-        <span className="text-gray-600">{formatDate(row.rehearsal_date)}</span>
-      ),
-    },
-    {
-      key: 'expected_return_date',
-      title: '预计归还',
-      render: (row: BorrowRecordWithInfo) => (
-        <span className="text-gray-600">{formatDate(row.expected_return_date)}</span>
-      ),
-    },
-    {
-      key: 'actual_return_date',
-      title: '实际归还',
-      render: (row: BorrowRecordWithInfo) => (
-        <span className="text-gray-600">{formatDate(row.actual_return_date)}</span>
-      ),
-    },
-    {
       key: 'status',
       title: '状态',
+      width: '68px',
       render: (row: BorrowRecordWithInfo) => (
-        <Badge variant={statusColorMap[row.status]}>{row.status}</Badge>
+        <Badge variant={statusColorMap[row.status]} className="text-[11px] px-2 py-0.5">
+          {row.status}
+        </Badge>
       ),
     },
     {
       key: 'return_check',
       title: '归还异常',
+      width: '110px',
       render: (row: BorrowRecordWithInfo) => {
         if (row.status !== '已归还') {
-          return <span className="text-sm text-gray-400">-</span>
+          return <span className="text-xs text-gray-300">-</span>
         }
         const tags: { label: string; variant: 'success' | 'warning' | 'danger' | 'info' }[] = []
         if (row.has_missing_pages) tags.push({ label: '缺页', variant: 'danger' })
         if (row.has_damage) tags.push({ label: '破损', variant: 'danger' })
         if (row.has_writing) tags.push({ label: '涂写', variant: 'warning' })
-        if (row.needs_reprint) tags.push({ label: '需重印', variant: 'info' })
+        if (row.needs_reprint) tags.push({ label: '重印', variant: 'info' })
         if (tags.length === 0) {
-          return <Badge variant="success">正常</Badge>
+          return (
+            <Badge variant="success" className="text-[11px] px-2 py-0.5">
+              正常
+            </Badge>
+          )
         }
         return (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1" title={tags.map((t) => t.label).join('、')}>
             {tags.map((tag) => (
-              <Badge key={tag.label} variant={tag.variant}>
+              <Badge key={tag.label} variant={tag.variant} className="text-[10px] px-1.5 py-0.5">
                 {tag.label}
               </Badge>
             ))}
@@ -164,17 +143,45 @@ export default function BorrowRecords() {
       },
     },
     {
+      key: 'rehearsal_date',
+      title: '排练日期',
+      width: '90px',
+      render: (row: BorrowRecordWithInfo) => (
+        <span className="text-gray-600 whitespace-nowrap text-xs">
+          {formatDate(row.rehearsal_date)}
+        </span>
+      ),
+    },
+    {
+      key: 'expected_return_date',
+      title: '预计归还',
+      width: '90px',
+      render: (row: BorrowRecordWithInfo) => (
+        <span className="text-gray-600 whitespace-nowrap text-xs">
+          {formatDate(row.expected_return_date)}
+        </span>
+      ),
+    },
+    {
+      key: 'actual_return_date',
+      title: '实际归还',
+      width: '90px',
+      render: (row: BorrowRecordWithInfo) => (
+        <span className="text-gray-600 whitespace-nowrap text-xs">
+          {formatDate(row.actual_return_date)}
+        </span>
+      ),
+    },
+    {
       key: 'with_pencil_mark',
       title: '铅笔标记',
+      width: '60px',
       render: (row: BorrowRecordWithInfo) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center">
           {row.with_pencil_mark ? (
-            <>
-              <Pencil className="w-3.5 h-3.5 text-gray-500" />
-              <span className="text-sm text-gray-600">是</span>
-            </>
+            <Pencil className="w-4 h-4 text-gray-500" />
           ) : (
-            <span className="text-sm text-gray-400">-</span>
+            <span className="text-xs text-gray-300">-</span>
           )}
         </div>
       ),
