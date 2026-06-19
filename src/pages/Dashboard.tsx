@@ -32,6 +32,7 @@ export default function Dashboard() {
   const getDashboardStats = useStore((state) => state.getDashboardStats);
   const getFilterLifePercent = useStore((state) => state.getFilterLifePercent);
   const getFilterDaysLeft = useStore((state) => state.getFilterDaysLeft);
+  const getFilterStatusStore = useStore((state) => state.getFilterStatus);
   const getStock = useStore((state) => state.getStock);
   const updateStock = useStore((state) => state.updateStock);
   const stocks = useStore((state) => state.stocks);
@@ -383,11 +384,15 @@ export default function Dashboard() {
                 }
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all bg-white"
               >
-                {allFilterModels.map((model) => (
-                  <option key={model} value={model}>
-                    {model}（当前库存 {getStock(model)} 个）
-                  </option>
-                ))}
+                {allFilterModels.map((model) => {
+                  const modelPitchers = pitchers.filter((p) => p.filterModel === model);
+                  const pitcherCount = modelPitchers.length;
+                  return (
+                    <option key={model} value={model}>
+                      {model}（库存 {getStock(model)} 个 · {pitcherCount} 壶在用）
+                    </option>
+                  );
+                })}
               </select>
             ) : (
               <input
@@ -401,6 +406,147 @@ export default function Dashboard() {
               />
             )}
           </div>
+
+          {/* 使用该型号的水壶列表 */}
+          {purchaseForm.filterModel && (() => {
+            const modelPitchers = pitchers
+              .filter((p) => p.filterModel === purchaseForm.filterModel)
+              .map((p) => ({
+                ...p,
+                daysLeft: getFilterDaysLeft(p.id),
+                status: getFilterStatusStore(p.id),
+              }))
+              .sort((a, b) => a.daysLeft - b.daysLeft);
+
+            if (modelPitchers.length === 0) return null;
+
+            const earliestExpiry = modelPitchers[0];
+            const totalNeed = modelPitchers.length;
+            const currentStock = getStock(purchaseForm.filterModel);
+            const gap = Math.max(0, totalNeed - currentStock);
+
+            return (
+              <>
+                {/* 水壶使用列表 */}
+                <div className="p-3 bg-gray-50 rounded-xl space-y-2">
+                  <p className="text-xs font-medium text-gray-500">
+                    正在使用的水壶（{modelPitchers.length} 只）
+                  </p>
+                  {modelPitchers.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">{p.name}</span>
+                        <span className="text-gray-400">·</span>
+                        <span className="text-gray-500">{p.location}</span>
+                      </div>
+                      <span
+                        className={cn(
+                          'text-xs font-medium px-2 py-0.5 rounded-full',
+                          p.daysLeft <= 7
+                            ? 'bg-red-100 text-red-600'
+                            : p.daysLeft <= 15
+                            ? 'bg-amber-100 text-amber-600'
+                            : 'bg-emerald-100 text-emerald-600'
+                        )}
+                      >
+                        剩 {p.daysLeft} 天
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 最早到期提醒 */}
+                {earliestExpiry.daysLeft <= 15 && (
+                  <div
+                    className={cn(
+                      'p-3 rounded-xl flex items-start gap-2',
+                      earliestExpiry.daysLeft <= 7
+                        ? 'bg-red-50'
+                        : 'bg-amber-50'
+                    )}
+                  >
+                    <AlertTriangle
+                      className={cn(
+                        'w-5 h-5 flex-shrink-0 mt-0.5',
+                        earliestExpiry.daysLeft <= 7
+                          ? 'text-red-500'
+                          : 'text-amber-500'
+                      )}
+                    />
+                    <div>
+                      <p
+                        className={cn(
+                          'text-sm font-medium',
+                          earliestExpiry.daysLeft <= 7
+                            ? 'text-red-800'
+                            : 'text-amber-800'
+                        )}
+                      >
+                        {earliestExpiry.name}（{earliestExpiry.location}）
+                        {earliestExpiry.daysLeft <= 7 ? '即将到期' : '快到期了'}
+                      </p>
+                      <p
+                        className={cn(
+                          'text-xs mt-0.5',
+                          earliestExpiry.daysLeft <= 7
+                            ? 'text-red-600'
+                            : 'text-amber-600'
+                        )}
+                      >
+                        仅剩 {earliestExpiry.daysLeft} 天寿命，建议优先为这只壶备货
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 缺口计算和快捷按钮 */}
+                <div className="p-3 bg-sky-50 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-sky-800">
+                      采购建议
+                    </span>
+                    <span className="text-xs text-sky-600">
+                      {totalNeed} 只壶在用 · 库存 {currentStock} 个
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        setPurchaseForm({
+                          ...purchaseForm,
+                          quantity: gap > 0 ? gap : totalNeed,
+                        })
+                      }
+                      className="flex-1 py-2 px-3 bg-sky-500 hover:bg-sky-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      补 {gap > 0 ? `缺口 ${gap} 个` : `备货 ${totalNeed} 个`}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setPurchaseForm({
+                          ...purchaseForm,
+                          quantity: totalNeed * 2,
+                        })
+                      }
+                      className="flex-1 py-2 px-3 bg-white hover:bg-sky-50 text-sky-600 rounded-lg text-sm font-medium transition-colors border border-sky-200"
+                    >
+                      备双份（{totalNeed * 2}个）
+                    </button>
+                  </div>
+                  {gap > 0 && (
+                    <p className="text-xs text-sky-600 mt-2">
+                      当前库存仅够 {currentStock} 只壶使用，建议至少补充 {gap} 个
+                    </p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               采购数量
