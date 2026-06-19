@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
 export default function InspectionPage() {
-  const { teapots, batches, addInspection, checkBatchAbnormal, inspections } = useTeaStore();
+  const { teapots, batches, addInspection, checkBatchAbnormal, inspections, updateBatch } = useTeaStore();
   const [selectedTeapotId, setSelectedTeapotId] = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [temperature, setTemperature] = useState(80);
@@ -51,6 +51,8 @@ export default function InspectionPage() {
 
     const isAbnormal = abnormalReasons.length > 0 || abnormal.isAbnormal;
 
+    const shouldDiscard = isTempAbnormal && temperature < (selectedTeapot?.targetTempMin || 100) || abnormal.isAbnormal;
+
     addInspection({
       batchId: selectedBatchId,
       inspectTime: new Date().toISOString(),
@@ -64,7 +66,14 @@ export default function InspectionPage() {
       abnormalReason: abnormalReasons.length > 0 ? abnormalReasons.join('、') : undefined,
     });
 
-    alert('巡查记录已提交！');
+    if (shouldDiscard) {
+      updateBatch(selectedBatchId, { status: 'discarded' });
+      alert('巡查记录已提交！该批次已异常报废！');
+    } else {
+      alert('巡查记录已提交！');
+    }
+
+    setSelectedBatchId('');
     setTemperature(80);
     setAroma('good');
     setColor('good');
