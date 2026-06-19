@@ -267,7 +267,7 @@ export default function ApplicationList() {
 
                           {app.status === 'approved' && !record && (
                             <button
-                              onClick={() => navigate(`/records/checkout/${app.id}`)}
+                              onClick={() => navigate(`/checkout/${app.id}`)}
                               className="px-3 py-1.5 text-xs bg-primary-700 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-1 border border-gold-500"
                             >
                               <ClipboardCheck className="w-3.5 h-3.5" />
@@ -277,7 +277,7 @@ export default function ApplicationList() {
 
                           {(app.status === 'checked_out' || recordStatus === 'checked_out') && record && (
                             <button
-                              onClick={() => navigate(`/records/return/${record.id}`)}
+                              onClick={() => navigate(`/return/${record.id}`)}
                               className="px-3 py-1.5 text-xs bg-gold-500 text-white rounded-lg hover:bg-gold-600 transition-colors flex items-center gap-1"
                             >
                               <ArrowRight className="w-3.5 h-3.5" />

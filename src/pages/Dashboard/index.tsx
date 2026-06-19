@@ -184,7 +184,7 @@ const Dashboard = () => {
             近期外带记录
           </h3>
           <button
-            onClick={() => navigate('/records')}
+            onClick={() => navigate('/applications')}
             className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 transition-colors"
           >
             查看全部 <ArrowRight className="w-4 h-4" />

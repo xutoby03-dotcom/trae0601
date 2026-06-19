@@ -162,7 +162,7 @@ export default function ApplicationDetail() {
           )}
           {(application.status === 'checked_out' || record?.status === 'checked_out') && record && (
             <button
-              onClick={() => navigate(`/records/return/${record.id}`)}
+              onClick={() => navigate(`/return/${record.id}`)}
               className="btn-primary flex items-center gap-2"
             >
               <ArrowRight className="w-4 h-4" />
