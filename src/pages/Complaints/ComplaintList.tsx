@@ -11,7 +11,6 @@ import {
   Flame,
   Building2,
   User,
-  Wrench,
   CalendarCheck,
   DollarSign,
 } from 'lucide-react';
@@ -153,27 +152,22 @@ const ComplaintList = () => {
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">投诉类型</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">房间</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">客人</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">订单号</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">日期</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">状态</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">处理摘要</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-dark-400">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-800">
               {filteredComplaints.length > 0 ? (
-                filteredComplaints.flatMap((complaint, index) => {
+                filteredComplaints.map((complaint, index) => {
                   const Icon = complaintIconMap[complaint.complaintType];
                   const isResolved = complaint.status === 'resolved' || complaint.status === 'closed';
                   const relatedRepair = getRelatedRepair(complaint.id);
-                  const hasSummary = isResolved && (complaint.handlingNotes || relatedRepair?.completedDate || (relatedRepair && relatedRepair.cost > 0));
-
-                  const mainRow = (
+                  return (
                     <tr
                       key={complaint.id}
-                      className={cn(
-                        'hover:bg-dark-800/30 transition-colors',
-                        hasSummary && 'border-b-0'
-                      )}
+                      className="hover:bg-dark-800/30 transition-colors"
                       style={{ animationDelay: `${index * 30}ms` }}
                     >
                       <td className="px-6 py-4">
@@ -199,11 +193,6 @@ const ComplaintList = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-dark-300 font-mono text-sm">
-                          {complaint.orderNumber}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
                         <span className="text-dark-400">{complaint.complaintDate}</span>
                       </td>
                       <td className="px-6 py-4">
@@ -221,6 +210,31 @@ const ComplaintList = () => {
                         />
                       </td>
                       <td className="px-6 py-4">
+                        {isResolved ? (
+                          <div className="flex items-center gap-3 text-xs">
+                            {complaint.handlingNotes && (
+                              <span className="text-dark-400 truncate max-w-[180px]" title={complaint.handlingNotes}>
+                                {truncateNotes(complaint.handlingNotes, 24)}
+                              </span>
+                            )}
+                            {relatedRepair?.completedDate && (
+                              <span className="flex items-center gap-1 shrink-0 text-success-400">
+                                <CalendarCheck className="w-3 h-3" />
+                                {relatedRepair.completedDate}
+                              </span>
+                            )}
+                            {relatedRepair && relatedRepair.cost > 0 && (
+                              <span className="flex items-center gap-1 shrink-0 text-warning-400">
+                                <DollarSign className="w-3 h-3" />
+                                ¥{relatedRepair.cost}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-dark-600">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
                         <Link
                           to={`/complaints/${complaint.id}`}
                           className="text-warning-400 hover:text-warning-300 text-sm"
@@ -230,39 +244,6 @@ const ComplaintList = () => {
                       </td>
                     </tr>
                   );
-
-                  if (!hasSummary) return [mainRow];
-
-                  const summaryRow = (
-                    <tr key={`${complaint.id}-summary`} className="border-b border-dark-800">
-                      <td colSpan={7} className="px-6 py-3 bg-dark-800/20">
-                        <div className="flex items-center gap-6 text-sm">
-                          {complaint.handlingNotes && (
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <Wrench className="w-3.5 h-3.5 text-dark-500 shrink-0" />
-                              <span className="text-dark-400 truncate">
-                                {truncateNotes(complaint.handlingNotes)}
-                              </span>
-                            </div>
-                          )}
-                          {relatedRepair?.completedDate && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <CalendarCheck className="w-3.5 h-3.5 text-success-500" />
-                              <span className="text-success-400">{relatedRepair.completedDate}</span>
-                            </div>
-                          )}
-                          {relatedRepair && relatedRepair.cost > 0 && (
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <DollarSign className="w-3.5 h-3.5 text-warning-500" />
-                              <span className="text-warning-400">¥{relatedRepair.cost}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-
-                  return [mainRow, summaryRow];
                 })
               ) : (
                 <tr>
