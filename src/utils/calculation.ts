@@ -45,6 +45,15 @@ export function calculateLitterStock(records: CleaningRecord[]): number {
   return Math.max(0, 15 - estimatedUsed + totalAdded);
 }
 
+export function calculateDeodorizerStock(litterBoxes: LitterBox[]): { total: number; low: boolean } {
+  const totalRemaining = litterBoxes.reduce((sum, box) => sum + (box.deodorizerRemaining || 0), 0);
+  const lowThreshold = 20;
+  return {
+    total: totalRemaining,
+    low: totalRemaining <= lowThreshold,
+  };
+}
+
 export function calculateNextFullChange(
   litterBoxes: LitterBox[]
 ): { days: number; boxName: string } {
@@ -75,11 +84,14 @@ export function calculateDashboardStats(
   records: CleaningRecord[]
 ): DashboardStats {
   const nextChange = calculateNextFullChange(litterBoxes);
+  const deodorizerStock = calculateDeodorizerStock(litterBoxes);
   
   return {
     todayPending: calculateTodayPending(litterBoxes, records),
     abnormalCount: calculateAbnormalCount(records),
     litterStock: calculateLitterStock(records),
+    deodorizerStock: deodorizerStock.total,
+    deodorizerLow: deodorizerStock.low,
     nextFullChangeDays: nextChange.days,
     nextFullChangeBoxName: nextChange.boxName,
   };

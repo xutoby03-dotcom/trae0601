@@ -17,6 +17,8 @@ export interface LitterBox {
   litterType: string;
   cleaningFrequency: number;
   deodorizer: string;
+  deodorizerTotal: number;
+  deodorizerRemaining: number;
   fullChangeInterval: number;
   lastFullChangeDate: string;
   createdAt: string;
@@ -42,6 +44,7 @@ export interface CleaningRecord {
   operator: string;
   operationTypes: OperationType[];
   litterAdded: number;
+  deodorizerUsed: number;
   odorLevel: OdorLevel;
   clumpCondition: ClumpCondition;
   hasBloodUrine: boolean;
@@ -70,6 +73,8 @@ export interface DashboardStats {
   todayPending: number;
   abnormalCount: number;
   litterStock: number;
+  deodorizerStock: number;
+  deodorizerLow: boolean;
   nextFullChangeDays: number;
   nextFullChangeBoxName: string;
 }

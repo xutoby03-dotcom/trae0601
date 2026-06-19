@@ -1,4 +1,4 @@
-import { Edit2, Trash2, MapPin, Ruler, Box, RefreshCw } from 'lucide-react';
+import { Edit2, Trash2, MapPin, Ruler, Box, RefreshCw, Sparkles } from 'lucide-react';
 import type { LitterBox } from '@/types';
 import { formatDate } from '@/utils/calculation';
 
@@ -60,6 +60,18 @@ export default function LitterBoxCard({ box, onEdit, onDelete, delay = 0 }: Litt
         <div>
           <span className="text-warm-300">除臭：</span>
           <span className="text-warm-400">{box.deodorizer}</span>
+        </div>
+        <div className="col-span-2 flex items-center gap-2">
+          <Sparkles size={16} className={box.deodorizerRemaining <= 10 ? 'text-coral-400' : 'text-sand-300'} />
+          <span className="text-warm-300">除臭珠：</span>
+          <span className={`font-medium ${box.deodorizerRemaining <= 10 ? 'text-coral-400' : 'text-warm-400'}`}>
+            {box.deodorizerRemaining} / {box.deodorizerTotal} 颗
+          </span>
+          {box.deodorizerRemaining <= 10 && (
+            <span className="text-xs px-2 py-0.5 bg-coral-100 text-coral-400 rounded-full">
+              库存不足
+            </span>
+          )}
         </div>
       </div>
       

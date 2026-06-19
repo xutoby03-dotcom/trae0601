@@ -13,6 +13,7 @@ interface RecordFormProps {
 
 export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: RecordFormProps) {
   const now = new Date();
+  
   const [formData, setFormData] = useState({
     litterBoxId: litterBoxes[0]?.id || '',
     catId: '' as string,
@@ -21,6 +22,7 @@ export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: Re
     operator: '',
     operationTypes: ['scoop'] as OperationType[],
     litterAdded: 0,
+    deodorizerUsed: 0,
     odorLevel: 'none' as OdorLevel,
     clumpCondition: 'normal' as ClumpCondition,
     hasBloodUrine: false,
@@ -29,6 +31,8 @@ export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: Re
     noStoolForDays: false,
     notes: '',
   });
+  
+  const selectedBox = litterBoxes.find(b => b.id === formData.litterBoxId);
 
   const { isAbnormal, abnormalTypes } = detectAbnormalities(formData);
 
@@ -185,6 +189,27 @@ export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: Re
                 value={formData.litterAdded}
                 onChange={(e) => setFormData({ ...formData, litterAdded: parseFloat(e.target.value) || 0 })}
                 className="input-field"
+              />
+            </div>
+          )}
+          
+          {formData.operationTypes.includes('disinfect') && (
+            <div>
+              <label className="block text-sm font-medium text-warm-400 mb-1">
+                除臭珠用量（颗）
+                {selectedBox && (
+                  <span className="text-warm-300 ml-2">
+                    （剩余：{selectedBox.deodorizerRemaining} 颗）
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.deodorizerUsed}
+                onChange={(e) => setFormData({ ...formData, deodorizerUsed: parseInt(e.target.value) || 0 })}
+                className="input-field"
+                placeholder="例如：5"
               />
             </div>
           )}

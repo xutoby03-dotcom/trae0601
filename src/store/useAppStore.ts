@@ -99,12 +99,23 @@ export const useAppStore = create<AppState>()(
         }
         
         let updatedBoxes = state.litterBoxes;
-        if (record.operationTypes.includes('full_change')) {
-          updatedBoxes = state.litterBoxes.map(b => 
-            b.id === record.litterBoxId 
-              ? { ...b, lastFullChangeDate: record.date, updatedAt: new Date().toISOString() }
-              : b
-          );
+        if (record.operationTypes.includes('full_change') || (record.operationTypes.includes('disinfect') && record.deodorizerUsed > 0)) {
+          updatedBoxes = state.litterBoxes.map(b => {
+            if (b.id !== record.litterBoxId) return b;
+            
+            const updates: Partial<LitterBox> = { updatedAt: new Date().toISOString() };
+            
+            if (record.operationTypes.includes('full_change')) {
+              updates.lastFullChangeDate = record.date;
+            }
+            
+            if (record.operationTypes.includes('disinfect') && record.deodorizerUsed > 0) {
+              const newRemaining = Math.max(0, (b.deodorizerRemaining || 0) - record.deodorizerUsed);
+              updates.deodorizerRemaining = newRemaining;
+            }
+            
+            return { ...b, ...updates };
+          });
         }
         
         return {

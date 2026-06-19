@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ClipboardList, AlertTriangle, Package, Calendar, Plus, Cat, Box } from 'lucide-react';
+import { ClipboardList, AlertTriangle, Package, Calendar, Plus, Cat, Box, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { calculateDashboardStats } from '@/utils/calculation';
 import { formatDateTime } from '@/utils/calculation';
@@ -50,7 +50,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="今日待清理"
           value={stats.todayPending}
@@ -76,12 +76,20 @@ export default function Dashboard() {
           delay={200}
         />
         <StatCard
+          title="除臭珠余量"
+          value={`${stats.deodorizerStock}颗`}
+          subtitle={stats.deodorizerLow ? '快用完啦' : '库存充足'}
+          icon={Sparkles}
+          variant={stats.deodorizerLow ? 'danger' : 'default'}
+          delay={300}
+        />
+        <StatCard
           title="下次整盆换砂"
           value={stats.nextFullChangeDays === 0 ? '今天' : `${stats.nextFullChangeDays}天`}
           subtitle={stats.nextFullChangeBoxName}
           icon={Calendar}
           variant={stats.nextFullChangeDays <= 2 ? 'warning' : 'default'}
-          delay={300}
+          delay={400}
         />
       </div>
 

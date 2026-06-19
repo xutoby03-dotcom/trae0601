@@ -40,6 +40,8 @@ export default function LitterBoxForm({ box, onSubmit, onCancel }: LitterBoxForm
     litterType: '豆腐猫砂',
     cleaningFrequency: 2,
     deodorizer: '小苏打 + 除臭珠',
+    deodorizerTotal: 100,
+    deodorizerRemaining: 100,
     fullChangeInterval: 14,
     lastFullChangeDate: new Date().toISOString().split('T')[0],
   });
@@ -52,6 +54,8 @@ export default function LitterBoxForm({ box, onSubmit, onCancel }: LitterBoxForm
         litterType: box.litterType,
         cleaningFrequency: box.cleaningFrequency,
         deodorizer: box.deodorizer,
+        deodorizerTotal: box.deodorizerTotal ?? 100,
+        deodorizerRemaining: box.deodorizerRemaining ?? 100,
         fullChangeInterval: box.fullChangeInterval,
         lastFullChangeDate: box.lastFullChangeDate,
       });
@@ -165,6 +169,33 @@ export default function LitterBoxForm({ box, onSubmit, onCancel }: LitterBoxForm
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-warm-400 mb-1">
+                除臭珠总量（颗）
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.deodorizerTotal}
+                onChange={(e) => setFormData({ ...formData, deodorizerTotal: parseInt(e.target.value) || 0 })}
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-warm-400 mb-1">
+                剩余量（颗）
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={formData.deodorizerRemaining}
+                onChange={(e) => setFormData({ ...formData, deodorizerRemaining: parseInt(e.target.value) || 0 })}
+                className="input-field"
+              />
+            </div>
           </div>
           
           <div>
