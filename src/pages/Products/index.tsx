@@ -1,16 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useProductStore } from '@/store/productStore';
+import { useInventoryStore } from '@/store/inventoryStore';
 import { Product } from '@/types';
 import ProductCard from './ProductCard';
 import ProductForm from './ProductForm';
 
 export default function ProductsPage() {
-  const { products, addProduct, updateProduct, deleteProduct } = useProductStore();
+  const { products, addProduct, updateProduct, deleteProduct, loadProducts } = useProductStore();
+  const { loadBatches, refreshBatchStatuses } = useInventoryStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+
+  useEffect(() => {
+    loadProducts();
+    loadBatches();
+  }, [loadProducts, loadBatches]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      refreshBatchStatuses();
+    }
+  }, [products.length, refreshBatchStatuses]);
 
   const brands = [...new Set(products.map(p => p.brand))];
 
