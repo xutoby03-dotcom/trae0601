@@ -4,6 +4,7 @@ import type {
   DailyTask,
   OperationRecord,
   Alert,
+  PhotoItem,
 } from "@/types";
 import { daysAgo, today } from "@/utils/date";
 import { generateId } from "@/utils/storage";
@@ -135,7 +136,7 @@ function genTask(cageId: string, date: string, override: Partial<DailyTask> = {}
     temperature: 21 + Math.random() * 2,
     humidity: 52 + Math.random() * 10,
     healthObservation: "状态良好，活动正常",
-    abnormalPhotos: [],
+    abnormalPhotos: [] as PhotoItem[],
     completedAt: `${date} 09:${String(10 + Math.floor(Math.random() * 40)).padStart(2, "0")}`,
     completedBy: "陈饲养员",
     ...override,
@@ -155,8 +156,14 @@ export const mockDailyTasks: DailyTask[] = [
     humidity: 62,
     healthObservation: "观察到1只小鼠出现皮肤损伤，疑似癣菌感染，已记录照片供兽医复核",
     abnormalPhotos: [
-      `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=close%20up%20of%20laboratory%20mouse%20skin%20lesion%20with%20hair%20loss%20and%20red%20irritation%20medical%20photography&image_size=square`,
-      `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=microscope%20view%20of%20mouse%20skin%20tissue%20sample%20showing%20abnormal%20cells&image_size=square`,
+      {
+        url: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=close%20up%20of%20laboratory%20mouse%20skin%20lesion%20with%20hair%20loss%20and%20red%20irritation%20medical%20photography&image_size=square`,
+        label: "背部皮肤可见圆形脱毛区，直径约5mm，周围红斑，疑似皮肤癣菌感染",
+      },
+      {
+        url: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=microscope%20view%20of%20mouse%20skin%20tissue%20sample%20showing%20abnormal%20cells&image_size=square`,
+        label: "患处取样镜检，可见大量孢子菌丝，需进一步分离培养确认菌种",
+      },
     ],
   }),
   genTask("c2", today(), {
@@ -229,7 +236,10 @@ export const mockDailyTasks: DailyTask[] = [
     temperature: 25.8,
     healthObservation: "温度偏高，已开启通风，观察到个别小鼠活动减少",
     abnormalPhotos: [
-      `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=group%20of%20laboratory%20mice%20in%20cage%20one%20mouse%20lethargic%20sitting%20in%20corner%20clinical%20observation&image_size=square`,
+      {
+        url: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=group%20of%20laboratory%20mice%20in%20cage%20one%20mouse%20lethargic%20sitting%20in%20corner%20clinical%20observation&image_size=square`,
+        label: "笼内观察：3号小鼠精神萎靡，蜷缩于角落，活动量明显减少，饮食减少",
+      },
     ],
   }),
   genTask("c1", daysAgo(3)),

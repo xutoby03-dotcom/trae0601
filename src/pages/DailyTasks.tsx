@@ -4,7 +4,7 @@ import { today } from "@/utils/date";
 import { TaskCard } from "@/components/TaskCard";
 import { Modal } from "@/components/Modal";
 import { EmptyState } from "@/components/EmptyState";
-import { SPECIES_LABEL, type DailyTask, type TaskStatus } from "@/types";
+import { SPECIES_LABEL, type DailyTask, type TaskStatus, type PhotoItem } from "@/types";
 import { TASK_STATUS_LABEL } from "@/types";
 import {
   ClipboardList,
@@ -38,7 +38,7 @@ export default function DailyTasks() {
     temperature: "",
     humidity: "",
     healthObservation: "",
-    abnormalPhotos: [] as string[],
+    abnormalPhotos: [] as PhotoItem[],
   });
 
   const allTasks = useMemo(() => getTasksByDate(selectedDate), [getTasksByDate, selectedDate]);
@@ -316,7 +316,7 @@ function TaskForm({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newPhotos: string[] = [];
+    const newPhotos: PhotoItem[] = [];
     let processed = 0;
     const total = files.length;
 
@@ -325,7 +325,7 @@ function TaskForm({
       const reader = new FileReader();
       reader.onload = (ev) => {
         if (ev.target?.result) {
-          newPhotos.push(ev.target.result as string);
+          newPhotos.push({ url: ev.target.result as string });
         }
         processed++;
         if (processed === total) {
@@ -461,13 +461,13 @@ function TaskForm({
         <div className="space-y-3">
           {form.abnormalPhotos.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
-              {form.abnormalPhotos.map((photo: string, idx: number) => (
+              {form.abnormalPhotos.map((photo: PhotoItem, idx: number) => (
                 <div
                   key={idx}
                   className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group"
                 >
                   <img
-                    src={photo}
+                    src={photo.url}
                     alt={`异常照片 ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />

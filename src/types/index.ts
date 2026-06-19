@@ -1,3 +1,8 @@
+export interface PhotoItem {
+  url: string;
+  label?: string;
+}
+
 export type Species = "mouse" | "zebrafish" | "rat" | "rabbit";
 export type CageStatus = "normal" | "warning" | "isolated" | "empty";
 export type TaskStatus = "pending" | "in_progress" | "completed" | "overdue";
@@ -44,7 +49,7 @@ export interface DailyTask {
   temperature: number | null;
   humidity: number | null;
   healthObservation: string | null;
-  abnormalPhotos: string[];
+  abnormalPhotos: PhotoItem[];
   completedAt: string | null;
   completedBy: string | null;
 }
