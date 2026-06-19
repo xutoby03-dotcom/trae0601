@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTablewareStore } from '../../store/useTablewareStore';
 import { StatusBadge } from '../../components/StatusBadge/StatusBadge';
@@ -11,6 +11,8 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  Filter,
+  X,
 } from 'lucide-react';
 import { disinfectionLabels, severityLabels } from '../../data/mockData';
 import { formatDate, formatNumber, cn } from '../../utils/format';
@@ -23,23 +25,52 @@ const Inspection = () => {
   const [searchText, setSearchText] = useState(
     searchParams.get('search') || ''
   );
+  const [onlyAbnormal, setOnlyAbnormal] = useState(
+    searchParams.get('abnormal') === '1'
+  );
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const urlSearch = searchParams.get('search') || '';
-    if (urlSearch !== searchText) {
-      setSearchText(urlSearch);
-    }
+    const urlAbnormal = searchParams.get('abnormal') === '1';
+    if (urlSearch !== searchText) setSearchText(urlSearch);
+    if (urlAbnormal !== onlyAbnormal) setOnlyAbnormal(urlAbnormal);
   }, [searchParams]);
+
+  const updateUrl = (nextSearch: string, nextAbnormal: boolean) => {
+    const params: Record<string, string> = {};
+    if (nextSearch) params.search = nextSearch;
+    if (nextAbnormal) params.abnormal = '1';
+    setSearchParams(params);
+  };
 
   const onSearchChange = (value: string) => {
     setSearchText(value);
-    if (value) {
-      setSearchParams({ search: value });
-    } else {
-      setSearchParams({});
-    }
+    updateUrl(value, onlyAbnormal);
   };
+
+  const onAbnormalToggle = () => {
+    const next = !onlyAbnormal;
+    setOnlyAbnormal(next);
+    updateUrl(searchText, next);
+  };
+
+  const isAbnormal = (record: any) =>
+    record.disinfectionStatus === 'unqualified' || record.severity === 'severe';
+
+  const filteredRecords = useMemo(() => {
+    return inspectionRecords.filter((record) => {
+      const matchAbnormal = !onlyAbnormal || isAbnormal(record);
+      const matchSearch =
+        !searchText ||
+        record.tablewareBatchNo
+          .toLowerCase()
+          .includes(searchText.toLowerCase()) ||
+        record.inspector.includes(searchText);
+      return matchAbnormal && matchSearch;
+    });
+  }, [inspectionRecords, searchText, onlyAbnormal]);
+
   const [formData, setFormData] = useState({
     tablewareId: '',
     tablewareBatchNo: '',
@@ -53,14 +84,6 @@ const Inspection = () => {
     severity: 'minor' as SeverityLevel,
     remark: '',
   });
-
-  const filteredRecords = inspectionRecords.filter(
-    (record) =>
-      record.tablewareBatchNo
-        .toLowerCase()
-        .includes(searchText.toLowerCase()) ||
-      record.inspector.includes(searchText)
-  );
 
   const handleAdd = () => {
     setFormData({
@@ -122,31 +145,74 @@ const Inspection = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="搜索批次号、巡检员..."
-            value={searchText}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
-          />
-          {searchText && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 text-xs"
-            >
-              ×
-            </button>
-          )}
-        </div>
-        {searchText && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-primary-600 bg-primary-50 px-3 py-2 rounded-lg">
-            <Search className="w-4 h-4" />
-            正在搜索「<span className="font-medium">{searchText}</span>」相关巡检记录
-            {filteredRecords.length === 0 && (
-              <span className="ml-auto text-gray-500">暂无匹配结果</span>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="搜索批次号、巡检员..."
+              value={searchText}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+            />
+            {searchText && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 text-xs"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
+          </div>
+          <button
+            type="button"
+            onClick={onAbnormalToggle}
+            className={cn(
+              'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-medium text-sm transition-all',
+              onlyAbnormal
+                ? 'bg-danger-50 border-danger-500 text-danger-600'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+            )}
+          >
+            <Filter className="w-4 h-4" />
+            只看异常
+            {onlyAbnormal && (
+              <span className="w-1.5 h-1.5 rounded-full bg-danger-500 animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        {(searchText || onlyAbnormal) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm bg-primary-50 text-primary-600 px-3 py-2 rounded-lg">
+            <Search className="w-4 h-4" />
+            <span className="flex items-center gap-1.5">
+              当前筛选：
+              {onlyAbnormal && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-danger-100 text-danger-600 rounded text-xs font-medium">
+                  仅异常
+                  <button
+                    onClick={() => onAbnormalToggle()}
+                    className="hover:bg-danger-200 rounded-full p-0.5 ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {searchText && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-white text-primary-600 rounded text-xs font-medium border border-primary-200">
+                  「{searchText}」
+                  <button
+                    onClick={() => onSearchChange('')}
+                    className="hover:bg-primary-100 rounded-full p-0.5 ml-0.5"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </span>
+            <span className="ml-auto font-semibold text-primary-700">
+              筛出 {filteredRecords.length} 条
+            </span>
           </div>
         )}
       </div>
