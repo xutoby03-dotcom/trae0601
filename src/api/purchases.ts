@@ -4,6 +4,7 @@ import type {
   CreatePurchaseDto,
   UpdatePurchaseDto,
   Product,
+  OrderWithDetail,
 } from "@/types";
 
 export const purchasesApi = {
@@ -15,10 +16,10 @@ export const purchasesApi = {
   create: (data: CreatePurchaseDto) => http.post<Purchase>("/purchases", data),
 
   update: (id: string, data: UpdatePurchaseDto) =>
-    http.put<Purchase>(`/purchases/${id}`, data),
+    http.put<Purchase>(`/purchases/${id}`),
 
   complete: (id: string) =>
-    http.post<{ purchase: Purchase; product: Product }>(
+    http.post<{ purchase: Purchase; product: Product; affectedOrders: OrderWithDetail[] }>(
       `/purchases/${id}/complete`
     ),
 

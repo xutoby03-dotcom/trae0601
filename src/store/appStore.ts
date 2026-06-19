@@ -20,6 +20,7 @@ import type {
   UpdateProductDto,
   CreatePurchaseDto,
   UpdatePurchaseDto,
+  OrderWithDetail,
 } from "@/types";
 
 interface LoadingState {
@@ -30,6 +31,19 @@ interface LoadingState {
   [key: string]: boolean;
 }
 
+export interface AppNotification {
+  id: string;
+  type: "success" | "error" | "info";
+  title: string;
+  orders?: OrderWithDetail[];
+  purchase?: {
+    productName: string;
+    size: string;
+    quantity: number;
+    affectedCount: number;
+  };
+}
+
 interface AppState {
   students: Student[];
   products: Product[];
@@ -37,6 +51,8 @@ interface AppState {
   purchases: Purchase[];
   loading: LoadingState;
   error: string | null;
+  notifications: AppNotification[];
+  purchaseAffectedCounts: Record<string, number>;
 
   fetchStudents: (params?: { className?: string; search?: string }) => Promise<void>;
   fetchProducts: (params?: { category?: string }) => Promise<void>;
@@ -69,6 +85,8 @@ interface AppState {
 
   setLoading: (key: string, value: boolean) => void;
   setError: (error: string | null) => void;
+  addNotification: (notification: Omit<AppNotification, "id">) => void;
+  dismissNotification: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
@@ -83,6 +101,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
     purchases: false,
   },
   error: null,
+  notifications: [],
+  purchaseAffectedCounts: {},
 
   setLoading: (key, value) =>
     set((state) => ({
@@ -90,6 +110,18 @@ export const useAppStore = create<AppState>()((set, get) => ({
     })),
 
   setError: (error) => set({ error }),
+
+  addNotification: (notification) => {
+    const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    set((state) => ({
+      notifications: [...state.notifications, { ...notification, id }],
+    }));
+  },
+
+  dismissNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
 
   fetchStudents: async (params) => {
     set((state) => ({ loading: { ...state.loading, students: true } }));
@@ -334,8 +366,23 @@ export const useAppStore = create<AppState>()((set, get) => ({
         purchases: state.purchases.map((p) =>
           p.id === id ? result.purchase : p
         ),
+        purchaseAffectedCounts: {
+          ...state.purchaseAffectedCounts,
+          [id]: result.affectedOrders.length,
+        },
         error: null,
       }));
+      get().addNotification({
+        type: "success",
+        title: "入库成功",
+        orders: result.affectedOrders,
+        purchase: {
+          productName: result.product.name,
+          size: result.purchase.size,
+          quantity: result.purchase.quantity,
+          affectedCount: result.affectedOrders.length,
+        },
+      });
       await get().fetchOrders();
       await get().fetchProducts();
     } catch (err: any) {

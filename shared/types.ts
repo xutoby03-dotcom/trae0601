@@ -137,3 +137,9 @@ export interface CreatePurchaseDto {
 }
 
 export type UpdatePurchaseDto = Partial<Omit<Purchase, "id" | "createdAt">>;
+
+export interface OrderWithDetail extends Order {
+  studentName: string;
+  className: string;
+  productName: string;
+}

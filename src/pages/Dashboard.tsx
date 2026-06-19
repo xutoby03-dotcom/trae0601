@@ -19,7 +19,7 @@ import {
 import type { ProductCategory } from "@/types";
 
 export default function Dashboard() {
-  const { orders, purchases, students, products } = useAppStore();
+  const { orders, purchases, students, products, purchaseAffectedCounts } = useAppStore();
 
   const stats = useMemo(() => {
     const unpaidCount = orders.filter((o) => o.paymentStatus === "unpaid").length;
@@ -111,15 +111,20 @@ export default function Dashboard() {
     purchases
       .filter((p) => p.status === "completed")
       .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => new Date(b.completedAt || b.createdAt).getTime() - new Date(a.completedAt || a.createdAt).getTime())
       .slice(0, 3)
       .forEach((p) => {
         const product = products.find((pr) => pr.id === p.productId);
+        const affectedCount = purchaseAffectedCounts[p.id];
+        let text = `${product?.name || ""} ${p.size}码 入库 ${p.quantity} 件`;
+        if (affectedCount && affectedCount > 0) {
+          text += ` · 带动 ${affectedCount} 笔申请可发放`;
+        }
         events.push({
-          id: p.id,
+          id: `pur-${p.id}`,
           time: p.completedAt || p.createdAt,
           type: "purchase",
-          text: `${product?.name || ""} ${p.size}码 入库 ${p.quantity} 件`,
+          text,
         });
       });
 

@@ -4,6 +4,7 @@ import type {
   CreateOrderDto,
   Order,
   OrderStatus,
+  OrderWithDetail,
   Product,
   Purchase,
   PurchaseStatus,
@@ -132,7 +133,7 @@ export class OrderService {
 }
 
 export class PurchaseService {
-  static completePurchase(id: string): { purchase: Purchase; product: Product; affectedOrders: Order[] } | null {
+  static completePurchase(id: string): { purchase: Purchase; product: Product; affectedOrders: OrderWithDetail[] } | null {
     const purchaseRow = db
       .prepare("SELECT * FROM purchases WHERE id = ?")
       .get(id) as any;
@@ -199,11 +200,17 @@ export class PurchaseService {
         db.prepare("SELECT * FROM products WHERE id = ?").get(purchaseRow.productId) as any
       );
 
-      let affectedOrders: Order[] = [];
+      let affectedOrders: OrderWithDetail[] = [];
       if (affectedOrderIds.length > 0) {
         const placeholders = affectedOrderIds.map(() => "?").join(",");
         const rows = db
-          .prepare(`SELECT * FROM orders WHERE id IN (${placeholders})`)
+          .prepare(
+            `SELECT o.*, s.name as studentName, s.className, pr.name as productName
+             FROM orders o
+             LEFT JOIN students s ON o.studentId = s.id
+             LEFT JOIN products pr ON o.productId = pr.id
+             WHERE o.id IN (${placeholders})`
+          )
           .all(...affectedOrderIds) as any[];
         affectedOrders = rows.map((row: any) => ({
           ...row,
@@ -218,6 +225,6 @@ export class PurchaseService {
       };
     });
 
-    return tx() as { purchase: Purchase; product: Product; affectedOrders: Order[] };
+    return tx() as { purchase: Purchase; product: Product; affectedOrders: OrderWithDetail[] };
   }
 }

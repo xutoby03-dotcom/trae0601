@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import Notifications from "./Notifications";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 interface LayoutProps {
@@ -14,6 +15,7 @@ export default function Layout({ loading, error }: LayoutProps) {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar />
+        <Notifications />
         {loading && (
           <div className="bg-blue-50 border-b border-blue-200 px-6 py-2 flex items-center gap-2 text-sm text-blue-700">
             <Loader2 className="w-4 h-4 animate-spin" />
