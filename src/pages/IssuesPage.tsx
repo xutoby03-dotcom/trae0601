@@ -7,7 +7,7 @@ import { formatDateTime, todayStr } from '@/utils';
 import type { IssueLevel } from '@/types';
 
 export default function IssuesPage() {
-  const { issues, facilities, updateIssue, updateFacility } = useAppStore();
+  const { issues, facilities, updateIssue, updateFacility, addRepair } = useAppStore();
   const [statusFilter, setStatusFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
 
@@ -40,6 +40,20 @@ export default function IssuesPage() {
       updateFacility(issue.facilityId, { status: 'out_of_service' });
     } else if (level === 'needs_repair') {
       updateFacility(issue.facilityId, { status: 'needs_repair' });
+    }
+
+    // 需维修或立即停用都自动生成维修工单
+    if (level === 'needs_repair' || level === 'out_of_service') {
+      addRepair({
+        facilityId: issue.facilityId,
+        issueId: issue.id,
+        title: issue.title,
+        handler: '待分配',
+        materials: '',
+        repairDate: todayStr(),
+        result: '',
+        status: 'pending',
+      });
     }
   };
 

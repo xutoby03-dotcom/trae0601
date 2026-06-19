@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Wrench, User, Calendar, Clock, Building2, CheckCircle2, AlertCircle, FileCheck } from 'lucide-react';
+import { Wrench, User, Calendar, Clock, Building2, CheckCircle2, AlertCircle, FileCheck, Plus } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import { StatusBadge } from '@/components/Status/StatusBadge';
 import { formatDate, formatDateTime, todayStr } from '@/utils';
 
 export default function RepairsPage() {
-  const { repairs, facilities, updateRepair, updateFacility } = useAppStore();
+  const { repairs, facilities, issues, updateRepair, updateFacility, updateIssue } = useAppStore();
   const [statusFilter, setStatusFilter] = useState('all');
 
   const getFacilityName = (facilityId: string) => {
@@ -27,7 +27,7 @@ export default function RepairsPage() {
   const handleReview = (repairId: string) => {
     const repair = repairs.find((r) => r.id === repairId);
     if (!repair) return;
-    const reviewResult = prompt('请输入复查结果：', '维修质量合格，设施恢复正常使用。');
+    const reviewResult = window.prompt('请输入复查结果：', '维修质量合格，设施恢复正常使用。');
     if (reviewResult !== null) {
       updateRepair(repairId, {
         status: 'reviewed',
@@ -37,6 +37,20 @@ export default function RepairsPage() {
         reopenDate: todayStr(),
       });
       updateFacility(repair.facilityId, { status: 'normal' });
+
+      // 复查验收后，把关联的问题标记为已解决
+      if (repair.issueId) {
+        const relatedIssue = issues.find((i) => i.id === repair.issueId);
+        if (relatedIssue && relatedIssue.status !== 'resolved') {
+          updateIssue(repair.issueId, {
+            status: 'resolved',
+            handledAt: todayStr(),
+            handlerRemark: relatedIssue.handlerRemark
+              ? `${relatedIssue.handlerRemark} 维修完成，已于${todayStr()}恢复开放。`
+              : `维修完成，已于${todayStr()}恢复开放。`,
+          });
+        }
+      }
     }
   };
 
@@ -54,6 +68,10 @@ export default function RepairsPage() {
           <h1 className="font-display text-3xl text-gray-800">维修记录</h1>
           <p className="text-gray-500 mt-1">跟踪设施维修进度，记录处理过程</p>
         </div>
+        <Link to="/repairs/new" className="btn-primary inline-flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          新增工单
+        </Link>
       </div>
 
       {/* Stats */}
