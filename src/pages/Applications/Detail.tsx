@@ -153,7 +153,7 @@ export default function ApplicationDetail() {
           )}
           {application.status === 'approved' && !record && (
             <button
-              onClick={() => navigate(`/records/checkout/${application.id}`)}
+              onClick={() => navigate(`/checkout/${application.id}`)}
               className="btn-primary flex items-center gap-2"
             >
               <ClipboardCheck className="w-4 h-4" />
