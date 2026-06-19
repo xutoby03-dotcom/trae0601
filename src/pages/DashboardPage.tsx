@@ -48,16 +48,17 @@ export default function DashboardPage() {
   const normalFacilities = facilities.filter((f) => f.status === 'normal').length;
   const overallRate = facilities.length > 0 ? Math.round((normalFacilities / facilities.length) * 100) : 0;
 
-  // Rain priority: facilities with water-related issues or outdoor types needing inspection
-  // 包含积水、滑面、地垫异常的设施详情
+  // Rain priority: ONLY facilities with confirmed water/slide/floor-mat abnormalities
+  // 从巡检记录的异常项 和 未解决问题记录 中命中积水/滑面/地垫三类才纳入
   const rainPriorityFacilities = facilities
     .map((f) => {
-      // 从巡检记录找异常项
+      const abnormalItems: { key: string; name: string }[] = [];
+
+      // 1. 从最新巡检记录找三类异常项
       const latestInspection = inspections
         .filter((i) => i.facilityId === f.id && i.status === 'completed')
         .sort((a, b) => new Date(b.inspectionDate).getTime() - new Date(a.inspectionDate).getTime())[0];
 
-      const abnormalItems: { key: string; name: string }[] = [];
       if (latestInspection) {
         latestInspection.items
           .filter((item) => !item.isNormal)
@@ -68,22 +69,41 @@ export default function DashboardPage() {
           });
       }
 
-      // 从问题记录找水/雨/湿相关
-      const hasWaterIssue = issues.some(
-        (i) =>
-          i.facilityId === f.id &&
-          i.status !== 'resolved' &&
-          (i.title.includes('雨') || i.title.includes('水') || i.title.includes('湿'))
+      // 2. 从未解决问题记录中找三类相关问题（标题或描述命中关键词）
+      const unresolvedIssues = issues.filter(
+        (i) => i.facilityId === f.id && i.status !== 'resolved' && i.status !== 'closed'
       );
-      if (hasWaterIssue && !abnormalItems.find((it) => it.key === 'water_logging')) {
-        abnormalItems.push({ key: 'water_logging', name: '积水湿滑' });
-      }
 
-      // 户外滑梯类默认纳入雨后检查
-      const isOutdoor = f.type === 'slide' || f.type === 'swing' || f.type === 'seesaw';
-      const lastInsp = f.lastInspectionDate ? new Date(f.lastInspectionDate) : new Date(0);
-      const daysSince = Math.floor((Date.now() - lastInsp.getTime()) / (1000 * 60 * 60 * 24));
-      const isPriority = (abnormalItems.length > 0 || (isOutdoor && daysSince > 3)) && f.status !== 'out_of_service';
+      unresolvedIssues.forEach((issue) => {
+        const text = (issue.title + issue.description).toLowerCase();
+
+        // 积水/雨水/湿滑 -> water_logging
+        if (
+          /水|雨|湿|潮|积水|地面积水|打滑/.test(text) &&
+          !abnormalItems.find((it) => it.key === 'water_logging')
+        ) {
+          abnormalItems.push({ key: 'water_logging', name: '积水湿滑' });
+        }
+
+        // 滑面/滑梯表面 -> slide_surface
+        if (
+          /滑面|滑梯表面|表面|磨损|划痕|裂纹/.test(text) &&
+          !abnormalItems.find((it) => it.key === 'slide_surface')
+        ) {
+          abnormalItems.push({ key: 'slide_surface', name: '滑面异常' });
+        }
+
+        // 地垫 -> floor_mat
+        if (
+          /地垫|垫|移位|起翘|破损|海绵|橡胶/.test(text) &&
+          !abnormalItems.find((it) => it.key === 'floor_mat')
+        ) {
+          abnormalItems.push({ key: 'floor_mat', name: '地垫问题' });
+        }
+      });
+
+      // 3. 只有真实命中三类异常的才进清单，停用设施排除
+      const isPriority = abnormalItems.length > 0 && f.status !== 'out_of_service';
 
       return {
         ...f,
