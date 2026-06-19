@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Sparkles,
   AlertCircle,
+  X,
 } from 'lucide-react';
 
 const areaLabels: Record<string, string> = {
@@ -203,35 +204,90 @@ export default function Checkin() {
 
       {verifiedCodeInfo && verifiedCodeInfo.registration.status !== 'checked_in' && (
         <div className="card p-6 opacity-0 animate-fade-in-up stagger-1 border-2 border-warm-orange-300 bg-warm-orange-50/40">
-          <div className="flex flex-col md:flex-row md:items-center gap-5">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warm-orange-400 to-warm-orange-600 flex items-center justify-center shadow-glow animate-pulse-ring">
+          <div className="flex flex-col md:flex-row md:items-stretch gap-5">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warm-orange-400 to-warm-orange-600 flex items-center justify-center shadow-glow animate-pulse-ring shrink-0">
                 <Ticket size={32} className="text-white" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm text-warm-orange-600 font-medium flex items-center gap-1">
                   <Sparkles size={14} /> 扫码识别到签到码
                 </p>
-                <p className="font-display text-2xl text-night-teal-800">
+                <p className="font-display text-2xl text-night-teal-800 mb-1">
                   {verifiedCodeInfo.registration.name}，{verifiedCodeInfo.registration.peopleCount}人
                 </p>
-                <p className="text-sm text-night-teal-500">
-                  {verifiedCodeInfo.session?.title} · {verifiedCodeInfo.session?.date} {verifiedCodeInfo.session?.time} · {verifiedCodeInfo.session?.venue}
+                <p className="text-sm text-night-teal-500 mb-3">
+                  🎬 {verifiedCodeInfo.session?.title} · 📅 {verifiedCodeInfo.session?.date} {verifiedCodeInfo.session?.time} · 📍 {verifiedCodeInfo.session?.venue}
                 </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="badge bg-night-teal-50 text-night-teal-600 border border-night-teal-200">
+                    📞 {verifiedCodeInfo.registration.phone}
+                  </span>
+                  <span className={`badge ${areaColors[verifiedCodeInfo.registration.area]} flex items-center gap-1`}>
+                    <MapPin size={12} /> {areaLabels[verifiedCodeInfo.registration.area]}
+                  </span>
+                  {verifiedCodeInfo.registration.elderlyCount > 0 && (
+                    <span className="badge bg-warm-orange-100 text-warm-orange-700 flex items-center gap-1">
+                      <Heart size={12} /> 老人 {verifiedCodeInfo.registration.elderlyCount}位
+                    </span>
+                  )}
+                  {verifiedCodeInfo.registration.childCount > 0 && (
+                    <span className="badge bg-night-teal-100 text-night-teal-700 flex items-center gap-1">
+                      <Baby size={12} /> 小孩 {verifiedCodeInfo.registration.childCount}位
+                    </span>
+                  )}
+                  {verifiedCodeInfo.registration.needWheelchair && (
+                    <span className="badge bg-forest/15 text-forest flex items-center gap-1">
+                      <Accessibility size={12} /> 无障碍位
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 md:items-stretch md:min-w-[220px]">
+              <div className="relative">
+                <select
+                  value={verifiedCodeInfo.registration.id}
+                  onChange={(e) => {
+                    const newReg = registrations.find((r) => r.id === e.target.value);
+                    if (newReg) {
+                      setVerifiedCodeInfo({
+                        ...verifiedCodeInfo,
+                        registration: newReg,
+                      });
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl border-2 border-night-teal-200 bg-white text-night-teal-800 text-sm font-medium appearance-none cursor-pointer hover:border-warm-orange-400 transition-colors focus:outline-none focus:ring-2 focus:ring-warm-orange-200"
+                >
+                  <option value={verifiedCodeInfo.registration.id}>
+                    {verifiedCodeInfo.registration.name}（当前）
+                  </option>
+                  <optgroup label="改选其他报名">
+                    {registrations
+                      .filter((r) => r.id !== verifiedCodeInfo.registration.id && r.status !== 'checked_in')
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} · {r.peopleCount}人 · {r.phone}
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+                <ChevronRight
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-night-teal-400 pointer-events-none -rotate-90"
+                />
+              </div>
               <button
                 onClick={() => handleCheckin(verifiedCodeInfo.registration.id)}
-                className="btn-primary text-base !px-6 !py-3 flex items-center gap-2"
+                className="btn-primary flex-1 text-base !px-6 !py-3 flex items-center justify-center gap-2"
               >
                 <CheckCircle size={20} /> 确认签到入场
               </button>
               <button
                 onClick={() => setVerifiedCodeInfo(null)}
-                className="btn-outline"
+                className="btn-outline flex items-center justify-center gap-2"
               >
-                取消
+                <X size={16} /> 关闭
               </button>
             </div>
           </div>
