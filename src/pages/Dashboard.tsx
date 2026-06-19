@@ -7,6 +7,7 @@ import {
   Sparkles,
   ArrowRight,
   Skull,
+  Car,
 } from "lucide-react";
 import { useSessionStore } from "@/store/sessionStore";
 import { usePlayerStore } from "@/store/playerStore";
@@ -168,6 +169,12 @@ export default function Dashboard() {
                           {cap.currentCount}/{s.minPlayers}-{s.maxPlayers}
                           {!cap.enough && ` · 差${cap.gap}人`}
                         </span>
+                        {s.needCarpool && (
+                          <span className="chip bg-glow-amber/20 text-glow-amber text-[10px]">
+                            <Car className="w-3 h-3" />
+                            需拼车
+                          </span>
+                        )}
                       </div>
                     </div>
                     <ArrowRight className="w-5 h-5 text-ink-500 group-hover:text-ink-200 transition-colors" />

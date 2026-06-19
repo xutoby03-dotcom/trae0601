@@ -19,6 +19,7 @@ import {
   Check,
   X,
   Sparkles,
+  Car,
 } from "lucide-react";
 import { useSessionStore } from "@/store/sessionStore";
 import { usePlayerStore } from "@/store/playerStore";
@@ -104,6 +105,13 @@ export default function SessionDetail() {
         addRegistration(session.id, pid);
       }
     });
+    const updatedActive = getActiveRegistrationsBySession(session.id);
+    const newCount = updatedActive.length;
+    if (newCount < session.minPlayers) {
+      updateSession(session.id, { needCarpool: true });
+    } else {
+      updateSession(session.id, { needCarpool: false });
+    }
     setSelectedPlayers([]);
     setSubstituteFor(null);
     setSignUpOpen(false);
@@ -207,7 +215,7 @@ export default function SessionDetail() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div>
+            <div className="flex items-center gap-2">
               {capacity.overflow > 0 ? (
                 <span className="chip bg-glow-rose/25 text-glow-rose">
                   <AlertTriangle className="w-3 h-3" />
@@ -222,6 +230,12 @@ export default function SessionDetail() {
                 <span className="chip bg-glow-green/25 text-glow-green">
                   <Check className="w-3 h-3" />
                   已达最低人数
+                </span>
+              )}
+              {session.needCarpool && (
+                <span className="chip bg-glow-amber/20 text-glow-amber">
+                  <Car className="w-3 h-3" />
+                  需拼车
                 </span>
               )}
             </div>
