@@ -568,32 +568,62 @@ export default function PickupPage() {
                     <div className="space-y-2">
                       {pendingList.map((o) => {
                         const emp = empOf(o.employeeId);
+                        const shortCode = emp?.id?.slice(-6).toUpperCase() ?? "";
                         return (
                           <div
                             key={o.id}
-                            className="p-3 rounded-xl border border-warning-100 bg-warning-50/40 flex items-center gap-3 animate-fade-in-up"
+                            className="p-3 rounded-xl border border-warning-100 bg-warning-50/40 animate-fade-in-up"
                           >
-                            <div
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-                              style={{ backgroundColor: emp?.avatarColor }}
-                            >
-                              {emp?.name.charAt(0)}
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                                style={{ backgroundColor: emp?.avatarColor }}
+                              >
+                                {emp?.name.charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-neutral-800 text-sm">
+                                    {emp?.name}
+                                  </p>
+                                  <span className="px-1 py-0.5 rounded bg-brand-50 text-brand-600 text-[9px] font-mono font-medium">
+                                    {shortCode}
+                                  </span>
+                                  <span className="px-1 py-0.5 rounded bg-neutral-100 text-neutral-500 text-[9px] font-medium">
+                                    ****{emp?.phoneLast4}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-neutral-500 mt-0.5">
+                                  {emp?.department} · {emp?.pickupPoint}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => markPicked(o.id)}
+                                className="px-3 py-1.5 rounded-lg bg-success-500 text-white text-xs font-medium hover:bg-success-600 transition-colors shrink-0 inline-flex items-center gap-1"
+                              >
+                                <Check className="w-3 h-3" />
+                                已取餐
+                              </button>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-neutral-800 text-sm">
-                                {emp?.name}
-                              </p>
-                              <p className="text-[11px] text-neutral-500 truncate">
-                                {o.restaurant} · {o.dish}
-                              </p>
+                            <div className="mt-2 flex flex-wrap gap-1 ml-11">
+                              <Tag size="sm" variant="brand">
+                                {o.restaurant}
+                              </Tag>
+                              <Tag size="sm">{o.dish}</Tag>
+                              <Tag size="sm" variant="info">
+                                {o.spec}
+                              </Tag>
+                              <Tag
+                                size="sm"
+                                className="bg-white"
+                                style={{ color: SPICE_COLOR[o.spiceLevel] }}
+                              >
+                                <Flame className="w-3 h-3 inline mr-0.5" />
+                                {o.spiceLevel}
+                              </Tag>
+                              {o.extraRice && <Tag size="sm" variant="warning">+饭</Tag>}
+                              {o.drink !== "无" && <Tag size="sm" variant="info">{o.drink}</Tag>}
                             </div>
-                            <button
-                              onClick={() => markPicked(o.id)}
-                              className="px-3 py-1.5 rounded-lg bg-success-500 text-white text-xs font-medium hover:bg-success-600 transition-colors shrink-0 inline-flex items-center gap-1"
-                            >
-                              <Check className="w-3 h-3" />
-                              已取餐
-                            </button>
                           </div>
                         );
                       })}
@@ -630,6 +660,7 @@ export default function PickupPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {pendingList.map((o, i) => {
                     const emp = empOf(o.employeeId);
+                    const shortCode = emp?.id?.slice(-6).toUpperCase() ?? "";
                     return (
                       <div
                         key={o.id}
@@ -644,9 +675,17 @@ export default function PickupPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="font-semibold text-neutral-800">
-                              {emp?.name}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-neutral-800">
+                                {emp?.name}
+                              </p>
+                              <span className="px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-600 text-[10px] font-mono font-medium tracking-wide">
+                                {shortCode}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded-md bg-neutral-100 text-neutral-500 text-[10px] font-medium">
+                                ****{emp?.phoneLast4}
+                              </span>
+                            </div>
                             <button
                               onClick={() => markPicked(o.id)}
                               className="px-2.5 py-1 rounded-lg bg-success-50 text-success-600 text-xs font-medium hover:bg-success-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 inline-flex items-center gap-1"
@@ -663,6 +702,9 @@ export default function PickupPage() {
                               {o.restaurant}
                             </Tag>
                             <Tag size="sm">{o.dish}</Tag>
+                            <Tag size="sm" variant="info">
+                              {o.spec}
+                            </Tag>
                             <Tag
                               size="sm"
                               className="bg-white"
