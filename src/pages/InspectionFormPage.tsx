@@ -1,6 +1,20 @@
 import { useAppStore } from '@/store';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, FileCheck, AlertTriangle, Battery, Volume2, Fuel, Wrench, ChevronRight } from 'lucide-react';
+import {
+  ArrowLeft,
+  Save,
+  FileCheck,
+  AlertTriangle,
+  Battery,
+  Volume2,
+  Fuel,
+  Wrench,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Camera,
+  FileText,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
   SOUND_OPTIONS,
@@ -12,8 +26,9 @@ import {
   TASK_TYPE_LABELS,
   type MaintenanceTask,
   type TaskType,
+  type Inspection,
 } from '@/constants';
-import { todayStr } from '@/utils/dateUtils';
+import { todayStr, formatDate } from '@/utils/dateUtils';
 
 const taskTypeIcons: Record<TaskType, typeof Battery> = {
   battery: Battery,
@@ -21,6 +36,39 @@ const taskTypeIcons: Record<TaskType, typeof Battery> = {
   hose: Fuel,
   valve: Wrench,
   other: Wrench,
+};
+
+const triggerFieldLabels: Record<string, string> = {
+  sound_status: '声响测试',
+  light_status: '指示灯状态',
+  ventilation: '通风情况',
+  hose_status: '灶具软管',
+  valve_status: '阀门状态',
+  battery_level: '电池电量',
+};
+
+const optionValueLabels: Record<string, Record<string, string>> = {
+  sound_status: SOUND_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+  light_status: LIGHT_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+  ventilation: VENTILATION_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+  hose_status: HOSE_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+  valve_status: VALVE_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+  battery_level: BATTERY_OPTIONS.reduce((acc, o) => ({ ...acc, [o.value]: o.label }), {}),
+};
+
+const taskTypeToFields: Record<TaskType, string[]> = {
+  battery: ['battery_level'],
+  sound: ['sound_status', 'light_status'],
+  hose: ['hose_status'],
+  valve: ['valve_status'],
+  other: [],
+};
+
+const levelDanger = (field: string, value: string): boolean => {
+  const optMap = optionValueLabels[field] as any;
+  const allOpts = [...SOUND_OPTIONS, ...LIGHT_OPTIONS, ...VENTILATION_OPTIONS, ...HOSE_OPTIONS, ...VALVE_OPTIONS, ...BATTERY_OPTIONS];
+  const opt = allOpts.find(o => o.value === value);
+  return opt?.level === 'danger';
 };
 
 export default function InspectionFormPage() {
@@ -40,7 +88,35 @@ export default function InspectionFormPage() {
     remark: '',
   });
 
-  const [showResult, setShowResult] = useState<null | { hasAnomaly: boolean; newTasks: MaintenanceTask[] }>(null);
+  const [showResult, setShowResult] = useState<null | {
+    hasAnomaly: boolean;
+    newTasks: MaintenanceTask[];
+    inspection: Inspection;
+  }>(null);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+
+  const toggleTask = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const getTriggerItems = (task: MaintenanceTask, inspection: Inspection) => {
+    const fields = taskTypeToFields[task.task_type] || [];
+    return fields
+      .filter(f => inspection[f as keyof Inspection] !== undefined)
+      .map(field => ({
+        field,
+        label: triggerFieldLabels[field] || field,
+        value: inspection[field as keyof Inspection] as string,
+        labelText: optionValueLabels[field]?.[inspection[field as keyof Inspection] as string] || inspection[field as keyof Inspection],
+        isDanger: levelDanger(field, inspection[field as keyof Inspection] as string),
+      }))
+      .filter(item => levelDanger(item.field, item.value));
+  };
 
   if (!device) {
     return (
@@ -79,7 +155,11 @@ export default function InspectionFormPage() {
       photo: form.photo || undefined,
       remark: form.remark,
     });
-    setShowResult({ hasAnomaly: result.inspection.has_anomaly, newTasks: result.newTasks });
+    setShowResult({
+      hasAnomaly: result.inspection.has_anomaly,
+      newTasks: result.newTasks,
+      inspection: result.inspection,
+    });
   };
 
   const renderOptions = (
@@ -147,29 +227,109 @@ export default function InspectionFormPage() {
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
                   <span className="w-1 h-4 bg-danger-500 rounded-full" />
-                  新增维修任务
+                  新增维修任务（点击查看详情）
                 </h3>
                 <div className="space-y-2">
                   {showResult.newTasks.map(task => {
                     const Icon = taskTypeIcons[task.task_type] || Wrench;
+                    const expanded = expandedTasks.has(task.id);
+                    const triggerItems = getTriggerItems(task, showResult.inspection);
+                    const hasPhoto = !!showResult.inspection.photo;
+                    const hasRemark = !!showResult.inspection.remark;
                     return (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-danger-50 border border-danger-200"
-                      >
-                        <div className="w-9 h-9 rounded-lg bg-danger-500 text-white flex items-center justify-center shrink-0">
-                          <Icon className="w-4.5 h-4.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-bold text-danger-600">
-                              {TASK_TYPE_LABELS[task.task_type]}
-                            </span>
+                      <div key={task.id} className="rounded-xl overflow-hidden border border-danger-200 bg-danger-50">
+                        <button
+                          type="button"
+                          onClick={() => toggleTask(task.id)}
+                          className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-danger-100/50"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-danger-500 text-white flex items-center justify-center shrink-0">
+                            <Icon className="w-4.5 h-4.5" />
                           </div>
-                          <p className="text-xs text-gray-600 truncate">{task.description}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{device?.location}</p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-danger-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-bold text-danger-600">
+                                {TASK_TYPE_LABELS[task.task_type]}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 truncate">{task.description}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{device?.location}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-gray-400">{triggerItems.length} 项触发</span>
+                            {expanded ? (
+                              <ChevronUp className="w-4 h-4 text-danger-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-danger-400" />
+                            )}
+                          </div>
+                        </button>
+
+                        {expanded && (
+                          <div className="px-3 pb-3 pt-0 border-t border-danger-200/50 bg-white/70">
+                            <div className="pt-3 space-y-4">
+                              <div>
+                                <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-danger-500" />
+                                  触发项
+                                </div>
+                                <div className="space-y-1.5">
+                                  {triggerItems.map(item => (
+                                    <div key={item.field} className="flex items-center gap-2 text-sm">
+                                      <span className="text-gray-500">{item.label}：</span>
+                                      <span className="text-danger-600 font-medium">{item.labelText}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                  巡检日期
+                                </div>
+                                <p className="text-sm text-gray-700 pl-5">
+                                  {formatDate(showResult.inspection.inspect_date)}
+                                </p>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                                  <Camera className="w-3.5 h-3.5 text-gray-400" />
+                                  现场照片
+                                </div>
+                                {hasPhoto ? (
+                                  <div className="pl-5">
+                                    <img
+                                      src={showResult.inspection.photo}
+                                      alt="巡检现场照片"
+                                      className="rounded-lg border border-gray-200 max-h-48 object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="ml-5 p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 text-center">
+                                    <Camera className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                                    <p className="text-xs text-gray-400">本次巡检未拍摄照片</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                                  <FileText className="w-3.5 h-3.5 text-gray-400" />
+                                  备注说明
+                                </div>
+                                {hasRemark ? (
+                                  <p className="text-sm text-gray-700 pl-5 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    {showResult.inspection.remark}
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-400 pl-5 italic">无备注</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

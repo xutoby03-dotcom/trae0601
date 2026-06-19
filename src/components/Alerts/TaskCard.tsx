@@ -1,12 +1,33 @@
 import { useState } from 'react';
-import { User, Calendar, Clock, CheckCircle, RotateCcw, PlayCircle, ExternalLink } from 'lucide-react';
+import {
+  User,
+  Calendar,
+  Clock,
+  CheckCircle,
+  RotateCcw,
+  PlayCircle,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Camera,
+  AlertTriangle,
+  ClipboardList,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   TASK_TYPE_LABELS,
   TASK_PRIORITY_LABELS,
+  SOUND_OPTIONS,
+  LIGHT_OPTIONS,
+  VENTILATION_OPTIONS,
+  HOSE_OPTIONS,
+  VALVE_OPTIONS,
+  BATTERY_OPTIONS,
   type MaintenanceTask,
   type TaskStatus,
   type TaskPriority,
+  type TaskType,
 } from '@/constants';
 import { useAppStore } from '@/store';
 import { formatDate, todayStr } from '@/utils/dateUtils';
@@ -30,13 +51,50 @@ const typeStyles: Record<string, string> = {
   other: 'bg-gray-100 text-gray-700 border border-gray-200',
 };
 
+const taskTypeToFields: Record<TaskType, string[]> = {
+  battery: ['battery_level'],
+  sound: ['sound_status', 'light_status'],
+  hose: ['hose_status'],
+  valve: ['valve_status'],
+  other: [],
+};
+
+const triggerFieldLabels: Record<string, string> = {
+  sound_status: '声响测试',
+  light_status: '指示灯状态',
+  ventilation: '通风情况',
+  hose_status: '灶具软管',
+  valve_status: '阀门状态',
+  battery_level: '电池电量',
+};
+
+const allOpts = [...SOUND_OPTIONS, ...LIGHT_OPTIONS, ...VENTILATION_OPTIONS, ...HOSE_OPTIONS, ...VALVE_OPTIONS, ...BATTERY_OPTIONS];
+
+const optionLabel = (value: string): string => allOpts.find(o => o.value === value)?.label || value;
+
 export default function TaskCard({ task, onStatusChange }: TaskCardProps) {
   const updateTask = useAppStore((s) => s.updateTask);
   const getDevice = useAppStore((s) => s.getDevice);
+  const getInspectionsByDevice = useAppStore((s) => s.getInspectionsByDevice);
   const device = getDevice(task.device_id);
 
   const [assignee, setAssignee] = useState(task.assignee);
   const [handleRemark, setHandleRemark] = useState(task.handle_remark);
+  const [expanded, setExpanded] = useState(false);
+
+  const inspection = task.inspection_id
+    ? getInspectionsByDevice(task.device_id).find(i => i.id === task.inspection_id)
+    : undefined;
+
+  const triggerItems = inspection
+    ? (taskTypeToFields[task.task_type] || [])
+        .filter(f => inspection[f as keyof typeof inspection] !== undefined)
+        .map(field => ({
+          label: triggerFieldLabels[field] || field,
+          value: inspection[field as keyof typeof inspection] as string,
+          labelText: optionLabel(inspection[field as keyof typeof inspection] as string),
+        }))
+    : [];
 
   const handleAssigneeBlur = () => {
     if (assignee !== task.assignee) {
@@ -103,6 +161,84 @@ export default function TaskCard({ task, onStatusChange }: TaskCardProps) {
           </div>
         )}
       </div>
+
+      {inspection && (
+        <div className="border-t border-cream-100 pt-2">
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            className="w-full flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-cream-50 transition-colors"
+          >
+            <div className="flex items-center gap-2 text-sm text-gray-600 font-medium">
+              <ClipboardList className="w-4 h-4 text-brand-500" />
+              <span>自检来源</span>
+              {triggerItems.length > 0 && (
+                <span className="text-xs text-danger-500 bg-danger-50 px-1.5 py-0.5 rounded-full">
+                  {triggerItems.length} 项异常
+                </span>
+              )}
+            </div>
+            {expanded ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+
+          {expanded && (
+            <div className="pl-6 pt-3 space-y-3 animate-fade-in-up">
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-danger-500" />
+                  触发项
+                </div>
+                <div className="space-y-1.5">
+                  {triggerItems.map(item => (
+                    <div key={item.label} className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-500">{item.label}：</span>
+                      <span className="text-danger-600 font-medium">{item.labelText}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                  巡检日期
+                </div>
+                <p className="text-sm text-gray-700">{formatDate(inspection.inspect_date)}</p>
+              </div>
+
+              {inspection.photo && (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                    <Camera className="w-3.5 h-3.5 text-gray-400" />
+                    现场照片
+                  </div>
+                  <img
+                    src={inspection.photo}
+                    alt="巡检现场照片"
+                    className="rounded-lg border border-gray-200 max-h-40 w-full object-cover"
+                  />
+                </div>
+              )}
+
+              {inspection.remark && (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5 text-gray-400" />
+                    备注
+                  </div>
+                  <p className="text-sm text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                    {inspection.remark}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2 pt-2 border-t border-cream-100">
         <div>
