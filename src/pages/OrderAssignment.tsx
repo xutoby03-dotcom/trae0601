@@ -51,6 +51,7 @@ export function OrderAssignment() {
   const [assignmentResults, setAssignmentResults] = useState<Map<string, { allowed: boolean; reason: string }>>(new Map());
   const [assignmentRecords, setAssignmentRecords] = useState<AssignmentRecord[]>([]);
   const [assignedBoxIds, setAssignedBoxIds] = useState<Set<string>>(new Set());
+  const [recordOrderType, setRecordOrderType] = useState<OrderType | 'all'>('all');
 
   useEffect(() => {
     fetchBoxes();
@@ -94,6 +95,14 @@ export function OrderAssignment() {
     ).length;
     return { total, allowed, denied, assigned };
   }, [filteredBoxes, assignmentResults, assignedBoxIds]);
+
+  const filteredRecords = useMemo(() => {
+    return assignmentRecords.filter(record => {
+      const matchDate = record.date === selectedDate;
+      const matchType = recordOrderType === 'all' || record.orderType === recordOrderType;
+      return matchDate && matchType;
+    });
+  }, [assignmentRecords, selectedDate, recordOrderType]);
 
   const getRiderName = (riderId: string) => {
     return riders.find(r => r.id === riderId)?.name || '未分配';
@@ -345,19 +354,31 @@ export function OrderAssignment() {
         </table>
       </div>
 
-      {assignmentRecords.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-purple-500" />
-              分配记录
-              <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
-                共 {assignmentRecords.length} 条
-              </span>
-            </h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-purple-500" />
+            分配记录
+            <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
+              {filteredRecords.length} 条
+            </span>
+          </h3>
+          <div className="w-40">
+            <Select
+              value={recordOrderType}
+              onChange={(e) => setRecordOrderType(e.target.value as OrderType | 'all')}
+              options={[
+                { value: 'all', label: '全部类型' },
+                { value: 'hot_food', label: '热食订单' },
+                { value: 'cold_drink', label: '冷饮订单' },
+                { value: 'other', label: '其他订单' },
+              ]}
+            />
           </div>
+        </div>
+        {filteredRecords.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {assignmentRecords.map((record) => {
+            {filteredRecords.map((record) => {
               const RecordIcon = orderTypeIcons[record.orderType];
               return (
                 <div key={record.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
@@ -385,8 +406,15 @@ export function OrderAssignment() {
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="py-16 text-center">
+            <ClipboardList className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+            <p className="text-sm text-gray-500">
+              {selectedDate} 暂无{recordOrderType !== 'all' ? ORDER_TYPE_LABELS[recordOrderType as OrderType] : ''}分配记录
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
