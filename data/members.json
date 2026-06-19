@@ -1,0 +1,151 @@
+[
+  {
+    "id": "m1",
+    "name": "张三",
+    "phone": "13800138001",
+    "allergies": [
+      "seafood"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "海鲜过敏严重",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:00:00Z"
+  },
+  {
+    "id": "m2",
+    "name": "李四",
+    "phone": "13800138002",
+    "allergies": [
+      "nuts",
+      "spicy"
+    ],
+    "religiousDiet": "vegetarian",
+    "drinksAlcohol": false,
+    "notes": "素食主义者，坚果过敏",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:01:00Z"
+  },
+  {
+    "id": "m3",
+    "name": "王五",
+    "phone": "13800138003",
+    "allergies": [],
+    "religiousDiet": "halal",
+    "drinksAlcohol": true,
+    "notes": "清真",
+    "confirmed": false,
+    "createdAt": "2026-06-01T10:02:00Z"
+  },
+  {
+    "id": "m4",
+    "name": "赵六",
+    "phone": "13800138004",
+    "allergies": [
+      "spicy"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "不能吃辣",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:03:00Z"
+  },
+  {
+    "id": "m5",
+    "name": "钱七",
+    "phone": "13800138005",
+    "allergies": [
+      "dairy"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": false,
+    "notes": "乳糖不耐受",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:04:00Z"
+  },
+  {
+    "id": "m6",
+    "name": "孙八",
+    "phone": "13800138006",
+    "allergies": [],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "",
+    "confirmed": false,
+    "createdAt": "2026-06-01T10:05:00Z"
+  },
+  {
+    "id": "m7",
+    "name": "周九",
+    "phone": "13800138007",
+    "allergies": [
+      "seafood",
+      "nuts"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "海鲜和坚果都过敏",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:06:00Z"
+  },
+  {
+    "id": "m8",
+    "name": "吴十",
+    "phone": "13800138008",
+    "allergies": [],
+    "religiousDiet": "vegetarian",
+    "drinksAlcohol": false,
+    "notes": "素食",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:07:00Z"
+  },
+  {
+    "id": "m9",
+    "name": "郑十一",
+    "phone": "13800138009",
+    "allergies": [
+      "gluten"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "麸质过敏",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:08:00Z"
+  },
+  {
+    "id": "m10",
+    "name": "陈十二",
+    "phone": "13800138010",
+    "allergies": [],
+    "religiousDiet": "",
+    "drinksAlcohol": false,
+    "notes": "备孕中，不喝酒",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:09:00Z"
+  },
+  {
+    "id": "m11",
+    "name": "林十三",
+    "phone": "13800138011",
+    "allergies": [
+      "spicy",
+      "seafood"
+    ],
+    "religiousDiet": "",
+    "drinksAlcohol": true,
+    "notes": "不吃辣不吃海鲜",
+    "confirmed": false,
+    "createdAt": "2026-06-01T10:10:00Z"
+  },
+  {
+    "id": "m12",
+    "name": "黄十四",
+    "phone": "13800138012",
+    "allergies": [],
+    "religiousDiet": "halal",
+    "drinksAlcohol": false,
+    "notes": "清真，不喝酒",
+    "confirmed": true,
+    "createdAt": "2026-06-01T10:11:00Z"
+  }
+]
