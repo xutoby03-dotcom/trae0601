@@ -16,7 +16,7 @@ import {
 import Tag from "@/components/UI/Tag";
 import { useOrderStore } from "@/store/order";
 import { useEmployeeStore } from "@/store/employee";
-import { PICKUP_POINTS, PickupPoint, Order } from "@/types";
+import { PICKUP_POINTS, PickupPoint, Order, Employee } from "@/types";
 import { cn } from "@/lib/utils";
 import { todayStr, pickupStatusLabel, pickupStatusColor } from "@/utils/formatters";
 import { SPICE_COLOR } from "@/utils/colors";
@@ -104,28 +104,49 @@ export default function PickupPage() {
 
   const handleScanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const input = scanInput.trim();
-    if (!input) return;
+    const raw = scanInput.trim();
+    if (!raw) return;
+    const input = raw.toUpperCase();
 
     setScanResult(null);
     setScanError("");
     setMultiMatch(null);
 
     const isPhoneLast4 = /^\d{4}$/.test(input);
-    let matchedEmployees = [];
+    let matchedEmployees: Employee[] = [];
+    let matchType: "phone" | "id" | "shortcode" | "none" = "none";
 
     if (isPhoneLast4) {
       matchedEmployees = employees.filter((e) => e.phoneLast4 === input);
-    } else {
-      const matched = employees.find((e) => e.id === input);
-      if (matched) matchedEmployees = [matched];
+      if (matchedEmployees.length > 0) matchType = "phone";
+    }
+
+    if (matchedEmployees.length === 0) {
+      const exact = employees.filter((e) => e.id === input || e.id.toUpperCase() === input);
+      if (exact.length > 0) {
+        matchedEmployees = exact;
+        matchType = "id";
+      }
+    }
+
+    if (matchedEmployees.length === 0 && /^[A-Z0-9]{4,}$/.test(input)) {
+      const shortMatch = employees.filter((e) =>
+        e.id.slice(-6).toUpperCase() === input ||
+        e.id.slice(-input.length).toUpperCase() === input
+      );
+      if (shortMatch.length > 0) {
+        matchedEmployees = shortMatch;
+        matchType = "shortcode";
+      }
     }
 
     if (matchedEmployees.length === 0) {
       if (isPhoneLast4) {
         setScanError(`未找到手机号后四位为 ${input} 的员工`);
+      } else if (/^[A-Z0-9]{4,}$/.test(input)) {
+        setScanError(`未找到短码 ${input} 对应的员工`);
       } else {
-        setScanError(`未找到员工码为 ${input} 的员工`);
+        setScanError(`未找到员工码 ${input} 对应的员工`);
       }
       setScanInput("");
       return;
@@ -142,7 +163,7 @@ export default function PickupPage() {
       return;
     }
 
-    if (matchedEmployees.length > 1) {
+    if (matchedEmployees.length > 1 || pendingOrdersOfMatched.length > 1) {
       setMultiMatch({
         employees: matchedEmployees.map((e) => ({ id: e.id, name: e.name })),
         pendingOrders: pendingOrdersOfMatched,
@@ -151,17 +172,8 @@ export default function PickupPage() {
       return;
     }
 
-    if (pendingOrdersOfMatched.length === 1) {
+    if (pendingOrdersOfMatched.length === 1 && matchedEmployees.length === 1) {
       confirmPickup(pendingOrdersOfMatched[0].id);
-      return;
-    }
-
-    if (pendingOrdersOfMatched.length > 1) {
-      setMultiMatch({
-        employees: matchedEmployees.map((e) => ({ id: e.id, name: e.name })),
-        pendingOrders: pendingOrdersOfMatched,
-      });
-      setScanInput("");
     }
   };
 
