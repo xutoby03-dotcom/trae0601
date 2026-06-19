@@ -1,0 +1,75 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Noto Sans SC", system-ui, sans-serif;
+  }
+  body {
+    @apply bg-ink-950 text-ink-100 min-h-screen;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.25), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(74, 222, 128, 0.08), transparent);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-900/60 backdrop-blur-sm border border-ink-800 rounded-2xl p-5 shadow-xl transition-all;
+  }
+  .card-hover {
+    @apply hover:border-ink-600 hover:shadow-glow hover:-translate-y-0.5;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-200 active:scale-95;
+  }
+  .btn-primary {
+    @apply btn bg-ink-600 text-white hover:bg-ink-500 hover:shadow-glow;
+  }
+  .btn-success {
+    @apply btn bg-glow-green text-ink-950 hover:shadow-glow-green;
+  }
+  .btn-warning {
+    @apply btn bg-glow-amber text-ink-950 hover:shadow-glow-amber;
+  }
+  .btn-danger {
+    @apply btn bg-glow-rose text-white hover:shadow-glow-rose;
+  }
+  .btn-ghost {
+    @apply btn bg-ink-800/50 text-ink-200 hover:bg-ink-700 border border-ink-700;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .input {
+    @apply w-full px-4 py-2.5 bg-ink-950/60 border border-ink-700 rounded-xl text-ink-100 placeholder-ink-500 focus:outline-none focus:border-ink-500 focus:ring-2 focus:ring-ink-500/30 transition-all;
+  }
+  .label {
+    @apply block text-sm font-medium text-ink-200 mb-1.5;
+  }
+  .progress-bar {
+    @apply h-2 rounded-full bg-ink-800 overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #4c1d95;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6d28d9;
+}
