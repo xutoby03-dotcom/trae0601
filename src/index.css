@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: '"Noto Sans SC"', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #f7f5f2;
+  color: #1a365d;
+  min-height: 100vh;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-5 py-2.5 bg-primary-700 text-white rounded-lg border border-gold-500 font-medium
+      hover:bg-primary-600 hover:shadow-seal-hover hover:-translate-y-0.5
+      active:translate-y-0 transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-white text-primary-700 rounded-lg border border-primary-200 font-medium
+      hover:bg-primary-50 hover:shadow-seal transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply px-5 py-2.5 bg-seal-red text-white rounded-lg font-medium
+      hover:bg-red-600 hover:shadow-seal-hover transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors duration-200;
+  }
+
+  .card-seal {
+    @apply bg-white rounded-xl border border-primary-100 shadow-seal
+      hover:shadow-seal-hover transition-all duration-300;
+  }
+
+  .input-seal {
+    @apply w-full px-4 py-2.5 rounded-lg border border-primary-200 bg-seal-paper
+      focus:border-primary-500 focus:ring-2 focus:ring-primary-100
+      placeholder:text-primary-300 outline-none transition-all duration-200;
+  }
+
+  .label-seal {
+    @apply block text-sm font-medium text-primary-700 mb-1.5;
+  }
+
+  .section-title {
+    @apply font-serif text-xl font-semibold text-primary-800 mb-4;
+  }
+}
+
+.gold-border-gradient {
+  background: linear-gradient(135deg, #d4a017 0%, #efc54e 100%);
+}
+
+.paper-texture {
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(26, 54, 93, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(212, 160, 23, 0.04) 0%, transparent 50%);
+}
