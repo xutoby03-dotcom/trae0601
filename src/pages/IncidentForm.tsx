@@ -14,6 +14,16 @@ const TYPE_OPTIONS: { value: IncidentType; label: string }[] = [
   { value: "other", label: "其他异常" },
 ];
 
+const SAMPLE_REQUIRED_TYPES: IncidentType[] = [
+  "complaint",
+  "odor",
+  "temperature",
+];
+
+const isSampleRequired = (type: IncidentType | undefined) => {
+  return !!type && SAMPLE_REQUIRED_TYPES.includes(type);
+};
+
 const STATUS_OPTIONS: { value: IncidentStatus; label: string }[] = [
   { value: "pending", label: "待处理" },
   { value: "investigating", label: "调查中" },
@@ -28,7 +38,8 @@ export default function IncidentForm() {
   const navigate = useNavigate();
   const { addToast } = useAppStore();
 
-  const [samples, setSamples] = useState<Sample[]>([]);
+  const [allSamples, setAllSamples] = useState<Sample[]>([]);
+  const [filteredSamples, setFilteredSamples] = useState<Sample[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<Partial<Incident>>({
@@ -40,16 +51,41 @@ export default function IncidentForm() {
     status: "pending",
   });
 
+  const isSameDay = (date1: string, date2: string) => {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
+
+  const filterSamplesByDate = (all: Sample[], occurTime: string) => {
+    return all.filter((s) => {
+      if (s.status === "destroyed") return false;
+      return isSameDay(s.startTime, occurTime);
+    });
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
         const sampleData = await samplesApi.list();
-        const filtered = sampleData.filter((s) => s.status !== "destroyed");
-        setSamples(filtered);
+        setAllSamples(sampleData);
+
+        const filtered = filterSamplesByDate(
+          sampleData,
+          new Date(form.occurTime as string).toISOString()
+        );
+        setFilteredSamples(filtered);
 
         if (isEdit) {
           setLoading(true);
           const data = await incidentsApi.get(editId!);
+          const occurIso = new Date(data.occurTime).toISOString();
+          const editFiltered = filterSamplesByDate(sampleData, occurIso);
+          setFilteredSamples(editFiltered);
           setForm({
             ...data,
             occurTime: getInputDateTimeLocal(data.occurTime),
@@ -63,7 +99,19 @@ export default function IncidentForm() {
     load();
   }, [isEdit, editId, addToast]);
 
-  const selectedSample = samples.find((s) => s.id === form.sampleId);
+  useEffect(() => {
+    if (form.occurTime && allSamples.length > 0) {
+      const occurIso = new Date(form.occurTime).toISOString();
+      const filtered = filterSamplesByDate(allSamples, occurIso);
+      setFilteredSamples(filtered);
+      if (form.sampleId && !filtered.find((s) => s.id === form.sampleId)) {
+        setForm({ ...form, sampleId: "" });
+        addToast("info", "发生时间已变更，请重新选择关联留样");
+      }
+    }
+  }, [form.occurTime, allSamples]);
+
+  const selectedSample = filteredSamples.find((s) => s.id === form.sampleId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +125,13 @@ export default function IncidentForm() {
     }
     if (!form.reporter?.trim()) {
       addToast("error", "请填写上报人");
+      return;
+    }
+    if (isSampleRequired(form.type) && !form.sampleId) {
+      addToast(
+        "error",
+        `${INCIDENT_TYPE_NAMES[form.type]}必须关联对应的留样记录`
+      );
       return;
     }
 
@@ -183,6 +238,11 @@ export default function IncidentForm() {
                 value={form.occurTime}
                 onChange={(e) => setForm({ ...form, occurTime: e.target.value })}
               />
+              {isSampleRequired(form.type) && (
+                <p className="text-xs text-warning-600 mt-1">
+                  提示：将自动筛选与发生时间同一天的留样
+                </p>
+              )}
             </div>
           </div>
 
@@ -199,25 +259,53 @@ export default function IncidentForm() {
           </div>
 
           <div>
-            <label className="label-field">关联留样记录（可选）</label>
+            <label className="label-field">
+              关联留样记录
+              {isSampleRequired(form.type) ? (
+                <span className="text-danger-500">*</span>
+              ) : (
+                <span className="text-gray-400">（可选）</span>
+              )}
+            </label>
             <div className="relative">
               <FlaskConical
                 size={16}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10"
               />
               <select
-                className="input-field pl-10"
+                className={`input-field pl-10 ${
+                  isSampleRequired(form.type) && !form.sampleId
+                    ? "border-danger-400 focus:ring-danger-500/30 focus:border-danger-500"
+                    : ""
+                }`}
                 value={form.sampleId}
                 onChange={(e) => setForm({ ...form, sampleId: e.target.value })}
               >
-                <option value="">不关联留样</option>
-                {samples.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.product?.name || "未知商品"} - {s.containerNo} ({s.fridgeSlot})
+                <option value="">
+                  {isSampleRequired(form.type)
+                    ? "请选择关联的留样记录"
+                    : "不关联留样"}
+                </option>
+                {filteredSamples.length === 0 ? (
+                  <option value="" disabled>
+                    当天暂无未销毁的留样记录
                   </option>
-                ))}
+                ) : (
+                  filteredSamples.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.product?.name || "未知商品"} - {s.containerNo} (
+                      {s.fridgeSlot})
+                    </option>
+                  ))
+                )}
               </select>
             </div>
+            {isSampleRequired(form.type) && !form.sampleId && (
+              <p className="text-xs text-danger-600 mt-1 flex items-center gap-1">
+                <AlertTriangle size={12} />
+                {INCIDENT_TYPE_NAMES[form.type]}必须关联留样记录
+              </p>
+            )}
             {selectedSample && (
               <div className="mt-3 p-3 rounded-lg bg-primary-50 border border-primary-100 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">

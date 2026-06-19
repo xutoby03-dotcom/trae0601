@@ -403,7 +403,7 @@ export default function Dashboard() {
                     </p>
                     {i.sample?.product && (
                       <p className="text-xs text-primary-600 mt-1">
-                        关联留样：{i.sample.product.name}
+                        关联留样：{i.sample.product.name} ({i.sample.containerNo} · {i.sample.fridgeSlot})
                       </p>
                     )}
                   </div>

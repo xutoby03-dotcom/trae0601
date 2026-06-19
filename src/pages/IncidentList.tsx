@@ -182,7 +182,7 @@ export default function IncidentList() {
                         className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700"
                       >
                         <FlaskConical size={14} />
-                        关联留样：{inc.sample.product.name}
+                        关联留样：{inc.sample.product.name} ({inc.sample.containerNo} · {inc.sample.fridgeSlot})
                       </Link>
                     )}
                     <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
