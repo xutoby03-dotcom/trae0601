@@ -202,7 +202,11 @@ export const useStore = create<StoreState>((set, get) => {
       set((state) => {
         const updatedRecords = state.visitRecords.map((r) =>
           r.id === recordId
-            ? { ...r, doctorMark: mark, doctorNote: note || r.doctorNote }
+            ? {
+                ...r,
+                doctorMark: mark,
+                doctorNote: note !== undefined ? note : r.doctorNote,
+              }
             : r
         );
         const newState = { visitRecords: updatedRecords };

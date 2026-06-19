@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -67,6 +67,13 @@ function DoctorMarkEditor({ record, onSave }: DoctorMarkEditorProps) {
   );
   const [note, setNote] = useState(record.doctorNote || '');
 
+  useEffect(() => {
+    if (editing) {
+      setSelectedMark(record.doctorMark || null);
+      setNote(record.doctorNote || '');
+    }
+  }, [editing, record.doctorMark, record.doctorNote]);
+
   const getButtonClass = (option: (typeof MARK_OPTIONS)[number]) => {
     const isSelected = selectedMark === option.value;
     const base =
@@ -106,11 +113,11 @@ function DoctorMarkEditor({ record, onSave }: DoctorMarkEditorProps) {
             修改标注
           </button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {record.doctorMark && <StatusTag mark={record.doctorMark} />}
-          {record.doctorNote && (
-            <div className="text-sm text-gray-700">{record.doctorNote}</div>
-          )}
+          <div className="text-sm text-gray-700">
+            {record.doctorNote ? record.doctorNote : '暂无备注'}
+          </div>
         </div>
       </div>
     );
