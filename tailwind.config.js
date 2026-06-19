@@ -1,0 +1,75 @@
+/** @type {import('tailwindcss').Config} */
+
+export default {
+  darkMode: "class",
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        tea: {
+          50: "#FFF8E1",
+          100: "#FFECB3",
+          200: "#FFE082",
+          300: "#FFD54F",
+          400: "#FFCA28",
+          500: "#8B5A2B",
+          600: "#6D4C2A",
+          700: "#5D4037",
+          800: "#4E342E",
+          900: "#3E2723",
+        },
+        matcha: {
+          50: "#F1F8E9",
+          100: "#DCEDC8",
+          200: "#C5E1A5",
+          300: "#AED581",
+          400: "#9CCC65",
+          500: "#7CB342",
+          600: "#689F38",
+          700: "#558B2F",
+          800: "#33691E",
+          900: "#1B5E20",
+        },
+        amber: {
+          50: "#FFF8E1",
+          100: "#FFECB3",
+          200: "#FFE082",
+          300: "#FFD54F",
+          400: "#FFCA28",
+          500: "#FFB300",
+          600: "#FF8F00",
+          700: "#FF6F00",
+          800: "#E65100",
+          900: "#BF360C",
+        },
+        danger: {
+          50: "#FFEBEE",
+          100: "#FFCDD2",
+          200: "#EF9A9A",
+          300: "#E57373",
+          400: "#EF5350",
+          500: "#E53935",
+          600: "#D32F2F",
+          700: "#C62828",
+          800: "#B71C1C",
+          900: "#8B0000",
+        },
+        cream: "#FFF8E7",
+        warmBrown: "#8B5A2B",
+      },
+      fontFamily: {
+        display: ["'Playfair Display'", "serif"],
+        body: ["'Noto Sans SC'", "sans-serif"],
+      },
+      boxShadow: {
+        tea: "0 4px 20px rgba(139, 90, 43, 0.15)",
+        "tea-lg": "0 10px 40px rgba(139, 90, 43, 0.2)",
+      },
+      animation: {
+        "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "bounce-slow": "bounce 2s infinite",
+      },
+    },
+  },
+  plugins: [],
+};
