@@ -161,7 +161,16 @@ export default function RecordsCenter() {
                                 </span>
                               )}
                               {clothing && (
-                                <span className="text-sm text-slate-500">
+                                <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                                  {clothing.photoUrl ? (
+                                    <div className="w-5 h-5 rounded-md overflow-hidden border border-slate-200 bg-slate-50 shrink-0">
+                                      <img
+                                        src={clothing.photoUrl}
+                                        alt=""
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  ) : null}
                                   · {clothing.category} {clothing.size}码
                                 </span>
                               )}

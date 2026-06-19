@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
-import { Plus, Shirt, Package, Footprints, Ribbon, Sparkles, Edit2, Trash2, Hash, X, Filter, AlertTriangle } from "lucide-react";
+import { Plus, Shirt, Package, Footprints, Ribbon, Sparkles, Edit2, Trash2, Hash, X, Filter, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import type { ClothingCategory, ClothingStatus, ClothingItem } from "@/types";
 import { formatDateTime } from "@/utils/formatters";
@@ -90,12 +90,14 @@ export default function InventoryList() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
+    const photoUrl = (formData.get("photoUrl") as string).trim();
     const data = {
       category: formData.get("category") as ClothingCategory,
       size: formData.get("size") as string,
       quantity: Number(formData.get("quantity")),
       status: formData.get("status") as ClothingStatus,
       setNumber: formData.get("setNumber") as string,
+      photoUrl: photoUrl || undefined,
     };
 
     if (editingItem) {
@@ -217,9 +219,22 @@ export default function InventoryList() {
           return (
             <div key={item.id} className="card p-5 animate-fade-slide-up">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
-                  <Icon className="w-7 h-7 text-primary-600" />
-                </div>
+                {item.photoUrl ? (
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-200 shrink-0 bg-slate-50">
+                    <img
+                      src={item.photoUrl}
+                      alt={`${item.category}${item.size}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center">
+                    <Icon className="w-7 h-7 text-primary-600" />
+                  </div>
+                )}
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEditModal(item)}
@@ -320,6 +335,18 @@ export default function InventoryList() {
               <div>
                 <label className="label">套装编号（可选）</label>
                 <input name="setNumber" type="text" defaultValue={editingItem?.setNumber || ""} className="input-field" placeholder="如 A-001" />
+              </div>
+              <div>
+                <label className="label flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-slate-500" />
+                  照片地址（可选）
+                </label>
+                <input name="photoUrl" type="url" defaultValue={editingItem?.photoUrl || ""} className="input-field" placeholder="https://..." />
+                {editingItem?.photoUrl && (
+                  <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+                    <img src={editingItem.photoUrl} alt="预览" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 pt-4 border-t border-slate-100">
                 <button type="button" onClick={() => { setShowModal(false); setEditingItem(null); }} className="btn-secondary flex-1">
