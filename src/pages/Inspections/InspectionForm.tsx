@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   AlertTriangle,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAreaStore } from '../../store/useAreaStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -54,6 +55,7 @@ export default function InspectionForm() {
   const navigate = useNavigate();
 
   const linkedTaskId = searchParams.get('taskId') || '';
+  const highlightInspectionId = searchParams.get('inspectionId') || '';
 
   const { getAreaById } = useAreaStore();
   const { addInspection, inspections } = useInspectionStore();
@@ -68,6 +70,13 @@ export default function InspectionForm() {
   const areaTasks = areaId
     ? tasks.filter((t) => t.areaId === areaId && t.status !== 'completed')
     : [];
+
+  const highlightInspection = highlightInspectionId
+    ? inspections.find((i) => i.id === highlightInspectionId)
+    : undefined;
+  const highlightRain = highlightInspection
+    ? rainEvents.find((r) => r.id === highlightInspection.rainEventId)
+    : undefined;
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -162,6 +171,197 @@ export default function InspectionForm() {
         <Link to="/inspections" className="text-primary-500 hover:text-primary-600">
           返回检查列表
         </Link>
+      </div>
+    );
+  }
+
+  if (highlightInspection) {
+    const linkedSourceTask = tasks.find((t) => t.recheckInspectionId === highlightInspection.id);
+    const dampLabel = dampLevelOptions.find((o) => o.value === highlightInspection.wallDampLevel)?.label;
+    const drainLabel = drainStatusOptions.find((o) => o.value === highlightInspection.drainStatus)?.label;
+
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/inspections"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回检查列表
+          </Link>
+          {linkedSourceTask && (
+            <Link
+              to={`/tasks/${linkedSourceTask.id}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors"
+            >
+              ← 返回关联维修任务
+            </Link>
+          )}
+        </div>
+
+        {linkedSourceTask && (
+          <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
+                <ClipboardCheck className="w-5 h-5 text-blue-700" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-blue-700 flex items-center gap-2">
+                  <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded">复查后检查</span>
+                  来自维修任务
+                </h4>
+                <p className="text-sm text-blue-800 mt-1 font-medium">{linkedSourceTask.title}</p>
+                {linkedSourceTask.reviewNotes && (
+                  <p className="text-sm text-blue-600 mt-1">复查备注：{linkedSourceTask.reviewNotes}</p>
+                )}
+                {linkedSourceTask.reviewDate && (
+                  <p className="text-xs text-blue-500 mt-2">复查日期：{formatDate(linkedSourceTask.reviewDate)}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-blue-300">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="w-5 h-5 text-primary-500" />
+                <h2 className="font-serif text-xl font-bold text-gray-800">{area?.name}</h2>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">历史记录</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                朝向 {area?.orientation} · {area?.areaSize}㎡ · 地漏 {area?.drainCount} 个
+              </p>
+            </div>
+            {highlightInspection.hasAnomaly ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-danger-100 text-danger-600 rounded-full text-sm font-medium">
+                <AlertTriangle className="w-4 h-4" />
+                本次检查有异常
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-success-100 text-success-600 rounded-full text-sm font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                正常
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b border-gray-100">
+            <div>
+              <p className="text-xs text-gray-500 mb-1">检查日期</p>
+              <p className="text-sm font-medium text-gray-800">{formatDate(highlightInspection.inspectionDate)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">对应暴雨</p>
+              <p className="text-sm font-medium text-gray-800">
+                {highlightRain ? (
+                  <>
+                    {formatDate(highlightRain.date)} · {
+                      highlightRain.intensity === 'storm' ? '暴雨' :
+                      highlightRain.intensity === 'heavy' ? '大雨' :
+                      highlightRain.intensity === 'moderate' ? '中雨' : '小雨'
+                    }
+                  </>
+                ) : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">墙角潮痕</p>
+              <p className="text-sm font-medium text-gray-800">{dampLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">地漏排水</p>
+              <p className="text-sm font-medium text-gray-800">{drainLabel}</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {highlightInspection.waterPoints.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <Waves className="w-4 h-4 text-primary-500" />
+                  积水点
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {highlightInspection.waterPoints.map((p) => (
+                    <span key={p} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                <DoorOpen className="w-4 h-4 text-primary-500" />
+                门槛渗水
+              </h4>
+              <p className={`text-sm font-medium ${highlightInspection.thresholdLeak ? 'text-danger-600' : 'text-success-600'}`}>
+                {highlightInspection.thresholdLeak ? '是，有渗水' : '否，正常'}
+              </p>
+            </div>
+
+            {highlightInspection.flowerPotLayout && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <Flower2 className="w-4 h-4 text-primary-500" />
+                  花盆摆放
+                </h4>
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3">{highlightInspection.flowerPotLayout}</p>
+              </div>
+            )}
+
+            {highlightInspection.notes && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <StickyNote className="w-4 h-4 text-primary-500" />
+                  备注
+                </h4>
+                <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3">{highlightInspection.notes}</p>
+              </div>
+            )}
+
+            {highlightInspection.photos.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-primary-500" />
+                  现场照片 ({highlightInspection.photos.length})
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {highlightInspection.photos.map((p, idx) => (
+                    <img key={idx} src={p} alt="" className="w-full aspect-square object-cover rounded-xl border border-gray-200" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          {linkedSourceTask && (
+            <Link
+              to={`/tasks/${linkedSourceTask.id}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors text-sm"
+            >
+              ← 返回关联维修任务
+            </Link>
+          )}
+          <Link
+            to="/inspections"
+            className="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            返回检查列表
+          </Link>
+          <Link
+            to={`/inspections/${areaId}`}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all text-sm"
+          >
+            开启新一轮检查
+          </Link>
+        </div>
       </div>
     );
   }

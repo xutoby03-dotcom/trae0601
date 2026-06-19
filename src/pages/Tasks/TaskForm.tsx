@@ -482,18 +482,18 @@ export default function TaskForm() {
                   if (!recheckInsp) return null;
                   const recheckArea = areas.find((a) => a.id === recheckInsp.areaId);
                   return (
-                    <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                    <Link
+                      to={`/inspections/${recheckInsp.areaId}?inspectionId=${recheckInsp.id}`}
+                      className="block mt-4 p-4 rounded-xl bg-blue-50 border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-100/70 transition-all cursor-pointer group"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-blue-700 flex items-center gap-1.5">
                           <ClipboardCheck className="w-4 h-4" />
                           复查后检查记录
                         </span>
-                        <Link
-                          to={`/inspections/${recheckInsp.areaId}`}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-0.5"
-                        >
-                          查看区域检查 →
-                        </Link>
+                        <span className="text-xs text-blue-600 group-hover:text-blue-800 font-medium flex items-center gap-0.5 transition-colors">
+                          查看完整记录 →
+                        </span>
                       </div>
                       <div className="space-y-1 text-sm text-blue-800">
                         <p>
@@ -528,7 +528,7 @@ export default function TaskForm() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   );
                 })()}
               </div>
