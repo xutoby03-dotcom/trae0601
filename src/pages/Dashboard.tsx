@@ -7,13 +7,17 @@ import {
   Calendar,
   ShoppingCart,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { StatCard } from '../components/StatCard';
 import { Card } from '../components/Card';
 import { ProgressBar } from '../components/ProgressBar';
 import { AlertItem } from '../components/AlertItem';
+import { Modal } from '../components/Modal';
+import { Button } from '../components/Button';
 import {
   getFilterStatus,
   getStatusLabel,
@@ -29,14 +33,46 @@ export default function Dashboard() {
   const getFilterLifePercent = useStore((state) => state.getFilterLifePercent);
   const getFilterDaysLeft = useStore((state) => state.getFilterDaysLeft);
   const getStock = useStore((state) => state.getStock);
+  const updateStock = useStore((state) => state.updateStock);
+  const stocks = useStore((state) => state.stocks);
+
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({
+    filterModel: '',
+    quantity: 1,
+  });
 
   const stats = getDashboardStats();
   const today = formatDateCN(new Date());
+
+  const allFilterModels = Array.from(
+    new Set([
+      ...pitchers.map((p) => p.filterModel),
+      ...stocks.map((s) => s.filterModel),
+    ])
+  );
 
   const maxRefillCount = Math.max(
     ...stats.pitcherUsageStats.map((s) => s.refillCount),
     1
   );
+
+  const handleOpenPurchase = (preselectModel?: string) => {
+    setPurchaseForm({
+      filterModel: preselectModel || allFilterModels[0] || '',
+      quantity: stats.purchaseSuggestion.needPurchase
+        ? stats.purchaseSuggestion.suggestedQuantity
+        : 1,
+    });
+    setShowPurchaseModal(true);
+  };
+
+  const handleConfirmPurchase = () => {
+    if (!purchaseForm.filterModel || purchaseForm.quantity <= 0) return;
+    const currentStock = getStock(purchaseForm.filterModel);
+    updateStock(purchaseForm.filterModel, currentStock + purchaseForm.quantity);
+    setShowPurchaseModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50">
@@ -265,8 +301,12 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">
                       最快 {stats.purchaseSuggestion.estimatedDaysLeft} 天后需要更换滤芯
                     </p>
-                    <button className="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors shadow-sm">
-                      去购买
+                    <button
+                      onClick={() => handleOpenPurchase()}
+                      className="mt-4 w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      去采购补货
                     </button>
                   </>
                 ) : (
@@ -278,6 +318,13 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">
                       预计 {stats.purchaseSuggestion.estimatedDaysLeft} 天后需要考虑补货
                     </p>
+                    <button
+                      onClick={() => handleOpenPurchase()}
+                      className="mt-4 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      手动补货
+                    </button>
                   </>
                 )}
               </div>
@@ -316,6 +363,88 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* 采购补货弹窗 */}
+      <Modal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        title="采购补货"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              滤芯型号
+            </label>
+            {allFilterModels.length > 0 ? (
+              <select
+                value={purchaseForm.filterModel}
+                onChange={(e) =>
+                  setPurchaseForm({ ...purchaseForm, filterModel: e.target.value })
+                }
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all bg-white"
+              >
+                {allFilterModels.map((model) => (
+                  <option key={model} value={model}>
+                    {model}（当前库存 {getStock(model)} 个）
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={purchaseForm.filterModel}
+                onChange={(e) =>
+                  setPurchaseForm({ ...purchaseForm, filterModel: e.target.value })
+                }
+                placeholder="请输入滤芯型号"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+              />
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              采购数量
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={purchaseForm.quantity}
+              onChange={(e) =>
+                setPurchaseForm({
+                  ...purchaseForm,
+                  quantity: Math.max(1, parseInt(e.target.value) || 1),
+                })
+              }
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
+            />
+            {purchaseForm.filterModel && (
+              <p className="text-xs text-gray-400 mt-2">
+                补货后库存将变为：
+                <span className="font-semibold text-emerald-600">
+                  {getStock(purchaseForm.filterModel) + purchaseForm.quantity} 个
+                </span>
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowPurchaseModal(false)}
+              fullWidth
+            >
+              取消
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleConfirmPurchase}
+              disabled={!purchaseForm.filterModel || purchaseForm.quantity <= 0}
+              fullWidth
+            >
+              确认入库
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
