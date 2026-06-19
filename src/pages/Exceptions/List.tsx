@@ -12,12 +12,12 @@ import { calculateCapacityRatio } from '../../utils/calculations';
 import type { Exception, ExceptionType } from '../../types';
 import { Modal } from '../../components/Modal';
 
-type TabType = 'pending' | 'full' | 'history';
+type TabType = 'pending' | 'full' | 'history' | 'collection';
 
 export const ExceptionsList: React.FC = () => {
   const { exceptions, handleException, resolveException, deleteException } = useExceptionsStore();
   const { recoveryPoints, collectPoint } = useRecoveryPointsStore();
-  const { addCollectionRecord } = useCollectionRecordsStore();
+  const { collectionRecords, addCollectionRecord } = useCollectionRecordsStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -28,6 +28,7 @@ export const ExceptionsList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [collectionPointFilter, setCollectionPointFilter] = useState<string>('all');
 
   const getRecoveryPointName = (id: string) => {
     return recoveryPoints.find(p => p.id === id)?.name || '未知回收点';
@@ -68,6 +69,15 @@ export const ExceptionsList: React.FC = () => {
     const ratioB = calculateCapacityRatio(b);
     return ratioB - ratioA;
   });
+
+  const filteredCollectionRecords = collectionRecords.filter(r => {
+    if (collectionPointFilter === 'all') return true;
+    return r.recoveryPointId === collectionPointFilter;
+  });
+
+  const sortedCollectionRecords = [...filteredCollectionRecords].sort(
+    (a, b) => new Date(b.collectionTime).getTime() - new Date(a.collectionTime).getTime()
+  );
 
   const handleViewDetail = (exception: Exception) => {
     setSelectedException(exception);
@@ -121,6 +131,7 @@ export const ExceptionsList: React.FC = () => {
   const tabs = [
     { value: 'pending' as TabType, label: '待处理异常', count: pendingExceptions.length },
     { value: 'full' as TabType, label: '满箱提醒', count: fullPoints.length },
+    { value: 'collection' as TabType, label: '清运记录', count: collectionRecords.length },
     { value: 'history' as TabType, label: '历史记录', count: resolvedExceptions.length },
   ];
 
@@ -431,6 +442,109 @@ export const ExceptionsList: React.FC = () => {
               <p className="text-gray-400 text-sm mt-2">暂无需要清运的回收点</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 清运记录 */}
+      {activeTab === 'collection' && (
+        <div>
+          {/* 回收点筛选 */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+            <div className="flex items-center gap-3">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-600">回收点筛选：</span>
+              <select
+                value={collectionPointFilter}
+                onChange={(e) => setCollectionPointFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="all">全部回收点</option>
+                {recoveryPoints.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      回收点
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      清运重量
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      清运人
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      清运时间
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      状态
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {sortedCollectionRecords.map((record, index) => (
+                    <tr
+                      key={record.id}
+                      className="hover:bg-gray-50 transition-colors animate-fade-in-up"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">
+                            {getRecoveryPointName(record.recoveryPointId)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-medium text-primary-600">
+                          {record.weightKg.toFixed(1)} kg
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-900">{record.collector}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-500 text-sm">
+                            {formatDate(record.collectionTime)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
+                          record.status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {record.status === 'completed' ? '已完成' : '待清运'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {sortedCollectionRecords.length === 0 && (
+              <div className="text-center py-16">
+                <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">暂无清运记录</p>
+                <p className="text-gray-400 text-sm mt-2">标记清运后记录将显示在这里</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
