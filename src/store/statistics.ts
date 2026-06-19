@@ -3,6 +3,7 @@ import type { StatisticsData } from '../types';
 import { useRecoveryPointsStore } from './recoveryPoints';
 import { useSortingRecordsStore } from './sortingRecords';
 import { useExceptionsStore } from './exceptions';
+import { useCollectionRecordsStore } from './collectionRecords';
 import {
   calculateDonatableRatio,
   calculateSortingRatio,
@@ -20,6 +21,7 @@ export const useStatisticsStore = create<StatisticsState>((_set, get) => ({
     const { recoveryPoints } = useRecoveryPointsStore.getState();
     const { sortingRecords } = useSortingRecordsStore.getState();
     const { exceptions } = useExceptionsStore.getState();
+    const { collectionRecords } = useCollectionRecordsStore.getState();
     
     const totalRecoveryKg = recoveryPoints.reduce(
       (sum, rp) => sum + rp.currentKg,
@@ -29,26 +31,8 @@ export const useStatisticsStore = create<StatisticsState>((_set, get) => ({
     const completedSortingRecords = sortingRecords;
     const donatableRatio = calculateDonatableRatio(completedSortingRecords);
     
-    const collectionRecords = [
-      {
-        collectionTime: '2026-06-17T10:00:00Z',
-        createdAt: '2026-06-16T14:30:00Z',
-      },
-      {
-        collectionTime: '2026-06-16T14:00:00Z',
-        createdAt: '2026-06-15T18:00:00Z',
-      },
-      {
-        collectionTime: '2026-06-15T09:00:00Z',
-        createdAt: '2026-06-14T12:00:00Z',
-      },
-      {
-        collectionTime: '2026-06-14T16:00:00Z',
-        createdAt: '2026-06-13T08:00:00Z',
-      },
-    ];
-    
-    const collectionCompletionRate = calculateTimelyRate(collectionRecords);
+    const completedCollectionRecords = collectionRecords.filter(r => r.status === 'completed');
+    const collectionCompletionRate = calculateTimelyRate(completedCollectionRecords);
     
     const exceptionCount = exceptions.filter(e => e.status !== 'resolved').length;
     

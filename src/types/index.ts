@@ -74,6 +74,7 @@ export interface CollectionRecord {
   collectionTime: string;
   collector: string;
   status: 'scheduled' | 'completed';
+  createdAt: string;
 }
 
 export interface StatisticsData {

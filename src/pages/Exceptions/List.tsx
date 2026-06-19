@@ -6,6 +6,7 @@ import { CapacityProgress } from '../../components/CapacityProgress';
 import { ExceptionForm } from './Form';
 import { useExceptionsStore } from '../../store/exceptions';
 import { useRecoveryPointsStore } from '../../store/recoveryPoints';
+import { useCollectionRecordsStore } from '../../store/collectionRecords';
 import { formatDate, getExceptionTypeText, getSeverityText, getSeverityColor } from '../../utils/formatters';
 import { calculateCapacityRatio } from '../../utils/calculations';
 import type { Exception, ExceptionType } from '../../types';
@@ -15,7 +16,8 @@ type TabType = 'pending' | 'full' | 'history';
 
 export const ExceptionsList: React.FC = () => {
   const { exceptions, handleException, resolveException, deleteException } = useExceptionsStore();
-  const { recoveryPoints, updateCurrentWeight } = useRecoveryPointsStore();
+  const { recoveryPoints, collectPoint } = useRecoveryPointsStore();
+  const { addCollectionRecord } = useCollectionRecordsStore();
 
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -98,8 +100,17 @@ export const ExceptionsList: React.FC = () => {
   };
 
   const handleCollection = (pointId: string) => {
-    if (confirm('确定要标记该回收点已清运吗？')) {
-      updateCurrentWeight(pointId, 0, false);
+    if (confirm('确定要标记该回收点已清运吗？清运后回收箱重量将清零。')) {
+      const result = collectPoint(pointId);
+      if (result) {
+        addCollectionRecord({
+          recoveryPointId: pointId,
+          weightKg: result.weightKg,
+          collector: '系统清运',
+          status: 'completed',
+          collectionTime: new Date().toISOString(),
+        });
+      }
     }
   };
 

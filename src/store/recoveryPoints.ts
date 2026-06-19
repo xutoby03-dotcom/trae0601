@@ -13,6 +13,7 @@ interface RecoveryPointsState {
   getRecoveryPoint: (id: string) => RecoveryPoint | undefined;
   updateCurrentWeight: (id: string, weightKg: number, increment: boolean) => void;
   updateStatus: (id: string) => void;
+  collectPoint: (id: string) => { weightKg: number; pointName: string } | null;
   resetMockData: () => void;
 }
 
@@ -78,6 +79,27 @@ export const useRecoveryPointsStore = create<RecoveryPointsState>()(
             p.id === id ? { ...p, status: calculateStatus(p) } : p
           ),
         }));
+      },
+      
+      collectPoint: (id) => {
+        const point = get().getRecoveryPoint(id);
+        if (!point) return null;
+        
+        const collectedWeight = point.currentKg;
+        const pointName = point.name;
+        
+        set((state) => ({
+          recoveryPoints: state.recoveryPoints.map((p) => {
+            if (p.id === id) {
+              const updated = { ...p, currentKg: 0, updatedAt: new Date().toISOString() };
+              updated.status = calculateStatus(updated);
+              return updated;
+            }
+            return p;
+          }),
+        }));
+        
+        return { weightKg: collectedWeight, pointName };
       },
       
       resetMockData: () => {
