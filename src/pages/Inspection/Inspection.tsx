@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTablewareStore } from '../../store/useTablewareStore';
 import { StatusBadge } from '../../components/StatusBadge/StatusBadge';
 import {
@@ -18,8 +19,27 @@ import type { DisinfectionStatus, SeverityLevel } from '../../types';
 const Inspection = () => {
   const { inspectionRecords, addInspection, tablewareList: tablewares } =
     useTablewareStore();
-  const [searchText, setSearchText] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchText, setSearchText] = useState(
+    searchParams.get('search') || ''
+  );
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch !== searchText) {
+      setSearchText(urlSearch);
+    }
+  }, [searchParams]);
+
+  const onSearchChange = (value: string) => {
+    setSearchText(value);
+    if (value) {
+      setSearchParams({ search: value });
+    } else {
+      setSearchParams({});
+    }
+  };
   const [formData, setFormData] = useState({
     tablewareId: '',
     tablewareBatchNo: '',
@@ -108,10 +128,27 @@ const Inspection = () => {
             type="text"
             placeholder="搜索批次号、巡检员..."
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
           />
+          {searchText && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 text-xs"
+            >
+              ×
+            </button>
+          )}
         </div>
+        {searchText && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-primary-600 bg-primary-50 px-3 py-2 rounded-lg">
+            <Search className="w-4 h-4" />
+            正在搜索「<span className="font-medium">{searchText}</span>」相关巡检记录
+            {filteredRecords.length === 0 && (
+              <span className="ml-auto text-gray-500">暂无匹配结果</span>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
