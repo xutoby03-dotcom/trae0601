@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #faf6ef;
+  color: #3a2e2a;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: 'ZCOOL KuaiLe', cursive;
+}
+
+@layer components {
+  .glass-nav {
+    @apply bg-white/70 backdrop-blur-lg border-b border-night-teal-100/50;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-night-teal-50/50 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-card-hover hover:-translate-y-1;
+  }
+
+  .btn-primary {
+    @apply bg-warm-orange-500 hover:bg-warm-orange-600 text-white font-medium px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply bg-night-teal-800 hover:bg-night-teal-900 text-white font-medium px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 active:scale-95;
+  }
+
+  .btn-outline {
+    @apply border-2 border-night-teal-800 text-night-teal-800 hover:bg-night-teal-800 hover:text-white font-medium px-5 py-2 rounded-xl transition-all duration-200 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply text-night-teal-700 hover:bg-night-teal-50 font-medium px-4 py-2 rounded-xl transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border-2 border-night-teal-100 bg-cream/50 focus:border-warm-orange-400 focus:ring-4 focus:ring-warm-orange-100 outline-none transition-all duration-200;
+  }
+
+  .label-field {
+    @apply block text-sm font-medium text-deep-brown mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-night-teal-700 hover:bg-night-teal-50 transition-all duration-200 font-medium;
+  }
+
+  .sidebar-link-active {
+    @apply bg-night-teal-800 text-white hover:bg-night-teal-900 shadow-md;
+  }
+
+  .stat-number {
+    @apply font-display text-4xl text-night-teal-800;
+  }
+
+  .section-title {
+    @apply font-display text-2xl text-night-teal-800 mb-4;
+  }
+
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef8f8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #aadfdd;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #73c7c4;
+}
