@@ -37,25 +37,16 @@ const createInitialSteps = (): DisinfectionStep[] => {
   }));
 };
 
-const updateOverdueStatus = () => {
+const isOverdue = (task: DisinfectionTask): boolean => {
+  if (task.status === DisinfectionTaskStatus.COMPLETED) return false;
   const thresholdMs = OVERDUE_THRESHOLD_MINUTES * 60 * 1000;
-  const currentTime = Date.now();
-  mockDisinfectionTasks.forEach((task) => {
-    if (
-      task.status === DisinfectionTaskStatus.PENDING ||
-      task.status === DisinfectionTaskStatus.IN_PROGRESS
-    ) {
-      const waitTime = currentTime - new Date(task.createdAt).getTime();
-      if (waitTime > thresholdMs) {
-        task.status = DisinfectionTaskStatus.OVERDUE;
-      }
-    }
-  });
+  const usage = mockUsages.find((u) => u.id === task.usageId);
+  const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+  return Date.now() - baseTime > thresholdMs;
 };
 
 router.get('/queue', (req: Request, res: Response): void => {
   try {
-    updateOverdueStatus();
     const queue = mockDisinfectionTasks.filter(
       (t) =>
         t.status === DisinfectionTaskStatus.PENDING ||
@@ -86,7 +77,6 @@ router.get('/records', (req: Request, res: Response): void => {
     const pageNum = parseInt(page as string, 10) || 1;
     const pageSizeNum = parseInt(pageSize as string, 10) || 20;
 
-    updateOverdueStatus();
     let filtered = [...mockDisinfectionTasks];
 
     if (deviceId) {
@@ -129,7 +119,6 @@ router.get('/records', (req: Request, res: Response): void => {
 router.get('/:id', (req: Request, res: Response): void => {
   try {
     const { id } = req.params;
-    updateOverdueStatus();
     const task = mockDisinfectionTasks.find((t) => t.id === id);
     if (!task) {
       const response: ApiResponse<null> = {

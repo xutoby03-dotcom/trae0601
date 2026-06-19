@@ -24,27 +24,16 @@ const getTodayStr = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-const updateOverdueStatus = () => {
+const isOverdue = (task: DisinfectionTask): boolean => {
+  if (task.status === DisinfectionTaskStatus.COMPLETED) return false;
   const thresholdMs = OVERDUE_THRESHOLD_MINUTES * 60 * 1000;
-  const currentTime = Date.now();
-  mockDisinfectionTasks.forEach((task) => {
-    if (
-      task.status === DisinfectionTaskStatus.PENDING ||
-      task.status === DisinfectionTaskStatus.IN_PROGRESS
-    ) {
-      const usage = mockUsages.find((u) => u.id === task.usageId);
-      const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
-      const waitTime = currentTime - baseTime;
-      if (waitTime > thresholdMs) {
-        task.status = DisinfectionTaskStatus.OVERDUE;
-      }
-    }
-  });
+  const usage = mockUsages.find((u) => u.id === task.usageId);
+  const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+  return Date.now() - baseTime > thresholdMs;
 };
 
 router.get('/stats', (req: Request, res: Response): void => {
   try {
-    updateOverdueStatus();
     const todayStr = getTodayStr();
 
     const totalDevices = mockDevices.filter(
@@ -59,9 +48,7 @@ router.get('/stats', (req: Request, res: Response): void => {
     const pendingDisinfection = mockDevices.filter(
       (d) => d.status === DeviceStatus.PENDING_DISINFECTION
     ).length;
-    const overdueTasks = mockDisinfectionTasks.filter(
-      (t) => t.status === DisinfectionTaskStatus.OVERDUE
-    ).length;
+    const overdueTasks = mockDisinfectionTasks.filter(isOverdue).length;
     const todayUsageCount = mockUsages.filter((u) =>
       u.startTime.startsWith(todayStr)
     ).length;
@@ -151,12 +138,7 @@ router.get('/clinic-usage', (req: Request, res: Response): void => {
 
 router.get('/overdue-alerts', (req: Request, res: Response): void => {
   try {
-    updateOverdueStatus();
-    const overdueTasks = mockDisinfectionTasks.filter(
-      (t) => t.status === DisinfectionTaskStatus.OVERDUE
-    );
-    const deviceIds = overdueTasks.map((t) => t.deviceId);
-    const devices = mockDevices.filter((d) => deviceIds.includes(d.id));
+    const overdueTasks = mockDisinfectionTasks.filter(isOverdue);
 
     const result = overdueTasks.map((task) => {
       const device = mockDevices.find((d) => d.id === task.deviceId);
