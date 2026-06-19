@@ -66,13 +66,9 @@ export interface CheckIn {
   soilMoisture: number;
   hasPests: boolean;
   pestDetails?: string;
-  pests: Pests;
   hasWeeds: boolean;
   weedLevel?: WeedLevel;
-  weeds: Weeds;
-  harvested: boolean;
   harvestedAmount: number;
-  harvestAmount: number;
   notes?: string;
   photoUrl?: string;
 }
@@ -85,8 +81,8 @@ export interface Anomaly {
   type: AnomalyType;
   severity: AnomalySeverity;
   message: string;
-  description: string;
-  status: AnomalyStatus;
+  description?: string;
+  status?: AnomalyStatus;
   resolved: boolean;
   resolvedAt?: string;
   resolvedBy?: string;
@@ -99,12 +95,12 @@ export interface Weather {
   consecutiveHotDays: number;
   humidity: number;
   forecast: string;
-  shouldSkipWatering: boolean;
-  skipReason: string;
-  shouldIncreaseWatering: boolean;
-  increaseReason: string;
-  highHeatWarning: boolean;
-  wateringAdvice: string;
+  shouldSkipWatering?: boolean;
+  skipReason?: string;
+  shouldIncreaseWatering?: boolean;
+  increaseReason?: string;
+  highHeatWarning?: boolean;
+  wateringAdvice?: string[];
 }
 
 export interface DashboardStats {

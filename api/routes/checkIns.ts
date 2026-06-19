@@ -82,6 +82,7 @@ router.post('/', (req, res) => {
     volunteerId,
     scheduleId,
     checkInTime: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
     waterAmount: Number(waterAmount),
     soilMoisture: Number(soilMoisture),
     hasPests: Boolean(hasPests),

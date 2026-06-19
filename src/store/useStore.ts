@@ -271,19 +271,49 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  createCheckIn: async (data: Omit<CheckIn, 'id' | 'checkInTime' | 'createdAt'>) => {
+  createCheckIn: async (payload: Omit<CheckIn, 'id' | 'checkInTime' | 'createdAt'>) => {
     set({ loading: true, error: null });
     try {
-      const result = await apiFetch<{ success: boolean; checkIn: CheckIn; anomalies: Anomaly[] }>('/check-ins', {
+      const result = await apiFetch<{
+        success: boolean;
+        data: CheckIn & { anomalies?: Anomaly[] };
+      }>('/check-ins', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
+
+      const { data: respData } = result;
+      const anomalies = respData.anomalies || [];
+
+      const checkInOnly: CheckIn = {
+        id: respData.id,
+        gardenBedId: respData.gardenBedId,
+        volunteerId: respData.volunteerId,
+        scheduleId: respData.scheduleId,
+        checkInTime: respData.checkInTime,
+        createdAt: respData.createdAt,
+        waterAmount: respData.waterAmount,
+        soilMoisture: respData.soilMoisture,
+        hasPests: respData.hasPests,
+        pestDetails: respData.pestDetails,
+        hasWeeds: respData.hasWeeds,
+        weedLevel: respData.weedLevel,
+        harvestedAmount: respData.harvestedAmount,
+        notes: respData.notes,
+        photoUrl: respData.photoUrl,
+      };
+
       set(state => ({
-        checkIns: [result.checkIn, ...state.checkIns],
-        anomalies: [...result.anomalies, ...state.anomalies],
+        checkIns: [checkInOnly, ...state.checkIns],
+        anomalies: [...anomalies, ...state.anomalies],
         loading: false,
       }));
-      return result;
+
+      return {
+        success: true,
+        checkIn: checkInOnly,
+        anomalies,
+      };
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       return null;

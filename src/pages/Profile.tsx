@@ -67,7 +67,7 @@ const Profile: React.FC = () => {
   );
 
   const totalWater = myCheckIns.reduce((sum, c) => sum + c.waterAmount, 0);
-  const totalHarvest = myCheckIns.reduce((sum, c) => sum + c.harvestAmount, 0);
+  const totalHarvest = myCheckIns.reduce((sum, c) => sum + c.harvestedAmount, 0);
 
   const volunteerRanking = [...volunteers]
     .map((v) => {
@@ -266,10 +266,10 @@ const Profile: React.FC = () => {
               <Apple size={20} className="text-sun-600" />
               采摘记录
             </h3>
-            {myCheckIns.filter((c) => c.harvested).length > 0 ? (
+            {myCheckIns.filter((c) => c.harvestedAmount > 0).length > 0 ? (
               <div className="space-y-3">
                 {myCheckIns
-                  .filter((c) => c.harvested)
+                  .filter((c) => c.harvestedAmount > 0)
                   .sort(
                     (a, b) =>
                       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -296,7 +296,7 @@ const Profile: React.FC = () => {
                           </div>
                         </div>
                         <span className="font-bold text-sun-600">
-                          {checkIn.harvestAmount} kg
+                          {checkIn.harvestedAmount} kg
                         </span>
                       </div>
                     );
@@ -383,9 +383,9 @@ const Profile: React.FC = () => {
                       <p className="text-xl font-bold text-primary-600">
                         {checkIn.waterAmount}L
                       </p>
-                      {checkIn.harvested && (
+                      {checkIn.harvestedAmount > 0 && (
                         <p className="text-sm text-sun-600">
-                          采摘 {checkIn.harvestAmount}kg
+                          采摘 {checkIn.harvestedAmount}kg
                         </p>
                       )}
                     </div>

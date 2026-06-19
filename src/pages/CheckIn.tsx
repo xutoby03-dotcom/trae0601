@@ -34,8 +34,7 @@ import type {
   GardenBed,
   CheckIn as CheckInType,
   TimeSlot,
-  Pests,
-  Weeds,
+  WeedLevel,
   Schedule,
 } from '@shared/types.js';
 
@@ -77,10 +76,11 @@ const CheckInPage: React.FC = () => {
   const [formData, setFormData] = useState({
     waterAmount: 5,
     soilMoisture: 50,
-    pests: 'none' as Pests,
-    weeds: 'none' as Weeds,
-    harvested: false,
-    harvestAmount: 0,
+    hasPests: false,
+    pestDetails: '',
+    hasWeeds: false,
+    weedLevel: 'none' as WeedLevel,
+    harvestedAmount: 0,
     notes: '',
   });
 
@@ -120,7 +120,7 @@ const CheckInPage: React.FC = () => {
     };
 
     const result = await createCheckIn(checkInData);
-    if (result.success) {
+    if (result && result.success) {
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -130,32 +130,33 @@ const CheckInPage: React.FC = () => {
   };
 
   const getCheckInAnomalies = (checkInId: string) => {
-    return anomalies.filter((a) => a.checkInId === checkInId && a.status === 'pending');
+    return anomalies.filter((a) => a.checkInId === checkInId && (!a.status || a.status === 'pending'));
   };
 
-  const getPestSeverity = (pests: Pests) => {
-    switch (pests) {
-      case 'none':
-        return { color: 'text-primary-600', label: '无虫害', icon: CheckCircle };
-      case 'minor':
-        return { color: 'text-sun-600', label: '轻微', icon: Info };
-      case 'moderate':
-        return { color: 'text-orange-600', label: '中等', icon: AlertTriangle };
-      case 'severe':
-        return { color: 'text-red-600', label: '严重', icon: AlertTriangle };
+  const getPestSeverity = (checkIn: CheckInType) => {
+    if (!checkIn.hasPests) {
+      return { color: 'text-primary-600', label: '无虫害', icon: CheckCircle };
     }
+    const details = checkIn.pestDetails || '';
+    const isSevere = ['严重', '大量', '很多', '蚜虫', '红蜘蛛'].some(k => details.includes(k));
+    if (isSevere) {
+      return { color: 'text-red-600', label: '严重', icon: AlertTriangle };
+    }
+    return { color: 'text-orange-600', label: '有虫害', icon: Info };
   };
 
-  const getWeedSeverity = (weeds: Weeds) => {
-    switch (weeds) {
+  const getWeedSeverity = (checkIn: CheckInType) => {
+    switch (checkIn.weedLevel) {
       case 'none':
         return { color: 'text-primary-600', label: '无杂草', icon: CheckCircle };
-      case 'minor':
+      case 'mild':
         return { color: 'text-sun-600', label: '轻微', icon: Info };
       case 'moderate':
         return { color: 'text-orange-600', label: '中等', icon: AlertTriangle };
       case 'severe':
         return { color: 'text-red-600', label: '严重', icon: AlertTriangle };
+      default:
+        return { color: 'text-primary-600', label: '无杂草', icon: CheckCircle };
     }
   };
 
@@ -382,25 +383,32 @@ const CheckInPage: React.FC = () => {
                 <Bug size={16} className="inline mr-1" />
                 虫害情况
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {(['none', 'minor', 'moderate', 'severe'] as Pests[]).map((level) => {
-                  const severity = getPestSeverity(level);
-                  return (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, pests: level })}
-                      className={`p-2 rounded-xl border-2 transition-all ${
-                        formData.pests === level
-                          ? `border-primary-400 bg-primary-50 ${severity.color}`
-                          : 'border-cream-200 bg-white text-forest-600 hover:border-cream-300'
-                      }`}
-                    >
-                      <severity.icon size={20} className="mx-auto mb-1" />
-                      <p className="text-xs font-medium">{severity.label}</p>
-                    </button>
-                  );
-                })}
+              <div className="card bg-cream-50 p-4 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasPests}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hasPests: e.target.checked })
+                    }
+                    className="w-4 h-4 rounded accent-primary-500"
+                  />
+                  <span className="text-forest-700">发现虫害</span>
+                </label>
+                {formData.hasPests && (
+                  <div>
+                    <label className="block text-xs text-forest-500 mb-1">虫害说明</label>
+                    <input
+                      type="text"
+                      value={formData.pestDetails}
+                      onChange={(e) =>
+                        setFormData({ ...formData, pestDetails: e.target.value })
+                      }
+                      placeholder="例如：发现蚜虫、红蜘蛛等..."
+                      className="input w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -410,15 +418,21 @@ const CheckInPage: React.FC = () => {
                 杂草情况
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {(['none', 'minor', 'moderate', 'severe'] as Weeds[]).map((level) => {
-                  const severity = getWeedSeverity(level);
+                {(['none', 'mild', 'moderate', 'severe'] as WeedLevel[]).map((level) => {
+                  const severity = getWeedSeverity({ weedLevel: level } as CheckInType);
                   return (
                     <button
                       key={level}
                       type="button"
-                      onClick={() => setFormData({ ...formData, weeds: level })}
+                      onClick={() =>
+                        setFormData({
+                          ...formData,
+                          weedLevel: level,
+                          hasWeeds: level !== 'none',
+                        })
+                      }
                       className={`p-2 rounded-xl border-2 transition-all ${
-                        formData.weeds === level
+                        formData.weedLevel === level
                           ? `border-primary-400 bg-primary-50 ${severity.color}`
                           : 'border-cream-200 bg-white text-forest-600 hover:border-cream-300'
                       }`}
@@ -433,37 +447,24 @@ const CheckInPage: React.FC = () => {
           </div>
 
           <div className="card bg-gradient-to-br from-sun-50 to-cream-100 border-2 border-sun-200">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.harvested}
-                onChange={(e) => setFormData({ ...formData, harvested: e.target.checked })}
-                className="w-5 h-5 rounded accent-sun-500"
-              />
-              <div>
-                <span className="font-medium text-forest-800 flex items-center gap-1">
-                  <Apple size={18} className="text-sun-500" />
-                  有采摘
-                </span>
-                <p className="text-sm text-forest-500">勾选后请填写采摘数量</p>
-              </div>
+            <label className="flex items-center gap-3 mb-2">
+              <Apple size={18} className="text-sun-500" />
+              <span className="font-medium text-forest-800">采摘数量 (公斤)</span>
             </label>
-            {formData.harvested && (
-              <div className="mt-3 ml-8">
-                <label className="block text-sm text-forest-600 mb-1">采摘数量 (公斤)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.harvestAmount}
-                  onChange={(e) =>
-                    setFormData({ ...formData, harvestAmount: parseFloat(e.target.value) || 0 })
-                  }
-                  className="input w-32"
-                  placeholder="0.0"
-                />
-              </div>
-            )}
+            <div>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={formData.harvestedAmount}
+                onChange={(e) =>
+                  setFormData({ ...formData, harvestedAmount: parseFloat(e.target.value) || 0 })
+                }
+                className="input w-32"
+                placeholder="0.0"
+              />
+              <p className="text-xs text-forest-500 mt-1">如果有采摘，请填写数量（公斤）</p>
+            </div>
           </div>
 
           <div>
@@ -528,8 +529,8 @@ const CheckInPage: React.FC = () => {
               {filteredCheckIns.slice(0, 50).map((checkIn) => {
                 const bed = gardenBeds.find((b) => b.id === checkIn.gardenBedId);
                 const checkInAnomalies = getCheckInAnomalies(checkIn.id);
-                const pestInfo = getPestSeverity(checkIn.pests);
-                const weedInfo = getWeedSeverity(checkIn.weeds);
+                const pestInfo = getPestSeverity(checkIn);
+                const weedInfo = getWeedSeverity(checkIn);
                 const moistureInfo = getMoistureStatus(checkIn.soilMoisture);
 
                 return (
@@ -578,7 +579,7 @@ const CheckInPage: React.FC = () => {
                       <div className="bg-cream-50 rounded-lg p-2">
                         <span className="text-forest-500">采摘</span>
                         <p className="font-medium text-sun-600">
-                          {checkIn.harvested ? `${checkIn.harvestAmount}kg` : '无'}
+                          {checkIn.harvestedAmount > 0 ? `${checkIn.harvestedAmount}kg` : '无'}
                         </p>
                       </div>
                     </div>
@@ -591,7 +592,7 @@ const CheckInPage: React.FC = () => {
                         </p>
                         {checkInAnomalies.map((anomaly) => (
                           <p key={anomaly.id} className="text-sm text-red-600 mt-1">
-                            • {anomaly.description}
+                            • {anomaly.message || anomaly.description}
                           </p>
                         ))}
                       </div>
