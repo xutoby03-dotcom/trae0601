@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,6 +10,9 @@ import {
   Calendar,
   Edit,
   Wrench,
+  X,
+  CheckCircle2,
+  DollarSign,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { useComplaintStore } from '@/store/useComplaintStore';
@@ -17,16 +21,10 @@ import { useRepairStore } from '@/store/useRepairStore';
 import {
   getComplaintTypeLabel,
   getComplaintStatusLabel,
+  getRepairStatusLabel,
 } from '@/utils/status';
 import { mockOrders } from '@/utils/mockData';
-import { Thermometer } from 'lucide-react';
-import { Droplets } from 'lucide-react';
-import { Zap } from 'lucide-react';
-import { Flame } from 'lucide-react';
-import {
-  getRepairStatusLabel,
-  getRepairStatusColor,
-} from '@/utils/status';
+import { Thermometer, Droplets, Zap, Flame } from 'lucide-react';
 
 const ComplaintDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +40,10 @@ const ComplaintDetail = () => {
     : null;
   const relatedRepairs = complaint ? getRepairsBySourceId(complaint.id) : [];
   const relatedRepair = relatedRepairs.length > 0 ? relatedRepairs[0] : null;
+
+  const [showResolveModal, setShowResolveModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<typeof complaint.status | null>(null);
+  const [resolveNotes, setResolveNotes] = useState('');
 
   if (!complaint) {
     return (
@@ -68,10 +70,31 @@ const ComplaintDetail = () => {
   const Icon = complaintIconMap[complaint.complaintType];
 
   const handleStatusChange = (newStatus: typeof complaint.status) => {
-    updateComplaint(complaint.id, { status: newStatus });
-    if ((newStatus === 'resolved' || newStatus === 'closed') && room) {
-      setRoomStatus(complaint.roomId, 'active');
+    if (newStatus === 'resolved' || newStatus === 'closed') {
+      setPendingStatus(newStatus);
+      setResolveNotes(complaint.handlingNotes || '');
+      setShowResolveModal(true);
+      return;
     }
+    updateComplaint(complaint.id, { status: newStatus });
+  };
+
+  const handleConfirmResolve = () => {
+    if (!pendingStatus) return;
+    updateComplaint(complaint.id, {
+      status: pendingStatus,
+      handlingNotes: resolveNotes.trim(),
+    });
+    setRoomStatus(complaint.roomId, 'active');
+    setShowResolveModal(false);
+    setPendingStatus(null);
+    setResolveNotes('');
+  };
+
+  const handleCancelResolve = () => {
+    setShowResolveModal(false);
+    setPendingStatus(null);
+    setResolveNotes('');
   };
 
   const statuses = [
@@ -266,6 +289,18 @@ const ComplaintDetail = () => {
                     <span className="text-dark-400">维修人员: </span>
                     <span className="text-white">{relatedRepair.assignee || '未分配'}</span>
                   </div>
+                  {relatedRepair.completedDate && (
+                    <div>
+                      <span className="text-dark-400">完成日期: </span>
+                      <span className="text-success-400">{relatedRepair.completedDate}</span>
+                    </div>
+                  )}
+                  {relatedRepair.cost > 0 && (
+                    <div>
+                      <span className="text-dark-400">维修费用: </span>
+                      <span className="text-warning-400">¥{relatedRepair.cost}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <Link
@@ -286,6 +321,55 @@ const ComplaintDetail = () => {
           )}
         </div>
       </div>
+
+      {showResolveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-dark-900 border border-dark-700 rounded-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-success-500/20 rounded-xl flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-success-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">
+                  {pendingStatus === 'resolved' ? '标记为已解决' : '标记为已关闭'}
+                </h3>
+              </div>
+              <button
+                onClick={handleCancelResolve}
+                className="w-8 h-8 rounded-lg bg-dark-800/50 flex items-center justify-center text-dark-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-dark-400 text-sm mb-4">
+              请填写处理说明，保存后将自动恢复房间为正常营业状态
+            </p>
+
+            <textarea
+              value={resolveNotes}
+              onChange={(e) => setResolveNotes(e.target.value)}
+              placeholder="描述处理过程和结果，例如：更换温控器后水温恢复正常，客人确认满意..."
+              className="w-full h-28 bg-dark-800/50 border border-dark-700 rounded-xl p-3 text-white placeholder-dark-600 resize-none focus:outline-none focus:border-warning-500/50 transition-colors"
+            />
+
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleCancelResolve}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-dark-800/50 text-dark-300 hover:bg-dark-800 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmResolve}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-success-500/20 text-success-400 hover:bg-success-500/30 transition-colors font-medium"
+              >
+                确认{pendingStatus === 'resolved' ? '解决' : '关闭'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
