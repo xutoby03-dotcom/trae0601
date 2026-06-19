@@ -334,23 +334,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
         purchases: state.purchases.map((p) =>
           p.id === id ? result.purchase : p
         ),
-        products: state.products.map((pr) =>
-          pr.id === result.product.id ? result.product : pr
-        ),
-        orders: state.orders.map((o) => {
-          if (
-            o.productId === result.product.id &&
-            o.orderStatus === "purchasing"
-          ) {
-            const currentStock = result.product.stock[o.size] || 0;
-            if (currentStock >= o.quantity) {
-              return { ...o, orderStatus: "ready" as OrderStatus };
-            }
-          }
-          return o;
-        }),
         error: null,
       }));
+      await get().fetchOrders();
+      await get().fetchProducts();
     } catch (err: any) {
       set({ error: err.message });
       throw err;

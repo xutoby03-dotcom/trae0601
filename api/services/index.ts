@@ -132,7 +132,7 @@ export class OrderService {
 }
 
 export class PurchaseService {
-  static completePurchase(id: string): { purchase: Purchase; product: Product } | null {
+  static completePurchase(id: string): { purchase: Purchase; product: Product; affectedOrders: Order[] } | null {
     const purchaseRow = db
       .prepare("SELECT * FROM purchases WHERE id = ?")
       .get(id) as any;
@@ -172,6 +172,8 @@ export class PurchaseService {
         )
         .all(purchaseRow.productId, purchaseRow.size) as any[];
 
+      const affectedOrderIds: string[] = [];
+
       pendingOrders.forEach((order) => {
         const currentStock = updatedProduct.stock[order.size as Size] || 0;
         if (currentStock >= order.quantity) {
@@ -188,6 +190,7 @@ export class PurchaseService {
             purchaseRow.productId
           );
           updatedProduct.stock = newStockAfter;
+          affectedOrderIds.push(order.id);
         }
       });
 
@@ -196,12 +199,25 @@ export class PurchaseService {
         db.prepare("SELECT * FROM products WHERE id = ?").get(purchaseRow.productId) as any
       );
 
+      let affectedOrders: Order[] = [];
+      if (affectedOrderIds.length > 0) {
+        const placeholders = affectedOrderIds.map(() => "?").join(",");
+        const rows = db
+          .prepare(`SELECT * FROM orders WHERE id IN (${placeholders})`)
+          .all(...affectedOrderIds) as any[];
+        affectedOrders = rows.map((row: any) => ({
+          ...row,
+          isExchange: row.isExchange === 1,
+        }));
+      }
+
       return {
         purchase: finalPurchase,
         product: finalProduct,
+        affectedOrders,
       };
     });
 
-    return tx() as { purchase: Purchase; product: Product };
+    return tx() as { purchase: Purchase; product: Product; affectedOrders: Order[] };
   }
 }
