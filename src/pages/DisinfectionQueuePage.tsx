@@ -24,7 +24,7 @@ import { useAppStore } from '@/store';
 import { DisinfectionBadge } from '@/components/StatusBadge';
 import { api } from '@/lib/api';
 import { formatDateTime, formatWaitTime, getWaitMinutes, getWaitTimeColor, formatDuration } from '@/lib/format';
-import { DisinfectionTask, OVERDUE_THRESHOLD_MINUTES } from '@shared/types';
+import { DisinfectionTask, DisinfectionTaskStatus, OVERDUE_THRESHOLD_MINUTES } from '@shared/types';
 
 function DisinfectionQueuePage() {
   const navigate = useNavigate();
@@ -42,7 +42,6 @@ function DisinfectionQueuePage() {
   const [activeTab, setActiveTab] = useState<'queue' | 'history'>('queue');
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
-  const [startingId, setStartingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDisinfectionQueue();
@@ -53,11 +52,15 @@ function DisinfectionQueuePage() {
 
   const filteredQueue = useMemo(() => {
     if (!isOverdueFilter) return disinfectionQueue;
+    const now = Date.now();
+    const thresholdMs = OVERDUE_THRESHOLD_MINUTES * 60 * 1000;
     return disinfectionQueue.filter((task) => {
-      const waitMinutes = getWaitMinutes(task.createdAt);
-      return waitMinutes >= OVERDUE_THRESHOLD_MINUTES;
+      if (task.status === DisinfectionTaskStatus.COMPLETED) return false;
+      const usage = usages.find((u) => u.id === task.usageId);
+      const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+      return now - baseTime > thresholdMs;
     });
-  }, [disinfectionQueue, isOverdueFilter]);
+  }, [disinfectionQueue, isOverdueFilter, usages]);
 
   const clearFilter = () => {
     searchParams.delete('filter');
@@ -80,16 +83,8 @@ function DisinfectionQueuePage() {
     }
   };
 
-  const handleStart = async (usageId: string, taskId: string) => {
-    setStartingId(taskId);
-    try {
-      const task = await api.startDisinfection(usageId);
-      navigate(`/disinfection/${task.id}`);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setStartingId(null);
-    }
+  const handleStart = (taskId: string) => {
+    navigate(`/disinfection/${taskId}`);
   };
 
   const getUsageInfo = (usageId: string) => {
@@ -210,12 +205,20 @@ function DisinfectionQueuePage() {
                     <tbody>
                       {filteredQueue
                         .slice()
-                        .sort((a, b) => getWaitMinutes(b.createdAt) - getWaitMinutes(a.createdAt))
+                        .sort((a, b) => {
+                          const aUsage = usages.find((u) => u.id === a.usageId);
+                          const bUsage = usages.find((u) => u.id === b.usageId);
+                          const aBase = aUsage?.endTime ? new Date(aUsage.endTime).getTime() : new Date(a.createdAt).getTime();
+                          const bBase = bUsage?.endTime ? new Date(bUsage.endTime).getTime() : new Date(b.createdAt).getTime();
+                          return aBase - bBase;
+                        })
                         .map((task: DisinfectionTask) => {
-                          const waitMinutes = getWaitMinutes(task.createdAt);
                           const device = getDeviceInfo(task.deviceId);
                           const usage = getUsageInfo(task.usageId);
+                          const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+                          const waitMinutes = Math.floor((Date.now() - baseTime) / 60000);
                           const overMinutes = waitMinutes - OVERDUE_THRESHOLD_MINUTES;
+                          const baseTimeForFormat = usage?.endTime || task.createdAt;
                           return (
                             <tr key={task.id} className="table-row-hover">
                               <td className="table-td">
@@ -244,7 +247,7 @@ function DisinfectionQueuePage() {
                                   超时 {formatWaitTime(new Date(Date.now() - overMinutes * 60000).toISOString())}
                                 </span>
                                 <p className="text-xs text-slate-400 mt-1">
-                                  已等待 {formatWaitTime(task.createdAt)}
+                                  已等待 {formatWaitTime(baseTimeForFormat)}
                                 </p>
                               </td>
                               <td className="table-td">
@@ -252,15 +255,10 @@ function DisinfectionQueuePage() {
                               </td>
                               <td className="table-td text-right">
                                 <button
-                                  onClick={() => handleStart(task.usageId, task.id)}
-                                  disabled={startingId === task.id}
-                                  className="btn-success !py-1.5 !px-3 text-sm disabled:opacity-50"
+                                  onClick={() => handleStart(task.id)}
+                                  className="btn-success !py-1.5 !px-3 text-sm"
                                 >
-                                  {startingId === task.id ? (
-                                    <div className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full mr-1.5 inline-block" />
-                                  ) : (
-                                    <PlayCircle className="w-3.5 h-3.5 mr-1.5 inline-block" />
-                                  )}
+                                  <PlayCircle className="w-3.5 h-3.5 mr-1.5 inline-block" />
                                   立即处理
                                 </button>
                               </td>
@@ -273,9 +271,11 @@ function DisinfectionQueuePage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {filteredQueue.map((task: DisinfectionTask) => {
-                    const waitMinutes = getWaitMinutes(task.createdAt);
-                    const isOverdue = waitMinutes >= OVERDUE_THRESHOLD_MINUTES;
                     const usage = getUsageInfo(task.usageId);
+                    const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+                    const waitMinutes = Math.floor((Date.now() - baseTime) / 60000);
+                    const isOverdue = waitMinutes >= OVERDUE_THRESHOLD_MINUTES;
+                    const baseTimeForFormat = usage?.endTime || task.createdAt;
                     return (
                       <div
                         key={task.id}
@@ -317,7 +317,7 @@ function DisinfectionQueuePage() {
                           <p className={`text-3xl font-bold ${
                             isOverdue ? 'text-red-600' : getWaitTimeColor(waitMinutes)
                           }`}>
-                            {formatWaitTime(task.createdAt)}
+                            {formatWaitTime(baseTimeForFormat)}
                           </p>
                         </div>
 
@@ -337,15 +337,10 @@ function DisinfectionQueuePage() {
                         <DisinfectionBadge status={task.status} className="mb-4 w-full justify-center !py-1.5" />
 
                         <button
-                          onClick={() => handleStart(task.usageId, task.id)}
-                          disabled={startingId === task.id}
-                          className="btn-success w-full disabled:opacity-50"
+                          onClick={() => handleStart(task.id)}
+                          className="btn-success w-full"
                         >
-                          {startingId === task.id ? (
-                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                          ) : (
-                            <PlayCircle className="w-4 h-4 mr-2" />
-                          )}
+                          <PlayCircle className="w-4 h-4 mr-2" />
                           开始消毒
                         </button>
                       </div>

@@ -41,7 +41,10 @@ const updateOverdueStatus = () => {
   const thresholdMs = OVERDUE_THRESHOLD_MINUTES * 60 * 1000;
   const currentTime = Date.now();
   mockDisinfectionTasks.forEach((task) => {
-    if (task.status === DisinfectionTaskStatus.PENDING) {
+    if (
+      task.status === DisinfectionTaskStatus.PENDING ||
+      task.status === DisinfectionTaskStatus.IN_PROGRESS
+    ) {
       const waitTime = currentTime - new Date(task.createdAt).getTime();
       if (waitTime > thresholdMs) {
         task.status = DisinfectionTaskStatus.OVERDUE;
@@ -56,7 +59,8 @@ router.get('/queue', (req: Request, res: Response): void => {
     const queue = mockDisinfectionTasks.filter(
       (t) =>
         t.status === DisinfectionTaskStatus.PENDING ||
-        t.status === DisinfectionTaskStatus.OVERDUE
+        t.status === DisinfectionTaskStatus.OVERDUE ||
+        t.status === DisinfectionTaskStatus.IN_PROGRESS
     );
     queue.sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

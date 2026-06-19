@@ -28,8 +28,13 @@ const updateOverdueStatus = () => {
   const thresholdMs = OVERDUE_THRESHOLD_MINUTES * 60 * 1000;
   const currentTime = Date.now();
   mockDisinfectionTasks.forEach((task) => {
-    if (task.status === DisinfectionTaskStatus.PENDING) {
-      const waitTime = currentTime - new Date(task.createdAt).getTime();
+    if (
+      task.status === DisinfectionTaskStatus.PENDING ||
+      task.status === DisinfectionTaskStatus.IN_PROGRESS
+    ) {
+      const usage = mockUsages.find((u) => u.id === task.usageId);
+      const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
+      const waitTime = currentTime - baseTime;
       if (waitTime > thresholdMs) {
         task.status = DisinfectionTaskStatus.OVERDUE;
       }
@@ -155,6 +160,8 @@ router.get('/overdue-alerts', (req: Request, res: Response): void => {
 
     const result = overdueTasks.map((task) => {
       const device = mockDevices.find((d) => d.id === task.deviceId);
+      const usage = mockUsages.find((u) => u.id === task.usageId);
+      const baseTime = usage?.endTime ? new Date(usage.endTime).getTime() : new Date(task.createdAt).getTime();
       return {
         taskId: task.id,
         deviceId: task.deviceId,
@@ -162,7 +169,7 @@ router.get('/overdue-alerts', (req: Request, res: Response): void => {
         clinicRoom: device?.clinicRoom,
         createdAt: task.createdAt,
         waitMinutes: Math.floor(
-          (Date.now() - new Date(task.createdAt).getTime()) / 60000
+          (Date.now() - baseTime) / 60000
         ),
       };
     });
