@@ -50,7 +50,7 @@ interface StoreState {
   getResearchGroupById: (id: string) => ResearchGroup | undefined;
 }
 
-const STORAGE_KEY = "app_state_v1";
+const STORAGE_KEY = "app_state_v2";
 
 function loadInitialState() {
   const stored = loadStorage<Partial<StoreState> | null>(STORAGE_KEY, null);

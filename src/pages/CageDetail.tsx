@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useStore } from "@/store";
 import {
@@ -22,7 +22,16 @@ import {
   RefreshCw,
   ShieldAlert,
   Skull,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react";
+
+interface LightboxPhoto {
+  url: string;
+  taskDate: string;
+  cageNumber: string;
+}
 
 export default function CageDetail() {
   const { id } = useParams();
@@ -44,6 +53,27 @@ export default function CageDetail() {
   const tasks = useMemo(() => dailyTasks.filter((t) => t.cageId === id), [dailyTasks, id]);
   const alerts = useMemo(() => allAlerts.filter((a) => a.cageId === id), [allAlerts, id]);
 
+  const sortedTasks = useMemo(
+    () => [...tasks].sort((a, b) => (a.taskDate < b.taskDate ? 1 : -1)),
+    [tasks]
+  );
+
+  const lightboxPhotos = useMemo<LightboxPhoto[]>(() => {
+    const result: LightboxPhoto[] = [];
+    sortedTasks.forEach((task) => {
+      if (task.abnormalPhotos && task.abnormalPhotos.length > 0) {
+        task.abnormalPhotos.forEach((url) => {
+          result.push({
+            url,
+            taskDate: task.taskDate,
+            cageNumber: cage?.cageNumber || "",
+          });
+        });
+      }
+    });
+    return result;
+  }, [sortedTasks, cage]);
+
   const [tab, setTab] = useState<"info" | "tasks" | "records" | "alerts">("info");
   const [showRecord, setShowRecord] = useState<OperationType | null>(null);
   const [recordForm, setRecordForm] = useState({
@@ -55,6 +85,48 @@ export default function CageDetail() {
     notes: "",
     operator: "",
   });
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const showLightbox = lightboxIndex !== null;
+  const currentPhoto = showLightbox ? lightboxPhotos[lightboxIndex] : null;
+
+  function openLightbox(globalIndex: number) {
+    setLightboxIndex(globalIndex);
+  }
+
+  function closeLightbox() {
+    setLightboxIndex(null);
+  }
+
+  function goPrevPhoto() {
+    if (lightboxIndex === null) return;
+    setLightboxIndex((prev) =>
+      prev === null ? null : prev === 0 ? lightboxPhotos.length - 1 : prev - 1
+    );
+  }
+
+  function goNextPhoto() {
+    if (lightboxIndex === null) return;
+    setLightboxIndex((prev) =>
+      prev === null ? null : prev === lightboxPhotos.length - 1 ? 0 : prev + 1
+    );
+  }
+
+  useEffect(() => {
+    if (!showLightbox) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") goPrevPhoto();
+      if (e.key === "ArrowRight") goNextPhoto();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLightbox, lightboxIndex]);
 
   if (!cage) {
     return (
@@ -237,14 +309,17 @@ export default function CageDetail() {
 
               {tab === "tasks" && (
                 <div className="space-y-3">
-                  {tasks.length === 0 ? (
+                  {sortedTasks.length === 0 ? (
                     <p className="text-sm text-slate-400 text-center py-8">
                       暂无饲喂记录
                     </p>
                   ) : (
-                    tasks
-                      .sort((a, b) => (a.taskDate < b.taskDate ? 1 : -1))
-                      .map((task) => (
+                    sortedTasks.map((task, taskIdx) => {
+                      let startIdx = 0;
+                      for (let i = 0; i < taskIdx; i++) {
+                        startIdx += sortedTasks[i].abnormalPhotos?.length || 0;
+                      }
+                      return (
                         <div
                           key={task.id}
                           className="p-4 rounded-xl border border-slate-100 bg-slate-50/50"
@@ -294,19 +369,18 @@ export default function CageDetail() {
                                   </p>
                                   <div className="flex gap-2 flex-wrap">
                                     {task.abnormalPhotos.map((photo, idx) => (
-                                      <a
+                                      <button
                                         key={idx}
-                                        href={photo}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-primary-400 hover:shadow-md transition-all block"
+                                        type="button"
+                                        onClick={() => openLightbox(startIdx + idx)}
+                                        className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-primary-400 hover:shadow-md transition-all block focus:outline-none focus:ring-2 focus:ring-primary-300"
                                       >
                                         <img
                                           src={photo}
                                           alt={`异常照片 ${idx + 1}`}
                                           className="w-full h-full object-cover"
                                         />
-                                      </a>
+                                      </button>
                                     ))}
                                   </div>
                                 </div>
@@ -314,7 +388,8 @@ export default function CageDetail() {
                             </div>
                           )}
                         </div>
-                      ))
+                      );
+                    })
                   )}
                 </div>
               )}
@@ -516,6 +591,79 @@ export default function CageDetail() {
           </div>
         </form>
       </Modal>
+
+      {showLightbox && currentPhoto && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/85 backdrop-blur-sm animate-fade-in"
+            onClick={closeLightbox}
+          />
+          <div className="relative z-10 max-w-[95vw] max-h-[95vh] flex flex-col animate-fade-in-up">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-900/60 backdrop-blur rounded-t-xl text-white">
+              <div className="flex items-center gap-3">
+                <span className="px-2.5 py-1 bg-primary-600/90 rounded-md text-xs font-mono font-medium">
+                  {currentPhoto.cageNumber}
+                </span>
+                <span className="flex items-center gap-1.5 text-slate-200 text-sm">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  拍摄日期：{currentPhoto.taskDate}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-400 font-mono">
+                  {(lightboxIndex ?? 0) + 1} / {lightboxPhotos.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={closeLightbox}
+                  className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors"
+                  aria-label="关闭"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="relative flex items-center justify-center flex-1 bg-black">
+              <img
+                src={currentPhoto.url}
+                alt={`${currentPhoto.cageNumber} 异常照片`}
+                className="max-w-[95vw] max-h-[calc(95vh-130px)] object-contain bg-black"
+              />
+              {lightboxPhotos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goPrevPhoto();
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors backdrop-blur-sm shadow-lg"
+                    aria-label="上一张"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goNextPhoto();
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors backdrop-blur-sm shadow-lg"
+                    aria-label="下一张"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+            </div>
+            {lightboxPhotos.length > 1 && (
+              <div className="px-4 py-2 bg-slate-900/60 backdrop-blur rounded-b-xl text-white text-xs text-center text-slate-300">
+                键盘快捷键：← 上一张 → 下一张 · ESC 关闭
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
