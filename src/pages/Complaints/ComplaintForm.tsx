@@ -74,7 +74,7 @@ const ComplaintForm = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    addComplaint(formData);
+    const newComplaint = addComplaint(formData);
 
     if (formData.status === 'pending' || formData.status === 'processing') {
       setRoomStatus(formData.roomId, 'maintenance');
@@ -83,7 +83,7 @@ const ComplaintForm = () => {
       addRepair({
         roomId: formData.roomId,
         sourceType: 'complaint',
-        sourceId: '',
+        sourceId: newComplaint.id,
         title: `${room?.roomNumber}房客人投诉维修`,
         description: `${getComplaintTypeLabel(formData.complaintType)}: ${formData.description}`,
         status: 'pending',
@@ -91,7 +91,7 @@ const ComplaintForm = () => {
         scheduledDate: new Date().toISOString().split('T')[0],
         completedDate: null,
         cost: 0,
-        notes: `客人: ${formData.guestName}, 订单: ${formData.orderNumber}`,
+        notes: `客人: ${formData.guestName}, 订单: ${formData.orderNumber}, 投诉ID: ${newComplaint.id}`,
       });
     }
 

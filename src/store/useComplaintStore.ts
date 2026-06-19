@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 
 interface ComplaintState {
   complaints: Complaint[];
-  addComplaint: (complaint: Omit<Complaint, 'id'>) => void;
+  addComplaint: (complaint: Omit<Complaint, 'id'>) => Complaint;
   updateComplaint: (id: string, complaint: Partial<Complaint>) => void;
   deleteComplaint: (id: string) => void;
   getComplaint: (id: string) => Complaint | undefined;
@@ -23,6 +23,7 @@ export const useComplaintStore = create<ComplaintState>()(
           id: `comp-${Date.now()}`,
         };
         set((state) => ({ complaints: [newComplaint, ...state.complaints] }));
+        return newComplaint;
       },
       updateComplaint: (id, complaintData) => {
         set((state) => ({

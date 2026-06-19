@@ -8,10 +8,12 @@ import {
   MessageSquareWarning,
   Calendar,
   Edit,
+  Wrench,
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge/StatusBadge';
 import { useComplaintStore } from '@/store/useComplaintStore';
 import { useRoomStore } from '@/store/useRoomStore';
+import { useRepairStore } from '@/store/useRepairStore';
 import {
   getComplaintTypeLabel,
   getComplaintStatusLabel,
@@ -21,18 +23,25 @@ import { Thermometer } from 'lucide-react';
 import { Droplets } from 'lucide-react';
 import { Zap } from 'lucide-react';
 import { Flame } from 'lucide-react';
+import {
+  getRepairStatusLabel,
+  getRepairStatusColor,
+} from '@/utils/status';
 
 const ComplaintDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getComplaint, updateComplaint } = useComplaintStore();
-  const { getRoom } = useRoomStore();
+  const { getRoom, setRoomStatus } = useRoomStore();
+  const { getRepairsBySourceId } = useRepairStore();
 
   const complaint = getComplaint(id || '');
   const room = complaint ? getRoom(complaint.roomId) : null;
   const order = complaint
     ? mockOrders.find((o) => o.id === complaint.orderId)
     : null;
+  const relatedRepairs = complaint ? getRepairsBySourceId(complaint.id) : [];
+  const relatedRepair = relatedRepairs.length > 0 ? relatedRepairs[0] : null;
 
   if (!complaint) {
     return (
@@ -60,6 +69,9 @@ const ComplaintDetail = () => {
 
   const handleStatusChange = (newStatus: typeof complaint.status) => {
     updateComplaint(complaint.id, { status: newStatus });
+    if ((newStatus === 'resolved' || newStatus === 'closed') && room) {
+      setRoomStatus(complaint.roomId, 'active');
+    }
   };
 
   const statuses = [
@@ -222,15 +234,56 @@ const ComplaintDetail = () => {
 
         <div className="bg-dark-900/50 rounded-2xl border border-dark-800 p-6">
           <h3 className="text-lg font-semibold text-white mb-4">关联维修</h3>
-          <p className="text-dark-400 mb-4">
-            此投诉已自动生成维修工单，点击查看详情
-          </p>
-          <Link
-            to="/repairs"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-warning-500/20 text-warning-400 rounded-xl hover:bg-warning-500/30 transition-colors"
-          >
-            查看维修工单 →
-          </Link>
+          {relatedRepair ? (
+            <div className="space-y-4">
+              <div className="bg-dark-800/30 rounded-xl p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="text-white font-medium">{relatedRepair.title}</h4>
+                    <p className="text-dark-400 text-sm mt-1">工单编号: {relatedRepair.id}</p>
+                  </div>
+                  <StatusBadge
+                    label={getRepairStatusLabel(relatedRepair.status)}
+                    variant={
+                      relatedRepair.status === 'pending'
+                        ? 'muted'
+                        : relatedRepair.status === 'assigned'
+                        ? 'info'
+                        : relatedRepair.status === 'in_progress'
+                        ? 'warning'
+                        : relatedRepair.status === 'completed'
+                        ? 'success'
+                        : 'muted'
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-dark-400">安排日期: </span>
+                    <span className="text-white">{relatedRepair.scheduledDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark-400">维修人员: </span>
+                    <span className="text-white">{relatedRepair.assignee || '未分配'}</span>
+                  </div>
+                </div>
+              </div>
+              <Link
+                to={`/repairs/${relatedRepair.id}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-warning-500/20 text-warning-400 rounded-xl hover:bg-warning-500/30 transition-colors"
+              >
+                <Wrench className="w-4 h-4" />
+                查看维修工单详情 →
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-dark-800/30 rounded-xl p-4">
+              <p className="text-dark-400 text-sm flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                暂无关联的维修工单
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
