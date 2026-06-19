@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: theme("fontFamily.sans");
+  background: linear-gradient(135deg, #fff9f5 0%, #fff 50%, #f5faf7 100%);
+  color: theme("colors.neutral.800");
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-button font-medium text-sm transition-all duration-200 select-none active:scale-95;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white shadow-button hover:bg-brand-600 hover:shadow-lg hover:-translate-y-0.5;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-neutral-700 border border-neutral-200 hover:border-brand-300 hover:text-brand-600 hover:bg-brand-50;
+  }
+  .btn-danger {
+    @apply btn bg-white text-danger-500 border border-danger-500/20 hover:bg-danger-50;
+  }
+  .btn-ghost {
+    @apply btn text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900;
+  }
+
+  .card {
+    @apply bg-white rounded-card shadow-card border border-neutral-100 overflow-hidden;
+  }
+  .card-hover {
+    @apply card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1;
+  }
+
+  .input-base {
+    @apply w-full px-3.5 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all duration-200;
+  }
+  .select-base {
+    @apply input-base appearance-none bg-no-repeat bg-right pr-10 cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    @apply bg-neutral-300 rounded-full;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-neutral-400;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-neutral-500 transition-all duration-200 hover:bg-brand-50 hover:text-brand-600 cursor-pointer;
+  }
+  .nav-item-active {
+    @apply bg-gradient-to-r from-brand-500 to-brand-400 text-white shadow-button hover:from-brand-500 hover:to-brand-400 hover:text-white;
+  }
+
+  .progress-bar {
+    @apply h-2 rounded-full bg-neutral-100 overflow-hidden;
+  }
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-500 bg-gradient-to-r from-brand-400 to-brand-500;
+  }
+}
+
+@layer utilities {
+  .animate-delay-50 {
+    animation-delay: 50ms;
+  }
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animate-delay-150 {
+    animation-delay: 150ms;
+  }
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animate-delay-250 {
+    animation-delay: 250ms;
+  }
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+}
