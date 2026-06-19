@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -13,12 +13,19 @@ import {
   AlertCircle,
   Circle,
   ArrowRight,
+  Pencil,
+  Save,
+  Check,
+  Eye,
+  AlertTriangle,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import {
   SURGERY_TYPE_LABELS,
   ANESTHESIA_TYPE_LABELS,
   VisitPlanStatus,
+  DoctorMark,
+  VisitRecord,
 } from '@/types';
 import { formatDate } from '@/utils/date';
 import StarRating from '@/components/StarRating';
@@ -42,6 +49,126 @@ const VISIT_PLAN_STATUS_ICONS: Record<VisitPlanStatus, typeof Clock> = {
   missed: AlertCircle,
 };
 
+const MARK_OPTIONS: { value: DoctorMark; label: string; color: string }[] = [
+  { value: 'normal', label: '正常', color: 'green' },
+  { value: 'observation', label: '需观察', color: 'amber' },
+  { value: 'recheck', label: '尽快复诊', color: 'red' },
+];
+
+interface DoctorMarkEditorProps {
+  record: VisitRecord;
+  onSave: (mark: DoctorMark, note: string) => void;
+}
+
+function DoctorMarkEditor({ record, onSave }: DoctorMarkEditorProps) {
+  const [editing, setEditing] = useState(!record.doctorMark);
+  const [selectedMark, setSelectedMark] = useState<DoctorMark | null>(
+    record.doctorMark || null
+  );
+  const [note, setNote] = useState(record.doctorNote || '');
+
+  const getButtonClass = (option: (typeof MARK_OPTIONS)[number]) => {
+    const isSelected = selectedMark === option.value;
+    const base =
+      'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-all';
+    if (option.color === 'green') {
+      return isSelected
+        ? `${base} bg-green-500 text-white border-green-500 shadow-sm`
+        : `${base} bg-white text-green-700 border-green-300 hover:bg-green-50`;
+    }
+    if (option.color === 'amber') {
+      return isSelected
+        ? `${base} bg-amber-500 text-white border-amber-500 shadow-sm`
+        : `${base} bg-white text-amber-700 border-amber-300 hover:bg-amber-50`;
+    }
+    return isSelected
+      ? `${base} bg-red-500 text-white border-red-500 shadow-sm`
+      : `${base} bg-white text-red-700 border-red-300 hover:bg-red-50`;
+  };
+
+  const handleSave = () => {
+    if (!selectedMark) return;
+    onSave(selectedMark, note);
+    setEditing(false);
+  };
+
+  if (!editing) {
+    return (
+      <div className="sm:col-span-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-gray-500">医生标注</div>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            修改标注
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          {record.doctorMark && <StatusTag mark={record.doctorMark} />}
+          {record.doctorNote && (
+            <div className="text-sm text-gray-700">{record.doctorNote}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sm:col-span-2 pt-1">
+      <div className="text-xs text-gray-500 mb-2">医生标注</div>
+      <div className="flex flex-wrap gap-2 mb-3">
+        {MARK_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setSelectedMark(option.value)}
+            className={getButtonClass(option)}
+          >
+            {option.value === 'normal' && <Check className="w-4 h-4" />}
+            {option.value === 'observation' && <Eye className="w-4 h-4" />}
+            {option.value === 'recheck' && <AlertTriangle className="w-4 h-4" />}
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="输入医生备注（可选）"
+          rows={2}
+          className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 resize-none"
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedMark(record.doctorMark || null);
+              setNote(record.doctorNote || '');
+              setEditing(false);
+            }}
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!selectedMark}
+            className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save className="w-4 h-4" />
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CaseDetail() {
   const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -49,6 +176,7 @@ export default function CaseDetail() {
   const cases = useStore((s) => s.cases);
   const allVisitPlans = useStore((s) => s.visitPlans);
   const allVisitRecords = useStore((s) => s.visitRecords);
+  const updateVisitDoctorMark = useStore((s) => s.updateVisitDoctorMark);
 
   const petCase = useMemo(
     () => cases.find((c) => c.id === caseId),
@@ -323,20 +451,12 @@ export default function CaseDetail() {
                               </div>
                             </div>
                           )}
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">医生标注</div>
-                            {record.doctorMark ? (
-                              <StatusTag mark={record.doctorMark} />
-                            ) : (
-                              <span className="text-sm text-gray-500">暂无</span>
-                            )}
-                          </div>
-                          <div className="sm:col-span-2">
-                            <div className="text-xs text-gray-500 mb-1">医生备注</div>
-                            <div className="text-sm text-gray-800">
-                              {record.doctorNote || '暂无备注'}
-                            </div>
-                          </div>
+                          <DoctorMarkEditor
+                            record={record}
+                            onSave={(mark, note) =>
+                              updateVisitDoctorMark(record.id, mark, note)
+                            }
+                          />
                         </div>
                       </div>
                     )}
