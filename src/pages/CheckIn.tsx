@@ -166,31 +166,13 @@ export default function Checkin() {
 
   const qrPayload = useMemo(() => {
     if (!qrSession) return null;
-    if (qrMode === 'master') {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      return JSON.stringify({
-        type: 'MASTER_CHECKIN',
-        code: qrSession.masterCode,
-        sessionId: qrSession.sessionId,
-        title: qrSession.title,
-        time: `${qrSession.date} ${qrSession.time}`,
-        venue: qrSession.venue,
-        deepLink: `${origin}/checkin?sessionId=${qrSession.sessionId}`,
-        genAt: Date.now(),
-      });
-    }
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (qrMode === 'master') {
+      return `${origin}/checkin?sessionId=${qrSession.sessionId}`;
+    }
     const reg = qrSession?.registrations?.find((r: any) => r.id === qrMode.regId);
-    const code = qrMode.code || reg?.code;
-    return JSON.stringify({
-      type: 'PERSONAL_CHECKIN',
-      code: code || `CINE_${qrSession.sessionId}_${qrMode.regId}_XXXX`,
-      sessionId: qrSession.sessionId,
-      registrationId: qrMode.regId,
-      name: qrMode.name || reg?.name,
-      deepLink: `${origin}/checkin?sessionId=${qrSession.sessionId}&regId=${qrMode.regId}&code=${encodeURIComponent(code || '')}`,
-      genAt: Date.now(),
-    });
+    const code = qrMode.code || reg?.code || '';
+    return `${origin}/checkin?sessionId=${qrSession.sessionId}&regId=${qrMode.regId}&code=${encodeURIComponent(code)}`;
   }, [qrSession, qrMode]);
 
   return (
