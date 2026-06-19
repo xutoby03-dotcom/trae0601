@@ -45,12 +45,14 @@ export function calculateLitterStock(records: CleaningRecord[]): number {
   return Math.max(0, 15 - estimatedUsed + totalAdded);
 }
 
-export function calculateDeodorizerStock(litterBoxes: LitterBox[]): { total: number; low: boolean } {
-  const totalRemaining = litterBoxes.reduce((sum, box) => sum + (box.deodorizerRemaining || 0), 0);
+export function calculateDeodorizerStock(litterBoxes: LitterBox[]): { total: number; low: boolean; hasData: boolean } {
+  const validBoxes = litterBoxes.filter(box => typeof box.deodorizerRemaining === 'number');
+  const totalRemaining = validBoxes.reduce((sum, box) => sum + box.deodorizerRemaining, 0);
   const lowThreshold = 20;
   return {
     total: totalRemaining,
-    low: totalRemaining <= lowThreshold,
+    low: validBoxes.length > 0 && totalRemaining <= lowThreshold,
+    hasData: validBoxes.length > 0,
   };
 }
 
@@ -84,14 +86,14 @@ export function calculateDashboardStats(
   records: CleaningRecord[]
 ): DashboardStats {
   const nextChange = calculateNextFullChange(litterBoxes);
-  const deodorizerStock = calculateDeodorizerStock(litterBoxes);
+  const deodorizerInfo = calculateDeodorizerStock(litterBoxes);
   
   return {
     todayPending: calculateTodayPending(litterBoxes, records),
     abnormalCount: calculateAbnormalCount(records),
     litterStock: calculateLitterStock(records),
-    deodorizerStock: deodorizerStock.total,
-    deodorizerLow: deodorizerStock.low,
+    deodorizerStock: deodorizerInfo.hasData ? deodorizerInfo.total : -1,
+    deodorizerLow: deodorizerInfo.hasData && deodorizerInfo.low,
     nextFullChangeDays: nextChange.days,
     nextFullChangeBoxName: nextChange.boxName,
   };

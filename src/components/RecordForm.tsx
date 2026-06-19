@@ -197,7 +197,7 @@ export default function RecordForm({ litterBoxes, cats, onSubmit, onCancel }: Re
             <div>
               <label className="block text-sm font-medium text-warm-400 mb-1">
                 除臭珠用量（颗）
-                {selectedBox && (
+                {selectedBox && typeof selectedBox.deodorizerRemaining === 'number' && (
                   <span className="text-warm-300 ml-2">
                     （剩余：{selectedBox.deodorizerRemaining} 颗）
                   </span>

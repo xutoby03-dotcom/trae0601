@@ -77,10 +77,10 @@ export default function Dashboard() {
         />
         <StatCard
           title="除臭珠余量"
-          value={`${stats.deodorizerStock}颗`}
-          subtitle={stats.deodorizerLow ? '快用完啦' : '库存充足'}
+          value={stats.deodorizerStock === -1 ? '待设置' : `${stats.deodorizerStock}颗`}
+          subtitle={stats.deodorizerStock === -1 ? '去猫砂盆档案设置' : (stats.deodorizerLow ? '快用完啦' : '库存充足')}
           icon={Sparkles}
-          variant={stats.deodorizerLow ? 'danger' : 'default'}
+          variant={stats.deodorizerStock === -1 ? 'default' : (stats.deodorizerLow ? 'danger' : 'default')}
           delay={300}
         />
         <StatCard

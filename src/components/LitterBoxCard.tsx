@@ -10,6 +10,10 @@ interface LitterBoxCardProps {
 }
 
 export default function LitterBoxCard({ box, onEdit, onDelete, delay = 0 }: LitterBoxCardProps) {
+  const deodorizerTotal = typeof box.deodorizerTotal === 'number' ? box.deodorizerTotal : 100;
+  const deodorizerRemaining = typeof box.deodorizerRemaining === 'number' ? box.deodorizerRemaining : 50;
+  const isLow = deodorizerRemaining <= 10;
+  
   return (
     <div
       className="card group opacity-0 animate-fade-in-up"
@@ -62,12 +66,12 @@ export default function LitterBoxCard({ box, onEdit, onDelete, delay = 0 }: Litt
           <span className="text-warm-400">{box.deodorizer}</span>
         </div>
         <div className="col-span-2 flex items-center gap-2">
-          <Sparkles size={16} className={box.deodorizerRemaining <= 10 ? 'text-coral-400' : 'text-sand-300'} />
+          <Sparkles size={16} className={isLow ? 'text-coral-400' : 'text-sand-300'} />
           <span className="text-warm-300">除臭珠：</span>
-          <span className={`font-medium ${box.deodorizerRemaining <= 10 ? 'text-coral-400' : 'text-warm-400'}`}>
-            {box.deodorizerRemaining} / {box.deodorizerTotal} 颗
+          <span className={`font-medium ${isLow ? 'text-coral-400' : 'text-warm-400'}`}>
+            {deodorizerRemaining} / {deodorizerTotal} 颗
           </span>
-          {box.deodorizerRemaining <= 10 && (
+          {isLow && (
             <span className="text-xs px-2 py-0.5 bg-coral-100 text-coral-400 rounded-full">
               库存不足
             </span>

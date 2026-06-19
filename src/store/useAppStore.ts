@@ -8,6 +8,24 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
 }
 
+const DEFAULT_DEODORIZER_TOTAL = 100;
+const DEFAULT_DEODORIZER_REMAINING = 50;
+
+function migrateLitterBox(box: any): LitterBox {
+  return {
+    ...box,
+    deodorizerTotal: typeof box.deodorizerTotal === 'number' ? box.deodorizerTotal : DEFAULT_DEODORIZER_TOTAL,
+    deodorizerRemaining: typeof box.deodorizerRemaining === 'number' ? box.deodorizerRemaining : DEFAULT_DEODORIZER_REMAINING,
+  };
+}
+
+function migrateCleaningRecord(record: any): CleaningRecord {
+  return {
+    ...record,
+    deodorizerUsed: typeof record.deodorizerUsed === 'number' ? record.deodorizerUsed : 0,
+  };
+}
+
 interface AppState {
   cats: Cat[];
   litterBoxes: LitterBox[];
@@ -35,8 +53,8 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       cats: mockCats,
-      litterBoxes: mockLitterBoxes,
-      cleaningRecords: mockCleaningRecords,
+      litterBoxes: mockLitterBoxes.map(migrateLitterBox),
+      cleaningRecords: mockCleaningRecords.map(migrateCleaningRecord),
       observationNotes: mockObservationNotes,
       
       addCat: (cat) => set((state) => ({
@@ -57,17 +75,17 @@ export const useAppStore = create<AppState>()(
       })),
       
       addLitterBox: (box) => set((state) => ({
-        litterBoxes: [...state.litterBoxes, {
+        litterBoxes: [...state.litterBoxes, migrateLitterBox({
           ...box,
           id: generateId(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        }],
+        })],
       })),
       
       updateLitterBox: (id, box) => set((state) => {
         const updatedBoxes = state.litterBoxes.map(b => 
-          b.id === id ? { ...b, ...box, updatedAt: new Date().toISOString() } : b
+          b.id === id ? migrateLitterBox({ ...b, ...box, updatedAt: new Date().toISOString() }) : b
         );
         return { litterBoxes: updatedBoxes };
       }),
@@ -79,13 +97,13 @@ export const useAppStore = create<AppState>()(
       addCleaningRecord: (record) => set((state) => {
         const { isAbnormal, abnormalTypes } = detectAbnormalities(record);
         
-        const newRecord: CleaningRecord = {
+        const newRecord = migrateCleaningRecord({
           ...record,
           id: generateId(),
           isAbnormal,
           abnormalTypes,
           createdAt: new Date().toISOString(),
-        };
+        });
         
         let newNotes: ObservationNote[] = [];
         if (isAbnormal) {
@@ -99,23 +117,29 @@ export const useAppStore = create<AppState>()(
         }
         
         let updatedBoxes = state.litterBoxes;
-        if (record.operationTypes.includes('full_change') || (record.operationTypes.includes('disinfect') && record.deodorizerUsed > 0)) {
+        const shouldUpdateBox = record.operationTypes.includes('full_change') ||
+          (record.operationTypes.includes('disinfect') && (record.deodorizerUsed ?? 0) > 0);
+        
+        if (shouldUpdateBox) {
           updatedBoxes = state.litterBoxes.map(b => {
-            if (b.id !== record.litterBoxId) return b;
+            if (b.id !== record.litterBoxId) return migrateLitterBox(b);
             
+            const migrated = migrateLitterBox(b);
             const updates: Partial<LitterBox> = { updatedAt: new Date().toISOString() };
             
             if (record.operationTypes.includes('full_change')) {
               updates.lastFullChangeDate = record.date;
             }
             
-            if (record.operationTypes.includes('disinfect') && record.deodorizerUsed > 0) {
-              const newRemaining = Math.max(0, (b.deodorizerRemaining || 0) - record.deodorizerUsed);
+            if (record.operationTypes.includes('disinfect') && (record.deodorizerUsed ?? 0) > 0) {
+              const newRemaining = Math.max(0, migrated.deodorizerRemaining - (record.deodorizerUsed ?? 0));
               updates.deodorizerRemaining = newRemaining;
             }
             
-            return { ...b, ...updates };
+            return migrateLitterBox({ ...migrated, ...updates });
           });
+        } else {
+          updatedBoxes = state.litterBoxes.map(migrateLitterBox);
         }
         
         return {
@@ -142,13 +166,31 @@ export const useAppStore = create<AppState>()(
       
       resetToMockData: () => set({
         cats: mockCats,
-        litterBoxes: mockLitterBoxes,
-        cleaningRecords: mockCleaningRecords,
+        litterBoxes: mockLitterBoxes.map(migrateLitterBox),
+        cleaningRecords: mockCleaningRecords.map(migrateCleaningRecord),
         observationNotes: mockObservationNotes,
       }),
     }),
     {
       name: 'cat-litter-box-storage',
+      migrate: (persistedState: any, version) => {
+        if (!persistedState) return persistedState;
+        return {
+          ...persistedState,
+          litterBoxes: Array.isArray(persistedState.litterBoxes)
+            ? persistedState.litterBoxes.map(migrateLitterBox)
+            : persistedState.litterBoxes,
+          cleaningRecords: Array.isArray(persistedState.cleaningRecords)
+            ? persistedState.cleaningRecords.map(migrateCleaningRecord)
+            : persistedState.cleaningRecords,
+        };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.litterBoxes = state.litterBoxes.map(migrateLitterBox);
+          state.cleaningRecords = state.cleaningRecords.map(migrateCleaningRecord);
+        }
+      },
     }
   )
 );
