@@ -1,6 +1,7 @@
-import { Lightbulb, AlertTriangle } from 'lucide-react';
+import { Lightbulb, AlertTriangle, User, Tag } from 'lucide-react';
 import type { FittingRoom } from '../../shared/types';
 import { cleanStatusLabels, roomStatusLabels } from '@/utils/format';
+import { useStore } from '@/store/useStore';
 
 interface Props {
   room: FittingRoom;
@@ -8,7 +9,14 @@ interface Props {
 }
 
 export default function FittingRoomCard({ room, onClick }: Props) {
+  const { queue } = useStore();
+  
+  const currentItem = room.currentQueueId 
+    ? queue.find(q => q.id === room.currentQueueId && (q.status === 'called' || q.status === 'fitting'))
+    : undefined;
+  
   const isOverLimit = room.currentItemsCount !== undefined && room.currentItemsCount > room.maxItems;
+  const overDiff = isOverLimit && room.currentItemsCount ? room.currentItemsCount - room.maxItems : 0;
   const statusInfo = roomStatusLabels[room.status];
   const cleanInfo = cleanStatusLabels[room.cleanStatus];
 
@@ -44,6 +52,25 @@ export default function FittingRoomCard({ room, onClick }: Props) {
           <span className={`status-badge ${cleanInfo.className}`}>{cleanInfo.label}</span>
         </div>
 
+        {currentItem && (
+          <div className="space-y-1 py-1 border-y border-cream-200">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1 text-charcoal-500">
+                <Tag className="w-3 h-3" />
+                <span>号码</span>
+              </div>
+              <span className="font-bold text-burgundy-700">{currentItem.queueNumber}号</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1 text-charcoal-500">
+                <User className="w-3 h-3" />
+                <span>导购</span>
+              </div>
+              <span className="font-medium text-charcoal-700">{currentItem.assistantName}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-sm">
           <span className="text-charcoal-600">件数限制</span>
           <span className={`font-medium ${isOverLimit ? 'text-red-600' : 'text-charcoal-700'}`}>
@@ -53,8 +80,8 @@ export default function FittingRoomCard({ room, onClick }: Props) {
 
         {isOverLimit && (
           <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-            <AlertTriangle className="w-3 h-3" />
-            <span>超过件数上限！</span>
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+            <span>超{overDiff}件，请收衣</span>
           </div>
         )}
 
