@@ -1,0 +1,325 @@
+import { PetCase, VisitPlan, VisitRecord, Alert } from '@/types';
+import { addDaysToString, getTodayString } from '@/utils/date';
+import { generateId } from '@/utils/id';
+
+const today = getTodayString();
+const yesterday = addDaysToString(today, -1);
+const twoDaysAgo = addDaysToString(today, -2);
+const threeDaysAgo = addDaysToString(today, -3);
+const fiveDaysAgo = addDaysToString(today, -5);
+const oneWeekAgo = addDaysToString(today, -7);
+
+export const mockCases: PetCase[] = [
+  {
+    id: 'case-001',
+    petName: '豆豆',
+    ownerName: '张小明',
+    ownerPhone: '13800138001',
+    surgeryType: 'sterilization',
+    doctor: '李医生',
+    anesthesiaType: 'general',
+    dischargeDate: yesterday,
+    photos: [],
+    status: 'active',
+    createdAt: yesterday,
+  },
+  {
+    id: 'case-002',
+    petName: '花花',
+    ownerName: '王小红',
+    ownerPhone: '13800138002',
+    surgeryType: 'tooth_extraction',
+    doctor: '陈医生',
+    anesthesiaType: 'general',
+    dischargeDate: threeDaysAgo,
+    photos: [],
+    status: 'active',
+    createdAt: threeDaysAgo,
+  },
+  {
+    id: 'case-003',
+    petName: '大黄',
+    ownerName: '刘大伟',
+    ownerPhone: '13800138003',
+    surgeryType: 'debridement',
+    doctor: '李医生',
+    anesthesiaType: 'local',
+    dischargeDate: fiveDaysAgo,
+    photos: [],
+    status: 'active',
+    createdAt: fiveDaysAgo,
+  },
+  {
+    id: 'case-004',
+    petName: '小白',
+    ownerName: '赵丽丽',
+    ownerPhone: '13800138004',
+    surgeryType: 'sterilization',
+    doctor: '王医生',
+    anesthesiaType: 'sedation',
+    dischargeDate: oneWeekAgo,
+    photos: [],
+    status: 'active',
+    createdAt: oneWeekAgo,
+  },
+  {
+    id: 'case-005',
+    petName: '毛毛',
+    ownerName: '孙志强',
+    ownerPhone: '13800138005',
+    surgeryType: 'other',
+    doctor: '陈医生',
+    anesthesiaType: 'general',
+    dischargeDate: twoDaysAgo,
+    photos: [],
+    status: 'active',
+    createdAt: twoDaysAgo,
+  },
+];
+
+export const mockVisitPlans: VisitPlan[] = [
+  {
+    id: 'plan-001',
+    caseId: 'case-001',
+    dayNumber: 1,
+    planDate: today,
+    status: 'pending',
+  },
+  {
+    id: 'plan-002',
+    caseId: 'case-001',
+    dayNumber: 3,
+    planDate: addDaysToString(today, 2),
+    status: 'pending',
+  },
+  {
+    id: 'plan-003',
+    caseId: 'case-001',
+    dayNumber: 7,
+    planDate: addDaysToString(today, 6),
+    status: 'pending',
+  },
+  {
+    id: 'plan-004',
+    caseId: 'case-002',
+    dayNumber: 1,
+    planDate: twoDaysAgo,
+    status: 'completed',
+  },
+  {
+    id: 'plan-005',
+    caseId: 'case-002',
+    dayNumber: 3,
+    planDate: today,
+    status: 'pending',
+  },
+  {
+    id: 'plan-006',
+    caseId: 'case-002',
+    dayNumber: 7,
+    planDate: addDaysToString(today, 4),
+    status: 'pending',
+  },
+  {
+    id: 'plan-007',
+    caseId: 'case-003',
+    dayNumber: 1,
+    planDate: fourDaysAgo(),
+    status: 'completed',
+  },
+  {
+    id: 'plan-008',
+    caseId: 'case-003',
+    dayNumber: 3,
+    planDate: twoDaysAgo,
+    status: 'completed',
+  },
+  {
+    id: 'plan-009',
+    caseId: 'case-003',
+    dayNumber: 7,
+    planDate: addDaysToString(today, 2),
+    status: 'pending',
+  },
+  {
+    id: 'plan-010',
+    caseId: 'case-004',
+    dayNumber: 1,
+    planDate: sixDaysAgo(),
+    status: 'completed',
+  },
+  {
+    id: 'plan-011',
+    caseId: 'case-004',
+    dayNumber: 3,
+    planDate: fourDaysAgo(),
+    status: 'completed',
+  },
+  {
+    id: 'plan-012',
+    caseId: 'case-004',
+    dayNumber: 7,
+    planDate: today,
+    status: 'pending',
+  },
+  {
+    id: 'plan-013',
+    caseId: 'case-005',
+    dayNumber: 1,
+    planDate: yesterday,
+    status: 'missed',
+  },
+  {
+    id: 'plan-014',
+    caseId: 'case-005',
+    dayNumber: 3,
+    planDate: addDaysToString(today, 1),
+    status: 'pending',
+  },
+  {
+    id: 'plan-015',
+    caseId: 'case-005',
+    dayNumber: 7,
+    planDate: addDaysToString(today, 5),
+    status: 'pending',
+  },
+];
+
+function fourDaysAgo(): string {
+  return addDaysToString(today, -4);
+}
+
+function sixDaysAgo(): string {
+  return addDaysToString(today, -6);
+}
+
+export const mockVisitRecords: VisitRecord[] = [
+  {
+    id: 'record-001',
+    caseId: 'case-002',
+    planId: 'plan-004',
+    appetite: 4,
+    spirit: 3,
+    woundPhotos: [],
+    medication: '阿莫西林，每天2次',
+    defecation: '正常，每天1次',
+    abnormalDesc: '精神略差，食欲正常',
+    doctorMark: 'observation',
+    doctorNote: '建议多观察，如有异常及时联系',
+    ownerReplied: true,
+    createdAt: twoDaysAgo,
+  },
+  {
+    id: 'record-002',
+    caseId: 'case-003',
+    planId: 'plan-007',
+    appetite: 3,
+    spirit: 4,
+    woundPhotos: [],
+    medication: '碘伏消毒，每天2次',
+    defecation: '正常',
+    abnormalDesc: '',
+    doctorMark: 'normal',
+    doctorNote: '恢复良好',
+    ownerReplied: true,
+    createdAt: fourDaysAgo(),
+  },
+  {
+    id: 'record-003',
+    caseId: 'case-003',
+    planId: 'plan-008',
+    appetite: 5,
+    spirit: 5,
+    woundPhotos: [],
+    medication: '继续碘伏消毒',
+    defecation: '正常',
+    abnormalDesc: '伤口有轻微红肿',
+    doctorMark: 'observation',
+    doctorNote: '继续观察，红肿可能是正常恢复',
+    ownerReplied: true,
+    createdAt: twoDaysAgo,
+  },
+  {
+    id: 'record-004',
+    caseId: 'case-004',
+    planId: 'plan-010',
+    appetite: 2,
+    spirit: 2,
+    woundPhotos: [],
+    medication: '止痛药，消炎药',
+    defecation: '较少',
+    abnormalDesc: '拒食超过24小时，精神萎靡',
+    doctorMark: 'recheck',
+    doctorNote: '请尽快带宠物回院复诊',
+    ownerReplied: false,
+    createdAt: sixDaysAgo(),
+  },
+  {
+    id: 'record-005',
+    caseId: 'case-004',
+    planId: 'plan-011',
+    appetite: 4,
+    spirit: 4,
+    woundPhotos: [],
+    medication: '继续用药',
+    defecation: '恢复正常',
+    abnormalDesc: '',
+    doctorMark: 'normal',
+    doctorNote: '恢复良好，继续保持',
+    ownerReplied: true,
+    createdAt: fourDaysAgo(),
+  },
+];
+
+export const mockAlerts: Alert[] = [
+  {
+    id: 'alert-001',
+    caseId: 'case-005',
+    type: 'missed_visit',
+    level: 'warning',
+    title: '漏回访提醒',
+    description: '毛毛（主人：孙志强）第1天回访已错过，请尽快联系主人完成回访',
+    status: 'unread',
+    createdAt: today,
+  },
+  {
+    id: 'alert-002',
+    caseId: 'case-003',
+    type: 'wound_redness',
+    level: 'warning',
+    title: '伤口红肿提醒',
+    description: '大黄（主人：刘大伟）回访记录显示伤口有轻微红肿，需关注',
+    status: 'read',
+    createdAt: twoDaysAgo,
+  },
+  {
+    id: 'alert-003',
+    caseId: 'case-004',
+    type: 'refuse_food',
+    level: 'danger',
+    title: '拒食超过24小时',
+    description: '小白（主人：赵丽丽）曾出现拒食超过24小时情况，虽然已标注复诊，但请确认是否已完成复诊',
+    status: 'unread',
+    createdAt: sixDaysAgo(),
+  },
+  {
+    id: 'alert-004',
+    caseId: 'case-004',
+    type: 'recheck_schedule',
+    level: 'warning',
+    title: '复诊安排提醒',
+    description: '小白（主人：赵丽丽）已标注需要尽快复诊，请确认复诊安排',
+    status: 'handled',
+    createdAt: sixDaysAgo(),
+  },
+];
+
+export function generateVisitPlansForCase(caseId: string, dischargeDate: string): VisitPlan[] {
+  return [1, 3, 7].map((day) => ({
+    id: generateId(),
+    caseId,
+    dayNumber: day as 1 | 3 | 7,
+    planDate: addDaysToString(dischargeDate, day),
+    status: 'pending' as const,
+  }));
+}
