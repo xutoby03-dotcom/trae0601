@@ -33,7 +33,7 @@ interface AppState {
   alerts: WaterQualityAlert[];
   stocks: FilterStock[];
 
-  addPitcher: (pitcher: Omit<Pitcher, 'id' | 'createdAt'>) => void;
+  addPitcher: (pitcher: Omit<Pitcher, 'id' | 'createdAt'>) => string;
   updatePitcher: (id: string, data: Partial<Pitcher>) => void;
   deletePitcher: (id: string) => void;
 
@@ -67,17 +67,20 @@ export const useStore = create<AppState>()(
       alerts: mockAlerts,
       stocks: mockStocks,
 
-      addPitcher: (pitcher) =>
+      addPitcher: (pitcher) => {
+        const newId = generateId();
         set((state) => ({
           pitchers: [
             ...state.pitchers,
             {
               ...pitcher,
-              id: generateId(),
+              id: newId,
               createdAt: getToday(),
             },
           ],
-        })),
+        }));
+        return newId;
+      },
 
       updatePitcher: (id, data) =>
         set((state) => ({

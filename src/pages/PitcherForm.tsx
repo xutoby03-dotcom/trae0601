@@ -83,22 +83,19 @@ export default function PitcherForm() {
       }
       navigate(`/pitchers/${existingPitcher.id}`);
     } else {
-      addPitcher({
+      const newPitcherId = addPitcher({
         ...formData,
         photo: photoUrl,
       });
 
-      const newPitcher = pitchers[pitchers.length - 1];
-      if (newPitcher) {
-        if (initialStock > 0) {
-          updateStock(formData.filterModel, initialStock);
-        }
-        if (showFirstFilter && initialStock > 0) {
-          replaceFilter(newPitcher.id, firstFilterData);
-        }
+      if (initialStock > 0) {
+        updateStock(formData.filterModel, initialStock);
+      }
+      if (showFirstFilter && initialStock > 0) {
+        replaceFilter(newPitcherId, firstFilterData);
       }
 
-      navigate('/pitchers');
+      navigate(`/pitchers/${newPitcherId}`);
     }
   };
 
