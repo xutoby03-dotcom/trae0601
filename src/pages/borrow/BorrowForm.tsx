@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { BookOpen, User, Calendar, Pencil, CheckCircle } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { BookOpen, User, Calendar, Pencil, CheckCircle, Package, AlertTriangle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -28,7 +29,7 @@ interface FormErrors {
 export default function BorrowForm() {
   const { scores } = useScoreStore()
   const { members } = useMemberStore()
-  const { addBorrowRecord } = useBorrowStore()
+  const { addBorrowRecord, getBorrowsByScore } = useBorrowStore()
 
   const [formData, setFormData] = useState({
     score_id: '',
@@ -133,6 +134,18 @@ export default function BorrowForm() {
   const selectedScore = scores.find((s) => s.id === formData.score_id)
   const selectedMember = members.find((m) => m.id === formData.member_id)
 
+  const scoreStockDetail = useMemo(() => {
+    if (!selectedScore) return null
+    const borrowedCount = getBorrowsByScore(selectedScore.id).filter(
+      (r) => r.status === '借阅中' || r.status === '逾期'
+    ).length
+    return {
+      total: selectedScore.total_stock,
+      borrowed: borrowedCount,
+      available: selectedScore.available_stock,
+    }
+  }, [selectedScore, getBorrowsByScore])
+
   return (
     <div className="space-y-6">
       {showSuccess && (
@@ -167,6 +180,23 @@ export default function BorrowForm() {
                 onChange={(e) => handleInputChange('score_id', e.target.value)}
               />
               {errors.score_id && <p className="mt-1 text-xs text-red-500">{errors.score_id}</p>}
+              {availableScores.length === 0 && (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-medium text-amber-800">暂无可借阅的曲谱</p>
+                      <p className="text-amber-600 mt-0.5">
+                        请先前往{' '}
+                        <Link to="/scores" className="text-primary-700 hover:underline font-medium">
+                          曲谱档案
+                        </Link>
+                        {' '}添加库存或安排加印
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <Select
@@ -220,6 +250,28 @@ export default function BorrowForm() {
                       >
                         {selectedScore.voice_part}
                       </span>
+                    </div>
+                  </div>
+                )}
+                {scoreStockDetail && (
+                  <div className="flex items-start gap-3">
+                    <Package className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">库存明细</p>
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-gray-500">总库存：</span>
+                          <span className="font-medium text-gray-700">{scoreStockDetail.total} 册</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-gray-500">已借出：</span>
+                          <span className="font-medium text-amber-600">{scoreStockDetail.borrowed} 册</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-gray-500">可用：</span>
+                          <span className="font-medium text-green-600">{scoreStockDetail.available} 册</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
