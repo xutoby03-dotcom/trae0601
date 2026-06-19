@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { Plus, Shirt, Package, Footprints, Ribbon, Sparkles, Edit2, Trash2, Hash } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { Plus, Shirt, Package, Footprints, Ribbon, Sparkles, Edit2, Trash2, Hash, X, Filter, AlertTriangle } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import type { ClothingCategory, ClothingStatus, ClothingItem } from "@/types";
 import { formatDateTime } from "@/utils/formatters";
@@ -24,20 +24,61 @@ const STATUS_COLORS: Record<ClothingStatus, string> = {
 };
 
 export default function InventoryList() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { category: paramCategory } = useParams();
+
+  const searchParams = new URLSearchParams(location.search);
+  const sizeParam = searchParams.get("size");
+
   const initialCategory = (paramCategory && CATEGORIES.includes(paramCategory as ClothingCategory))
     ? (paramCategory as ClothingCategory)
     : null;
 
   const [activeCategory, setActiveCategory] = useState<ClothingCategory | "全部">(initialCategory || "全部");
+  const [sizeFilter, setSizeFilter] = useState<string | null>(sizeParam);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
 
   const { clothingItems, addClothingItem, updateClothingItem, deleteClothingItem } = useAppStore();
 
-  const filtered = activeCategory === "全部"
+  useEffect(() => {
+    setSizeFilter(sizeParam);
+  }, [sizeParam]);
+
+  useEffect(() => {
+    if (initialCategory) {
+      setActiveCategory(initialCategory);
+    }
+  }, [initialCategory]);
+
+  const clearSizeFilter = () => {
+    if (activeCategory === "全部") {
+      navigate("/inventory", { replace: true });
+    } else {
+      navigate(`/inventory/${encodeURIComponent(activeCategory)}`, { replace: true });
+    }
+    setSizeFilter(null);
+  };
+
+  const handleCategoryChange = (cat: ClothingCategory | "全部") => {
+    setActiveCategory(cat);
+    if (sizeFilter) {
+      if (cat === "全部") {
+        navigate(`/inventory?size=${encodeURIComponent(sizeFilter)}`, { replace: true });
+      } else {
+        navigate(`/inventory/${encodeURIComponent(cat)}?size=${encodeURIComponent(sizeFilter)}`, { replace: true });
+      }
+    }
+  };
+
+  let filtered = activeCategory === "全部"
     ? clothingItems
     : clothingItems.filter((i) => i.category === activeCategory);
+
+  if (sizeFilter) {
+    filtered = filtered.filter((i) => i.size === sizeFilter);
+  }
 
   const groupedByCategory = CATEGORIES.map((cat) => ({
     category: cat,
@@ -85,9 +126,42 @@ export default function InventoryList() {
 
   return (
     <div className="space-y-6 animate-fade-slide-up">
+      {sizeFilter && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-red-50 border border-amber-200 animate-fade-in">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">
+              尺码缺口筛选：
+              {activeCategory !== "全部" && <span className="ml-1">{activeCategory} · </span>}
+              <span className="font-bold">{sizeFilter}码</span>
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              当前显示匹配此尺码的库存，共 {filtered.length} 条记录
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="px-3 py-1.5 rounded-lg bg-white text-primary-700 text-xs font-medium hover:bg-primary-50 transition-colors border border-primary-200"
+            >
+              返回看板
+            </Link>
+            <button
+              onClick={clearSizeFilter}
+              className="p-2 rounded-lg bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors border border-slate-200"
+              title="清除筛选"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <button
-          onClick={() => setActiveCategory("全部")}
+          onClick={() => handleCategoryChange("全部")}
           className={`p-4 rounded-2xl text-left transition-all ${
             activeCategory === "全部"
               ? "bg-gradient-to-br from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-600/20"
@@ -106,7 +180,7 @@ export default function InventoryList() {
           return (
             <button
               key={category}
-              onClick={() => setActiveCategory(category)}
+              onClick={() => handleCategoryChange(category)}
               className={`p-4 rounded-2xl text-left transition-all ${
                 activeCategory === category
                   ? "bg-gradient-to-br from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-600/20"
@@ -124,6 +198,12 @@ export default function InventoryList() {
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl font-bold text-slate-900">
           {activeCategory === "全部" ? "全部库存" : `${activeCategory}库存`}
+          {sizeFilter && (
+            <span className="ml-2 text-sm font-normal text-primary-600">
+              <Filter className="w-3.5 h-3.5 inline mr-1" />
+              筛选：{sizeFilter}码
+            </span>
+          )}
         </h2>
         <button onClick={() => openAddModal(activeCategory !== "全部" ? activeCategory : undefined)} className="btn-primary">
           <Plus className="w-5 h-5" />
@@ -167,7 +247,11 @@ export default function InventoryList() {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-display font-bold text-slate-900">{item.size}</span>
-                  <span className="text-lg font-semibold text-primary-600">×{item.quantity}</span>
+                  <span className={`text-lg font-semibold ${
+                    sizeFilter && item.size === sizeFilter ? "text-amber-600" : "text-primary-600"
+                  }`}>
+                    ×{item.quantity}
+                  </span>
                 </div>
                 {item.setNumber && (
                   <div className="flex items-center gap-1.5 text-sm text-slate-500">
@@ -187,7 +271,14 @@ export default function InventoryList() {
       {filtered.length === 0 && (
         <div className="card-static p-16 text-center">
           <Package className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500">暂无库存记录</p>
+          <p className="text-slate-500">
+            {sizeFilter ? `当前筛选条件下暂无匹配的库存记录` : "暂无库存记录"}
+          </p>
+          {sizeFilter && (
+            <button onClick={clearSizeFilter} className="btn-secondary mt-4">
+              清除筛选
+            </button>
+          )}
         </div>
       )}
 
@@ -209,7 +300,7 @@ export default function InventoryList() {
                 </div>
                 <div>
                   <label className="label">尺码</label>
-                  <input name="size" type="text" defaultValue={editingItem?.size || ""} className="input-field" placeholder="如 M / 38 / 均码" required />
+                  <input name="size" type="text" defaultValue={editingItem?.size || sizeFilter || ""} className="input-field" placeholder="如 M / 38 / 均码" required />
                 </div>
                 <div>
                   <label className="label">数量</label>

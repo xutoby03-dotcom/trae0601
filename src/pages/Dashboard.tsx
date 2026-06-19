@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Users, CheckCircle, Scissors, Package, AlertTriangle, Clock, ArrowRight } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { useAppStore } from "@/store/useAppStore";
@@ -140,16 +141,21 @@ export default function Dashboard() {
               </div>
               <div className="mt-4 space-y-2 max-h-32 overflow-y-auto">
                 {stats.sizeShortage.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50">
-                    <span className="text-sm text-slate-700">
+                  <Link
+                    key={i}
+                    to={`/inventory/${encodeURIComponent(s.category)}?size=${encodeURIComponent(s.size)}`}
+                    className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 hover:bg-primary-50 hover:border hover:border-primary-200 transition-all group"
+                  >
+                    <span className="text-sm text-slate-700 group-hover:text-primary-700">
                       {s.category} · <span className="font-medium">{s.size}码</span>
                     </span>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-slate-500">需要 {s.needed} 件</span>
                       <span className="text-xs text-slate-500">现有 {s.available} 件</span>
-                      <span className="badge bg-red-100 text-red-700">缺 {s.needed - s.available}</span>
+                      <span className="badge bg-red-100 text-red-700 group-hover:bg-red-200">缺 {s.needed - s.available}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-primary-500 transition-colors" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </>
