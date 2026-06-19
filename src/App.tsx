@@ -27,8 +27,10 @@ export default function App() {
           <Route path="maintenance" element={<MaintenanceList />} />
           <Route path="maintenance/new" element={<MaintenanceForm />} />
           <Route path="maintenance/:id/edit" element={<MaintenanceForm />} />
+          <Route path="orders" element={<Navigate to="/assignment" replace />} />
           <Route path="assignment" element={<OrderAssignment />} />
           <Route path="statistics" element={<Statistics />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </Router>

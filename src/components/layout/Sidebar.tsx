@@ -9,7 +9,7 @@ const navItems = [
   { path: '/cleaning', label: '清洁记录', icon: Droplets },
   { path: '/maintenance', label: '维修报废', icon: Wrench },
   { path: '/statistics', label: '统计分析', icon: BarChart3 },
-  { path: '/orders', label: '订单分配', icon: ShoppingBag },
+  { path: '/assignment', label: '订单分配', icon: ShoppingBag },
 ];
 
 export function Sidebar() {
