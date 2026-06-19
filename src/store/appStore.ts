@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import {
+  studentsApi,
+  productsApi,
+  ordersApi,
+  purchasesApi,
+} from "@/api";
 import type {
   Student,
   Product,
@@ -8,12 +13,21 @@ import type {
   Size,
   OrderStatus,
   PaymentStatus,
-  PurchaseStatus,
+  CreateOrderDto,
+  UpdateOrderDto,
+  CreateStudentDto,
+  UpdateStudentDto,
+  UpdateProductDto,
+  CreatePurchaseDto,
+  UpdatePurchaseDto,
 } from "@/types";
-import { mockStudents, mockProducts, mockOrders, mockPurchases } from "@/data/mockData";
 
-function generateId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+interface LoadingState {
+  students: boolean;
+  products: boolean;
+  orders: boolean;
+  purchases: boolean;
+  [key: string]: boolean;
 }
 
 interface AppState {
@@ -21,242 +35,359 @@ interface AppState {
   products: Product[];
   orders: Order[];
   purchases: Purchase[];
+  loading: LoadingState;
+  error: string | null;
 
-  addStudent: (data: Omit<Student, "id" | "createdAt">) => void;
-  updateStudent: (id: string, data: Partial<Student>) => void;
-  deleteStudent: (id: string) => void;
+  fetchStudents: (params?: { className?: string; search?: string }) => Promise<void>;
+  fetchProducts: (params?: { category?: string }) => Promise<void>;
+  fetchOrders: (params?: {
+    orderStatus?: OrderStatus;
+    paymentStatus?: PaymentStatus;
+    className?: string;
+    search?: string;
+  }) => Promise<void>;
+  fetchPurchases: (params?: { status?: string; search?: string }) => Promise<void>;
+  fetchAll: () => Promise<void>;
 
-  updateProductStock: (productId: string, size: Size, delta: number) => void;
-  updateProduct: (id: string, data: Partial<Product>) => void;
+  addStudent: (data: CreateStudentDto) => Promise<void>;
+  updateStudent: (id: string, data: UpdateStudentDto) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
 
-  addOrder: (
-    data: Omit<Order, "id" | "createdAt" | "orderStatus"> & {
-      orderStatus?: OrderStatus;
-    }
-  ) => void;
-  updateOrder: (id: string, data: Partial<Order>) => void;
-  updateOrderPayment: (id: string, status: PaymentStatus) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
-  deleteOrder: (id: string) => void;
+  updateProductStock: (productId: string, size: Size, delta: number) => Promise<void>;
+  updateProduct: (id: string, data: UpdateProductDto) => Promise<void>;
 
-  addPurchase: (data: Omit<Purchase, "id" | "createdAt" | "status">) => void;
-  completePurchase: (id: string) => void;
-  updatePurchase: (id: string, data: Partial<Purchase>) => void;
-  deletePurchase: (id: string) => void;
+  addOrder: (data: CreateOrderDto) => Promise<void>;
+  updateOrder: (id: string, data: UpdateOrderDto) => Promise<void>;
+  updateOrderPayment: (id: string, status: PaymentStatus) => Promise<void>;
+  updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
+  deleteOrder: (id: string) => Promise<void>;
+
+  addPurchase: (data: CreatePurchaseDto) => Promise<void>;
+  completePurchase: (id: string) => Promise<void>;
+  updatePurchase: (id: string, data: UpdatePurchaseDto) => Promise<void>;
+  deletePurchase: (id: string) => Promise<void>;
+
+  setLoading: (key: string, value: boolean) => void;
+  setError: (error: string | null) => void;
 }
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      students: mockStudents,
-      products: mockProducts,
-      orders: mockOrders,
-      purchases: mockPurchases,
+export const useAppStore = create<AppState>()((set, get) => ({
+  students: [],
+  products: [],
+  orders: [],
+  purchases: [],
+  loading: {
+    students: false,
+    products: false,
+    orders: false,
+    purchases: false,
+  },
+  error: null,
 
-      addStudent: (data) =>
-        set((state) => ({
-          students: [
-            ...state.students,
-            { ...data, id: generateId("stu"), createdAt: new Date().toISOString() },
-          ],
-        })),
+  setLoading: (key, value) =>
+    set((state) => ({
+      loading: { ...state.loading, [key]: value },
+    })),
 
-      updateStudent: (id, data) =>
-        set((state) => ({
-          students: state.students.map((s) =>
-            s.id === id ? { ...s, ...data } : s
-          ),
-        })),
+  setError: (error) => set({ error }),
 
-      deleteStudent: (id) =>
-        set((state) => ({
-          students: state.students.filter((s) => s.id !== id),
-        })),
+  fetchStudents: async (params) => {
+    set((state) => ({ loading: { ...state.loading, students: true } }));
+    try {
+      const data = await studentsApi.getAll(params);
+      set({ students: data, error: null });
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set((state) => ({ loading: { ...state.loading, students: false } }));
+    }
+  },
 
-      updateProductStock: (productId, size, delta) =>
-        set((state) => ({
-          products: state.products.map((p) =>
-            p.id === productId
-              ? {
-                  ...p,
-                  stock: {
-                    ...p.stock,
-                    [size]: Math.max(0, (p.stock[size] || 0) + delta),
-                  },
-                }
-              : p
-          ),
-        })),
+  fetchProducts: async (params) => {
+    set((state) => ({ loading: { ...state.loading, products: true } }));
+    try {
+      const data = await productsApi.getAll(params);
+      set({ products: data, error: null });
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set((state) => ({ loading: { ...state.loading, products: false } }));
+    }
+  },
 
-      updateProduct: (id, data) =>
-        set((state) => ({
-          products: state.products.map((p) =>
-            p.id === id ? { ...p, ...data } : p
-          ),
-        })),
+  fetchOrders: async (params) => {
+    set((state) => ({ loading: { ...state.loading, orders: true } }));
+    try {
+      const data = await ordersApi.getAll(params);
+      set({ orders: data, error: null });
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set((state) => ({ loading: { ...state.loading, orders: false } }));
+    }
+  },
 
-      addOrder: (data) => {
-        const state = get();
-        const product = state.products.find((p) => p.id === data.productId);
-        const currentStock = product?.stock[data.size] || 0;
-        const needPurchase = currentStock < data.quantity;
+  fetchPurchases: async (params) => {
+    set((state) => ({ loading: { ...state.loading, purchases: true } }));
+    try {
+      const data = await purchasesApi.getAll(params);
+      set({ purchases: data, error: null });
+    } catch (err: any) {
+      set({ error: err.message });
+    } finally {
+      set((state) => ({ loading: { ...state.loading, purchases: false } }));
+    }
+  },
 
-        const orderStatus: OrderStatus = data.orderStatus ?? (
-          needPurchase ? "purchasing" : "ready"
-        );
+  fetchAll: async () => {
+    await Promise.all([
+      get().fetchStudents(),
+      get().fetchProducts(),
+      get().fetchOrders(),
+      get().fetchPurchases(),
+    ]);
+  },
 
-        const newOrder: Order = {
-          ...data,
-          orderStatus,
-          id: generateId("ord"),
-          createdAt: new Date().toISOString(),
-        };
+  addStudent: async (data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const newStudent = await studentsApi.create(data);
+      set((state) => ({
+        students: [...state.students, newStudent],
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-        set((state) => {
-          const updatedOrders = [...state.orders, newOrder];
-          let updatedProducts = state.products;
-          let updatedPurchases = state.purchases;
+  updateStudent: async (id, data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await studentsApi.update(id, data);
+      set((state) => ({
+        students: state.students.map((s) => (s.id === id ? updated : s)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-          if (!needPurchase) {
-            updatedProducts = state.products.map((p) =>
-              p.id === data.productId
-                ? {
-                    ...p,
-                    stock: {
-                      ...p.stock,
-                      [data.size]: Math.max(0, (p.stock[data.size] || 0) - data.quantity),
-                    },
-                  }
-                : p
-            );
-          } else if (product) {
-            const shortage = data.quantity - currentStock;
-            const existingPurchase = state.purchases.find(
-              (pur) =>
-                pur.productId === data.productId &&
-                pur.size === data.size &&
-                pur.status === "pending"
-            );
-            if (!existingPurchase) {
-              updatedPurchases = [
-                ...state.purchases,
-                {
-                  id: generateId("pur"),
-                  productId: data.productId,
-                  size: data.size,
-                  quantity: Math.max(shortage, 5),
-                  supplier: product.supplier,
-                  status: "pending" as PurchaseStatus,
-                  createdAt: new Date().toISOString(),
-                },
-              ];
-            }
-          }
+  deleteStudent: async (id) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      await studentsApi.delete(id);
+      set((state) => ({
+        students: state.students.filter((s) => s.id !== id),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-          return {
-            orders: updatedOrders,
-            products: updatedProducts,
-            purchases: updatedPurchases,
-          };
-        });
-      },
+  updateProductStock: async (productId, size, delta) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await productsApi.updateStock(productId, size, delta);
+      set((state) => ({
+        products: state.products.map((p) => (p.id === productId ? updated : p)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      updateOrder: (id, data) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id ? { ...o, ...data } : o
-          ),
-        })),
+  updateProduct: async (id, data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await productsApi.update(id, data);
+      set((state) => ({
+        products: state.products.map((p) => (p.id === id ? updated : p)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      updateOrderPayment: (id, status) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id ? { ...o, paymentStatus: status } : o
-          ),
-        })),
+  addOrder: async (data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const newOrder = await ordersApi.create(data);
+      set((state) => ({
+        orders: [newOrder, ...state.orders],
+        error: null,
+      }));
+      await get().fetchProducts();
+      await get().fetchPurchases();
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      updateOrderStatus: (id, status) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id ? { ...o, orderStatus: status } : o
-          ),
-        })),
+  updateOrder: async (id, data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await ordersApi.update(id, data);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === id ? updated : o)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      deleteOrder: (id) =>
-        set((state) => ({
-          orders: state.orders.filter((o) => o.id !== id),
-        })),
+  updateOrderPayment: async (id, status) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await ordersApi.updatePayment(id, status);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === id ? updated : o)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      addPurchase: (data) =>
-        set((state) => ({
-          purchases: [
-            ...state.purchases,
-            {
-              ...data,
-              id: generateId("pur"),
-              status: "pending",
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        })),
+  updateOrderStatus: async (id, status) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await ordersApi.updateStatus(id, status);
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === id ? updated : o)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-      completePurchase: (id) => {
-        const state = get();
-        const purchase = state.purchases.find((p) => p.id === id);
-        if (!purchase) return;
+  deleteOrder: async (id) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      await ordersApi.delete(id);
+      set((state) => ({
+        orders: state.orders.filter((o) => o.id !== id),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-        const updatedProducts = state.products.map((p) =>
-          p.id === purchase.productId
-            ? {
-                ...p,
-                stock: {
-                  ...p.stock,
-                  [purchase.size]:
-                    (p.stock[purchase.size] || 0) + purchase.quantity,
-                },
-              }
-            : p
-        );
+  addPurchase: async (data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const newPurchase = await purchasesApi.create(data);
+      set((state) => ({
+        purchases: [newPurchase, ...state.purchases],
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
 
-        const updatedOrders = state.orders.map((o) => {
+  completePurchase: async (id) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const result = await purchasesApi.complete(id);
+      set((state) => ({
+        purchases: state.purchases.map((p) =>
+          p.id === id ? result.purchase : p
+        ),
+        products: state.products.map((pr) =>
+          pr.id === result.product.id ? result.product : pr
+        ),
+        orders: state.orders.map((o) => {
           if (
-            o.productId === purchase.productId &&
-            o.size === purchase.size &&
+            o.productId === result.product.id &&
             o.orderStatus === "purchasing"
           ) {
-            const prod = updatedProducts.find((p) => p.id === o.productId);
-            if (prod && (prod.stock[o.size] || 0) >= o.quantity) {
+            const currentStock = result.product.stock[o.size] || 0;
+            if (currentStock >= o.quantity) {
               return { ...o, orderStatus: "ready" as OrderStatus };
             }
           }
           return o;
-        });
-
-        set({
-          purchases: state.purchases.map((p) =>
-            p.id === id
-              ? { ...p, status: "completed", completedAt: new Date().toISOString() }
-              : p
-          ),
-          products: updatedProducts,
-          orders: updatedOrders,
-        });
-      },
-
-      updatePurchase: (id, data) =>
-        set((state) => ({
-          purchases: state.purchases.map((p) =>
-            p.id === id ? { ...p, ...data } : p
-          ),
-        })),
-
-      deletePurchase: (id) =>
-        set((state) => ({
-          purchases: state.purchases.filter((p) => p.id !== id),
-        })),
-    }),
-    {
-      name: "uniform-ordering-store",
+        }),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
     }
-  )
-);
+  },
+
+  updatePurchase: async (id, data) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      const updated = await purchasesApi.update(id, data);
+      set((state) => ({
+        purchases: state.purchases.map((p) => (p.id === id ? updated : p)),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
+
+  deletePurchase: async (id) => {
+    set((state) => ({ loading: { ...state.loading, mutate: true } }));
+    try {
+      await purchasesApi.delete(id);
+      set((state) => ({
+        purchases: state.purchases.filter((p) => p.id !== id),
+        error: null,
+      }));
+    } catch (err: any) {
+      set({ error: err.message });
+      throw err;
+    } finally {
+      set((state) => ({ loading: { ...state.loading, mutate: false } }));
+    }
+  },
+}));
