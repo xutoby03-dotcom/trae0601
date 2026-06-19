@@ -38,6 +38,11 @@ const areaColors: Record<string, string> = {
   wheelchair: 'bg-night-teal-50 text-night-teal-600 border border-night-teal-200',
 };
 
+const maskPhone = (phone: string) => {
+  if (!phone || phone.length < 4) return phone || '';
+  return `***-***-${phone.slice(-4)}`;
+};
+
 type QRMode = 'master' | { type: 'single'; regId: string; code: string; name: string };
 
 export default function Checkin() {
@@ -221,7 +226,7 @@ export default function Checkin() {
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="badge bg-night-teal-50 text-night-teal-600 border border-night-teal-200">
-                    📞 {verifiedCodeInfo.registration.phone}
+                    📞 {maskPhone(verifiedCodeInfo.registration.phone)}
                   </span>
                   <span className={`badge ${areaColors[verifiedCodeInfo.registration.area]} flex items-center gap-1`}>
                     <MapPin size={12} /> {areaLabels[verifiedCodeInfo.registration.area]}
@@ -267,7 +272,7 @@ export default function Checkin() {
                       .filter((r) => r.id !== verifiedCodeInfo.registration.id && r.status !== 'checked_in')
                       .map((r) => (
                         <option key={r.id} value={r.id}>
-                          {r.name} · {r.peopleCount}人 · {r.phone}
+                          {r.name} · {r.peopleCount}人 · {maskPhone(r.phone)}
                         </option>
                       ))}
                   </optgroup>
@@ -712,7 +717,7 @@ function CheckinRow({
                 <Accessibility size={12} /> 轮椅位
               </span>
             )}
-            <span>{registration.phone}</span>
+            <span>{maskPhone(registration.phone)}</span>
           </div>
           {registration.status === 'registered' && (
             <p className="text-[11px] text-night-teal-400 mt-1.5 flex items-center gap-1">
