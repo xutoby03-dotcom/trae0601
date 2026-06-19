@@ -1,18 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useProductStore } from '@/store/productStore';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { Product } from '@/types';
+import { Product, BatchStatus } from '@/types';
 import ProductCard from './ProductCard';
 import ProductForm from './ProductForm';
+import { isExpired } from '@/utils/dateUtils';
+
+const statusOptions = [
+  { value: '', label: '全部状态' },
+  { value: 'normal', label: '正常' },
+  { value: 'near_expiry', label: '临期' },
+  { value: 'clearance', label: '清仓' },
+  { value: 'sold_out', label: '售罄' },
+];
 
 export default function ProductsPage() {
   const { products, addProduct, updateProduct, deleteProduct, loadProducts } = useProductStore();
-  const { loadBatches, refreshBatchStatuses } = useInventoryStore();
+  const { batches, loadBatches, refreshBatchStatuses, getBatchesByProductId } = useInventoryStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -27,13 +37,52 @@ export default function ProductsPage() {
 
   const brands = [...new Set(products.map(p => p.brand))];
 
-  const filteredProducts = products.filter(p => {
-    const matchSearch = p.brand.includes(searchTerm) ||
-      p.flavor.includes(searchTerm) ||
-      p.specification.includes(searchTerm);
-    const matchBrand = !filterBrand || p.brand === filterBrand;
-    return matchSearch && matchBrand;
-  });
+  const getProductStatus = (productId: string): BatchStatus | 'none' => {
+    const productBatches = getBatchesByProductId(productId);
+    const availableBatches = productBatches.filter(b => b.remainingQuantity > 0 && !isExpired(b.expiryDate));
+    if (availableBatches.length === 0) {
+      const anyBatch = productBatches.find(b => b.remainingQuantity > 0);
+      if (anyBatch) return 'expired';
+      return 'sold_out';
+    }
+    return availableBatches[0].status;
+  };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchSearch = p.brand.includes(searchTerm) ||
+        p.flavor.includes(searchTerm) ||
+        p.specification.includes(searchTerm);
+      const matchBrand = !filterBrand || p.brand === filterBrand;
+      const matchStatus = !filterStatus || getProductStatus(p.id) === filterStatus;
+      return matchSearch && matchBrand && matchStatus;
+    });
+  }, [products, searchTerm, filterBrand, filterStatus, batches]);
+
+  const emptyStateText = (() => {
+    if (filterStatus && filterBrand && searchTerm) {
+      return `没有符合搜索条件、"${brands.find(b => b === filterBrand) || ''}"品牌和"${statusOptions.find(s => s.value === filterStatus)?.label}"状态的商品`;
+    }
+    if (filterStatus && filterBrand) {
+      return `没有"${brands.find(b => b === filterBrand) || ''}"品牌且"${statusOptions.find(s => s.value === filterStatus)?.label}"状态的商品`;
+    }
+    if (filterStatus && searchTerm) {
+      return `没有符合搜索条件且"${statusOptions.find(s => s.value === filterStatus)?.label}"状态的商品`;
+    }
+    if (filterBrand && searchTerm) {
+      return `没有符合搜索条件的"${brands.find(b => b === filterBrand) || ''}"品牌商品`;
+    }
+    if (filterStatus) {
+      return `没有"${statusOptions.find(s => s.value === filterStatus)?.label}"状态的商品`;
+    }
+    if (filterBrand) {
+      return `没有"${brands.find(b => b === filterBrand) || ''}"品牌的商品`;
+    }
+    if (searchTerm) {
+      return '没有匹配搜索条件的商品';
+    }
+    return '暂无商品数据';
+  })();
 
   const handleAdd = () => {
     setEditingProduct(null);
@@ -95,6 +144,18 @@ export default function ProductsPage() {
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-gray-400" />
               <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {statusOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-400" />
+              <select
                 value={filterBrand}
                 onChange={(e) => setFilterBrand(e.target.value)}
                 className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -110,13 +171,15 @@ export default function ProductsPage() {
 
         {filteredProducts.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center">
-            <p className="text-gray-400 text-lg">暂无商品数据</p>
-            <button
-              onClick={handleAdd}
-              className="mt-4 text-blue-500 hover:text-blue-600 font-medium"
-            >
-              立即添加
-            </button>
+            <p className="text-gray-400 text-lg">{emptyStateText}</p>
+            {!filterStatus && !filterBrand && !searchTerm && (
+              <button
+                onClick={handleAdd}
+                className="mt-4 text-blue-500 hover:text-blue-600 font-medium"
+              >
+                立即添加
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
