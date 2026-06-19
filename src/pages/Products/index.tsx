@@ -2,16 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useProductStore } from '@/store/productStore';
 import { useInventoryStore } from '@/store/inventoryStore';
-import { Product, BatchStatus } from '@/types';
+import { Product } from '@/types';
+import { getProductStatus } from '@/utils/priceUtils';
 import ProductCard from './ProductCard';
 import ProductForm from './ProductForm';
-import { isExpired } from '@/utils/dateUtils';
 
 const statusOptions = [
   { value: '', label: '全部状态' },
   { value: 'normal', label: '正常' },
   { value: 'near_expiry', label: '临期' },
   { value: 'clearance', label: '清仓' },
+  { value: 'expired', label: '已过期' },
   { value: 'sold_out', label: '售罄' },
 ];
 
@@ -37,24 +38,13 @@ export default function ProductsPage() {
 
   const brands = [...new Set(products.map(p => p.brand))];
 
-  const getProductStatus = (productId: string): BatchStatus | 'none' => {
-    const productBatches = getBatchesByProductId(productId);
-    const availableBatches = productBatches.filter(b => b.remainingQuantity > 0 && !isExpired(b.expiryDate));
-    if (availableBatches.length === 0) {
-      const anyBatch = productBatches.find(b => b.remainingQuantity > 0);
-      if (anyBatch) return 'expired';
-      return 'sold_out';
-    }
-    return availableBatches[0].status;
-  };
-
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchSearch = p.brand.includes(searchTerm) ||
         p.flavor.includes(searchTerm) ||
         p.specification.includes(searchTerm);
       const matchBrand = !filterBrand || p.brand === filterBrand;
-      const matchStatus = !filterStatus || getProductStatus(p.id) === filterStatus;
+      const matchStatus = !filterStatus || getProductStatus(getBatchesByProductId(p.id)) === filterStatus;
       return matchSearch && matchBrand && matchStatus;
     });
   }, [products, searchTerm, filterBrand, filterStatus, batches]);

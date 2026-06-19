@@ -1,6 +1,6 @@
 import { Product } from '@/types';
-import { getBatchStatusLabel, getBatchStatusColor, getBatchPrice, getPriceType, getPriceTypeLabel } from '@/utils/priceUtils';
-import { formatMoney, getDaysUntilExpiry } from '@/utils/dateUtils';
+import { getBatchStatusLabel, getBatchStatusColor, getBatchPrice, getPriceType, getPriceTypeLabel, getProductStatus } from '@/utils/priceUtils';
+import { formatMoney, getDaysUntilExpiry, isExpired } from '@/utils/dateUtils';
 import { useInventoryStore } from '@/store/inventoryStore';
 import { Package, MapPin, Calendar, Clock, Tag, AlertTriangle } from 'lucide-react';
 
@@ -15,8 +15,14 @@ export default function ProductCard({ product, onEdit, onDelete, onAddStock }: P
   const batches = useInventoryStore((state) => state.getBatchesByProductId(product.id));
   const totalStock = batches.reduce((sum, b) => sum + b.remainingQuantity, 0);
   
-  const availableBatches = batches.filter(b => b.remainingQuantity > 0);
-  const earliestBatch = availableBatches.length > 0 ? availableBatches[0] : null;
+  const status = getProductStatus(batches);
+  const statusColor = getBatchStatusColor(status);
+  const statusLabel = getBatchStatusLabel(status);
+
+  const sellableBatches = batches
+    .filter(b => b.remainingQuantity > 0 && !isExpired(b.expiryDate))
+    .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  const earliestBatch = sellableBatches.length > 0 ? sellableBatches[0] : null;
   const earliestExpiry = earliestBatch?.expiryDate || null;
   const daysUntilExpiry = earliestExpiry ? getDaysUntilExpiry(earliestExpiry) : null;
 
@@ -31,15 +37,6 @@ export default function ProductCard({ product, onEdit, onDelete, onAddStock }: P
   const currentPrice = earliestBatch ? getBatchPrice(product.salePrice, earliestBatch.expiryDate) : product.salePrice;
   const currentPriceType = earliestBatch ? getPriceType(earliestBatch.expiryDate) : 'normal';
   const hasDiscount = currentPriceType !== 'normal' && earliestBatch;
-
-  const getWorstStatus = () => {
-    if (availableBatches.length === 0) return 'sold_out';
-    return availableBatches[0].status;
-  };
-
-  const status = getWorstStatus();
-  const statusColor = getBatchStatusColor(status);
-  const statusLabel = getBatchStatusLabel(status);
 
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">

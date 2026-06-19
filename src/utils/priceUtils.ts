@@ -1,5 +1,22 @@
-import { Batch, PriceType, BatchPriceInfo } from '@/types';
+import { Batch, BatchStatus, PriceType, BatchPriceInfo } from '@/types';
 import { getDaysUntilExpiry, isExpired } from './dateUtils';
+
+export const getProductStatus = (batches: Batch[]): BatchStatus => {
+  const withRemaining = batches.filter(b => b.remainingQuantity > 0);
+
+  if (withRemaining.length === 0) return 'sold_out';
+
+  const sellable = withRemaining
+    .filter(b => !isExpired(b.expiryDate))
+    .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+
+  if (sellable.length === 0) return 'expired';
+
+  const daysLeft = getDaysUntilExpiry(sellable[0].expiryDate);
+  if (daysLeft <= 1) return 'clearance';
+  if (daysLeft <= 3) return 'near_expiry';
+  return 'normal';
+};
 
 const DISCOUNT_RATE = 0.7;
 const CLEARANCE_RATE = 0.4;
