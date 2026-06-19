@@ -20,11 +20,13 @@ import {
   X,
   Sparkles,
   Car,
+  MessageSquare,
 } from "lucide-react";
 import { useSessionStore } from "@/store/sessionStore";
 import { usePlayerStore } from "@/store/playerStore";
+import { useToast } from "@/components/Toast";
 import Modal from "@/components/Modal";
-import { formatDateTime, getRelativeDate } from "@/utils";
+import { formatDateTime, getRelativeDate, generatePaymentReminder } from "@/utils";
 import { courageColors, courageLabels } from "@/data/mock";
 import type { Player, Registration, RegistrationCheck } from "@/types";
 
@@ -45,6 +47,7 @@ export default function SessionDetail() {
     updateSession,
   } = useSessionStore();
   const { players, getPlayerById } = usePlayerStore();
+  const { showToast } = useToast();
 
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
@@ -120,6 +123,29 @@ export default function SessionDetail() {
   function openSubstitute(reg: Registration) {
     setSubstituteFor(reg.id);
     setSignUpOpen(true);
+  }
+
+  async function handleRemind(player: Player) {
+    if (!session) return;
+    const text = generatePaymentReminder(player, session);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      showToast(`催款文案已复制给 ${player.nickname}`);
+    } catch (e) {
+      showToast("复制失败，请手动选择文字", "error");
+    }
   }
 
   function confirmStatusOk() {
@@ -302,6 +328,7 @@ export default function SessionDetail() {
                     setConfirmStatus({ reg, action: "withdrew" })
                   }
                   onSubstitute={() => openSubstitute(reg)}
+                  onRemind={() => handleRemind(p)}
                   getPlayerById={getPlayerById}
                 />
               );
@@ -565,6 +592,7 @@ interface RowProps {
   onCheckIn: () => void;
   onWithdraw: () => void;
   onSubstitute: () => void;
+  onRemind: () => void;
   getPlayerById: (id: string) => Player | undefined;
 }
 
@@ -576,6 +604,7 @@ function PlayerRow({
   onCheckIn,
   onWithdraw,
   onSubstitute,
+  onRemind,
   getPlayerById,
 }: RowProps) {
   const statusChip =
@@ -630,9 +659,14 @@ function PlayerRow({
       </div>
       <div className="flex items-center gap-2 flex-wrap shrink-0">
         {!reg.isPaid ? (
-          <button onClick={onMarkPaid} className="btn-warning !py-1.5 !px-3 text-sm">
-            <DollarSign className="w-4 h-4" /> 标记已付款
-          </button>
+          <>
+            <button onClick={onMarkPaid} className="btn-warning !py-1.5 !px-3 text-sm">
+              <DollarSign className="w-4 h-4" /> 标记已付款
+            </button>
+            <button onClick={onRemind} className="btn-ghost !py-1.5 !px-3 text-sm">
+              <MessageSquare className="w-4 h-4" /> 催款
+            </button>
+          </>
         ) : null}
         {reg.status !== "checkedIn" && (
           <button onClick={onCheckIn} className="btn-success !py-1.5 !px-3 text-sm">

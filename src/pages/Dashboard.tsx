@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarClock,
@@ -8,16 +8,25 @@ import {
   ArrowRight,
   Skull,
   Car,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useSessionStore } from "@/store/sessionStore";
 import { usePlayerStore } from "@/store/playerStore";
-import { getNextWeekDates, getAvailabilityHeatmap } from "@/utils";
+import { useToast } from "@/components/Toast";
+import {
+  getNextWeekDates,
+  getAvailabilityHeatmap,
+  generatePaymentReminder,
+} from "@/utils";
 import { weekdays, timeSlots } from "@/data/mock";
-import type { AvailableSlot, Weekday, TimeSlot } from "@/types";
+import type { AvailableSlot, Weekday, TimeSlot, Player, GameSession } from "@/types";
 
 export default function Dashboard() {
   const { sessions, registrations, getCapacityInfo } = useSessionStore();
   const { players } = usePlayerStore();
+  const { showToast } = useToast();
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const stats = useMemo(() => {
     const pendingSessions = sessions.filter((s) => s.status === "pending");
@@ -70,6 +79,37 @@ export default function Dashboard() {
   }, [players]);
 
   const nextWeek = getNextWeekDates();
+
+  async function handleCopyReminder(
+    e: React.MouseEvent,
+    item: { player?: Player; session?: GameSession },
+    idx: number
+  ) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!item.player || !item.session) return;
+    const text = generatePaymentReminder(item.player, item.session);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setCopiedIndex(idx);
+      showToast(`催款文案已复制给 ${item.player.nickname}`);
+      setTimeout(() => setCopiedIndex(null), 1800);
+    } catch (err) {
+      showToast("复制失败，请手动选择文字", "error");
+    }
+  }
 
   function heatColor(count: number, total: number) {
     if (count === 0) return "bg-ink-900/40 text-ink-600";
@@ -199,26 +239,43 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-2">
               {unpaidList.map((item, i) => (
-                <Link
-                  to={item.session ? `/sessions/${item.session.id}` : "/sessions"}
+                <div
                   key={i}
                   className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-ink-800/60 transition-all group"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-ink-800 flex items-center justify-center text-lg">
-                    {item.player?.avatar ?? "👤"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-white truncate">
-                      {item.player?.nickname ?? "未知玩家"}
+                  <Link
+                    to={item.session ? `/sessions/${item.session.id}` : "/sessions"}
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-ink-800 flex items-center justify-center text-lg shrink-0">
+                      {item.player?.avatar ?? "👤"}
                     </div>
-                    <div className="text-xs text-ink-400 truncate">
-                      {item.session?.theme ?? "未知场次"} · ¥{item.session?.price ?? 0}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        {item.player?.nickname ?? "未知玩家"}
+                      </div>
+                      <div className="text-xs text-ink-400 truncate">
+                        {item.session?.theme ?? "未知场次"} · ¥{item.session?.price ?? 0}
+                      </div>
                     </div>
+                  </Link>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="chip bg-glow-amber/20 text-glow-amber text-[10px]">
+                      未付款
+                    </span>
+                    <button
+                      onClick={(e) => handleCopyReminder(e, item, i)}
+                      className="p-1.5 rounded-lg hover:bg-ink-700 text-ink-400 hover:text-glow-green transition-all"
+                      title="复制催款文案"
+                    >
+                      {copiedIndex === i ? (
+                        <Check className="w-4 h-4 text-glow-green" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
-                  <span className="chip bg-glow-amber/20 text-glow-amber text-[10px]">
-                    未付款
-                  </span>
-                </Link>
+                </div>
               ))}
             </div>
           )}

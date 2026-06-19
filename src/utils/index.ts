@@ -1,4 +1,4 @@
-import type { AvailableSlot, Weekday, TimeSlot } from "@/types";
+import type { AvailableSlot, Weekday, TimeSlot, GameSession, Player } from "@/types";
 import { weekdays, timeSlots } from "@/data/mock";
 
 export function formatDate(dateStr: string): string {
@@ -90,4 +90,22 @@ export function getAvailabilityHeatmap(
 
 export function cn(...classes: (string | false | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
+}
+
+export function generatePaymentReminder(
+  player: Player,
+  session: GameSession
+): string {
+  const date = formatDateTime(session.scheduledAt);
+  return [
+    `【密室拼场催款】${player.nickname}您好👋`,
+    ``,
+    `场次：${session.theme}（${session.type}）`,
+    `门店：${session.storeName}`,
+    `时间：${date}`,
+    `时长：${session.durationMinutes}分钟`,
+    `金额：¥${session.price}/人`,
+    ``,
+    `麻烦确认后转一下～上车前会核对付款记录哒😉`,
+  ].join("\n");
 }
