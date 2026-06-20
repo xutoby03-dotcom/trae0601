@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background-color: #0A0F1C;
+  color: #CBD5E1;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.6);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8);
+}
+
+@layer components {
+  .studio-card {
+    @apply bg-studio-850/80 border border-studio-700/60 rounded-xl backdrop-blur-sm;
+  }
+
+  .studio-btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium text-sm transition-all duration-200 select-none
+           border-2 border-transparent;
+  }
+
+  .studio-btn-primary {
+    @apply studio-btn bg-amber-glow text-studio-950 border-amber-glow
+           hover:shadow-amber-glow-sm hover:bg-amber-warm;
+  }
+
+  .studio-btn-ghost {
+    @apply studio-btn text-studio-300 border-studio-700 hover:border-amber-glow/60
+           hover:text-amber-glow hover:bg-amber-glow/5;
+  }
+
+  .studio-btn-danger {
+    @apply studio-btn text-alert-danger border-alert-danger/40
+           hover:border-alert-danger hover:bg-alert-dangerBg;
+  }
+
+  .param-input {
+    @apply w-full bg-studio-900/80 border border-studio-700 rounded-md px-3 py-2
+           text-studio-200 font-mono text-sm outline-none
+           focus:border-amber-glow focus:ring-1 focus:ring-amber-glow/40
+           transition-all duration-150;
+  }
+
+  .section-label {
+    @apply text-[11px] uppercase tracking-widest text-studio-500 font-semibold mb-2;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px]
+           font-medium border;
+  }
+}
+
+.color-temp-gradient {
+  background: linear-gradient(
+    90deg,
+    #3B82F6 0%,
+    #93C5FD 15%,
+    #FFFFFF 35%,
+    #FDE68A 55%,
+    #F59E0B 75%,
+    #EA580C 100%
+  );
+}
+
+.grid-canvas {
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+}
+
+.grid-canvas-major {
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.35) 1px, transparent 1px);
+  background-size: 200px 200px;
+  background-position: center center;
+}
+
+.crosshair {
+  background:
+    linear-gradient(to right, rgba(245,158,11,0.25) 1px, transparent 1px) center / 100% 1px no-repeat,
+    linear-gradient(to bottom, rgba(245,158,11,0.25) 1px, transparent 1px) center / 1px 100% no-repeat;
+}
