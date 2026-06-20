@@ -24,7 +24,7 @@ export default function BorrowPage() {
     !unreturnedBorrowHeadsetIds.has(h.id)
   );
   
-  const [selectedHeadsetId, setSelectedHeadsetId] = useState<string>(headsetIdParam || '');
+  const [selectedHeadsetId, setSelectedHeadsetId] = useState<string>('');
   const [meetingRoom, setMeetingRoom] = useState('');
   const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0]);
   const [meetingTime, setMeetingTime] = useState(new Date().toTimeString().slice(0, 5));
@@ -37,8 +37,13 @@ export default function BorrowPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (headsetIdParam && availableHeadsets.find(h => h.id === headsetIdParam)) {
-      setSelectedHeadsetId(headsetIdParam);
+    if (headsetIdParam) {
+      const isAvailable = availableHeadsets.some(h => h.id === headsetIdParam);
+      if (isAvailable) {
+        setSelectedHeadsetId(headsetIdParam);
+      } else {
+        setSelectedHeadsetId('');
+      }
     }
   }, [headsetIdParam, availableHeadsets]);
 
@@ -47,7 +52,27 @@ export default function BorrowPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!selectedHeadsetId) newErrors.headsetId = '请选择耳麦';
+    if (!selectedHeadsetId) {
+      newErrors.headsetId = '请选择耳麦';
+    } else {
+      const isAvailable = availableHeadsets.some(h => h.id === selectedHeadsetId);
+      if (!isAvailable) {
+        const headset = headsets.find(h => h.id === selectedHeadsetId);
+        if (unreturnedBorrowHeadsetIds.has(selectedHeadsetId)) {
+          newErrors.headsetId = '该耳麦有未归还记录，无法再次借用';
+        } else if (headset?.receiverLost) {
+          newErrors.headsetId = '该耳麦接收器已丢失，无法借用';
+        } else if (headset?.microphoneIssue) {
+          newErrors.headsetId = '该耳麦麦克风异常，无法借用';
+        } else if (headset?.status !== 'available') {
+          newErrors.headsetId = '该耳麦当前不可借用';
+        } else {
+          newErrors.headsetId = '该耳麦当前不可借用';
+        }
+        setSelectedHeadsetId('');
+      }
+    }
+    
     if (!meetingRoom) newErrors.meetingRoom = '请选择会议室';
     if (!meetingDate) newErrors.meetingDate = '请选择会议日期';
     if (!meetingTime) newErrors.meetingTime = '请选择会议时间';
