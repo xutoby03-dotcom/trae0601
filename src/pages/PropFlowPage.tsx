@@ -30,10 +30,13 @@ export default function PropFlowPage() {
     selectPlay,
     selectScene,
     getUnresolvedIssues,
+    resolveIssue,
   } = useAppStore();
 
   const [expandedCueId, setExpandedCueId] = useState<string | null>(null);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [resolvingIssueId, setResolvingIssueId] = useState<string | null>(null);
+  const [resolutionText, setResolutionText] = useState('');
 
   const play = plays.find((p) => p.id === playId);
   const scenes = playId ? getScenesByPlay(playId) : [];
@@ -258,41 +261,124 @@ export default function PropFlowPage() {
                   (a, b) => priorityOrder[a.type] - priorityOrder[b.type]
                 );
 
+                const startResolve = (issueId: string) => {
+                  setResolvingIssueId(issueId);
+                  setResolutionText('');
+                };
+
+                const cancelResolve = () => {
+                  setResolvingIssueId(null);
+                  setResolutionText('');
+                };
+
+                const submitResolve = (issueId: string) => {
+                  if (resolutionText.trim()) {
+                    resolveIssue(issueId, resolutionText.trim());
+                    setResolvingIssueId(null);
+                    setResolutionText('');
+                  }
+                };
+
                 return sorted.map((issue) => {
                   const cfg = typeConfig[issue.type];
                   const Icon = cfg.icon;
+                  const isResolving = resolvingIssueId === issue.id;
+
                   return (
                     <div
                       key={issue.id}
-                      className={`rounded-xl border ${cfg.border} ${cfg.bg} p-4`}
+                      className={`rounded-xl border ${cfg.border} ${cfg.bg} overflow-hidden`}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className={`w-11 h-11 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
-                          <Icon className={`w-6 h-6 ${cfg.color}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap mb-2">
-                            <span className={`px-3 py-1 rounded-lg text-sm font-bold ${cfg.bg} ${cfg.color}`}>
-                              {cfg.label}
-                            </span>
-                            <h4 className="text-xl font-bold text-stage-text">
-                              {issue.prop.name}
-                            </h4>
+                      <div className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className={`w-11 h-11 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
+                            <Icon className={`w-6 h-6 ${cfg.color}`} />
                           </div>
-                          <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
-                            <span>剧目：<span className="text-neon-green font-medium">{issue.playName}</span></span>
-                            <span>场次：<span className="text-neon-green font-medium">{issue.sceneName}</span></span>
-                            <span>Cue <span className="text-neon-green font-medium">{issue.cueNumber}</span> · {issue.cueName}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 flex-wrap mb-2">
+                              <span className={`px-3 py-1 rounded-lg text-sm font-bold ${cfg.bg} ${cfg.color}`}>
+                                {cfg.label}
+                              </span>
+                              <h4 className="text-xl font-bold text-stage-text">
+                                {issue.prop.name}
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
+                              <span>剧目：<span className="text-neon-green font-medium">{issue.playName}</span></span>
+                              <span>场次：<span className="text-neon-green font-medium">{issue.sceneName}</span></span>
+                              <span>Cue <span className="text-neon-green font-medium">{issue.cueNumber}</span> · {issue.cueName}</span>
+                            </div>
+                            <p className="text-base text-stage-text-secondary mt-2">
+                              {issue.description}
+                            </p>
                           </div>
-                          <p className="text-base text-stage-text-secondary mt-2">
-                            {issue.description}
-                          </p>
+
+                          {/* 右侧操作区 */}
+                          <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                            <button
+                              onClick={() => startResolve(issue.id)}
+                              disabled={isResolving}
+                              className="px-5 py-2.5 rounded-xl bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                            >
+                              <CheckCircle2 className="w-5 h-5" />
+                              已确认
+                            </button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* 备注输入面板 */}
+                      {isResolving && (
+                        <div className="px-4 pb-4 border-t border-stage-border/50 pt-4 animate-fade-in">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-base font-medium text-neon-green">
+                              请填写处理备注（如"已找到"/"已更换新道具"等）
+                            </span>
+                          </div>
+                          <textarea
+                            value={resolutionText}
+                            onChange={(e) => setResolutionText(e.target.value)}
+                            placeholder="处理情况说明..."
+                            className="w-full p-3 bg-stage-bg-card border border-stage-border rounded-xl text-stage-text placeholder-stage-text-muted resize-none focus:border-neon-green/50 focus:outline-none text-base"
+                            rows={2}
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-3 mt-3">
+                            <button
+                              onClick={cancelResolve}
+                              className="px-4 py-2 rounded-lg border border-stage-border text-stage-text-secondary hover:bg-stage-bg-hover text-base"
+                            >
+                              取消
+                            </button>
+                            <button
+                              onClick={() => submitResolve(issue.id)}
+                              disabled={!resolutionText.trim()}
+                              className="px-5 py-2 rounded-lg bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                            >
+                              <CheckCircle2 className="w-5 h-5" />
+                              提交并关闭
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 });
               })()}
+
+              {getUnresolvedIssues().length === 0 && (
+                <div className="py-10 text-center">
+                  <div className="w-16 h-16 rounded-full bg-neon-green/20 mx-auto mb-4 flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-neon-green" />
+                  </div>
+                  <h4 className="text-xl font-bold text-neon-green">
+                    全部处理完成
+                  </h4>
+                  <p className="text-base text-stage-text-secondary mt-1">
+                    所有问题均已确认，可放心排练
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
