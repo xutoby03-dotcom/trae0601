@@ -51,10 +51,11 @@ export const usePosterStore = create<PosterState>((set, get) => ({
   },
 
   addPoster: (posterData) => {
+    const hasApproval = posterData.approvalNumber && posterData.approvalNumber.trim() !== '';
     const newPoster: Poster = {
       ...posterData,
       id: generateId(),
-      status: 'draft',
+      status: hasApproval ? 'approved' : 'draft',
       createdAt: new Date().toISOString(),
     };
     const posters = [...get().posters, newPoster];
@@ -64,9 +65,16 @@ export const usePosterStore = create<PosterState>((set, get) => ({
   },
 
   updatePoster: (id, data) => {
-    const posters = get().posters.map((p) =>
-      p.id === id ? { ...p, ...data } : p
-    );
+    const posters = get().posters.map((p) => {
+      if (p.id === id) {
+        const hasApproval = (data.approvalNumber || p.approvalNumber) && 
+          (data.approvalNumber || p.approvalNumber).trim() !== '';
+        const currentStatus = data.status || p.status;
+        const newStatus = currentStatus === 'draft' && hasApproval ? 'approved' : currentStatus;
+        return { ...p, ...data, status: newStatus };
+      }
+      return p;
+    });
     set({ posters });
     saveToStorage(posters);
   },

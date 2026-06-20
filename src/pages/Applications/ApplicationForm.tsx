@@ -35,8 +35,13 @@ export default function ApplicationForm() {
   const [loading, setLoading] = useState(false);
   const [selectedArea, setSelectedArea] = useState<string>('');
 
-  const approvedPosters = useMemo(() => {
-    return posters.filter((p) => p.status === 'approved');
+  const availablePosters = useMemo(() => {
+    return posters.filter((p) => {
+      const hasApproval = p.approvalNumber && p.approvalNumber.trim() !== '';
+      const isApproved = p.status === 'approved';
+      const isDraftWithApproval = p.status === 'draft' && hasApproval;
+      return hasApproval && (isApproved || isDraftWithApproval) && p.status !== 'removed' && p.status !== 'expired';
+    });
   }, [posters]);
 
   const filteredBoards = useMemo(() => {
@@ -167,13 +172,13 @@ export default function ApplicationForm() {
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   >
                     <option value="">请选择要张贴的海报</option>
-                    {approvedPosters.length > 0 ? (
-                      approvedPosters.map(renderPosterOption)
+                    {availablePosters.length > 0 ? (
+                      availablePosters.map(renderPosterOption)
                     ) : (
-                      <option value="" disabled>暂无已通过审批的海报</option>
+                      <option value="" disabled>暂无带审批编号的有效海报</option>
                     )}
                   </select>
-                  <p className="text-xs text-gray-400 mt-2">仅显示已通过审批的海报</p>
+                  <p className="text-xs text-gray-400 mt-2">显示所有带审批编号的有效海报</p>
                 </div>
 
                 {selectedPoster && (
