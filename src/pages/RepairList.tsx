@@ -8,6 +8,8 @@ import {
   Calendar,
   User,
   Filter,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
@@ -175,6 +177,26 @@ export default function RepairList() {
                       <p className="text-sm text-slate-600 mb-2 line-clamp-1">
                         {repair.description || '维修工单'}
                       </p>
+                      {repair.recheckResult && (
+                        <div className="flex items-center gap-2 mb-2">
+                          {repair.recheckResult === 'passed' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-md border border-emerald-200">
+                              <CheckCircle className="w-3 h-3" />
+                              复查通过
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-700 text-xs font-medium rounded-md border border-rose-200">
+                              <XCircle className="w-3 h-3" />
+                              复查不通过
+                            </span>
+                          )}
+                          {repair.recheckNotes && (
+                            <span className="text-xs text-slate-400 line-clamp-1 flex-1 min-w-0">
+                              {repair.recheckNotes}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center gap-4 text-sm text-slate-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
