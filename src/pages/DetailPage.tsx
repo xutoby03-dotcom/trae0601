@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Droplets, Edit, MapPin, Sun, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Droplets, Edit, MapPin, Sparkles, Sun, Trash2 } from 'lucide-react';
 import { usePerfumeStore } from '@/store/usePerfumeStore';
 import { Timeline } from '@/components/Timeline';
 import { ScoreDisplay } from '@/components/ScoreDisplay';
-import { SceneTags } from '@/components/SceneTags';
+import { SceneReasonsList } from '@/components/SceneTags';
+import { calculateSceneReasonsFromRecord } from '@/utils/sceneClassifier';
 
 export function DetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +36,11 @@ export function DetailPage() {
       navigate('/');
     }
   };
+
+  const sceneReasons = useMemo(
+    () => (perfume ? calculateSceneReasonsFromRecord(perfume) : []),
+    [perfume]
+  );
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -110,8 +117,12 @@ export function DetailPage() {
             </div>
           </div>
           
-          <div className="mt-6 flex justify-center">
-            <SceneTags scenes={perfume.scenes} size="md" />
+          <div className="mt-6 rounded-2xl bg-white/60 p-5 backdrop-blur-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-600" />
+              <p className="text-sm font-semibold text-stone-700">场景推荐 & 理由</p>
+            </div>
+            <SceneReasonsList items={sceneReasons} />
           </div>
         </div>
         

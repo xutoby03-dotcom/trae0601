@@ -1,8 +1,10 @@
-import { Calendar, Droplets, MapPin, Sun } from 'lucide-react';
+import { useMemo } from 'react';
+import { Calendar, Droplets, MapPin, Sun, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { PerfumeRecord } from '@/types';
 import { SceneTags } from './SceneTags';
 import { StarRating } from './ScoreDisplay';
+import { getTopReason } from '@/utils/sceneClassifier';
 
 interface PerfumeCardProps {
   perfume: PerfumeRecord;
@@ -11,6 +13,8 @@ interface PerfumeCardProps {
 
 export function PerfumeCard({ perfume, index = 0 }: PerfumeCardProps) {
   const avgScore = (perfume.skinScore + perfume.clothScore) / 2;
+  
+  const topReason = useMemo(() => getTopReason(perfume), [perfume]);
   
   return (
     <Link
@@ -35,9 +39,16 @@ export function PerfumeCard({ perfume, index = 0 }: PerfumeCardProps) {
             </div>
           </div>
           
-          <p className="mb-4 inline-block rounded-full bg-stone-100 px-3 py-1 text-sm text-stone-600">
+          <p className="mb-3 inline-block rounded-full bg-stone-100 px-3 py-1 text-sm text-stone-600">
             {perfume.scentFamily}
           </p>
+          
+          <div className="mb-4 flex items-start gap-1.5 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 px-3 py-2">
+            <Sparkles className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600" />
+            <p className="text-xs leading-relaxed text-stone-600 line-clamp-2">
+              {topReason}
+            </p>
+          </div>
           
           <div className="mb-4 grid grid-cols-2 gap-2 text-xs text-stone-500">
             <div className="flex items-center gap-1.5">

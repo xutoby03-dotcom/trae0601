@@ -3,8 +3,8 @@ import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import type { PerfumeRecord, ScentNote, TimePoint } from '@/types';
 import { TIME_POINT_LABELS, TIME_POINTS } from '@/types';
 import { ScoreInput, StarRating } from './ScoreDisplay';
-import { calculateScenes } from '@/utils/sceneClassifier';
-import { SceneTags } from './SceneTags';
+import { calculateScenesWithReasons } from '@/utils/sceneClassifier';
+import { SceneReasonCards } from './SceneTags';
 
 interface PerfumeFormProps {
   initialData?: PerfumeRecord;
@@ -31,9 +31,9 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
   );
   const [expandedTimePoint, setExpandedTimePoint] = useState<TimePoint | null>('0min');
 
-  const autoScenes = useMemo(
+  const autoSceneWithReasons = useMemo(
     () =>
-      calculateScenes({
+      calculateScenesWithReasons({
         skinScore,
         clothScore,
         humidity,
@@ -42,6 +42,11 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
         scentFamily,
       }),
     [skinScore, clothScore, humidity, weather, timeline, scentFamily]
+  );
+
+  const autoScenes = useMemo(
+    () => autoSceneWithReasons.map((r) => r.scene),
+    [autoSceneWithReasons]
   );
 
   const avgScore = useMemo(() => (skinScore + clothScore) / 2, [skinScore, clothScore]);
@@ -296,11 +301,7 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
         </p>
         
         <div className="mb-4 rounded-xl bg-white/70 p-4 backdrop-blur-sm">
-          {autoScenes.length > 0 ? (
-            <SceneTags scenes={autoScenes} size="md" />
-          ) : (
-            <p className="text-sm text-stone-500">完善更多信息后将自动推荐场景</p>
-          )}
+          <SceneReasonCards items={autoSceneWithReasons} />
         </div>
         
         <div className="grid grid-cols-2 gap-3 text-xs text-stone-500 sm:grid-cols-4">

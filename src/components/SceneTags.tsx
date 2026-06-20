@@ -1,5 +1,6 @@
 import { SCENE_COLORS, SCENE_ICONS, SCENE_LABELS } from '@/types';
 import type { SceneType } from '@/types';
+import type { SceneWithReason } from '@/utils/sceneClassifier';
 
 interface SceneTagsProps {
   scenes: SceneType[];
@@ -19,6 +20,57 @@ export function SceneTags({ scenes, size = 'sm' }: SceneTagsProps) {
           <span>{SCENE_ICONS[scene]}</span>
           <span>{SCENE_LABELS[scene]}</span>
         </span>
+      ))}
+    </div>
+  );
+}
+
+interface SceneReasonCardsProps {
+  items: SceneWithReason[];
+}
+
+export function SceneReasonCards({ items }: SceneReasonCardsProps) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm text-stone-500">完善更多信息后将自动推荐场景</p>
+    );
+  }
+  
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {items.map(({ scene, reason }) => (
+        <div
+          key={scene}
+          className={`rounded-xl p-3 ring-1 ${SCENE_COLORS[scene]} ring-current/20 bg-opacity-60`}
+        >
+          <div className="mb-1 flex items-center gap-1.5 font-semibold">
+            <span>{SCENE_ICONS[scene]}</span>
+            <span>适合{SCENE_LABELS[scene]}</span>
+          </div>
+          <p className="text-xs leading-relaxed opacity-90">{reason}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface SceneReasonsListProps {
+  items: SceneWithReason[];
+}
+
+export function SceneReasonsList({ items }: SceneReasonsListProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      {items.map(({ scene, reason }) => (
+        <div key={scene} className="flex items-start gap-3">
+          <span
+            className={`mt-0.5 inline-flex flex-shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${SCENE_COLORS[scene]}`}
+          >
+            <span>{SCENE_ICONS[scene]}</span>
+            <span>{SCENE_LABELS[scene]}</span>
+          </span>
+          <p className="text-sm text-stone-600">{reason}</p>
+        </div>
       ))}
     </div>
   );
