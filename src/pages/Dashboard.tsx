@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Package,
   Clock,
@@ -11,6 +11,8 @@ import {
   TrendingDown,
   Snowflake,
   CheckCircle2,
+  Megaphone,
+  X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
@@ -25,7 +27,14 @@ import {
   isTempAbnormal,
   isOrderTimedOut,
   timeRemaining,
+  buildPickupReminderMessage,
+  copyToClipboard,
 } from '@/utils/helpers';
+
+type ReminderNotice =
+  | { type: 'none' }
+  | { type: 'success'; customerName: string; content: string }
+  | { type: 'error'; message: string; content: string };
 
 const SLOT_ORDER: PickupSlot[] = ['morning', 'noon', 'afternoon', 'evening'];
 const SHORTAGE_COMPENSATION_PER_UNIT = 20;
@@ -34,6 +43,41 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { products, orders, inspections, markOrderTimeout } = useAppStore();
   const [now, setNow] = useState(new Date());
+  const [reminderNotice, setReminderNotice] = useState<ReminderNotice>({ type: 'none' });
+
+  const dismissReminder = useCallback(() => setReminderNotice({ type: 'none' }), []);
+
+  const handleSendReminder = useCallback(
+    async (order: Order) => {
+      const product = products.find((p) => p.id === order.productId);
+      if (!product) return;
+
+      const content = buildPickupReminderMessage({
+        customerName: order.customerName,
+        phoneLast4: order.phoneLast4,
+        productName: product.name,
+        quantity: order.quantity,
+        pickupSlot: order.pickupSlot,
+        arrivalTime: product.arrivalTime,
+      });
+
+      const result = await copyToClipboard(content);
+      if (result.ok) {
+        setReminderNotice({
+          type: 'success',
+          customerName: order.customerName,
+          content,
+        });
+      } else {
+        setReminderNotice({
+          type: 'error',
+          message: result.error || '复制到剪贴板失败，请手动复制',
+          content,
+        });
+      }
+    },
+    [products]
+  );
 
   // 每秒更新时间，用于超时检测
   useEffect(() => {
@@ -171,6 +215,57 @@ export default function Dashboard() {
           <span className="text-xs font-medium text-emerald-400">实时监控中</span>
         </div>
       </div>
+
+      {/* 催取通知条 */}
+      {reminderNotice.type !== 'none' && (
+        <div
+          className={classNames(
+            'flex items-center gap-4 p-4 rounded-2xl border',
+            reminderNotice.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : 'bg-red-500/10 border-red-500/30'
+          )}
+        >
+          <div
+            className={classNames(
+              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+              reminderNotice.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'
+            )}
+          >
+            {reminderNotice.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Megaphone className="w-5 h-5 text-red-400" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className={classNames(
+                'font-medium',
+                reminderNotice.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+              )}
+            >
+              {reminderNotice.type === 'success'
+                ? `${reminderNotice.customerName} 催取文案已复制，可直接粘贴到群里`
+                : `复制失败：${reminderNotice.message}`}
+            </p>
+            <details className="mt-2">
+              <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
+                查看催取文案
+              </summary>
+              <pre className="mt-2 p-3 rounded-xl bg-slate-900/70 border border-slate-700/60 text-xs text-slate-300 whitespace-pre-wrap font-mono overflow-auto max-h-48">
+                {reminderNotice.content}
+              </pre>
+            </details>
+          </div>
+          <button
+            onClick={dismissReminder}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -361,6 +456,7 @@ export default function Dashboard() {
                   <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">取货时段</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">状态</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">剩余时间</th>
+                  <th className="text-right px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40">
@@ -424,6 +520,20 @@ export default function Dashboard() {
                         >
                           {order.status === 'picked' ? '—' : remaining}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end">
+                          {order.abnormalType === 'timeout' && (
+                            <button
+                              onClick={() => handleSendReminder(order)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
+                              title="生成催取消息并复制到剪贴板"
+                            >
+                              <Megaphone className="w-3.5 h-3.5" />
+                              催取
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -109,3 +109,59 @@ export function timeRemaining(
 export function classNames(...classes: (string | boolean | undefined)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+export function buildPickupReminderMessage(params: {
+  customerName: string;
+  phoneLast4: string;
+  productName: string;
+  quantity: number;
+  pickupSlot: PickupSlot;
+  arrivalTime: string;
+}): string {
+  const dateStr = formatDate(params.arrivalTime);
+  const slotLabel = getPickupSlotLabel(params.pickupSlot);
+  const qtyText = params.quantity > 1 ? `（共${params.quantity}份）` : '';
+
+  return (
+    `【催取通知】@${params.customerName} 您好~\n` +
+    `您在 ${dateStr} 预订的「${params.productName}」${qtyText}已经到货啦！\n` +
+    `原取货时段：${slotLabel}\n` +
+    `目前已经超过取货时间，冷冻商品请勿长时间放置，麻烦尽快到团长处取货哦 ❄️\n` +
+    `联系手机尾号：${params.phoneLast4}\n` +
+    `如有特殊情况请及时联系团长，谢谢配合！`
+  );
+}
+
+export async function copyToClipboard(text: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return { ok: true };
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-1000px';
+    textarea.style.left = '-1000px';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (!success) {
+        return { ok: false, error: '复制命令执行失败，请手动复制' };
+      }
+      return { ok: true };
+    } catch (execErr) {
+      document.body.removeChild(textarea);
+      const msg = execErr instanceof Error ? execErr.message : '复制失败';
+      return { ok: false, error: msg };
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '复制失败';
+    return { ok: false, error: msg };
+  }
+}

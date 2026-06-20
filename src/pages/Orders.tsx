@@ -1,11 +1,23 @@
-import { useState, useMemo } from 'react';
-import { Plus, Search, Edit2, Trash2, ClipboardList, User, Phone, Hash, Clock, ShoppingBag } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Plus, Search, Edit2, Trash2, ClipboardList, User, Phone, Hash, Clock, ShoppingBag, Megaphone, CheckCircle2, X } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Order, PickupSlot } from '@/types';
 import { PICKUP_SLOT_LABELS } from '@/types';
 import { OrderStatusBadge } from '@/components/Badges';
 import Modal from '@/components/Modal';
-import { classNames, formatDateTime, getPickupSlotLabel, timeRemaining } from '@/utils/helpers';
+import {
+  classNames,
+  formatDateTime,
+  getPickupSlotLabel,
+  timeRemaining,
+  buildPickupReminderMessage,
+  copyToClipboard,
+} from '@/utils/helpers';
+
+type ReminderNotice =
+  | { type: 'none' }
+  | { type: 'success'; customerName: string; content: string }
+  | { type: 'error'; message: string; content: string };
 
 const emptyForm: Omit<Order, 'id' | 'createdAt' | 'status'> = {
   productId: '',
@@ -24,6 +36,41 @@ export default function Orders() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [reminderNotice, setReminderNotice] = useState<ReminderNotice>({ type: 'none' });
+
+  const dismissReminder = useCallback(() => setReminderNotice({ type: 'none' }), []);
+
+  const handleSendReminder = useCallback(
+    async (order: Order) => {
+      const product = products.find((p) => p.id === order.productId);
+      if (!product) return;
+
+      const content = buildPickupReminderMessage({
+        customerName: order.customerName,
+        phoneLast4: order.phoneLast4,
+        productName: product.name,
+        quantity: order.quantity,
+        pickupSlot: order.pickupSlot,
+        arrivalTime: product.arrivalTime,
+      });
+
+      const result = await copyToClipboard(content);
+      if (result.ok) {
+        setReminderNotice({
+          type: 'success',
+          customerName: order.customerName,
+          content,
+        });
+      } else {
+        setReminderNotice({
+          type: 'error',
+          message: result.error || '复制到剪贴板失败，请手动复制',
+          content,
+        });
+      }
+    },
+    [products]
+  );
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -102,6 +149,57 @@ export default function Orders() {
           新增订单
         </button>
       </div>
+
+      {/* 催取通知条 */}
+      {reminderNotice.type !== 'none' && (
+        <div
+          className={classNames(
+            'flex items-center gap-4 p-4 rounded-2xl border',
+            reminderNotice.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : 'bg-red-500/10 border-red-500/30'
+          )}
+        >
+          <div
+            className={classNames(
+              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+              reminderNotice.type === 'success' ? 'bg-emerald-500/20' : 'bg-red-500/20'
+            )}
+          >
+            {reminderNotice.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <Megaphone className="w-5 h-5 text-red-400" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className={classNames(
+                'font-medium',
+                reminderNotice.type === 'success' ? 'text-emerald-300' : 'text-red-300'
+              )}
+            >
+              {reminderNotice.type === 'success'
+                ? `${reminderNotice.customerName} 催取文案已复制，可直接粘贴到群里`
+                : `复制失败：${reminderNotice.message}`}
+            </p>
+            <details className="mt-2">
+              <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
+                查看催取文案
+              </summary>
+              <pre className="mt-2 p-3 rounded-xl bg-slate-900/70 border border-slate-700/60 text-xs text-slate-300 whitespace-pre-wrap font-mono overflow-auto max-h-48">
+                {reminderNotice.content}
+              </pre>
+            </details>
+          </div>
+          <button
+            onClick={dismissReminder}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* 搜索和筛选 */}
       <div className="flex flex-col md:flex-row gap-4">
@@ -258,15 +356,27 @@ export default function Orders() {
                             </td>
                             <td className="px-5 py-4">
                               <div className="flex items-center justify-end gap-2">
+                                {isTimeout && (
+                                  <button
+                                    onClick={() => handleSendReminder(order)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
+                                    title="生成催取消息并复制到剪贴板"
+                                  >
+                                    <Megaphone className="w-3.5 h-3.5" />
+                                    催取
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => openEditModal(order)}
                                   className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+                                  title="编辑订单"
                                 >
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(order.id)}
                                   className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                  title="删除订单"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
