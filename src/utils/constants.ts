@@ -1,5 +1,13 @@
 import type { MaterialType, CleanMethodType, CleanMethodAction, DamageType, TaskTrigger, TaskPriority, AlertStatus } from '@/types';
 
+export const cleanMethodToActions: Record<CleanMethodType, CleanMethodAction[]> = {
+  water: ['water', 'dry'],
+  wipe: ['wipe'],
+  uv: ['uv'],
+  water_wipe: ['water', 'wipe', 'dry'],
+  special: ['wipe'],
+};
+
 export const MATERIAL_OPTIONS: { value: MaterialType; label: string; icon: string; color: string }[] = [
   { value: 'wood', label: '木质', icon: '🪵', color: 'bg-woody-100 text-woody-500' },
   { value: 'plastic', label: '塑料', icon: '🧱', color: 'bg-clean-100 text-clean-500' },

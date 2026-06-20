@@ -4,7 +4,7 @@ import type { Toy, CleaningRecord, DisinfectionTask, AlertItem, StatsSummary, St
 import type { MaterialType, CleanMethodAction, DamageType, TaskTrigger, TaskPriority, AlertStatus } from '@/types';
 import {
   generateId, todayISO, addDaysToISO, daysBetween, getLast30Days,
-  MATERIAL_CLEAN_CYCLE, CLEAN_ACTION_OPTIONS,
+  MATERIAL_CLEAN_CYCLE, CLEAN_ACTION_OPTIONS, cleanMethodToActions,
 } from '@/utils/constants';
 import { mockToys, mockCleaningRecords, mockTasks, mockAlerts } from '@/utils/mockData';
 
@@ -201,39 +201,67 @@ export const useAppStore = create<AppState>()(
       },
 
       toggleTaskItem: (taskId, toyId) => {
+        const { toys, cleaningRecords, tasks } = get();
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const wasCompleted = task.completedToyIds.includes(toyId);
+
+        let updatedRecords = cleaningRecords;
+        if (!wasCompleted) {
+          const toy = toys.find(t => t.id === toyId);
+          const methods = toy
+            ? cleanMethodToActions[toy.cleanMethod] || ['wipe' as CleanMethodAction]
+            : ['wipe' as CleanMethodAction];
+          const record: CleaningRecord = {
+            id: generateId(),
+            toyId,
+            date: new Date().toISOString(),
+            methods,
+            hasDamage: false,
+            hasOdor: false,
+          };
+          updatedRecords = [record, ...cleaningRecords];
+        }
+
+        const newCompleted = wasCompleted
+          ? task.completedToyIds.filter(id => id !== toyId)
+          : [...task.completedToyIds, toyId];
+
         set({
-          tasks: get().tasks.map(task => {
-            if (task.id !== taskId) return task;
-            const has = task.completedToyIds.includes(toyId);
-            const newCompleted = has
-              ? task.completedToyIds.filter(id => id !== toyId)
-              : [...task.completedToyIds, toyId];
-            return {
-              ...task,
-              completedToyIds: newCompleted,
-              completed: newCompleted.length === task.toyIds.length,
-            };
-          }),
+          cleaningRecords: updatedRecords,
+          tasks: tasks.map(t =>
+            t.id === taskId
+              ? { ...t, completedToyIds: newCompleted, completed: newCompleted.length === t.toyIds.length }
+              : t
+          ),
         });
       },
 
       completeTask: (taskId) => {
-        const task = get().tasks.find(t => t.id === taskId);
+        const { toys, cleaningRecords, tasks } = get();
+        const task = tasks.find(t => t.id === taskId);
         if (!task) return;
         const now = new Date().toISOString();
         const newRecords: CleaningRecord[] = task.toyIds
           .filter(id => !task.completedToyIds.includes(id))
-          .map(id => ({
-            id: generateId(),
-            toyId: id,
-            date: now,
-            methods: ['wipe'] as CleanMethodAction[],
-            hasDamage: false,
-            hasOdor: false,
-          }));
+          .map(id => {
+            const toy = toys.find(t => t.id === id);
+            const methods = toy
+              ? cleanMethodToActions[toy.cleanMethod] || ['wipe' as CleanMethodAction]
+              : ['wipe' as CleanMethodAction];
+            return {
+              id: generateId(),
+              toyId: id,
+              date: now,
+              methods,
+              hasDamage: false,
+              hasOdor: false,
+            };
+          });
         set({
-          cleaningRecords: [...newRecords, ...get().cleaningRecords],
-          tasks: get().tasks.map(t =>
+          cleaningRecords: [...newRecords, ...cleaningRecords],
+          tasks: tasks.map(t =>
             t.id === taskId ? { ...t, completedToyIds: t.toyIds, completed: true } : t
           ),
         });
