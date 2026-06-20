@@ -422,10 +422,29 @@ export default function RecordPage() {
     if (date) setSelectedDate(date);
   }, [date]);
 
-  const targetsToShow = checklistTargets.length > 0
-    ? [...checklistTargets].sort((a, b) => a.order - b.order)
-        .map(c => ({ id: c.targetId, name: c.target.name, commonName: c.target.commonName }))
-    : [];
+  const focusRecord = useMemo(() => {
+    if (!focusTargetId) return null;
+    return records.find(r => r.date === date && r.targetId === focusTargetId) ?? null;
+  }, [records, date, focusTargetId]);
+
+  const targetsToShow = useMemo(() => {
+    const fromChecklist = checklistTargets.length > 0
+      ? [...checklistTargets].sort((a, b) => a.order - b.order)
+          .map(c => ({ id: c.targetId, name: c.target.name, commonName: c.target.commonName }))
+      : [];
+
+    if (focusRecord && !fromChecklist.some(t => t.id === focusTargetId)) {
+      const fallback = {
+        id: focusRecord.targetId,
+        name: focusRecord.targetName,
+        commonName: getTargetById(focusRecord.targetId)?.commonName,
+      };
+      return [fallback, ...fromChecklist];
+    }
+    return fromChecklist;
+  }, [checklistTargets, focusRecord, focusTargetId]);
+
+  const isFallbackMode = checklistTargets.length === 0 && targetsToShow.length > 0;
 
   return (
     <div className="space-y-8">
@@ -440,6 +459,11 @@ export default function RecordPage() {
         <p className="text-white/50 text-base flex items-center gap-2">
           <Calendar className="w-4 h-4" />
           {formatDateChinese(date)} · 已记录 {existing.size} / {targetsToShow.length || '?'} 个目标
+          {isFallbackMode && (
+            <span className="chip bg-moonlight/15 border-moonlight/30 text-moonlight !text-[11px] ml-1">
+              💾 来自历史记录
+            </span>
+          )}
         </p>
       </section>
 
