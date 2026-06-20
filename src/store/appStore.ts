@@ -22,6 +22,7 @@ const defaultFilters: FilterState = {
   clayType: "全部",
   atmosphere: "全部",
   kilnPosition: "全部",
+  glazeName: "全部",
   searchKeyword: "",
 };
 

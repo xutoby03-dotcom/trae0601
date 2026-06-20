@@ -66,6 +66,7 @@ export interface FilterState {
   clayType: string | "全部";
   atmosphere: Atmosphere | "全部";
   kilnPosition: string | "全部";
+  glazeName: string | "全部";
   searchKeyword: string;
 }
 

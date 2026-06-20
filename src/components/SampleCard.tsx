@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Thermometer, Flame, Layers, GitBranch } from "lucide-react";
+import { Thermometer, Flame, Layers, GitBranch, Sparkles } from "lucide-react";
 import type { TestSample } from "@/types";
 import { COLOR_FAMILY_MAP } from "@/types";
 import { useAppStore } from "@/store/appStore";
@@ -63,6 +63,14 @@ export default function SampleCard({ sample, index }: Props) {
         {sample.name}
       </h3>
 
+      {/* 釉料配方名 */}
+      <div className="flex items-center gap-1 mb-2">
+        <Sparkles className="w-3 h-3 text-glaze-amber shrink-0" />
+        <span className="text-[11px] text-clay-700 font-medium truncate">
+          {sample.glazeName}
+        </span>
+      </div>
+
       <div className="flex flex-wrap items-center gap-1 mb-2">
         <span
           className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-clay-700"
@@ -79,7 +87,27 @@ export default function SampleCard({ sample, index }: Props) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-clay-600">
+      {/* 主要成分 */}
+      <div className="space-y-0.5 mb-2.5">
+        {sample.recipe.ingredients.slice(0, 3).map((ing, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <span className="text-[10px] text-clay-500 w-12 shrink-0 truncate">
+              {ing.name}
+            </span>
+            <div className="flex-1 h-1 bg-clay-200 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-glaze-celadon/80 to-glaze-amber/80"
+                style={{ width: `${Math.min(ing.percentage * 2, 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-clay-600 font-medium w-8 text-right">
+              {ing.percentage}%
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px] text-clay-600 pt-2 border-t border-clay-200/60">
         <div className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-glaze-iron" />
           <span>{sample.firingTemperature}℃</span>
@@ -93,7 +121,7 @@ export default function SampleCard({ sample, index }: Props) {
           <span>{sample.clayType}</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-glaze-cobalt">窑</span>
+          <span className="text-glaze-cobalt text-[10px]">窑</span>
           <span>{sample.kilnPosition}</span>
         </div>
       </div>

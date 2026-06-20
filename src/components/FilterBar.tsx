@@ -8,6 +8,7 @@ import {
   type ColorFamily,
   type Atmosphere,
 } from "@/types";
+import { TEST_SAMPLES } from "@/data/mockData";
 
 const TEMP_PRESETS: Array<{ label: string; range: [number, number] }> = [
   { label: "低温 <1200℃", range: [1000, 1200] },
@@ -38,6 +39,7 @@ export default function FilterBar() {
     filters.clayType !== "全部" ||
     filters.atmosphere !== "全部" ||
     filters.kilnPosition !== "全部" ||
+    filters.glazeName !== "全部" ||
     filters.searchKeyword !== "";
 
   return (
@@ -191,6 +193,22 @@ export default function FilterBar() {
                 {k}
               </option>
             ))}
+          </select>
+
+          <span className="text-xs text-clay-500 mx-1 self-center">釉料：</span>
+          <select
+            value={filters.glazeName}
+            onChange={(e) => setFilters({ glazeName: e.target.value })}
+            className="h-7 px-2 rounded-lg bg-clay-50 text-xs text-clay-700 border border-clay-300 focus:outline-none focus:border-glaze-celadon max-w-[140px] truncate"
+          >
+            <option value="全部">全部釉料</option>
+            {Array.from(new Set(TEST_SAMPLES.map((s) => s.glazeName))).map(
+              (g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              )
+            )}
           </select>
         </div>
 

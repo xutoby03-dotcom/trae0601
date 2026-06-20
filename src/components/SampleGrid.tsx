@@ -22,9 +22,16 @@ export default function SampleGrid() {
         return false;
       if (filters.kilnPosition !== "全部" && s.kilnPosition !== filters.kilnPosition)
         return false;
+      if (filters.glazeName !== "全部") {
+        if (
+          s.glazeName !== filters.glazeName &&
+          s.recipe.name !== filters.glazeName
+        )
+          return false;
+      }
       if (filters.searchKeyword) {
         const kw = filters.searchKeyword.toLowerCase();
-        const text = `${s.name} ${s.code} ${s.glazeName} ${s.notes ?? ""} ${s.suitableFor.join(" ")}`.toLowerCase();
+        const text = `${s.name} ${s.code} ${s.glazeName} ${s.recipe.name} ${s.notes ?? ""} ${s.suitableFor.join(" ")} ${s.recipe.ingredients.map((i) => i.name).join(" ")}`.toLowerCase();
         if (!text.includes(kw)) return false;
       }
       return true;
