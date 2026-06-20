@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Smartphone, Key, Shirt, RectangleHorizontal, Sun, Pill, Banknote, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Smartphone, Key, Shirt, RectangleHorizontal, Sun, Pill, Banknote, Check, ChevronDown, ChevronUp, User, ArrowLeft, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
 import { itemLabels, valuableItems } from '@/types';
@@ -18,20 +18,25 @@ const itemIcons: Record<string, any> = {
 
 export default function Checklist() {
   const { bags, members, itemChecks, updateItemCheck, confirmItemCheck } = useStore();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetBagId = searchParams.get('bagId');
   const [expandedBag, setExpandedBag] = useState<string | null>(bags[0]?.id || null);
   const [highlightBagId, setHighlightBagId] = useState<string | null>(null);
+  const [showSourceBanner, setShowSourceBanner] = useState(false);
   const [checkerName, setCheckerName] = useState('领队');
 
   useEffect(() => {
     if (targetBagId && bags.some(b => b.id === targetBagId)) {
       setExpandedBag(targetBagId);
       setHighlightBagId(targetBagId);
+      setShowSourceBanner(true);
       const timer = setTimeout(() => setHighlightBagId(null), 2100);
       return () => clearTimeout(timer);
     }
   }, [targetBagId, bags]);
+
+  const targetBag = targetBagId ? bags.find(b => b.id === targetBagId) : null;
 
   const getOwnerName = (ownerId: string) => {
     return members.find(m => m.id === ownerId)?.name || '未知';
@@ -67,6 +72,23 @@ export default function Checklist() {
 
   return (
     <div className="animate-fade-in-up">
+      {showSourceBanner && targetBag && (
+        <div className="mb-4 px-5 py-3 bg-sky-50 border border-sky-200 rounded-xl flex items-center justify-between animate-fade-in-up">
+          <div className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4 text-sky-500" />
+            <span className="text-sm text-sky-700">
+              来自看板，已定位到 <span className="font-bold">#{targetBag.number} {targetBag.color} 包</span>
+            </span>
+          </div>
+          <button
+            onClick={() => setShowSourceBanner(false)}
+            className="p-1 hover:bg-sky-100 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4 text-sky-400" />
+          </button>
+        </div>
+      )}
+
       <div className="glass-card rounded-2xl p-6 mb-6">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -113,6 +135,15 @@ export default function Checklist() {
                           {bag.color} {bag.capacity} 防水包
                         </h3>
                         <StatusBadge status={bag.sealStatus} size="sm" />
+                        {targetBagId === bag.id && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate('/'); }}
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors"
+                          >
+                            <ArrowLeft className="w-3 h-3" />
+                            回到看板
+                          </button>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
                         拥有者：{getOwnerName(bag.ownerId)}
