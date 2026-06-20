@@ -52,12 +52,16 @@ export default function QuickDetail({ passenger, onClose }: QuickDetailProps) {
               <span className="text-[#8B9CB6] text-sm">联系电话</span>
             </div>
             <div className="flex items-center justify-between">
-              <a
-                href={`tel:${passenger.phone}`}
-                className="text-white text-2xl font-semibold hover:text-[#FF6B2B] transition-colors"
-              >
-                {passenger.phone || "未填写"}
-              </a>
+              {passenger.phone ? (
+                <a
+                  href={`tel:${passenger.phone}`}
+                  className="text-white text-2xl font-semibold hover:text-[#FF6B2B] transition-colors"
+                >
+                  {passenger.phone}
+                </a>
+              ) : (
+                <span className="text-white/40 text-2xl font-semibold">暂无</span>
+              )}
               {passenger.phone && (
                 <button
                   onClick={() => copyToClipboard(passenger.phone, "phone")}
@@ -81,8 +85,8 @@ export default function QuickDetail({ passenger, onClose }: QuickDetailProps) {
               <span className="text-[#8B9CB6] text-sm">停车位置</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-white text-xl font-semibold">
-                {passenger.parkingNote || "未填写"}
+              <span className={`text-xl font-semibold ${passenger.parkingNote ? "text-white" : "text-white/40"}`}>
+                {passenger.parkingNote || "暂无"}
               </span>
               {passenger.parkingNote && (
                 <button

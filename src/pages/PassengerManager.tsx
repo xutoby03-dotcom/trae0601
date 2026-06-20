@@ -2,6 +2,7 @@ import { useState } from "react"
 import { usePassengerStore } from "@/store/passengerStore"
 import type { Passenger, Language, PassengerStatus } from "@/types"
 import { WELCOME_MAP, LANGUAGE_LABELS } from "@/types"
+import QuickDetail from "@/components/QuickDetail"
 import {
   Plus,
   Trash2,
@@ -52,6 +53,7 @@ export default function PassengerManager() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [errors, setErrors] = useState<{ landingTime?: string }>({})
+  const [detailPassenger, setDetailPassenger] = useState<Passenger | null>(null)
 
   const sortedPassengers = [...passengers].sort((a, b) => {
     if (a.status === "picked_up" && b.status !== "picked_up") return 1
@@ -196,12 +198,28 @@ export default function PassengerManager() {
                         </span>
                         <span>到达口 {p.arrivalGate}</span>
                       </div>
-                      {(p.phone || p.parkingNote) && (
-                        <div className="flex items-center gap-4 mt-2 text-[#8B9CB6]/70 text-xs">
-                          {p.phone && <span>📞 {p.phone}</span>}
-                          {p.parkingNote && <span>🅿️ {p.parkingNote}</span>}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-4 mt-2 text-xs">
+                        <button
+                          onClick={() => setDetailPassenger(p)}
+                          className={`flex items-center gap-1 transition-colors ${
+                            p.phone
+                              ? "text-[#FF6B2B] hover:text-[#ff8a58]"
+                              : "text-white/20 hover:text-white/30"
+                          }`}
+                        >
+                          📞 {p.phone || "暂无电话"}
+                        </button>
+                        <button
+                          onClick={() => setDetailPassenger(p)}
+                          className={`flex items-center gap-1 transition-colors ${
+                            p.parkingNote
+                              ? "text-[#00C48C] hover:text-[#2ee5a8]"
+                              : "text-white/20 hover:text-white/30"
+                          }`}
+                        >
+                          🅿️ {p.parkingNote || "暂无车位"}
+                        </button>
+                      </div>
                       <div className="mt-2 text-[#8B9CB6]/50 text-xs">
                         {WELCOME_MAP[p.language]} · {LANGUAGE_LABELS[p.language]}
                       </div>
@@ -405,6 +423,10 @@ export default function PassengerManager() {
             </div>
           </div>
         </div>
+      )}
+
+      {detailPassenger && (
+        <QuickDetail passenger={detailPassenger} onClose={() => setDetailPassenger(null)} />
       )}
     </div>
   )
