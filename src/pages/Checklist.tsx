@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Smartphone, Key, Shirt, Towel, Sun, Pill, Banknote, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Smartphone, Key, Shirt, RectangleHorizontal, Sun, Pill, Banknote, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
 import { itemLabels, valuableItems } from '@/types';
@@ -9,7 +9,7 @@ const itemIcons: Record<string, any> = {
   phone: Smartphone,
   carKey: Key,
   dryClothes: Shirt,
-  towel: Towel,
+  towel: RectangleHorizontal,
   sunscreen: Sun,
   medicine: Pill,
   cash: Banknote,

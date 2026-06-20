@@ -43,8 +43,12 @@ export default function Sidebar() {
             `}
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : item.color}`} />
-            <span className="font-medium text-sm">{item.label}</span>
+            {({ isActive }) => (
+              <>
+                <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : item.color}`} />
+                <span className="font-medium text-sm">{item.label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
