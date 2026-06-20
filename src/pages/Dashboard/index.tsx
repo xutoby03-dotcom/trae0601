@@ -28,6 +28,7 @@ export default function Dashboard() {
   const pendingApplications = applications.filter(a => a.status === 'pending').length;
   const pendingPosting = postingItems.filter(p => p.status === 'pending').length;
   const pendingExceptions = exceptions.filter(e => e.status !== 'resolved').length;
+  const allUnresolvedExceptions = exceptions.filter(e => e.status !== 'resolved');
   
   const today = new Date();
   const threeDaysLater = new Date();
@@ -40,7 +41,6 @@ export default function Dashboard() {
 
   const pendingAuditList = applications.filter(a => a.status === 'pending');
   const pendingPostingList = postingItems.filter(p => p.status === 'pending');
-  const exceptionList = exceptions.filter(e => e.status === 'pending');
 
   const getPosterById = (id: string) => posters.find(p => p.id === id);
   const getApplicationById = (id: string) => applications.find(a => a.id === id);
@@ -251,7 +251,7 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-4">
-              {exceptionList.slice(0, 5).map((exception, index) => {
+              {allUnresolvedExceptions.slice(0, 5).map((exception, index) => {
                 const poster = exception.relatedPosterId
                   ? getPosterById(exception.relatedPosterId)
                   : null;
@@ -263,21 +263,32 @@ export default function Dashboard() {
                     onClick={() => navigate('/exceptions')}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-danger rounded-full flex items-center justify-center">
-                        <AlertTriangle className="w-5 h-5 text-white" />
-                      </div>
+                      {poster ? (
+                        <img
+                          src={poster.imageUrl}
+                          alt={poster.activityName}
+                          className="w-12 h-16 object-cover rounded-lg shadow"
+                        />
+                      ) : (
+                        <div className="w-12 h-16 bg-danger/10 rounded-lg flex items-center justify-center">
+                          <AlertTriangle className="w-6 h-6 text-danger" />
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium text-gray-900">
                           <StatusBadge status={exception.type} type="exceptionType" />
                         </p>
                         <p className="text-sm text-gray-500">{exception.location}</p>
+                        {poster && (
+                          <p className="text-xs text-gray-400 mt-0.5">{poster.activityName} · {poster.club}</p>
+                        )}
                       </div>
                     </div>
                     <StatusBadge status={exception.status} type="exception" />
                   </div>
                 );
               })}
-              {exceptionList.length === 0 && (
+              {allUnresolvedExceptions.length === 0 && (
                 <div className="text-center py-8 text-gray-400">
                   暂无违规/异常记录
                 </div>

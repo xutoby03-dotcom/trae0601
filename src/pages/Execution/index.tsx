@@ -15,6 +15,8 @@ import {
   Image,
   History,
   ClipboardList,
+  AlertTriangle,
+  MessageSquare,
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -23,12 +25,15 @@ import { usePostingStore } from '../../store/usePostingStore';
 import { useApplicationStore } from '../../store/useApplicationStore';
 import { usePosterStore } from '../../store/usePosterStore';
 import { useBulletinBoardStore } from '../../store/useBulletinBoardStore';
+import { useExceptionStore } from '../../store/useExceptionStore';
 import { formatDateTime } from '../../utils/date';
+import { EXCEPTION_TYPES } from '../../types';
 import type {
   PostingItem,
   Application,
   Poster,
   BulletinBoard,
+  ExceptionType,
 } from '../../types';
 
 interface PostingGroup {
@@ -267,6 +272,138 @@ function PhotoPreviewModal({ photoUrl, onClose }: PhotoPreviewModalProps) {
   );
 }
 
+interface ExceptionReportModalProps {
+  item: PostingItem;
+  board: BulletinBoard | undefined;
+  poster: Poster | undefined;
+  onClose: () => void;
+  onSubmit: (data: { type: ExceptionType; description: string; reporter: string }) => void;
+}
+
+function ExceptionReportModal({ item, board, poster, onClose, onSubmit }: ExceptionReportModalProps) {
+  const [selectedType, setSelectedType] = useState<ExceptionType>('damaged');
+  const [description, setDescription] = useState('');
+  const [reporter, setReporter] = useState('');
+
+  const handleSubmit = () => {
+    if (!reporter.trim()) {
+      alert('请填写上报人姓名');
+      return;
+    }
+    onSubmit({
+      type: selectedType,
+      description: description.trim() || EXCEPTION_TYPES.find(t => t.value === selectedType)?.label || '',
+      reporter: reporter.trim(),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+        <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between">
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-danger" />
+            异常上报
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="flex gap-3 p-3 bg-gray-50 rounded-xl">
+            {poster && (
+              <img
+                src={poster.imageUrl}
+                alt={poster.activityName}
+                className="w-14 h-18 object-cover rounded-lg shadow flex-shrink-0"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 truncate">{poster?.activityName || '未知活动'}</p>
+              <p className="text-sm text-gray-500">{poster?.club || ''}</p>
+              <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                <MapPin className="w-3 h-3" />
+                {board?.name || '未知'} · {board?.location || ''}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              异常类型 <span className="text-danger">*</span>
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {EXCEPTION_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setSelectedType(type.value)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                    selectedType === type.value
+                      ? 'border-danger bg-red-50 text-gray-900'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${
+                    selectedType === type.value ? 'text-danger' : 'text-gray-400'
+                  }`} />
+                  <span className="font-medium text-sm">{type.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              补充描述
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="请描述异常情况..."
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-danger focus:border-transparent transition-all resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              上报人 <span className="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              value={reporter}
+              onChange={(e) => setReporter(e.target.value)}
+              placeholder="请填写上报人姓名"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-danger focus:border-transparent transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-gray-100 p-6 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex-1 px-4 py-3 bg-danger text-white rounded-xl hover:bg-red-600 transition-colors font-medium flex items-center justify-center gap-2"
+          >
+            <AlertTriangle className="w-5 h-5" />
+            提交上报
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Execution() {
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -276,12 +413,18 @@ export default function Execution() {
     poster: Poster | undefined;
   } | null>(null);
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+  const [exceptionModalItem, setExceptionModalItem] = useState<{
+    item: PostingItem;
+    board: BulletinBoard | undefined;
+    poster: Poster | undefined;
+  } | null>(null);
 
   const { postingItems, confirmPosting } = usePostingStore();
   const applications = useApplicationStore((state) => state.applications);
   const posters = usePosterStore((state) => state.posters);
   const updateStatus = usePosterStore((state) => state.updateStatus);
   const bulletinBoards = useBulletinBoardStore((state) => state.bulletinBoards);
+  const addException = useExceptionStore((state) => state.addException);
 
   const getApplicationById = (id: string) => applications.find(a => a.id === id);
   const getPosterById = (id: string) => posters.find(p => p.id === id);
@@ -380,6 +523,33 @@ export default function Execution() {
     }
 
     setPhotoModalItem(null);
+  };
+
+  const handleOpenExceptionModal = (item: PostingItem) => {
+    const application = getApplicationById(item.applicationId);
+    if (!application) return;
+
+    const poster = getPosterById(application.posterId);
+    const board = getBulletinBoardById(item.bulletinBoardId);
+
+    setExceptionModalItem({ item, board, poster });
+  };
+
+  const handleExceptionSubmit = (data: { type: ExceptionType; description: string; reporter: string }) => {
+    if (!exceptionModalItem) return;
+
+    const { item, board, poster } = exceptionModalItem;
+    const location = board ? `${board.name} - ${board.location}` : '未知位置';
+
+    addException({
+      type: data.type,
+      description: data.description,
+      location,
+      reporter: data.reporter,
+      relatedPosterId: poster?.id,
+    });
+
+    setExceptionModalItem(null);
   };
 
   const pendingTotal = pendingGroups.reduce(
@@ -631,18 +801,30 @@ export default function Execution() {
                                       拍照确认
                                     </button>
                                   ) : (
-                                    item.photoUrl && (
+                                    <div className="flex items-center justify-center gap-2">
+                                      {item.photoUrl && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPreviewPhotoUrl(item.photoUrl!);
+                                          }}
+                                          className="inline-flex items-center gap-1 px-3 py-2 text-sm text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                          照片
+                                        </button>
+                                      )}
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setPreviewPhotoUrl(item.photoUrl!);
+                                          handleOpenExceptionModal(item);
                                         }}
-                                        className="inline-flex items-center gap-1 px-4 py-2 text-sm text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+                                        className="inline-flex items-center gap-1 px-3 py-2 text-sm text-danger hover:bg-red-50 rounded-lg transition-colors"
                                       >
-                                        <Eye className="w-4 h-4" />
-                                        查看照片
+                                        <AlertTriangle className="w-4 h-4" />
+                                        异常上报
                                       </button>
-                                    )
+                                    </div>
                                   )}
                                 </td>
                               </tr>
@@ -673,6 +855,16 @@ export default function Execution() {
         <PhotoPreviewModal
           photoUrl={previewPhotoUrl}
           onClose={() => setPreviewPhotoUrl(null)}
+        />
+      )}
+
+      {exceptionModalItem && (
+        <ExceptionReportModal
+          item={exceptionModalItem.item}
+          board={exceptionModalItem.board}
+          poster={exceptionModalItem.poster}
+          onClose={() => setExceptionModalItem(null)}
+          onSubmit={handleExceptionSubmit}
         />
       )}
     </div>
