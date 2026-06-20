@@ -67,7 +67,7 @@ export default function SampleCard({ sample, index }: Props) {
       <div className="flex items-center gap-1 mb-2">
         <Sparkles className="w-3 h-3 text-glaze-amber shrink-0" />
         <span className="text-[11px] text-clay-700 font-medium truncate">
-          {sample.glazeName}
+          {sample.recipe.name}
         </span>
       </div>
 

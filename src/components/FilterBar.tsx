@@ -202,13 +202,15 @@ export default function FilterBar() {
             className="h-7 px-2 rounded-lg bg-clay-50 text-xs text-clay-700 border border-clay-300 focus:outline-none focus:border-glaze-celadon max-w-[140px] truncate"
           >
             <option value="全部">全部釉料</option>
-            {Array.from(new Set(TEST_SAMPLES.map((s) => s.glazeName))).map(
-              (g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
+            {Array.from(
+              new Set(
+                TEST_SAMPLES.flatMap((s) => [s.glazeName, s.recipe.name])
               )
-            )}
+            ).map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
           </select>
         </div>
 
