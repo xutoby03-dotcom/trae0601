@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+  body {
+    @apply bg-ink-950 text-gray-100 antialiased;
+    background-image: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  ::selection {
+    @apply bg-copper-500/30 text-copper-400;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-900/80 backdrop-blur-sm border border-ink-700/60 rounded-xl shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:border-copper-500/40 hover:shadow-glow hover:-translate-y-0.5;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-copper-500/40;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-br from-copper-500 to-copper-600 text-ink-950 hover:from-copper-400 hover:to-copper-500 shadow-lg hover:shadow-glow;
+  }
+  .btn-secondary {
+    @apply btn bg-ink-800 text-gray-200 border border-ink-600 hover:bg-ink-700 hover:border-copper-500/30;
+  }
+  .btn-danger {
+    @apply btn bg-rust-500/20 text-rust-400 border border-rust-500/30 hover:bg-rust-500/30;
+  }
+  .btn-success {
+    @apply btn bg-jade-500/20 text-jade-400 border border-jade-500/30 hover:bg-jade-500/30;
+  }
+  .input {
+    @apply w-full px-4 py-2.5 bg-ink-800 border border-ink-600 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:border-copper-500/60 focus:ring-1 focus:ring-copper-500/30 transition-all;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-300 mb-1.5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .badge-high {
+    @apply badge bg-rust-500/20 text-rust-400 border border-rust-500/30;
+  }
+  .badge-medium {
+    @apply badge bg-amber-soft/20 text-amber-soft border border-amber-soft/30;
+  }
+  .badge-low {
+    @apply badge bg-jade-500/20 text-jade-400 border border-jade-500/30;
+  }
+  .badge-pass {
+    @apply badge bg-jade-500/15 text-jade-400;
+  }
+  .badge-warning {
+    @apply badge bg-amber-soft/15 text-amber-soft;
+  }
+  .badge-fail {
+    @apply badge bg-rust-500/15 text-rust-400;
+  }
+  .badge-untested {
+    @apply badge bg-gray-500/15 text-gray-400;
+  }
+  .step-connector {
+    @apply h-0.5 flex-1 mx-2 transition-colors duration-500;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-ink-600 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-700;
+  }
+}
+
+.bg-grain-layer::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
