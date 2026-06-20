@@ -11,6 +11,9 @@ import {
   MapPin,
   Calendar,
   Clock,
+  Phone,
+  Users,
+  AlertTriangle,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
@@ -193,6 +196,67 @@ export function DepartureConfirm() {
             )}
           </div>
         </div>
+
+        <div className="bg-gray-50 rounded-xl p-5 mb-8 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Phone size={20} className="text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">紧急联系人</p>
+              <p className="font-semibold text-gray-800">{elder.contactName}</p>
+            </div>
+            <a
+              href={`tel:${elder.contactPhone}`}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors flex items-center gap-1"
+            >
+              <Phone size={16} />
+              拨打电话
+            </a>
+          </div>
+          <div className="pl-13">
+            <p className="text-xl font-bold text-blue-600 tracking-wider">
+              {elder.contactPhone}
+            </p>
+          </div>
+        </div>
+
+        {appointment.needsCompanion && (
+          <div className="bg-warning-50 border-2 border-warning-200 rounded-xl p-5 mb-8">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle size={20} className="text-warning-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-warning-700 flex items-center gap-2">
+                  <Users size={18} />
+                  需要家属陪同
+                </p>
+                <p className="text-sm text-warning-600 mt-1">
+                  上门服务前请确认家属已在场，如无人陪同请及时联系
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {(appointment.needsShampoo || appointment.needsWheelchair) && (
+          <div className="bg-gray-50 rounded-xl p-5 mb-8">
+            <h3 className="text-sm font-medium text-gray-500 mb-3">特殊需求</h3>
+            <div className="flex gap-2 flex-wrap">
+              {appointment.needsShampoo && (
+                <span className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg text-sm font-medium">
+                  需要洗发
+                </span>
+              )}
+              {appointment.needsWheelchair && (
+                <span className="px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg text-sm font-medium">
+                  需要轮椅位
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4 mb-8">
           <h2 className="text-lg font-semibold text-gray-800">物品清单</h2>

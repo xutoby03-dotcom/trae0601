@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Check,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { useElderStore } from "../store/useElderStore";
 import { useBarberStore } from "../store/useBarberStore";
@@ -42,6 +43,7 @@ export function AppointmentForm({}: NewAppointmentProps) {
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
   const [needsShampoo, setNeedsShampoo] = useState(false);
   const [needsWheelchair, setNeedsWheelchair] = useState(false);
+  const [needsCompanion, setNeedsCompanion] = useState(false);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export function AppointmentForm({}: NewAppointmentProps) {
       serviceType,
       needsShampoo,
       needsWheelchair,
+      needsCompanion,
       notes,
     });
 
@@ -295,10 +298,10 @@ export function AppointmentForm({}: NewAppointmentProps) {
                 </div>
               </div>
 
-              <div className="flex gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <label
                   onClick={() => setNeedsShampoo(!needsShampoo)}
-                  className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     needsShampoo
                       ? "border-blue-400 bg-blue-50"
                       : "border-gray-100 hover:border-gray-200"
@@ -322,7 +325,7 @@ export function AppointmentForm({}: NewAppointmentProps) {
 
                 <label
                   onClick={() => setNeedsWheelchair(!needsWheelchair)}
-                  className={`flex-1 flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                     needsWheelchair
                       ? "border-purple-400 bg-purple-50"
                       : "border-gray-100 hover:border-gray-200"
@@ -343,6 +346,32 @@ export function AppointmentForm({}: NewAppointmentProps) {
                   <div>
                     <p className="font-medium text-gray-800">需要轮椅位</p>
                     <p className="text-sm text-gray-500">特殊需求</p>
+                  </div>
+                </label>
+
+                <label
+                  onClick={() => setNeedsCompanion(!needsCompanion)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    needsCompanion
+                      ? "border-primary-400 bg-primary-50"
+                      : "border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      needsCompanion ? "bg-primary-100" : "bg-gray-100"
+                    }`}
+                  >
+                    <Users
+                      size={20}
+                      className={
+                        needsCompanion ? "text-primary-500" : "text-gray-400"
+                      }
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">家属陪同</p>
+                    <p className="text-sm text-gray-500">需家属在场</p>
                   </div>
                 </label>
               </div>
@@ -420,10 +449,10 @@ export function AppointmentForm({}: NewAppointmentProps) {
                   </div>
                 </div>
 
-                {(needsShampoo || needsWheelchair) && (
+                {(needsShampoo || needsWheelchair || needsCompanion) && (
                   <div className="mt-4 pt-4 border-t border-primary-100">
                     <p className="text-sm text-gray-500 mb-2">特殊需求</p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {needsShampoo && (
                         <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm">
                           需要洗发
@@ -432,6 +461,11 @@ export function AppointmentForm({}: NewAppointmentProps) {
                       {needsWheelchair && (
                         <span className="px-3 py-1 bg-purple-100 text-purple-600 rounded-full text-sm">
                           需要轮椅位
+                        </span>
+                      )}
+                      {needsCompanion && (
+                        <span className="px-3 py-1 bg-primary-100 text-primary-600 rounded-full text-sm">
+                          家属陪同
                         </span>
                       )}
                     </div>

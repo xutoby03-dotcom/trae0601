@@ -13,6 +13,7 @@ import {
   Sparkles,
   RotateCcw,
   CheckCircle,
+  Users,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
@@ -131,11 +132,19 @@ function BoardColumn({
                     </span>
                   )}
                 </div>
-                {apt.needsWheelchair && (
-                  <div className="mt-2">
-                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full">
-                      需轮椅位
-                    </span>
+                {(apt.needsWheelchair || apt.needsCompanion) && (
+                  <div className="mt-2 flex gap-1 flex-wrap">
+                    {apt.needsWheelchair && (
+                      <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full">
+                        需轮椅位
+                      </span>
+                    )}
+                    {apt.needsCompanion && (
+                      <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-600 rounded-full flex items-center gap-1">
+                        <Users size={10} />
+                        家属陪同
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

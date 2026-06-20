@@ -145,6 +145,7 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
       nextSuggestedTime: aptData.nextSuggestedTime || "",
       needsShampoo: aptData.needsShampoo || false,
       needsWheelchair: aptData.needsWheelchair || false,
+      needsCompanion: aptData.needsCompanion || false,
       notes: aptData.notes || "",
       serviceType: aptData.serviceType as ServiceType,
     };

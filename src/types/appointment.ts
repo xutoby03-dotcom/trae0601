@@ -19,6 +19,7 @@ export interface Appointment {
   serviceType: ServiceType;
   needsShampoo: boolean;
   needsWheelchair: boolean;
+  needsCompanion: boolean;
   notes: string;
   status: AppointmentStatus;
   toolsChecked: boolean;

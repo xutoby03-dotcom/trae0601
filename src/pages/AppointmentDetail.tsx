@@ -16,6 +16,7 @@ import {
   Star,
   Banknote,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
@@ -280,6 +281,18 @@ export function AppointmentDetail() {
                   <div>
                     <p className="font-medium text-gray-800">需要轮椅位</p>
                     <p className="text-sm text-gray-500">特殊需求</p>
+                  </div>
+                </div>
+              )}
+
+              {appointment.needsCompanion && (
+                <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl">
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Users size={20} className="text-primary-500" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800">需要家属陪同</p>
+                    <p className="text-sm text-gray-500">家属需在场</p>
                   </div>
                 </div>
               )}

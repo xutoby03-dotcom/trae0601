@@ -8,6 +8,7 @@ import {
   Scissors,
   Filter,
   ChevronDown,
+  Users,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
@@ -214,8 +215,8 @@ export function AppointmentList() {
                     <span className="text-gray-700">
                       {serviceTypeLabels[apt.serviceType]}
                     </span>
-                    {(apt.needsShampoo || apt.needsWheelchair) && (
-                      <div className="flex gap-1 mt-1">
+                    {(apt.needsShampoo || apt.needsWheelchair || apt.needsCompanion) && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
                         {apt.needsShampoo && (
                           <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">
                             洗发
@@ -224,6 +225,12 @@ export function AppointmentList() {
                         {apt.needsWheelchair && (
                           <span className="text-xs px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full">
                             轮椅位
+                          </span>
+                        )}
+                        {apt.needsCompanion && (
+                          <span className="text-xs px-2 py-0.5 bg-primary-50 text-primary-600 rounded-full flex items-center gap-1">
+                            <Users size={10} />
+                            家属陪同
                           </span>
                         )}
                       </div>
