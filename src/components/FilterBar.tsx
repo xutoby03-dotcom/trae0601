@@ -245,7 +245,134 @@ export default function FilterBar() {
             );
           })}
         </div>
+
+        {/* 已选条件条 */}
+        {hasActiveFilter && (
+          <div className="mt-3 pt-3 border-t border-clay-300/60 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-clay-500 mr-1">已选：</span>
+            {filters.colorFamily !== "全部" && (
+              <FilterChip
+                label="色系"
+                value={filters.colorFamily}
+                dotColor={COLOR_FAMILY_MAP[filters.colorFamily as ColorFamily]}
+                onClear={() => setFilters({ colorFamily: "全部" })}
+              />
+            )}
+            {filters.temperatureRange && (
+              <FilterChip
+                label="温度"
+                value={`${filters.temperatureRange[0]}-${filters.temperatureRange[1]}℃`}
+                accent="#D4A853"
+                onClear={() => setFilters({ temperatureRange: null })}
+              />
+            )}
+            {filters.clayType !== "全部" && (
+              <FilterChip
+                label="泥料"
+                value={filters.clayType}
+                accent="#5B8A72"
+                onClear={() => setFilters({ clayType: "全部" })}
+              />
+            )}
+            {filters.atmosphere !== "全部" && (
+              <FilterChip
+                label="气氛"
+                value={filters.atmosphere}
+                accent="#A34B3B"
+                onClear={() => setFilters({ atmosphere: "全部" })}
+              />
+            )}
+            {filters.kilnPosition !== "全部" && (
+              <FilterChip
+                label="窑位"
+                value={filters.kilnPosition}
+                accent="#3B5A8A"
+                onClear={() => setFilters({ kilnPosition: "全部" })}
+              />
+            )}
+            {filters.glazeName !== "全部" && (
+              <GlazeChip
+                value={filters.glazeName}
+                onClear={() => setFilters({ glazeName: "全部" })}
+              />
+            )}
+            {filters.searchKeyword && (
+              <FilterChip
+                label="关键词"
+                value={filters.searchKeyword}
+                accent="#8B5A8A"
+                onClear={() => setFilters({ searchKeyword: "" })}
+              />
+            )}
+            <button
+              onClick={resetFilters}
+              className="ml-auto text-[11px] text-clay-500 hover:text-clay-800 underline underline-offset-2"
+            >
+              清空全部
+            </button>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+interface ChipProps {
+  label: string;
+  value: string;
+  accent?: string;
+  dotColor?: string;
+  onClear: () => void;
+}
+
+function FilterChip({ label, value, accent, dotColor, onClear }: ChipProps) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-clay-50 border border-clay-300/70 text-[11px] shadow-sm"
+    >
+      {dotColor ? (
+        <span
+          className="w-2 h-2 rounded-full ring-1 ring-clay-400/30"
+          style={{ backgroundColor: dotColor }}
+        />
+      ) : (
+        <span
+          className="text-[10px] font-semibold px-1 rounded"
+          style={{ color: accent ?? "#8B7656", backgroundColor: `${accent ?? "#8B7656"}18` }}
+        >
+          {label}
+        </span>
+      )}
+      <span className="text-clay-700 font-medium max-w-[120px] truncate">
+        {value}
+      </span>
+      <button
+        onClick={onClear}
+        className="w-4 h-4 -mr-0.5 rounded-full hover:bg-clay-200 flex items-center justify-center text-clay-500 hover:text-clay-800"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </span>
+  );
+}
+
+function GlazeChip({ value, onClear }: { value: string; onClear: () => void }) {
+  const glazeNameSet = new Set(TEST_SAMPLES.map((s) => s.glazeName));
+  const isRecipeVersion = !glazeNameSet.has(value);
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-clay-50 border border-clay-300/70 text-[11px] shadow-sm">
+      <span className="text-[10px] font-semibold px-1 rounded bg-glaze-amber/18 text-glaze-amber">
+        {isRecipeVersion ? "配方版本" : "釉料"}
+      </span>
+      <span className="text-clay-700 font-medium max-w-[140px] truncate">
+        {value}
+      </span>
+      <button
+        onClick={onClear}
+        className="w-4 h-4 -mr-0.5 rounded-full hover:bg-clay-200 flex items-center justify-center text-clay-500 hover:text-clay-800"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </span>
   );
 }
