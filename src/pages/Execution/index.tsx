@@ -88,7 +88,7 @@ function PhotoModal({ item, board, poster, onClose, onConfirm }: PhotoModalProps
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between">
           <h3 className="text-xl font-bold text-gray-900">张贴确认</h3>
           <button
@@ -100,34 +100,62 @@ function PhotoModal({ item, board, poster, onClose, onConfirm }: PhotoModalProps
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-            {poster && (
-              <img
-                src={poster.imageUrl}
-                alt={poster.activityName}
-                className="w-20 h-28 object-cover rounded-lg shadow"
-              />
-            )}
-            <div className="flex-1">
-              <h4 className="text-lg font-bold text-gray-900 mb-1">
-                {poster?.activityName || '未知活动'}
-              </h4>
-              <p className="text-sm text-gray-500 mb-2">
-                {board?.name || '未知公告栏'}
-              </p>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{board?.location || '未知位置'}</span>
-                <span className="mx-2">·</span>
-                <Package className="w-4 h-4" />
-                <span>{item.quantity} 张</span>
-                {item.needTop && (
-                  <>
-                    <span className="mx-2">·</span>
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span>置顶</span>
-                  </>
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <p className="text-sm font-medium text-gray-500 mb-2">海报图片</p>
+              {poster && (
+                <div className="aspect-[3/4] rounded-xl overflow-hidden shadow-lg">
+                  <img
+                    src={poster.imageUrl}
+                    alt={poster.activityName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h4 className="font-bold text-gray-900 mb-1">
+                  {poster?.activityName || '未知活动'}
+                </h4>
+                <p className="text-sm text-gray-500">{poster?.club || '未知社团'}</p>
+                <p className="text-xs text-primary-600 font-mono mt-1">
+                  {poster?.approvalNumber || ''}
+                </p>
+              </div>
+            </div>
+            <div className="md:col-span-2 space-y-4">
+              <p className="text-sm font-medium text-gray-500 mb-2">张贴详情</p>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                  <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{board?.name || '未知公告栏'}</p>
+                    <p className="text-sm text-gray-500">{board?.location || '未知位置'}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Package className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">张贴数量</p>
+                      <p className="font-bold text-gray-900 text-xl">{item.quantity} 张</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Star className="w-5 h-5 text-amber-600 fill-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">置顶位置</p>
+                      <p className="font-bold text-gray-900 text-xl">
+                        {item.needTop ? '是' : '否'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -250,9 +278,14 @@ export default function Execution() {
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   const { postingItems, confirmPosting } = usePostingStore();
-  const { applications, getApplicationById } = useApplicationStore();
-  const { getPosterById, updateStatus } = usePosterStore();
-  const { getBulletinBoardById } = useBulletinBoardStore();
+  const applications = useApplicationStore((state) => state.applications);
+  const posters = usePosterStore((state) => state.posters);
+  const updateStatus = usePosterStore((state) => state.updateStatus);
+  const bulletinBoards = useBulletinBoardStore((state) => state.bulletinBoards);
+
+  const getApplicationById = (id: string) => applications.find(a => a.id === id);
+  const getPosterById = (id: string) => posters.find(p => p.id === id);
+  const getBulletinBoardById = (id: string) => bulletinBoards.find(b => b.id === id);
 
   const pendingGroups = useMemo<PostingGroup[]>(() => {
     const approvedApplications = applications.filter(
@@ -281,7 +314,7 @@ export default function Execution() {
         };
       })
       .filter((group): group is PostingGroup => group !== null);
-  }, [applications, postingItems, getPosterById]);
+  }, [applications, postingItems, posters]);
 
   const historyGroups = useMemo<PostingGroup[]>(() => {
     const approvedApplications = applications.filter(
@@ -310,7 +343,7 @@ export default function Execution() {
         };
       })
       .filter((group): group is PostingGroup => group !== null);
-  }, [applications, postingItems, getPosterById]);
+  }, [applications, postingItems, posters]);
 
   const currentGroups = activeTab === 'pending' ? pendingGroups : historyGroups;
 
