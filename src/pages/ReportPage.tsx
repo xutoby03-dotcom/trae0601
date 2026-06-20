@@ -2,11 +2,12 @@ import { useState, useMemo } from 'react';
 import { Header } from '../components/layout/Header';
 import { useIssueStore } from '../stores/useIssueStore';
 import { useMaintenanceStore } from '../stores/useMaintenanceStore';
-import { calculateIceScore, getIssueTypeLabel, getSeverityColor, getSeverityLabel } from '../utils/severityCalc';
-import { FileText, User, Calendar, Clock, AlertTriangle, Check, Download, Share2, Edit3 } from 'lucide-react';
+import { calculateIceScore, getIssueTypeLabel, getSeverityColor, getSeverityLabel, sortIssuesByPriority } from '../utils/severityCalc';
+import { FileText, User, Calendar, Clock, AlertTriangle, Check, Download, Share2, Edit3, Flag, ArrowRight } from 'lucide-react';
 import { mockShiftReports } from '../data/mockData';
 import { cn } from '@/lib/utils';
 import type { ShiftType } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 export default function ReportPage() {
   const { issues } = useIssueStore();
@@ -70,11 +71,169 @@ export default function ReportPage() {
   const circumference = 2 * Math.PI * 60;
   const strokeDashoffset = circumference - (iceScore / 100) * circumference;
 
+  const navigate = useNavigate();
+  const sortedUnresolved = sortIssuesByPriority(unresolvedIssues, false);
+  const topRisk = sortedUnresolved[0];
+  const highCount = unresolvedIssues.filter((i) => i.severity === 'high').length;
+  const grooveCount = unresolvedIssues.filter((i) => i.type === 'groove').length;
+  const waterCount = unresolvedIssues.filter((i) => i.type === 'water').length;
+  const closedCount = unresolvedIssues.filter((i) => i.type === 'closed_area').length;
+  const debrisCount = unresolvedIssues.filter((i) => i.type === 'ice_debris').length;
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header title="交接报告" subtitle="班次工作交接与冰面状态摘要" />
 
       <div className="p-6 space-y-6">
+        <div
+          className={cn(
+            'rounded-2xl p-5 border backdrop-blur-sm',
+            unresolvedIssues.length === 0
+              ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30'
+              : highCount > 0
+              ? 'bg-gradient-to-r from-red-500/15 via-orange-500/10 to-amber-500/10 border-red-500/30'
+              : 'bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border-amber-500/30'
+          )}
+        >
+          <div className="flex items-start gap-4">
+            <div
+              className={cn(
+                'w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0',
+                unresolvedIssues.length === 0
+                  ? 'bg-emerald-500/20'
+                  : highCount > 0
+                  ? 'bg-red-500/20 animate-pulse'
+                  : 'bg-amber-500/20'
+              )}
+            >
+              {unresolvedIssues.length === 0 ? (
+                <Check className="w-7 h-7 text-emerald-400" />
+              ) : (
+                <AlertTriangle
+                  className={cn(
+                    'w-7 h-7',
+                    highCount > 0 ? 'text-red-400' : 'text-amber-400'
+                  )}
+                />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h2
+                  className={cn(
+                    'text-xl font-bold',
+                    unresolvedIssues.length === 0
+                      ? 'text-emerald-300'
+                      : highCount > 0
+                      ? 'text-red-300'
+                      : 'text-amber-300'
+                  )}
+                >
+                  交接待办摘要
+                </h2>
+                {unresolvedIssues.length === 0 ? (
+                  <span className="text-xs bg-emerald-500 text-white px-2.5 py-0.5 rounded-full font-medium">
+                    全部就绪
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      'text-xs px-2.5 py-0.5 rounded-full font-medium',
+                      highCount > 0
+                        ? 'bg-red-500 text-white animate-pulse'
+                        : 'bg-amber-500 text-slate-900'
+                    )}
+                  >
+                    {unresolvedIssues.length} 项待办
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-5 gap-3 mb-3 max-w-xl">
+                <TodoChip
+                  label="高危"
+                  value={highCount}
+                  tone={highCount > 0 ? 'danger' : 'muted'}
+                />
+                <TodoChip label="起槽" value={grooveCount} tone={grooveCount > 0 ? 'warn' : 'muted'} />
+                <TodoChip label="积水" value={waterCount} tone={waterCount > 0 ? 'warn' : 'muted'} />
+                <TodoChip label="封区" value={closedCount} tone={closedCount > 0 ? 'warn' : 'muted'} />
+                <TodoChip label="碎冰" value={debrisCount} tone={debrisCount > 0 ? 'info' : 'muted'} />
+              </div>
+
+              {topRisk ? (
+                <div
+                  className={cn(
+                    'inline-flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm max-w-full',
+                    highCount > 0
+                      ? 'bg-red-500/15 border border-red-500/30'
+                      : 'bg-amber-500/15 border border-amber-500/30'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-md font-bold text-xs flex-shrink-0',
+                      highCount > 0 ? 'bg-red-500 text-white' : 'bg-amber-500 text-slate-900'
+                    )}
+                  >
+                    最高风险
+                  </span>
+                  <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                    <span
+                      className={cn(
+                        'font-semibold',
+                        highCount > 0 ? 'text-red-200' : 'text-amber-200'
+                      )}
+                    >
+                      {getIssueTypeLabel(topRisk.type)}
+                      <span className="ml-2 text-xs opacity-80">
+                        [{getSeverityLabel(topRisk.severity)}]
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        'text-xs truncate',
+                        highCount > 0 ? 'text-red-300/80' : 'text-amber-300/80'
+                      )}
+                    >
+                      {topRisk.description || '点击查看详情'}
+                    </span>
+                  </div>
+                  <span
+                    className={cn(
+                      'text-xs flex-shrink-0 font-mono',
+                      highCount > 0 ? 'text-red-300/80' : 'text-amber-300/80'
+                    )}
+                  >
+                    ({topRisk.x.toFixed(1)}, {topRisk.y.toFixed(1)})
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-emerald-300/80 bg-emerald-500/10 inline-block px-4 py-2 rounded-xl">
+                  ✨ 所有问题已处理完毕，冰面状态良好
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigate('/pre-race')}
+              className={cn(
+                'flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all',
+                unresolvedIssues.length === 0
+                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  : highCount > 0
+                  ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                  : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+              )}
+            >
+              <Flag className="w-4 h-4" />
+              赛前检查
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-8 space-y-6">
             <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
@@ -387,6 +546,52 @@ function StatItem({ label, value, unit, color = 'text-white' }: { label: string;
         <span className="text-xs text-slate-500">{unit}</span>
       </div>
       <p className="text-xs text-slate-500 mt-1">{label}</p>
+    </div>
+  );
+}
+
+type TodoChipTone = 'danger' | 'warn' | 'info' | 'muted';
+
+const toneStyles: Record<TodoChipTone, { bg: string; text: string; ring: string; label: string }> = {
+  danger: {
+    bg: 'bg-red-500/20',
+    text: 'text-red-300',
+    ring: 'ring-red-500/40',
+    label: 'text-red-200',
+  },
+  warn: {
+    bg: 'bg-amber-500/20',
+    text: 'text-amber-300',
+    ring: 'ring-amber-500/40',
+    label: 'text-amber-200',
+  },
+  info: {
+    bg: 'bg-sky-500/20',
+    text: 'text-sky-300',
+    ring: 'ring-sky-500/40',
+    label: 'text-sky-200',
+  },
+  muted: {
+    bg: 'bg-slate-700/30',
+    text: 'text-slate-400',
+    ring: 'ring-slate-600/30',
+    label: 'text-slate-400',
+  },
+};
+
+function TodoChip({ label, value, tone }: { label: string; value: number; tone: TodoChipTone }) {
+  const s = toneStyles[tone];
+  return (
+    <div
+      className={cn(
+        'rounded-lg px-3 py-2 ring-1',
+        s.bg,
+        s.ring,
+        value > 0 && tone === 'danger' && 'animate-pulse'
+      )}
+    >
+      <div className={cn('text-xl font-bold font-mono', s.text)}>{value}</div>
+      <div className={cn('text-[11px] font-medium', s.label)}>{label}</div>
     </div>
   );
 }

@@ -30,6 +30,15 @@ export default function PreRacePage() {
   const unresolvedIssues = issues.filter((i) => !i.resolved);
   const sortedIssues = sortIssuesByPriority(unresolvedIssues, true);
 
+  const criticalTypes = new Set(['groove', 'water', 'closed_area']);
+  const criticalIssues = unresolvedIssues.filter(
+    (i) => i.severity === 'high' && criticalTypes.has(i.type)
+  );
+  const normalIssues = unresolvedIssues.filter(
+    (i) => !(i.severity === 'high' && criticalTypes.has(i.type))
+  );
+  const topCritical = criticalIssues[0] || sortedIssues[0];
+
   const filteredIssues = useMemo(() => {
     if (filter === 'all') return sortedIssues;
     return sortedIssues.filter((i) => i.severity === filter);
@@ -153,6 +162,47 @@ export default function PreRacePage() {
                 </div>
               </div>
 
+              {criticalIssues.length > 0 && (
+                <div className="mb-4 rounded-xl bg-red-500/15 border border-red-500/40 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-red-300 mb-2">
+                        关键风险 · 赛前必须处理 ({criticalIssues.length} 处)
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {criticalIssues.slice(0, 5).map((issue, idx) => (
+                          <span
+                            key={issue.id}
+                            onClick={() => setSelectedIssue(issue.id)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500/30 border border-red-500/50 text-red-200 text-xs font-medium cursor-pointer hover:bg-red-500/50 transition-colors"
+                          >
+                            <span>{idx + 1}.</span>
+                            <span>{getIssueTypeLabel(issue.type)}</span>
+                            <span className="text-red-300/80">
+                              ({issue.x.toFixed(0)}, {issue.y.toFixed(0)})
+                            </span>
+                          </span>
+                        ))}
+                        {criticalIssues.length > 5 && (
+                          <span className="text-xs text-red-300/70 self-center px-2">
+                            +{criticalIssues.length - 5} 处
+                          </span>
+                        )}
+                      </div>
+                      {topCritical && (
+                        <p className="mt-3 text-xs text-red-200/90 bg-red-500/10 rounded-md px-3 py-2 inline-block">
+                          <span className="text-red-300 font-semibold">优先处理：</span>
+                          {getIssueTypeLabel(topCritical.type)}
+                          {topCritical.description ? ` · ${topCritical.description}` : ''}
+                          <span className="text-red-300/80"> · 位置 ({topCritical.x.toFixed(1)}, {topCritical.y.toFixed(1)})</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 border border-red-500/20">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(239,68,68,0.1),transparent_60%)] pointer-events-none" />
 
@@ -182,16 +232,33 @@ export default function PreRacePage() {
                     <line x1={width / 2} y1={0} x2={width / 2} y2={height} strokeDasharray="10,5" />
                   </g>
 
-                  {filteredIssues.map((issue) => (
-                    <IssueMarkerDot
-                      key={issue.id}
-                      issue={issue}
-                      scale={SCALE}
-                      selected={selectedIssue === issue.id}
-                      onClick={() => setSelectedIssue(selectedIssue === issue.id ? null : issue.id)}
-                      pulse={true}
-                    />
-                  ))}
+                  {filter !== 'high' &&
+                    normalIssues
+                      .filter((i) => filter === 'all' || i.severity === filter)
+                      .map((issue) => (
+                        <IssueMarkerDot
+                          key={issue.id}
+                          issue={issue}
+                          scale={SCALE}
+                          selected={selectedIssue === issue.id}
+                          onClick={() => setSelectedIssue(selectedIssue === issue.id ? null : issue.id)}
+                          pulse={true}
+                          critical={false}
+                        />
+                      ))}
+
+                  {(filter === 'all' || filter === 'high') &&
+                    criticalIssues.map((issue) => (
+                      <IssueMarkerDot
+                        key={`crit-${issue.id}`}
+                        issue={issue}
+                        scale={SCALE}
+                        selected={selectedIssue === issue.id}
+                        onClick={() => setSelectedIssue(selectedIssue === issue.id ? null : issue.id)}
+                        pulse={true}
+                        critical={true}
+                      />
+                    ))}
                 </svg>
 
                 {selectedIssue && (
