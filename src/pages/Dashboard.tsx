@@ -2,6 +2,7 @@ import { useStore } from "@/store/useStore";
 import { AlertTriangle, Clock, Send, Package } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
@@ -23,6 +24,7 @@ function AnimatedNumber({ value }: { value: number }) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { getPendingDistributionExams, getPendingCollectionDistributions, getAnomalyCollections, getRoomUsageData, inventory, getTotalRemaining } = useStore();
 
   const pendingDist = getPendingDistributionExams();
@@ -62,15 +64,18 @@ export default function Dashboard() {
           <p className="text-xs text-slate-400 mt-1">个考场</p>
         </div>
 
-        <div className={`bg-white rounded-xl p-5 shadow-sm border hover:shadow-md transition-shadow ${anomalies.length > 0 ? "border-red-200 animate-pulse-red" : "border-slate-100"}`}>
+        <div
+          onClick={() => { if (anomalies.length > 0) navigate("/collection?filter=anomaly"); }}
+          className={`bg-white rounded-xl p-5 shadow-sm border hover:shadow-md transition-all ${anomalies.length > 0 ? "border-red-200 animate-pulse-red cursor-pointer" : "border-slate-100"}`}
+        >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-slate-500 font-medium">数量异常</span>
+            <span className={`text-sm font-medium ${anomalies.length > 0 ? "text-red-600" : "text-slate-500"}`}>数量异常</span>
             <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
               <AlertTriangle size={18} className="text-red-500" />
             </div>
           </div>
           <p className="text-3xl font-bold text-red-500"><AnimatedNumber value={anomalies.length} /></p>
-          <p className="text-xs text-slate-400 mt-1">个考场</p>
+          <p className={`text-xs mt-1 ${anomalies.length > 0 ? "text-red-400" : "text-slate-400"}`}>{anomalies.length > 0 ? "点击查看异常考场 →" : "个考场"}</p>
         </div>
 
         <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">

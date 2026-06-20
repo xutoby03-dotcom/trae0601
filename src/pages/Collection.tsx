@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "@/store/useStore";
-import { Plus, Lock, Unlock, AlertTriangle, RotateCcw } from "lucide-react";
+import { Plus, Lock, Unlock, AlertTriangle, RotateCcw, X, Filter } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 export default function Collection() {
   const { distributions, collections, exams, addCollection, unlockCollection } = useStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [selectedDistId, setSelectedDistId] = useState("");
+  const [onlyAnomaly, setOnlyAnomaly] = useState(false);
   const [form, setForm] = useState({
     distributionId: "",
     examId: "",
@@ -15,8 +19,26 @@ export default function Collection() {
     abnormalNote: "",
   });
 
+  useEffect(() => {
+    if (searchParams.get("filter") === "anomaly") {
+      setOnlyAnomaly(true);
+    }
+  }, [searchParams]);
+
+  function clearFilter() {
+    setOnlyAnomaly(false);
+    const next = new URLSearchParams(searchParams);
+    next.delete("filter");
+    setSearchParams(next, { replace: true });
+    navigate({ search: "" });
+  }
+
   const collectedDistIds = new Set(collections.map((c) => c.distributionId));
   const pendingDistributions = distributions.filter((d) => !collectedDistIds.has(d.id));
+
+  const filteredCollections = onlyAnomaly
+    ? collections.filter((c) => c.missingCount > 0 || c.abnormalNote.trim() !== "")
+    : collections;
 
   function handleSelectDist(distId: string) {
     const dist = distributions.find((d) => d.id === distId);
@@ -55,8 +77,49 @@ export default function Collection() {
         </button>
       </div>
 
+      {(onlyAnomaly || collections.length > 0) && (
+        <div className="mb-5 flex items-center gap-3 bg-white rounded-xl shadow-sm border border-slate-100 px-4 py-3">
+          <label
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
+              onlyAnomaly ? "bg-red-50 text-red-600 border border-red-200" : "text-slate-500 hover:bg-slate-50"
+            }`}
+          >
+            <Filter size={14} />
+            <input
+              type="checkbox"
+              checked={onlyAnomaly}
+              onChange={(e) => {
+                setOnlyAnomaly(e.target.checked);
+                if (!e.target.checked) {
+                  const next = new URLSearchParams(searchParams);
+                  next.delete("filter");
+                  navigate({ search: next.toString() }, { replace: true });
+                } else {
+                  navigate({ search: "filter=anomaly" }, { replace: true });
+                }
+              }}
+              className="sr-only"
+            />
+            只看异常
+            <span className={`text-xs ${onlyAnomaly ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"} px-1.5 py-0.5 rounded-full font-semibold`}>
+              {onlyAnomaly ? filteredCollections.length : collections.length}
+            </span>
+          </label>
+
+          {onlyAnomaly && (
+            <button
+              onClick={clearFilter}
+              className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              <X size={12} />
+              清空筛选
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
-        {collections.map((col) => {
+        {filteredCollections.map((col) => {
           const dist = distributions.find((d) => d.id === col.distributionId);
           const exam = exams.find((e) => e.id === col.examId);
           const totalCount = col.usedCount + col.blankCount + col.missingCount;
@@ -129,10 +192,10 @@ export default function Collection() {
         })}
       </div>
 
-      {collections.length === 0 && (
+      {filteredCollections.length === 0 && (
         <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
           <RotateCcw size={32} className="text-slate-300" />
-          暂无回收记录
+          {onlyAnomaly ? "当前没有异常回收记录" : "暂无回收记录"}
         </div>
       )}
 
