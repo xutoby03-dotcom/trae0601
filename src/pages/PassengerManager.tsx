@@ -397,7 +397,7 @@ export default function PassengerManager() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.name || !form.flightNumber || !form.landingTime}
+                disabled={!form.name || !form.flightNumber}
                 className="flex-1 py-3.5 rounded-xl bg-[#FF6B2B] text-white font-semibold hover:bg-[#e55d22] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {editingId ? "保存修改" : "添加乘客"}
