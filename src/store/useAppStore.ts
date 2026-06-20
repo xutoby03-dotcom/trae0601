@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Song, Tag, Section, Member, TagType, TagStatus, SectionType } from '@/types';
-import { DEFAULT_MEMBERS } from '@/types';
+import { DEFAULT_MEMBERS, SECTION_TYPE_LABELS } from '@/types';
 import { generateId, generateMockWaveform } from '@/utils';
 import {
   loadSongs,
@@ -151,7 +151,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     const songs = [...get().songs, song];
     saveSongs(songs);
-    set({ songs });
+
+    const defaultSections: Array<{ type: SectionType; name: string; ratio: [number, number]; color: string }> = [
+      { type: 'intro', name: '前奏', ratio: [0, 0.1], color: '#3b82f6' },
+      { type: 'verse', name: '主歌1', ratio: [0.1, 0.3], color: '#22c55e' },
+      { type: 'chorus', name: '副歌1', ratio: [0.3, 0.48], color: '#f97316' },
+      { type: 'verse', name: '主歌2', ratio: [0.48, 0.65], color: '#22c55e' },
+      { type: 'chorus', name: '副歌2', ratio: [0.65, 0.82], color: '#f97316' },
+      { type: 'bridge', name: 'Bridge', ratio: [0.82, 0.92], color: '#8b5cf6' },
+      { type: 'outro', name: '尾奏', ratio: [0.92, 1], color: '#6b7280' },
+    ];
+
+    const newSections: Section[] = defaultSections.map((s) => ({
+      id: generateId(),
+      songId: song.id,
+      name: s.name,
+      type: s.type,
+      startTime: duration * s.ratio[0],
+      endTime: duration * s.ratio[1],
+      color: s.color,
+    }));
+
+    const sections = [...get().sections, ...newSections];
+    saveSections(sections);
+
+    set({ songs, sections });
     return song;
   },
 

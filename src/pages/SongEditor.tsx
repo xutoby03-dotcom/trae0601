@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ZoomIn, ZoomOut, Maximize2, PanelRight, Settings } from 'lucide-react';
+import { ArrowLeft, ZoomIn, ZoomOut, Maximize2, PanelRight } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { WaveformCanvas } from '@/components/WaveformCanvas';
 import { PlayerControls } from '@/components/PlayerControls';
 import { TagToolbar } from '@/components/TagToolbar';
 import { TagList } from '@/components/TagList';
 import { TagFilters } from '@/components/TagFilters';
-import { SectionList } from '@/components/SectionList';
-import type { TagType, TagStatus } from '@/types';
+import { SectionEditor } from '@/components/SectionEditor';
+import type { TagType } from '@/types';
 
 export default function SongEditor() {
   const { id } = useParams<{ id: string }>();
@@ -41,11 +41,15 @@ export default function SongEditor() {
     setFilterStatus,
     setFilterType,
     setFilterAssignee,
+    setCurrentSongId,
     addTag,
     deleteTag,
     updateTag,
     setTagStatus,
     setTagAssignee,
+    addSection,
+    deleteSection,
+    updateSection,
     getCurrentTags,
     getCurrentSections,
     getFilteredTags,
@@ -62,6 +66,15 @@ export default function SongEditor() {
       initData();
     }
   }, []);
+
+  useEffect(() => {
+    if (id) {
+      setCurrentSongId(id);
+    }
+    return () => {
+      setCurrentSongId(null);
+    };
+  }, [id, setCurrentSongId]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -336,17 +349,16 @@ export default function SongEditor() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <SectionList
+                  <SectionEditor
                     sections={songSections}
                     tags={songTags}
+                    songDuration={song.duration}
+                    songId={song.id}
                     onSectionClick={handleSeek}
+                    onAddSection={addSection}
+                    onDeleteSection={deleteSection}
+                    onUpdateSection={updateSection}
                   />
-                  <div className="p-3 bg-slate-800/30 rounded-lg border border-slate-700/50 text-xs text-slate-500">
-                    <p className="flex items-center gap-2">
-                      <Settings size={12} />
-                      段落编辑功能即将上线
-                    </p>
-                  </div>
                 </div>
               )}
             </div>
