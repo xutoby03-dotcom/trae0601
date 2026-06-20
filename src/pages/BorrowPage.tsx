@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Calendar, Clock, User, MapPin, Package, AlertTriangle, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -11,17 +11,28 @@ export default function BorrowPage() {
   const navigate = useNavigate();
   const { headsets, borrowRecords, addBorrowRecord } = useStore();
   
-  const unreturnedBorrowHeadsetIds = new Set(
-    borrowRecords
+  const unreturnedBorrowHeadsetIds = useMemo(() => {
+    const ids = borrowRecords
       .filter(r => r.status === 'borrowed' || r.status === 'overdue')
-      .map(r => r.headsetId)
-  );
+      .map(r => r.headsetId);
+    return new Set(ids);
+  }, [borrowRecords]);
   
-  const availableHeadsets = headsets.filter(h => 
-    h.status === 'available' && 
-    !h.receiverLost && 
-    !h.microphoneIssue &&
-    !unreturnedBorrowHeadsetIds.has(h.id)
+  const availableHeadsetIds = useMemo(() => {
+    const ids = headsets
+      .filter(h => 
+        h.status === 'available' && 
+        !h.receiverLost && 
+        !h.microphoneIssue &&
+        !unreturnedBorrowHeadsetIds.has(h.id)
+      )
+      .map(h => h.id);
+    return new Set(ids);
+  }, [headsets, unreturnedBorrowHeadsetIds]);
+  
+  const availableHeadsets = useMemo(() => 
+    headsets.filter(h => availableHeadsetIds.has(h.id)),
+    [headsets, availableHeadsetIds]
   );
   
   const [selectedHeadsetId, setSelectedHeadsetId] = useState<string>('');
@@ -37,7 +48,7 @@ export default function BorrowPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [unavailableNotice, setUnavailableNotice] = useState<{ headset: Headset; reason: string } | null>(null);
 
-  const getUnavailableReason = (headsetId: string): string => {
+  const getUnavailableReason = useCallback((headsetId: string): string => {
     const headset = headsets.find(h => h.id === headsetId);
     if (!headset) return '该耳麦不存在';
     if (unreturnedBorrowHeadsetIds.has(headsetId)) {
@@ -51,34 +62,52 @@ export default function BorrowPage() {
     if (headset.status === 'maintenance') return '该耳麦正在维修中';
     if (headset.status === 'borrowed') return '该耳麦已被借出';
     return '该耳麦当前不可借用';
-  };
+  }, [headsets, borrowRecords, unreturnedBorrowHeadsetIds]);
 
   useEffect(() => {
     if (headsetIdParam) {
-      const isAvailable = availableHeadsets.some(h => h.id === headsetIdParam);
+      const isAvailable = availableHeadsetIds.has(headsetIdParam);
       if (isAvailable) {
-        setSelectedHeadsetId(headsetIdParam);
-        setUnavailableNotice(null);
+        if (selectedHeadsetId !== headsetIdParam) {
+          setSelectedHeadsetId(headsetIdParam);
+        }
+        if (unavailableNotice !== null) {
+          setUnavailableNotice(null);
+        }
       } else {
-        setSelectedHeadsetId('');
         const headset = headsets.find(h => h.id === headsetIdParam);
         if (headset) {
-          setUnavailableNotice({
-            headset,
-            reason: getUnavailableReason(headsetIdParam),
-          });
-        } else {
+          const reason = getUnavailableReason(headsetIdParam);
+          const noticeChanged = 
+            !unavailableNotice || 
+            unavailableNotice.headset.id !== headset.id || 
+            unavailableNotice.reason !== reason;
+          
+          if (noticeChanged) {
+            setUnavailableNotice({ headset, reason });
+          }
+        } else if (unavailableNotice !== null) {
           setUnavailableNotice(null);
+        }
+        if (selectedHeadsetId !== '') {
+          setSelectedHeadsetId('');
         }
       }
     }
-  }, [headsetIdParam, availableHeadsets, headsets, borrowRecords]);
+  }, [
+    headsetIdParam, 
+    availableHeadsetIds, 
+    headsets, 
+    getUnavailableReason,
+    selectedHeadsetId,
+    unavailableNotice
+  ]);
 
   useEffect(() => {
-    if (selectedHeadsetId) {
+    if (selectedHeadsetId && unavailableNotice !== null) {
       setUnavailableNotice(null);
     }
-  }, [selectedHeadsetId]);
+  }, [selectedHeadsetId, unavailableNotice]);
 
   const selectedHeadset = headsets.find(h => h.id === selectedHeadsetId) as Headset | undefined;
 
@@ -88,7 +117,7 @@ export default function BorrowPage() {
     if (!selectedHeadsetId) {
       newErrors.headsetId = '请选择耳麦';
     } else {
-      const isAvailable = availableHeadsets.some(h => h.id === selectedHeadsetId);
+      const isAvailable = availableHeadsetIds.has(selectedHeadsetId);
       if (!isAvailable) {
         const headset = headsets.find(h => h.id === selectedHeadsetId);
         if (unreturnedBorrowHeadsetIds.has(selectedHeadsetId)) {
@@ -102,7 +131,9 @@ export default function BorrowPage() {
         } else {
           newErrors.headsetId = '该耳麦当前不可借用';
         }
-        setSelectedHeadsetId('');
+        if (selectedHeadsetId !== '') {
+          setSelectedHeadsetId('');
+        }
       }
     }
     
