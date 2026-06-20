@@ -65,6 +65,7 @@ export const useStore = create<Store>((set, get) => ({
   setError: (error) => set({ error }),
 
   addToCart: (product) => {
+    if (product.status !== 'active') return;
     const cart = get().cart;
     const existing = cart.find(item => item.product.id === product.id);
     if (existing) {

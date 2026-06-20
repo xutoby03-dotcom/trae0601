@@ -84,12 +84,21 @@ router.post('/', (req, res) => {
 
   const tx = db.transaction(() => {
     for (const item of items) {
-      const product = db.prepare('SELECT * FROM products WHERE id = ? AND status = \'active\'').get(item.productId) as any;
+      const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
       if (!product) {
-        throw new Error(`商品ID ${item.productId} 不存在或已下架`);
+        throw new Error(`商品ID ${item.productId} 不存在`);
+      }
+      if (product.status === 'expired') {
+        throw new Error(`商品「${product.name}」已过期，无法取货`);
+      }
+      if (product.status === 'damaged') {
+        throw new Error(`商品「${product.name}」已破损，无法取货`);
+      }
+      if (product.status !== 'active') {
+        throw new Error(`商品「${product.name}」已下架，无法取货`);
       }
       if (product.stock < item.quantity) {
-        throw new Error(`商品 ${product.name} 库存不足`);
+        throw new Error(`商品「${product.name}」库存不足`);
       }
 
       const unitPrice = product.sale_price;

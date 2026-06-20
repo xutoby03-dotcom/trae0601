@@ -22,6 +22,14 @@ function mapProduct(row: any): Product {
   };
 }
 
+function calculateStatusByExpiry(expiryDate: string | undefined | null, currentStatus: string): string {
+  if (!expiryDate) return currentStatus;
+  if (currentStatus === 'offline' || currentStatus === 'damaged') return currentStatus;
+  const today = new Date().toISOString().split('T')[0];
+  if (expiryDate < today) return 'expired';
+  return currentStatus === 'expired' ? 'active' : currentStatus;
+}
+
 router.get('/', (req, res) => {
   const { status } = req.query;
   let sql = 'SELECT * FROM products WHERE 1=1';
@@ -94,9 +102,10 @@ router.get('/:id', (req, res) => {
 
 router.post('/', (req, res) => {
   const data: ProductCreate = req.body;
+  const initialStatus = calculateStatusByExpiry(data.expiryDate, 'active');
   const info = db.prepare(`
-    INSERT INTO products (name, spec, flavor, cost_price, sale_price, expiry_date, shelf_position, photo, stock, barcode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (name, spec, flavor, cost_price, sale_price, expiry_date, shelf_position, photo, stock, barcode, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     data.name,
     data.spec,
@@ -108,9 +117,10 @@ router.post('/', (req, res) => {
     data.photo,
     data.stock,
     data.barcode,
+    initialStatus,
   );
   
-  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid);
+  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(info.lastInsertRowid) as any;
   res.status(201).json(mapProduct(row));
 });
 
@@ -119,6 +129,14 @@ router.put('/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id) as any;
   if (!existing) {
     return res.status(404).json({ error: '商品不存在' });
+  }
+
+  let finalStatus: string | null = (req.body as any).status ?? null;
+  const newExpiryDate = data.expiryDate ?? existing.expiry_date;
+  const baseStatus = finalStatus ?? existing.status;
+
+  if (!finalStatus || (finalStatus !== 'offline' && finalStatus !== 'damaged')) {
+    finalStatus = calculateStatusByExpiry(newExpiryDate, baseStatus);
   }
 
   db.prepare(`
@@ -133,7 +151,7 @@ router.put('/:id', (req, res) => {
         photo = COALESCE(?, photo),
         stock = COALESCE(?, stock),
         barcode = COALESCE(?, barcode),
-        status = COALESCE(?, status)
+        status = ?
     WHERE id = ?
   `).run(
     data.name ?? null,
@@ -146,7 +164,7 @@ router.put('/:id', (req, res) => {
     data.photo ?? null,
     data.stock ?? null,
     data.barcode ?? null,
-    (req.body as any).status ?? null,
+    finalStatus,
     req.params.id,
   );
 

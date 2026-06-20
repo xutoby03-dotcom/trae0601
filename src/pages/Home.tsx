@@ -69,6 +69,13 @@ export default function Home() {
   async function handleSubmit() {
     if (!selectedEmployee || !selectedDepartment || cart.length === 0) return;
 
+    const invalidItems = cart.filter(item => item.product.status !== 'active');
+    if (invalidItems.length > 0) {
+      const names = invalidItems.map(i => i.product.name).join('、');
+      alert(`以下商品状态异常，无法取货：${names}`);
+      return;
+    }
+
     try {
       await transactionApi.create({
         items: cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
@@ -85,9 +92,14 @@ export default function Home() {
     }
   }
 
-  const displayProducts = searchQuery.trim() ? searchResults : products;
+  const displayProducts = (searchQuery.trim() ? searchResults : products).filter(
+    p => p.status === 'active'
+  );
 
   function getStockStatus(product: Product) {
+    if (product.status === 'expired') return { text: '已过期', color: 'bg-gray-100 text-gray-500', disabled: true };
+    if (product.status === 'damaged') return { text: '已破损', color: 'bg-gray-100 text-gray-500', disabled: true };
+    if (product.status !== 'active') return { text: '已下架', color: 'bg-gray-100 text-gray-500', disabled: true };
     if (product.stock <= 0) return { text: '缺货', color: 'bg-gray-100 text-gray-500', disabled: true };
     if (product.stock < 5) return { text: `仅剩${product.stock}件`, color: 'bg-danger-100 text-danger-600', disabled: false };
     return { text: `库存${product.stock}件`, color: 'bg-success-100 text-success-600', disabled: false };
