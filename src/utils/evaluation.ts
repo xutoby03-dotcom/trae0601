@@ -65,10 +65,7 @@ export function calculateEvaluation(inspection: Inspection): EvaluationReport {
   const aggregatedRisks = collectAggregatedRisks(inspection);
   const { high: highCount, medium: mediumCount, low: lowCount } = countRisksByLevel(aggregatedRisks);
 
-  let totalRiskDeduction = 0;
-  aggregatedRisks.forEach((r) => {
-    totalRiskDeduction += getRiskImpact(r.level);
-  });
+  const totalPriceImpact = aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0);
 
   const bargainReasons: string[] = aggregatedRisks.map((r) => {
     const src = r.source === 'manual' ? '手动标记' : '检测项';
@@ -97,10 +94,10 @@ export function calculateEvaluation(inspection: Inspection): EvaluationReport {
   }
 
   const sellerPrice = lensInfo.sellerPrice || 0;
-  const fairMultiplier = Math.max(0.3, conditionDiscount - totalRiskDeduction);
-  const fairPrice = Math.round(sellerPrice * fairMultiplier);
-  const minPrice = Math.round(fairPrice * 0.92);
-  const maxPrice = Math.round(fairPrice * 1.08);
+  const basePrice = Math.round(sellerPrice * conditionDiscount);
+  const fairPrice = Math.max(0, basePrice - totalPriceImpact);
+  const minPrice = Math.max(0, Math.round(fairPrice * 0.92));
+  const maxPrice = Math.max(0, Math.round(fairPrice * 1.08));
 
   const summary = generateSummary(recommendation, overallScore, highCount, mediumCount, failCount);
 
@@ -113,14 +110,6 @@ export function calculateEvaluation(inspection: Inspection): EvaluationReport {
     overallScore,
     summary,
   };
-}
-
-function getRiskImpact(level: RiskLevel): number {
-  switch (level) {
-    case 'high': return 0.18;
-    case 'medium': return 0.08;
-    case 'low': return 0.03;
-  }
 }
 
 export function riskLevelLabel(level: RiskLevel): string {

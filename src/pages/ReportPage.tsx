@@ -10,7 +10,7 @@ import {
   formatPrice, formatDate, recommendationLabel, riskLevelLabel,
   collectAggregatedRisks, countRisksByLevel, AggregatedRisk
 } from '@/utils/evaluation';
-import { CHECKLIST_GROUPS } from '@/data/checklistItems';
+import { CHECKLIST_GROUPS, CONDITIONS } from '@/data/checklistItems';
 import { RiskLevel, PurchaseRecommendation } from '@/types';
 
 export default function ReportPage() {
@@ -92,7 +92,10 @@ export default function ReportPage() {
     URL.revokeObjectURL(url);
   };
 
-  const priceDiff = inspection.lensInfo.sellerPrice - report.fairPrice;
+  const conditionDiscount = CONDITIONS.find(c => c.value === inspection.lensInfo.condition)?.discount ?? 0.8;
+  const conditionDeduction = Math.round(inspection.lensInfo.sellerPrice * (1 - conditionDiscount));
+  const totalPriceImpact = aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0);
+  const priceDiff = conditionDeduction + totalPriceImpact;
   const priceDiffPct = inspection.lensInfo.sellerPrice > 0 ? (priceDiff / inspection.lensInfo.sellerPrice) * 100 : 0;
 
   return (
@@ -185,13 +188,34 @@ export default function ReportPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500 mb-1">建议砍价</p>
+                  <p className="text-xs text-gray-500 mb-1">建议总砍价</p>
                   <p className={`font-display text-3xl font-semibold ${priceDiff > 0 ? 'text-jade-400' : 'text-gray-500'}`}>
                     {priceDiff > 0 ? `-${formatPrice(priceDiff)}` : '无需砍价'}
                   </p>
                   {priceDiff > 0 && (
                     <p className="text-xs text-jade-400/70 mt-0.5">约 {priceDiffPct.toFixed(1)}%</p>
                   )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-ink-800/50 border border-ink-700/50">
+                  <p className="text-xs text-gray-500 mb-1">成色折损</p>
+                  <p className="font-display text-lg font-semibold text-copper-400">
+                    -{formatPrice(conditionDeduction)}
+                  </p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">
+                    基于 {CONDITIONS.find(c => c.value === inspection.lensInfo.condition)?.label || '成色'} {Math.round(conditionDiscount * 100)}%
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-ink-800/50 border border-ink-700/50">
+                  <p className="text-xs text-gray-500 mb-1">风险扣减</p>
+                  <p className="font-display text-lg font-semibold text-rust-400">
+                    -{formatPrice(totalPriceImpact)}
+                  </p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">
+                    {aggregatedRisks.length} 项问题合计
+                  </p>
                 </div>
               </div>
 
