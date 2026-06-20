@@ -16,7 +16,6 @@ import {
   History,
   ClipboardList,
   AlertTriangle,
-  MessageSquare,
 } from 'lucide-react';
 import PageHeader from '../../components/PageHeader';
 import StatusBadge from '../../components/StatusBadge';
@@ -273,14 +272,13 @@ function PhotoPreviewModal({ photoUrl, onClose }: PhotoPreviewModalProps) {
 }
 
 interface ExceptionReportModalProps {
-  item: PostingItem;
   board: BulletinBoard | undefined;
   poster: Poster | undefined;
   onClose: () => void;
   onSubmit: (data: { type: ExceptionType; description: string; reporter: string }) => void;
 }
 
-function ExceptionReportModal({ item, board, poster, onClose, onSubmit }: ExceptionReportModalProps) {
+function ExceptionReportModal({ board, poster, onClose, onSubmit }: ExceptionReportModalProps) {
   const [selectedType, setSelectedType] = useState<ExceptionType>('damaged');
   const [description, setDescription] = useState('');
   const [reporter, setReporter] = useState('');
@@ -547,6 +545,7 @@ export default function Execution() {
       location,
       reporter: data.reporter,
       relatedPosterId: poster?.id,
+      photoUrl: item.photoUrl,
     });
 
     setExceptionModalItem(null);
@@ -860,7 +859,6 @@ export default function Execution() {
 
       {exceptionModalItem && (
         <ExceptionReportModal
-          item={exceptionModalItem.item}
           board={exceptionModalItem.board}
           poster={exceptionModalItem.poster}
           onClose={() => setExceptionModalItem(null)}

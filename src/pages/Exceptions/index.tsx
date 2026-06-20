@@ -313,29 +313,39 @@ export default function Exceptions() {
             >
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      exceptionTypeColors[exception.type] === 'danger'
-                        ? 'bg-red-100'
-                        : exceptionTypeColors[exception.type] === 'warning'
-                        ? 'bg-amber-100'
-                        : exceptionTypeColors[exception.type] === 'info'
-                        ? 'bg-blue-100'
-                        : 'bg-secondary-100'
-                    }`}
-                  >
-                    <TypeIcon
-                      className={`w-6 h-6 ${
+                  {exception.photoUrl ? (
+                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                      <img
+                        src={exception.photoUrl}
+                        alt="凭证照"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         exceptionTypeColors[exception.type] === 'danger'
-                          ? 'text-red-600'
+                          ? 'bg-red-100'
                           : exceptionTypeColors[exception.type] === 'warning'
-                          ? 'text-amber-600'
+                          ? 'bg-amber-100'
                           : exceptionTypeColors[exception.type] === 'info'
-                          ? 'text-blue-600'
-                          : 'text-secondary-600'
+                          ? 'bg-blue-100'
+                          : 'bg-secondary-100'
                       }`}
-                    />
-                  </div>
+                    >
+                      <TypeIcon
+                        className={`w-6 h-6 ${
+                          exceptionTypeColors[exception.type] === 'danger'
+                            ? 'text-red-600'
+                            : exceptionTypeColors[exception.type] === 'warning'
+                            ? 'text-amber-600'
+                            : exceptionTypeColors[exception.type] === 'info'
+                            ? 'text-blue-600'
+                            : 'text-secondary-600'
+                        }`}
+                      />
+                    </div>
+                  )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -669,15 +679,24 @@ export default function Exceptions() {
 
                 {selectedException.relatedPosterId && (
                   <div className="p-4 bg-blue-50 rounded-xl">
-                    <p className="text-sm text-blue-600 mb-1">关联海报</p>
+                    <p className="text-sm text-blue-600 mb-2">关联海报</p>
                     {(() => {
                       const poster = getRelatedPoster(selectedException.relatedPosterId);
                       return poster ? (
-                        <div>
-                          <p className="font-medium text-blue-900">{poster.activityName}</p>
-                          <p className="text-sm text-blue-700">
-                            {poster.club} · {poster.approvalNumber}
-                          </p>
+                        <div className="flex gap-3">
+                          {poster.imageUrl && (
+                            <img
+                              src={poster.imageUrl}
+                              alt={poster.activityName}
+                              className="w-16 h-20 object-cover rounded-lg shadow"
+                            />
+                          )}
+                          <div>
+                            <p className="font-medium text-blue-900">{poster.activityName}</p>
+                            <p className="text-sm text-blue-700">
+                              {poster.club} · {poster.approvalNumber}
+                            </p>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-blue-700">海报ID: {selectedException.relatedPosterId}</p>
