@@ -73,7 +73,10 @@ export default function Checklist() {
   return (
     <div className="animate-fade-in-up">
       {showSourceBanner && targetBag && (
-        <div className="mb-4 px-5 py-3 bg-sky-50 border border-sky-200 rounded-xl flex items-center justify-between animate-fade-in-up">
+        <div
+          onClick={() => setShowSourceBanner(false)}
+          className="mb-4 px-5 py-3 bg-sky-50 border border-sky-200 rounded-xl flex items-center justify-between animate-fade-in-up cursor-pointer hover:bg-sky-100 transition-colors"
+        >
           <div className="flex items-center gap-2">
             <ArrowLeft className="w-4 h-4 text-sky-500" />
             <span className="text-sm text-sky-700">
@@ -81,8 +84,8 @@ export default function Checklist() {
             </span>
           </div>
           <button
-            onClick={() => setShowSourceBanner(false)}
-            className="p-1 hover:bg-sky-100 rounded-lg transition-colors"
+            onClick={(e) => { e.stopPropagation(); setShowSourceBanner(false); }}
+            className="p-1 hover:bg-sky-200 rounded-lg transition-colors"
           >
             <X className="w-4 h-4 text-sky-400" />
           </button>
@@ -117,9 +120,18 @@ export default function Checklist() {
           return (
             <div
               key={bag.id}
-              className={`glass-card rounded-2xl overflow-hidden animate-fade-in-up ${isHighlighted ? 'animate-highlight' : ''}`}
+              className={`glass-card rounded-2xl overflow-hidden animate-fade-in-up ${isHighlighted ? 'animate-highlight' : ''} relative`}
               style={{ animationDelay: `${index * 50}ms` }}
             >
+              {targetBagId === bag.id && (
+                <button
+                  onClick={() => navigate('/')}
+                  className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2.5 py-1 text-xs text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors shadow-sm"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  回到看板
+                </button>
+              )}
               <div
                 className={`p-5 cursor-pointer transition-colors ${isChecked ? 'bg-green-50/50' : 'hover:bg-white/30'}`}
                 onClick={() => setExpandedBag(isExpanded ? null : bag.id)}
@@ -135,15 +147,6 @@ export default function Checklist() {
                           {bag.color} {bag.capacity} 防水包
                         </h3>
                         <StatusBadge status={bag.sealStatus} size="sm" />
-                        {targetBagId === bag.id && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate('/'); }}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg transition-colors"
-                          >
-                            <ArrowLeft className="w-3 h-3" />
-                            回到看板
-                          </button>
-                        )}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
                         拥有者：{getOwnerName(bag.ownerId)}
