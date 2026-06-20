@@ -378,11 +378,11 @@ export function TaskDetail() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-slate-700">{source.itemName}</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          task.type === 'replace'
+                          source.type === 'replace'
                             ? 'bg-orange-100 text-orange-700'
                             : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {task.type === 'replace' ? '补采' : '维修'}
+                          {source.type === 'replace' ? '补采' : '维修'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -397,8 +397,14 @@ export function TaskDetail() {
                           </code>
                         </div>
                       </div>
+                      {source.reason && (
+                        <p className="text-xs text-slate-600 mt-2 pt-2 border-t border-slate-100">
+                          <span className="text-slate-500">判定：</span>
+                          {source.reason}
+                        </p>
+                      )}
                       {source.description && (
-                        <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
+                        <p className="text-xs text-slate-500 mt-1">
                           <span className="text-slate-500">备注：</span>
                           {source.description}
                         </p>

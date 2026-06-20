@@ -179,25 +179,25 @@ export const useAppStore = create<AppState>()(
               }
             };
 
-            const abnormalItemSources = abnormalInspectionItems.map((item) => ({
+            const decisions = abnormalInspectionItems.map((item) => {
+              const decision = getItemDecision(item);
+              if (decision) return decision;
+              return { type: 'repair' as const, reason: `${item.itemName}存在异常，需处理` };
+            });
+
+            const abnormalItemSources = abnormalInspectionItems.map((item, idx) => ({
               itemKey: item.itemKey,
               itemName: item.itemName,
               rawValue: item.rawValue,
               itemValue: item.itemValue,
+              type: decisions[idx].type,
+              reason: decisions[idx].reason,
               description: item.description,
             }));
 
-            const decisions = abnormalInspectionItems
-              .map(getItemDecision)
-              .filter(
-                (d): d is { type: 'replace' | 'repair'; reason: string } => d !== null
-              );
-
             const hasReplace = decisions.some((d) => d.type === 'replace');
             const taskType = hasReplace ? 'replace' : 'repair';
-            const decisionReason = decisions.length > 0
-              ? decisions.map((d) => d.reason).join('；')
-              : '存在异常需处理';
+            const decisionReason = decisions.map((d) => d.reason).join('；');
 
             newTasks.push({
               id: generateId(),

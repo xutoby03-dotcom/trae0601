@@ -50,6 +50,8 @@ export interface TaskItemSource {
   itemName: string;
   rawValue: string;
   itemValue: string;
+  type: TaskType;
+  reason: string;
   description?: string;
 }
 
