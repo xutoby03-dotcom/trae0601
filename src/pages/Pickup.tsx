@@ -86,6 +86,13 @@ export default function Pickup() {
     }
   }, []);
 
+  const handleCameraError = useCallback((friendlyMsg: string) => {
+    setScanError({
+      type: 'camera',
+      message: friendlyMsg,
+    });
+  }, []);
+
   const handleConfirmPickup = () => {
     if (!selectedOrder) return;
     markOrderPicked(selectedOrder.id, hasException, exceptionNote, exceptionPhotos);
@@ -335,6 +342,7 @@ export default function Pickup() {
         onClose={() => setScannerOpen(false)}
         onScanSuccess={handleScanSuccess}
         onScanFailure={handleScanFailure}
+        onCameraError={handleCameraError}
       />
 
       {/* 确认取货弹窗 */}
