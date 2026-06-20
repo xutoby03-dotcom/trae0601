@@ -8,9 +8,11 @@ import {
   User,
   Clock,
   Wrench,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useStore';
-import type { RepairMaterial } from '@/types';
+import type { RepairMaterial, RecheckResult } from '@/types';
 
 export default function RepairForm() {
   const navigate = useNavigate();
@@ -28,6 +30,8 @@ export default function RepairForm() {
   ]);
   const [closeStartTime, setCloseStartTime] = useState('');
   const [closeEndTime, setCloseEndTime] = useState('');
+  const [recheckResult, setRecheckResult] = useState<RecheckResult | ''>('');
+  const [recheckNotes, setRecheckNotes] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -56,6 +60,10 @@ export default function RepairForm() {
         ? new Date(closeEndTime).toISOString()
         : undefined,
       description,
+      recheckResult: recheckResult || undefined,
+      recheckDate: recheckResult ? new Date().toISOString().split('T')[0] : undefined,
+      recheckNotes: recheckNotes || undefined,
+      status: recheckResult === 'passed' ? 'completed' : recheckResult === 'failed' ? 'recheck_failed' : workerName ? 'in_progress' : 'pending',
     });
 
     navigate('/repairs');
@@ -285,6 +293,67 @@ export default function RepairForm() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Recheck result */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+              <span className="w-1 h-4 bg-teal-500 rounded-full"></span>
+              复查结果
+              <span className="text-xs text-slate-400 font-normal">
+                （维修完成后填写）
+              </span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRecheckResult('passed')}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all ${
+                  recheckResult === 'passed'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm shadow-emerald-500/20'
+                    : 'bg-white border-slate-200 text-slate-500 hover:border-emerald-300 hover:text-emerald-600'
+                }`}
+              >
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">复查通过</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecheckResult('failed')}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all ${
+                  recheckResult === 'failed'
+                    ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm shadow-rose-500/20'
+                    : 'bg-white border-slate-200 text-slate-500 hover:border-rose-300 hover:text-rose-600'
+                }`}
+              >
+                <XCircle className="w-5 h-5" />
+                <span className="font-medium">复查不通过</span>
+              </button>
+            </div>
+
+            {recheckResult && (
+              <div className={`p-4 rounded-xl border ${
+                recheckResult === 'passed' ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'
+              }`}>
+                <label className={`block text-sm font-medium mb-1.5 ${
+                  recheckResult === 'passed' ? 'text-emerald-700' : 'text-rose-700'
+                }`}>
+                  复查备注
+                </label>
+                <textarea
+                  value={recheckNotes}
+                  onChange={(e) => setRecheckNotes(e.target.value)}
+                  placeholder="请填写复查情况说明..."
+                  rows={3}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all resize-none bg-white ${
+                    recheckResult === 'passed'
+                      ? 'border-emerald-200 focus:ring-emerald-500/20 focus:border-emerald-500'
+                      : 'border-rose-200 focus:ring-rose-500/20 focus:border-rose-500'
+                  }`}
+                />
+              </div>
+            )}
           </div>
 
           {/* Submit */}

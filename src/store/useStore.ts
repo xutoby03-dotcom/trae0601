@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Classroom, Inspection, Repair, DashboardStats, InspectionItem, RepairMaterial } from '@/types';
+import type { Classroom, Inspection, Repair, DashboardStats, InspectionItem, RepairMaterial, RepairStatus } from '@/types';
 import { mockClassrooms, mockInspections, mockRepairs } from '@/data/mockData';
 import { getOverallStatus, isCriticalHazard } from '@/utils/statusUtils';
 import { generateId, getTodayString, isFloorLifeWarning } from '@/utils/dateUtils';
@@ -17,7 +17,7 @@ interface AppState {
   addInspection: (inspection: Omit<Inspection, 'id' | 'createdAt' | 'overallStatus' | 'autoSuspended'>) => void;
   getInspectionsByClassroom: (classroomId: string) => Inspection[];
   
-  addRepair: (repair: Omit<Repair, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => void;
+  addRepair: (repair: Omit<Repair, 'id' | 'createdAt' | 'updatedAt'> & { status?: RepairStatus }) => void;
   updateRepair: (id: string, data: Partial<Repair>) => void;
   getRepairsByClassroom: (classroomId: string) => Repair[];
   
@@ -96,12 +96,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (autoSuspended) {
       const state = get();
       const classroom = state.classrooms.find((c) => c.id === inspection.classroomId);
-      const repair: Omit<Repair, 'id' | 'createdAt' | 'updatedAt' | 'status'> = {
+      const repair: Omit<Repair, 'id' | 'createdAt' | 'updatedAt'> = {
         classroomId: inspection.classroomId,
         classroomName: classroom?.name,
         inspectionId: newInspection.id,
         workerName: '',
         materials: [],
+        status: 'pending',
         description: '严重隐患自动生成的维修工单',
       };
       get().addRepair(repair);
@@ -116,16 +117,26 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addRepair: (repair) => {
     const now = new Date().toISOString();
+    const { status, ...rest } = repair;
     const newRepair: Repair = {
-      ...repair,
+      ...rest,
       id: generateId(),
-      status: 'pending',
+      status: status || 'pending',
       createdAt: now,
       updatedAt: now,
     };
-    set((state) => ({
-      repairs: [...state.repairs, newRepair],
-    }));
+    set((state) => {
+      let updatedClassrooms = state.classrooms;
+      if (newRepair.recheckResult === 'passed') {
+        updatedClassrooms = state.classrooms.map((c) =>
+          c.id === repair.classroomId ? { ...c, status: 'normal' as const, updatedAt: now } : c
+        );
+      }
+      return {
+        repairs: [...state.repairs, newRepair],
+        classrooms: updatedClassrooms,
+      };
+    });
   },
 
   updateRepair: (id, data) => {
