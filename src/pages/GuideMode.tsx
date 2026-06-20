@@ -110,7 +110,7 @@ export default function GuideMode() {
   };
 
   const handleNextPoint = () => {
-    nextPoint();
+    nextPoint(seconds);
     reset();
     if (activeSession && activeSession.currentPointIndex < activeSession.pointSessions.length - 1) {
       if (activeSession.status === 'running') {
@@ -122,7 +122,7 @@ export default function GuideMode() {
 
   const handleEndSession = () => {
     const sessionId = activeSession?.id;
-    endSession();
+    endSession(seconds);
     if (sessionId) {
       navigate(`/report/${sessionId}`);
     } else {
@@ -134,7 +134,7 @@ export default function GuideMode() {
     if (!activeSession) return 0;
     const completed = activeSession.pointSessions
       .slice(0, activeSession.currentPointIndex)
-      .reduce((sum, ps) => sum + (ps.actualDuration > 0 ? Math.floor(ps.actualDuration / 1000) : ps.adjustedDuration), 0);
+      .reduce((sum, ps) => sum + (ps.actualDuration > 0 ? ps.actualDuration : ps.adjustedDuration), 0);
     return completed + seconds;
   }, [activeSession, seconds]);
 

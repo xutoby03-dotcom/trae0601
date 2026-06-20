@@ -45,9 +45,9 @@ interface Actions {
   pauseSession: () => void;
   resumeSession: () => void;
   addTimeToCurrent: (seconds: number) => void;
-  nextPoint: () => void;
+  nextPoint: (currentSeconds?: number) => void;
   prevPoint: () => void;
-  endSession: () => void;
+  endSession: (currentSeconds?: number) => void;
   getSessionById: (sessionId: string) => GuideSession | undefined;
 }
 
@@ -252,25 +252,24 @@ export const useGuideStore = create<GuideStore>((set, get) => ({
     saveToStorage(STORAGE_KEYS.CURRENT_SESSION, updated);
   },
 
-  nextPoint: () => {
+  nextPoint: (currentSeconds) => {
     const { activeSession } = get();
     if (!activeSession) return;
 
     const { pointSessions, currentPointIndex } = activeSession;
     if (currentPointIndex >= pointSessions.length - 1) {
-      get().endSession();
+      get().endSession(currentSeconds);
       return;
     }
 
     const now = Date.now();
     const updatedSessions = pointSessions.map((ps, idx) => {
       if (idx === currentPointIndex) {
-        const actual = ps.startedAt ? now - ps.startedAt : ps.actualDuration;
         return {
           ...ps,
           isCompleted: true,
           endedAt: now,
-          actualDuration: actual,
+          actualDuration: currentSeconds ?? ps.actualDuration,
         };
       }
       if (idx === currentPointIndex + 1) {
@@ -339,19 +338,21 @@ export const useGuideStore = create<GuideStore>((set, get) => ({
     saveToStorage(STORAGE_KEYS.CURRENT_SESSION, updated);
   },
 
-  endSession: () => {
+  endSession: (currentSeconds) => {
     const { activeSession, pastSessions } = get();
     if (!activeSession) return;
 
     const now = Date.now();
     const updatedSessions = activeSession.pointSessions.map((ps, idx) => {
       if (idx <= activeSession.currentPointIndex && !ps.isCompleted) {
-        const actual = ps.startedAt ? now - ps.startedAt : ps.actualDuration;
         return {
           ...ps,
           isCompleted: true,
           endedAt: now,
-          actualDuration: actual,
+          actualDuration:
+            idx === activeSession.currentPointIndex
+              ? currentSeconds ?? ps.actualDuration
+              : ps.actualDuration,
         };
       }
       return ps;
