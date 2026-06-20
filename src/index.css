@@ -1,0 +1,104 @@
+@import url("https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "PingFang SC", "Hiragino Sans GB", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e0efff 0%, #f0f7ff 50%, #fefaf0 100%);
+  background-attachment: fixed;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 200px 80px at 10% 15%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(ellipse 300px 120px at 85% 25%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(ellipse 250px 100px at 50% 85%, rgba(255, 255, 255, 0.5), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-2.5 rounded-full bg-sky-400 text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply px-5 py-2 rounded-full bg-white text-sky-500 border-2 border-sky-200 font-medium hover:bg-sky-50 hover:border-sky-300 transition-all duration-200;
+  }
+
+  .btn-warning {
+    @apply px-5 py-2 rounded-full bg-warn-red text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  .btn-success {
+    @apply px-5 py-2 rounded-full bg-warn-green text-white font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/60 p-5;
+  }
+
+  .card-warning {
+    @apply bg-warn-yellow/30 backdrop-blur-sm rounded-2xl shadow-md border-2 border-warn-yellow/60 p-5 animate-warning-blink;
+  }
+
+  .card-danger {
+    @apply bg-red-50 backdrop-blur-sm rounded-2xl shadow-md border-2 border-warn-red/50 p-5;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl border-2 border-sky-100 bg-white/70 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all duration-200;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-sky-800 mb-1.5;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2 px-4 py-2 rounded-xl text-sky-700 hover:bg-sky-100/60 transition-colors duration-200 font-medium;
+  }
+
+  .nav-link-active {
+    @apply bg-sky-400 text-white hover:bg-sky-500 shadow-md;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(74, 144, 217, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(74, 144, 217, 0.5);
+}
