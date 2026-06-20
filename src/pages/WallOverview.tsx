@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WallMap } from '@/components/WallMap';
 import { RouteCard } from '@/components/RouteCard';
@@ -30,6 +30,15 @@ export const WallOverview: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null);
 
+  const selectRoute = useCallback((routeId: string) => {
+    setSelectedRoute(routeId);
+    setHighlightedHoldId(null);
+  }, [setSelectedRoute]);
+
+  useEffect(() => {
+    setHighlightedHoldId(null);
+  }, [selectedRouteId]);
+
   const filteredRoutes = getFilteredRoutes();
   const selectedRoute = selectedRouteId ? getRouteById(selectedRouteId) : null;
   const unresolvedIssues = getUnresolvedIssues();
@@ -60,7 +69,7 @@ export const WallOverview: React.FC = () => {
 
   const handleHoldClick = (hold: Hold) => {
     if (hold.routeId) {
-      setSelectedRoute(hold.routeId);
+      selectRoute(hold.routeId);
     }
   };
 
@@ -361,7 +370,7 @@ export const WallOverview: React.FC = () => {
                     key={route.id}
                     route={route}
                     isSelected={selectedRouteId === route.id}
-                    onClick={() => setSelectedRoute(route.id)}
+                    onClick={() => selectRoute(route.id)}
                     compact
                   />
                 ))
