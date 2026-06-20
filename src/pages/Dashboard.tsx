@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -14,12 +14,20 @@ import {
   RotateCcw,
   CheckCircle,
   Users,
+  X,
+  Phone,
+  Heart,
+  Droplets,
+  Armchair,
+  FileText,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
 import { useBarberStore } from "../store/useBarberStore";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatTime, formatDate } from "../utils/date";
+import { formatTime, formatDate, formatDateTime } from "../utils/date";
 import {
   serviceTypeLabels,
   statusLabels,
@@ -60,7 +68,7 @@ interface BoardColumnProps {
   appointments: Appointment[];
   color: string;
   bgColor: string;
-  onCardClick: (id: string) => void;
+  onCardClick: (apt: Appointment) => void;
   getElder: (id: string) => any;
   getBarber: (id: string) => any;
 }
@@ -88,13 +96,18 @@ function BoardColumn({
         {appointments.map((apt) => {
           const elder = getElder(apt.elderId);
           const barber = getBarber(apt.barberId);
+          const hasSpecialNeeds =
+            apt.needsWheelchair || apt.needsCompanion || apt.needsShampoo;
 
           return (
             <div
               key={apt.id}
-              onClick={() => onCardClick(apt.id)}
-              className="bg-gray-50 rounded-xl p-4 cursor-pointer hover:bg-gray-100 hover:shadow-card transition-all"
+              onClick={() => onCardClick(apt)}
+              className="bg-gray-50 rounded-xl p-4 cursor-pointer hover:bg-gray-100 hover:shadow-card transition-all relative"
             >
+              {hasSpecialNeeds && (
+                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
+              )}
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-white overflow-hidden flex-shrink-0 shadow-sm">
                   {elder?.photo ? (
@@ -109,7 +122,7 @@ function BoardColumn({
                     </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-2">
                   <p className="font-medium text-gray-800 truncate">
                     {elder?.name || "未知"}
                   </p>
@@ -162,6 +175,339 @@ function BoardColumn({
   );
 }
 
+interface QuickDrawerProps {
+  appointment: Appointment | null;
+  onClose: () => void;
+  getElder: (id: string) => any;
+  getBarber: (id: string) => any;
+  onConfirmAppointment: (id: string) => void;
+  navigate: (path: string) => void;
+}
+
+function QuickDrawer({
+  appointment,
+  onClose,
+  getElder,
+  getBarber,
+  onConfirmAppointment,
+  navigate,
+}: QuickDrawerProps) {
+  if (!appointment) return null;
+
+  const elder = getElder(appointment.elderId);
+  const barber = getBarber(appointment.barberId);
+
+  const showConfirmBtn = appointment.status === "pending";
+  const showDepartureBtn = appointment.status === "confirmed";
+  const showStartBtn = appointment.status === "departed";
+  const showCompleteBtn = appointment.status === "in_progress";
+
+  const hasSpecialNeeds =
+    appointment.needsShampoo ||
+    appointment.needsWheelchair ||
+    appointment.needsCompanion;
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/30 z-40 transition-opacity"
+        onClick={onClose}
+      />
+
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col animate-slide-in">
+        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-14 h-14 rounded-2xl bg-primary-100 overflow-hidden flex-shrink-0">
+              {elder?.photo ? (
+                <img
+                  src={elder.photo}
+                  alt={elder.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <User size={26} className="text-primary-400" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-800 truncate">
+                  {elder?.name || "未知"}
+                </h2>
+                {elder && (
+                  <span className="text-sm text-gray-500">
+                    {elder.age}岁
+                  </span>
+                )}
+              </div>
+              <div className="mt-1">
+                <StatusBadge status={appointment.status} />
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                预约信息
+              </h3>
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <Calendar size={18} className="text-primary-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">预约时间</p>
+                    <p className="font-medium text-gray-800">
+                      {formatDateTime(appointment.scheduledTime)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Scissors size={18} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">服务项目</p>
+                    <p className="font-medium text-gray-800">
+                      {serviceTypeLabels[appointment.serviceType]}
+                    </p>
+                  </div>
+                </div>
+                {barber && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <User size={18} className="text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">理发师</p>
+                      <p className="font-medium text-gray-800">
+                        {barber.name}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <MapPin size={18} className="text-gray-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">地址</p>
+                    <p className="font-medium text-gray-800">
+                      {elder?.address}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                特殊需求
+              </h3>
+              {hasSpecialNeeds ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {appointment.needsShampoo && (
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Droplets size={16} className="text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-sm">
+                          需要洗发
+                        </p>
+                      </div>
+                      <Check
+                        size={18}
+                        className="ml-auto text-blue-500"
+                      />
+                    </div>
+                  )}
+                  {appointment.needsWheelchair && (
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Armchair size={16} className="text-purple-500" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-sm">
+                          需要轮椅位
+                        </p>
+                      </div>
+                      <Check
+                        size={18}
+                        className="ml-auto text-purple-500"
+                      />
+                    </div>
+                  )}
+                  {appointment.needsCompanion && (
+                    <div className="flex items-center gap-3 p-3 bg-warning-50 rounded-xl border border-warning-200">
+                      <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <Users size={16} className="text-warning-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-sm">
+                          家属陪同
+                        </p>
+                        <p className="text-xs text-warning-700">
+                          请确认家属在场
+                        </p>
+                      </div>
+                      <AlertTriangle
+                        size={18}
+                        className="ml-auto text-warning-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl text-center text-sm text-gray-400">
+                  无特殊需求
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                老人档案
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3 p-4 bg-danger-50 rounded-xl">
+                  <div className="w-9 h-9 bg-danger-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Heart size={18} className="text-danger-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-danger-600">过敏史</p>
+                    <p className="font-medium text-gray-800 mt-0.5">
+                      {elder?.allergies || "无"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl">
+                  <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Phone size={18} className="text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-600">紧急联系人</p>
+                    <p className="font-medium text-gray-800 mt-0.5">
+                      {elder?.contactName}
+                    </p>
+                    <p className="text-xl font-bold text-blue-600 mt-1 tracking-wider">
+                      {elder?.contactPhone}
+                    </p>
+                  </div>
+                  <a
+                    href={`tel:${elder?.contactPhone}`}
+                    className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white hover:bg-blue-600 transition-colors flex-shrink-0 self-center"
+                  >
+                    <Phone size={18} />
+                  </a>
+                </div>
+
+                {elder?.notes && (
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText size={18} className="text-gray-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500">备注</p>
+                      <p className="font-medium text-gray-800 mt-0.5">
+                        {elder.notes}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {appointment.notes && (
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText size={18} className="text-gray-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500">预约备注</p>
+                      <p className="font-medium text-gray-800 mt-0.5">
+                        {appointment.notes}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-100 bg-white space-y-3">
+          {showConfirmBtn && (
+            <button
+              onClick={() => {
+                onConfirmAppointment(appointment.id);
+              }}
+              className="w-full py-3.5 bg-success-500 text-white rounded-xl font-semibold hover:bg-success-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Check size={20} />
+              确认预约
+            </button>
+          )}
+          {showDepartureBtn && (
+            <button
+              onClick={() =>
+                navigate(`/appointments/${appointment.id}/confirm-departure`)
+              }
+              className="w-full py-3.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Sparkles size={20} />
+              出发确认（工具检查）
+            </button>
+          )}
+          {showStartBtn && (
+            <button
+              onClick={() => {
+                onConfirmAppointment(appointment.id);
+                onClose();
+              }}
+              className="w-full py-3.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Scissors size={20} />
+              开始服务
+            </button>
+          )}
+          {showCompleteBtn && (
+            <button
+              onClick={() =>
+                navigate(`/appointments/${appointment.id}/complete`)
+              }
+              className="w-full py-3.5 bg-success-500 text-white rounded-xl font-semibold hover:bg-success-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={20} />
+              完成服务（记录结果）
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              onClose();
+              navigate(`/appointments/${appointment.id}`);
+            }}
+            className="w-full py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <ExternalLink size={18} />
+            查看完整详情
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const {
@@ -172,9 +518,13 @@ export function Dashboard() {
     getRecallReminders,
     getAppointmentsByStatus,
     loadAppointments,
+    updateStatus,
   } = useAppointmentStore();
   const { getElder, loadElders } = useElderStore();
   const { getBarber, loadBarbers } = useBarberStore();
+
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
 
   useEffect(() => {
     loadAppointments();
@@ -189,7 +539,7 @@ export function Dashboard() {
 
   const specialNeedsCount = appointments.filter(
     (a) =>
-      a.needsWheelchair &&
+      (a.needsWheelchair || a.needsCompanion) &&
       a.status !== "completed" &&
       a.status !== "cancelled"
   ).length;
@@ -232,8 +582,22 @@ export function Dashboard() {
     },
   ];
 
-  const handleCardClick = (id: string) => {
-    navigate(`/appointments/${id}`);
+  const handleCardClick = (apt: Appointment) => {
+    setSelectedAppointment(apt);
+  };
+
+  const handleConfirmAppointment = (id: string) => {
+    const apt = appointments.find((a) => a.id === id);
+    if (!apt) return;
+
+    let newStatus = apt.status;
+    if (apt.status === "pending") newStatus = "confirmed";
+    else if (apt.status === "departed") newStatus = "in_progress";
+
+    if (newStatus !== apt.status) {
+      updateStatus(id, newStatus);
+      setSelectedAppointment({ ...apt, status: newStatus });
+    }
   };
 
   return (
@@ -301,6 +665,9 @@ export function Dashboard() {
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <Sparkles size={20} className="text-primary-500" />
                 预约看板
+                <span className="text-xs font-normal text-gray-400 ml-2">
+                  点击卡片查看详情
+                </span>
               </h2>
               <button
                 onClick={() => navigate("/appointments")}
@@ -343,7 +710,7 @@ export function Dashboard() {
                   return (
                     <div
                       key={apt.id}
-                      onClick={() => handleCardClick(apt.id)}
+                      onClick={() => handleCardClick(apt)}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-gray-100"
                     >
                       <div className="w-10 h-10 rounded-full bg-primary-100 overflow-hidden flex-shrink-0">
@@ -433,6 +800,29 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      <QuickDrawer
+        appointment={selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+        getElder={getElder}
+        getBarber={getBarber}
+        onConfirmAppointment={handleConfirmAppointment}
+        navigate={navigate}
+      />
+
+      <style>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
