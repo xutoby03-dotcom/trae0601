@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import type { IssueType } from '@/types';
+import { formatResolveTime } from '@/utils/formatTime';
 import CueSection from '@/components/prop/CueSection';
 
 export default function PropFlowPage() {
@@ -30,6 +31,7 @@ export default function PropFlowPage() {
     selectPlay,
     selectScene,
     getUnresolvedIssues,
+    getIssues,
     resolveIssue,
   } = useAppStore();
 
@@ -37,6 +39,17 @@ export default function PropFlowPage() {
   const [showChecklist, setShowChecklist] = useState(false);
   const [resolvingIssueId, setResolvingIssueId] = useState<string | null>(null);
   const [resolutionText, setResolutionText] = useState('');
+  const [justResolved, setJustResolved] = useState<Map<string, string>>(new Map());
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const clearJustResolved = useCallback((issueId: string) => {
+    setJustResolved((prev) => {
+      const next = new Map(prev);
+      next.delete(issueId);
+      return next;
+    });
+    timersRef.current.delete(issueId);
+  }, []);
 
   const play = plays.find((p) => p.id === playId);
   const scenes = playId ? getScenesByPlay(playId) : [];
@@ -190,33 +203,35 @@ export default function PropFlowPage() {
       </div>
 
       {/* 重点确认清单入口 */}
-      {getUnresolvedIssues().length > 0 && (
+      {(getUnresolvedIssues().length > 0 || justResolved.size > 0) && (
         <div className="rounded-2xl border-2 border-neon-red/60 bg-neon-red/5 overflow-hidden">
           <button
             onClick={() => setShowChecklist(!showChecklist)}
             className="w-full p-5 flex items-center justify-between text-left hover:bg-neon-red/10 transition-colors"
           >
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-neon-red/20 flex items-center justify-center animate-pulse-fast">
-                <ClipboardList className="w-7 h-7 text-neon-red" />
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${getUnresolvedIssues().length > 0 ? 'bg-neon-red/20 animate-pulse-fast' : 'bg-neon-green/20'}`}>
+                <ClipboardList className={`w-7 h-7 ${getUnresolvedIssues().length > 0 ? 'text-neon-red' : 'text-neon-green'}`} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-neon-red tracking-wide">
+                <h2 className={`text-2xl font-bold tracking-wide ${getUnresolvedIssues().length > 0 ? 'text-neon-red' : 'text-neon-green'}`}>
                   重点确认清单
                 </h2>
-                <p className="text-base text-neon-red/70 mt-1">
-                  共 {getUnresolvedIssues().length} 条待处理问题，排练前必须逐项确认
+                <p className={`text-base mt-1 ${getUnresolvedIssues().length > 0 ? 'text-neon-red/70' : 'text-neon-green/70'}`}>
+                  {getUnresolvedIssues().length > 0
+                    ? `共 ${getUnresolvedIssues().length} 条待处理问题，排练前必须逐项确认`
+                    : '所有问题已处理完毕'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="px-4 py-2 bg-neon-red/20 rounded-xl text-neon-red font-bold text-lg">
+              <div className={`px-4 py-2 rounded-xl font-bold text-lg ${getUnresolvedIssues().length > 0 ? 'bg-neon-red/20 text-neon-red' : 'bg-neon-green/20 text-neon-green'}`}>
                 {getUnresolvedIssues().length} 项
               </div>
               {showChecklist ? (
-                <ChevronUp className="w-7 h-7 text-neon-red" />
+                <ChevronUp className={`w-7 h-7 ${getUnresolvedIssues().length > 0 ? 'text-neon-red' : 'text-neon-green'}`} />
               ) : (
-                <ChevronDown className="w-7 h-7 text-neon-red" />
+                <ChevronDown className={`w-7 h-7 ${getUnresolvedIssues().length > 0 ? 'text-neon-red' : 'text-neon-green'}`} />
               )}
             </div>
           </button>
@@ -257,7 +272,8 @@ export default function PropFlowPage() {
                   },
                 };
 
-                const sorted = [...getUnresolvedIssues()].sort(
+                const unresolved = getUnresolvedIssues();
+                const sorted = [...unresolved].sort(
                   (a, b) => priorityOrder[a.type] - priorityOrder[b.type]
                 );
 
@@ -272,113 +288,175 @@ export default function PropFlowPage() {
                 };
 
                 const submitResolve = (issueId: string) => {
-                  if (resolutionText.trim()) {
-                    resolveIssue(issueId, resolutionText.trim());
-                    setResolvingIssueId(null);
-                    setResolutionText('');
-                  }
+                  if (!resolutionText.trim()) return;
+                  resolveIssue(issueId, resolutionText.trim());
+                  setResolvingIssueId(null);
+                  setResolutionText('');
+
+                  const now = new Date().toISOString();
+                  setJustResolved((prev) => {
+                    const next = new Map(prev);
+                    next.set(issueId, now);
+                    return next;
+                  });
+
+                  const timer = setTimeout(() => {
+                    clearJustResolved(issueId);
+                  }, 4000);
+                  timersRef.current.set(issueId, timer);
                 };
 
-                return sorted.map((issue) => {
-                  const cfg = typeConfig[issue.type];
-                  const Icon = cfg.icon;
-                  const isResolving = resolvingIssueId === issue.id;
+                const allIssues = getUnresolvedIssues();
+                const resolvedCards = Array.from(justResolved.entries())
+                  .filter(([id]) => !allIssues.some((i) => i.id === id))
+                  .map(([id, resolvedAt]) => {
+                    const allResolved = getIssues().find((i) => i.id === id);
+                    if (!allResolved) return null;
+                    return { ...allResolved, _justResolvedAt: resolvedAt };
+                  })
+                  .filter(Boolean) as (typeof sorted[number] & { _justResolvedAt: string })[];
 
-                  return (
-                    <div
-                      key={issue.id}
-                      className={`rounded-xl border ${cfg.border} ${cfg.bg} overflow-hidden`}
-                    >
-                      <div className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className={`w-11 h-11 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
-                            <Icon className={`w-6 h-6 ${cfg.color}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 flex-wrap mb-2">
-                              <span className={`px-3 py-1 rounded-lg text-sm font-bold ${cfg.bg} ${cfg.color}`}>
-                                {cfg.label}
-                              </span>
-                              <h4 className="text-xl font-bold text-stage-text">
-                                {issue.prop.name}
-                              </h4>
+                return (
+                  <>
+                    {sorted.map((issue) => {
+                      const cfg = typeConfig[issue.type];
+                      const Icon = cfg.icon;
+                      const isResolving = resolvingIssueId === issue.id;
+
+                      return (
+                        <div
+                          key={issue.id}
+                          className={`rounded-xl border ${cfg.border} ${cfg.bg} overflow-hidden`}
+                        >
+                          <div className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className={`w-11 h-11 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
+                                <Icon className={`w-6 h-6 ${cfg.color}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 flex-wrap mb-2">
+                                  <span className={`px-3 py-1 rounded-lg text-sm font-bold ${cfg.bg} ${cfg.color}`}>
+                                    {cfg.label}
+                                  </span>
+                                  <h4 className="text-xl font-bold text-stage-text">
+                                    {issue.prop.name}
+                                  </h4>
+                                </div>
+                                <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
+                                  <span>剧目：<span className="text-neon-green font-medium">{issue.playName}</span></span>
+                                  <span>场次：<span className="text-neon-green font-medium">{issue.sceneName}</span></span>
+                                  <span>Cue <span className="text-neon-green font-medium">{issue.cueNumber}</span> · {issue.cueName}</span>
+                                </div>
+                                <p className="text-base text-stage-text-secondary mt-2">
+                                  {issue.description}
+                                </p>
+                              </div>
+
+                              {/* 右侧操作区 */}
+                              <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                                <button
+                                  onClick={() => startResolve(issue.id)}
+                                  disabled={isResolving}
+                                  className="px-5 py-2.5 rounded-xl bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  已确认
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
-                              <span>剧目：<span className="text-neon-green font-medium">{issue.playName}</span></span>
-                              <span>场次：<span className="text-neon-green font-medium">{issue.sceneName}</span></span>
-                              <span>Cue <span className="text-neon-green font-medium">{issue.cueNumber}</span> · {issue.cueName}</span>
-                            </div>
-                            <p className="text-base text-stage-text-secondary mt-2">
-                              {issue.description}
-                            </p>
                           </div>
 
-                          {/* 右侧操作区 */}
-                          <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                            <button
-                              onClick={() => startResolve(issue.id)}
-                              disabled={isResolving}
-                              className="px-5 py-2.5 rounded-xl bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                              已确认
-                            </button>
+                          {/* 备注输入面板 */}
+                          {isResolving && (
+                            <div className="px-4 pb-4 border-t border-stage-border/50 pt-4 animate-fade-in">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-base font-medium text-neon-green">
+                                  请填写处理备注（如"已找到"/"已更换新道具"等）
+                                </span>
+                              </div>
+                              <textarea
+                                value={resolutionText}
+                                onChange={(e) => setResolutionText(e.target.value)}
+                                placeholder="处理情况说明..."
+                                className="w-full p-3 bg-stage-bg-card border border-stage-border rounded-xl text-stage-text placeholder-stage-text-muted resize-none focus:border-neon-green/50 focus:outline-none text-base"
+                                rows={2}
+                                autoFocus
+                              />
+                              <div className="flex justify-end gap-3 mt-3">
+                                <button
+                                  onClick={cancelResolve}
+                                  className="px-4 py-2 rounded-lg border border-stage-border text-stage-text-secondary hover:bg-stage-bg-hover text-base"
+                                >
+                                  取消
+                                </button>
+                                <button
+                                  onClick={() => submitResolve(issue.id)}
+                                  disabled={!resolutionText.trim()}
+                                  className="px-5 py-2 rounded-lg bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  提交并关闭
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* 刚处理完的卡片 - 绿色状态，显示处理时间 */}
+                    {resolvedCards.map((issue) => {
+                      return (
+                        <div
+                          key={issue.id}
+                          className="rounded-xl border-2 border-neon-green/50 bg-neon-green/5 overflow-hidden opacity-80"
+                        >
+                          <div className="p-4">
+                            <div className="flex items-start gap-4">
+                              <div className="w-11 h-11 rounded-lg bg-neon-green/20 flex items-center justify-center flex-shrink-0">
+                                <CheckCircle2 className="w-6 h-6 text-neon-green" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 flex-wrap mb-2">
+                                  <span className="px-3 py-1 rounded-lg text-sm font-bold bg-neon-green/20 text-neon-green">
+                                    已处理
+                                  </span>
+                                  <h4 className="text-xl font-bold text-stage-text">
+                                    {issue.prop.name}
+                                  </h4>
+                                </div>
+                                <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
+                                  <span>剧目：<span className="font-medium text-stage-text-secondary">{issue.playName}</span></span>
+                                  <span>场次：<span className="font-medium text-stage-text-secondary">{issue.sceneName}</span></span>
+                                  <span>Cue <span className="font-medium text-stage-text-secondary">{issue.cueNumber}</span> · {issue.cueName}</span>
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 flex items-center gap-2 text-base font-bold text-neon-green">
+                                <Clock className="w-5 h-5" />
+                                {formatResolveTime(issue._justResolvedAt)}
+                              </div>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+
+                    {sorted.length === 0 && resolvedCards.length === 0 && (
+                      <div className="py-10 text-center">
+                        <div className="w-16 h-16 rounded-full bg-neon-green/20 mx-auto mb-4 flex items-center justify-center">
+                          <CheckCircle2 className="w-8 h-8 text-neon-green" />
+                        </div>
+                        <h4 className="text-xl font-bold text-neon-green">
+                          全部处理完成
+                        </h4>
+                        <p className="text-base text-stage-text-secondary mt-1">
+                          所有问题均已确认，可放心排练
+                        </p>
                       </div>
-
-                      {/* 备注输入面板 */}
-                      {isResolving && (
-                        <div className="px-4 pb-4 border-t border-stage-border/50 pt-4 animate-fade-in">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-base font-medium text-neon-green">
-                              请填写处理备注（如"已找到"/"已更换新道具"等）
-                            </span>
-                          </div>
-                          <textarea
-                            value={resolutionText}
-                            onChange={(e) => setResolutionText(e.target.value)}
-                            placeholder="处理情况说明..."
-                            className="w-full p-3 bg-stage-bg-card border border-stage-border rounded-xl text-stage-text placeholder-stage-text-muted resize-none focus:border-neon-green/50 focus:outline-none text-base"
-                            rows={2}
-                            autoFocus
-                          />
-                          <div className="flex justify-end gap-3 mt-3">
-                            <button
-                              onClick={cancelResolve}
-                              className="px-4 py-2 rounded-lg border border-stage-border text-stage-text-secondary hover:bg-stage-bg-hover text-base"
-                            >
-                              取消
-                            </button>
-                            <button
-                              onClick={() => submitResolve(issue.id)}
-                              disabled={!resolutionText.trim()}
-                              className="px-5 py-2 rounded-lg bg-neon-green text-black font-bold text-base hover:bg-neon-green-dim disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-                            >
-                              <CheckCircle2 className="w-5 h-5" />
-                              提交并关闭
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                });
+                    )}
+                  </>
+                );
               })()}
-
-              {getUnresolvedIssues().length === 0 && (
-                <div className="py-10 text-center">
-                  <div className="w-16 h-16 rounded-full bg-neon-green/20 mx-auto mb-4 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-neon-green" />
-                  </div>
-                  <h4 className="text-xl font-bold text-neon-green">
-                    全部处理完成
-                  </h4>
-                  <p className="text-base text-stage-text-secondary mt-1">
-                    所有问题均已确认，可放心排练
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>

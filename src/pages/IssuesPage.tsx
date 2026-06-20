@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import type { IssueType } from '@/types';
+import { formatResolveTime } from '@/utils/formatTime';
 
 type FilterType = 'all' | 'unresolved' | 'resolved';
 
@@ -197,6 +198,7 @@ export default function IssuesPage() {
                         {issue.description}
                       </p>
                       <div className="flex items-center gap-6 text-sm text-stage-text-muted">
+                        <span>剧目：{issue.playName}</span>
                         <span>场次：{issue.sceneName}</span>
                         <span>Cue：{issue.cueNumber}</span>
                         <span>
@@ -217,11 +219,9 @@ export default function IssuesPage() {
                             {issue.resolution}
                           </div>
                           {issue.resolvedAt && (
-                            <div className="text-sm text-stage-text-muted mt-2">
-                              解决时间：
-                              {new Date(issue.resolvedAt).toLocaleString(
-                                'zh-CN'
-                              )}
+                            <div className="flex items-center gap-2 text-sm text-neon-green mt-2">
+                              <Clock className="w-4 h-4" />
+                              {formatResolveTime(issue.resolvedAt)}
                             </div>
                           )}
                         </div>
