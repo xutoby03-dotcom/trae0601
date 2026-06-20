@@ -8,8 +8,15 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  AlertOctagon,
+  AlertCircle,
+  MapPinOff,
+  ClipboardList,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
+import type { IssueType } from '@/types';
 import CueSection from '@/components/prop/CueSection';
 
 export default function PropFlowPage() {
@@ -22,9 +29,11 @@ export default function PropFlowPage() {
     getAllPropFlowsByScene,
     selectPlay,
     selectScene,
+    getUnresolvedIssues,
   } = useAppStore();
 
   const [expandedCueId, setExpandedCueId] = useState<string | null>(null);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   const play = plays.find((p) => p.id === playId);
   const scenes = playId ? getScenesByPlay(playId) : [];
@@ -176,6 +185,118 @@ export default function PropFlowPage() {
           />
         </div>
       </div>
+
+      {/* 重点确认清单入口 */}
+      {getUnresolvedIssues().length > 0 && (
+        <div className="rounded-2xl border-2 border-neon-red/60 bg-neon-red/5 overflow-hidden">
+          <button
+            onClick={() => setShowChecklist(!showChecklist)}
+            className="w-full p-5 flex items-center justify-between text-left hover:bg-neon-red/10 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-neon-red/20 flex items-center justify-center animate-pulse-fast">
+                <ClipboardList className="w-7 h-7 text-neon-red" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-neon-red tracking-wide">
+                  重点确认清单
+                </h2>
+                <p className="text-base text-neon-red/70 mt-1">
+                  共 {getUnresolvedIssues().length} 条待处理问题，排练前必须逐项确认
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="px-4 py-2 bg-neon-red/20 rounded-xl text-neon-red font-bold text-lg">
+                {getUnresolvedIssues().length} 项
+              </div>
+              {showChecklist ? (
+                <ChevronUp className="w-7 h-7 text-neon-red" />
+              ) : (
+                <ChevronDown className="w-7 h-7 text-neon-red" />
+              )}
+            </div>
+          </button>
+
+          {/* 展开的问题清单 */}
+          {showChecklist && (
+            <div className="px-5 pb-5 border-t border-neon-red/30 pt-4 space-y-3 animate-fade-in">
+              {(() => {
+                const priorityOrder: Record<IssueType, number> = {
+                  lost: 0,
+                  damaged: 1,
+                  wrong_position: 2,
+                };
+                const typeConfig: Record<
+                  IssueType,
+                  { label: string; icon: typeof AlertOctagon; color: string; bg: string; border: string }
+                > = {
+                  lost: {
+                    label: '遗失',
+                    icon: AlertOctagon,
+                    color: 'text-neon-red',
+                    bg: 'bg-neon-red/15',
+                    border: 'border-neon-red/40',
+                  },
+                  damaged: {
+                    label: '损坏',
+                    icon: AlertCircle,
+                    color: 'text-neon-yellow',
+                    bg: 'bg-neon-yellow/10',
+                    border: 'border-neon-yellow/40',
+                  },
+                  wrong_position: {
+                    label: '位置错误',
+                    icon: MapPinOff,
+                    color: 'text-neon-blue',
+                    bg: 'bg-neon-blue/10',
+                    border: 'border-neon-blue/40',
+                  },
+                };
+
+                const sorted = [...getUnresolvedIssues()].sort(
+                  (a, b) => priorityOrder[a.type] - priorityOrder[b.type]
+                );
+
+                return sorted.map((issue) => {
+                  const cfg = typeConfig[issue.type];
+                  const Icon = cfg.icon;
+                  return (
+                    <div
+                      key={issue.id}
+                      className={`rounded-xl border ${cfg.border} ${cfg.bg} p-4`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`w-11 h-11 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`w-6 h-6 ${cfg.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 flex-wrap mb-2">
+                            <span className={`px-3 py-1 rounded-lg text-sm font-bold ${cfg.bg} ${cfg.color}`}>
+                              {cfg.label}
+                            </span>
+                            <h4 className="text-xl font-bold text-stage-text">
+                              {issue.prop.name}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-4 text-base text-stage-text-secondary flex-wrap">
+                            <span>剧目：<span className="text-neon-green font-medium">{issue.playName}</span></span>
+                            <span>场次：<span className="text-neon-green font-medium">{issue.sceneName}</span></span>
+                            <span>Cue <span className="text-neon-green font-medium">{issue.cueNumber}</span> · {issue.cueName}</span>
+                          </div>
+                          <p className="text-base text-stage-text-secondary mt-2">
+                            {issue.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Cue 列表 */}
       <div className="space-y-4">

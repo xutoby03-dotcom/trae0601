@@ -266,12 +266,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       )!;
       const cue = state.cues.find((c) => c.id === propFlow.cueId)!;
       const scene = state.scenes.find((s) => s.id === cue.sceneId)!;
+      const play = state.plays.find((p) => p.id === scene.playId)!;
       return {
         ...issue,
         prop,
         propFlow,
         cueNumber: cue.number,
+        cueName: cue.name,
         sceneName: scene.name,
+        playName: play?.name ?? '',
       };
     });
   },

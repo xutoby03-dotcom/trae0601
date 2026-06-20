@@ -79,7 +79,9 @@ export interface IssueWithDetails extends Issue {
   prop: Prop;
   propFlow: PropFlow;
   cueNumber: number;
+  cueName: string;
   sceneName: string;
+  playName: string;
 }
 
 export interface CheckItemWithDetails extends CheckItem {
