@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #2C2C2C;
+  background-color: #FAF8F5;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Serif SC', Georgia, serif;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  .card-elegant {
+    @apply bg-white rounded-2xl shadow-elegant border border-wine-50 transition-all duration-300;
+  }
+  .card-elegant:hover {
+    @apply shadow-card-hover -translate-y-0.5;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 rounded-lg bg-gradient-to-r from-wine-600 to-wine-700 text-white font-medium
+           border border-gold-400/50 shadow-elegant transition-all duration-300
+           hover:shadow-gold-glow hover:from-wine-700 hover:to-wine-800
+           active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply px-5 py-2.5 rounded-lg bg-white text-wine-700 font-medium
+           border border-gold-300 transition-all duration-300
+           hover:bg-gold-50 hover:border-gold-400;
+  }
+  .tag-gold {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gold-50 text-gold-700
+           border border-gold-200 text-xs font-medium;
+  }
+  .tag-status-normal {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-status-normal/10 text-status-normal
+           border border-status-normal/20 text-xs font-medium;
+  }
+  .tag-status-warning {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-status-warning/10 text-status-warning
+           border border-status-warning/20 text-xs font-medium;
+  }
+  .tag-status-danger {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-status-danger/10 text-status-danger
+           border border-status-danger/20 text-xs font-medium;
+  }
+  .divider-gold {
+    @apply h-px bg-gradient-to-r from-transparent via-gold-300/50 to-transparent;
+  }
+  .input-elegant {
+    @apply w-full px-4 py-2.5 rounded-lg border border-wine-100 bg-white
+           focus:outline-none focus:ring-2 focus:ring-gold-400/40 focus:border-gold-400
+           transition-all duration-200;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #D4949A, #C9A962);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #BC5E68, #B08D3D);
+}
+
+/* 动画延迟类 */
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
+
+/* 呼吸动画边框 - 金色高亮 */
+.breathing-gold {
+  animation: breathingGold 2.5s ease-in-out infinite;
+}
+@keyframes breathingGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 169, 98, 0.5), 0 0 20px -4px rgba(201, 169, 98, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(201, 169, 98, 0), 0 0 30px -2px rgba(201, 169, 98, 0.5); }
+}
+
+/* 呼吸动画 - 红色缺货 */
+.breathing-shortage {
+  animation: breathingShortage 2s ease-in-out infinite;
+}
+@keyframes breathingShortage {
+  0%, 100% { background-color: rgba(229, 57, 53, 0.04); }
+  50% { background-color: rgba(229, 57, 53, 0.1); }
+}
+
+/* 成功图标动画 */
+.success-checkmark {
+  animation: successPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 渐入延迟 */
+.stagger-item {
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* 表格行悬停效果 */
+.table-row-hover:hover {
+  background-color: rgba(253, 250, 243, 0.8) !important;
+}
+
+/* 进度条自定义颜色包装 */
+.progress-wrap-shortage .ant-progress-bg { background: linear-gradient(90deg, #E53935, #FF7043) !important; }
+.progress-wrap-warning .ant-progress-bg { background: linear-gradient(90deg, #FF9800, #FFC107) !important; }
+.progress-wrap-normal .ant-progress-bg { background: linear-gradient(90deg, #4CAF50, #8BC34A) !important; }
+
+/* 步骤流程过渡 */
+.step-content-enter {
+  animation: fadeSlideIn 0.4s ease-out;
+}
+@keyframes fadeSlideIn {
+  0% { opacity: 0; transform: translateX(16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* 时间轴连接线 */
+.timeline-dot::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 28px;
+  bottom: -8px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(201, 169, 98, 0.4), transparent);
+}
+.timeline-dot:last-child::before { display: none; }
+
+/* 图标背景渐变 */
+.icon-bg-wine { background: linear-gradient(135deg, rgba(114,47,55,0.1), rgba(114,47,55,0.05)); }
+.icon-bg-gold { background: linear-gradient(135deg, rgba(201,169,98,0.15), rgba(201,169,98,0.05)); }
+.icon-bg-coffee { background: linear-gradient(135deg, rgba(111,78,55,0.12), rgba(111,78,55,0.05)); }
+.icon-bg-green { background: linear-gradient(135deg, rgba(74,103,65,0.12), rgba(74,103,65,0.05)); }
+.icon-bg-blue { background: linear-gradient(135deg, rgba(42,82,190,0.12), rgba(42,82,190,0.05)); }
+
+/* 巡查数量输入框样式 */
+.inspection-qty-input.ant-input-number {
+  text-align: center;
+  font-weight: 700;
+}
+.inspection-qty-input .ant-input-number-input {
+  text-align: center;
+  font-weight: 700;
+  font-size: 18px;
+  font-family: 'Noto Serif SC', Georgia, serif;
+}
+.inspection-qty-normal .ant-input-number-input {
+  color: #722F37;
+}
+.inspection-qty-shortage.ant-input-number {
+  border-color: rgba(229, 57, 53, 0.5) !important;
+  background: rgba(229, 57, 53, 0.05) !important;
+}
+.inspection-qty-shortage.ant-input-number-focused,
+.inspection-qty-shortage.ant-input-number:focus,
+.inspection-qty-shortage.ant-input-number:hover {
+  border-color: #E53935 !important;
+}
+.inspection-qty-shortage .ant-input-number-input {
+  color: #E53935;
+}
