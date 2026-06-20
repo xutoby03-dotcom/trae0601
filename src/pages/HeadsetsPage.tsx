@@ -7,11 +7,27 @@ import { connectionTypeLabels, headsetStatusLabels } from '@/types';
 import type { ConnectionType, HeadsetStatus } from '@/types';
 
 export default function HeadsetsPage() {
-  const { headsets, deleteHeadset, resetData } = useStore();
+  const { headsets, borrowRecords, deleteHeadset, resetData } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [connectionFilter, setConnectionFilter] = useState<string>('all');
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
+  
+  const unreturnedBorrowHeadsetIds = useMemo(() => new Set(
+    borrowRecords
+      .filter(r => r.status === 'borrowed' || r.status === 'overdue')
+      .map(r => r.headsetId)
+  ), [borrowRecords]);
+  
+  const availableCount = useMemo(() => 
+    headsets.filter(h => 
+      h.status === 'available' && 
+      !h.receiverLost && 
+      !h.microphoneIssue &&
+      !unreturnedBorrowHeadsetIds.has(h.id)
+    ).length,
+    [headsets, unreturnedBorrowHeadsetIds]
+  );
 
   const filteredHeadsets = useMemo(() => {
     return headsets.filter(headset => {
@@ -45,7 +61,7 @@ export default function HeadsetsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">耳麦档案</h1>
-          <p className="text-slate-500 mt-1">共 {headsets.length} 个耳麦 · 可用 {headsets.filter(h => h.status === 'available').length} 个</p>
+          <p className="text-slate-500 mt-1">共 {headsets.length} 个耳麦 · 可用 {availableCount} 个</p>
         </div>
         <div className="flex items-center gap-3">
           <button

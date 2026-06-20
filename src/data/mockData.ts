@@ -28,7 +28,7 @@ export const mockHeadsets: Headset[] = [
     compatibleSoftware: ['Zoom', 'Teams', '钉钉', '腾讯会议'],
     batteryLevel: 25,
     photo: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=logitech%20zone%20vibe%20wireless%20headset%20gray%20product%20photo%20white%20background&image_size=square',
-    status: 'available',
+    status: 'borrowed',
     receiverLost: false,
     microphoneIssue: false,
     createdAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000).toISOString(),

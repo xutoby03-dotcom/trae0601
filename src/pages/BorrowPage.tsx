@@ -9,10 +9,19 @@ export default function BorrowPage() {
   const [searchParams] = useSearchParams();
   const headsetIdParam = searchParams.get('headsetId');
   const navigate = useNavigate();
-  const { headsets, addBorrowRecord } = useStore();
+  const { headsets, borrowRecords, addBorrowRecord } = useStore();
+  
+  const unreturnedBorrowHeadsetIds = new Set(
+    borrowRecords
+      .filter(r => r.status === 'borrowed' || r.status === 'overdue')
+      .map(r => r.headsetId)
+  );
   
   const availableHeadsets = headsets.filter(h => 
-    h.status === 'available' && !h.receiverLost && !h.microphoneIssue
+    h.status === 'available' && 
+    !h.receiverLost && 
+    !h.microphoneIssue &&
+    !unreturnedBorrowHeadsetIds.has(h.id)
   );
   
   const [selectedHeadsetId, setSelectedHeadsetId] = useState<string>(headsetIdParam || '');

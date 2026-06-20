@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Edit2, Trash2, Battery, Package, Wifi, AlertTriangle } from 'lucide-react';
+import { useStore } from '@/store/useStore';
 import type { Headset } from '@/types';
 import { connectionTypeLabels, headsetStatusLabels } from '@/types';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,12 @@ interface HeadsetCardProps {
 }
 
 export default function HeadsetCard({ headset, onDelete, showActions = true }: HeadsetCardProps) {
+  const borrowRecords = useStore(state => state.borrowRecords);
+  
+  const hasUnreturnedRecord = borrowRecords.some(
+    r => r.headsetId === headset.id && (r.status === 'borrowed' || r.status === 'overdue')
+  );
+  
   const isLowBattery = headset.batteryLevel < 30 && headset.batteryLevel > 0;
   const hasIssues = headset.receiverLost || headset.microphoneIssue;
   const isFaulty = headset.status === 'faulty' || headset.status === 'maintenance';
@@ -117,7 +124,7 @@ export default function HeadsetCard({ headset, onDelete, showActions = true }: H
                   删除
                 </button>
               )}
-              {headset.status === 'available' && !hasIssues && (
+              {headset.status === 'available' && !hasIssues && !hasUnreturnedRecord && (
                 <Link
                   to={`/borrow?headsetId=${headset.id}`}
                   className="btn btn-primary text-sm py-1.5 px-3 ml-auto"

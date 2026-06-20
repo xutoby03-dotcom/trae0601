@@ -22,13 +22,23 @@ export default function DashboardPage() {
   
   const now = new Date();
   
+  const unreturnedBorrowHeadsetIds = new Set(
+    borrowRecords
+      .filter(r => r.status === 'borrowed' || r.status === 'overdue')
+      .map(r => r.headsetId)
+  );
+  
   const availableHeadsets = headsets.filter(h => 
-    h.status === 'available' && !h.receiverLost && !h.microphoneIssue
+    h.status === 'available' && 
+    !h.receiverLost && 
+    !h.microphoneIssue &&
+    !unreturnedBorrowHeadsetIds.has(h.id)
   );
   
   const overdueBorrows = borrowRecords.filter(r => {
-    if (r.status !== 'borrowed') return false;
-    return new Date(r.expectedReturn) < now;
+    if (r.status === 'overdue') return true;
+    if (r.status === 'borrowed' && new Date(r.expectedReturn) < now) return true;
+    return false;
   });
   
   const faultyHeadsets = headsets.filter(h => 
