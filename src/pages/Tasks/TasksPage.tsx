@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import {
   PRIORITY_COLORS,
@@ -6,9 +6,10 @@ import {
   TASK_TRIGGER_OPTIONS,
   MATERIAL_LABEL_MAP,
   CLEAN_METHOD_LABEL_MAP,
+  CLEAN_ACTION_OPTIONS,
   formatDateShort,
 } from '@/utils/constants';
-import type { TaskTrigger, TaskPriority, Toy } from '@/types';
+import type { TaskTrigger, TaskPriority, Toy, CleaningRecord, CleanMethodAction } from '@/types';
 
 const triggerCardStyles: Record<TaskTrigger, string> = {
   teething: 'bg-gradient-to-br from-alert-400 to-alert-300 text-white shadow-glow-red',
@@ -17,8 +18,15 @@ const triggerCardStyles: Record<TaskTrigger, string> = {
   manual: 'bg-gradient-to-br from-gray-400 to-gray-300 text-white shadow-soft',
 };
 
+const ACTION_COLORS: Record<CleanMethodAction, string> = {
+  water: 'bg-clean-100 text-clean-500',
+  wipe: 'bg-mint-100 text-mint-500',
+  uv: 'bg-baby-100 text-baby-500',
+  dry: 'bg-woody-100 text-woody-500',
+};
+
 export default function TasksPage() {
-  const { tasks, toys, generateTaskByTrigger, createTask, toggleTaskItem, completeTask } = useAppStore();
+  const { tasks, toys, cleaningRecords, generateTaskByTrigger, createTask, toggleTaskItem, completeTask } = useAppStore();
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('任务已生成');
   const [showManualForm, setShowManualForm] = useState(false);
@@ -73,6 +81,32 @@ export default function TasksPage() {
 
   const getToyById = (id: string): Toy | undefined => toys.find(t => t.id === id);
   const getTriggerMeta = (trigger: TaskTrigger) => TASK_TRIGGER_OPTIONS.find(t => t.value === trigger);
+
+  const getRecordForTaskToy = useMemo(() => {
+    const map = new Map<string, CleaningRecord>();
+    for (const task of tasks) {
+      for (const toyId of task.toyIds) {
+        const record = cleaningRecords
+          .filter(r => r.toyId === toyId && new Date(r.date) >= new Date(task.createdAt))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        if (record) {
+          map.set(`${task.id}-${toyId}`, record);
+        }
+      }
+    }
+    return map;
+  }, [tasks, cleaningRecords]);
+
+  const formatTime = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const isToday = (dateStr: string): boolean => {
+    const d = new Date(dateStr);
+    const t = new Date();
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+  };
 
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.completed !== b.completed) return a.completed ? 1 : -1;
@@ -190,17 +224,19 @@ export default function TasksPage() {
                         const toy = getToyById(toyId);
                         if (!toy) return null;
                         const isDone = task.completedToyIds.includes(toyId);
+                        const record = getRecordForTaskToy.get(`${task.id}-${toyId}`);
                         const materialMeta = MATERIAL_LABEL_MAP.get(toy.material);
                         const cleanMeta = CLEAN_METHOD_LABEL_MAP.get(toy.cleanMethod);
+                        const todayRecorded = record && isToday(record.date);
 
                         return (
                           <div
                             key={toyId}
-                            className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
-                              isDone ? 'bg-mint-50' : 'bg-gray-50 hover:bg-gray-100'
+                            className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 ${
+                              isDone ? 'bg-mint-50 border border-mint-100' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                             }`}
                           >
-                            <label className="flex items-center cursor-pointer shrink-0">
+                            <label className="flex items-center cursor-pointer shrink-0 mt-0.5">
                               <input
                                 type="checkbox"
                                 checked={isDone}
@@ -210,8 +246,15 @@ export default function TasksPage() {
                               />
                             </label>
                             <div className="flex-1 min-w-0">
-                              <div className={`font-medium ${isDone ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                {toy.name}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className={`font-medium ${isDone ? 'text-gray-500' : 'text-gray-700'}`}>
+                                  {toy.name}
+                                </div>
+                                {todayRecorded && (
+                                  <span className="tag bg-mint-100 text-mint-500 text-[10px] animate-bounce-soft">
+                                    ✅ 今天已记
+                                  </span>
+                                )}
                               </div>
                               <div className="flex flex-wrap gap-2 mt-1.5">
                                 {materialMeta && (
@@ -225,6 +268,21 @@ export default function TasksPage() {
                                   </span>
                                 )}
                               </div>
+                              {record && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-mint-100/50">
+                                  {record.methods.map(method => {
+                                    const meta = CLEAN_ACTION_OPTIONS.find(opt => opt.value === method);
+                                    return meta ? (
+                                      <span key={method} className={`tag ${ACTION_COLORS[method]}`}>
+                                        {meta.icon} {meta.label}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    🕐 {formatTime(record.date)} {!isToday(record.date) && `(${formatDateShort(record.date)})`}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
