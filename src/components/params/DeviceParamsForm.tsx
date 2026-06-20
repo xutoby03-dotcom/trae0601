@@ -41,6 +41,7 @@ function SliderRow({
   accent = '#F59E0B',
 }: SliderRowProps) {
   const pct = ((value - min) / (max - min)) * 100;
+  const decimals = step < 1 ? Math.ceil(-Math.log10(step)) : 0;
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -51,13 +52,16 @@ function SliderRow({
         <div className="flex items-center gap-1">
           <input
             type="number"
-            value={value}
+            value={decimals > 0 ? value.toFixed(decimals) : value}
             min={min}
             max={max}
             step={step}
-            onChange={(e) =>
-              onChange(Math.max(min, Math.min(max, Number(e.target.value) || 0)))
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '' || raw === '-') return;
+              const v = Number(raw);
+              if (!isNaN(v)) onChange(Math.max(min, Math.min(max, v)));
+            }}
             className="w-20 bg-studio-900/80 border border-studio-700 rounded-md px-2 py-1
                      font-mono text-[12px] text-studio-200 outline-none
                      focus:border-amber-glow focus:ring-1 focus:ring-amber-glow/30 text-right"
@@ -177,20 +181,22 @@ export default function DeviceParamsForm() {
             <SliderRow
               icon={<Ruler className="w-3.5 h-3.5" />}
               label="水平 X"
-              value={Math.round(device.x)}
+              value={Math.round(device.x * 10) / 10}
               unit="%"
               min={0}
               max={100}
+              step={0.5}
               onChange={(v) => updateDevice(device.id, { x: v })}
               accent={color}
             />
             <SliderRow
               icon={<Ruler className="w-3.5 h-3.5" />}
               label="垂直 Y"
-              value={Math.round(device.y)}
+              value={Math.round(device.y * 10) / 10}
               unit="%"
               min={0}
               max={100}
+              step={0.5}
               onChange={(v) => updateDevice(device.id, { y: v })}
               accent={color}
             />
