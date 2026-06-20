@@ -828,10 +828,15 @@ export function Dashboard() {
               {recallReminders.length > 0 ? (
                 recallReminders.slice(0, 5).map((apt) => {
                   const elder = getElder(apt.elderId);
-                  const daysOverdue = apt.nextSuggestedTime
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  const nextDateStr = apt.nextSuggestedTime
+                    ? apt.nextSuggestedTime.split("T")[0]
+                    : null;
+                  const isToday = nextDateStr === todayStr;
+                  const daysOverdue = nextDateStr
                     ? Math.floor(
-                        (new Date().getTime() -
-                          new Date(apt.nextSuggestedTime).getTime()) /
+                        (new Date(todayStr).getTime() -
+                          new Date(nextDateStr).getTime()) /
                           (1000 * 60 * 60 * 24)
                       )
                     : 0;
@@ -859,9 +864,15 @@ export function Dashboard() {
                         <p className="font-medium text-gray-800 text-sm truncate">
                           {elder?.name || "未知"}
                         </p>
-                        <p className="text-xs text-danger-500">
+                        <p
+                          className={`text-xs ${
+                            isToday ? "text-primary-600 font-medium" : "text-danger-500"
+                          }`}
+                        >
                           {apt.nextSuggestedTime
-                            ? `建议复约已过 ${daysOverdue} 天`
+                            ? isToday
+                              ? "今天到期 · 建议复约"
+                              : `已过 ${daysOverdue} 天 · ${formatDate(apt.nextSuggestedTime)}`
                             : "需复约"}
                         </p>
                       </div>

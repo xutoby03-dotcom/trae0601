@@ -113,18 +113,25 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
     const completed = get()
       .appointments.filter((a) => {
         if (a.status !== "completed") return false;
+        if (a.nextSuggestedTime) {
+          const nextDate = new Date(a.nextSuggestedTime);
+          nextDate.setHours(0, 0, 0, 0);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return nextDate.getTime() <= today.getTime();
+        }
         const completedDate = new Date(a.scheduledTime);
-        const nextSuggested = a.nextSuggestedTime
-          ? new Date(a.nextSuggestedTime)
-          : null;
-        if (nextSuggested && nextSuggested <= now) return true;
         return completedDate <= thirtyDaysAgo;
       })
-      .sort(
-        (a, b) =>
-          new Date(b.scheduledTime).getTime() -
-          new Date(a.scheduledTime).getTime()
-      );
+      .sort((a, b) => {
+        const aDate = a.nextSuggestedTime
+          ? new Date(a.nextSuggestedTime)
+          : new Date(a.scheduledTime);
+        const bDate = b.nextSuggestedTime
+          ? new Date(b.nextSuggestedTime)
+          : new Date(b.scheduledTime);
+        return aDate.getTime() - bDate.getTime();
+      });
 
     const seen = new Set<string>();
     return completed.filter((apt) => {
