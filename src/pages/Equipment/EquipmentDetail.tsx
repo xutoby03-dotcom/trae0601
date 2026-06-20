@@ -19,7 +19,7 @@ import {
 export function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { equipment, users, deleteEquipment, updateBatteryChargeLevel, formatMemoryCard, addBattery, addMemoryCard } = useEquipmentStore();
+  const { equipment, users, deleteEquipment, updateBatteryChargeLevel, formatMemoryCard, addBattery, addMemoryCard, updateBattery, updateMemoryCard } = useEquipmentStore();
   const { getShootingRecordsForEquipment } = useRecordStore();
 
   const [activeTab, setActiveTab] = useState<'info' | 'batteries' | 'cards' | 'history'>('info');
@@ -302,6 +302,7 @@ export function EquipmentDetail() {
                         battery={bat}
                         showDetails
                         onMarkCharged={() => updateBatteryChargeLevel(eq.id, bat.id, 100)}
+                        onUpdate={(updates) => updateBattery(eq.id, bat.id, updates)}
                       />
                     </div>
                   ))}
@@ -335,6 +336,7 @@ export function EquipmentDetail() {
                         card={card}
                         showDetails
                         onFormat={() => formatMemoryCard(eq.id, card.id)}
+                        onUpdate={(updates) => updateMemoryCard(eq.id, card.id, updates)}
                       />
                     </div>
                   ))}
