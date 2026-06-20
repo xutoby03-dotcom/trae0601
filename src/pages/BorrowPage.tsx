@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, Calendar, Clock, User, MapPin, Package } from 'lucide-react';
+import { ArrowLeft, Save, Calendar, Clock, User, MapPin, Package, AlertTriangle, X } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { meetingRoomOptions } from '@/types';
 import type { Headset } from '@/types';
@@ -35,17 +35,50 @@ export default function BorrowPage() {
   );
   const [needSpareReceiver, setNeedSpareReceiver] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [unavailableNotice, setUnavailableNotice] = useState<{ headset: Headset; reason: string } | null>(null);
+
+  const getUnavailableReason = (headsetId: string): string => {
+    const headset = headsets.find(h => h.id === headsetId);
+    if (!headset) return '该耳麦不存在';
+    if (unreturnedBorrowHeadsetIds.has(headsetId)) {
+      const borrow = borrowRecords.find(r => r.headsetId === headsetId && (r.status === 'borrowed' || r.status === 'overdue'));
+      const statusText = borrow?.status === 'overdue' ? '逾期未还' : '使用中';
+      return `该耳麦${borrow ? `被「${borrow.borrower}」${statusText}` : '有未归还记录'}，暂不可借`;
+    }
+    if (headset.receiverLost) return '该耳麦接收器已丢失，待补充';
+    if (headset.microphoneIssue) return '该耳麦麦克风异常，待维修';
+    if (headset.status === 'faulty') return '该耳麦已标记为故障';
+    if (headset.status === 'maintenance') return '该耳麦正在维修中';
+    if (headset.status === 'borrowed') return '该耳麦已被借出';
+    return '该耳麦当前不可借用';
+  };
 
   useEffect(() => {
     if (headsetIdParam) {
       const isAvailable = availableHeadsets.some(h => h.id === headsetIdParam);
       if (isAvailable) {
         setSelectedHeadsetId(headsetIdParam);
+        setUnavailableNotice(null);
       } else {
         setSelectedHeadsetId('');
+        const headset = headsets.find(h => h.id === headsetIdParam);
+        if (headset) {
+          setUnavailableNotice({
+            headset,
+            reason: getUnavailableReason(headsetIdParam),
+          });
+        } else {
+          setUnavailableNotice(null);
+        }
       }
     }
-  }, [headsetIdParam, availableHeadsets]);
+  }, [headsetIdParam, availableHeadsets, headsets, borrowRecords]);
+
+  useEffect(() => {
+    if (selectedHeadsetId) {
+      setUnavailableNotice(null);
+    }
+  }, [selectedHeadsetId]);
 
   const selectedHeadset = headsets.find(h => h.id === selectedHeadsetId) as Headset | undefined;
 
@@ -127,6 +160,31 @@ export default function BorrowPage() {
             <Package className="w-5 h-5 text-primary-600" />
             选择耳麦
           </h2>
+          
+          {unavailableNotice && (
+            <div className="mb-4 p-4 rounded-lg border border-red-200 bg-red-50 animate-fade-in">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-800">
+                    {unavailableNotice.headset.brand} {unavailableNotice.headset.model}
+                    <span className="text-red-600 ml-1 text-sm font-normal">
+                      （{unavailableNotice.headset.serialNumber}）
+                    </span>
+                  </p>
+                  <p className="text-sm text-red-700 mt-1">{unavailableNotice.reason}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUnavailableNotice(null)}
+                  className="text-red-400 hover:text-red-600 transition-colors p-1"
+                  aria-label="关闭提示"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3">
             {availableHeadsets.length === 0 ? (
