@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Info, Cpu, Package } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Plus, Calendar, User, Info, Cpu, Package, X } from 'lucide-react';
 import { BatteryStatus } from '../../components/ui/BatteryStatus';
 import { CardCapacity } from '../../components/ui/CardCapacity';
 import { EquipmentTypeIcon } from '../../components/ui/EquipmentTypeIcon';
@@ -19,10 +19,14 @@ import {
 export function EquipmentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { equipment, users, deleteEquipment, updateBatteryChargeLevel, formatMemoryCard } = useEquipmentStore();
+  const { equipment, users, deleteEquipment, updateBatteryChargeLevel, formatMemoryCard, addBattery, addMemoryCard } = useEquipmentStore();
   const { getShootingRecordsForEquipment } = useRecordStore();
 
   const [activeTab, setActiveTab] = useState<'info' | 'batteries' | 'cards' | 'history'>('info');
+  const [showBatteryModal, setShowBatteryModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [batteryForm, setBatteryForm] = useState({ model: '', capacity: '', chargeLevel: '' });
+  const [cardForm, setCardForm] = useState({ brand: '', capacity: '', usedCapacity: '' });
 
   const eq = equipment.find(e => e.id === id);
   const shootingRecords = eq ? getShootingRecordsForEquipment(eq.id) : [];
@@ -63,6 +67,43 @@ export function EquipmentDetail() {
   
   // 按时间排序
   records.sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+
+  // 处理添加电池
+  const handleAddBattery = () => {
+    if (!eq || !batteryForm.model || !batteryForm.capacity || !batteryForm.chargeLevel) {
+      alert('请填写完整的电池信息');
+      return;
+    }
+    addBattery(eq.id, {
+      model: batteryForm.model,
+      capacity: parseInt(batteryForm.capacity),
+      chargeLevel: parseInt(batteryForm.chargeLevel),
+      chargeCycles: 0,
+      brand: '',
+    });
+    setBatteryForm({ model: '', capacity: '', chargeLevel: '' });
+    setShowBatteryModal(false);
+  };
+
+  // 处理添加存储卡
+  const handleAddCard = () => {
+    if (!eq || !cardForm.brand || !cardForm.capacity || !cardForm.usedCapacity) {
+      alert('请填写完整的存储卡信息');
+      return;
+    }
+    const totalCapacity = parseInt(cardForm.capacity);
+    const usedCapacity = parseInt(cardForm.usedCapacity);
+    addMemoryCard(eq.id, {
+      brand: cardForm.brand,
+      model: '',
+      capacity: `${totalCapacity}GB`,
+      totalCapacity,
+      usedCapacity,
+      speed: '',
+    });
+    setCardForm({ brand: '', capacity: '', usedCapacity: '' });
+    setShowCardModal(false);
+  };
 
   if (!eq) {
     return (
@@ -240,7 +281,10 @@ export function EquipmentDetail() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">电池管理</h3>
-                <button className="btn-primary text-sm flex items-center gap-1">
+                <button
+                  onClick={() => setShowBatteryModal(true)}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
                   <Plus size={14} />
                   添加电池
                 </button>
@@ -270,7 +314,10 @@ export function EquipmentDetail() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">存储卡管理</h3>
-                <button className="btn-primary text-sm flex items-center gap-1">
+                <button
+                  onClick={() => setShowCardModal(true)}
+                  className="btn-primary text-sm flex items-center gap-1"
+                >
                   <Plus size={14} />
                   添加存储卡
                 </button>
@@ -341,6 +388,142 @@ export function EquipmentDetail() {
           )}
         </div>
       </div>
+
+      {/* 添加电池模态框 */}
+      {showBatteryModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-background-card rounded-xl p-6 w-full max-w-md mx-4 animate-bounce-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">添加电池</h3>
+              <button
+                onClick={() => setShowBatteryModal(false)}
+                className="p-1 rounded-lg hover:bg-neutral-700 transition-colors"
+              >
+                <X size={20} className="text-neutral-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">电池型号</label>
+                <input
+                  type="text"
+                  value={batteryForm.model}
+                  onChange={(e) => setBatteryForm({ ...batteryForm, model: e.target.value })}
+                  className="input"
+                  placeholder="如: NP-FZ100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">容量 (mAh)</label>
+                <input
+                  type="number"
+                  value={batteryForm.capacity}
+                  onChange={(e) => setBatteryForm({ ...batteryForm, capacity: e.target.value })}
+                  className="input"
+                  placeholder="如: 2280"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">当前电量 (%)</label>
+                <input
+                  type="number"
+                  value={batteryForm.chargeLevel}
+                  onChange={(e) => setBatteryForm({ ...batteryForm, chargeLevel: e.target.value })}
+                  className="input"
+                  placeholder="如: 100"
+                  min="0"
+                  max="100"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowBatteryModal(false)}
+                className="btn-secondary flex-1"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleAddBattery}
+                className="btn-primary flex-1"
+              >
+                添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 添加存储卡模态框 */}
+      {showCardModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-background-card rounded-xl p-6 w-full max-w-md mx-4 animate-bounce-in">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">添加存储卡</h3>
+              <button
+                onClick={() => setShowCardModal(false)}
+                className="p-1 rounded-lg hover:bg-neutral-700 transition-colors"
+              >
+                <X size={20} className="text-neutral-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">品牌</label>
+                <input
+                  type="text"
+                  value={cardForm.brand}
+                  onChange={(e) => setCardForm({ ...cardForm, brand: e.target.value })}
+                  className="input"
+                  placeholder="如: SanDisk"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">总容量 (GB)</label>
+                <input
+                  type="number"
+                  value={cardForm.capacity}
+                  onChange={(e) => setCardForm({ ...cardForm, capacity: e.target.value })}
+                  className="input"
+                  placeholder="如: 128"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">已用空间 (GB)</label>
+                <input
+                  type="number"
+                  value={cardForm.usedCapacity}
+                  onChange={(e) => setCardForm({ ...cardForm, usedCapacity: e.target.value })}
+                  className="input"
+                  placeholder="如: 45"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCardModal(false)}
+                className="btn-secondary flex-1"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleAddCard}
+                className="btn-primary flex-1"
+              >
+                添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
