@@ -341,7 +341,7 @@ export const ModelDetail = () => {
               photos={modelPhotos}
               stages={modelStages}
               modelId={model.id}
-              stageId={activeStage?.id || modelStages[0]?.id || ''}
+              defaultStageId={activeStage?.id || modelStages[0]?.id || ''}
               onAddPhoto={addPhoto}
               onDeletePhoto={deletePhoto}
             />

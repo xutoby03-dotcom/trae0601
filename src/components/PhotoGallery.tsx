@@ -1,21 +1,24 @@
 import { useState, useMemo } from 'react';
 import { ImagePlus, X, Trash2, Calendar } from 'lucide-react';
 import type { Photo, Stage } from '@/types';
-import { STAGE_NAMES } from '@/types';
+import { STAGE_NAMES, STAGE_COLORS, STAGE_ORDER } from '@/types';
 import { formatDateTime } from '@/utils/time';
 import { compressImage } from '@/utils/image';
 
 interface PhotoGalleryProps {
   photos: Photo[];
   stages: Stage[];
-  stageFilter?: string;
   onAddPhoto?: (photo: Omit<Photo, 'id'>) => void;
   onDeletePhoto?: (id: string) => void;
   modelId: string;
-  stageId: string;
+  defaultStageId: string;
 }
 
-export const PhotoGallery = ({ photos, stages, stageFilter, onAddPhoto, onDeletePhoto, modelId, stageId }: PhotoGalleryProps) => {
+export const PhotoGallery = ({ photos, stages, onAddPhoto, onDeletePhoto, modelId, defaultStageId }: PhotoGalleryProps) => {
+  const [activeStageFilter, setActiveStageFilter] = useState<string>('all');
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const stageNameMap = useMemo(() => {
     const map: Record<string, string> = {};
     stages.forEach((s) => {
@@ -23,12 +26,27 @@ export const PhotoGallery = ({ photos, stages, stageFilter, onAddPhoto, onDelete
     });
     return map;
   }, [stages]);
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
-  const filteredPhotos = stageFilter
-    ? photos.filter((p) => p.stageId === stageFilter)
-    : photos;
+  const stageColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    stages.forEach((s) => {
+      map[s.id] = STAGE_COLORS[s.name] || '#6B7280';
+    });
+    return map;
+  }, [stages]);
+
+  const orderedStages = useMemo(() => {
+    return [...stages].sort(
+      (a, b) => STAGE_ORDER.indexOf(a.name) - STAGE_ORDER.indexOf(b.name)
+    );
+  }, [stages]);
+
+  const filteredPhotos = useMemo(() => {
+    if (activeStageFilter === 'all') return photos;
+    return photos.filter((p) => p.stageId === activeStageFilter);
+  }, [photos, activeStageFilter]);
+
+  const uploadStageId = activeStageFilter === 'all' ? defaultStageId : activeStageFilter;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,7 +59,7 @@ export const PhotoGallery = ({ photos, stages, stageFilter, onAddPhoto, onDelete
       
       onAddPhoto({
         modelId,
-        stageId,
+        stageId: uploadStageId,
         data: compressed,
         caption: caption || '未命名',
         createdAt: new Date().toISOString(),
@@ -64,20 +82,70 @@ export const PhotoGallery = ({ photos, stages, stageFilter, onAddPhoto, onDelete
 
   return (
     <div className="bg-studio-card rounded-xl border border-studio-border p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-display text-lg font-semibold text-studio-text">照片档案</h3>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h3 className="font-display text-lg font-semibold text-studio-text mb-3">照片档案</h3>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setActiveStageFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeStageFilter === 'all'
+                  ? 'bg-studio-copper text-white'
+                  : 'bg-studio-bg text-studio-muted hover:text-studio-text border border-studio-border hover:border-studio-copper/50'
+              }`}
+            >
+              全部
+            </button>
+            {orderedStages.map((stage) => (
+              <button
+                key={stage.id}
+                onClick={() => setActiveStageFilter(stage.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  activeStageFilter === stage.id
+                    ? 'text-white'
+                    : 'bg-studio-bg text-studio-muted hover:text-studio-text border border-studio-border hover:border-studio-copper/50'
+                }`}
+                style={{
+                  backgroundColor: activeStageFilter === stage.id ? stageColorMap[stage.id] : undefined,
+                }}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    activeStageFilter === stage.id ? 'bg-white' : ''
+                  }`}
+                  style={{
+                    backgroundColor: activeStageFilter !== stage.id ? stageColorMap[stage.id] : undefined,
+                  }}
+                />
+                {stageNameMap[stage.id]}
+              </button>
+            ))}
+          </div>
+        </div>
         {onAddPhoto && (
-          <label className="flex items-center gap-2 px-4 py-2 bg-studio-cobalt hover:bg-studio-cobalt/80 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors">
-            <ImagePlus className="w-4 h-4" />
-            {isUploading ? '上传中...' : '添加照片'}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
-          </label>
+          <div className="flex flex-col items-end gap-1">
+            <label className="flex items-center gap-2 px-4 py-2 bg-studio-cobalt hover:bg-studio-cobalt/80 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors">
+              <ImagePlus className="w-4 h-4" />
+              {isUploading ? '上传中...' : '添加照片'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </label>
+            {activeStageFilter !== 'all' && (
+              <span className="text-xs text-studio-muted">
+                将上传到 <span className="text-studio-copper font-medium">{stageNameMap[activeStageFilter]}</span>
+              </span>
+            )}
+            {activeStageFilter === 'all' && (
+              <span className="text-xs text-studio-muted">
+                将上传到当前阶段
+              </span>
+            )}
+          </div>
         )}
       </div>
 
