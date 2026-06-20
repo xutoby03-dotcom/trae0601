@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, X, Battery, HardDrive, Cpu, Plug, Cable, AlertTriangle } from 'lucide-react';
 import { useMissionStore } from '../../store/missionStore';
-import { useEquipmentStore } from '../../store/equipmentStore';
 import { useRecordStore } from '../../store/recordStore';
-import { useEquipmentStore as eqStore } from '../../store/equipmentStore';
+import { useEquipmentStore } from '../../store/equipmentStore';
 import { BatteryStatus } from '../../components/ui/BatteryStatus';
 import { CardCapacity } from '../../components/ui/CardCapacity';
 import { equipmentTypeLabels, getUserName, formatDateTime } from '../../utils/helpers';
@@ -21,9 +20,8 @@ export function PackCheck() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { missions, updateMissionStatus } = useMissionStore();
-  const { equipment, users } = useEquipmentStore();
+  const { equipment, users, updateBattery, updateMemoryCard, updateBatteryChargeLevel, formatMemoryCard } = useEquipmentStore();
   const { packChecks, createPackCheck } = useRecordStore();
-  const { updateBatteryChargeLevel } = eqStore();
 
   const mission = missions.find(m => m.id === id);
   const existingCheck = packChecks.find(p => p.missionId === id);
@@ -169,6 +167,7 @@ export function PackCheck() {
                       key={battery.id}
                       battery={battery}
                       onMarkCharged={() => updateBatteryChargeLevel(eq.id, battery.id, 100)}
+                      onUpdate={(updates) => updateBattery(eq.id, battery.id, updates)}
                     />
                   ))}
                 </div>
@@ -213,7 +212,11 @@ export function PackCheck() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {eq.memoryCards.map((card) => (
-                    <CardCapacity key={card.id} card={card} />
+                    <CardCapacity
+                      key={card.id}
+                      card={card}
+                      onUpdate={(updates) => updateMemoryCard(eq.id, card.id, updates)}
+                    />
                   ))}
                 </div>
               </div>
