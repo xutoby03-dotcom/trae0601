@@ -10,6 +10,8 @@ import {
   Calendar,
   ChevronRight,
   AlertCircle,
+  MapPin,
+  User,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { BORROW_STATUS_LABEL, CATEGORY_LABEL } from '@/types';
@@ -187,18 +189,34 @@ export default function Dashboard() {
               expiringItems.map(i => {
                 const days = daysUntil(i.expiryDate);
                 const isExpired = days < 0;
+                const box = boxes.find(b => b.id === i.boxId);
+                const searchQuery = encodeURIComponent(i.storageCell || i.name);
                 return (
-                  <div key={i.id} className="px-5 py-3 flex items-center justify-between hover:bg-zinc-50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900">{i.name}</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        存放: {boxes.find(b => b.id === i.boxId)?.location ?? '-'} · {i.storageCell}
-                      </p>
+                  <Link
+                    key={i.id}
+                    to={'/inventory?search=' + searchQuery + '&boxId=' + i.boxId}
+                    className="block px-5 py-3 hover:bg-zinc-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900">{i.name}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {box?.location ?? '未知位置'}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {box?.manager ?? '-'}
+                          </span>
+                          <span>存放格: {i.storageCell}</span>
+                        </p>
+                      </div>
+                      <span className={isExpired ? 'badge-danger' : 'badge-warning'}>
+                        {isExpired ? '已过期' : days + ' 天后过期'}
+                      </span>
                     </div>
-                    <span className={isExpired ? 'badge-danger' : 'badge-warning'}>
-                      {isExpired ? '已过期' : days + ' 天后过期'}
-                    </span>
-                  </div>
+                  </Link>
                 );
               })
             )}
@@ -221,20 +239,36 @@ export default function Dashboard() {
             ) : (
               lowStockItems.map(i => {
                 const suggestedQty = Math.max(10, i.quantity * 3);
+                const box = boxes.find(b => b.id === i.boxId);
+                const searchQuery = encodeURIComponent(i.storageCell || i.name);
                 return (
-                  <div key={i.id} className="px-5 py-3 flex items-center justify-between hover:bg-zinc-50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900">
-                        {CATEGORY_LABEL[i.category]} · {i.name}
-                      </p>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        当前库存: {i.quantity} · 建议补货 ≥ {suggestedQty}
-                      </p>
+                  <Link
+                    key={i.id}
+                    to={'/inventory?search=' + searchQuery + '&boxId=' + i.boxId}
+                    className="block px-5 py-3 hover:bg-zinc-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900">
+                          {CATEGORY_LABEL[i.category]} · {i.name}
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {box?.location ?? '未知位置'}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {box?.manager ?? '-'}
+                          </span>
+                          <span>当前库存: {i.quantity} · 建议补货 ≥ {suggestedQty}</span>
+                        </p>
+                      </div>
+                      <span className={i.quantity <= 2 ? 'badge-danger' : 'badge-warning'}>
+                        库存 {i.quantity}
+                      </span>
                     </div>
-                    <span className={i.quantity <= 2 ? 'badge-danger' : 'badge-warning'}>
-                      库存 {i.quantity}
-                    </span>
-                  </div>
+                  </Link>
                 );
               })
             )}

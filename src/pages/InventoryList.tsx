@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -10,9 +10,10 @@ import {
   Grid3X3,
   AlertTriangle,
   CheckCircle2,
+  X,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { CATEGORY_LABEL, ITEM_STATUS_LABEL, ItemCategory, InventoryItem } from '@/types';
+import { CATEGORY_LABEL, ITEM_STATUS_LABEL, ItemCategory, InventoryItem, ItemStatus } from '@/types';
 import Button from '@/components/Button';
 
 const statusBadgeClass: Record<string, string> = {
@@ -22,11 +23,66 @@ const statusBadgeClass: Record<string, string> = {
   'low-stock': 'badge-warning',
 };
 
+const statusFilterOptions: { value: ItemStatus | 'all'; label: string }[] = [
+  { value: 'all', label: '全部状态' },
+  { value: 'normal', label: '正常' },
+  { value: 'expired', label: '已过期' },
+  { value: 'damaged', label: '已破损' },
+  { value: 'low-stock', label: '库存不足' },
+];
+
 export default function InventoryList() {
   const { boxes, items, deleteItem, updateItem } = useAppStore();
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
-  const [expandedBoxes, setExpandedBoxes] = useState<Set<string>>(new Set(boxes.map(b => b.id)));
+  const [statusFilter, setStatusFilter] = useState<ItemStatus | 'all'>(
+    (searchParams.get('status') as ItemStatus) ?? 'all'
+  );
+  const initialBoxId = searchParams.get('boxId');
+  const [expandedBoxes, setExpandedBoxes] = useState<Set<string>>(() => {
+    if (initialBoxId && boxes.some(b => b.id === initialBoxId)) {
+      return new Set([initialBoxId]);
+    }
+    return new Set(boxes.map(b => b.id));
+  });
+
+  const activeFilters = useMemo(() => {
+    const list: { key: string; label: string; value: string }[] = [];
+    if (searchParams.get('search')) {
+      list.push({ key: 'search', label: '搜索', value: searchParams.get('search')! });
+    }
+    if (searchParams.get('boxId')) {
+      const box = boxes.find(b => b.id === searchParams.get('boxId'));
+      if (box) list.push({ key: 'boxId', label: '药箱', value: box.location });
+    }
+    if (searchParams.get('status')) {
+      list.push({
+        key: 'status',
+        label: '状态',
+        value: ITEM_STATUS_LABEL[searchParams.get('status') as ItemStatus] ?? searchParams.get('status')!,
+      });
+    }
+    return list;
+  }, [searchParams, boxes]);
+
+  const clearFilter = (key: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete(key);
+    if (key === 'search') setSearch('');
+    if (key === 'boxId') setExpandedBoxes(new Set(boxes.map(b => b.id)));
+    if (key === 'status') setStatusFilter('all');
+    setSearchParams(next, { replace: true });
+  };
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setCategoryFilter('all');
+    setStatusFilter('all');
+    setExpandedBoxes(new Set(boxes.map(b => b.id)));
+    setSearchParams({}, { replace: true });
+  };
 
   const toggleBox = (boxId: string) => {
     const next = new Set(expandedBoxes);
@@ -37,6 +93,8 @@ export default function InventoryList() {
 
   const filteredItems = items.filter(i => {
     if (categoryFilter !== 'all' && i.category !== categoryFilter) return false;
+    if (statusFilter !== 'all' && i.status !== statusFilter) return false;
+    if (initialBoxId && i.boxId !== initialBoxId) return false;
     if (search && !i.name.includes(search) && !i.storageCell.includes(search)) return false;
     return true;
   });
@@ -56,27 +114,77 @@ export default function InventoryList() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-zinc-100 p-4 shadow-card flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="搜索物品名称、存放格..."
-            className="input pl-10"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      <div className="bg-white rounded-xl border border-zinc-100 p-4 shadow-card space-y-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="搜索物品名称、存放格..."
+              className="input pl-10"
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                const next = new URLSearchParams(searchParams);
+                if (e.target.value) next.set('search', e.target.value);
+                else next.delete('search');
+                setSearchParams(next, { replace: true });
+              }}
+            />
+          </div>
+          <select
+            className="input max-w-[180px]"
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value as ItemCategory | 'all')}
+          >
+            <option value="all">全部类别</option>
+            {(Object.keys(CATEGORY_LABEL) as ItemCategory[]).map(c => (
+              <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+            ))}
+          </select>
+          <select
+            className="input max-w-[160px]"
+            value={statusFilter}
+            onChange={e => {
+              const v = e.target.value as ItemStatus | 'all';
+              setStatusFilter(v);
+              const next = new URLSearchParams(searchParams);
+              if (v !== 'all') next.set('status', v);
+              else next.delete('status');
+              setSearchParams(next, { replace: true });
+            }}
+          >
+            {statusFilterOptions.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
-        <select
-          className="input max-w-[200px]"
-          value={categoryFilter}
-          onChange={e => setCategoryFilter(e.target.value as ItemCategory | 'all')}
-        >
-          <option value="all">全部类别</option>
-          {(Object.keys(CATEGORY_LABEL) as ItemCategory[]).map(c => (
-            <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
-          ))}
-        </select>
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-zinc-100">
+            <span className="text-xs text-zinc-500">当前筛选:</span>
+            {activeFilters.map(f => (
+              <span
+                key={f.key}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 text-xs rounded-md"
+              >
+                {f.label}: {f.value}
+                <button
+                  onClick={() => clearFilter(f.key)}
+                  className="ml-0.5 hover:text-primary-900"
+                  aria-label="清除筛选"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-zinc-500 hover:text-zinc-700 underline ml-1"
+            >
+              清除全部
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

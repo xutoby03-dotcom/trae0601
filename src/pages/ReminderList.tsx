@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bell,
   Check,
@@ -9,6 +10,9 @@ import {
   Clock,
   PackageMinus,
   Flame,
+  MapPin,
+  User,
+  ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ReminderLevel, ReminderType, REMINDER_TYPE_LABEL } from '@/types';
@@ -48,8 +52,10 @@ const typeFilterOptions: { value: ReminderType | 'all'; label: string }[] = [
   { value: 'overdue-return', label: '逾期归还' },
 ];
 
+const ITEM_RELATED_TYPES: ReminderType[] = ['expiry', 'damage', 'low-stock'];
+
 export default function ReminderList() {
-  const { reminders, markReminderRead, clearReadReminders, refreshReminders } = useAppStore();
+  const { boxes, items, reminders, markReminderRead, clearReadReminders, refreshReminders } = useAppStore();
   const [typeFilter, setTypeFilter] = useState<ReminderType | 'all'>('all');
   const [onlyUnread, setOnlyUnread] = useState(false);
 
@@ -62,6 +68,20 @@ export default function ReminderList() {
     .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
 
   const unreadCount = reminders.filter(r => !r.isRead).length;
+
+  const buildInventoryLink = (relatedId: string, type: ReminderType) => {
+    const item = items.find(i => i.id === relatedId);
+    const params = new URLSearchParams();
+    if (item) {
+      if (item.storageCell) params.set('search', item.storageCell);
+      else if (item.name) params.set('search', item.name);
+      params.set('boxId', item.boxId);
+      if (type === 'damage') params.set('status', 'damaged');
+      else if (type === 'expiry') params.set('status', items.find(i => i.id === relatedId)?.status ?? 'expired');
+      else if (type === 'low-stock') params.set('status', 'low-stock');
+    }
+    return '/inventory?' + params.toString();
+  };
 
   return (
     <div className="space-y-6">
@@ -122,6 +142,10 @@ export default function ReminderList() {
           {filtered.map(r => {
             const TypeIcon = typeIcon[r.type];
             const LevelIcon = levelIcon[r.level];
+            const isItemRelated = ITEM_RELATED_TYPES.includes(r.type);
+            const item = isItemRelated ? items.find(i => i.id === r.relatedId) : null;
+            const box = item ? boxes.find(b => b.id === item.boxId) : null;
+            const inventoryLink = isItemRelated ? buildInventoryLink(r.relatedId, r.type) : null;
             return (
               <div
                 key={r.id}
@@ -144,7 +168,7 @@ export default function ReminderList() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold text-zinc-900">{r.title}</h3>
                           <span className={levelBadge[r.level]}>
@@ -156,21 +180,45 @@ export default function ReminderList() {
                           </span>
                         </div>
                         <p className="text-sm text-zinc-600 mt-1">{r.description}</p>
+                        {isItemRelated && box && (
+                          <p className="text-xs text-zinc-500 mt-1.5 flex items-center gap-3 flex-wrap">
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {box.location}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {box.manager}
+                            </span>
+                            {item && <span>存放格: {item.storageCell}</span>}
+                          </p>
+                        )}
                         <p className="text-xs text-zinc-400 mt-2 font-mono">
                           {formatDateTime(r.createdAt)}
                         </p>
                       </div>
 
-                      {!r.isRead && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => markReminderRead(r.id)}
-                        >
-                          <Check className="w-4 h-4" />
-                          标记已读
-                        </Button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {inventoryLink && (
+                          <Link
+                            to={inventoryLink}
+                            className="btn btn-secondary !py-1.5 !px-3 !text-xs"
+                          >
+                            去库存查看
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
+                        {!r.isRead && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => markReminderRead(r.id)}
+                          >
+                            <Check className="w-4 h-4" />
+                            标记已读
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
