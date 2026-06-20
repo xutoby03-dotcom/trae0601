@@ -10,6 +10,7 @@ import {
   Home,
   Play,
   ArrowLeft,
+  Edit2,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import ScoreGauge from '@/components/report/ScoreGauge';
@@ -91,6 +92,38 @@ export default function Report() {
     return details
       .filter((d) => d.isOvertime)
       .sort((a, b) => b.diff - a.diff)
+      .slice(0, 5);
+  }, [session, route]);
+
+  const insufficientKeyPoints = useMemo(() => {
+    if (!session || !route) return [] as (PointDetail & { ratio: number; shortage: number })[];
+    const sortedPoints = [...route.points].sort((a, b) => a.order - b.order);
+
+    return sortedPoints
+      .map((point) => {
+        const pointSession = session.pointSessions.find(
+          (ps) => ps.pointId === point.id
+        );
+        const actual = pointSession?.actualDuration || 0;
+        const planned = point.plannedDuration;
+        const ratio = planned > 0 ? actual / planned : 0;
+        const shortage = planned - actual;
+        return {
+          pointId: point.id,
+          name: point.name,
+          plannedDuration: planned,
+          actualDuration: actual,
+          diff: actual - planned,
+          isKeyPoint: point.isKeyPoint,
+          isOvertime: false,
+          isSaved: shortage > 0,
+          isNormal: false,
+          ratio,
+          shortage,
+        };
+      })
+      .filter((d) => d.isKeyPoint && d.ratio < 0.8 && d.plannedDuration > 0)
+      .sort((a, b) => a.ratio - b.ratio)
       .slice(0, 5);
   }, [session, route]);
 
@@ -276,6 +309,59 @@ export default function Report() {
           </section>
         )}
 
+        {insufficientKeyPoints.length > 0 && (
+          <section className="glass-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-museum-500 fill-museum-500" />
+              <h2 className="text-lg font-serif font-bold text-deep-900">
+                重点点位不足提醒
+              </h2>
+              <span className="text-xs text-deep-400 ml-1">
+                （实际用时不足计划 80%）
+              </span>
+            </div>
+            <div className="space-y-3">
+              {insufficientKeyPoints.map((point, index) => (
+                <div
+                  key={point.pointId}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-museum-500/5 border border-museum-500/15"
+                >
+                  <div className="w-8 h-8 rounded-full bg-museum-500/15 flex items-center justify-center text-museum-600 font-bold text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-deep-900 truncate">
+                        {point.name}
+                      </span>
+                      <Star className="w-4 h-4 text-museum-500 fill-museum-500 flex-shrink-0" />
+                    </div>
+                    <div className="text-sm text-deep-500 mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      <span>计划：{formatDurationChinese(point.plannedDuration)}</span>
+                      <span>实际：{formatDurationChinese(point.actualDuration)}</span>
+                    </div>
+                    <div className="mt-2 w-full max-w-xs h-1.5 bg-museum-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-museum-500 rounded-full"
+                        style={{ width: `${Math.min(100, point.ratio * 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-museum-600 mt-1">
+                      仅完成计划的 {Math.round(point.ratio * 100)}%
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-museum-600 font-bold">
+                      -{formatDurationChinese(point.shortage)}
+                    </div>
+                    <div className="text-xs text-museum-500">缺口</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="glass-card p-6">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="w-5 h-5 text-deep-600" />
@@ -361,7 +447,7 @@ export default function Report() {
           </div>
         </section>
 
-        <section className="flex flex-col sm:flex-row gap-4 justify-center pb-8">
+        <section className="flex flex-col sm:flex-row gap-3 justify-center pb-8">
           <button
             onClick={() => navigate(`/guide/${session.routeId}`)}
             className="btn-primary flex items-center justify-center gap-2"
@@ -370,8 +456,15 @@ export default function Report() {
             再次讲解
           </button>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(`/routes/${session.routeId}/edit`)}
             className="btn-secondary flex items-center justify-center gap-2"
+          >
+            <Edit2 className="w-4 h-4" />
+            编辑路线继续练
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-ghost flex items-center justify-center gap-2"
           >
             <Home className="w-4 h-4" />
             返回首页
