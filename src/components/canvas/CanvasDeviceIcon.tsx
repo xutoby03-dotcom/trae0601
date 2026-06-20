@@ -56,12 +56,12 @@ export default function CanvasDeviceIcon({
 
   return (
     <div
-      className={`absolute group ${isBg ? 'pointer-events-none' : ''}`}
+      className="absolute group"
       style={{
         left: `${device.x}%`,
         top: `${device.y}%`,
         transform: 'translate(-50%, -50%)',
-        zIndex: selected ? 30 : isBg ? 1 : 10,
+        zIndex: selected ? 30 : isBg ? 2 : 10,
       }}
     >
       {!isBg && (
@@ -99,9 +99,9 @@ export default function CanvasDeviceIcon({
           e.stopPropagation();
           onSelect();
         }}
-        onMouseDown={(e) => !isBg && onDragStart(e)}
+        onMouseDown={(e) => onDragStart(e)}
         className={`relative flex flex-col items-center transition-all duration-200
-                   ${isBg ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
+                   cursor-grab active:cursor-grabbing
                    ${selected ? 'scale-110' : 'hover:scale-105'}`}
       >
         {isBg ? (
@@ -110,7 +110,9 @@ export default function CanvasDeviceIcon({
             style={{
               borderColor: color,
               background: `linear-gradient(90deg, ${color}10, ${color}30, ${color}10)`,
-              boxShadow: `0 0 30px ${color}20`,
+              boxShadow: selected
+                ? `0 0 24px ${color}60`
+                : `0 0 14px ${color}20`,
             }}
           >
             <div className="h-full flex items-center justify-center gap-2 px-3">
@@ -121,6 +123,11 @@ export default function CanvasDeviceIcon({
               >
                 {device.model.slice(0, 22)}
               </span>
+              {selected && (
+                <span className="chip !py-0 ml-1 bg-amber-glow text-studio-950 !border-0">
+                  已选中
+                </span>
+              )}
             </div>
           </div>
         ) : (
@@ -157,8 +164,11 @@ export default function CanvasDeviceIcon({
         )}
       </button>
 
-      {selected && !isBg && (
-        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-studio-800 border border-studio-700 rounded-lg px-1.5 py-1 opacity-100 transition-opacity z-40">
+      {selected && (
+        <div
+          className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-studio-800 border border-studio-700 rounded-lg px-1.5 py-1 opacity-100 transition-opacity z-40
+                     ${isBg ? '-bottom-10' : '-bottom-12'}`}
+        >
           <button
             onMouseDown={(e) => stopRotate(e, -15)}
             className="p-1.5 rounded hover:bg-studio-700 text-studio-300 hover:text-amber-glow transition-colors"

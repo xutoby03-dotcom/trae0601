@@ -168,43 +168,43 @@ export default function DeviceParamsForm() {
       </div>
 
       <div className="p-4 space-y-5">
-        {!isBackground && (
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <Move className="w-3.5 h-3.5 text-studio-500" />
-              <h5 className="section-label !mb-0">位置与朝向</h5>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <SliderRow
-                icon={<Ruler className="w-3.5 h-3.5" />}
-                label="水平 X"
-                value={Math.round(device.x)}
-                unit="%"
-                min={0}
-                max={100}
-                onChange={(v) => updateDevice(device.id, { x: v })}
-                accent={color}
-              />
-              <SliderRow
-                icon={<Ruler className="w-3.5 h-3.5" />}
-                label="垂直 Y"
-                value={Math.round(device.y)}
-                unit="%"
-                min={0}
-                max={100}
-                onChange={(v) => updateDevice(device.id, { y: v })}
-                accent={color}
-              />
-              <SliderRow
-                icon={<Layers className="w-3.5 h-3.5" />}
-                label="朝向角"
-                value={device.rotation}
-                unit="°"
-                min={0}
-                max={359}
-                onChange={(v) => updateDevice(device.id, { rotation: v })}
-                accent={color}
-              />
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Move className="w-3.5 h-3.5 text-studio-500" />
+            <h5 className="section-label !mb-0">位置与朝向</h5>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <SliderRow
+              icon={<Ruler className="w-3.5 h-3.5" />}
+              label="水平 X"
+              value={Math.round(device.x)}
+              unit="%"
+              min={0}
+              max={100}
+              onChange={(v) => updateDevice(device.id, { x: v })}
+              accent={color}
+            />
+            <SliderRow
+              icon={<Ruler className="w-3.5 h-3.5" />}
+              label="垂直 Y"
+              value={Math.round(device.y)}
+              unit="%"
+              min={0}
+              max={100}
+              onChange={(v) => updateDevice(device.id, { y: v })}
+              accent={color}
+            />
+            <SliderRow
+              icon={<Layers className="w-3.5 h-3.5" />}
+              label="朝向角"
+              value={device.rotation}
+              unit="°"
+              min={0}
+              max={359}
+              onChange={(v) => updateDevice(device.id, { rotation: v })}
+              accent={color}
+            />
+            {!isBackground && (
               <SliderRow
                 icon={<Ruler className="w-3.5 h-3.5" />}
                 label="距主体"
@@ -216,9 +216,9 @@ export default function DeviceParamsForm() {
                 onChange={(v) => updateDevice(device.id, { distance: v })}
                 accent={color}
               />
-            </div>
-          </section>
-        )}
+            )}
+          </div>
+        </section>
 
         {isLight && (
           <>
@@ -311,12 +311,14 @@ export default function DeviceParamsForm() {
 
         {isBackground && (
           <section>
-            <div className="p-3 rounded-lg bg-studio-800/40 border border-studio-700/50">
-              <p className="text-[11px] text-studio-400 leading-relaxed">
-                <span className="text-emerald-400 font-semibold">背景纸</span>
-                横跨整个拍摄区域。
+            <div className="p-3 rounded-lg bg-emerald-500/8 border border-emerald-500/25">
+              <p className="text-[11px] text-studio-300 leading-relaxed">
+                <span className="text-emerald-400 font-semibold">背景纸</span>{' '}
+                通常横跨拍摄区域作为背景。
                 <br />
-                如需多背景拼接，可再拖入多张叠加。
+                可在画布中拖动调整位置，或使用上方参数精确控制 X / Y / 朝向角。
+                <br />
+                如需多背景拼接，可从左侧再拖入多张叠加。
               </p>
             </div>
           </section>
