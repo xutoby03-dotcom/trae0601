@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
 import { useStore } from "@/store/useStore";
-import { Plus, Trash2, Camera, Send } from "lucide-react";
+import { Plus, Trash2, Camera, Send, AlertTriangle } from "lucide-react";
 
 export default function Distribution() {
   const { exams, inventory, distributions, addDistribution, deleteDistribution, collections } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [photoPreview, setPhotoPreview] = useState("");
+  const [photoError, setPhotoError] = useState(false);
+  const [quantityError, setQuantityError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     examId: "",
@@ -18,6 +20,8 @@ export default function Distribution() {
   const distributedExamIds = new Set(distributions.map((d) => d.examId));
   const availableExams = exams.filter((e) => !distributedExamIds.has(e.id));
 
+  const selectedBatch = inventory.find((b) => b.id === form.batchId);
+
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
@@ -26,13 +30,38 @@ export default function Distribution() {
         const url = ev.target?.result as string;
         setPhotoPreview(url);
         setForm((prev) => ({ ...prev, sealPhotoUrl: url }));
+        setPhotoError(false);
       };
       reader.readAsDataURL(file);
     }
   }
 
+  function handleQuantityChange(val: number) {
+    setForm((prev) => ({ ...prev, quantity: val }));
+    if (selectedBatch && val > selectedBatch.remainingQuantity) {
+      setQuantityError(`超出库存，批次 ${selectedBatch.batchNumber} 仅剩 ${selectedBatch.remainingQuantity} 张`);
+    } else {
+      setQuantityError("");
+    }
+  }
+
+  function handleBatchChange(batchId: string) {
+    setForm((prev) => ({ ...prev, batchId, quantity: 0 }));
+    setQuantityError("");
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    let blocked = false;
+    if (!form.sealPhotoUrl) {
+      setPhotoError(true);
+      blocked = true;
+    }
+    if (selectedBatch && form.quantity > selectedBatch.remainingQuantity) {
+      setQuantityError(`超出库存，批次 ${selectedBatch.batchNumber} 仅剩 ${selectedBatch.remainingQuantity} 张`);
+      blocked = true;
+    }
+    if (blocked) return;
     const exam = exams.find((ex) => ex.id === form.examId);
     if (!exam) return;
     addDistribution({
@@ -41,6 +70,8 @@ export default function Distribution() {
     });
     setForm({ examId: "", batchId: "", quantity: 0, teacher: "", sealPhotoUrl: "" });
     setPhotoPreview("");
+    setPhotoError(false);
+    setQuantityError("");
     setShowForm(false);
   }
 
@@ -151,7 +182,7 @@ export default function Distribution() {
                 <select
                   required
                   value={form.batchId}
-                  onChange={(e) => setForm({ ...form, batchId: e.target.value })}
+                  onChange={(e) => handleBatchChange(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f] bg-white"
                 >
                   <option value="">请选择批次</option>
@@ -164,14 +195,19 @@ export default function Distribution() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">发放数量（张）</label>
+                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">发放数量（张）{selectedBatch && <span className="text-slate-300 ml-1">最多 {selectedBatch.remainingQuantity}</span>}</label>
                   <input
                     required
                     type="number"
                     min={1}
+                    max={selectedBatch?.remainingQuantity}
                     value={form.quantity || ""}
-                    onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f]"
+                    onChange={(e) => handleQuantityChange(Number(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors ${
+                      quantityError
+                        ? "border-red-300 bg-red-50 focus:ring-red-500/20 focus:border-red-500"
+                        : "border-slate-200 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f]"
+                    }`}
                   />
                 </div>
                 <div>
@@ -186,7 +222,7 @@ export default function Distribution() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-slate-500 mb-1.5 font-medium">封包照片</label>
+                <label className="block text-xs text-slate-500 mb-1.5 font-medium">封包照片 <span className="text-red-400">*</span></label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -196,29 +232,44 @@ export default function Distribution() {
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-28 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center cursor-pointer hover:border-[#1e3a5f]/40 transition-colors overflow-hidden"
+                  className={`w-full h-28 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors overflow-hidden ${
+                    photoError
+                      ? "border-red-400 bg-red-50 hover:border-red-500"
+                      : "border-slate-200 hover:border-[#1e3a5f]/40"
+                  }`}
                 >
                   {photoPreview ? (
                     <img src={photoPreview} alt="预览" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="text-center text-slate-400">
+                    <div className={`text-center ${photoError ? "text-red-400" : "text-slate-400"}`}>
                       <Camera size={24} className="mx-auto mb-1" />
-                      <span className="text-xs">点击上传封包照片</span>
+                      <span className="text-xs">{photoError ? "请上传封包照片" : "点击上传封包照片"}</span>
                     </div>
                   )}
                 </div>
               </div>
+              {(quantityError || photoError) && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-600 flex items-center gap-2">
+                  <AlertTriangle size={14} className="flex-shrink-0" />
+                  <span>{photoError && !form.sealPhotoUrl ? "封包照片为必传项，" : ""}{quantityError || "请检查表单填写是否完整"}</span>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => { setShowForm(false); setPhotoError(false); setQuantityError(""); }}
                   className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-[#1e3a5f] text-white text-sm rounded-lg hover:bg-[#163050] transition-colors"
+                  disabled={!!quantityError}
+                  className={`px-6 py-2 text-white text-sm rounded-lg transition-colors ${
+                    quantityError
+                      ? "bg-slate-300 cursor-not-allowed"
+                      : "bg-[#1e3a5f] hover:bg-[#163050]"
+                  }`}
                 >
                   确认发放
                 </button>
