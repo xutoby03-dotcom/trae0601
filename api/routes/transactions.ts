@@ -78,28 +78,49 @@ router.post('/', (req, res) => {
   `);
 
   const updateStock = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
+  const updateProductStatus = db.prepare('UPDATE products SET status = ? WHERE id = ?');
 
   const transactions: Transaction[] = [];
   const paymentStatus = paymentType === 'instant' ? 'paid' : 'pending';
+  const today = new Date().toISOString().split('T')[0];
+
+  const precheckProducts: any[] = [];
+  for (const item of items) {
+    let product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
+    if (!product) {
+      return res.status(400).json({ error: `商品ID ${item.productId} 不存在` });
+    }
+
+    if (product.status !== 'damaged' && product.status !== 'offline') {
+      if (product.expiry_date && product.expiry_date < today) {
+        if (product.status !== 'expired') {
+          updateProductStatus.run('expired', product.id);
+          product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
+        }
+        return res.status(400).json({ error: `商品「${product.name}」已过期，无法取货` });
+      }
+    }
+
+    if (product.status === 'expired') {
+      return res.status(400).json({ error: `商品「${product.name}」已过期，无法取货` });
+    }
+    if (product.status === 'damaged') {
+      return res.status(400).json({ error: `商品「${product.name}」已破损，无法取货` });
+    }
+    if (product.status !== 'active') {
+      return res.status(400).json({ error: `商品「${product.name}」已下架，无法取货` });
+    }
+    if (product.stock < item.quantity) {
+      return res.status(400).json({ error: `商品「${product.name}」库存不足` });
+    }
+
+    precheckProducts.push(product);
+  }
 
   const tx = db.transaction(() => {
-    for (const item of items) {
-      const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.productId) as any;
-      if (!product) {
-        throw new Error(`商品ID ${item.productId} 不存在`);
-      }
-      if (product.status === 'expired') {
-        throw new Error(`商品「${product.name}」已过期，无法取货`);
-      }
-      if (product.status === 'damaged') {
-        throw new Error(`商品「${product.name}」已破损，无法取货`);
-      }
-      if (product.status !== 'active') {
-        throw new Error(`商品「${product.name}」已下架，无法取货`);
-      }
-      if (product.stock < item.quantity) {
-        throw new Error(`商品「${product.name}」库存不足`);
-      }
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const product = precheckProducts[i];
 
       const unitPrice = product.sale_price;
       const totalAmount = unitPrice * item.quantity;
