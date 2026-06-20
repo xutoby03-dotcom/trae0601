@@ -357,7 +357,7 @@ export default function ClassroomDetail() {
                       开始巡检
                     </button>
                     <button
-                      onClick={() => navigate('/repairs/new')}
+                      onClick={() => navigate('/repairs/new', { state: { classroomId: classroom.id } })}
                       className="w-full py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
@@ -394,7 +394,7 @@ export default function ClassroomDetail() {
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-slate-500">共 {repairs.length} 条维修记录</p>
                 <button
-                  onClick={() => {}}
+                  onClick={() => navigate('/repairs/new', { state: { classroomId: classroom.id } })}
                   className="text-sm text-teal-600 font-medium hover:text-teal-700 flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" />

@@ -8,6 +8,7 @@ import InspectionList from '@/pages/InspectionList';
 import InspectionForm from '@/pages/InspectionForm';
 import RepairList from '@/pages/RepairList';
 import RepairDetail from '@/pages/RepairDetail';
+import RepairForm from '@/pages/RepairForm';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/inspections" element={<InspectionList />} />
           <Route path="/inspections/new" element={<InspectionForm />} />
           <Route path="/repairs" element={<RepairList />} />
+          <Route path="/repairs/new" element={<RepairForm />} />
           <Route path="/repairs/:id" element={<RepairDetail />} />
         </Route>
       </Routes>

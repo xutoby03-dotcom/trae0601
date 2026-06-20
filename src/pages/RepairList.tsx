@@ -61,7 +61,7 @@ export default function RepairList() {
           </p>
         </div>
         <button
-          onClick={() => {}}
+          onClick={() => navigate('/repairs/new')}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 text-white text-sm font-medium rounded-xl hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-200"
         >
           <Plus className="w-5 h-5" />
