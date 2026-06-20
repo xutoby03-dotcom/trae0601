@@ -82,6 +82,24 @@ export default function TaskDetail() {
 
   const task = id ? getTaskById(id) : undefined;
 
+  if (!task) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up">
+        <Empty
+          description={
+            <div className="text-center">
+              <div className="text-wine-700 font-serif text-lg mb-2">任务不存在</div>
+              <div className="text-cream-500 text-sm mb-4">未找到编号为 "{id}" 的补给任务</div>
+              <Button type="primary" className="btn-primary" onClick={() => navigate('/tasks')}>
+                返回任务看板
+              </Button>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
+
   const taskDetails = useMemo(() => {
     if (!task) return null;
     const counter = getCounterById(task.counterId);

@@ -339,7 +339,7 @@ export default function InspectionForm() {
                   type="primary"
                   size="large"
                   className="btn-primary"
-                  onClick={() => navigate('/tasks/board')}
+                  onClick={() => navigate('/tasks')}
                 >
                   <span className="flex items-center gap-1.5">
                     <ArrowRight size={16} />
