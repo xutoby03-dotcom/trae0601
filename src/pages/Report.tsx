@@ -96,7 +96,7 @@ export default function Report() {
       .slice(0, 5);
   }, [session, route]);
 
-  const insufficientKeyPoints = useMemo(() => {
+  const allInsufficientKeyPoints = useMemo(() => {
     if (!session || !route) return [] as (PointDetail & { ratio: number; shortage: number })[];
     const sortedPoints = [...route.points].sort((a, b) => a.order - b.order);
 
@@ -124,9 +124,12 @@ export default function Report() {
         };
       })
       .filter((d) => d.isKeyPoint && d.ratio < 0.8 && d.plannedDuration > 0)
-      .sort((a, b) => a.ratio - b.ratio)
-      .slice(0, 5);
+      .sort((a, b) => a.ratio - b.ratio);
   }, [session, route]);
+
+  const insufficientKeyPoints = useMemo(() => {
+    return allInsufficientKeyPoints.slice(0, 5);
+  }, [allInsufficientKeyPoints]);
 
   const allPointDetails: PointDetail[] = useMemo(() => {
     if (!session || !route) return [];
@@ -257,7 +260,7 @@ export default function Report() {
           </div>
         </section>
 
-        {insufficientKeyPoints.length > 0 && (
+        {allInsufficientKeyPoints.length > 0 && (
           <section className="glass-card p-6 bg-gradient-to-br from-museum-500/10 to-transparent">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-museum-500/20 flex items-center justify-center">
@@ -268,7 +271,7 @@ export default function Report() {
               </h2>
             </div>
             <div className="space-y-2.5">
-              {insufficientKeyPoints.map((point) => (
+              {allInsufficientKeyPoints.map((point) => (
                 <div
                   key={point.pointId}
                   className="flex items-start gap-3 p-3 rounded-lg bg-white/60 border border-museum-500/20"
