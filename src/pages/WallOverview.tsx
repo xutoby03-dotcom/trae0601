@@ -3,9 +3,9 @@ import { WallMap } from '@/components/WallMap';
 import { RouteCard } from '@/components/RouteCard';
 import { useRouteStore, useHoldStore, useFeedbackStore } from '@/store';
 import type { Hold, Grade, RouteStatus } from '@/types';
-import { GRADE_COLORS, STATUS_LABELS } from '@/data/mockData';
-import { cn } from '@/utils/helpers';
-import { Search, Filter, AlertTriangle, MessageSquare, ChevronRight, PanelRight } from 'lucide-react';
+import { GRADE_COLORS, STATUS_LABELS, ISSUE_TYPE_LABELS, SEVERITY_LABELS, FEEDBACK_TYPE_LABELS } from '@/data/mockData';
+import { formatDateTime, cn } from '@/utils/helpers';
+import { Search, Filter, AlertTriangle, MessageSquare, ChevronRight, PanelRight, Wrench, Clock } from 'lucide-react';
 
 export const WallOverview: React.FC = () => {
   const {
@@ -22,7 +22,7 @@ export const WallOverview: React.FC = () => {
     getRouteById,
   } = useRouteStore();
   const { getIssuesByRoute, getUnresolvedIssues } = useHoldStore();
-  const { getFeedbackStats, getPendingFeedbacks } = useFeedbackStore();
+  const { getFeedbackStats, getPendingFeedbacks, getFeedbacksByRoute } = useFeedbackStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
@@ -32,6 +32,25 @@ export const WallOverview: React.FC = () => {
   const unresolvedIssues = getUnresolvedIssues();
   const pendingFeedbacks = getPendingFeedbacks();
   const activeRoutes = routes.filter((r) => r.status === 'active');
+
+  const routeIssues = selectedRouteId ? getIssuesByRoute(selectedRouteId) : [];
+  const routeFeedbackStats = selectedRouteId ? getFeedbackStats(selectedRouteId) : null;
+  const routePendingFeedbacks = selectedRouteId
+    ? getFeedbacksByRoute(selectedRouteId)
+        .filter((f) => f.status === 'pending')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
+  const recentIssues = [...routeIssues]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 2);
+  const issuesByType: Record<string, number> = {};
+  routeIssues.forEach((i) => {
+    issuesByType[i.type] = (issuesByType[i.type] || 0) + 1;
+  });
+  const feedbackByType: Record<string, number> = {};
+  routePendingFeedbacks.forEach((f) => {
+    feedbackByType[f.type] = (feedbackByType[f.type] || 0) + 1;
+  });
 
   const grades: (Grade | 'all')[] = ['all', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8+'];
   const statuses: (RouteStatus | 'all')[] = ['all', 'active', 'pending_review', 'adjusting', 'retired'];
@@ -172,9 +191,126 @@ export const WallOverview: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {selectedRoute && (
-                <div className="mb-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-                  <div className="text-xs text-orange-400 font-medium mb-2">当前选中</div>
-                  <RouteCard route={selectedRoute} isSelected={true} />
+                <div className="mb-4 space-y-3">
+                  <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+                    <div className="text-xs text-orange-400 font-medium mb-2">
+                      当前选中
+                    </div>
+                    <RouteCard route={selectedRoute} isSelected={true} />
+                  </div>
+
+                  {routeIssues.length > 0 && (
+                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-red-400">
+                          <AlertTriangle size={14} />
+                          岩点问题
+                        </div>
+                        <span className="text-xs text-red-400/70">
+                          {routeIssues.length} 项未处理
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(issuesByType).map(([type, count]) => (
+                          <span
+                            key={type}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-red-500/10 text-red-300"
+                          >
+                            {ISSUE_TYPE_LABELS[type]} {count}
+                          </span>
+                        ))}
+                      </div>
+
+                      {recentIssues.map((issue) => (
+                        <div
+                          key={issue.id}
+                          className="text-xs text-slate-400 pl-3 border-l-2 border-red-500/30"
+                        >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span
+                              className={cn(
+                                'px-1 py-0.5 rounded text-xs font-medium',
+                                issue.severity === 'high'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : issue.severity === 'medium'
+                                  ? 'bg-amber-500/20 text-amber-400'
+                                  : 'bg-green-500/20 text-green-400'
+                              )}
+                            >
+                              {SEVERITY_LABELS[issue.severity]}
+                            </span>
+                            <span className="text-slate-500">
+                              {ISSUE_TYPE_LABELS[issue.type]}
+                            </span>
+                          </div>
+                          <p className="text-slate-500 leading-relaxed">
+                            {issue.note || '无备注'}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5 text-slate-600">
+                            <Clock size={10} />
+                            {formatDateTime(issue.createdAt)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {routePendingFeedbacks.length > 0 && (
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-amber-400">
+                          <MessageSquare size={14} />
+                          待复核反馈
+                        </div>
+                        <span className="text-xs text-amber-400/70">
+                          {routePendingFeedbacks.length} 条待处理
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(feedbackByType).map(([type, count]) => (
+                          <span
+                            key={type}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-amber-500/10 text-amber-300"
+                          >
+                            {FEEDBACK_TYPE_LABELS[type]} {count}
+                          </span>
+                        ))}
+                      </div>
+
+                      {routePendingFeedbacks.slice(0, 2).map((fb) => (
+                        <div
+                          key={fb.id}
+                          className="text-xs text-slate-400 pl-3 border-l-2 border-amber-500/30"
+                        >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="px-1 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-400">
+                              {FEEDBACK_TYPE_LABELS[fb.type]}
+                            </span>
+                          </div>
+                          <p className="text-slate-500 leading-relaxed line-clamp-2">
+                            {fb.description}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5 text-slate-600">
+                            <Clock size={10} />
+                            {formatDateTime(fb.createdAt)}
+                            {fb.reporterName && (
+                              <span className="ml-1">— {fb.reporterName}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {routeIssues.length === 0 && routePendingFeedbacks.length === 0 && (
+                    <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-3 text-center">
+                      <p className="text-xs text-green-400/70">
+                        该线路暂无待处理问题
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
