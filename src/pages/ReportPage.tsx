@@ -570,11 +570,20 @@ export default function ReportPage() {
                     <span className="text-xs bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full">
                       {report.issues.length} 项待办
                     </span>
-                    {report.issues.filter((i) => i.severity === 'high').length > 0 && (
-                      <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full">
-                        最高风险：{getIssueTypeLabel(report.issues.filter((i) => i.severity === 'high')[0].type)}
-                      </span>
-                    )}
+                    {(() => {
+                      const top = sortIssuesByPriority(report.issues, false)[0];
+                      if (!top) return null;
+                      const sevColor = top.severity === 'high'
+                        ? 'bg-red-500/20 text-red-300'
+                        : top.severity === 'medium'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-emerald-500/20 text-emerald-300';
+                      return (
+                        <span className={cn('text-xs px-2 py-0.5 rounded-full', sevColor)}>
+                          首要：{getIssueTypeLabel(top.type)}·{getSeverityLabel(top.severity)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="text-sm text-slate-400 mt-1 line-clamp-1">
                     {report.notes || '无备注'}
