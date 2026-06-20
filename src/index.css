@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Heiti SC", "WenQuanYi Micro Hei", sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #2c4141;
+  background-color: #f7f5f0;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f7f5f0 0%, #f0ebe0 100%);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-museum-200/50 rounded-xl shadow-sm;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 bg-deep-900 text-white rounded-lg font-medium
+           hover:bg-deep-800 active:scale-95 transition-all duration-200
+           shadow-md hover:shadow-lg;
+  }
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-museum-100 text-deep-900 rounded-lg font-medium
+           hover:bg-museum-200 active:scale-95 transition-all duration-200;
+  }
+  .btn-ghost {
+    @apply px-4 py-2 text-deep-700 rounded-lg font-medium
+           hover:bg-deep-900/5 active:scale-95 transition-all duration-200;
+  }
+  .btn-danger {
+    @apply px-4 py-2 text-coral-500 rounded-lg font-medium
+           hover:bg-coral-500/10 active:scale-95 transition-all duration-200;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-museum-200 bg-white
+           focus:outline-none focus:border-museum-500 focus:ring-2 focus:ring-museum-500/20
+           transition-all duration-200;
+  }
+  .label-text {
+    @apply block text-sm font-medium text-deep-700 mb-1.5;
+  }
+}
