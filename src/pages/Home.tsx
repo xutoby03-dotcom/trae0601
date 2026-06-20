@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Plus, Clock, TrendingUp, AlertTriangle, CheckCircle, AlertCircle, Trash2, ChevronRight } from 'lucide-react';
 import { useInspectionStore } from '@/store/useInspectionStore';
 import { LENS_BRANDS, LENS_MOUNTS, CONDITIONS, PURCHASE_CHANNELS } from '@/data/checklistItems';
-import { formatPrice, formatDate, recommendationLabel } from '@/utils/evaluation';
+import { formatPrice, formatDate, recommendationLabel, collectAggregatedRisks, countRisksByLevel } from '@/utils/evaluation';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -180,11 +180,8 @@ export default function Home() {
           ) : (
             <div className="space-y-3">
               {inspections.map((ins) => {
-                const riskCount = {
-                  high: ins.riskTags.filter(r => r.level === 'high').length,
-                  medium: ins.riskTags.filter(r => r.level === 'medium').length,
-                  low: ins.riskTags.filter(r => r.level === 'low').length,
-                };
+                const aggregated = collectAggregatedRisks(ins);
+                const riskCount = countRisksByLevel(aggregated);
                 return (
                   <div
                     key={ins.id}

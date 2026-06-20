@@ -6,7 +6,10 @@ import {
   Camera, Clock, AlertCircle
 } from 'lucide-react';
 import { useInspectionStore } from '@/store/useInspectionStore';
-import { formatPrice, formatDate, recommendationLabel, riskLevelLabel } from '@/utils/evaluation';
+import {
+  formatPrice, formatDate, recommendationLabel, riskLevelLabel,
+  collectAggregatedRisks, countRisksByLevel, AggregatedRisk
+} from '@/utils/evaluation';
 import { CHECKLIST_GROUPS } from '@/data/checklistItems';
 import { RiskLevel, PurchaseRecommendation } from '@/types';
 
@@ -25,18 +28,27 @@ export default function ReportPage() {
 
   const report = inspection?.report;
 
+  const aggregatedRisks: AggregatedRisk[] = useMemo(() => {
+    if (!inspection) return [];
+    return collectAggregatedRisks(inspection);
+  }, [inspection]);
+
   const stats = useMemo(() => {
     if (!inspection) return null;
     const pass = inspection.checkItems.filter(i => i.status === 'pass').length;
     const warning = inspection.checkItems.filter(i => i.status === 'warning').length;
     const fail = inspection.checkItems.filter(i => i.status === 'fail').length;
     const untested = inspection.checkItems.filter(i => i.status === 'untested').length;
-    const high = inspection.riskTags.filter(r => r.level === 'high').length;
-    const medium = inspection.riskTags.filter(r => r.level === 'medium').length;
-    const low = inspection.riskTags.filter(r => r.level === 'low').length;
-    const totalRiskImpact = inspection.riskTags.reduce((sum, r) => sum + r.priceImpact, 0);
-    return { pass, warning, fail, untested, high, medium, low, totalRiskImpact };
-  }, [inspection]);
+    const riskCounts = countRisksByLevel(aggregatedRisks);
+    const totalRiskImpact = aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0);
+    return {
+      pass, warning, fail, untested,
+      high: riskCounts.high,
+      medium: riskCounts.medium,
+      low: riskCounts.low,
+      totalRiskImpact,
+    };
+  }, [inspection, aggregatedRisks]);
 
   if (!inspection || !report || !stats) {
     return (
@@ -316,43 +328,44 @@ export default function ReportPage() {
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-copper-400" />
-                <h3 className="font-display text-xl font-semibold text-white">风险标签详情</h3>
+                <h3 className="font-display text-xl font-semibold text-white">风险详情</h3>
               </div>
-              <span className="text-sm text-gray-500">{inspection.riskTags.length} 项问题</span>
+              <span className="text-sm text-gray-500">
+                共 {aggregatedRisks.length} 项
+                {inspection.riskTags.length > 0 && `（含 ${inspection.riskTags.length} 项手动标记）`}
+              </span>
             </div>
-            {inspection.riskTags.length === 0 ? (
+            {aggregatedRisks.length === 0 ? (
               <div className="text-center py-10">
                 <CheckCircle className="w-10 h-10 text-jade-400/50 mx-auto mb-3" />
-                <p className="text-gray-500">暂无风险标签，镜头状态良好</p>
+                <p className="text-gray-500">未发现风险问题，镜头状态良好</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {inspection.riskTags
-                  .sort((a, b) => {
-                    const order = { high: 0, medium: 1, low: 2 };
-                    return order[a.level] - order[b.level];
-                  })
-                  .map(tag => (
-                    <div key={tag.id} className="p-4 rounded-xl bg-ink-800/50 border border-ink-700/50">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={riskBadgeClass(tag.level)}>{riskLevelLabel(tag.level)}</span>
-                            <h4 className="font-medium text-white">{tag.name}</h4>
-                          </div>
-                          {tag.description && (
-                            <p className="text-xs text-gray-400 leading-relaxed">{tag.description}</p>
-                          )}
+                {aggregatedRisks.map((risk, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-ink-800/50 border border-ink-700/50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className={riskBadgeClass(risk.level)}>{riskLevelLabel(risk.level)}</span>
+                          <h4 className="font-medium text-white">{risk.name}</h4>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${risk.source === 'manual' ? 'bg-copper-500/15 text-copper-400' : 'bg-ink-700 text-gray-400'}`}>
+                            {risk.source === 'manual' ? '手动标记' : '检测项'}
+                          </span>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-xs text-gray-500">影响价格</p>
-                          <p className="font-display text-lg font-semibold text-jade-400">
-                            -{formatPrice(tag.priceImpact)}
-                          </p>
-                        </div>
+                        {risk.description && (
+                          <p className="text-xs text-gray-400 leading-relaxed">{risk.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs text-gray-500">影响价格</p>
+                        <p className="font-display text-lg font-semibold text-jade-400">
+                          -{formatPrice(risk.priceImpact)}
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             )}
           </div>

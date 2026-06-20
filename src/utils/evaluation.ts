@@ -1,33 +1,80 @@
-import { Inspection, EvaluationReport, RiskLevel, CheckStatus, RiskTag } from '@/types';
-import { CONDITIONS } from '@/data/checklistItems';
+import { Inspection, EvaluationReport, RiskLevel, CheckStatus, RiskTag, CheckItem } from '@/types';
+import { CONDITIONS, getCheckItemRiskConfig } from '@/data/checklistItems';
+
+export interface AggregatedRisk {
+  name: string;
+  level: RiskLevel;
+  description: string;
+  priceImpact: number;
+  source: 'checkitem' | 'manual';
+  status?: CheckStatus;
+}
+
+export function collectAggregatedRisks(inspection: Inspection): AggregatedRisk[] {
+  const risks: AggregatedRisk[] = [];
+
+  inspection.checkItems.forEach((item: CheckItem) => {
+    if (item.status !== 'fail' && item.status !== 'warning') return;
+
+    const cfg = getCheckItemRiskConfig(item.itemName, item.category);
+    if (!cfg) return;
+
+    const isFail = item.status === 'fail';
+    const level = isFail ? cfg.failLevel : cfg.warningLevel;
+    const priceImpact = isFail ? cfg.failPriceImpact : cfg.warningPriceImpact;
+
+    risks.push({
+      name: item.itemName,
+      level,
+      description: item.notes || item.description,
+      priceImpact,
+      source: 'checkitem',
+      status: item.status,
+    });
+  });
+
+  inspection.riskTags.forEach((tag: RiskTag) => {
+    risks.push({
+      name: tag.name,
+      level: tag.level,
+      description: tag.description,
+      priceImpact: tag.priceImpact,
+      source: 'manual',
+    });
+  });
+
+  const order = { high: 0, medium: 1, low: 2 };
+  risks.sort((a, b) => order[a.level] - order[b.level] || b.priceImpact - a.priceImpact);
+
+  return risks;
+}
+
+export function countRisksByLevel(risks: AggregatedRisk[]) {
+  return {
+    high: risks.filter(r => r.level === 'high').length,
+    medium: risks.filter(r => r.level === 'medium').length,
+    low: risks.filter(r => r.level === 'low').length,
+  };
+}
 
 export function calculateEvaluation(inspection: Inspection): EvaluationReport {
-  const { lensInfo, checkItems, riskTags } = inspection;
+  const { lensInfo, checkItems } = inspection;
 
   const conditionDiscount = CONDITIONS.find(c => c.value === lensInfo.condition)?.discount ?? 0.8;
 
-  let totalRiskDeduction = 0;
-  const bargainReasons: string[] = [];
+  const aggregatedRisks = collectAggregatedRisks(inspection);
+  const { high: highCount, medium: mediumCount, low: lowCount } = countRisksByLevel(aggregatedRisks);
 
-  riskTags.forEach((tag) => {
-    const impact = getRiskImpact(tag.level);
-    totalRiskDeduction += impact;
-    bargainReasons.push(
-      `【${riskLevelLabel(tag.level)}】${tag.name}：${tag.description}（建议砍价约 ${Math.round(tag.priceImpact)} 元）`
-    );
+  let totalRiskDeduction = 0;
+  aggregatedRisks.forEach((r) => {
+    totalRiskDeduction += getRiskImpact(r.level);
   });
 
-  checkItems
-    .filter(item => item.status === 'fail')
-    .forEach((item) => {
-      bargainReasons.push(`检测未通过：${item.itemName}${item.notes ? ` - ${item.notes}` : ''}`);
-    });
-
-  checkItems
-    .filter(item => item.status === 'warning')
-    .forEach((item) => {
-      totalRiskDeduction += 0.03;
-    });
+  const bargainReasons: string[] = aggregatedRisks.map((r) => {
+    const src = r.source === 'manual' ? '手动标记' : '检测项';
+    const suffix = r.status && r.status !== 'fail' ? `（状态：${statusLabel(r.status)}）` : '';
+    return `【${riskLevelLabel(r.level)}】${r.name}：${r.description}${suffix}（建议砍价约 ¥${r.priceImpact}，来源：${src}）`;
+  });
 
   const failCount = checkItems.filter(i => i.status === 'fail').length;
   const warningCount = checkItems.filter(i => i.status === 'warning').length;
@@ -39,9 +86,9 @@ export function calculateEvaluation(inspection: Inspection): EvaluationReport {
   const overallScore = Math.max(0, Math.min(100, Math.round(baseScore - penalty)));
 
   let recommendation: EvaluationReport['recommendation'] = 'buy';
-  if (overallScore < 50 || failCount >= 3 || riskTags.some(t => t.level === 'high')) {
+  if (overallScore < 50 || failCount >= 3 || highCount >= 1) {
     recommendation = 'avoid';
-  } else if (overallScore < 75 || failCount >= 1 || warningCount >= 3) {
+  } else if (overallScore < 75 || failCount >= 1 || warningCount >= 3 || mediumCount >= 2) {
     recommendation = 'caution';
   }
 
@@ -55,7 +102,7 @@ export function calculateEvaluation(inspection: Inspection): EvaluationReport {
   const minPrice = Math.round(fairPrice * 0.92);
   const maxPrice = Math.round(fairPrice * 1.08);
 
-  const summary = generateSummary(recommendation, overallScore, riskTags, failCount);
+  const summary = generateSummary(recommendation, overallScore, highCount, mediumCount, failCount);
 
   return {
     recommendation,
@@ -104,12 +151,10 @@ export function recommendationLabel(rec: EvaluationReport['recommendation']): st
 function generateSummary(
   recommendation: EvaluationReport['recommendation'],
   score: number,
-  risks: RiskTag[],
+  highRisks: number,
+  mediumRisks: number,
   fails: number
 ): string {
-  const highRisks = risks.filter(r => r.level === 'high').length;
-  const mediumRisks = risks.filter(r => r.level === 'medium').length;
-
   if (recommendation === 'avoid') {
     return `该镜头存在 ${highRisks} 项高风险问题和 ${fails} 项检测异常，综合得分仅 ${score}/100，建议放弃寻找更优选择。`;
   }
@@ -121,10 +166,13 @@ function generateSummary(
 
 export function formatPrice(value: number): string {
   if (!value) return '¥0';
-  return `¥${value.toLocaleString('zh-CN')}`;
+  return '¥' + String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 export function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' });
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
