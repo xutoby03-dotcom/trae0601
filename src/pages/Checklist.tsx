@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Smartphone, Key, Shirt, RectangleHorizontal, Sun, Pill, Banknote, Check, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
@@ -17,8 +18,20 @@ const itemIcons: Record<string, any> = {
 
 export default function Checklist() {
   const { bags, members, itemChecks, updateItemCheck, confirmItemCheck } = useStore();
+  const [searchParams] = useSearchParams();
+  const targetBagId = searchParams.get('bagId');
   const [expandedBag, setExpandedBag] = useState<string | null>(bags[0]?.id || null);
+  const [highlightBagId, setHighlightBagId] = useState<string | null>(null);
   const [checkerName, setCheckerName] = useState('领队');
+
+  useEffect(() => {
+    if (targetBagId && bags.some(b => b.id === targetBagId)) {
+      setExpandedBag(targetBagId);
+      setHighlightBagId(targetBagId);
+      const timer = setTimeout(() => setHighlightBagId(null), 2100);
+      return () => clearTimeout(timer);
+    }
+  }, [targetBagId, bags]);
 
   const getOwnerName = (ownerId: string) => {
     return members.find(m => m.id === ownerId)?.name || '未知';
@@ -75,13 +88,14 @@ export default function Checklist() {
           const itemCheck = getItemCheck(bag.id);
           const isExpanded = expandedBag === bag.id;
           const isChecked = !!itemCheck?.checkedAt;
+          const isHighlighted = highlightBagId === bag.id;
           const checkedCount = allItemKeys.filter(key => itemCheck?.[key]).length;
           const totalCount = allItemKeys.length;
 
           return (
             <div
               key={bag.id}
-              className="glass-card rounded-2xl overflow-hidden animate-fade-in-up"
+              className={`glass-card rounded-2xl overflow-hidden animate-fade-in-up ${isHighlighted ? 'animate-highlight' : ''}`}
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div

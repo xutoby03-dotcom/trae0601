@@ -81,7 +81,7 @@ export default function Dashboard() {
                 <div 
                   key={bag.id}
                   className="flex items-center gap-4 p-4 bg-white/60 rounded-xl hover:bg-white/80 transition-colors cursor-pointer"
-                  onClick={() => navigate('/checklist')}
+                  onClick={() => navigate(`/checklist?bagId=${bag.id}`)}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div 
