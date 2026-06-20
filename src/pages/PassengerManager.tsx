@@ -51,6 +51,7 @@ export default function PassengerManager() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [errors, setErrors] = useState<{ landingTime?: string }>({})
 
   const sortedPassengers = [...passengers].sort((a, b) => {
     if (a.status === "picked_up" && b.status !== "picked_up") return 1
@@ -61,7 +62,21 @@ export default function PassengerManager() {
   })
 
   const handleSubmit = () => {
-    if (!form.name || !form.flightNumber) return
+    const newErrors: { landingTime?: string } = {}
+    if (!form.landingTime) {
+      newErrors.landingTime = "请选择航班落地时间"
+    } else if (isNaN(new Date(form.landingTime).getTime())) {
+      newErrors.landingTime = "落地时间格式无效"
+    }
+    if (!form.name || !form.flightNumber) {
+      setErrors(newErrors)
+      return
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    setErrors({})
     if (editingId) {
       updatePassenger(editingId, form)
       setEditingId(null)
@@ -90,6 +105,7 @@ export default function PassengerManager() {
     setShowForm(false)
     setEditingId(null)
     setForm(emptyForm)
+    setErrors({})
   }
 
   const formatTime = (iso: string) => {
@@ -306,12 +322,26 @@ export default function PassengerManager() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[#8B9CB6] text-sm mb-1.5">落地时间</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[#8B9CB6] text-sm">落地时间 *</label>
+                    {errors.landingTime && (
+                      <span className="flex items-center gap-1 text-red-400 text-xs font-medium animate-[fadeInScale_0.2s_ease-out]">
+                        {errors.landingTime}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="datetime-local"
                     value={form.landingTime}
-                    onChange={(e) => setForm({ ...form, landingTime: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-[#FF6B2B] focus:outline-none transition-colors [color-scheme:dark]"
+                    onChange={(e) => {
+                      setForm({ ...form, landingTime: e.target.value })
+                      if (errors.landingTime) setErrors({})
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl text-white focus:outline-none transition-colors [color-scheme:dark] ${
+                      errors.landingTime
+                        ? "bg-red-500/10 border-2 border-red-500/60 focus:border-red-400"
+                        : "bg-white/5 border border-white/10 focus:border-[#FF6B2B]"
+                    }`}
                   />
                 </div>
               </div>
@@ -367,7 +397,7 @@ export default function PassengerManager() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!form.name || !form.flightNumber}
+                disabled={!form.name || !form.flightNumber || !form.landingTime}
                 className="flex-1 py-3.5 rounded-xl bg-[#FF6B2B] text-white font-semibold hover:bg-[#e55d22] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {editingId ? "保存修改" : "添加乘客"}
