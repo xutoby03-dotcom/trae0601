@@ -5,9 +5,14 @@ import {
   Camera, Settings, ChevronDown, ChevronUp, CheckCircle2, Calendar,
   X, Image, Clock, Zap
 } from 'lucide-react';
-import { useAstroStore, getTargetById } from '@/store/useAstroStore';
+import { useAstroStore } from '@/store/useAstroStore';
+import { DEEP_SKY_TARGETS } from '@/data/constellations';
 import { formatDateChinese } from '@/utils/astro';
-import type { FailReason, ObservationRecord } from '@/types';
+import type { DeepSkyTarget, FailReason, ObservationRecord } from '@/types';
+
+function getTargetById(id: string): DeepSkyTarget | undefined {
+  return DEEP_SKY_TARGETS.find(t => t.id === id);
+}
 
 const FAIL_REASONS: { key: FailReason; label: string; icon: string }[] = [
   { key: 'weather', label: '天气突变', icon: '🌧️' },
