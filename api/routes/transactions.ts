@@ -70,11 +70,11 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const data: TransactionCreate = req.body;
-  const { items, employeeId, departmentId, paymentType } = data;
+  const { items, employeeId, departmentId, paymentType, remark } = data;
 
   const insertTrans = db.prepare(`
-    INSERT INTO transactions (product_id, employee_id, department_id, quantity, unit_price, total_amount, payment_type, payment_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO transactions (product_id, employee_id, department_id, quantity, unit_price, total_amount, payment_type, payment_status, remark)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const updateStock = db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?');
@@ -134,6 +134,7 @@ router.post('/', (req, res) => {
         totalAmount,
         paymentType,
         paymentStatus,
+        remark || null,
       );
 
       updateStock.run(item.quantity, item.productId);

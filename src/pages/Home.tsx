@@ -9,6 +9,7 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showEmployeeSelect, setShowEmployeeSelect] = useState(false);
+  const [remark, setRemark] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -82,9 +83,11 @@ export default function Home() {
         employeeId: selectedEmployee.id,
         departmentId: selectedDepartment.id,
         paymentType,
+        remark: remark.trim() || undefined,
       });
       setShowSuccess(true);
       clearCart();
+      setRemark('');
       setTimeout(() => setShowSuccess(false), 2000);
       loadData();
     } catch (err: any) {
@@ -330,6 +333,16 @@ export default function Home() {
 
                 {/* Total */}
                 <div className="border-t border-gray-100 pt-4">
+                  <div className="mb-4">
+                    <label className="text-sm text-gray-600 mb-2 block">备注（免单原因 / 特殊说明）</label>
+                    <textarea
+                      value={remark}
+                      onChange={(e) => setRemark(e.target.value)}
+                      placeholder="例如：部门团建零食、生日福利免单、包装破损特惠..."
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all resize-none text-sm"
+                    />
+                  </div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-gray-600">合计金额</span>
                     <span className="font-display text-3xl text-primary-600">¥{cartTotal().toFixed(2)}</span>

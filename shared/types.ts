@@ -61,6 +61,7 @@ export interface TransactionCreate {
   employeeId: number;
   departmentId: number;
   paymentType: 'monthly' | 'instant';
+  remark?: string;
 }
 
 export interface Bill {

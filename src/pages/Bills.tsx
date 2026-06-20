@@ -235,11 +235,18 @@ export default function Bills() {
                       <h4 className="font-medium text-gray-800 mb-4">账单明细</h4>
                       <div className="space-y-3">
                         {billDetail.transactions.map(t => (
-                          <div key={t.id} className="flex items-center gap-3 p-3 bg-white rounded-xl">
-                            <img src={t.product?.photo} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
+                          <div key={t.id} className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                            <img src={t.product?.photo} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100 mt-0.5" />
                             <div className="flex-1">
                               <p className="font-medium text-sm text-gray-800">{t.product?.name}</p>
                               <p className="text-xs text-gray-500">{t.product?.flavor} · {t.createdAt.split(' ')[0]}</p>
+                              {t.remark && (
+                                <div className="mt-2 px-2.5 py-1.5 bg-amber-50 rounded-lg border border-amber-100">
+                                  <p className="text-xs text-amber-700">
+                                    <span className="font-medium">📝 备注：</span>{t.remark}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                             <div className="text-right">
                               <p className="font-medium text-gray-800">x{t.quantity}</p>
