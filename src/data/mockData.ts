@@ -58,7 +58,10 @@ export const mockItems: InventoryItem[] = [
   { id: 'item-16', boxId: 'box-3', name: '冰袋', category: 'ice-pack', expiryDate: now.add(18, 'month').format('YYYY-MM-DD'), quantity: 1, storageCell: 'B1', status: 'low-stock', createdAt: now.subtract(1, 'month').toISOString(), updatedAt: now.subtract(1, 'day').toISOString() },
   { id: 'item-17', boxId: 'box-3', name: '体温计', category: 'thermometer', expiryDate: now.add(24, 'month').format('YYYY-MM-DD'), quantity: 0, storageCell: 'B2', status: 'damaged', createdAt: now.subtract(1, 'month').toISOString(), updatedAt: now.toISOString() },
   { id: 'item-18', boxId: 'box-3', name: '血压计', category: 'blood-pressure-monitor', expiryDate: now.add(36, 'month').format('YYYY-MM-DD'), quantity: 1, storageCell: 'B3', status: 'normal', createdAt: now.subtract(1, 'month').toISOString(), updatedAt: now.subtract(1, 'week').toISOString() },
-].map((item: InventoryItem) => ({ ...item, status: computeItemStatus(item) }));
+].map((item: InventoryItem) => {
+  if (item.status === 'damaged') return item;
+  return { ...item, status: computeItemStatus(item) };
+});
 
 export const mockBorrows: BorrowRecord[] = [
   { id: 'borrow-1', residentName: '赵大爷', building: '3号楼', purpose: '手部擦伤', itemId: 'item-1', itemName: '创可贴', category: 'band-aid', quantity: 2, returnRequirement: '一次性用品无需归还', expectedReturnDate: now.format('YYYY-MM-DD'), actualReturnDate: null, cleanlinessStatus: null, status: 'borrowing', borrowDate: now.format('YYYY-MM-DD'), createdAt: now.toISOString() },

@@ -160,80 +160,115 @@ export const useAppStore = create<AppState>()(
       },
       refreshReminders: () => {
         const { items, borrows, reminders: currentReminders } = get();
-        const existingIds = new Set(currentReminders.map(r => r.relatedId + r.type));
         const now = dayjs().toISOString();
-        const newReminders: Reminder[] = [];
+        const keyOf = (relatedId: string, type: Reminder['type']) => relatedId + '|' + type;
+
+        interface ExpectedReminder {
+          key: string;
+          type: Reminder['type'];
+          relatedId: string;
+          title: string;
+          description: string;
+          level: Reminder['level'];
+        }
+
+        const expected = new Map<string, ExpectedReminder>();
 
         items.forEach(item => {
-          if (computeItemStatus(item) === 'expired' && !existingIds.has(item.id + 'expiry')) {
-            newReminders.push({
-              id: generateId(),
+          if (computeItemStatus(item) === 'expired') {
+            const k = keyOf(item.id, 'expiry');
+            expected.set(k, {
+              key: k,
               type: 'expiry',
               relatedId: item.id,
               title: item.name + ' 已过期',
               description: '存放格: ' + item.storageCell + '，请及时更换过期物品',
               level: 'danger',
-              isRead: false,
-              createdAt: now,
             });
-          } else if (isExpiringSoon(item.expiryDate) && !existingIds.has(item.id + 'expiry')) {
-            newReminders.push({
-              id: generateId(),
+          } else if (isExpiringSoon(item.expiryDate)) {
+            const k = keyOf(item.id, 'expiry');
+            expected.set(k, {
+              key: k,
               type: 'expiry',
               relatedId: item.id,
               title: item.name + ' 即将过期',
               description: '存放格: ' + item.storageCell + '，请尽快处理',
               level: 'warning',
-              isRead: false,
-              createdAt: now,
             });
           }
 
-          if (item.status === 'damaged' && !existingIds.has(item.id + 'damage')) {
-            newReminders.push({
-              id: generateId(),
+          if (item.status === 'damaged') {
+            const k = keyOf(item.id, 'damage');
+            expected.set(k, {
+              key: k,
               type: 'damage',
               relatedId: item.id,
               title: item.name + ' 已破损',
               description: '存放格: ' + item.storageCell + '，请及时处理或更换',
               level: 'danger',
-              isRead: false,
-              createdAt: now,
             });
           }
 
-          if (isLowStock(item.quantity) && item.status !== 'damaged' && !existingIds.has(item.id + 'low-stock')) {
-            newReminders.push({
-              id: generateId(),
+          if (isLowStock(item.quantity) && item.status !== 'damaged') {
+            const k = keyOf(item.id, 'low-stock');
+            expected.set(k, {
+              key: k,
               type: 'low-stock',
               relatedId: item.id,
               title: item.name + ' 库存不足',
               description: '当前库存: ' + item.quantity + '，建议及时补货',
               level: item.quantity <= 2 ? 'danger' : 'warning',
-              isRead: false,
-              createdAt: now,
             });
           }
         });
 
         borrows.forEach(record => {
-          if (computeBorrowStatus(record) === 'overdue' && !existingIds.has(record.id + 'overdue-return')) {
-            newReminders.push({
-              id: generateId(),
+          if (computeBorrowStatus(record) === 'overdue') {
+            const k = keyOf(record.id, 'overdue-return');
+            expected.set(k, {
+              key: k,
               type: 'overdue-return',
               relatedId: record.id,
               title: record.residentName + ' 逾期未还',
               description: '物品: ' + record.itemName,
               level: 'danger',
+            });
+          }
+        });
+
+        const existingByKey = new Map<string, Reminder>();
+        currentReminders.forEach(r => {
+          existingByKey.set(keyOf(r.relatedId, r.type), r);
+        });
+
+        const result: Reminder[] = [];
+
+        expected.forEach(exp => {
+          const existing = existingByKey.get(exp.key);
+          if (existing) {
+            result.push({
+              ...existing,
+              title: exp.title,
+              description: exp.description,
+              level: exp.level,
+            });
+          } else {
+            result.push({
+              id: generateId(),
+              type: exp.type,
+              relatedId: exp.relatedId,
+              title: exp.title,
+              description: exp.description,
+              level: exp.level,
               isRead: false,
               createdAt: now,
             });
           }
         });
 
-        if (newReminders.length > 0) {
-          set({ reminders: [...newReminders, ...currentReminders] });
-        }
+        result.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1));
+
+        set({ reminders: result });
       },
     }),
     { name: 'medicine-box-storage' }
