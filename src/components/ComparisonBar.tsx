@@ -1,64 +1,239 @@
-import { memo, useCallback, useRef, useEffect } from 'react';
-import { ArrowLeftRight, X, Play, Pause, Loader2 } from 'lucide-react';
+import { memo, useCallback, useRef, useEffect, useState } from 'react';
+import { ArrowLeftRight, X, Play, Pause } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { formatTime } from '../utils/audio';
 import { VUMeter } from './VUMeter';
+import type { AudioTake } from '../types';
 
 export const ComparisonBar = memo(function ComparisonBar() {
   const comparison = useStore((s) => s.comparison);
   const setComparisonSlot = useStore((s) => s.setComparisonSlot);
   const toggleComparisonActive = useStore((s) => s.toggleComparisonActive);
-  const currentPlayingId = useStore((s) => s.currentPlayingId);
-  const setCurrentPlayingId = useStore((s) => s.setCurrentPlayingId);
   const takes = useStore((s) => s.takes);
 
-  const playerA = useAudioPlayer(
-    comparison.a?.audioUrl || '',
-    comparison.a?.id || 'slot-a',
-    { autoPlay: comparison.active === 'a' && currentPlayingId === comparison.a?.id }
-  );
+  const audioARef = useRef<HTMLAudioElement | null>(null);
+  const audioBRef = useRef<HTMLAudioElement | null>(null);
+  const fadeTimeoutRef = useRef<number | null>(null);
+  const vuIntervalRef = useRef<number | null>(null);
+  const lastLoadedA = useRef<string | null>(null);
+  const lastLoadedB = useRef<string | null>(null);
+  const syncRef = useRef<number>(0);
 
-  const playerB = useAudioPlayer(
-    comparison.b?.audioUrl || '',
-    comparison.b?.id || 'slot-b',
-    { autoPlay: comparison.active === 'b' && currentPlayingId === comparison.b?.id }
-  );
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTimeA, setCurrentTimeA] = useState(0);
+  const [currentTimeB, setCurrentTimeB] = useState(0);
+  const [vuLevelA, setVuLevelA] = useState(0);
+  const [vuLevelB, setVuLevelB] = useState(0);
+  const [durationA, setDurationA] = useState(0);
+  const [durationB, setDurationB] = useState(0);
+  const [isLoadingA, setIsLoadingA] = useState(false);
+  const [isLoadingB, setIsLoadingB] = useState(false);
 
-  const switchTimeoutRef = useRef<number | null>(null);
+  const activeSlot = comparison.active;
+  const activeAudio = activeSlot === 'a' ? audioARef.current : audioBRef.current;
+  const activeVu = activeSlot === 'a' ? vuLevelA : vuLevelB;
+  const activeTime = activeSlot === 'a' ? currentTimeA : currentTimeB;
 
-  const handleToggle = useCallback(() => {
+  const updateVuLevels = useCallback(() => {
+    if (audioARef.current && !audioARef.current.paused) {
+      const base = 0.3 + Math.random() * 0.4;
+      const varation = Math.sin(Date.now() / 100) * 0.2;
+      setVuLevelA(Math.max(0.1, Math.min(1, base + varation)));
+    } else {
+      setVuLevelA((prev) => Math.max(0, prev - 0.05));
+    }
+    if (audioBRef.current && !audioBRef.current.paused) {
+      const base = 0.3 + Math.random() * 0.4;
+      const varation = Math.sin(Date.now() / 120) * 0.2;
+      setVuLevelB(Math.max(0.1, Math.min(1, base + varation)));
+    } else {
+      setVuLevelB((prev) => Math.max(0, prev - 0.05));
+    }
+  }, []);
+
+  useEffect(() => {
+    vuIntervalRef.current = window.setInterval(updateVuLevels, 80);
+    return () => {
+      if (vuIntervalRef.current) {
+        window.clearInterval(vuIntervalRef.current);
+      }
+    };
+  }, [updateVuLevels]);
+
+  useEffect(() => {
+    if (!comparison.a) return;
+    if (lastLoadedA.current === comparison.a.id) return;
+
+    const audio = new Audio(comparison.a.audioUrl);
+    audio.crossOrigin = 'anonymous';
+    audio.volume = activeSlot === 'a' && isPlaying ? 0.8 : 0;
+    audioARef.current = audio;
+    lastLoadedA.current = comparison.a.id;
+
+    const onLoaded = () => {
+      setDurationA(audio.duration);
+      setIsLoadingA(false);
+      if (syncRef.current > 0) {
+        audio.currentTime = syncRef.current;
+      }
+    };
+    const onTimeUpdate = () => setCurrentTimeA(audio.currentTime);
+    const onWaiting = () => setIsLoadingA(true);
+    const onCanPlay = () => setIsLoadingA(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      if (activeSlot === 'a') {
+        toggleComparisonActive();
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', onLoaded);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('ended', onEnded);
+
+    setIsLoadingA(true);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', onLoaded);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('ended', onEnded);
+      audio.pause();
+    };
+  }, [comparison.a, activeSlot, isPlaying, toggleComparisonActive]);
+
+  useEffect(() => {
+    if (!comparison.b) return;
+    if (lastLoadedB.current === comparison.b.id) return;
+
+    const audio = new Audio(comparison.b.audioUrl);
+    audio.crossOrigin = 'anonymous';
+    audio.volume = activeSlot === 'b' && isPlaying ? 0.8 : 0;
+    audioBRef.current = audio;
+    lastLoadedB.current = comparison.b.id;
+
+    const onLoaded = () => {
+      setDurationB(audio.duration);
+      setIsLoadingB(false);
+      if (syncRef.current > 0) {
+        audio.currentTime = syncRef.current;
+      }
+    };
+    const onTimeUpdate = () => setCurrentTimeB(audio.currentTime);
+    const onWaiting = () => setIsLoadingB(true);
+    const onCanPlay = () => setIsLoadingB(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      if (activeSlot === 'b') {
+        toggleComparisonActive();
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', onLoaded);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('ended', onEnded);
+
+    setIsLoadingB(true);
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', onLoaded);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('ended', onEnded);
+      audio.pause();
+    };
+  }, [comparison.b, activeSlot, isPlaying, toggleComparisonActive]);
+
+  const switchSlot = useCallback(() => {
     if (!comparison.a || !comparison.b) return;
 
-    const currentPlayer = comparison.active === 'a' ? playerA : playerB;
-    const nextPlayer = comparison.active === 'a' ? playerB : playerA;
-    const nextTake = comparison.active === 'a' ? comparison.b : comparison.a;
+    const fromAudio = activeSlot === 'a' ? audioARef.current : audioBRef.current;
+    const toAudio = activeSlot === 'a' ? audioBRef.current : audioARef.current;
 
-    const currentTime = currentPlayer.currentTime;
+    if (!fromAudio || !toAudio) return;
 
-    if (switchTimeoutRef.current) {
-      window.clearTimeout(switchTimeoutRef.current);
+    const currentTime = fromAudio.currentTime;
+    syncRef.current = currentTime;
+
+    if (fadeTimeoutRef.current) {
+      window.clearTimeout(fadeTimeoutRef.current);
     }
 
-    currentPlayer.setVolume(0);
-    setTimeout(() => {
-      currentPlayer.stop();
-      nextPlayer.seek(currentTime);
-      nextPlayer.setVolume(0);
-      nextPlayer.togglePlay();
-      setTimeout(() => {
-        nextPlayer.setVolume(0.8);
-      }, 30);
-    }, 75);
+    toAudio.currentTime = currentTime;
 
-    setCurrentPlayingId(nextTake?.id || null);
+    if (isPlaying) {
+      toAudio.play().catch(() => {});
+      toAudio.volume = 0;
+
+      const steps = 8;
+      const stepMs = 15;
+      let step = 0;
+
+      const fade = () => {
+        step++;
+        const progress = step / steps;
+        if (fromAudio) fromAudio.volume = 0.8 * (1 - progress);
+        if (toAudio) toAudio.volume = 0.8 * progress;
+
+        if (step < steps) {
+          fadeTimeoutRef.current = window.setTimeout(fade, stepMs);
+        } else {
+          if (fromAudio) {
+            fromAudio.pause();
+            fromAudio.volume = 0;
+          }
+          if (toAudio) toAudio.volume = 0.8;
+        }
+      };
+
+      fade();
+    }
+
     toggleComparisonActive();
-  }, [comparison, playerA, playerB, toggleComparisonActive, setCurrentPlayingId]);
+  }, [comparison.a, comparison.b, activeSlot, isPlaying, toggleComparisonActive]);
+
+  const togglePlay = useCallback(() => {
+    if (!comparison.a && !comparison.b) return;
+
+    const audio = activeAudio;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      audio.volume = 0.8;
+      audio.play().catch(() => {});
+      setIsPlaying(true);
+      syncRef.current = audio.currentTime;
+    }
+  }, [comparison.a, comparison.b, activeAudio, isPlaying]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.code === 'Space' && comparison.a && comparison.b) {
+        e.preventDefault();
+        switchSlot();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [comparison.a, comparison.b, switchSlot]);
 
   useEffect(() => {
     return () => {
-      if (switchTimeoutRef.current) {
-        window.clearTimeout(switchTimeoutRef.current);
+      if (fadeTimeoutRef.current) {
+        window.clearTimeout(fadeTimeoutRef.current);
       }
     };
   }, []);
@@ -67,9 +242,15 @@ export const ComparisonBar = memo(function ComparisonBar() {
     (slot: 'a' | 'b') => (e: React.DragEvent) => {
       e.preventDefault();
       const takeId = e.dataTransfer.getData('text/plain');
-      const take = takes.find((t) => t.id === takeId);
+      const take = takes.find((t) => t.id === takeId) as AudioTake | undefined;
       if (take) {
+        syncRef.current = 0;
+        setCurrentTimeA(0);
+        setCurrentTimeB(0);
+        setIsPlaying(false);
         setComparisonSlot(slot, take);
+        if (slot === 'a') lastLoadedA.current = null;
+        else lastLoadedB.current = null;
       }
     },
     [takes, setComparisonSlot]
@@ -79,6 +260,30 @@ export const ComparisonBar = memo(function ComparisonBar() {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   }, []);
+
+  const handleRemoveSlot = useCallback(
+    (slot: 'a' | 'b') => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setComparisonSlot(slot, null);
+      if (slot === 'a') {
+        lastLoadedA.current = null;
+        if (audioARef.current) {
+          audioARef.current.pause();
+          audioARef.current = null;
+        }
+      } else {
+        lastLoadedB.current = null;
+        if (audioBRef.current) {
+          audioBRef.current.pause();
+          audioBRef.current = null;
+        }
+      }
+      if (activeSlot === slot) {
+        setIsPlaying(false);
+      }
+    },
+    [setComparisonSlot, activeSlot]
+  );
 
   const hasBoth = comparison.a && comparison.b;
 
@@ -91,14 +296,26 @@ export const ComparisonBar = memo(function ComparisonBar() {
             onDragOver={handleDragOver}
             className={`flex-1 min-w-0 p-3 rounded-lg border-2 border-dashed transition-all ${
               comparison.a
-                ? 'border-accent-amber/50 bg-studio-card'
+                ? activeSlot === 'a'
+                  ? 'border-accent-amber bg-studio-card shadow-studio-glow'
+                  : 'border-accent-amber/30 bg-studio-card/50'
                 : 'border-studio-border bg-studio-card/50 hover:border-accent-amber/30'
             }`}
           >
             {comparison.a ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-accent-amber/20 flex items-center justify-center flex-shrink-0">
-                  <span className="font-display font-bold text-accent-amber text-lg">A</span>
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    activeSlot === 'a' ? 'bg-accent-amber/30' : 'bg-accent-amber/10'
+                  }`}
+                >
+                  <span
+                    className={`font-display font-bold text-lg ${
+                      activeSlot === 'a' ? 'text-accent-amber' : 'text-accent-amber/50'
+                    }`}
+                  >
+                    A
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm text-studio-text truncate">{comparison.a.name}</h4>
@@ -106,14 +323,14 @@ export const ComparisonBar = memo(function ComparisonBar() {
                     {comparison.a.microphone.split(' ')[0]} + {comparison.a.preamp.split(' ')[0]}
                   </p>
                 </div>
-                {comparison.active === 'a' && (
-                  <VUMeter level={playerA.vuLevel} size="sm" />
+                {activeSlot === 'a' && isPlaying && (
+                  <VUMeter level={vuLevelA} size="sm" />
                 )}
                 <div className="text-xs font-mono text-studio-textDim">
-                  {formatTime(playerA.currentTime)}
+                  {formatTime(currentTimeA)}
                 </div>
                 <button
-                  onClick={() => setComparisonSlot('a', null)}
+                  onClick={handleRemoveSlot('a')}
                   className="p-1 hover:bg-studio-hover rounded transition-colors"
                 >
                   <X className="w-4 h-4 text-studio-textDim" />
@@ -128,7 +345,7 @@ export const ComparisonBar = memo(function ComparisonBar() {
 
           <div className="flex flex-col items-center gap-2">
             <button
-              onClick={handleToggle}
+              onClick={switchSlot}
               disabled={!hasBoth}
               className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-200 ${
                 hasBoth
@@ -141,19 +358,23 @@ export const ComparisonBar = memo(function ComparisonBar() {
             </button>
             {hasBoth && (
               <div className="flex items-center gap-1">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                  comparison.active === 'a'
-                    ? 'bg-accent-amber text-studio-bg'
-                    : 'bg-studio-card text-studio-textDim'
-                }`}>
+                <span
+                  className={`text-xs font-bold px-2 py-0.5 rounded ${
+                    activeSlot === 'a'
+                      ? 'bg-accent-amber text-studio-bg'
+                      : 'bg-studio-card text-studio-textDim'
+                  }`}
+                >
                   A
                 </span>
                 <span className="text-xs text-studio-textDim">空格切换</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                  comparison.active === 'b'
-                    ? 'bg-accent-purple text-white'
-                    : 'bg-studio-card text-studio-textDim'
-                }`}>
+                <span
+                  className={`text-xs font-bold px-2 py-0.5 rounded ${
+                    activeSlot === 'b'
+                      ? 'bg-accent-purple text-white'
+                      : 'bg-studio-card text-studio-textDim'
+                  }`}
+                >
                   B
                 </span>
               </div>
@@ -161,23 +382,14 @@ export const ComparisonBar = memo(function ComparisonBar() {
             {hasBoth && (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    if (comparison.active === 'a') playerA.togglePlay();
-                    else playerB.togglePlay();
-                  }}
-                  className="p-2 rounded-full bg-studio-card border border-studio-border hover:bg-studio-hover transition-colors"
+                  onClick={togglePlay}
+                  disabled={isLoadingA || isLoadingB}
+                  className="p-2 rounded-full bg-studio-card border border-studio-border hover:bg-studio-hover hover:border-accent-amber/50 transition-colors"
+                  title={isPlaying ? '暂停' : '播放'}
                 >
-                  {comparison.active === 'a' ? (
-                    playerA.isLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : playerA.isPlaying ? (
-                      <Pause className="w-4 h-4" />
-                    ) : (
-                      <Play className="w-4 h-4" />
-                    )
-                  ) : playerB.isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : playerB.isPlaying ? (
+                  {isLoadingA || isLoadingB ? (
+                    <div className="w-4 h-4 border-2 border-studio-textDim border-t-transparent rounded-full animate-spin" />
+                  ) : isPlaying ? (
                     <Pause className="w-4 h-4" />
                   ) : (
                     <Play className="w-4 h-4" />
@@ -192,14 +404,26 @@ export const ComparisonBar = memo(function ComparisonBar() {
             onDragOver={handleDragOver}
             className={`flex-1 min-w-0 p-3 rounded-lg border-2 border-dashed transition-all ${
               comparison.b
-                ? 'border-accent-purple/50 bg-studio-card'
+                ? activeSlot === 'b'
+                  ? 'border-accent-purple bg-studio-card shadow-studio-glow'
+                  : 'border-accent-purple/30 bg-studio-card/50'
                 : 'border-studio-border bg-studio-card/50 hover:border-accent-purple/30'
             }`}
           >
             {comparison.b ? (
               <div className="flex items-center gap-3 flex-row-reverse">
-                <div className="w-10 h-10 rounded-full bg-accent-purple/20 flex items-center justify-center flex-shrink-0">
-                  <span className="font-display font-bold text-accent-purple text-lg">B</span>
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    activeSlot === 'b' ? 'bg-accent-purple/30' : 'bg-accent-purple/10'
+                  }`}
+                >
+                  <span
+                    className={`font-display font-bold text-lg ${
+                      activeSlot === 'b' ? 'text-accent-purple' : 'text-accent-purple/50'
+                    }`}
+                  >
+                    B
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0 text-right">
                   <h4 className="font-medium text-sm text-studio-text truncate">{comparison.b.name}</h4>
@@ -207,14 +431,14 @@ export const ComparisonBar = memo(function ComparisonBar() {
                     {comparison.b.microphone.split(' ')[0]} + {comparison.b.preamp.split(' ')[0]}
                   </p>
                 </div>
-                {comparison.active === 'b' && (
-                  <VUMeter level={playerB.vuLevel} size="sm" />
+                {activeSlot === 'b' && isPlaying && (
+                  <VUMeter level={vuLevelB} size="sm" />
                 )}
                 <div className="text-xs font-mono text-studio-textDim">
-                  {formatTime(playerB.currentTime)}
+                  {formatTime(currentTimeB)}
                 </div>
                 <button
-                  onClick={() => setComparisonSlot('b', null)}
+                  onClick={handleRemoveSlot('b')}
                   className="p-1 hover:bg-studio-hover rounded transition-colors"
                 >
                   <X className="w-4 h-4 text-studio-textDim" />
