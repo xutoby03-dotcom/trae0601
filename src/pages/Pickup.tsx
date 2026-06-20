@@ -1,10 +1,25 @@
-import { useState } from 'react';
-import { Search, QrCode, User, Phone, Package, Clock, CheckCircle2, AlertTriangle, Camera, Snowflake } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import {
+  Search,
+  QrCode,
+  User,
+  Phone,
+  Package,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Camera,
+  Snowflake,
+  X,
+} from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Order } from '@/types';
 import { OrderStatusBadge, TempZoneBadge } from '@/components/Badges';
 import Modal from '@/components/Modal';
+import QrScanner from '@/components/QrScanner';
 import { classNames, formatDateTime, getPickupSlotLabel, timeRemaining } from '@/utils/helpers';
+
+type ScanErrorType = 'camera' | 'not-found' | 'none';
 
 export default function Pickup() {
   const { products, searchOrders, markOrderPicked, getProductInspection } = useAppStore();
@@ -15,9 +30,18 @@ export default function Pickup() {
   const [exceptionNote, setExceptionNote] = useState('');
   const [exceptionPhotos, setExceptionPhotos] = useState<string[]>([]);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanError, setScanError] = useState<{ type: ScanErrorType; message: string }>({
+    type: 'none',
+    message: '',
+  });
 
   const results = searchQuery.trim() ? searchOrders(searchQuery) : [];
   const pendingResults = results.filter((o) => o.status === 'pending' || o.status === 'timeout');
+
+  const clearScanError = () => {
+    setScanError({ type: 'none', message: '' });
+  };
 
   const handleSelectOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -25,7 +49,42 @@ export default function Pickup() {
     setHasException(false);
     setExceptionNote('');
     setExceptionPhotos([]);
+    clearScanError();
   };
+
+  const handleScanSuccess = useCallback(
+    (decodedText: string) => {
+      const trimmed = decodedText.trim();
+      setSearchQuery(trimmed);
+      clearScanError();
+
+      const matches = searchOrders(trimmed);
+      const pendingMatches = matches.filter(
+        (o) => o.status === 'pending' || o.status === 'timeout'
+      );
+
+      if (pendingMatches.length === 0) {
+        setScanError({
+          type: 'not-found',
+          message: `未找到订单 "${trimmed}"，请检查二维码是否正确`,
+        });
+      } else if (pendingMatches.length === 1) {
+        setTimeout(() => {
+          handleSelectOrder(pendingMatches[0]);
+        }, 300);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const handleScanFailure = useCallback((error: string) => {
+    // 只在特定错误时显示，避免频繁闪烁
+    if (error.includes('NotFoundException') || error.includes('No MultiFormat Readers')) {
+      // 这些是正常的扫描过程错误，忽略
+      return;
+    }
+  }, []);
 
   const handleConfirmPickup = () => {
     if (!selectedOrder) return;
@@ -33,6 +92,7 @@ export default function Pickup() {
     setConfirmModalOpen(false);
     setSelectedOrder(null);
     setSearchQuery('');
+    clearScanError();
     setSuccessModalOpen(true);
     setTimeout(() => setSuccessModalOpen(false), 2000);
   };
@@ -42,10 +102,65 @@ export default function Pickup() {
   return (
     <div className="space-y-6">
       {/* 页面头部 */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">取货确认</h1>
-        <p className="text-sm text-slate-400 mt-1">扫码或搜索订单，确认居民取货</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">取货确认</h1>
+          <p className="text-sm text-slate-400 mt-1">扫码或搜索订单，确认居民取货</p>
+        </div>
+        <button
+          onClick={() => {
+            clearScanError();
+            setScannerOpen(true);
+          }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-medium shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.02] transition-all"
+        >
+          <Camera className="w-5 h-5" />
+          扫码取货
+        </button>
       </div>
+
+      {/* 扫码失败提示 */}
+      {scanError.type !== 'none' && (
+        <div
+          className={classNames(
+            'flex items-center gap-4 p-4 rounded-2xl border',
+            scanError.type === 'camera'
+              ? 'bg-red-500/10 border-red-500/30'
+              : 'bg-amber-500/10 border-amber-500/30'
+          )}
+        >
+          <div
+            className={classNames(
+              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+              scanError.type === 'camera' ? 'bg-red-500/20' : 'bg-amber-500/20'
+            )}
+          >
+            <AlertTriangle
+              className={classNames(
+                'w-5 h-5',
+                scanError.type === 'camera' ? 'text-red-400' : 'text-amber-400'
+              )}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p
+              className={classNames(
+                'font-medium',
+                scanError.type === 'camera' ? 'text-red-300' : 'text-amber-300'
+              )}
+            >
+              {scanError.type === 'camera' ? '摄像头错误' : '未找到订单'}
+            </p>
+            <p className="text-sm text-slate-400 mt-0.5">{scanError.message}</p>
+          </div>
+          <button
+            onClick={clearScanError}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/50 transition-colors flex-shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* 搜索区域 */}
       <div className="relative">
@@ -55,13 +170,23 @@ export default function Pickup() {
             type="text"
             placeholder="输入姓名、手机号后四位或订单号..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-20 pr-6 py-5 bg-slate-900/60 border-2 border-slate-800 rounded-2xl text-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500/50 focus:ring-4 focus:ring-sky-500/20 transition-all"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              clearScanError();
+            }}
+            className="w-full pl-20 pr-20 py-5 bg-slate-900/60 border-2 border-slate-800 rounded-2xl text-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500/50 focus:ring-4 focus:ring-sky-500/20 transition-all"
             autoFocus
           />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <Search className="w-6 h-6 text-slate-500" />
-          </div>
+          <button
+            onClick={() => {
+              clearScanError();
+              setScannerOpen(true);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition-colors"
+            title="摄像头扫码"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
         </div>
 
         {/* 搜索动画效果 */}
@@ -182,17 +307,35 @@ export default function Pickup() {
       )}
 
       {/* 空状态提示 */}
-      {!searchQuery && (
+      {!searchQuery && scanError.type === 'none' && (
         <div className="text-center py-20 rounded-2xl border border-dashed border-slate-800">
           <div className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-sky-500/20 to-cyan-500/10 flex items-center justify-center">
             <QrCode className="w-10 h-10 text-sky-400" />
           </div>
           <h3 className="text-lg font-medium text-white mb-2">开始取货确认</h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            在上方输入框中输入居民的姓名、手机号后四位或订单编号来查询订单
+          <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">
+            点击右上角「扫码取货」按钮，或在下方输入框中输入居民的姓名、手机号后四位或订单编号来查询订单
           </p>
+          <button
+            onClick={() => {
+              clearScanError();
+              setScannerOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 transition-colors font-medium"
+          >
+            <Camera className="w-5 h-5" />
+            打开摄像头扫码
+          </button>
         </div>
       )}
+
+      {/* 扫码弹窗 */}
+      <QrScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+        onScanFailure={handleScanFailure}
+      />
 
       {/* 确认取货弹窗 */}
       <Modal
@@ -357,6 +500,9 @@ export default function Pickup() {
           </div>
           <h3 className="text-xl font-semibold text-white mb-1">取货确认成功</h3>
           <p className="text-sm text-slate-400">订单已标记为已取货</p>
+          {hasException && (
+            <p className="text-xs text-amber-400 mt-2">含异常记录已同步保存</p>
+          )}
           <p className="text-xs text-slate-500 mt-2">{formatDateTime(new Date().toISOString())}</p>
         </div>
       </Modal>
