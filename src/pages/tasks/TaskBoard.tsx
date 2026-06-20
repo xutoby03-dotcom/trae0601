@@ -37,6 +37,10 @@ import {
   SprayCan,
   Sparkles,
   Tag as TagIcon,
+  Package,
+  Layers,
+  Timer,
+  TrendingDown,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -79,6 +83,10 @@ interface TaskWithDetails extends SupplyTask {
   counterName: string;
   brandColor: string;
   drawer: string;
+  batchNo: string;
+  currentQty: number;
+  threshold: number;
+  shortageHours: number;
   assigneeName?: string;
   assigneeAvatar?: string;
 }
@@ -112,11 +120,19 @@ export default function TaskBoard() {
         assigneeAvatar = guide?.avatar;
         assigneeName = guide?.name;
       }
+      const endTime = task.status === 'completed' && task.completedAt
+        ? dayjs(task.completedAt)
+        : dayjs();
+      const shortageHours = Math.round(endTime.diff(dayjs(task.createdAt), 'minute') / 60 * 10) / 10;
       return {
         ...task,
         counterName: counter?.name || '未知品牌区',
         brandColor: counter?.brandColor || '#722F37',
         drawer: invItem?.drawer || '未知',
+        batchNo: invItem?.batchNo || '—',
+        currentQty: invItem?.quantity ?? task.targetQty - task.shortageQty,
+        threshold: invItem?.threshold ?? 0,
+        shortageHours,
         assigneeName,
         assigneeAvatar,
       };
@@ -249,6 +265,14 @@ export default function TaskBoard() {
   const TaskCard = ({ task, index }: { task: TaskWithDetails; index: number }) => {
     const matConfig = MATERIAL_CONFIG[task.materialType];
     const urgencyConfig = TASK_URGENCY_CONFIG[task.urgency];
+    const isBelowThreshold = task.currentQty < task.threshold;
+    const stockPercent = task.threshold > 0 ? Math.min(100, Math.round((task.currentQty / task.threshold) * 100)) : 0;
+
+    const formatShortageHours = (h: number) => {
+      if (h < 1) return `${Math.round(h * 60)}分钟`;
+      if (h < 24) return `${h.toFixed(1)}小时`;
+      return `${(h / 24).toFixed(1)}天`;
+    };
 
     return (
       <div
@@ -264,53 +288,116 @@ export default function TaskBoard() {
         onClick={() => navigate(`/tasks/${task.id}`)}
       >
         <div
-          className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl"
+          className={cn(
+            'absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl',
+            isBelowThreshold && task.status !== 'completed' && 'animate-breathing'
+          )}
           style={{ backgroundColor: urgencyConfig.color }}
         />
 
         <div className="pl-4 pr-4 py-4">
           <div className="flex items-start justify-between mb-3">
-            <div
-              className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-white text-xs font-medium"
-              style={{ backgroundColor: task.brandColor }}
-            >
-              <span className="truncate max-w-[100px]">{task.counterName}</span>
+            <div className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white text-xs font-medium"
+                style={{ backgroundColor: task.brandColor }}
+              >
+                <span className="truncate max-w-[100px]">{task.counterName}</span>
+              </div>
+              {isBelowThreshold && task.status !== 'completed' && (
+                <span className="tag-status-danger">
+                  <TrendingDown size={10} />
+                  低于阈值
+                </span>
+              )}
             </div>
             <Tooltip title="拖拽移动">
               <GripVertical size={16} className="text-cream-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
             </Tooltip>
           </div>
 
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-3 mb-3">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: matConfig.color + '20' }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: matConfig.color + '18' }}
             >
-              <MaterialIcon type={task.materialType} size={16} className="" style={{ color: matConfig.color }} />
+              <MaterialIcon type={task.materialType} size={20} className="" style={{ color: matConfig.color }} />
             </div>
-            <div>
-              <p className="font-medium text-wine-800 text-sm">{matConfig.name}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="inline-flex items-center gap-1 text-xs text-status-danger font-semibold">
-                  <AlertTriangle size={12} />
-                  缺 {task.shortageQty}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-semibold text-wine-900 text-sm">{matConfig.name}</p>
+                <Tag className="!bg-gold-50 !text-gold-700 !border-gold-200 !text-[10px] !px-1.5 !py-0">
+                  <Package size={9} className="mr-0.5" />
+                  {task.batchNo}
+                </Tag>
+              </div>
+              <div className={cn(
+                'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs',
+                isBelowThreshold && task.status !== 'completed'
+                  ? 'bg-status-danger/10 border border-status-danger/20'
+                  : 'bg-wine-50 border border-wine-100'
+              )}>
+                <span className={cn(
+                  'font-semibold inline-flex items-center gap-1',
+                  isBelowThreshold && task.status !== 'completed' ? 'text-status-danger' : 'text-wine-700'
+                )}>
+                  <AlertTriangle size={11} />
+                  当前 <span className="font-bold text-sm">{task.currentQty}</span>
                 </span>
-                <span className="text-cream-400 text-xs">→</span>
-                <span className="text-xs text-status-normal font-medium">
-                  目标 {task.targetQty}
+                <span className="text-cream-400">/</span>
+                <span className="text-cream-600 flex items-center gap-0.5">
+                  <Layers size={10} />
+                  阈值 {task.threshold}
+                </span>
+                <span className="text-cream-400">→</span>
+                <span className="text-status-normal font-semibold flex items-center gap-0.5">
+                  <CheckCircle size={10} />
+                  补到 {task.targetQty}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-3 text-xs text-cream-500">
-            <div className="flex items-center gap-1">
-              <FolderOpen size={12} />
-              <span>抽屉 {task.drawer}</span>
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-[11px] text-cream-500 mb-1">
+              <span>库存水位</span>
+              <span className={cn(
+                'font-medium',
+                stockPercent < 50 ? 'text-status-danger' : stockPercent < 80 ? 'text-status-warning' : 'text-status-normal'
+              )}>
+                {stockPercent}%
+              </span>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock size={12} />
-              <span>{formatRelativeTime(task.createdAt)}</span>
+            <div className="h-1.5 w-full bg-cream-200 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  stockPercent < 50 ? 'bg-status-danger' : stockPercent < 80 ? 'bg-status-warning' : 'bg-status-normal'
+                )}
+                style={{ width: `${stockPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-3 text-[11px]">
+            <div className="flex items-center gap-1 text-cream-500 bg-cream-100/60 rounded-md px-2 py-1.5">
+              <FolderOpen size={12} className="text-gold-600 shrink-0" />
+              <span className="truncate">抽屉 {task.drawer}</span>
+            </div>
+            <div className="flex items-center gap-1 text-cream-500 bg-cream-100/60 rounded-md px-2 py-1.5">
+              <Package size={12} className="text-wine-500 shrink-0" />
+              <span className="truncate">批次 {task.batchNo}</span>
+            </div>
+            <div className={cn(
+              'flex items-center gap-1 rounded-md px-2 py-1.5',
+              task.status !== 'completed' && task.shortageHours > 4
+                ? 'bg-status-danger/10 text-status-danger'
+                : task.status !== 'completed' && task.shortageHours > 1
+                ? 'bg-status-warning/10 text-status-warning'
+                : 'bg-cream-100/60 text-cream-500'
+            )}>
+              <Timer size={12} className="shrink-0" />
+              <span className="truncate">缺{formatShortageHours(task.shortageHours)}</span>
             </div>
           </div>
 
@@ -318,15 +405,19 @@ export default function TaskBoard() {
             <div className="flex items-center gap-2">
               {task.assigneeName ? (
                 <>
-                  <Avatar size={24} src={task.assigneeAvatar} className="!w-6 !h-6" />
+                  <Avatar size={22} src={task.assigneeAvatar} className="!w-[22px] !h-[22px]" />
                   <span className="text-xs text-wine-700 font-medium">{task.assigneeName}</span>
                 </>
               ) : (
                 <span className="text-xs text-cream-400 flex items-center gap-1">
-                  <Users size={12} />
+                  <Users size={11} />
                   待分配
                 </span>
               )}
+              <span className="text-[10px] text-cream-400 flex items-center gap-1 ml-2">
+                <Clock size={10} />
+                {formatRelativeTime(task.createdAt)}
+              </span>
             </div>
 
             <Space size={4} onClick={(e) => e.stopPropagation()}>
