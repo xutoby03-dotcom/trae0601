@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useStore } from "@/store/useStore";
-import { Plus, Trash2, Camera, Send, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Camera, Send, AlertTriangle, X, ImageOff } from "lucide-react";
 
 export default function Distribution() {
   const { exams, inventory, distributions, addDistribution, deleteDistribution, collections } = useStore();
@@ -8,6 +8,7 @@ export default function Distribution() {
   const [photoPreview, setPhotoPreview] = useState("");
   const [photoError, setPhotoError] = useState(false);
   const [quantityError, setQuantityError] = useState("");
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     examId: "",
@@ -137,11 +138,23 @@ export default function Distribution() {
                       </button>
                     )}
                   </div>
-                  {dist.sealPhotoUrl && (
-                    <div className="mt-2">
-                      <img src={dist.sealPhotoUrl} alt="封包照片" className="h-16 w-24 object-cover rounded-lg border border-slate-200" />
-                    </div>
-                  )}
+                  <div className="mt-2">
+                    {dist.sealPhotoUrl ? (
+                      <img
+                        src={dist.sealPhotoUrl}
+                        alt="封包照片"
+                        className="h-16 w-24 object-cover rounded-lg border border-slate-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={(e) => { e.stopPropagation(); setPreviewPhotoUrl(dist.sealPhotoUrl); }}
+                      />
+                    ) : (
+                      <div className="h-16 w-24 bg-slate-50 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-slate-400">
+                        <div className="text-center">
+                          <ImageOff size={16} className="mx-auto mb-0.5" />
+                          <span className="text-[10px]">未留存</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -276,6 +289,29 @@ export default function Distribution() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {previewPhotoUrl && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => setPreviewPhotoUrl(null)}>
+          <button
+            onClick={() => setPreviewPhotoUrl(null)}
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <X size={22} />
+          </button>
+          <button
+            onClick={() => setPreviewPhotoUrl(null)}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 px-6 py-2.5 bg-white/15 hover:bg-white/25 text-white text-sm rounded-full backdrop-blur-sm transition-colors"
+          >
+            关闭
+          </button>
+          <img
+            src={previewPhotoUrl}
+            alt="封包照片原图"
+            className="max-w-[85vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>
