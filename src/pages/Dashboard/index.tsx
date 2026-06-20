@@ -46,11 +46,10 @@ export default function Dashboard() {
   const equipments = useAppStore((state) => state.equipments);
   const inspections = useAppStore((state) => state.inspections);
   const tasks = useAppStore((state) => state.tasks);
-  const isReady = useAppStore((state) => state.isPoolReady());
 
   const today = getTodayStr();
 
-  const { stats, abnormalEquipments, zoneRates, chartData } = useMemo(() => {
+  const { stats, abnormalEquipments, zoneRates, chartData, poolStatus } = useMemo(() => {
     const todayInspections = inspections.filter((ins) => ins.inspectionDate === today);
     const inspected = todayInspections.length;
     const pending = equipments.length - inspected;
@@ -76,6 +75,31 @@ export default function Dashboard() {
     const abnormalEquipments = equipments.filter(
       (eq) => eq.status === 'abnormal' || eq.status === 'maintaining'
     );
+
+    const hasUninspected = pending > 0;
+    const hasFailedToday = todayInspections.some((ins) => ins.status === 'fail');
+    const hasAbnormalStatus = equipments.some((eq) => eq.status === 'abnormal');
+    const hasPendingReplace = tasks.some(
+      (t) => (t.status === 'pending' || t.status === 'processing') && t.type === 'replace'
+    );
+    const isPoolReady = !hasUninspected && !hasFailedToday && !hasAbnormalStatus && !hasPendingReplace;
+
+    let poolStatusText = '';
+    let poolStatusSubtext = '';
+    if (!isPoolReady) {
+      const reasons = [];
+      if (hasUninspected) reasons.push(`${pending} 件待点检`);
+      if (hasFailedToday) reasons.push(`${todayInspections.filter(i => i.status === 'fail').length} 件不合格`);
+      if (hasAbnormalStatus && !hasFailedToday) reasons.push(`${abnormal} 件器材异常`);
+      if (hasPendingReplace) reasons.push('有补采任务待处理');
+      poolStatusText = '泳池状态异常！禁止开放';
+      poolStatusSubtext = `原因：${reasons.join('、')}，请立即处理后方可开放`;
+    } else {
+      poolStatusText = '泳池状态正常';
+      poolStatusSubtext = '今日所有器材点检完成且全部合格，可正常开放';
+    }
+
+    const poolStatus = { isReady: isPoolReady, text: poolStatusText, subtext: poolStatusSubtext };
 
     const zones = [...new Set(equipments.map((eq) => eq.zone))];
     const zoneRates = zones.map((zone) => {
@@ -112,7 +136,7 @@ export default function Dashboard() {
       fullName: z.zone,
     }));
 
-    return { stats, abnormalEquipments, zoneRates, chartData };
+    return { stats, abnormalEquipments, zoneRates, chartData, poolStatus };
   }, [equipments, inspections, tasks, today]);
 
   const getBarColor = (value: number) => {
@@ -123,17 +147,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {!isReady && (
+      {!poolStatus.isReady && (
         <div className="status-alert-bar bg-gradient-to-r from-red-500 to-red-600 text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">泳池状态异常！禁止开放</h3>
-              <p className="text-red-100">
-                当前有 {stats.abnormal} 件器材异常，{stats.processingTasks} 个待处理任务，请立即处理所有问题后方可开放
-              </p>
+              <h3 className="font-bold text-lg">{poolStatus.text}</h3>
+              <p className="text-red-100">{poolStatus.subtext}</p>
             </div>
           </div>
           <button
@@ -170,15 +192,15 @@ export default function Dashboard() {
         </div>
       )}
 
-      {isReady && !isSummerPeak() && (
+      {poolStatus.isReady && !isSummerPeak() && (
         <div className="status-alert-bar bg-gradient-to-r from-safety-green to-green-600 text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">泳池状态正常</h3>
-              <p className="text-green-100">所有救援器材均处于良好状态，可正常开放</p>
+              <h3 className="font-bold text-lg">{poolStatus.text}</h3>
+              <p className="text-green-100">{poolStatus.subtext}</p>
             </div>
           </div>
         </div>

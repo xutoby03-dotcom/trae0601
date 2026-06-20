@@ -88,14 +88,43 @@ export const useAppStore = create<AppState>()(
 
             const equipment = state.equipments.find((eq) => eq.id === inspection.equipmentId);
 
-            const severeAbnormal = inspection.items.some(
-              (item) =>
-                item.isAbnormal &&
-                (item.itemValue === 'severe' ||
-                  item.itemValue === 'missing' ||
-                  item.itemValue === 'unreadable' ||
-                  item.itemValue === 'empty')
-            );
+            const isReplaceNeeded = inspection.items.some((item) => {
+              if (!item.isAbnormal) return false;
+              const { itemKey, rawValue } = item;
+              
+              switch (itemKey) {
+                case 'agingCondition':
+                  return rawValue === 'severe';
+                case 'ropeCondition':
+                  return rawValue === 'missing';
+                case 'ropeLength':
+                  return parseFloat(rawValue) < 6;
+                case 'crackCondition':
+                  return rawValue === 'severe';
+                case 'hookCondition':
+                  return rawValue === 'missing';
+                case 'lengthOk':
+                  return rawValue === 'false';
+                case 'clarity':
+                  return rawValue === 'unreadable';
+                case 'fixation':
+                  return rawValue === 'missing';
+                case 'completeness':
+                  return rawValue === 'empty';
+                case 'expiryOk':
+                  return rawValue === 'false';
+                case 'sealCondition':
+                  return rawValue === 'damaged';
+                case 'viewBlocked':
+                  return rawValue === 'true';
+                case 'working':
+                  return rawValue === 'false';
+                case 'angleOk':
+                  return rawValue === 'false';
+                default:
+                  return false;
+              }
+            });
 
             newTasks.push({
               id: generateId(),
@@ -104,7 +133,7 @@ export const useAppStore = create<AppState>()(
               equipmentCode: equipment?.code,
               equipmentLocation: equipment?.location,
               inspectionId: newInspection.id,
-              type: severeAbnormal ? 'replace' : 'repair',
+              type: isReplaceNeeded ? 'replace' : 'repair',
               status: 'pending',
               assignee: equipment?.responsiblePerson || '陈运维',
               description: inspection.remark || abnormalItems.join('、') + '存在异常，需处理',
@@ -163,12 +192,18 @@ export const useAppStore = create<AppState>()(
       getCompletedTasks: () => get().tasks.filter((t) => t.status === 'completed'),
 
       isPoolReady: () => {
-        const { equipments, tasks } = get();
+        const { equipments, tasks, inspections } = get();
+        const today = new Date().toISOString().split('T')[0];
+        const todayInspections = inspections.filter((ins) => ins.inspectionDate === today);
+        const inspectedIds = new Set(todayInspections.map((i) => i.equipmentId));
+        
+        const allInspected = equipments.every((eq) => inspectedIds.has(eq.id));
+        const hasFailedToday = todayInspections.some((ins) => ins.status === 'fail');
         const hasAbnormal = equipments.some((eq) => eq.status === 'abnormal');
         const hasPendingCritical = tasks.some(
           (t) => (t.status === 'pending' || t.status === 'processing') && t.type === 'replace'
         );
-        return !hasAbnormal && !hasPendingCritical;
+        return allInspected && !hasFailedToday && !hasAbnormal && !hasPendingCritical;
       },
 
       getAbnormalEquipments: () =>

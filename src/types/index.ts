@@ -28,6 +28,7 @@ export interface InspectionItem {
   itemName: string;
   itemKey: string;
   itemValue: string;
+  rawValue: string;
   isAbnormal: boolean;
   description?: string;
 }

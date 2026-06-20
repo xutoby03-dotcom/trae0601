@@ -418,6 +418,7 @@ export function InspectionExecute() {
       const value = formValues[field.key];
       const abnormal = isFieldAbnormal(field, value);
       let displayValue = String(value);
+      let rawValue = String(value);
       if (field.type === 'select') {
         const opt = field.options?.find((o) => o.value === value);
         displayValue = opt?.label?.split(' - ')[0] || String(value);
@@ -427,12 +428,14 @@ export function InspectionExecute() {
       }
       if (field.type === 'number' && field.unit) {
         displayValue = `${value}${field.unit}`;
+        rawValue = String(value);
       }
       return {
         id: `item-${Date.now()}-${idx}`,
         itemName: field.label,
         itemKey: field.key,
         itemValue: displayValue,
+        rawValue,
         isAbnormal: abnormal,
         description: descriptions[field.key],
       };

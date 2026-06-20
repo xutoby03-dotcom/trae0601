@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,7 +12,7 @@ import {
   User,
 } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
-import { isSummerPeak, getDaysUntilSummerEnd } from '@/utils/dateUtils';
+import { isSummerPeak, getDaysUntilSummerEnd, getTodayStr } from '@/utils/dateUtils';
 
 const navItems = [
   { path: '/dashboard', label: '数据看板', icon: LayoutDashboard },
@@ -24,13 +24,29 @@ const navItems = [
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
-  const isReady = useAppStore((state) => state.isPoolReady());
   const tasks = useAppStore((state) => state.tasks);
   const equipments = useAppStore((state) => state.equipments);
-  const pendingTaskCount = tasks.filter((t) => t.status === 'pending').length;
-  const abnormalCount = equipments.filter(
-    (e) => e.status === 'abnormal' || e.status === 'maintaining'
-  ).length;
+  const inspections = useAppStore((state) => state.inspections);
+  const today = getTodayStr();
+
+  const { isReady, pendingTaskCount, abnormalCount } = useMemo(() => {
+    const pendingTaskCount = tasks.filter((t) => t.status === 'pending').length;
+    const abnormalCount = equipments.filter(
+      (e) => e.status === 'abnormal' || e.status === 'maintaining'
+    ).length;
+
+    const todayInspections = inspections.filter((ins) => ins.inspectionDate === today);
+    const inspectedIds = new Set(todayInspections.map((i) => i.equipmentId));
+    const allInspected = equipments.every((eq) => inspectedIds.has(eq.id));
+    const hasFailedToday = todayInspections.some((ins) => ins.status === 'fail');
+    const hasAbnormal = equipments.some((eq) => eq.status === 'abnormal');
+    const hasPendingCritical = tasks.some(
+      (t) => (t.status === 'pending' || t.status === 'processing') && t.type === 'replace'
+    );
+    const isReady = allInspected && !hasFailedToday && !hasAbnormal && !hasPendingCritical;
+
+    return { isReady, pendingTaskCount, abnormalCount };
+  }, [tasks, equipments, inspections, today]);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">

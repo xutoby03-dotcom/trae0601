@@ -184,9 +184,9 @@ export const mockInspections: Inspection[] = [
     inspector: '张安全',
     status: 'pass',
     items: [
-      { id: 'item-1', itemName: '老化情况', itemKey: 'agingCondition', itemValue: 'good', isAbnormal: false },
-      { id: 'item-2', itemName: '绳索长度', itemKey: 'ropeLength', itemValue: '8', isAbnormal: false },
-      { id: 'item-3', itemName: '绳索状态', itemKey: 'ropeCondition', itemValue: 'good', isAbnormal: false },
+      { id: 'item-1', itemName: '老化情况', itemKey: 'agingCondition', itemValue: '良好', rawValue: 'good', isAbnormal: false },
+      { id: 'item-2', itemName: '绳索长度', itemKey: 'ropeLength', itemValue: '8米', rawValue: '8', isAbnormal: false },
+      { id: 'item-3', itemName: '绳索状态', itemKey: 'ropeCondition', itemValue: '良好', rawValue: 'good', isAbnormal: false },
     ],
   },
   {
@@ -199,9 +199,9 @@ export const mockInspections: Inspection[] = [
     status: 'fail',
     remark: '绳索磨损严重，需要更换',
     items: [
-      { id: 'item-4', itemName: '老化情况', itemKey: 'agingCondition', itemValue: 'minor', isAbnormal: false },
-      { id: 'item-5', itemName: '绳索长度', itemKey: 'ropeLength', itemValue: '8', isAbnormal: false },
-      { id: 'item-6', itemName: '绳索状态', itemKey: 'ropeCondition', itemValue: 'damaged', isAbnormal: true, description: '绳索出现明显磨损和断裂纤维' },
+      { id: 'item-4', itemName: '老化情况', itemKey: 'agingCondition', itemValue: '轻微', rawValue: 'minor', isAbnormal: false },
+      { id: 'item-5', itemName: '绳索长度', itemKey: 'ropeLength', itemValue: '8米', rawValue: '8', isAbnormal: false },
+      { id: 'item-6', itemName: '绳索状态', itemKey: 'ropeCondition', itemValue: '磨损', rawValue: 'damaged', isAbnormal: true, description: '绳索出现明显磨损和断裂纤维' },
     ],
   },
   {
@@ -214,8 +214,8 @@ export const mockInspections: Inspection[] = [
     status: 'fail',
     remark: '字迹模糊需更换',
     items: [
-      { id: 'item-7', itemName: '清晰度', itemKey: 'clarity', itemValue: 'faded', isAbnormal: true, description: '长期日晒导致图案和文字褪色' },
-      { id: 'item-8', itemName: '固定状态', itemKey: 'fixation', itemValue: 'firm', isAbnormal: false },
+      { id: 'item-7', itemName: '清晰度', itemKey: 'clarity', itemValue: '轻微褪色', rawValue: 'faded', isAbnormal: true, description: '长期日晒导致图案和文字褪色' },
+      { id: 'item-8', itemName: '固定状态', itemKey: 'fixation', itemValue: '牢固', rawValue: 'firm', isAbnormal: false },
     ],
   },
   {
@@ -228,9 +228,9 @@ export const mockInspections: Inspection[] = [
     status: 'fail',
     remark: '部分药品过期',
     items: [
-      { id: 'item-9', itemName: '物品完整性', itemKey: 'completeness', itemValue: 'partial', isAbnormal: true, description: '缺少纱布和创可贴' },
-      { id: 'item-10', itemName: '是否过期', itemKey: 'expiryOk', itemValue: 'false', isAbnormal: true, description: '碘酒和绷带已过期2个月' },
-      { id: 'item-11', itemName: '封条状态', itemKey: 'sealCondition', itemValue: 'good', isAbnormal: false },
+      { id: 'item-9', itemName: '物品完整性', itemKey: 'completeness', itemValue: '部分缺失', rawValue: 'partial', isAbnormal: true, description: '缺少纱布和创可贴' },
+      { id: 'item-10', itemName: '是否过期', itemKey: 'expiryOk', itemValue: '否', rawValue: 'false', isAbnormal: true, description: '碘酒和绷带已过期2个月' },
+      { id: 'item-11', itemName: '封条状态', itemKey: 'sealCondition', itemValue: '完好', rawValue: 'good', isAbnormal: false },
     ],
   },
 ];
