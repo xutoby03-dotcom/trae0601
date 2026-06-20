@@ -215,6 +215,7 @@ export function PackCheck() {
                     <CardCapacity
                       key={card.id}
                       card={card}
+                      onFormat={() => formatMemoryCard(eq.id, card.id)}
                       onUpdate={(updates) => updateMemoryCard(eq.id, card.id, updates)}
                     />
                   ))}
