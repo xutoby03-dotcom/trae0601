@@ -13,6 +13,11 @@ export function DetailPage() {
   const perfume = usePerfumeStore((state) => state.getPerfumeById(id || ''));
   const deletePerfume = usePerfumeStore((state) => state.deletePerfume);
 
+  const sceneReasons = useMemo(
+    () => (perfume ? calculateSceneReasonsFromRecord(perfume) : []),
+    [perfume]
+  );
+
   if (!perfume) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -36,11 +41,6 @@ export function DetailPage() {
       navigate('/');
     }
   };
-
-  const sceneReasons = useMemo(
-    () => (perfume ? calculateSceneReasonsFromRecord(perfume) : []),
-    [perfume]
-  );
 
   return (
     <div className="min-h-screen bg-stone-50">
