@@ -29,9 +29,10 @@ export function AppointmentForm({}: NewAppointmentProps) {
   const location = useLocation();
   const { elders, loadElders, getElder } = useElderStore();
   const { barbers, loadBarbers } = useBarberStore();
-  const { addAppointment } = useAppointmentStore();
+  const { addAppointment, getAppointment, loadAppointments } = useAppointmentStore();
 
   const preselectedElderId = (location.state as any)?.elderId;
+  const fromAppointmentId = (location.state as any)?.fromAppointmentId;
 
   const [step, setStep] = useState(1);
   const [selectedElderId, setSelectedElderId] = useState(
@@ -49,7 +50,22 @@ export function AppointmentForm({}: NewAppointmentProps) {
   useEffect(() => {
     loadElders();
     loadBarbers();
-  }, [loadElders, loadBarbers]);
+    loadAppointments();
+  }, [loadElders, loadBarbers, loadAppointments]);
+
+  useEffect(() => {
+    if (fromAppointmentId) {
+      const apt = getAppointment(fromAppointmentId);
+      if (apt) {
+        if (!selectedElderId) setSelectedElderId(apt.elderId);
+        if (!selectedBarberId) setSelectedBarberId(apt.barberId);
+        setServiceType(apt.serviceType);
+        setNeedsShampoo(apt.needsShampoo);
+        setNeedsWheelchair(apt.needsWheelchair);
+        setNeedsCompanion(apt.needsCompanion);
+      }
+    }
+  }, [fromAppointmentId, getAppointment, selectedElderId, selectedBarberId]);
 
   const selectedElder = selectedElderId ? getElder(selectedElderId) : undefined;
   const selectedBarber = barbers.find((b) => b.id === selectedBarberId);

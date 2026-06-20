@@ -110,7 +110,7 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    return get()
+    const completed = get()
       .appointments.filter((a) => {
         if (a.status !== "completed") return false;
         const completedDate = new Date(a.scheduledTime);
@@ -125,6 +125,13 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
           new Date(b.scheduledTime).getTime() -
           new Date(a.scheduledTime).getTime()
       );
+
+    const seen = new Set<string>();
+    return completed.filter((apt) => {
+      if (seen.has(apt.elderId)) return false;
+      seen.add(apt.elderId);
+      return true;
+    });
   },
 
   addAppointment: (aptData) => {

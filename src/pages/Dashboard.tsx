@@ -22,11 +22,15 @@ import {
   FileText,
   Check,
   ExternalLink,
+  RefreshCw,
+  DollarSign,
+  Camera,
 } from "lucide-react";
 import { useAppointmentStore } from "../store/useAppointmentStore";
 import { useElderStore } from "../store/useElderStore";
 import { useBarberStore } from "../store/useBarberStore";
 import { StatusBadge } from "../components/StatusBadge";
+import { StarRating } from "../components/StarRating";
 import { formatTime, formatDate, formatDateTime } from "../utils/date";
 import {
   serviceTypeLabels,
@@ -181,7 +185,7 @@ interface QuickDrawerProps {
   getElder: (id: string) => any;
   getBarber: (id: string) => any;
   onConfirmAppointment: (id: string) => void;
-  navigate: (path: string) => void;
+  navigate: (path: string, state?: any) => void;
 }
 
 function QuickDrawer({
@@ -201,6 +205,7 @@ function QuickDrawer({
   const showDepartureBtn = appointment.status === "confirmed";
   const showStartBtn = appointment.status === "departed";
   const showCompleteBtn = appointment.status === "in_progress";
+  const showRecallBtn = appointment.status === "completed";
 
   const hasSpecialNeeds =
     appointment.needsShampoo ||
@@ -375,6 +380,96 @@ function QuickDrawer({
               )}
             </div>
 
+            {appointment.status === "completed" &&
+              (appointment.fee > 0 ||
+                appointment.satisfaction > 0 ||
+                appointment.hairstylePhoto ||
+                appointment.nextSuggestedTime) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    上次服务记录
+                  </h3>
+                  <div className="space-y-3">
+                    {appointment.hairstylePhoto && (
+                      <div className="rounded-xl overflow-hidden">
+                        <img
+                          src={appointment.hairstylePhoto}
+                          alt="上次发型"
+                          className="w-full h-40 object-cover"
+                        />
+                        <div className="bg-gray-50 px-3 py-2 flex items-center gap-2">
+                          <Camera size={14} className="text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            上次发型照片
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {appointment.fee > 0 && (
+                        <div className="p-3 bg-primary-50 rounded-xl">
+                          <div className="flex items-center gap-2 mb-1">
+                            <DollarSign
+                              size={14}
+                              className="text-primary-500"
+                            />
+                            <span className="text-xs text-primary-600">
+                              服务费用
+                            </span>
+                          </div>
+                          <p className="text-xl font-bold text-primary-600">
+                            ¥{appointment.fee}
+                          </p>
+                        </div>
+                      )}
+                      {appointment.satisfaction > 0 && (
+                        <div className="p-3 bg-warning-50 rounded-xl">
+                          <div className="flex items-center gap-2 mb-1">
+                            <StarRating
+                              value={appointment.satisfaction}
+                              readonly
+                              size="sm"
+                            />
+                          </div>
+                          <p className="text-sm text-warning-700 font-medium">
+                            {appointment.satisfaction === 5
+                              ? "非常满意"
+                              : appointment.satisfaction >= 4
+                              ? "比较满意"
+                              : appointment.satisfaction >= 3
+                              ? "一般"
+                              : "不太满意"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {appointment.nextSuggestedTime && (
+                      <div className="flex items-center gap-3 p-3 bg-danger-50 rounded-xl border border-danger-200">
+                        <div className="w-8 h-8 bg-danger-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Calendar
+                            size={16}
+                            className="text-danger-500"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-danger-600">
+                            建议下次时间
+                          </p>
+                          <p className="font-medium text-gray-800">
+                            {formatDate(appointment.nextSuggestedTime)}
+                          </p>
+                        </div>
+                        <span className="text-xs px-2 py-1 bg-danger-100 text-danger-600 rounded-full font-medium">
+                          需复约
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
             <div>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
                 老人档案
@@ -491,6 +586,23 @@ function QuickDrawer({
               完成服务（记录结果）
             </button>
           )}
+          {showRecallBtn && (
+            <button
+              onClick={() => {
+                onClose();
+                navigate("/appointments/new", {
+                  state: {
+                    elderId: appointment.elderId,
+                    fromAppointmentId: appointment.id,
+                  },
+                });
+              }}
+              className="w-full py-3.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={20} />
+              立即复约
+            </button>
+          )}
 
           <button
             onClick={() => {
@@ -600,6 +712,15 @@ export function Dashboard() {
     }
   };
 
+  const handleRecall = (apt: Appointment) => {
+    navigate("/appointments/new", {
+      state: {
+        elderId: apt.elderId,
+        fromAppointmentId: apt.id,
+      },
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -707,6 +828,14 @@ export function Dashboard() {
               {recallReminders.length > 0 ? (
                 recallReminders.slice(0, 5).map((apt) => {
                   const elder = getElder(apt.elderId);
+                  const daysOverdue = apt.nextSuggestedTime
+                    ? Math.floor(
+                        (new Date().getTime() -
+                          new Date(apt.nextSuggestedTime).getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                    : 0;
+
                   return (
                     <div
                       key={apt.id}
@@ -730,15 +859,22 @@ export function Dashboard() {
                         <p className="font-medium text-gray-800 text-sm truncate">
                           {elder?.name || "未知"}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          上次：{formatDate(apt.scheduledTime)}
+                        <p className="text-xs text-danger-500">
+                          {apt.nextSuggestedTime
+                            ? `建议复约已过 ${daysOverdue} 天`
+                            : "需复约"}
                         </p>
                       </div>
-                      <div className="flex-shrink-0">
-                        <span className="text-xs px-2 py-1 bg-danger-50 text-danger-600 rounded-full">
-                          需复约
-                        </span>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRecall(apt);
+                        }}
+                        className="flex-shrink-0 px-3 py-1.5 bg-primary-500 text-white text-xs font-medium rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw size={12} />
+                        复约
+                      </button>
                     </div>
                   );
                 })
