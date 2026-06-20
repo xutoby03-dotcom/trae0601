@@ -9,6 +9,7 @@ interface WallMapProps {
   onHoldClick?: (hold: Hold) => void;
   selectedHoldIds?: string[];
   highlightRouteId?: string | null;
+  highlightHoldId?: string | null;
   showGrid?: boolean;
 }
 
@@ -17,6 +18,7 @@ export const WallMap: React.FC<WallMapProps> = ({
   onHoldClick,
   selectedHoldIds = [],
   highlightRouteId = null,
+  highlightHoldId = null,
   showGrid = true,
 }) => {
   const { holds } = useHoldStore();
@@ -71,12 +73,16 @@ export const WallMap: React.FC<WallMapProps> = ({
   };
 
   const isHighlighted = (hold: Hold) => {
-    if (highlightRouteId && hold.routeId === highlightRouteId) return true;
+    if (highlightHoldId && hold.id === highlightHoldId) return true;
+    if (!highlightHoldId && highlightRouteId && hold.routeId === highlightRouteId) return true;
     if (selectedHoldIds.includes(hold.id)) return true;
     return false;
   };
 
   const isDimmed = (hold: Hold) => {
+    if (highlightHoldId) {
+      return hold.id !== highlightHoldId;
+    }
     if (highlightRouteId && hold.routeId !== highlightRouteId) return true;
     return false;
   };
@@ -87,7 +93,7 @@ export const WallMap: React.FC<WallMapProps> = ({
       if (!isHighlighted(a) && isHighlighted(b)) return -1;
       return 0;
     });
-  }, [holds, highlightRouteId, selectedHoldIds]);
+  }, [holds, highlightRouteId, highlightHoldId, selectedHoldIds]);
 
   return (
     <div className="relative w-full h-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl">

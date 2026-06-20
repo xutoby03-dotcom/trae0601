@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WallMap } from '@/components/WallMap';
 import { RouteCard } from '@/components/RouteCard';
 import { useRouteStore, useHoldStore, useFeedbackStore } from '@/store';
 import type { Hold, Grade, RouteStatus } from '@/types';
 import { GRADE_COLORS, STATUS_LABELS, ISSUE_TYPE_LABELS, SEVERITY_LABELS, FEEDBACK_TYPE_LABELS } from '@/data/mockData';
 import { formatDateTime, cn } from '@/utils/helpers';
-import { Search, Filter, AlertTriangle, MessageSquare, ChevronRight, PanelRight, Wrench, Clock } from 'lucide-react';
+import { Search, Filter, AlertTriangle, MessageSquare, ChevronRight, PanelRight, Clock, ArrowRight, MapPin } from 'lucide-react';
 
 export const WallOverview: React.FC = () => {
+  const navigate = useNavigate();
   const {
     routes,
     selectedRouteId,
@@ -21,11 +23,12 @@ export const WallOverview: React.FC = () => {
     getFilteredRoutes,
     getRouteById,
   } = useRouteStore();
-  const { getIssuesByRoute, getUnresolvedIssues } = useHoldStore();
+  const { getIssuesByRoute, getUnresolvedIssues, getHoldById } = useHoldStore();
   const { getFeedbackStats, getPendingFeedbacks, getFeedbacksByRoute } = useFeedbackStore();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [highlightedHoldId, setHighlightedHoldId] = useState<string | null>(null);
 
   const filteredRoutes = getFilteredRoutes();
   const selectedRoute = selectedRouteId ? getRouteById(selectedRouteId) : null;
@@ -109,7 +112,8 @@ export const WallOverview: React.FC = () => {
             <WallMap
               mode="view"
               onHoldClick={handleHoldClick}
-              highlightRouteId={selectedRouteId}
+              highlightRouteId={highlightedHoldId ? null : selectedRouteId}
+              highlightHoldId={highlightedHoldId}
               showGrid={true}
             />
           </div>
@@ -222,37 +226,56 @@ export const WallOverview: React.FC = () => {
                         ))}
                       </div>
 
-                      {recentIssues.map((issue) => (
-                        <div
-                          key={issue.id}
-                          className="text-xs text-slate-400 pl-3 border-l-2 border-red-500/30"
-                        >
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span
-                              className={cn(
-                                'px-1 py-0.5 rounded text-xs font-medium',
-                                issue.severity === 'high'
-                                  ? 'bg-red-500/20 text-red-400'
-                                  : issue.severity === 'medium'
-                                  ? 'bg-amber-500/20 text-amber-400'
-                                  : 'bg-green-500/20 text-green-400'
-                              )}
-                            >
-                              {SEVERITY_LABELS[issue.severity]}
-                            </span>
-                            <span className="text-slate-500">
-                              {ISSUE_TYPE_LABELS[issue.type]}
-                            </span>
+                      {recentIssues.map((issue) => {
+                        const issueHold = getHoldById(issue.holdId);
+                        return (
+                          <div
+                            key={issue.id}
+                            onClick={() => setHighlightedHoldId(
+                              highlightedHoldId === issue.holdId ? null : issue.holdId
+                            )}
+                            className={cn(
+                              'text-xs text-slate-400 pl-3 border-l-2 cursor-pointer transition-all',
+                              highlightedHoldId === issue.holdId
+                                ? 'border-orange-500 bg-orange-500/5 rounded-r-md'
+                                : 'border-red-500/30 hover:bg-slate-700/30 rounded-r-md'
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span
+                                className={cn(
+                                  'px-1 py-0.5 rounded text-xs font-medium',
+                                  issue.severity === 'high'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : issue.severity === 'medium'
+                                    ? 'bg-amber-500/20 text-amber-400'
+                                    : 'bg-green-500/20 text-green-400'
+                                )}
+                              >
+                                {SEVERITY_LABELS[issue.severity]}
+                              </span>
+                              <span className="text-slate-500">
+                                {ISSUE_TYPE_LABELS[issue.type]}
+                              </span>
+                            </div>
+                            {issueHold && (
+                              <div className="flex items-center gap-2 text-slate-500 mb-0.5">
+                                <MapPin size={10} />
+                                <span>#{issue.holdId.replace('hold-', '')}</span>
+                                <span>({issueHold.x}, {issueHold.y})</span>
+                                <span className="text-slate-600">· {issueHold.type}</span>
+                              </div>
+                            )}
+                            <p className="text-slate-500 leading-relaxed">
+                              {issue.note || '无备注'}
+                            </p>
+                            <div className="flex items-center gap-1 mt-0.5 text-slate-600">
+                              <Clock size={10} />
+                              {formatDateTime(issue.createdAt)}
+                            </div>
                           </div>
-                          <p className="text-slate-500 leading-relaxed">
-                            {issue.note || '无备注'}
-                          </p>
-                          <div className="flex items-center gap-1 mt-0.5 text-slate-600">
-                            <Clock size={10} />
-                            {formatDateTime(issue.createdAt)}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -263,9 +286,18 @@ export const WallOverview: React.FC = () => {
                           <MessageSquare size={14} />
                           待复核反馈
                         </div>
-                        <span className="text-xs text-amber-400/70">
-                          {routePendingFeedbacks.length} 条待处理
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-amber-400/70">
+                            {routePendingFeedbacks.length} 条待处理
+                          </span>
+                          <button
+                            onClick={() => navigate(`/review?routeId=${selectedRouteId}`)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-md hover:bg-amber-500/20 transition-colors"
+                          >
+                            去复核
+                            <ArrowRight size={12} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap gap-1.5">

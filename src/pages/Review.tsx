@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ReviewPanel } from '@/components/ReviewPanel';
 import { RouteCard } from '@/components/RouteCard';
 import { useFeedbackStore, useRouteStore } from '@/store';
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 
 export const ReviewPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const {
     feedbacks,
     getPendingFeedbacks,
@@ -27,6 +29,14 @@ export const ReviewPage: React.FC = () => {
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'reviewed'>('pending');
   const [selectedRouteForFilter, setSelectedRouteForFilter] = useState<string>('all');
+
+  useEffect(() => {
+    const routeId = searchParams.get('routeId');
+    if (routeId) {
+      setSelectedRouteForFilter(routeId);
+      setSelectedRoute(routeId);
+    }
+  }, [searchParams]);
 
   const pendingFeedbacks = getPendingFeedbacks();
   const reviewedFeedbacks = getReviewedFeedbacks();
