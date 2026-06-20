@@ -15,9 +15,8 @@ export const ComparisonBar = memo(function ComparisonBar() {
   const audioBRef = useRef<HTMLAudioElement | null>(null);
   const fadeTimeoutRef = useRef<number | null>(null);
   const vuIntervalRef = useRef<number | null>(null);
-  const lastLoadedA = useRef<string | null>(null);
-  const lastLoadedB = useRef<string | null>(null);
   const syncRef = useRef<number>(0);
+  const activeSlotRef = useRef<'a' | 'b'>('a');
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeA, setCurrentTimeA] = useState(0);
@@ -30,22 +29,23 @@ export const ComparisonBar = memo(function ComparisonBar() {
   const [isLoadingB, setIsLoadingB] = useState(false);
 
   const activeSlot = comparison.active;
-  const activeAudio = activeSlot === 'a' ? audioARef.current : audioBRef.current;
-  const activeVu = activeSlot === 'a' ? vuLevelA : vuLevelB;
-  const activeTime = activeSlot === 'a' ? currentTimeA : currentTimeB;
+
+  useEffect(() => {
+    activeSlotRef.current = activeSlot;
+  }, [activeSlot]);
 
   const updateVuLevels = useCallback(() => {
     if (audioARef.current && !audioARef.current.paused) {
       const base = 0.3 + Math.random() * 0.4;
-      const varation = Math.sin(Date.now() / 100) * 0.2;
-      setVuLevelA(Math.max(0.1, Math.min(1, base + varation)));
+      const variation = Math.sin(Date.now() / 100) * 0.2;
+      setVuLevelA(Math.max(0.1, Math.min(1, base + variation)));
     } else {
       setVuLevelA((prev) => Math.max(0, prev - 0.05));
     }
     if (audioBRef.current && !audioBRef.current.paused) {
       const base = 0.3 + Math.random() * 0.4;
-      const varation = Math.sin(Date.now() / 120) * 0.2;
-      setVuLevelB(Math.max(0.1, Math.min(1, base + varation)));
+      const variation = Math.sin(Date.now() / 120) * 0.2;
+      setVuLevelB(Math.max(0.1, Math.min(1, base + variation)));
     } else {
       setVuLevelB((prev) => Math.max(0, prev - 0.05));
     }
@@ -61,19 +61,39 @@ export const ComparisonBar = memo(function ComparisonBar() {
   }, [updateVuLevels]);
 
   useEffect(() => {
-    if (!comparison.a) return;
-    if (lastLoadedA.current === comparison.a.id) return;
+    if (!comparison.a) {
+      if (audioARef.current) {
+        audioARef.current.pause();
+        audioARef.current = null;
+      }
+      setCurrentTimeA(0);
+      setDurationA(0);
+      return;
+    }
 
-    const audio = new Audio(comparison.a.audioUrl);
+    const takeA = comparison.a;
+    const existing = audioARef.current;
+
+    if (existing && existing.dataset.takeId === takeA.id) {
+      return;
+    }
+
+    if (existing) {
+      existing.pause();
+    }
+
+    const audio = new Audio(takeA.audioUrl);
     audio.crossOrigin = 'anonymous';
-    audio.volume = activeSlot === 'a' && isPlaying ? 0.8 : 0;
+    audio.volume = 0;
+    audio.dataset.takeId = takeA.id;
     audioARef.current = audio;
-    lastLoadedA.current = comparison.a.id;
 
     const onLoaded = () => {
       setDurationA(audio.duration);
       setIsLoadingA(false);
-      if (syncRef.current > 0) {
+      if (syncRef.current > 0 && !audio.paused) {
+        audio.currentTime = syncRef.current;
+      } else if (syncRef.current > 0) {
         audio.currentTime = syncRef.current;
       }
     };
@@ -82,8 +102,10 @@ export const ComparisonBar = memo(function ComparisonBar() {
     const onCanPlay = () => setIsLoadingA(false);
     const onEnded = () => {
       setIsPlaying(false);
-      if (activeSlot === 'a') {
-        toggleComparisonActive();
+    };
+    const onSeeked = () => {
+      if (audio.currentTime > 0 && syncRef.current === 0) {
+        syncRef.current = audio.currentTime;
       }
     };
 
@@ -92,6 +114,7 @@ export const ComparisonBar = memo(function ComparisonBar() {
     audio.addEventListener('waiting', onWaiting);
     audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('seeked', onSeeked);
 
     setIsLoadingA(true);
 
@@ -101,19 +124,37 @@ export const ComparisonBar = memo(function ComparisonBar() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('ended', onEnded);
-      audio.pause();
+      audio.removeEventListener('seeked', onSeeked);
     };
-  }, [comparison.a, activeSlot, isPlaying, toggleComparisonActive]);
+  }, [comparison.a]);
 
   useEffect(() => {
-    if (!comparison.b) return;
-    if (lastLoadedB.current === comparison.b.id) return;
+    if (!comparison.b) {
+      if (audioBRef.current) {
+        audioBRef.current.pause();
+        audioBRef.current = null;
+      }
+      setCurrentTimeB(0);
+      setDurationB(0);
+      return;
+    }
 
-    const audio = new Audio(comparison.b.audioUrl);
+    const takeB = comparison.b;
+    const existing = audioBRef.current;
+
+    if (existing && existing.dataset.takeId === takeB.id) {
+      return;
+    }
+
+    if (existing) {
+      existing.pause();
+    }
+
+    const audio = new Audio(takeB.audioUrl);
     audio.crossOrigin = 'anonymous';
-    audio.volume = activeSlot === 'b' && isPlaying ? 0.8 : 0;
+    audio.volume = 0;
+    audio.dataset.takeId = takeB.id;
     audioBRef.current = audio;
-    lastLoadedB.current = comparison.b.id;
 
     const onLoaded = () => {
       setDurationB(audio.duration);
@@ -127,8 +168,10 @@ export const ComparisonBar = memo(function ComparisonBar() {
     const onCanPlay = () => setIsLoadingB(false);
     const onEnded = () => {
       setIsPlaying(false);
-      if (activeSlot === 'b') {
-        toggleComparisonActive();
+    };
+    const onSeeked = () => {
+      if (audio.currentTime > 0 && syncRef.current === 0) {
+        syncRef.current = audio.currentTime;
       }
     };
 
@@ -137,6 +180,7 @@ export const ComparisonBar = memo(function ComparisonBar() {
     audio.addEventListener('waiting', onWaiting);
     audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('seeked', onSeeked);
 
     setIsLoadingB(true);
 
@@ -146,15 +190,17 @@ export const ComparisonBar = memo(function ComparisonBar() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('ended', onEnded);
-      audio.pause();
+      audio.removeEventListener('seeked', onSeeked);
     };
-  }, [comparison.b, activeSlot, isPlaying, toggleComparisonActive]);
+  }, [comparison.b]);
 
   const switchSlot = useCallback(() => {
     if (!comparison.a || !comparison.b) return;
 
-    const fromAudio = activeSlot === 'a' ? audioARef.current : audioBRef.current;
-    const toAudio = activeSlot === 'a' ? audioBRef.current : audioARef.current;
+    const current = activeSlotRef.current;
+    const next: 'a' | 'b' = current === 'a' ? 'b' : 'a';
+    const fromAudio = current === 'a' ? audioARef.current : audioBRef.current;
+    const toAudio = next === 'a' ? audioARef.current : audioBRef.current;
 
     if (!fromAudio || !toAudio) return;
 
@@ -165,10 +211,17 @@ export const ComparisonBar = memo(function ComparisonBar() {
       window.clearTimeout(fadeTimeoutRef.current);
     }
 
-    toAudio.currentTime = currentTime;
+    try {
+      toAudio.currentTime = currentTime;
+    } catch (_) {}
 
-    if (isPlaying) {
-      toAudio.play().catch(() => {});
+    const wasPlaying = !fromAudio.paused;
+
+    if (wasPlaying) {
+      const playPromise = toAudio.play();
+      if (playPromise) {
+        playPromise.catch(() => {});
+      }
       toAudio.volume = 0;
 
       const steps = 8;
@@ -193,27 +246,42 @@ export const ComparisonBar = memo(function ComparisonBar() {
       };
 
       fade();
+    } else {
+      fromAudio.volume = 0;
+      toAudio.volume = 0;
     }
 
     toggleComparisonActive();
-  }, [comparison.a, comparison.b, activeSlot, isPlaying, toggleComparisonActive]);
+  }, [comparison.a, comparison.b, toggleComparisonActive]);
 
   const togglePlay = useCallback(() => {
-    if (!comparison.a && !comparison.b) return;
-
-    const audio = activeAudio;
+    const slot = activeSlotRef.current;
+    const audio = slot === 'a' ? audioARef.current : audioBRef.current;
     if (!audio) return;
 
-    if (isPlaying) {
+    if (!audio.paused) {
       audio.pause();
+      audio.volume = 0;
       setIsPlaying(false);
     } else {
       audio.volume = 0.8;
-      audio.play().catch(() => {});
+      const p = audio.play();
+      if (p) p.catch(() => {});
       setIsPlaying(true);
-      syncRef.current = audio.currentTime;
+      if (audio.currentTime > 0) {
+        syncRef.current = audio.currentTime;
+      }
+
+      const otherSlot = slot === 'a' ? 'b' : 'a';
+      const otherAudio = otherSlot === 'a' ? audioARef.current : audioBRef.current;
+      if (otherAudio && syncRef.current > 0) {
+        try {
+          otherAudio.currentTime = syncRef.current;
+          otherAudio.volume = 0;
+        } catch (_) {}
+      }
     }
-  }, [comparison.a, comparison.b, activeAudio, isPlaying]);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -235,6 +303,12 @@ export const ComparisonBar = memo(function ComparisonBar() {
       if (fadeTimeoutRef.current) {
         window.clearTimeout(fadeTimeoutRef.current);
       }
+      if (audioARef.current) {
+        audioARef.current.pause();
+      }
+      if (audioBRef.current) {
+        audioBRef.current.pause();
+      }
     };
   }, []);
 
@@ -248,9 +322,17 @@ export const ComparisonBar = memo(function ComparisonBar() {
         setCurrentTimeA(0);
         setCurrentTimeB(0);
         setIsPlaying(false);
+
+        if (slot === 'a' && audioARef.current) {
+          audioARef.current.pause();
+          audioARef.current = null;
+        }
+        if (slot === 'b' && audioBRef.current) {
+          audioBRef.current.pause();
+          audioBRef.current = null;
+        }
+
         setComparisonSlot(slot, take);
-        if (slot === 'a') lastLoadedA.current = null;
-        else lastLoadedB.current = null;
       }
     },
     [takes, setComparisonSlot]
@@ -266,13 +348,11 @@ export const ComparisonBar = memo(function ComparisonBar() {
       e.stopPropagation();
       setComparisonSlot(slot, null);
       if (slot === 'a') {
-        lastLoadedA.current = null;
         if (audioARef.current) {
           audioARef.current.pause();
           audioARef.current = null;
         }
       } else {
-        lastLoadedB.current = null;
         if (audioBRef.current) {
           audioBRef.current.pause();
           audioBRef.current = null;
