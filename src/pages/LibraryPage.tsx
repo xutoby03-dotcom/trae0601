@@ -1,11 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
   BookOpen, TrendingUp, Clock, Target, Award, AlertTriangle,
-  Eye, EyeOff, ChevronRight, X, Trash2, Calendar
+  Eye, EyeOff, ChevronRight, X, Trash2, Calendar, RotateCcw
 } from 'lucide-react';
-import { useAstroStore, getTargetById } from '@/store/useAstroStore';
+import { useAstroStore } from '@/store/useAstroStore';
+import { DEEP_SKY_TARGETS } from '@/data/constellations';
 import { formatDateChinese } from '@/utils/astro';
-import type { ObservationRecord } from '@/types';
+import type { DeepSkyTarget, ObservationRecord } from '@/types';
+
+function getTargetById(id: string): DeepSkyTarget | undefined {
+  return DEEP_SKY_TARGETS.find(t => t.id === id);
+}
 
 function StatCard({
   icon: Icon,
@@ -199,6 +204,7 @@ export default function LibraryPage() {
 
   const [selected, setSelected] = useState<ObservationRecord | null>(null);
   const [filter, setFilter] = useState<'all' | 'success' | 'fail'>('all');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const sessions = useMemo(() => {
     const map = new Map<string, ObservationRecord[]>();
@@ -210,14 +216,21 @@ export default function LibraryPage() {
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [records]);
 
-  const filtered = sessions.map(([date, list]) => [
-    date,
-    list.filter(r => {
-      if (filter === 'all') return true;
-      if (filter === 'success') return r.seen;
-      return !r.seen;
-    }),
-  ] as const).filter(([, list]) => list.length > 0);
+  const filtered = sessions
+    .filter(([date]) => !selectedDate || date === selectedDate)
+    .map(([date, list]) => [
+      date,
+      list.filter(r => {
+        if (filter === 'all') return true;
+        if (filter === 'success') return r.seen;
+        return !r.seen;
+      }),
+    ] as const)
+    .filter(([, list]) => list.length > 0);
+
+  const hasDateFilter = selectedDate !== null;
+  const dateFilterHasRecords = hasDateFilter && filtered.length > 0;
+  const dateFilterNoRecords = hasDateFilter && filtered.length === 0;
 
   const exposureStr = stats.totalExposureMinutes >= 60
     ? `${Math.floor(stats.totalExposureMinutes / 60)}h ${stats.totalExposureMinutes % 60}m`
@@ -296,7 +309,7 @@ export default function LibraryPage() {
       )}
 
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h2 className="font-display text-xl font-semibold text-white flex items-center gap-2">
             📅 观测历史
             <span className="chip bg-white/5 border-white/10 text-white/50 !text-[11px]">
@@ -319,7 +332,82 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {sessions.length > 0 && (
+          <div className="glass-card p-4 mb-5">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <p className="text-xs text-white/50 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> 按日期筛选：点击查看那晚的记录
+              </p>
+              {hasDateFilter && (
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px]
+                    bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <RotateCcw className="w-3 h-3" /> 清空筛选
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sessions.map(([date, list]) => {
+                const successNum = list.filter(r => r.seen).length;
+                const isActive = selectedDate === date;
+                return (
+                  <button
+                    key={date}
+                    onClick={() => setSelectedDate(isActive ? null : date)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-2
+                      ${isActive
+                        ? 'bg-gradient-to-r from-nebula-purple/40 to-nebula-cyan/30 text-white border border-nebula-cyan/40 shadow-lg shadow-nebula-purple/20'
+                        : 'bg-white/[0.03] border border-white/5 text-white/70 hover:text-white hover:bg-white/[0.06]'}`}
+                  >
+                    <span className="font-mono text-sm">{date.slice(5)}</span>
+                    <span className="text-[10px] opacity-70">
+                      {successNum}/{list.length} ✓
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {hasDateFilter && (
+              <div className="mt-3 pt-3 border-t border-white/5">
+                <p className="text-[11px] text-white/40 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-nebula-cyan animate-pulse" />
+                  当前筛选：<span className="text-white/70 font-medium">{formatDateChinese(selectedDate!)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {dateFilterNoRecords ? (
+          <div className="glass-card p-12 text-center border-dashed border-2 border-moonlight/30">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-moonlight/5 flex items-center justify-center text-5xl">
+              🌙
+            </div>
+            <p className="text-white/70 text-lg mb-1 font-display">
+              {formatDateChinese(selectedDate!)} 还没记录
+            </p>
+            <p className="text-xs text-white/40 mb-5 max-w-md mx-auto leading-relaxed">
+              那晚可能还没来得及填观测记录，或者状态被筛选过滤了。
+              <br />试试切换筛选条件，或清空日期筛选看看全部记录～
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setFilter('all')}
+                className="btn-secondary"
+              >
+                显示全部状态
+              </button>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="btn-primary"
+              >
+                <RotateCcw className="w-4 h-4" /> 清空筛选
+              </button>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="glass-card p-16 text-center">
             <div className="w-24 h-24 mx-auto mb-5 rounded-3xl bg-white/5 flex items-center justify-center text-6xl">
               🌌
