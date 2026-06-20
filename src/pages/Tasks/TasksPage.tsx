@@ -7,9 +7,11 @@ import {
   MATERIAL_LABEL_MAP,
   CLEAN_METHOD_LABEL_MAP,
   CLEAN_ACTION_OPTIONS,
+  DAMAGE_TYPE_OPTIONS,
   formatDateShort,
+  cleanMethodToActions,
 } from '@/utils/constants';
-import type { TaskTrigger, TaskPriority, Toy, CleaningRecord, CleanMethodAction } from '@/types';
+import type { TaskTrigger, TaskPriority, Toy, CleaningRecord, CleanMethodAction, DamageType } from '@/types';
 
 const triggerCardStyles: Record<TaskTrigger, string> = {
   teething: 'bg-gradient-to-br from-alert-400 to-alert-300 text-white shadow-glow-red',
@@ -26,7 +28,7 @@ const ACTION_COLORS: Record<CleanMethodAction, string> = {
 };
 
 export default function TasksPage() {
-  const { tasks, toys, cleaningRecords, generateTaskByTrigger, createTask, toggleTaskItem, completeTask } = useAppStore();
+  const { tasks, toys, cleaningRecords, alerts, generateTaskByTrigger, createTask, toggleTaskItem, completeTask, addCleaningRecord } = useAppStore();
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('任务已生成');
   const [showManualForm, setShowManualForm] = useState(false);
@@ -34,6 +36,10 @@ export default function TasksPage() {
   const [manualTitle, setManualTitle] = useState('');
   const [manualToyIds, setManualToyIds] = useState<string[]>([]);
   const [manualPriority, setManualPriority] = useState<TaskPriority>('normal');
+
+  const [activeAlertPanel, setActiveAlertPanel] = useState<string | null>(null);
+  const [selectedDamageType, setSelectedDamageType] = useState<DamageType | null>(null);
+  const [hasOdorSelected, setHasOdorSelected] = useState(false);
 
   const showSuccessToast = (msg: string = '任务已生成') => {
     setToastMsg(msg);
@@ -106,6 +112,55 @@ export default function TasksPage() {
     const d = new Date(dateStr);
     const t = new Date();
     return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+  };
+
+  const hasActiveAlert = useMemo(() => {
+    const set = new Set<string>();
+    for (const alert of alerts) {
+      if (alert.status === 'pending') set.add(alert.toyId);
+    }
+    return set;
+  }, [alerts]);
+
+  const openAlertPanel = (taskId: string, toyId: string) => {
+    setActiveAlertPanel(`${taskId}-${toyId}`);
+    setSelectedDamageType(null);
+    setHasOdorSelected(false);
+  };
+
+  const closeAlertPanel = () => {
+    setActiveAlertPanel(null);
+    setSelectedDamageType(null);
+    setHasOdorSelected(false);
+  };
+
+  const handleSaveQuickAlert = (taskId: string, toyId: string) => {
+    if (!selectedDamageType && !hasOdorSelected) {
+      showSuccessToast('请选择异常类型');
+      return;
+    }
+    const task = tasks.find(t => t.id === taskId);
+    const toy = getToyById(toyId);
+    const methods = toy
+      ? cleanMethodToActions[toy.cleanMethod] || ['wipe' as CleanMethodAction]
+      : ['wipe' as CleanMethodAction];
+
+    addCleaningRecord({
+      toyId,
+      date: new Date().toISOString(),
+      methods,
+      hasDamage: !!selectedDamageType,
+      hasOdor: hasOdorSelected,
+      damageType: selectedDamageType || undefined,
+      notes: `任务「${task?.title || ''}」快记异常`,
+    });
+
+    if (task && !task.completedToyIds.includes(toyId)) {
+      toggleTaskItem(taskId, toyId);
+    }
+
+    showSuccessToast('⚠️ 异常已记录');
+    closeAlertPanel();
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -228,62 +283,164 @@ export default function TasksPage() {
                         const materialMeta = MATERIAL_LABEL_MAP.get(toy.material);
                         const cleanMeta = CLEAN_METHOD_LABEL_MAP.get(toy.cleanMethod);
                         const todayRecorded = record && isToday(record.date);
+                        const hasAlert = hasActiveAlert.has(toyId);
+                        const panelKey = `${task.id}-${toyId}`;
+                        const isPanelOpen = activeAlertPanel === panelKey;
+
+                        const latestAlert = alerts
+                          .filter(a => a.toyId === toyId && a.status === 'pending')
+                          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
                         return (
-                          <div
-                            key={toyId}
-                            className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 ${
-                              isDone ? 'bg-mint-50 border border-mint-100' : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
-                            }`}
-                          >
-                            <label className="flex items-center cursor-pointer shrink-0 mt-0.5">
-                              <input
-                                type="checkbox"
-                                checked={isDone}
-                                onChange={() => !isCompleted && toggleTaskItem(task.id, toyId)}
-                                disabled={isCompleted}
-                                className="w-5 h-5 rounded-lg border-2 border-gray-300 text-mint-500 focus:ring-mint-300 focus:ring-4 cursor-pointer"
-                              />
-                            </label>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <div className={`font-medium ${isDone ? 'text-gray-500' : 'text-gray-700'}`}>
-                                  {toy.name}
+                          <div key={toyId} className="relative">
+                            <div
+                              className={`flex items-start gap-3 p-3 rounded-xl transition-all duration-200 ${
+                                hasAlert
+                                  ? 'bg-alert-50 border border-alert-200 animate-pulse-glow'
+                                  : isDone
+                                  ? 'bg-mint-50 border border-mint-100'
+                                  : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                              }`}
+                            >
+                              <label className="flex items-center cursor-pointer shrink-0 mt-0.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isDone}
+                                  onChange={() => !isCompleted && toggleTaskItem(task.id, toyId)}
+                                  disabled={isCompleted}
+                                  className="w-5 h-5 rounded-lg border-2 border-gray-300 text-mint-500 focus:ring-mint-300 focus:ring-4 cursor-pointer"
+                                />
+                              </label>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className={`font-medium ${hasAlert ? 'text-alert-500 font-semibold' : isDone ? 'text-gray-500' : 'text-gray-700'}`}>
+                                    {toy.name}
+                                  </div>
+                                  {hasAlert && latestAlert && (
+                                    <span className="tag bg-alert-100 text-alert-400 font-semibold animate-bounce-soft">
+                                      ⚠️ 建议停用
+                                    </span>
+                                  )}
+                                  {todayRecorded && (
+                                    <span className="tag bg-mint-100 text-mint-500 text-[10px] animate-bounce-soft">
+                                      ✅ 今天已记
+                                    </span>
+                                  )}
                                 </div>
-                                {todayRecorded && (
-                                  <span className="tag bg-mint-100 text-mint-500 text-[10px] animate-bounce-soft">
-                                    ✅ 今天已记
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2 mt-1.5">
-                                {materialMeta && (
-                                  <span className={`tag ${materialMeta.color}`}>
-                                    {materialMeta.icon} {materialMeta.label}
-                                  </span>
-                                )}
-                                {cleanMeta && (
-                                  <span className="tag bg-clean-100 text-clean-500">
-                                    {cleanMeta.icon} {cleanMeta.label}
-                                  </span>
-                                )}
-                              </div>
-                              {record && (
-                                <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-mint-100/50">
-                                  {record.methods.map(method => {
-                                    const meta = CLEAN_ACTION_OPTIONS.find(opt => opt.value === method);
-                                    return meta ? (
-                                      <span key={method} className={`tag ${ACTION_COLORS[method]}`}>
-                                        {meta.icon} {meta.label}
+                                <div className="flex flex-wrap gap-2 mt-1.5">
+                                  {materialMeta && (
+                                    <span className={`tag ${materialMeta.color}`}>
+                                      {materialMeta.icon} {materialMeta.label}
+                                    </span>
+                                  )}
+                                  {cleanMeta && (
+                                    <span className="tag bg-clean-100 text-clean-500">
+                                      {cleanMeta.icon} {cleanMeta.label}
+                                    </span>
+                                  )}
+                                  {hasAlert && latestAlert && (
+                                    <span className="tag bg-alert-100 text-alert-400">
+                                      {DAMAGE_TYPE_OPTIONS.find(d => d.value === latestAlert.type)?.icon}{' '}
+                                      {DAMAGE_TYPE_OPTIONS.find(d => d.value === latestAlert.type)?.label}
+                                    </span>
+                                  )}
+                                </div>
+                                {(record || hasAlert) && (
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-mint-100/50">
+                                    {record && record.methods.map(method => {
+                                      const meta = CLEAN_ACTION_OPTIONS.find(opt => opt.value === method);
+                                      return meta ? (
+                                        <span key={method} className={`tag ${ACTION_COLORS[method]}`}>
+                                          {meta.icon} {meta.label}
+                                        </span>
+                                      ) : null;
+                                    })}
+                                    {record && (
+                                      <span className="text-xs text-gray-400 ml-1">
+                                        🕐 {formatTime(record.date)} {!isToday(record.date) && `(${formatDateShort(record.date)})`}
                                       </span>
-                                    ) : null;
-                                  })}
-                                  <span className="text-xs text-gray-400 ml-1">
-                                    🕐 {formatTime(record.date)} {!isToday(record.date) && `(${formatDateShort(record.date)})`}
-                                  </span>
-                                </div>
-                              )}
+                                    )}
+                                    {hasAlert && record?.hasOdor && (
+                                      <span className="tag bg-alert-50 text-alert-400">👃 有异味</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => (isPanelOpen ? closeAlertPanel() : openAlertPanel(task.id, toyId))}
+                                disabled={isCompleted}
+                                className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${
+                                  isPanelOpen
+                                    ? 'bg-alert-200 text-alert-500 shadow-glow-red'
+                                    : hasAlert
+                                    ? 'bg-alert-100 text-alert-400 hover:bg-alert-200'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-alert-100 hover:text-alert-400'
+                                } ${isCompleted ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                title="快速记录异常"
+                              >
+                                ⚠️
+                              </button>
                             </div>
+
+                            {isPanelOpen && (
+                              <div className="ml-16 mr-3 mb-3 -mt-1 p-4 rounded-2xl bg-white border border-alert-100 shadow-card animate-slide-in-right relative z-10">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-bold text-gray-700 flex items-center gap-2">
+                                    ⚠️ 发现异常
+                                    <span className="text-sm font-normal text-gray-400">— 为「{toy.name}」记录</span>
+                                  </h4>
+                                  <button onClick={closeAlertPanel} className="text-gray-400 hover:text-gray-600 text-lg leading-none px-2">✕</button>
+                                </div>
+
+                                <div className="mb-4">
+                                  <label className="label-base">选择问题类型（可单选）</label>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {DAMAGE_TYPE_OPTIONS.slice(0, 3).map(opt => (
+                                      <button
+                                        key={opt.value}
+                                        onClick={() => setSelectedDamageType(selectedDamageType === opt.value ? null : opt.value)}
+                                        className={`chip-select text-sm ${selectedDamageType === opt.value ? 'active !border-alert-300 !bg-alert-50 !text-alert-400' : ''}`}
+                                      >
+                                        <span className="text-lg">{opt.icon}</span>
+                                        {opt.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="mb-5">
+                                  <label className="label-base">其他情况</label>
+                                  <button
+                                    onClick={() => setHasOdorSelected(v => !v)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                                      hasOdorSelected
+                                        ? 'border-alert-300 bg-alert-50'
+                                        : 'border-gray-200 bg-white hover:border-alert-200 hover:bg-alert-50'
+                                    }`}
+                                  >
+                                    <span className="text-2xl">👃</span>
+                                    <div className="flex-1 text-left">
+                                      <div className={`font-medium ${hasOdorSelected ? 'text-alert-400' : 'text-gray-700'}`}>有异味</div>
+                                      <div className="text-xs text-gray-400">发现霉味、刺鼻气味等不正常味道</div>
+                                    </div>
+                                    <div className={`w-12 h-7 rounded-full transition-colors duration-200 ${hasOdorSelected ? 'bg-alert-300' : 'bg-gray-200'} relative`}>
+                                      <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${hasOdorSelected ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                    </div>
+                                  </button>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <button onClick={closeAlertPanel} className="btn-ghost flex-1">取消</button>
+                                  <button
+                                    onClick={() => handleSaveQuickAlert(task.id, toyId)}
+                                    disabled={!selectedDamageType && !hasOdorSelected}
+                                    className="btn-danger flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    🚨 记录并标记停用风险
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
