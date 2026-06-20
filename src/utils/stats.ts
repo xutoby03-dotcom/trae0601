@@ -36,8 +36,31 @@ export const getUrgentCount = (
   records: DryingRecord[],
   riskLevel: number
 ): number => {
-  if (riskLevel < 2) return 0;
-  return records.filter((r) => r.status === "drying").length;
+  return getNeedCollectRecords(records, riskLevel).length;
+};
+
+export const isNeedCollect = (record: DryingRecord, riskLevel: number): boolean => {
+  if (record.status !== "drying") return false;
+
+  const isOverdue24h = new Date().getTime() - new Date(record.startTime).getTime() > 24 * 3600000;
+  const isPastExpected = new Date().getTime() > new Date(record.expectedTime).getTime();
+  const isHighWeatherRisk = riskLevel >= 2;
+
+  return isOverdue24h || isPastExpected || isHighWeatherRisk;
+};
+
+export const getNeedCollectRecords = (
+  records: DryingRecord[],
+  riskLevel: number
+): DryingRecord[] => {
+  return records.filter((r) => isNeedCollect(r, riskLevel));
+};
+
+export const getNeedCollectCount = (
+  records: DryingRecord[],
+  riskLevel: number
+): number => {
+  return getNeedCollectRecords(records, riskLevel).length;
 };
 
 export const sortByUrgency = (records: DryingRecord[]): DryingRecord[] => {
@@ -49,6 +72,23 @@ export const sortByUrgency = (records: DryingRecord[]): DryingRecord[] => {
       if (aOverdue !== bOverdue) return bOverdue - aOverdue;
       return new Date(a.expectedTime).getTime() - new Date(b.expectedTime).getTime();
     });
+};
+
+export const sortNeedCollectByUrgency = (
+  records: DryingRecord[],
+  riskLevel: number
+): DryingRecord[] => {
+  return getNeedCollectRecords(records, riskLevel).sort((a, b) => {
+    const aOverdue = new Date().getTime() - new Date(a.startTime).getTime() > 24 * 3600000 ? 1 : 0;
+    const bOverdue = new Date().getTime() - new Date(b.startTime).getTime() > 24 * 3600000 ? 1 : 0;
+    if (aOverdue !== bOverdue) return bOverdue - aOverdue;
+
+    const aPastExpected = new Date().getTime() > new Date(a.expectedTime).getTime() ? 1 : 0;
+    const bPastExpected = new Date().getTime() > new Date(b.expectedTime).getTime() ? 1 : 0;
+    if (aPastExpected !== bPastExpected) return bPastExpected - aPastExpected;
+
+    return new Date(a.expectedTime).getTime() - new Date(b.expectedTime).getTime();
+  });
 };
 
 export const getStatusText = (status: string): string => {
