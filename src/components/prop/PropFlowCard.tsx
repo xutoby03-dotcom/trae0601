@@ -126,41 +126,76 @@ export default function PropFlowCard({ propFlow }: PropFlowCardProps) {
       </div>
 
       {/* 流向信息 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* 来源 */}
-        <div className="bg-stage-bg-secondary rounded-xl p-4">
-          <div className="flex items-center gap-2 text-stage-text-secondary text-sm mb-2">
-            <MapPin className="w-4 h-4" />
-            来源
+      <div className="space-y-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 来源 */}
+          <div className="bg-stage-bg-secondary rounded-xl p-4">
+            <div className="flex items-center gap-2 text-stage-text-secondary text-sm mb-2">
+              <MapPin className="w-4 h-4" />
+              拿取位置
+            </div>
+            <div className="text-lg font-semibold text-stage-text">
+              {propFlow.from}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-stage-text-muted mt-2">
+              <User className="w-4 h-4" />
+              经手人：{propFlow.handler}
+            </div>
           </div>
-          <div className="text-lg font-semibold text-stage-text">
-            {propFlow.from}
+
+          {/* 箭头 */}
+          <div className="hidden md:flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-neon-green/10 flex items-center justify-center border-2 border-neon-green/30">
+              <ArrowRight className="w-6 h-6 text-neon-green" />
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-stage-text-muted mt-2">
-            <User className="w-4 h-4" />
-            经手：{propFlow.handler}
+
+          {/* 放置位置 */}
+          <div className="bg-neon-green/5 rounded-xl p-4 border border-neon-green/30">
+            <div className="flex items-center gap-2 text-neon-green/80 text-sm mb-2">
+              <MapPin className="w-4 h-4" />
+              放置位置
+            </div>
+            <div className="text-xl font-bold text-neon-green">
+              {propFlow.to}
+            </div>
           </div>
         </div>
 
-        {/* 箭头 */}
-        <div className="hidden md:flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-stage-bg-hover flex items-center justify-center">
-            <ArrowRight className="w-6 h-6 text-neon-green" />
-          </div>
-        </div>
-
-        {/* 去向 */}
-        <div className="bg-stage-bg-secondary rounded-xl p-4">
-          <div className="flex items-center gap-2 text-stage-text-secondary text-sm mb-2">
-            <MapPin className="w-4 h-4" />
-            放置位置
-          </div>
-          <div className="text-lg font-semibold text-neon-green">
-            {propFlow.to}
-          </div>
-          <div className="flex items-center gap-2 text-sm text-stage-text-muted mt-2">
-            <User className="w-4 h-4" />
-            接收：{propFlow.receiver}
+        {/* 下一场收走人 - 高亮显示 */}
+        <div
+          className={`rounded-xl p-5 border-2 ${
+            isConfirmed
+              ? 'bg-neon-yellow/5 border-neon-yellow/40'
+              : 'bg-neon-yellow/10 border-neon-yellow/50'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  isConfirmed ? 'bg-neon-yellow/20' : 'bg-neon-yellow/20'
+                }`}
+              >
+                <User className="w-6 h-6 text-neon-yellow" />
+              </div>
+              <div>
+                <div className="text-sm text-neon-yellow/80 mb-1 font-medium">
+                  下一场收走人
+                </div>
+                <div className="text-2xl font-bold text-neon-yellow tracking-wide">
+                  {propFlow.receiver}
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-neon-yellow/60 mb-1">
+                请确认交接
+              </div>
+              <div className="text-base text-neon-yellow/80 font-medium">
+                → 接收无误
+              </div>
+            </div>
           </div>
         </div>
       </div>
