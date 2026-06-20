@@ -11,6 +11,7 @@ import {
   Play,
   ArrowLeft,
   Edit2,
+  Lightbulb,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import ScoreGauge from '@/components/report/ScoreGauge';
@@ -255,6 +256,38 @@ export default function Report() {
             </div>
           </div>
         </section>
+
+        {insufficientKeyPoints.length > 0 && (
+          <section className="glass-card p-6 bg-gradient-to-br from-museum-500/10 to-transparent">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-museum-500/20 flex items-center justify-center">
+                <Lightbulb className="w-5 h-5 text-museum-600" />
+              </div>
+              <h2 className="text-lg font-serif font-bold text-deep-900">
+                下次练习提示
+              </h2>
+            </div>
+            <div className="space-y-2.5">
+              {insufficientKeyPoints.map((point) => (
+                <div
+                  key={point.pointId}
+                  className="flex items-start gap-3 p-3 rounded-lg bg-white/60 border border-museum-500/20"
+                >
+                  <Star className="w-4 h-4 text-museum-500 fill-museum-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-deep-700 leading-relaxed">
+                    <span className="font-semibold text-deep-900">{point.name}</span>
+                    讲得不够充分——计划 {formatDurationChinese(point.plannedDuration)}，
+                    实际只用了 {formatDurationChinese(point.actualDuration)}，
+                    <span className="text-museum-600 font-medium">
+                      还差 {formatDurationChinese(point.shortage)}
+                    </span>
+                    ，下次可放慢节奏展开讲解。
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="glass-card p-6">
           <div className="flex items-center gap-2 mb-4">
