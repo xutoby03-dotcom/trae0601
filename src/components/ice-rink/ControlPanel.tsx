@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Play, Pause, Square, RotateCcw, Droplets, Gauge, Timer, Target } from 'lucide-react';
 import { useMaintenanceStore } from '../../stores/useMaintenanceStore';
 import { useIssueStore } from '../../stores/useIssueStore';
@@ -25,6 +26,13 @@ export function ControlPanel() {
 
   const iceScore = calculateIceScore(issues);
 
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (session.status !== 'running' && session.status !== 'paused') return;
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [session.status]);
+
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -32,7 +40,14 @@ export function ControlPanel() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const elapsedTime = session.status === 'idle' ? 0 : Date.now() - session.startTime;
+  const now = Date.now();
+  const elapsedTime = session.status === 'idle'
+    ? 0
+    : session.status === 'completed' && session.endTime
+    ? session.endTime - session.startTime
+    : now - session.startTime;
+
+  void tick;
 
   return (
     <div className="space-y-4">

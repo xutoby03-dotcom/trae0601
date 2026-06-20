@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useMaintenanceStore } from '../../stores/useMaintenanceStore';
 import { useIssueStore } from '../../stores/useIssueStore';
 import { iceRinkConfig } from '../../data/mockData';
@@ -11,38 +11,54 @@ import { generateTrackPath } from '../../utils/trackAlgorithm';
 const SCALE = 12;
 
 export function IceRinkView() {
-  const { session, viewMode, activeTool, isSimulating } = useMaintenanceStore();
+  const { session, viewMode, activeTool, isSimulating, addTrackPoints } = useMaintenanceStore();
   const { issues, addIssue } = useIssueStore();
   const svgRef = useRef<SVGSVGElement>(null);
-  const [simPoints, setSimPoints] = useState(0);
-  const [fullTrack, setFullTrack] = useState<ReturnType<typeof generateTrackPath>>([]);
+  const fullTrackRef = useRef<ReturnType<typeof generateTrackPath>>([]);
+  const lastWrittenIndexRef = useRef(0);
 
   useEffect(() => {
     const track = generateTrackPath(3, 3, 2);
-    setFullTrack(track);
+    fullTrackRef.current = track;
   }, []);
 
   useEffect(() => {
-    if (!isSimulating || fullTrack.length === 0) return;
+    if (!isSimulating) {
+      lastWrittenIndexRef.current = session.trackPoints.length;
+      return;
+    }
+
+    const BATCH_SIZE = 4;
+    const INTERVAL_MS = 80;
 
     const interval = setInterval(() => {
-      setSimPoints((prev) => {
-        const next = prev + 2;
-        if (next >= fullTrack.length) {
-          return fullTrack.length;
-        }
-        return next;
-      });
-    }, 50);
+      const currentEnd = lastWrittenIndexRef.current;
+      const nextEnd = Math.min(currentEnd + BATCH_SIZE, fullTrackRef.current.length);
+
+      if (currentEnd >= fullTrackRef.current.length) {
+        clearInterval(interval);
+        return;
+      }
+
+      const batch = fullTrackRef.current.slice(currentEnd, nextEnd);
+      if (batch.length > 0) {
+        addTrackPoints(batch);
+        lastWrittenIndexRef.current = nextEnd;
+      }
+    }, INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isSimulating, fullTrack]);
+  }, [isSimulating, addTrackPoints]);
 
-  const displayPoints = isSimulating
-    ? fullTrack.slice(0, simPoints)
-    : session.trackPoints.length > 0
+  useEffect(() => {
+    if (session.status === 'idle' || session.status === 'completed') {
+      lastWrittenIndexRef.current = 0;
+    }
+  }, [session.status]);
+
+  const displayPoints = session.trackPoints.length > 0
     ? session.trackPoints
-    : fullTrack;
+    : fullTrackRef.current;
 
   const handleSvgClick = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
@@ -52,8 +68,10 @@ export function IceRinkView() {
       if (!svg) return;
 
       const rect = svg.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / SCALE;
-      const y = (e.clientY - rect.top) / SCALE;
+      const scaleX = (iceRinkConfig.width * SCALE) / rect.width;
+      const scaleY = (iceRinkConfig.height * SCALE) / rect.height;
+      const x = ((e.clientX - rect.left) * scaleX) / SCALE;
+      const y = ((e.clientY - rect.top) * scaleY) / SCALE;
 
       if (x < 0 || x > iceRinkConfig.width || y < 0 || y > iceRinkConfig.height) return;
 
@@ -190,17 +208,17 @@ export function IceRinkView() {
           <IssueMarkerDot key={issue.id} issue={issue} scale={SCALE} pulse={!issue.resolved} />
         ))}
 
-        {isSimulating && displayPoints.length > 0 && (
+        {isSimulating && session.trackPoints.length > 0 && (
           <g filter="url(#glow)">
             <circle
-              cx={displayPoints[displayPoints.length - 1].x * SCALE}
-              cy={displayPoints[displayPoints.length - 1].y * SCALE}
+              cx={session.trackPoints[session.trackPoints.length - 1].x * SCALE}
+              cy={session.trackPoints[session.trackPoints.length - 1].y * SCALE}
               r={SCALE * 0.8}
               fill="#0ea5e9"
             />
             <circle
-              cx={displayPoints[displayPoints.length - 1].x * SCALE}
-              cy={displayPoints[displayPoints.length - 1].y * SCALE}
+              cx={session.trackPoints[session.trackPoints.length - 1].x * SCALE}
+              cy={session.trackPoints[session.trackPoints.length - 1].y * SCALE}
               r={SCALE * 0.4}
               fill="#fff"
             />

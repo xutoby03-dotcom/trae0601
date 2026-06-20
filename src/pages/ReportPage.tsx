@@ -10,7 +10,7 @@ import type { ShiftType } from '../types';
 
 export default function ReportPage() {
   const { issues } = useIssueStore();
-  const { session } = useMaintenanceStore();
+  const { session, completedSessions } = useMaintenanceStore();
   const [operatorName, setOperatorName] = useState('张师傅');
   const [notes, setNotes] = useState('');
   const [nextShiftNotes, setNextShiftNotes] = useState('');
@@ -20,6 +20,13 @@ export default function ReportPage() {
   const iceScore = calculateIceScore(issues);
   const unresolvedIssues = issues.filter((i) => !i.resolved);
   const resolvedIssues = issues.filter((i) => i.resolved);
+
+  const lastMaintenance = session.status === 'completed' ? session : completedSessions[completedSessions.length - 1];
+  const lastCoverage = lastMaintenance?.coveredArea ?? 0;
+  const lastDuration = lastMaintenance && lastMaintenance.endTime && lastMaintenance.startTime
+    ? Math.round((lastMaintenance.endTime - lastMaintenance.startTime) / 60000)
+    : 0;
+  const maintenanceCount = completedSessions.length;
 
   const issueStats = useMemo(() => {
     const stats = {
@@ -135,10 +142,21 @@ export default function ReportPage() {
                     <StatItem label="总问题数" value={issues.length.toString()} unit="个" />
                     <StatItem label="已解决" value={resolvedIssues.length.toString()} unit="个" color="text-emerald-400" />
                     <StatItem label="待处理" value={unresolvedIssues.length.toString()} unit="个" color="text-amber-400" />
-                    <StatItem label="维护次数" value="2" unit="次" color="text-sky-400" />
+                    <StatItem label="维护次数" value={maintenanceCount.toString()} unit="次" color="text-sky-400" />
                   </div>
 
-                  <div className="pt-3 border-t border-slate-700/50">
+                  <div className="pt-3 border-t border-slate-700/50 space-y-2">
+                    <p className="text-sm text-slate-400 mb-1">最近一次维护</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-900/30 rounded-lg p-2">
+                        <span className="text-lg font-bold text-sky-400 font-mono">{lastCoverage}%</span>
+                        <p className="text-xs text-slate-500">覆盖率</p>
+                      </div>
+                      <div className="bg-slate-900/30 rounded-lg p-2">
+                        <span className="text-lg font-bold text-emerald-400 font-mono">{lastDuration > 0 ? `${lastDuration}` : '--'}</span>
+                        <p className="text-xs text-slate-500">时长 (分钟)</p>
+                      </div>
+                    </div>
                     <p className="text-sm text-slate-400 mb-3">问题类型分布</p>
                     <div className="space-y-2">
                       {Object.entries(issueStats).map(([type, stat]) => (

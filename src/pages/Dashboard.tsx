@@ -3,7 +3,10 @@ import { IceRinkView } from '../components/ice-rink/IceRinkView';
 import { ControlPanel } from '../components/ice-rink/ControlPanel';
 import { IssueList } from '../components/ice-rink/IssueList';
 import { useScheduleStore } from '../stores/useScheduleStore';
+import { useMaintenanceStore } from '../stores/useMaintenanceStore';
+import { useIssueStore } from '../stores/useIssueStore';
 import { getNextWindow } from '../utils/windowCalculator';
+import { calculateIceScore } from '../utils/severityCalc';
 import { Clock, CalendarClock, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +14,22 @@ export default function Dashboard() {
   const { windows } = useScheduleStore();
   const nextWindow = getNextWindow(windows);
   const navigate = useNavigate();
+  const { completedSessions, session } = useMaintenanceStore();
+  const { issues } = useIssueStore();
+
+  const maintenanceCount = completedSessions.length + (session.status === 'running' || session.status === 'paused' ? 1 : 0);
+  const unresolvedIssues = issues.filter((i) => !i.resolved);
+  const highPriorityCount = unresolvedIssues.filter((i) => i.severity === 'high').length;
+  const iceScore = calculateIceScore(issues);
+
+  const avgDuration = completedSessions.length > 0
+    ? Math.round(
+        completedSessions.reduce((sum, s) => {
+          const dur = s.endTime && s.startTime ? (s.endTime - s.startTime) / 60000 : 0;
+          return sum + dur;
+        }, 0) / completedSessions.length
+      )
+    : 0;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -67,36 +86,36 @@ export default function Dashboard() {
         <div className="grid grid-cols-4 gap-4 mt-6">
           <StatCard
             label="今日维护次数"
-            value="2"
+            value={maintenanceCount.toString()}
             unit="次"
             icon={<Clock className="w-5 h-5" />}
-            trend="+1 较昨日"
-            trendUp={true}
+            trend={completedSessions.length > 0 ? `已完成 ${completedSessions.length} 次` : '尚未开始'}
+            trendUp={maintenanceCount > 0}
           />
           <StatCard
             label="待处理问题"
-            value="5"
+            value={unresolvedIssues.length.toString()}
             unit="个"
             icon={<div className="text-lg">⚠️</div>}
-            trend="2 高优先级"
-            trendUp={false}
+            trend={highPriorityCount > 0 ? `${highPriorityCount} 高优先级` : '无高危'}
+            trendUp={highPriorityCount === 0}
             accent="text-amber-400"
           />
           <StatCard
             label="平均维护时长"
-            value="28"
+            value={avgDuration > 0 ? avgDuration.toString() : '--'}
             unit="分钟"
             icon={<div className="text-lg">⏱️</div>}
-            trend="标准 30 分钟"
-            trendUp={true}
+            trend={avgDuration > 0 ? `标准 30 分钟` : '暂无数据'}
+            trendUp={avgDuration > 0 && avgDuration <= 30}
           />
           <StatCard
             label="冰面健康评分"
-            value="82"
+            value={iceScore.toString()}
             unit="分"
             icon={<div className="text-lg">❄️</div>}
-            trend="良好"
-            trendUp={true}
+            trend={iceScore >= 80 ? '良好' : iceScore >= 60 ? '一般' : '需关注'}
+            trendUp={iceScore >= 80}
             accent="text-emerald-400"
           />
         </div>

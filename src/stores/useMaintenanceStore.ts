@@ -4,6 +4,7 @@ import { iceRinkConfig } from '../data/mockData';
 
 interface MaintenanceState {
   session: MaintenanceSession;
+  completedSessions: MaintenanceSession[];
   viewMode: ViewMode;
   activeTool: ActiveTool;
   isSimulating: boolean;
@@ -14,6 +15,7 @@ interface MaintenanceState {
   resumeMaintenance: () => void;
   endMaintenance: () => void;
   addTrackPoint: (point: TrackPoint) => void;
+  addTrackPoints: (points: TrackPoint[]) => void;
   setBladeHeight: (height: number) => void;
   setIsSimulating: (simulating: boolean) => void;
   resetSession: () => void;
@@ -31,6 +33,7 @@ const createEmptySession = (): MaintenanceSession => ({
 
 export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
   session: createEmptySession(),
+  completedSessions: [],
   viewMode: 'normal',
   activeTool: 'none',
   isSimulating: false,
@@ -42,10 +45,13 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     set((state) => ({
       session: {
         ...state.session,
+        id: `session-${Date.now()}`,
         startTime: Date.now(),
+        endTime: undefined,
         status: 'running',
         trackPoints: [],
         coveredArea: 0,
+        waterAmount: 0,
       },
       isSimulating: true,
     })),
@@ -63,25 +69,46 @@ export const useMaintenanceStore = create<MaintenanceState>((set, get) => ({
     })),
 
   endMaintenance: () =>
-    set((state) => ({
-      session: {
+    set((state) => {
+      const finalSession: MaintenanceSession = {
         ...state.session,
         endTime: Date.now(),
         status: 'completed',
         coveredArea: calculateCoverage(state.session.trackPoints),
-      },
-      isSimulating: false,
-    })),
+      };
+      return {
+        session: finalSession,
+        completedSessions: [...state.completedSessions, finalSession],
+        isSimulating: false,
+      };
+    }),
 
   addTrackPoint: (point) =>
     set((state) => {
       const newPoints = [...state.session.trackPoints, point];
       const newCoveredArea = calculateCoverage(newPoints);
+      const waterIncrease = point.water ? 0.5 : 0;
       return {
         session: {
           ...state.session,
           trackPoints: newPoints,
           coveredArea: newCoveredArea,
+          waterAmount: state.session.waterAmount + waterIncrease,
+        },
+      };
+    }),
+
+  addTrackPoints: (points) =>
+    set((state) => {
+      const newPoints = [...state.session.trackPoints, ...points];
+      const newCoveredArea = calculateCoverage(newPoints);
+      const waterIncrease = points.filter((p) => p.water).length * 0.5;
+      return {
+        session: {
+          ...state.session,
+          trackPoints: newPoints,
+          coveredArea: newCoveredArea,
+          waterAmount: state.session.waterAmount + waterIncrease,
         },
       };
     }),
