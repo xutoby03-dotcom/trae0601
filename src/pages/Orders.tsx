@@ -42,6 +42,7 @@ export default function Orders() {
 
   const handleSendReminder = useCallback(
     async (order: Order) => {
+      if (order.status === 'picked') return;
       const product = products.find((p) => p.id === order.productId);
       if (!product) return;
 
@@ -297,6 +298,9 @@ export default function Orders() {
                       {productOrders.map((order) => {
                         const remaining = timeRemaining(order.pickupSlot, product.arrivalTime);
                         const isTimeout = order.status === 'timeout' || remaining === '已超时';
+                        const showReminder =
+                          order.status === 'timeout' ||
+                          (order.status === 'pending' && remaining === '已超时');
                         return (
                           <tr
                             key={order.id}
@@ -356,7 +360,7 @@ export default function Orders() {
                             </td>
                             <td className="px-5 py-4">
                               <div className="flex items-center justify-end gap-2">
-                                {isTimeout && (
+                                {showReminder && (
                                   <button
                                     onClick={() => handleSendReminder(order)}
                                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors"
