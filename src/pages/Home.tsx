@@ -7,7 +7,7 @@ import UrgentList from "@/components/UrgentList";
 import MemberStats from "@/components/MemberStats";
 import DryingForm from "@/components/DryingForm";
 import CollectModal from "@/components/CollectModal";
-import { sortByUrgency } from "@/utils/stats";
+import { sortByUrgency, getNeedCollectReasons } from "@/utils/stats";
 import { isOverdue24h } from "@/utils/time";
 import { getActiveDryingCount, getOverdueCount } from "@/utils/stats";
 import type { DryingRecord } from "@/types";
@@ -172,6 +172,7 @@ export default function Home() {
           record={collectRecord}
           onClose={() => setCollectRecord(null)}
           onSuccess={() => setCollectRecord(null)}
+          triggerReasons={getNeedCollectReasons(collectRecord, weather)}
         />
       )}
     </div>

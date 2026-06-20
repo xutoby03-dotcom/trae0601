@@ -8,7 +8,7 @@ interface DryingStore {
   addRecord: (data: Omit<DryingRecord, "id" | "status">) => void;
   collectRecord: (
     id: string,
-    data: { isDry: boolean; isDamp: boolean; needRewash: boolean }
+    data: { isDry: boolean; isDamp: boolean; needRewash: boolean; notes?: string }
   ) => void;
   deleteRecord: (id: string) => void;
   resetToMock: () => void;
@@ -40,6 +40,7 @@ export const useDryingStore = create<DryingStore>((set) => ({
               isDry: data.isDry,
               isDamp: data.isDamp,
               needRewash: data.needRewash,
+              notes: data.notes || r.notes,
             }
           : r
       ),

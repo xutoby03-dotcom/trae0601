@@ -8,9 +8,10 @@ import {
   isPastExpected,
   getProgressPercent,
 } from "@/utils/time";
-import { getStatusText, getStatusChipClass } from "@/utils/stats";
+import { getStatusText, getStatusChipClass, getNeedCollectReasons } from "@/utils/stats";
 import { useMemberStore } from "@/store/memberStore";
-import { MapPin, Clock, User, Package, CheckCircle2, XCircle, AlarmClock } from "lucide-react";
+import { useWeatherStore } from "@/store/weatherStore";
+import { MapPin, Clock, User, Package, CheckCircle2, XCircle, AlarmClock, StickyNote } from "lucide-react";
 import CollectModal from "./CollectModal";
 
 interface Props {
@@ -41,6 +42,8 @@ const clothingEmoji: Record<string, string> = {
 export default function DryingCard({ record, compact, onCollected }: Props) {
   const [showCollect, setShowCollect] = useState(false);
   const { members } = useMemberStore();
+  const { weather } = useWeatherStore();
+  const triggerReasons = getNeedCollectReasons(record, weather);
 
   const member = members.find((m) => m.id === record.ownerId);
   const overdue = isOverdue24h(record.startTime);
@@ -170,18 +173,26 @@ export default function DryingCard({ record, compact, onCollected }: Props) {
                 )}
 
                 {record.status !== "drying" && record.collectedAt && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <CollectStatusItem ok={record.isDry} okText="已干透" badText="未干透" />
-                    <CollectStatusItem ok={!record.isDamp} okText="无返潮" badText="有返潮" />
-                    <CollectStatusItem
-                      ok={!record.needRewash}
-                      okText="无需重洗"
-                      badText="需重洗"
-                      dangerWhenBad
-                    />
-                    <span className="chip bg-sky-100 text-sky-700">
-                      收衣：{formatRelativeTime(record.collectedAt)}
-                    </span>
+                  <div className="space-y-2 pt-1">
+                    <div className="flex flex-wrap gap-2">
+                      <CollectStatusItem ok={record.isDry} okText="已干透" badText="未干透" />
+                      <CollectStatusItem ok={!record.isDamp} okText="无返潮" badText="有返潮" />
+                      <CollectStatusItem
+                        ok={!record.needRewash}
+                        okText="无需重洗"
+                        badText="需重洗"
+                        dangerWhenBad
+                      />
+                      <span className="chip bg-sky-100 text-sky-700">
+                        收衣：{formatRelativeTime(record.collectedAt)}
+                      </span>
+                    </div>
+                    {record.notes && (
+                      <div className="flex items-start gap-2 p-2 rounded-xl bg-sky-50/60 border border-sky-100/60">
+                        <StickyNote className="w-4 h-4 text-sun-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-sky-600 leading-relaxed">{record.notes}</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -200,7 +211,12 @@ export default function DryingCard({ record, compact, onCollected }: Props) {
       </div>
 
       {showCollect && (
-        <CollectModal record={record} onClose={() => setShowCollect(false)} onSuccess={handleCollected} />
+        <CollectModal
+          record={record}
+          onClose={() => setShowCollect(false)}
+          onSuccess={handleCollected}
+          triggerReasons={triggerReasons}
+        />
       )}
     </>
   );
