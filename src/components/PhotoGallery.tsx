@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ImagePlus, X, Trash2, Calendar } from 'lucide-react';
-import type { Photo } from '@/types';
+import type { Photo, Stage } from '@/types';
 import { STAGE_NAMES } from '@/types';
 import { formatDateTime } from '@/utils/time';
 import { compressImage } from '@/utils/image';
 
 interface PhotoGalleryProps {
   photos: Photo[];
+  stages: Stage[];
   stageFilter?: string;
   onAddPhoto?: (photo: Omit<Photo, 'id'>) => void;
   onDeletePhoto?: (id: string) => void;
@@ -14,7 +15,14 @@ interface PhotoGalleryProps {
   stageId: string;
 }
 
-export const PhotoGallery = ({ photos, stageFilter, onAddPhoto, onDeletePhoto, modelId, stageId }: PhotoGalleryProps) => {
+export const PhotoGallery = ({ photos, stages, stageFilter, onAddPhoto, onDeletePhoto, modelId, stageId }: PhotoGalleryProps) => {
+  const stageNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    stages.forEach((s) => {
+      map[s.id] = STAGE_NAMES[s.name] || '其他';
+    });
+    return map;
+  }, [stages]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -87,7 +95,7 @@ export const PhotoGallery = ({ photos, stageFilter, onAddPhoto, onDeletePhoto, m
             <div key={stageId}>
               <h4 className="text-sm font-medium text-studio-copper mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-studio-copper" />
-                {STAGE_NAMES[(stagePhotos[0]?.stageId as any) || 'primer'] || '其他'}
+                {stageNameMap[stageId] || '其他'}
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {stagePhotos.map((photo) => (

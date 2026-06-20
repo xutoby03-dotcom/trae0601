@@ -21,6 +21,7 @@ interface ModelStore extends RootState {
   pauseTimer: (modelId: string) => void;
   resetTimer: (modelId: string) => void;
   completeTimer: (modelId: string) => void;
+  clearTimer: (modelId: string) => void;
   tickTimer: (modelId: string) => void;
   moveToShelf: (modelId: string, reason: ShelfReason) => void;
   restoreFromShelf: (modelId: string) => void;
@@ -287,6 +288,17 @@ export const useModelStore = create<ModelStore>((set, get) => ({
       timers: state.timers.map((t) =>
         t.modelId === modelId
           ? { ...t, remaining: 0, isRunning: false, startTime: undefined }
+          : t
+      ),
+    }));
+  },
+
+  clearTimer: (modelId) => {
+    set((state) => ({
+      ...state,
+      timers: state.timers.map((t) =>
+        t.modelId === modelId
+          ? { ...t, duration: 0, remaining: 0, isRunning: false, startTime: undefined }
           : t
       ),
     }));

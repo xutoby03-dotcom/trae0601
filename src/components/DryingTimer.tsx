@@ -11,7 +11,7 @@ interface DryingTimerProps {
 
 export const DryingTimer = ({ modelId, modelName }: DryingTimerProps) => {
   const timer = useTimer(modelId);
-  const { startTimer, pauseTimer, resetTimer, completeTimer } = useModelStore();
+  const { startTimer, pauseTimer, resetTimer, completeTimer, clearTimer } = useModelStore();
   const [showCustom, setShowCustom] = useState(false);
   const [customMinutes, setCustomMinutes] = useState(30);
 
@@ -158,7 +158,7 @@ export const DryingTimer = ({ modelId, modelName }: DryingTimerProps) => {
       <div className="flex gap-2">
         {timer.remaining === 0 ? (
           <button
-            onClick={() => completeTimer(modelId)}
+            onClick={() => clearTimer(modelId)}
             className="flex-1 py-3 bg-studio-military hover:bg-studio-military/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />

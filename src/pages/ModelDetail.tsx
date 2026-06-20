@@ -339,6 +339,7 @@ export const ModelDetail = () => {
           {activeTab === 'photos' && (
             <PhotoGallery
               photos={modelPhotos}
+              stages={modelStages}
               modelId={model.id}
               stageId={activeStage?.id || modelStages[0]?.id || ''}
               onAddPhoto={addPhoto}
