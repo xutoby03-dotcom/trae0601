@@ -8,7 +8,7 @@ import type {
   MedicineBox,
   Reminder,
 } from '@/types';
-import { computeBorrowStatus, computeItemStatus, generateId } from '@/utils';
+import { computeBorrowStatus, computeItemStatus, generateId, isExpiringSoon, isLowStock } from '@/utils';
 import { mockBoxes, mockBorrows, mockItems, mockReminders } from '@/data/mockData';
 
 interface AppState {
@@ -21,7 +21,7 @@ interface AppState {
   updateBox: (id: string, data: Partial<MedicineBox>) => void;
   deleteBox: (id: string) => void;
 
-  addItem: (data: Omit<InventoryItem, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => void;
+  addItem: (data: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'> & { status?: InventoryItem['status'] }) => void;
   updateItem: (id: string, data: Partial<InventoryItem>) => void;
   deleteItem: (id: string) => void;
 
@@ -70,11 +70,13 @@ export const useAppStore = create<AppState>()(
         const newItem: InventoryItem = {
           ...data,
           id: generateId(),
-          status: 'normal',
+          status: data.status ?? 'normal',
           createdAt: now,
           updatedAt: now,
         };
-        newItem.status = computeItemStatus(newItem);
+        if (!data.status) {
+          newItem.status = computeItemStatus(newItem);
+        }
         set({ items: [...get().items, newItem] });
         get().refreshReminders();
       },
@@ -83,7 +85,9 @@ export const useAppStore = create<AppState>()(
           items: get().items.map(i => {
             if (i.id !== id) return i;
             const updated = { ...i, ...data, updatedAt: dayjs().toISOString() };
-            updated.status = computeItemStatus(updated);
+            if (data.status === undefined) {
+              updated.status = computeItemStatus(updated);
+            }
             return updated;
           }),
         });
@@ -155,8 +159,8 @@ export const useAppStore = create<AppState>()(
         set({ reminders: get().reminders.filter(r => !r.isRead) });
       },
       refreshReminders: () => {
-        const { items, borrows } = get();
-        const existingIds = new Set(get().reminders.map(r => r.relatedId + r.type));
+        const { items, borrows, reminders: currentReminders } = get();
+        const existingIds = new Set(currentReminders.map(r => r.relatedId + r.type));
         const now = dayjs().toISOString();
         const newReminders: Reminder[] = [];
 
@@ -172,7 +176,19 @@ export const useAppStore = create<AppState>()(
               isRead: false,
               createdAt: now,
             });
+          } else if (isExpiringSoon(item.expiryDate) && !existingIds.has(item.id + 'expiry')) {
+            newReminders.push({
+              id: generateId(),
+              type: 'expiry',
+              relatedId: item.id,
+              title: item.name + ' 即将过期',
+              description: '存放格: ' + item.storageCell + '，请尽快处理',
+              level: 'warning',
+              isRead: false,
+              createdAt: now,
+            });
           }
+
           if (item.status === 'damaged' && !existingIds.has(item.id + 'damage')) {
             newReminders.push({
               id: generateId(),
@@ -181,6 +197,19 @@ export const useAppStore = create<AppState>()(
               title: item.name + ' 已破损',
               description: '存放格: ' + item.storageCell + '，请及时处理或更换',
               level: 'danger',
+              isRead: false,
+              createdAt: now,
+            });
+          }
+
+          if (isLowStock(item.quantity) && item.status !== 'damaged' && !existingIds.has(item.id + 'low-stock')) {
+            newReminders.push({
+              id: generateId(),
+              type: 'low-stock',
+              relatedId: item.id,
+              title: item.name + ' 库存不足',
+              description: '当前库存: ' + item.quantity + '，建议及时补货',
+              level: item.quantity <= 2 ? 'danger' : 'warning',
               isRead: false,
               createdAt: now,
             });
@@ -203,7 +232,7 @@ export const useAppStore = create<AppState>()(
         });
 
         if (newReminders.length > 0) {
-          set({ reminders: [...newReminders, ...get().reminders] });
+          set({ reminders: [...newReminders, ...currentReminders] });
         }
       },
     }),

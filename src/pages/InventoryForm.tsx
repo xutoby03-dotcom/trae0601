@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useAppStore } from '@/store';
-import { CATEGORY_LABEL, ItemCategory } from '@/types';
+import { CATEGORY_LABEL, ItemCategory, ItemStatus, ITEM_STATUS_LABEL } from '@/types';
 import { Input, Select, Textarea } from '@/components/FormFields';
 import Button from '@/components/Button';
 
@@ -15,13 +15,22 @@ export default function InventoryForm() {
   const { boxes, items, addItem, updateItem } = useAppStore();
   const existing = items.find(i => i.id === id);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    boxId: string;
+    name: string;
+    category: ItemCategory;
+    expiryDate: string;
+    quantity: number;
+    storageCell: string;
+    status: ItemStatus | '';
+  }>({
     boxId: boxes[0]?.id ?? '',
     name: '',
-    category: 'band-aid' as ItemCategory,
+    category: 'band-aid',
     expiryDate: dayjs().add(1, 'year').format('YYYY-MM-DD'),
     quantity: 10,
     storageCell: '',
+    status: '',
   });
 
   useEffect(() => {
@@ -33,6 +42,7 @@ export default function InventoryForm() {
         expiryDate: existing.expiryDate,
         quantity: existing.quantity,
         storageCell: existing.storageCell,
+        status: existing.status === 'damaged' ? 'damaged' : '',
       });
     }
   }, [existing]);
@@ -43,10 +53,21 @@ export default function InventoryForm() {
       alert('请填写物品名称并选择药箱');
       return;
     }
+    const payload: any = {
+      boxId: form.boxId,
+      name: form.name,
+      category: form.category,
+      expiryDate: form.expiryDate,
+      quantity: form.quantity,
+      storageCell: form.storageCell,
+    };
+    if (form.status === 'damaged') {
+      payload.status = 'damaged';
+    }
     if (isEdit && id) {
-      updateItem(id, form);
+      updateItem(id, payload);
     } else {
-      addItem(form);
+      addItem(payload);
     }
     navigate('/inventory');
   };
@@ -116,12 +137,32 @@ export default function InventoryForm() {
           />
         </div>
 
-        <Input
-          label="存放格"
-          placeholder="如：A1、B2"
-          value={form.storageCell}
-          onChange={e => setForm({ ...form, storageCell: e.target.value })}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="存放格"
+            placeholder="如：A1、B2"
+            value={form.storageCell}
+            onChange={e => setForm({ ...form, storageCell: e.target.value })}
+          />
+          <Select
+            label="物品状态"
+            value={form.status}
+            onChange={e => setForm({ ...form, status: e.target.value as ItemStatus | '' })}
+          >
+            <option value="">自动（根据效期和库存）</option>
+            <option value="normal">{ITEM_STATUS_LABEL.normal}</option>
+            <option value="damaged">{ITEM_STATUS_LABEL.damaged}</option>
+          </Select>
+        </div>
+
+        {form.status === 'damaged' && (
+          <div className="bg-danger-50 rounded-lg p-3 flex items-start gap-2 border border-danger-100">
+            <AlertTriangle className="w-4 h-4 text-danger-600 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-danger-700">
+              标记为破损的物品不计入可用库存，且会在提醒中心产生警告。
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end gap-3 pt-2 border-t border-zinc-50">
           <Link to="/inventory">

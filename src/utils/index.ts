@@ -42,7 +42,6 @@ export function isLowStock(quantity: number): boolean {
 
 export function computeItemStatus(item: InventoryItem): InventoryItem['status'] {
   if (isExpired(item.expiryDate)) return 'expired';
-  if (item.quantity <= 0) return 'damaged';
   if (isLowStock(item.quantity)) return 'low-stock';
   return 'normal';
 }

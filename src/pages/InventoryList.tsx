@@ -8,9 +8,11 @@ import {
   ChevronDown,
   ChevronRight,
   Grid3X3,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { CATEGORY_LABEL, ITEM_STATUS_LABEL, ItemCategory } from '@/types';
+import { CATEGORY_LABEL, ITEM_STATUS_LABEL, ItemCategory, InventoryItem } from '@/types';
 import Button from '@/components/Button';
 
 const statusBadgeClass: Record<string, string> = {
@@ -21,7 +23,7 @@ const statusBadgeClass: Record<string, string> = {
 };
 
 export default function InventoryList() {
-  const { boxes, items, deleteItem } = useAppStore();
+  const { boxes, items, deleteItem, updateItem } = useAppStore();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<ItemCategory | 'all'>('all');
   const [expandedBoxes, setExpandedBoxes] = useState<Set<string>>(new Set(boxes.map(b => b.id)));
@@ -135,6 +137,29 @@ export default function InventoryList() {
                           </td>
                           <td className="px-5 py-3 text-right">
                             <div className="inline-flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title={item.status === 'damaged' ? '取消破损标记' : '标记为破损'}
+                                className={item.status === 'damaged' ? 'text-primary-600 hover:bg-primary-50 hover:text-primary-700' : 'text-warning-600 hover:bg-warning-50 hover:text-warning-700'}
+                                onClick={() => {
+                                  if (item.status === 'damaged') {
+                                    if (confirm('取消破损标记，恢复为正常可用？')) {
+                                      updateItem(item.id, { status: 'normal' } as Partial<InventoryItem>);
+                                    }
+                                  } else {
+                                    if (confirm('确定将该物品标记为破损吗？')) {
+                                      updateItem(item.id, { status: 'damaged' });
+                                    }
+                                  }
+                                }}
+                              >
+                                {item.status === 'damaged' ? (
+                                  <CheckCircle2 className="w-4 h-4" />
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4" />
+                                )}
+                              </Button>
                               <Link to={'/inventory/' + item.id + '/edit'}>
                                 <Button variant="ghost" size="sm">
                                   <Edit2 className="w-4 h-4" />
