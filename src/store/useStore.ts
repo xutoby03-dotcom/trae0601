@@ -166,12 +166,7 @@ export const useStore = create<AppState>((set, get) => ({
   getAnomalyCollections: () => {
     const { collections, distributions } = get();
     return collections
-      .filter((c) => {
-        const dist = distributions.find((d) => d.id === c.distributionId);
-        if (!dist) return c.missingCount > 0;
-        const totalCollected = c.usedCount + c.blankCount + c.missingCount;
-        return totalCollected !== dist.quantity || c.missingCount > 0;
-      })
+      .filter((c) => c.missingCount > 0 || c.abnormalNote.trim() !== "")
       .map((c) => {
         const dist = distributions.find((d) => d.id === c.distributionId);
         return { ...c, roomNumber: dist?.roomNumber || "未知" };
