@@ -40,6 +40,7 @@ function StatCard({
 
 function RecordDetailModal({ record, onClose }: { record: ObservationRecord; onClose: () => void }) {
   const target = getTargetById(record.targetId);
+  const editUrl = `#/record/${record.date}?targetId=${record.targetId}`;
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/80 backdrop-blur-sm"
@@ -191,6 +192,16 @@ function RecordDetailModal({ record, onClose }: { record: ObservationRecord; onC
               <p className="text-[11px] text-nebula-purple/80 mt-1">💡 建议参数：{target.exposureSuggestion}</p>
             </div>
           )}
+
+          <div className="pt-4 border-t border-white/10">
+            <a
+              href={editUrl}
+              onClick={(e) => { e.preventDefault(); onClose(); window.location.hash = editUrl; }}
+              className="btn-primary w-full justify-center"
+            >
+              ✏️ 去修改这条记录
+            </a>
+          </div>
         </div>
       </div>
     </div>

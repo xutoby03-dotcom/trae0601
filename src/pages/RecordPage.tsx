@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   PenLine, Star, Eye, EyeOff, AlertOctagon, Layers, Save,
   Camera, Settings, ChevronDown, ChevronUp, CheckCircle2, Calendar,
@@ -52,10 +52,12 @@ function TargetRecordForm({
   target,
   date,
   existingRecord,
+  defaultExpanded,
 }: {
   target: { id: string; name: string; commonName?: string };
   date: string;
   existingRecord?: ObservationRecord;
+  defaultExpanded?: boolean;
 }) {
   const saveRecord = useAstroStore(s => s.saveRecord);
   const updateRecord = useAstroStore(s => s.updateRecord);
@@ -65,7 +67,7 @@ function TargetRecordForm({
       ? (({ id: _id, createdAt: _c, ...rest }) => rest)(existingRecord)
       : createEmptyRecord(date, target.id, target.name)
   );
-  const [expanded, setExpanded] = useState(!existingRecord);
+  const [expanded, setExpanded] = useState(defaultExpanded ?? !existingRecord);
   const [saved, setSaved] = useState(false);
 
   const update = <K extends keyof typeof form>(k: K, v: typeof form[K]) => {
@@ -400,6 +402,8 @@ function TargetRecordForm({
 
 export default function RecordPage() {
   const params = useParams<{ date: string }>();
+  const [searchParams] = useSearchParams();
+  const focusTargetId = searchParams.get('targetId');
   const date = params.date ?? useAstroStore(s => s.selectedDate);
 
   const checklistTargets = useAstroStore(s => s.checklistTargets);
@@ -473,6 +477,7 @@ export default function RecordPage() {
               target={t}
               date={date}
               existingRecord={existing.get(t.id)}
+              defaultExpanded={focusTargetId === t.id || (!focusTargetId && !existing.get(t.id))}
             />
           ))}
         </div>
