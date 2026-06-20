@@ -45,6 +45,14 @@ export interface Inspection {
   items: InspectionItem[];
 }
 
+export interface TaskItemSource {
+  itemKey: string;
+  itemName: string;
+  rawValue: string;
+  itemValue: string;
+  description?: string;
+}
+
 export interface Task {
   id: string;
   equipmentId: string;
@@ -57,6 +65,8 @@ export interface Task {
   assignee: string;
   description: string;
   abnormalItems: string[];
+  abnormalItemSources: TaskItemSource[];
+  decisionReason: string;
   createdAt: string;
   completedAt?: string;
   handleRecord?: string;

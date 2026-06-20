@@ -108,6 +108,13 @@ function TaskColumn({ title, status, tasks, color, bgColor, icon: Icon, onTaskCl
 
                 <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
 
+                {task.decisionReason && (
+                  <p className="text-xs text-slate-500 mb-3 bg-slate-50 px-2.5 py-1.5 rounded-lg">
+                    <span className="font-medium text-slate-600">判定：</span>
+                    {task.decisionReason}
+                  </p>
+                )}
+
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {task.abnormalItems.map((item, idx) => (
                     <span
@@ -358,6 +365,57 @@ export function TaskDetail() {
                 ))}
               </div>
             </div>
+
+            {task.abnormalItemSources && task.abnormalItemSources.length > 0 && (
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 mb-5">
+                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-primary-600" />
+                  判定依据
+                </h3>
+                <div className="space-y-3">
+                  {task.abnormalItemSources.map((source, idx) => (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-slate-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-slate-700">{source.itemName}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          task.type === 'replace'
+                            ? 'bg-orange-100 text-orange-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {task.type === 'replace' ? '补采' : '维修'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-slate-500">异常值：</span>
+                          <span className="text-slate-700 font-medium">{source.itemValue}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">原始值：</span>
+                          <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono text-xs">
+                            {source.rawValue}
+                          </code>
+                        </div>
+                      </div>
+                      {source.description && (
+                        <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
+                          <span className="text-slate-500">备注：</span>
+                          {source.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {task.decisionReason && (
+                  <div className="mt-3 pt-3 border-t border-slate-200">
+                    <p className="text-sm text-slate-600">
+                      <span className="font-medium text-slate-700">判定理由：</span>
+                      {task.decisionReason}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mb-5">
               <h3 className="font-semibold text-slate-700 mb-2">问题描述</h3>

@@ -82,49 +82,122 @@ export const useAppStore = create<AppState>()(
 
           let newTasks = [...state.tasks];
           if (inspection.status === 'fail') {
-            const abnormalItems = inspection.items
-              .filter((item) => item.isAbnormal)
-              .map((item) => item.itemName);
+            const abnormalInspectionItems = inspection.items.filter((item) => item.isAbnormal);
+            const abnormalItems = abnormalInspectionItems.map((item) => item.itemName);
 
             const equipment = state.equipments.find((eq) => eq.id === inspection.equipmentId);
 
-            const isReplaceNeeded = inspection.items.some((item) => {
-              if (!item.isAbnormal) return false;
-              const { itemKey, rawValue } = item;
-              
+            const getItemDecision = (item: typeof inspection.items[0]) => {
+              const { itemKey, rawValue, itemName } = item;
               switch (itemKey) {
                 case 'agingCondition':
-                  return rawValue === 'severe';
+                  if (rawValue === 'severe') {
+                    return { type: 'replace' as const, reason: `${itemName}为严重老化，需补采` };
+                  } else if (rawValue === 'minor') {
+                    return { type: 'repair' as const, reason: `${itemName}为轻微老化，可维修` };
+                  }
+                  return null;
                 case 'ropeCondition':
-                  return rawValue === 'missing';
+                  if (rawValue === 'missing') {
+                    return { type: 'replace' as const, reason: `${itemName}缺失，需补采` };
+                  } else if (rawValue === 'damaged') {
+                    return { type: 'replace' as const, reason: `${itemName}磨损严重，需更换` };
+                  }
+                  return null;
                 case 'ropeLength':
-                  return parseFloat(rawValue) < 6;
+                  if (parseFloat(rawValue) < 6) {
+                    return { type: 'replace' as const, reason: `${itemName}不足6米，不达标需补采` };
+                  }
+                  return null;
                 case 'crackCondition':
-                  return rawValue === 'severe';
+                  if (rawValue === 'severe') {
+                    return { type: 'replace' as const, reason: `${itemName}为严重裂纹，存在安全隐患需补采` };
+                  } else if (rawValue === 'minor') {
+                    return { type: 'repair' as const, reason: `${itemName}为轻微裂纹，可维修加固` };
+                  }
+                  return null;
                 case 'hookCondition':
-                  return rawValue === 'missing';
+                  if (rawValue === 'missing') {
+                    return { type: 'replace' as const, reason: `${itemName}缺失，需补采` };
+                  } else if (rawValue === 'damaged') {
+                    return { type: 'repair' as const, reason: `${itemName}损坏，可维修` };
+                  }
+                  return null;
                 case 'lengthOk':
-                  return rawValue === 'false';
+                  if (rawValue === 'false') {
+                    return { type: 'replace' as const, reason: `${itemName}不符合要求，需补采` };
+                  }
+                  return null;
                 case 'clarity':
-                  return rawValue === 'unreadable';
+                  if (rawValue === 'unreadable') {
+                    return { type: 'replace' as const, reason: `${itemName}无法辨认，需补采更换` };
+                  } else if (rawValue === 'faded') {
+                    return { type: 'repair' as const, reason: `${itemName}轻微褪色，可清洁或重新喷漆` };
+                  }
+                  return null;
                 case 'fixation':
-                  return rawValue === 'missing';
+                  if (rawValue === 'missing') {
+                    return { type: 'replace' as const, reason: `${itemName}缺失，需重新购置安装` };
+                  } else if (rawValue === 'loose') {
+                    return { type: 'repair' as const, reason: `${itemName}松动，需加固维修` };
+                  }
+                  return null;
                 case 'completeness':
-                  return rawValue === 'empty';
+                  if (rawValue === 'empty') {
+                    return { type: 'replace' as const, reason: `${itemName}为空，需补采补充` };
+                  } else if (rawValue === 'partial') {
+                    return { type: 'repair' as const, reason: `${itemName}部分缺失，可补充维修` };
+                  }
+                  return null;
                 case 'expiryOk':
-                  return rawValue === 'false';
+                  if (rawValue === 'false') {
+                    return { type: 'replace' as const, reason: `药品已过期，需补采更换` };
+                  }
+                  return null;
                 case 'sealCondition':
-                  return rawValue === 'damaged';
+                  if (rawValue === 'damaged') {
+                    return { type: 'repair' as const, reason: `${itemName}破损，需更换封条` };
+                  }
+                  return null;
                 case 'viewBlocked':
-                  return rawValue === 'true';
+                  if (rawValue === 'true') {
+                    return { type: 'replace' as const, reason: `视野被严重遮挡，需调整或更换位置` };
+                  }
+                  return null;
                 case 'working':
-                  return rawValue === 'false';
+                  if (rawValue === 'false') {
+                    return { type: 'replace' as const, reason: `摄像头不工作，需维修或更换` };
+                  }
+                  return null;
                 case 'angleOk':
-                  return rawValue === 'false';
+                  if (rawValue === 'false') {
+                    return { type: 'repair' as const, reason: `角度不合适，需调整` };
+                  }
+                  return null;
                 default:
-                  return false;
+                  return { type: 'repair' as const, reason: `${itemName}存在异常，需处理` };
               }
-            });
+            };
+
+            const abnormalItemSources = abnormalInspectionItems.map((item) => ({
+              itemKey: item.itemKey,
+              itemName: item.itemName,
+              rawValue: item.rawValue,
+              itemValue: item.itemValue,
+              description: item.description,
+            }));
+
+            const decisions = abnormalInspectionItems
+              .map(getItemDecision)
+              .filter(
+                (d): d is { type: 'replace' | 'repair'; reason: string } => d !== null
+              );
+
+            const hasReplace = decisions.some((d) => d.type === 'replace');
+            const taskType = hasReplace ? 'replace' : 'repair';
+            const decisionReason = decisions.length > 0
+              ? decisions.map((d) => d.reason).join('；')
+              : '存在异常需处理';
 
             newTasks.push({
               id: generateId(),
@@ -133,11 +206,13 @@ export const useAppStore = create<AppState>()(
               equipmentCode: equipment?.code,
               equipmentLocation: equipment?.location,
               inspectionId: newInspection.id,
-              type: isReplaceNeeded ? 'replace' : 'repair',
+              type: taskType,
               status: 'pending',
               assignee: equipment?.responsiblePerson || '陈运维',
               description: inspection.remark || abnormalItems.join('、') + '存在异常，需处理',
               abnormalItems,
+              abnormalItemSources,
+              decisionReason,
               createdAt: new Date().toISOString().split('T')[0],
             });
           }
