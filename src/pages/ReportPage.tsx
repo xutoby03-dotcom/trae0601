@@ -26,8 +26,6 @@ export default function ReportPage() {
     }
   }, [inspection?.id, generateReport]);
 
-  const report = inspection?.report;
-
   const aggregatedRisks: AggregatedRisk[] = useMemo(() => {
     if (!inspection) return [];
     return collectAggregatedRisks(inspection);
@@ -49,6 +47,51 @@ export default function ReportPage() {
       totalRiskImpact,
     };
   }, [inspection, aggregatedRisks]);
+
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const report = inspection?.report;
+  const conditionDiscount = inspection
+    ? (CONDITIONS.find(c => c.value === inspection.lensInfo.condition)?.discount ?? 0.8)
+    : 0.8;
+  const conditionDeduction = inspection
+    ? Math.round(inspection.lensInfo.sellerPrice * (1 - conditionDiscount))
+    : 0;
+  const totalPriceImpact = inspection
+    ? aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0)
+    : 0;
+  const priceDiff = conditionDeduction + totalPriceImpact;
+  const priceDiffPct = inspection && inspection.lensInfo.sellerPrice > 0
+    ? (priceDiff / inspection.lensInfo.sellerPrice) * 100
+    : 0;
+
+  const bargainScripts = useMemo(() => {
+    if (!inspection || !report) return [];
+    const { lensInfo } = inspection;
+    const conditionLabel = CONDITIONS.find(c => c.value === lensInfo.condition)?.label || '当前成色';
+
+    const topRisks = aggregatedRisks
+      .filter(r => r.level === 'high' || r.level === 'medium')
+      .slice(0, 3)
+      .map(r => r.name);
+    const riskDesc = topRisks.length > 0 ? `，特别是${topRisks.join('、')}这些问题` : '';
+
+    return [
+      `老板，这个${lensInfo.brand} ${lensInfo.model}我刚才仔细检查过了，${conditionLabel}${riskDesc}，考虑到这些情况，${formatPrice(report.fairPrice)}这个价格我觉得比较合理，您看能出吗？`,
+      `您报的${formatPrice(lensInfo.sellerPrice)}确实符合市场价，但这镜头光成色方面就得折${formatPrice(conditionDeduction)}，再加上这些检测到的问题还得减${formatPrice(totalPriceImpact)}，我最多能给到${formatPrice(report.maxPrice)}，不行就算了哈。`,
+      `诚心要，${formatPrice(report.minPrice)}直接拿，不用再聊了。我也是做过功课来的，这些问题拿回去我还得花钱处理，您再考虑下？`,
+    ];
+  }, [inspection, report, aggregatedRisks, conditionDeduction, totalPriceImpact]);
+
+  const handleCopy = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
 
   if (!inspection || !report || !stats) {
     return (
@@ -90,44 +133,6 @@ export default function ReportPage() {
     a.download = `lens-check-${inspection.lensInfo.brand}-${inspection.lensInfo.model}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const conditionDiscount = CONDITIONS.find(c => c.value === inspection.lensInfo.condition)?.discount ?? 0.8;
-  const conditionDeduction = Math.round(inspection.lensInfo.sellerPrice * (1 - conditionDiscount));
-  const totalPriceImpact = aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0);
-  const priceDiff = conditionDeduction + totalPriceImpact;
-  const priceDiffPct = inspection.lensInfo.sellerPrice > 0 ? (priceDiff / inspection.lensInfo.sellerPrice) * 100 : 0;
-
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  const bargainScripts = useMemo(() => {
-    if (!inspection) return [];
-    const { lensInfo, report } = inspection;
-    if (!report) return [];
-
-    const conditionLabel = CONDITIONS.find(c => c.value === lensInfo.condition)?.label || '当前成色';
-
-    const topRisks = aggregatedRisks
-      .filter(r => r.level === 'high' || r.level === 'medium')
-      .slice(0, 3)
-      .map(r => r.name);
-    const riskDesc = topRisks.length > 0 ? `，特别是${topRisks.join('、')}这些问题` : '';
-
-    return [
-      `老板，这个${lensInfo.brand} ${lensInfo.model}我刚才仔细检查过了，${conditionLabel}${riskDesc}，考虑到这些情况，${formatPrice(report.fairPrice)}这个价格我觉得比较合理，您看能出吗？`,
-      `您报的${formatPrice(lensInfo.sellerPrice)}确实符合市场价，但这镜头光成色方面就得折${formatPrice(conditionDeduction)}，再加上这些检测到的问题还得减${formatPrice(totalPriceImpact)}，我最多能给到${formatPrice(report.maxPrice)}，不行就算了哈。`,
-      `诚心要，${formatPrice(report.minPrice)}直接拿，不用再聊了。我也是做过功课来的，这些问题拿回去我还得花钱处理，您再考虑下？`,
-    ];
-  }, [inspection, aggregatedRisks, conditionDeduction, totalPriceImpact]);
-
-  const handleCopy = async (text: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('复制失败:', err);
-    }
   };
 
   return (
