@@ -23,6 +23,8 @@ interface StoreState {
   showHistoryPanel: boolean;
   pendingDuplicateId: string | null;
   saveToast: string | null;
+  snapToGrid: boolean;
+  gridStep: number;
 
   createNewSetup: () => void;
   loadSetup: (id: string) => void;
@@ -41,6 +43,8 @@ interface StoreState {
   dismissConflictModal: () => void;
   toggleHistoryPanel: () => void;
   setSaveToast: (msg: string | null) => void;
+  setSnapToGrid: (enabled: boolean) => void;
+  setGridStep: (step: number) => void;
 }
 
 const DEFAULT_CAMERA: CameraSettings = {
@@ -92,6 +96,8 @@ export const useLightingStore = create<StoreState>((set, get) => ({
   showHistoryPanel: false,
   pendingDuplicateId: null,
   saveToast: null,
+  snapToGrid: true,
+  gridStep: 5,
 
   createNewSetup: () => {
     set({ currentSetup: createEmptySetup(), selectedDeviceId: null });
@@ -304,4 +310,6 @@ export const useLightingStore = create<StoreState>((set, get) => ({
     set((s) => ({ showHistoryPanel: !s.showHistoryPanel })),
 
   setSaveToast: (msg) => set({ saveToast: msg }),
+  setSnapToGrid: (enabled) => set({ snapToGrid: enabled }),
+  setGridStep: (step) => set({ gridStep: step }),
 }));

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import { useLightingStore } from '@/store/useLightingStore';
 import CanvasDeviceIcon from './CanvasDeviceIcon';
 import {
@@ -7,9 +7,17 @@ import {
   Ruler,
   User,
   Target,
+  Grid3X3,
+  Magnet,
 } from 'lucide-react';
 import type { DeviceCatalogItem } from '@/types';
 import { clamp } from '@/utils/common';
+
+const GRID_STEPS = [
+  { value: 2.5, label: '2.5% · 细' },
+  { value: 5, label: '5% · 标准' },
+  { value: 10, label: '10% · 粗' },
+];
 
 export default function TopDownCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -19,11 +27,24 @@ export default function TopDownCanvas() {
   const addDeviceFromCatalog = useLightingStore((s) => s.addDeviceFromCatalog);
   const updateDevice = useLightingStore((s) => s.updateDevice);
   const removeDevice = useLightingStore((s) => s.removeDevice);
+  const snapToGrid = useLightingStore((s) => s.snapToGrid);
+  const gridStep = useLightingStore((s) => s.gridStep);
+  const setSnapToGrid = useLightingStore((s) => s.setSnapToGrid);
+  const setGridStep = useLightingStore((s) => s.setGridStep);
 
   const [dragDeviceId, setDragDeviceId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [showStepMenu, setShowStepMenu] = useState(false);
+
+  const snap = useCallback(
+    (val: number): number => {
+      if (!snapToGrid) return val;
+      return Math.round(val / gridStep) * gridStep;
+    },
+    [snapToGrid, gridStep]
+  );
 
   const handleMouseDownDevice = useCallback(
     (e: React.MouseEvent, deviceId: string) => {
@@ -46,19 +67,21 @@ export default function TopDownCanvas() {
     (e: React.MouseEvent) => {
       if (!dragDeviceId || !canvasRef.current) return;
       const rect = canvasRef.current.getBoundingClientRect();
-      const x = clamp(
+      const rawX = clamp(
         ((e.clientX - dragOffset.x - rect.left) / rect.width) * 100,
         4,
         96
       );
-      const y = clamp(
+      const rawY = clamp(
         ((e.clientY - dragOffset.y - rect.top) / rect.height) * 100,
         6,
         94
       );
+      const x = snap(rawX);
+      const y = snap(rawY);
       updateDevice(dragDeviceId, { x, y });
     },
-    [dragDeviceId, dragOffset, updateDevice]
+    [dragDeviceId, dragOffset, updateDevice, snap]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -74,14 +97,21 @@ export default function TopDownCanvas() {
         const raw = e.dataTransfer.getData('application/json');
         const item: DeviceCatalogItem = JSON.parse(raw);
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = clamp(((e.clientX - rect.left) / rect.width) * 100, 5, 95);
-        const y = clamp(((e.clientY - rect.top) / rect.height) * 100, 8, 92);
+        const rawX = clamp(((e.clientX - rect.left) / rect.width) * 100, 5, 95);
+        const rawY = clamp(((e.clientY - rect.top) / rect.height) * 100, 8, 92);
+        const x = snap(rawX);
+        const y = snap(rawY);
         addDeviceFromCatalog(item, x, y);
       } catch (_err) {
         /* ignore */
       }
     },
-    [addDeviceFromCatalog]
+    [addDeviceFromCatalog, snap]
+  );
+
+  const currentStepLabel = useMemo(
+    () => GRID_STEPS.find((s) => s.value === gridStep)?.label ?? `${gridStep}%`,
+    [gridStep]
   );
 
   if (!setup) return null;
@@ -100,6 +130,92 @@ export default function TopDownCanvas() {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="relative flex items-center gap-2 pr-2 mr-1 border-r border-studio-800">
+            <button
+              onClick={() => setSnapToGrid(!snapToGrid)}
+              className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md transition-all duration-200
+                         ${
+                           snapToGrid
+                             ? 'bg-amber-glow/15 text-amber-glow border border-amber-glow/40'
+                             : 'text-studio-400 hover:text-studio-200 hover:bg-studio-800 border border-transparent'
+                         }`}
+              title={snapToGrid ? '关闭网格吸附' : '开启网格吸附'}
+            >
+              <Magnet
+                className={`w-4 h-4 transition-transform ${snapToGrid ? 'text-amber-glow' : ''}`}
+                style={snapToGrid ? { filter: 'drop-shadow(0 0 6px rgba(245,158,11,0.6))' } : {}}
+              />
+              <Grid3X3 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-semibold">
+                {snapToGrid ? '吸附开' : '吸附关'}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setShowStepMenu((o) => !o)}
+              disabled={!snapToGrid}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors
+                         ${
+                           snapToGrid
+                             ? 'text-studio-300 hover:bg-studio-800 hover:text-studio-100'
+                             : 'text-studio-600 cursor-not-allowed'
+                         }`}
+              title="设置吸附精度"
+            >
+              <span className="font-mono">{currentStepLabel}</span>
+            </button>
+
+            {showStepMenu && snapToGrid && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setShowStepMenu(false)}
+                />
+                <div className="absolute left-0 top-full mt-1.5 p-1.5 rounded-lg bg-studio-800 border border-studio-700 shadow-2xl z-40 w-36">
+                  {GRID_STEPS.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => {
+                        setGridStep(s.value);
+                        setShowStepMenu(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors
+                                 ${
+                                   s.value === gridStep
+                                     ? 'bg-amber-glow/15 text-amber-glow'
+                                     : 'text-studio-300 hover:bg-studio-700/60'
+                                 }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <span
+            className={`flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-md
+                       ${
+                         snapToGrid
+                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                           : 'bg-studio-800/50 text-studio-500 border border-studio-700'
+                       }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                snapToGrid
+                  ? 'bg-emerald-400 animate-pulse'
+                  : 'bg-studio-500'
+              }`}
+            />
+            {snapToGrid
+              ? '位置将自动对齐网格点'
+              : '自由拖动，无吸附'}
+          </span>
+
+          <div className="w-px h-5 bg-studio-700 mx-0.5" />
+
           <button
             onClick={() => setZoom((z) => clamp(z - 0.1, 0.6, 1.4))}
             className="p-1.5 rounded-md text-studio-400 hover:text-studio-200 hover:bg-studio-800 transition-colors"
