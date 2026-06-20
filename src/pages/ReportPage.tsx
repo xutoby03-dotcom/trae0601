@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Header } from '../components/layout/Header';
 import { useIssueStore } from '../stores/useIssueStore';
 import { useMaintenanceStore } from '../stores/useMaintenanceStore';
+import { useShiftReportStore } from '../stores/useShiftReportStore';
 import { calculateIceScore, getIssueTypeLabel, getSeverityColor, getSeverityLabel, sortIssuesByPriority } from '../utils/severityCalc';
-import { FileText, User, Calendar, Clock, AlertTriangle, Check, Download, Share2, Edit3, Flag, ArrowRight } from 'lucide-react';
-import { mockShiftReports } from '../data/mockData';
+import { FileText, User, Calendar, Clock, AlertTriangle, Check, Download, Share2, Edit3, Flag, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ShiftType } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -12,11 +12,13 @@ import { useNavigate } from 'react-router-dom';
 export default function ReportPage() {
   const { issues } = useIssueStore();
   const { session, completedSessions } = useMaintenanceStore();
+  const { reports, addReport } = useShiftReportStore();
   const [operatorName, setOperatorName] = useState('张师傅');
   const [notes, setNotes] = useState('');
   const [nextShiftNotes, setNextShiftNotes] = useState('');
   const [currentShift, setCurrentShift] = useState<ShiftType>('afternoon');
   const [isEditing, setIsEditing] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const iceScore = calculateIceScore(issues);
   const unresolvedIssues = issues.filter((i) => !i.resolved);
@@ -80,9 +82,51 @@ export default function ReportPage() {
   const closedCount = unresolvedIssues.filter((i) => i.type === 'closed_area').length;
   const debrisCount = unresolvedIssues.filter((i) => i.type === 'ice_debris').length;
 
+  const handleConfirm = useCallback(() => {
+    const topRiskIssue = sortedUnresolved[0];
+    addReport({
+      shift: currentShift,
+      date: new Date().toISOString().split('T')[0],
+      operatorName,
+      iceConditionScore: iceScore,
+      issues: unresolvedIssues,
+      maintenanceCount,
+      notes,
+      nextShiftNotes,
+    });
+    setNotes('');
+    setNextShiftNotes('');
+    setIsEditing(false);
+    setShowToast(true);
+    void topRiskIssue;
+  }, [currentShift, operatorName, iceScore, unresolvedIssues, maintenanceCount, notes, nextShiftNotes, sortedUnresolved, addReport]);
+
+  useEffect(() => {
+    if (!showToast) return;
+    const timer = setTimeout(() => setShowToast(false), 4000);
+    return () => clearTimeout(timer);
+  }, [showToast]);
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Header title="交接报告" subtitle="班次工作交接与冰面状态摘要" />
+
+      <div
+        className={cn(
+          'fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-6 py-3.5 rounded-2xl border shadow-2xl transition-all duration-500',
+          showToast
+            ? 'opacity-100 translate-y-0 bg-emerald-500/95 border-emerald-400 backdrop-blur-sm'
+            : 'opacity-0 -translate-y-4 pointer-events-none bg-emerald-500/95 border-emerald-400'
+        )}
+      >
+        <CheckCircle2 className="w-6 h-6 text-white" />
+        <div>
+          <p className="font-semibold text-white">交接成功</p>
+          <p className="text-sm text-emerald-100">
+            {operatorName} · {shiftLabels[currentShift]}已交接完成
+          </p>
+        </div>
+      </div>
 
       <div className="p-6 space-y-6">
         <div
@@ -490,7 +534,10 @@ export default function ReportPage() {
               </div>
             </div>
 
-            <button className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium hover:from-sky-400 hover:to-blue-500 transition-all shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2">
+            <button
+              onClick={handleConfirm}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium hover:from-sky-400 hover:to-blue-500 transition-all shadow-lg shadow-sky-500/25 flex items-center justify-center gap-2 active:scale-[0.98]"
+            >
               <Check className="w-5 h-5" />
               确认交接
             </button>
@@ -504,24 +551,34 @@ export default function ReportPage() {
           </h3>
 
           <div className="space-y-3">
-            {mockShiftReports.map((report) => (
+            {reports.map((report) => (
               <div
                 key={report.id}
-                className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-center gap-4 hover:border-slate-600/50 transition-all cursor-pointer"
+                className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50 flex items-center gap-4 hover:border-slate-600/50 transition-all"
               >
                 <div className="w-12 h-12 rounded-xl bg-sky-500/20 flex items-center justify-center flex-shrink-0">
                   <FileText className="w-6 h-6 text-sky-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-white">
                       {shiftLabels[report.shift]} · {report.operatorName}
                     </span>
                     <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">
                       {report.date}
                     </span>
+                    <span className="text-xs bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full">
+                      {report.issues.length} 项待办
+                    </span>
+                    {report.issues.filter((i) => i.severity === 'high').length > 0 && (
+                      <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full">
+                        最高风险：{getIssueTypeLabel(report.issues.filter((i) => i.severity === 'high')[0].type)}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-slate-400 mt-1 line-clamp-1">{report.notes}</p>
+                  <p className="text-sm text-slate-400 mt-1 line-clamp-1">
+                    {report.notes || '无备注'}
+                  </p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <div className={cn('text-2xl font-bold font-mono', getScoreColor(report.iceConditionScore))}>
@@ -531,6 +588,11 @@ export default function ReportPage() {
                 </div>
               </div>
             ))}
+            {reports.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-sm">
+                暂无交接记录
+              </div>
+            )}
           </div>
         </div>
       </div>
