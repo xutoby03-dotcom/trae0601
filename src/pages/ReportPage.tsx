@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   CheckCircle, AlertTriangle, XCircle, TrendingDown,
   Tag, FileText, ArrowLeftRight, RefreshCw, Download, Share2,
-  Camera, Clock, AlertCircle
+  Camera, Clock, AlertCircle, Copy, Check, MessageSquare
 } from 'lucide-react';
 import { useInspectionStore } from '@/store/useInspectionStore';
 import {
@@ -97,6 +97,38 @@ export default function ReportPage() {
   const totalPriceImpact = aggregatedRisks.reduce((sum, r) => sum + r.priceImpact, 0);
   const priceDiff = conditionDeduction + totalPriceImpact;
   const priceDiffPct = inspection.lensInfo.sellerPrice > 0 ? (priceDiff / inspection.lensInfo.sellerPrice) * 100 : 0;
+
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const bargainScripts = useMemo(() => {
+    if (!inspection) return [];
+    const { lensInfo, report } = inspection;
+    if (!report) return [];
+
+    const conditionLabel = CONDITIONS.find(c => c.value === lensInfo.condition)?.label || '当前成色';
+
+    const topRisks = aggregatedRisks
+      .filter(r => r.level === 'high' || r.level === 'medium')
+      .slice(0, 3)
+      .map(r => r.name);
+    const riskDesc = topRisks.length > 0 ? `，特别是${topRisks.join('、')}这些问题` : '';
+
+    return [
+      `老板，这个${lensInfo.brand} ${lensInfo.model}我刚才仔细检查过了，${conditionLabel}${riskDesc}，考虑到这些情况，${formatPrice(report.fairPrice)}这个价格我觉得比较合理，您看能出吗？`,
+      `您报的${formatPrice(lensInfo.sellerPrice)}确实符合市场价，但这镜头光成色方面就得折${formatPrice(conditionDeduction)}，再加上这些检测到的问题还得减${formatPrice(totalPriceImpact)}，我最多能给到${formatPrice(report.maxPrice)}，不行就算了哈。`,
+      `诚心要，${formatPrice(report.minPrice)}直接拿，不用再聊了。我也是做过功课来的，这些问题拿回去我还得花钱处理，您再考虑下？`,
+    ];
+  }, [inspection, aggregatedRisks, conditionDeduction, totalPriceImpact]);
+
+  const handleCopy = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-16">
@@ -247,6 +279,39 @@ export default function ReportPage() {
                     <p className="text-gray-300 font-medium">{formatPrice(report.maxPrice)}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-copper-500/10 via-ink-800/50 to-ink-800/50 border border-copper-500/20">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-copper-500/15 text-copper-400 flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-semibold text-white">现场砍价话术</h3>
+                  <p className="text-xs text-gray-500">点复制直接发给卖家</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {bargainScripts.map((script, idx) => (
+                  <div key={idx} className="flex items-start gap-3 p-3 rounded-xl bg-ink-900/60 border border-ink-700/50 hover:border-copper-500/30 transition-colors group">
+                    <p className="flex-1 text-sm text-gray-300 leading-relaxed select-all">{script}</p>
+                    <button
+                      onClick={() => handleCopy(script, idx)}
+                      className="flex-shrink-0 p-2 rounded-lg hover:bg-copper-500/15 text-gray-500 hover:text-copper-400 transition-all"
+                      title="复制话术"
+                    >
+                      {copiedIndex === idx ? (
+                        <div className="flex items-center gap-1">
+                          <Check className="w-4 h-4 text-jade-400" />
+                          <span className="text-xs text-jade-400 font-medium">已复制</span>
+                        </div>
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
