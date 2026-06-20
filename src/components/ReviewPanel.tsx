@@ -22,7 +22,7 @@ interface ReviewPanelProps {
 
 export const ReviewPanel: React.FC<ReviewPanelProps> = ({ feedback, expanded = false }) => {
   const { reviewFeedback } = useFeedbackStore();
-  const { getRouteById } = useRouteStore();
+  const { getRouteById, updateRouteStatus } = useRouteStore();
   const { userName } = useUserStore();
 
   const [isExpanded, setIsExpanded] = useState(expanded);
@@ -31,8 +31,18 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ feedback, expanded = f
 
   const route = getRouteById(feedback.routeId);
 
+  const decisionToStatus: Record<ReviewDecision, import('@/types').RouteStatus> = {
+    keep: 'active',
+    adjust: 'adjusting',
+    retire: 'retired',
+    escalate: 'pending_review',
+  };
+
   const handleDecision = (decision: ReviewDecision) => {
     reviewFeedback(feedback.id, decision, reviewerNote, userName);
+    if (feedback.routeId) {
+      updateRouteStatus(feedback.routeId, decisionToStatus[decision]);
+    }
     setShowDecisionButtons(false);
   };
 

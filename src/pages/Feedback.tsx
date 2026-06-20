@@ -3,7 +3,7 @@ import { FeedbackForm } from '@/components/FeedbackForm';
 import { RouteCard } from '@/components/RouteCard';
 import { useFeedbackStore, useRouteStore } from '@/store';
 import type { Route } from '@/types';
-import { FEEDBACK_TYPE_LABELS } from '@/data/mockData';
+import { FEEDBACK_TYPE_LABELS, STATUS_LABELS } from '@/data/mockData';
 import { cn } from '@/utils/helpers';
 import {
   MessageSquare,
@@ -25,11 +25,13 @@ export const FeedbackPage: React.FC = () => {
 
   const activeRoutes = routes.filter((r) => r.status === 'active' || r.status === 'pending_review');
 
-  const routesWithFeedback = activeRoutes
+  const routesWithFeedback = routes
+    .filter((r) => r.status !== 'retired')
     .map((route) => ({
       route,
       stats: getFeedbackStats(route.id),
     }))
+    .filter((item) => item.stats.total > 0)
     .sort((a, b) => b.stats.total - a.stats.total);
 
   const pendingCount = feedbacks.filter((f) => f.status === 'pending').length;
@@ -121,7 +123,14 @@ export const FeedbackPage: React.FC = () => {
                     <div className="font-medium text-white text-sm truncate">
                       {route.name}
                     </div>
-                    <div className="text-xs text-slate-500">{route.grade}</div>
+                    <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <span>{route.grade}</span>
+                      {route.status !== 'active' && (
+                        <span className="px-1.5 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">
+                          {STATUS_LABELS[route.status]}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-white">{stats.total}</div>
