@@ -4,7 +4,7 @@ export type CleanMethodType = 'water' | 'wipe' | 'uv' | 'water_wipe' | 'special'
 
 export type CleanMethodAction = 'water' | 'wipe' | 'uv' | 'dry';
 
-export type DamageType = 'peeling' | 'loose' | 'mold' | 'crack' | 'other';
+export type DamageType = 'peeling' | 'loose' | 'mold' | 'crack' | 'odor' | 'other';
 
 export type TaskTrigger = 'manual' | 'teething' | 'flu' | 'visitor';
 

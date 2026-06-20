@@ -38,6 +38,7 @@ export const DAMAGE_TYPE_OPTIONS: { value: DamageType; label: string; icon: stri
   { value: 'peeling', label: '掉漆', icon: '🎨' },
   { value: 'loose', label: '松动小零件', icon: '🔩' },
   { value: 'mold', label: '发霉', icon: '🍄' },
+  { value: 'odor', label: '有异味', icon: '👃' },
   { value: 'crack', label: '破损开裂', icon: '💔' },
   { value: 'other', label: '其他问题', icon: '❓' },
 ];

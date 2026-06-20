@@ -92,13 +92,28 @@ export const useAppStore = create<AppState>()(
         const { alerts } = get();
         const newAlerts = [...alerts];
 
-        if (record.hasDamage && record.damageType && (record.damageType === 'peeling' || record.damageType === 'loose' || record.damageType === 'mold')) {
+        if (record.hasDamage && record.damageType && (record.damageType === 'peeling' || record.damageType === 'loose' || record.damageType === 'mold' || record.damageType === 'odor')) {
           const existing = newAlerts.find(a => a.toyId === record.toyId && a.type === record.damageType && a.status === 'pending');
           if (!existing) {
             newAlerts.push({
               id: generateId(),
               toyId: record.toyId,
               type: record.damageType,
+              recordId: record.id,
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+              notes: record.notes,
+            });
+          }
+        }
+
+        if (record.hasOdor) {
+          const existing = newAlerts.find(a => a.toyId === record.toyId && a.type === 'odor' && a.status === 'pending');
+          if (!existing) {
+            newAlerts.push({
+              id: generateId(),
+              toyId: record.toyId,
+              type: 'odor',
               recordId: record.id,
               status: 'pending',
               createdAt: new Date().toISOString(),

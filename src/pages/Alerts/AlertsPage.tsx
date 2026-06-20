@@ -20,6 +20,7 @@ const damageWarnings: Record<DamageType, string> = {
   peeling: '油漆被孩子误食风险',
   loose: '小零件脱落误食窒息风险',
   mold: '霉菌导致过敏/感染风险',
+  odor: '异味可能引发呼吸道不适或霉菌滋生',
   crack: '破损划伤孩子皮肤风险',
   other: '存在未知安全隐患',
 };

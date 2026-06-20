@@ -351,7 +351,7 @@ export default function CleaningFormPage() {
                 <div className="pl-2 animate-fade-in-up">
                   <label className="label-base ml-2">选择破损类型</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                    {DAMAGE_TYPE_OPTIONS.map(opt => {
+                    {DAMAGE_TYPE_OPTIONS.filter(opt => opt.value !== 'odor').map(opt => {
                       const isSelected = damageType === opt.value;
                       return (
                         <button
