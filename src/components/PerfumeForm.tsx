@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import type { PerfumeRecord, ScentNote, TimePoint } from '@/types';
 import { TIME_POINT_LABELS, TIME_POINTS } from '@/types';
-import { ScoreInput } from './ScoreDisplay';
+import { ScoreInput, StarRating } from './ScoreDisplay';
+import { calculateScenes } from '@/utils/sceneClassifier';
+import { SceneTags } from './SceneTags';
 
 interface PerfumeFormProps {
   initialData?: PerfumeRecord;
@@ -19,7 +21,6 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
   const [humidity, setHumidity] = useState(initialData?.humidity || 50);
   const [skinScore, setSkinScore] = useState(initialData?.skinScore || 3);
   const [clothScore, setClothScore] = useState(initialData?.clothScore || 3);
-  const [scenes, setScenes] = useState<string[]>(initialData?.scenes || []);
   const [timeline, setTimeline] = useState<Record<TimePoint, ScentNote>>(
     initialData?.timeline || {
       '0min': { top: '', middle: '', base: '', diffusion: 3 },
@@ -30,11 +31,20 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
   );
   const [expandedTimePoint, setExpandedTimePoint] = useState<TimePoint | null>('0min');
 
-  const handleSceneToggle = (scene: string) => {
-    setScenes((prev) =>
-      prev.includes(scene) ? prev.filter((s) => s !== scene) : [...prev, scene]
-    );
-  };
+  const autoScenes = useMemo(
+    () =>
+      calculateScenes({
+        skinScore,
+        clothScore,
+        humidity,
+        weather,
+        timeline,
+        scentFamily,
+      }),
+    [skinScore, clothScore, humidity, weather, timeline, scentFamily]
+  );
+
+  const avgScore = useMemo(() => (skinScore + clothScore) / 2, [skinScore, clothScore]);
 
   const handleTimelineChange = (timePoint: TimePoint, field: keyof ScentNote, value: string | number) => {
     setTimeline((prev) => ({
@@ -64,16 +74,9 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
       timeline,
       skinScore,
       clothScore,
-      scenes: scenes as PerfumeRecord['scenes'],
+      scenes: autoScenes,
     });
   };
-
-  const sceneOptions = [
-    { value: 'commute', label: '通勤', icon: '💼', color: 'amber' },
-    { value: 'date', label: '约会', icon: '💕', color: 'rose' },
-    { value: 'rainy', label: '雨天', icon: '🌧️', color: 'sky' },
-    { value: 'bedtime', label: '睡前', icon: '🌙', color: 'violet' },
-  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -280,28 +283,50 @@ export function PerfumeForm({ initialData, onSubmit, onCancel }: PerfumeFormProp
         </div>
       </div>
       
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-100">
-        <h3 className="mb-4 font-serif text-xl font-bold text-stone-800">适合场景</h3>
+      <div className="rounded-2xl bg-gradient-to-br from-violet-50 via-rose-50 to-amber-50 p-6 shadow-sm ring-1 ring-violet-100">
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-violet-600" />
+          <h3 className="font-serif text-xl font-bold text-stone-800">
+            智能场景推荐
+          </h3>
+        </div>
         
-        <div className="flex flex-wrap gap-3">
-          {sceneOptions.map((scene) => {
-            const isSelected = scenes.includes(scene.value);
-            const colorClasses = isSelected
-              ? 'bg-stone-800 text-white ring-stone-800'
-              : 'bg-white text-stone-600 ring-stone-200 hover:bg-stone-50';
-            
-            return (
-              <button
-                key={scene.value}
-                type="button"
-                onClick={() => handleSceneToggle(scene.value)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 transition-all ${colorClasses}`}
-              >
-                <span>{scene.icon}</span>
-                <span>{scene.label}</span>
-              </button>
-            );
-          })}
+        <p className="mb-4 text-sm text-stone-600">
+          根据你的评分、湿度、天气和各时间点的扩散范围，系统自动推荐该香水适合的使用场景：
+        </p>
+        
+        <div className="mb-4 rounded-xl bg-white/70 p-4 backdrop-blur-sm">
+          {autoScenes.length > 0 ? (
+            <SceneTags scenes={autoScenes} size="md" />
+          ) : (
+            <p className="text-sm text-stone-500">完善更多信息后将自动推荐场景</p>
+          )}
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3 text-xs text-stone-500 sm:grid-cols-4">
+          <div className="rounded-lg bg-white/60 p-3">
+            <p className="font-medium text-stone-700">综合评分</p>
+            <div className="mt-1 flex items-center gap-1">
+              <StarRating score={Math.round(avgScore)} size="sm" />
+              <span className="text-stone-700">{avgScore.toFixed(1)}</span>
+            </div>
+          </div>
+          <div className="rounded-lg bg-white/60 p-3">
+            <p className="font-medium text-stone-700">平均扩散</p>
+            <p className="mt-1 font-semibold text-stone-700">
+              {(Object.values(timeline).reduce((a, b) => a + b.diffusion, 0) / 4).toFixed(1)} / 5
+            </p>
+          </div>
+          <div className="rounded-lg bg-white/60 p-3">
+            <p className="font-medium text-stone-700">湿度</p>
+            <p className="mt-1 font-semibold text-stone-700">{humidity}%</p>
+          </div>
+          <div className="rounded-lg bg-white/60 p-3">
+            <p className="font-medium text-stone-700">6h留香</p>
+            <p className="mt-1 font-semibold text-stone-700">
+              {timeline['6h'].diffusion >= 2 ? '持久' : timeline['6h'].diffusion >= 1 ? '贴身' : '微弱'}
+            </p>
+          </div>
         </div>
       </div>
       

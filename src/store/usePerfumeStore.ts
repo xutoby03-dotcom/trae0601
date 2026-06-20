@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PerfumeRecord, SceneType, ScentNote, TimePoint } from '@/types';
 import { mockPerfumes } from '@/data/mockData';
+import { calculateScenesFromRecord } from '@/utils/sceneClassifier';
 
 interface PerfumeState {
   perfumes: PerfumeRecord[];
@@ -12,14 +13,22 @@ interface PerfumeState {
   updateTimelineNote: (perfumeId: string, timePoint: TimePoint, note: ScentNote) => void;
 }
 
+function computeScenesForRecord(
+  record: Omit<PerfumeRecord, 'id' | 'createdAt'> | PerfumeRecord
+): SceneType[] {
+  return calculateScenesFromRecord(record);
+}
+
 export const usePerfumeStore = create<PerfumeState>()(
   persist(
     (set, get) => ({
       perfumes: mockPerfumes,
       
       addPerfume: (perfumeData) => {
+        const scenes = computeScenesForRecord(perfumeData);
         const newPerfume: PerfumeRecord = {
           ...perfumeData,
+          scenes,
           id: Date.now().toString(),
           createdAt: new Date().toISOString().split('T')[0],
         };
@@ -30,9 +39,12 @@ export const usePerfumeStore = create<PerfumeState>()(
       
       updatePerfume: (id, updates) => {
         set((state) => ({
-          perfumes: state.perfumes.map((p) =>
-            p.id === id ? { ...p, ...updates } : p
-          ),
+          perfumes: state.perfumes.map((p) => {
+            if (p.id !== id) return p;
+            const merged = { ...p, ...updates };
+            const scenes = computeScenesForRecord(merged);
+            return { ...merged, scenes };
+          }),
         }));
       },
       
@@ -48,11 +60,15 @@ export const usePerfumeStore = create<PerfumeState>()(
       
       updateTimelineNote: (perfumeId, timePoint, note) => {
         set((state) => ({
-          perfumes: state.perfumes.map((p) =>
-            p.id === perfumeId
-              ? { ...p, timeline: { ...p.timeline, [timePoint]: note } }
-              : p
-          ),
+          perfumes: state.perfumes.map((p) => {
+            if (p.id !== perfumeId) return p;
+            const merged = {
+              ...p,
+              timeline: { ...p.timeline, [timePoint]: note },
+            };
+            const scenes = computeScenesForRecord(merged);
+            return { ...merged, scenes };
+          }),
         }));
       },
     }),

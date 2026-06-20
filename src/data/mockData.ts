@@ -1,6 +1,9 @@
 import type { PerfumeRecord } from '@/types';
+import { calculateScenesFromRecord } from '@/utils/sceneClassifier';
 
-export const mockPerfumes: PerfumeRecord[] = [
+type MockBase = Omit<PerfumeRecord, 'scenes'>;
+
+const mockBase: MockBase[] = [
   {
     id: '1',
     brand: 'Jo Malone',
@@ -38,7 +41,6 @@ export const mockPerfumes: PerfumeRecord[] = [
     },
     skinScore: 4,
     clothScore: 5,
-    scenes: ['commute', 'rainy'],
   },
   {
     id: '2',
@@ -77,7 +79,6 @@ export const mockPerfumes: PerfumeRecord[] = [
     },
     skinScore: 5,
     clothScore: 5,
-    scenes: ['date', 'commute'],
   },
   {
     id: '3',
@@ -116,7 +117,6 @@ export const mockPerfumes: PerfumeRecord[] = [
     },
     skinScore: 4,
     clothScore: 5,
-    scenes: ['date', 'bedtime'],
   },
   {
     id: '4',
@@ -155,7 +155,6 @@ export const mockPerfumes: PerfumeRecord[] = [
     },
     skinScore: 5,
     clothScore: 5,
-    scenes: ['commute', 'rainy'],
   },
   {
     id: '5',
@@ -194,6 +193,10 @@ export const mockPerfumes: PerfumeRecord[] = [
     },
     skinScore: 3,
     clothScore: 4,
-    scenes: ['commute', 'bedtime'],
   },
 ];
+
+export const mockPerfumes: PerfumeRecord[] = mockBase.map((record) => ({
+  ...record,
+  scenes: calculateScenesFromRecord(record),
+}));
