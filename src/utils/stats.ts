@@ -1,4 +1,101 @@
-import type { DryingRecord, FamilyMember, MemberStats } from "@/types";
+import type { DryingRecord, FamilyMember, MemberStats, WeatherData } from "@/types";
+
+export type NeedCollectReason =
+  | "overdue24h"
+  | "pastExpected"
+  | "rainy"
+  | "highRainProb"
+  | "windy"
+  | "highHumidity";
+
+export const getNeedCollectReasons = (
+  record: DryingRecord,
+  weather: WeatherData
+): NeedCollectReason[] => {
+  const reasons: NeedCollectReason[] = [];
+  if (record.status !== "drying") return reasons;
+
+  const now = Date.now();
+  if (now - new Date(record.startTime).getTime() > 24 * 3600000) {
+    reasons.push("overdue24h");
+  }
+  if (now > new Date(record.expectedTime).getTime()) {
+    reasons.push("pastExpected");
+  }
+  if (weather.weatherType === "rainy") {
+    reasons.push("rainy");
+  }
+  if (weather.rainProbability >= 60) {
+    reasons.push("highRainProb");
+  }
+  if (weather.weatherType === "windy" || weather.windSpeed >= 10) {
+    reasons.push("windy");
+  }
+  if (weather.humidity >= 80) {
+    reasons.push("highHumidity");
+  }
+
+  return reasons;
+};
+
+export const isNeedCollect = (record: DryingRecord, weather: WeatherData): boolean => {
+  return getNeedCollectReasons(record, weather).length > 0;
+};
+
+export const getPrimaryReason = (
+  record: DryingRecord,
+  weather: WeatherData
+): NeedCollectReason | null => {
+  const reasons = getNeedCollectReasons(record, weather);
+  if (reasons.length === 0) return null;
+  const priority: NeedCollectReason[] = [
+    "overdue24h",
+    "rainy",
+    "windy",
+    "highRainProb",
+    "highHumidity",
+    "pastExpected",
+  ];
+  return priority.find((r) => reasons.includes(r)) || reasons[0];
+};
+
+export const getReasonText = (reason: NeedCollectReason): string => {
+  const map: Record<NeedCollectReason, string> = {
+    overdue24h: "超24小时",
+    pastExpected: "已过预计时间",
+    rainy: "正在下雨",
+    highRainProb: "降雨概率高",
+    windy: "大风天气",
+    highHumidity: "湿度过高",
+  };
+  return map[reason];
+};
+
+export const getReasonColorClass = (reason: NeedCollectReason): string => {
+  if (reason === "overdue24h") return "bg-warn-red/20 text-warn-red animate-pulse";
+  if (reason === "rainy" || reason === "highRainProb" || reason === "windy")
+    return "bg-warn-red/15 text-warn-red";
+  if (reason === "highHumidity") return "bg-sky-200/50 text-sky-700";
+  return "bg-warn-yellow/30 text-amber-700";
+};
+
+export const getReasonEmoji = (reason: NeedCollectReason): React.ReactNode => {
+  if (reason === "overdue24h") return "⏰";
+  if (reason === "rainy" || reason === "highRainProb") return "🌧️";
+  if (reason === "windy") return "💨";
+  if (reason === "highHumidity") return "💧";
+  return "⌛";
+};
+
+export const hasWeatherWarning = (weather: WeatherData): boolean => {
+  return (
+    weather.weatherType === "rainy" ||
+    weather.weatherType === "windy" ||
+    weather.rainProbability >= 60 ||
+    weather.humidity >= 80 ||
+    weather.windSpeed >= 10
+  );
+};
 
 export const getMemberStats = (
   records: DryingRecord[],
@@ -32,35 +129,22 @@ export const getOverdueCount = (records: DryingRecord[]): number => {
   ).length;
 };
 
-export const getUrgentCount = (
-  records: DryingRecord[],
-  riskLevel: number
-): number => {
-  return getNeedCollectRecords(records, riskLevel).length;
-};
-
-export const isNeedCollect = (record: DryingRecord, riskLevel: number): boolean => {
-  if (record.status !== "drying") return false;
-
-  const isOverdue24h = new Date().getTime() - new Date(record.startTime).getTime() > 24 * 3600000;
-  const isPastExpected = new Date().getTime() > new Date(record.expectedTime).getTime();
-  const isHighWeatherRisk = riskLevel >= 2;
-
-  return isOverdue24h || isPastExpected || isHighWeatherRisk;
+export const getUrgentCount = (records: DryingRecord[], weather: WeatherData): number => {
+  return getNeedCollectRecords(records, weather).length;
 };
 
 export const getNeedCollectRecords = (
   records: DryingRecord[],
-  riskLevel: number
+  weather: WeatherData
 ): DryingRecord[] => {
-  return records.filter((r) => isNeedCollect(r, riskLevel));
+  return records.filter((r) => isNeedCollect(r, weather));
 };
 
 export const getNeedCollectCount = (
   records: DryingRecord[],
-  riskLevel: number
+  weather: WeatherData
 ): number => {
-  return getNeedCollectRecords(records, riskLevel).length;
+  return getNeedCollectRecords(records, weather).length;
 };
 
 export const sortByUrgency = (records: DryingRecord[]): DryingRecord[] => {
@@ -76,16 +160,26 @@ export const sortByUrgency = (records: DryingRecord[]): DryingRecord[] => {
 
 export const sortNeedCollectByUrgency = (
   records: DryingRecord[],
-  riskLevel: number
+  weather: WeatherData
 ): DryingRecord[] => {
-  return getNeedCollectRecords(records, riskLevel).sort((a, b) => {
+  return getNeedCollectRecords(records, weather).sort((a, b) => {
+    const priority: NeedCollectReason[] = [
+      "overdue24h",
+      "rainy",
+      "windy",
+      "highRainProb",
+      "highHumidity",
+      "pastExpected",
+    ];
+    const aReason = getPrimaryReason(a, weather);
+    const bReason = getPrimaryReason(b, weather);
+    const aRank = aReason ? priority.indexOf(aReason) : 99;
+    const bRank = bReason ? priority.indexOf(bReason) : 99;
+    if (aRank !== bRank) return aRank - bRank;
+
     const aOverdue = new Date().getTime() - new Date(a.startTime).getTime() > 24 * 3600000 ? 1 : 0;
     const bOverdue = new Date().getTime() - new Date(b.startTime).getTime() > 24 * 3600000 ? 1 : 0;
     if (aOverdue !== bOverdue) return bOverdue - aOverdue;
-
-    const aPastExpected = new Date().getTime() > new Date(a.expectedTime).getTime() ? 1 : 0;
-    const bPastExpected = new Date().getTime() > new Date(b.expectedTime).getTime() ? 1 : 0;
-    if (aPastExpected !== bPastExpected) return bPastExpected - aPastExpected;
 
     return new Date(a.expectedTime).getTime() - new Date(b.expectedTime).getTime();
   });
