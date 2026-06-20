@@ -52,6 +52,10 @@ const router = createBrowserRouter([
         element: <TaskBoard />,
       },
       {
+        path: 'tasks/board',
+        element: <Navigate to="/tasks" replace />,
+      },
+      {
         path: 'tasks/:id',
         element: <TaskDetail />,
       },
