@@ -36,9 +36,9 @@ export const PhotoGallery = ({ photos, stages, onAddPhoto, onDeletePhoto, modelI
   }, [stages]);
 
   const orderedStages = useMemo(() => {
-    return [...stages].sort(
-      (a, b) => STAGE_ORDER.indexOf(a.name) - STAGE_ORDER.indexOf(b.name)
-    );
+    return [...stages]
+      .filter((s) => s.name !== 'completed')
+      .sort((a, b) => STAGE_ORDER.indexOf(a.name) - STAGE_ORDER.indexOf(b.name));
   }, [stages]);
 
   const filteredPhotos = useMemo(() => {
@@ -46,7 +46,16 @@ export const PhotoGallery = ({ photos, stages, onAddPhoto, onDeletePhoto, modelI
     return photos.filter((p) => p.stageId === activeStageFilter);
   }, [photos, activeStageFilter]);
 
-  const uploadStageId = activeStageFilter === 'all' ? defaultStageId : activeStageFilter;
+  const safeDefaultStageId = useMemo(() => {
+    const defaultStage = stages.find((s) => s.id === defaultStageId);
+    if (defaultStage && defaultStage.name !== 'completed') {
+      return defaultStageId;
+    }
+    const lastWorkingStage = orderedStages[orderedStages.length - 1];
+    return lastWorkingStage?.id || defaultStageId;
+  }, [defaultStageId, stages, orderedStages]);
+
+  const uploadStageId = activeStageFilter === 'all' ? safeDefaultStageId : activeStageFilter;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,16 +144,9 @@ export const PhotoGallery = ({ photos, stages, onAddPhoto, onDeletePhoto, modelI
                 disabled={isUploading}
               />
             </label>
-            {activeStageFilter !== 'all' && (
-              <span className="text-xs text-studio-muted">
-                将上传到 <span className="text-studio-copper font-medium">{stageNameMap[activeStageFilter]}</span>
-              </span>
-            )}
-            {activeStageFilter === 'all' && (
-              <span className="text-xs text-studio-muted">
-                将上传到当前阶段
-              </span>
-            )}
+            <span className="text-xs text-studio-muted">
+              将上传到 <span className="text-studio-copper font-medium">{stageNameMap[uploadStageId] || '其他'}</span>
+            </span>
           </div>
         )}
       </div>
