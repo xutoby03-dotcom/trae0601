@@ -145,7 +145,7 @@ export const annotationColorMap: Record<AnnotationType, AnnotationColorInfo> = {
     text: "text-yellow-300",
     border: "border-yellow-400/40",
     solid: "#facc15",
-    label: "车噪",
+    label: "车辆干扰",
     emoji: "🚗",
   },
   voice: {
