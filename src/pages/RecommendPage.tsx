@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Lightbulb, Thermometer, Droplets, Target, TrendingUp, Info, Snowflake, Zap } from 'lucide-react';
+import { Lightbulb, Thermometer, Droplets, Target, TrendingUp, Info, Snowflake, Zap, ChevronDown, ChevronUp, MapPin, Calendar } from 'lucide-react';
 import { useTuneStore } from '@/store/useTuneStore';
 import Card from '@/components/Card';
 import { SNOW_CONDITION_LABELS, WAX_TYPE_LABELS } from '@/types';
@@ -19,6 +19,7 @@ export default function RecommendPage() {
   const [selectedCondition, setSelectedCondition] = useState<SnowCondition>('groomed');
   const [snowTemp, setSnowTemp] = useState(-5);
   const [selectedBoard, setSelectedBoard] = useState<string>('');
+  const [evidenceExpanded, setEvidenceExpanded] = useState(true);
 
   const recommendation = useMemo(() => {
     return getRecommendation(selectedCondition, snowTemp, selectedBoard || undefined);
@@ -289,113 +290,189 @@ export default function RecommendPage() {
               </div>
             </div>
 
-            {recommendation.evidence && (
-              <div className="mt-6 border-t border-white/10 pt-6">
-                <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-cyan-glow" />
-                  历史依据明细
-                </h4>
+            {recommendation.evidence && (() => {
+              const matchedBoard = boards.find((b) => b.id === recommendation.evidence!.matchedTune.boardId);
+              const tune = recommendation.evidence.matchedTune;
 
-                <div className="bg-white/5 rounded-xl p-4 space-y-4">
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="px-2.5 py-1 rounded-full bg-cyan-glow/20 text-cyan-glow font-medium">
-                      命中调校: {recommendation.evidence.matchedTune.date}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-purple-glow/20 text-purple-light font-medium">
-                      雪温差: ±{recommendation.evidence.tempDiff}°C
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">
-                      {recommendation.evidence.feedbackCount} 次试滑
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 font-medium">
-                      综合分: {recommendation.evidence.avgEffectiveScore.toFixed(1)}
-                    </span>
-                  </div>
+              return (
+                <div className="mt-6 border-t border-white/10 pt-6">
+                  <button
+                    onClick={() => setEvidenceExpanded(!evidenceExpanded)}
+                    className="w-full flex items-center justify-between group"
+                  >
+                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-cyan-glow" />
+                      历史依据明细
+                    </h4>
+                    <div className="flex items-center gap-2 text-slate-400 group-hover:text-white transition-colors">
+                      <span className="text-xs">{evidenceExpanded ? '收起' : '展开'}</span>
+                      {evidenceExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </div>
+                  </button>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <div className="text-xs text-slate-400 mb-1">抓雪</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-bold text-cyan-glow">
-                          {recommendation.evidence.avgGrip.toFixed(1)}
+                  {evidenceExpanded && (
+                    <div className="mt-4 bg-white/5 rounded-xl p-4 space-y-4">
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <span className="px-2.5 py-1 rounded-full bg-purple-glow/20 text-purple-light font-medium">
+                          雪温差: ±{recommendation.evidence.tempDiff}°C
                         </span>
-                        <span className="text-xs text-slate-500">/10</span>
+                        <span className="px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">
+                          {recommendation.evidence.feedbackCount} 次试滑
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 font-medium">
+                          综合分: {recommendation.evidence.avgEffectiveScore.toFixed(1)}
+                        </span>
                       </div>
-                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-cyan-glow rounded-full"
-                          style={{ width: `${recommendation.evidence.avgGrip * 10}%` }}
-                        />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="bg-white/5 rounded-lg p-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-cyan-glow/10 flex items-center justify-center">
+                            <Snowflake className="w-4 h-4 text-cyan-glow" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-slate-500">雪板</div>
+                            <div className="text-white font-medium">
+                              {matchedBoard?.name || '未知雪板'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-purple-glow/10 flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-purple-light" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-slate-500">地点</div>
+                            <div className="text-white font-medium">
+                              {tune.location || '未记录'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <Calendar className="w-4 h-4 text-orange-400" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-slate-500">调校日期</div>
+                            <div className="text-white font-medium">{tune.date}</div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-3">
+                          <div className="text-xs text-slate-500 mb-1">刃角设置</div>
+                          <div className="text-white font-medium">
+                            侧刃 <span className="text-cyan-glow">{tune.sideEdgeAngle}°</span>
+                            <span className="mx-2 text-slate-600">·</span>
+                            底刃 <span className="text-purple-light">{tune.baseEdgeAngle}°</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-white/5 rounded-lg p-3 sm:col-span-2">
+                          <div className="text-xs text-slate-500 mb-1">打蜡方案</div>
+                          <div className="text-white font-medium">
+                            <span className="text-blue-400">{WAX_TYPE_LABELS[tune.waxType]}</span>
+                            <span className="mx-2 text-slate-600">·</span>
+                            打蜡温度 <span className="text-orange-400">{tune.waxTemp}°C</span>
+                            <span className="mx-2 text-slate-600">·</span>
+                            当时雪温 <span className="text-cyan-glow">{tune.snowTemp}°C</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-white/10">
+                        <div className="text-xs text-slate-500 mb-3">试滑均分</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <div className="text-xs text-slate-400 mb-1">抓雪</div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xl font-bold text-cyan-glow">
+                                {recommendation.evidence.avgGrip.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-slate-500">/10</span>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-cyan-glow rounded-full"
+                                style={{ width: `${recommendation.evidence.avgGrip * 10}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <div className="text-xs text-slate-400 mb-1">换刃</div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xl font-bold text-purple-light">
+                                {recommendation.evidence.avgEdgeChange.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-slate-500">/10</span>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-purple-light rounded-full"
+                                style={{ width: `${recommendation.evidence.avgEdgeChange * 10}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <div className="text-xs text-slate-400 mb-1">抖动</div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-xl font-bold text-blue-400">
+                                {recommendation.evidence.avgChatter.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-slate-500">/10</span>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-400 rounded-full"
+                                style={{ width: `${recommendation.evidence.avgChatter * 10}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <div className="text-xs text-slate-400 mb-1">速度损失 ↓</div>
+                            <div className="flex items-baseline gap-1">
+                              <span
+                                className={cn(
+                                  'text-xl font-bold',
+                                  recommendation.evidence.avgSpeedLoss <= 3
+                                    ? 'text-green-400'
+                                    : recommendation.evidence.avgSpeedLoss <= 6
+                                    ? 'text-yellow-400'
+                                    : 'text-red-400'
+                                )}
+                              >
+                                {recommendation.evidence.avgSpeedLoss.toFixed(1)}
+                              </span>
+                              <span className="text-xs text-slate-500">/10</span>
+                            </div>
+                            <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                              <div
+                                className={cn(
+                                  'h-full rounded-full',
+                                  recommendation.evidence.avgSpeedLoss <= 3
+                                    ? 'bg-green-400'
+                                    : recommendation.evidence.avgSpeedLoss <= 6
+                                    ? 'bg-yellow-400'
+                                    : 'bg-red-400'
+                                )}
+                                style={{ width: `${recommendation.evidence.avgSpeedLoss * 10}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <div className="text-xs text-slate-400 mb-1">换刃</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-bold text-purple-light">
-                          {recommendation.evidence.avgEdgeChange.toFixed(1)}
-                        </span>
-                        <span className="text-xs text-slate-500">/10</span>
-                      </div>
-                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-purple-light rounded-full"
-                          style={{ width: `${recommendation.evidence.avgEdgeChange * 10}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <div className="text-xs text-slate-400 mb-1">抖动</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-bold text-blue-400">
-                          {recommendation.evidence.avgChatter.toFixed(1)}
-                        </span>
-                        <span className="text-xs text-slate-500">/10</span>
-                      </div>
-                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-400 rounded-full"
-                          style={{ width: `${recommendation.evidence.avgChatter * 10}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <div className="text-xs text-slate-400 mb-1">速度损失 ↓</div>
-                      <div className="flex items-baseline gap-1">
-                        <span
-                          className={cn(
-                            'text-xl font-bold',
-                            recommendation.evidence.avgSpeedLoss <= 3
-                              ? 'text-green-400'
-                              : recommendation.evidence.avgSpeedLoss <= 6
-                              ? 'text-yellow-400'
-                              : 'text-red-400'
-                          )}
-                        >
-                          {recommendation.evidence.avgSpeedLoss.toFixed(1)}
-                        </span>
-                        <span className="text-xs text-slate-500">/10</span>
-                      </div>
-                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={cn(
-                            'h-full rounded-full',
-                            recommendation.evidence.avgSpeedLoss <= 3
-                              ? 'bg-green-400'
-                              : recommendation.evidence.avgSpeedLoss <= 6
-                              ? 'bg-yellow-400'
-                              : 'bg-red-400'
-                          )}
-                          style={{ width: `${recommendation.evidence.avgSpeedLoss * 10}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </Card>
 
           <Card>
