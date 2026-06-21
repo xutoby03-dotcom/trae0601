@@ -59,32 +59,33 @@ export function generateSuggestions(
 ): AdjustmentSuggestion[] {
   if (anomalies.length === 0) return []
 
-  const anomalyRatio = observations.length > 0
-    ? anomalies.reduce((sum, a) => sum + a.dayIndices.length, 0) / schedules.length
-    : 0
-
-  if (anomalyRatio < 0.2 && !anomalies.some(a => a.severity === 'critical')) return []
-
   const sorted = [...schedules].sort((a, b) => a.dayIndex - b.dayIndex)
   const suggestions: AdjustmentSuggestion[] = []
 
   const hasExtension = anomalies.some(a => a.type === 'extension')
+  const hasFeeding = anomalies.some(a => a.type === 'feeding')
   const hasCollision = anomalies.some(a => a.type === 'collision')
+  const hasFloat = anomalies.some(a => a.type === 'float')
+
+  const lastAnomalyDay = Math.max(...anomalies.flatMap(a => a.dayIndices))
 
   for (let i = 1; i < sorted.length; i++) {
     const prev = sorted[i - 1]
     const curr = sorted[i]
+
+    if (curr.dayIndex <= lastAnomalyDay) continue
 
     const blueDelta = Math.abs(curr.blueRatio - prev.blueRatio)
     const whiteDelta = Math.abs(curr.whiteRatio - prev.whiteRatio)
     const purpleDelta = Math.abs(curr.purpleRatio - prev.purpleRatio)
     const brightDelta = Math.abs(curr.brightness - prev.brightness)
 
-    const shouldSlow = hasExtension || hasCollision
     const anyDelta = blueDelta + whiteDelta + purpleDelta + brightDelta
     if (anyDelta === 0) continue
 
-    const factor = shouldSlow ? 0.3 : 0.5
+    const factor = (hasExtension || hasCollision) ? 0.3
+      : (hasFeeding || hasFloat) ? 0.5
+      : 0.5
 
     const sBlue = Math.round(prev.blueRatio + (curr.blueRatio - prev.blueRatio) * factor)
     const sWhite = Math.round(prev.whiteRatio + (curr.whiteRatio - prev.whiteRatio) * factor)
@@ -103,10 +104,14 @@ export function generateSuggestions(
         suggestedPurple: sPurple,
         suggestedBrightness: sBright,
         reason: hasExtension
-          ? '舒展度异常：建议将光变化幅度降低至原计划的30%，优先稳定蓝光比例'
+          ? '舒展度异常：将后续光变化幅度降至原计划的30%，优先稳定蓝光比例'
           : hasCollision
-            ? '撞壁异常：建议大幅减缓亮度变化，降低白光增幅'
-            : '检测到异常指标：建议将光变化幅度降低至原计划的50%',
+            ? '撞壁异常：大幅减缓亮度变化，降低白光增幅至30%'
+            : hasFeeding
+              ? '摄食异常：将后续光变化幅度降至原计划的50%，减少应激刺激'
+              : hasFloat
+                ? '漂浮异常：将后续光变化幅度降至原计划的50%，减缓调光节奏'
+                : '检测到异常指标：建议放慢调光节奏',
       })
     }
   }
