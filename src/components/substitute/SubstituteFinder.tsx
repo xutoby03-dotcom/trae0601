@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { UserX, Search, Award, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Sparkles, ChevronUp, ChevronDown, X, History, UserCheck, MapPin } from 'lucide-react';
+import { UserX, Search, Award, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Sparkles, ChevronUp, ChevronDown, X, History, UserCheck, MapPin, Shield } from 'lucide-react';
 import { useStageStore } from '@/stores/stageStore';
 import { useMembersStore } from '@/stores/membersStore';
 import { findBestSubstitutes, formatDelta, getDeltaColorClass } from '@/engine/substituteEngine';
@@ -97,6 +97,37 @@ interface CandidateResultCardProps {
   onApply: () => void;
 }
 
+function DeltaBadge({
+  label,
+  delta,
+  warnThreshold = -8,
+}: {
+  label: string;
+  delta: number;
+  warnThreshold?: number;
+}) {
+  const isBadDrop = delta <= warnThreshold;
+  let className = 'rounded-md px-1.5 py-0.5 flex items-center gap-0.5 font-bold tabular-nums border ';
+  if (delta > 0) {
+    className += 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+  } else if (delta === 0) {
+    className += 'bg-white/[0.03] text-white/40 border-white/5';
+  } else if (isBadDrop) {
+    className += 'bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse';
+  } else {
+    className += 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+  }
+  const icon = delta > 0 ? <TrendingUp className="h-2.5 w-2.5" /> : delta < 0 ? <TrendingDown className="h-2.5 w-2.5" /> : <Minus className="h-2.5 w-2.5" />;
+  return (
+    <div className={className}>
+      <span className="text-[8px] font-medium opacity-80">{label}</span>
+      {icon}
+      <span className="text-[9px]">{formatDelta(delta)}</span>
+      {isBadDrop && <AlertTriangle className="h-2.5 w-2.5 ml-0.5" />}
+    </div>
+  );
+}
+
 function CandidateResultCard({
   rank,
   candidate,
@@ -111,15 +142,24 @@ function CandidateResultCard({
     candidate.impactScore <= 15 ? 'text-emerald-400' : candidate.impactScore <= 30 ? 'text-green-400' : candidate.impactScore <= 45 ? 'text-amber-400' : 'text-rose-400';
   const impactLabel =
     candidate.impactScore <= 15 ? '影响极小' : candidate.impactScore <= 30 ? '影响较小' : candidate.impactScore <= 45 ? '有一定影响' : '影响较大';
+  const isLowRisk = candidate.impactScore < 30;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-white/[0.03] overflow-hidden">
       {rank === 1 && (
         <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-amber-400 to-amber-600" />
       )}
+      {isLowRisk && (
+        <div className="absolute right-0 top-0">
+          <div className="flex items-center gap-0.5 rounded-bl-lg bg-gradient-to-l from-emerald-500/30 to-emerald-400/20 px-2 py-0.5 text-[8px] font-bold text-emerald-300 border-b border-l border-emerald-500/30">
+            <Shield className="h-2.5 w-2.5" />
+            低风险
+          </div>
+        </div>
+      )}
       <div className={`p-3 ${rank === 1 ? 'pl-4' : ''}`}>
         <div className="mb-2 flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 pr-10">
             <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold ${
               rank === 1
                 ? 'bg-gradient-to-br from-amber-400 to-yellow-500 text-[#1a1a2e] shadow-md shadow-amber-500/30'
@@ -128,7 +168,7 @@ function CandidateResultCard({
               {rank === 1 ? <Award className="h-4 w-4" /> : rank}
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-sm font-semibold text-white truncate">{substituteMember.name}</span>
                 {rank === 1 && (
                   <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">
@@ -164,46 +204,51 @@ function CandidateResultCard({
           <ImpactBar value={candidate.impactScore} />
         </div>
 
-        <div className="grid grid-cols-4 gap-1 mb-3 text-center rounded-lg bg-black/20 p-2">
+        <div className="grid grid-cols-2 gap-1 mb-2 text-center rounded-lg bg-black/20 p-2">
           <div>
-            <p className="text-[9px] text-white/40">原评分</p>
+            <p className="text-[9px] text-white/40">原综合</p>
             <p className="text-sm font-bold text-white/70 tabular-nums">{originalScore}</p>
           </div>
           <div>
-            <p className="text-[9px] text-white/40">新评分</p>
+            <p className="text-[9px] text-white/40">新综合</p>
             <p className="text-sm font-bold text-amber-300 tabular-nums">{candidate.newScore.overall}</p>
           </div>
-          <div>
-            <p className="text-[9px] text-white/40">平衡</p>
-            <p className={`text-sm font-bold tabular-nums ${getDeltaColorClass(candidate.balanceDelta)}`}>
-              {formatDelta(candidate.balanceDelta)}
-            </p>
+        </div>
+
+        <div className="mb-3">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[9px] text-white/40">三维度变化</span>
+            <span className="text-[8px] text-rose-300/80 flex items-center gap-0.5">
+              <AlertTriangle className="h-2 w-2" /> ≤-8 警告
+            </span>
           </div>
-          <div>
-            <p className="text-[9px] text-white/40">清晰</p>
-            <p className={`text-sm font-bold tabular-nums ${getDeltaColorClass(candidate.clarityDelta)}`}>
-              {formatDelta(candidate.clarityDelta)}
-            </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <DeltaBadge label="平衡" delta={candidate.balanceDelta} />
+            <DeltaBadge label="清晰" delta={candidate.clarityDelta} />
+            <DeltaBadge label="融合" delta={candidate.blendDelta} />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] mb-2 flex-wrap">
-          <span className="text-white/40">融合度变化:</span>
-          {candidate.blendDelta > 0 ? (
-            <span className="flex items-center gap-0.5 text-emerald-400"><TrendingUp className="h-3 w-3" /> +{candidate.blendDelta}</span>
-          ) : candidate.blendDelta < 0 ? (
-            <span className="flex items-center gap-0.5 text-rose-400"><TrendingDown className="h-3 w-3" /> {candidate.blendDelta}</span>
-          ) : (
-            <span className="flex items-center gap-0.5 text-white/40"><Minus className="h-3 w-3" /> 0</span>
-          )}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-2 py-1.5">
+            <MapPin className="h-3 w-3 flex-shrink-0 text-teal-400" />
+            <span className="text-[9px] text-white/50">预览站位</span>
+            <div className="ml-auto flex items-center gap-1">
+              <span className="rounded bg-teal-500/20 px-1.5 py-px text-[9px] font-bold text-teal-300">
+                第{candidate.recommendedRow + 1}排
+              </span>
+              <span className="rounded bg-cyan-500/20 px-1.5 py-px text-[9px] font-bold text-cyan-300">
+                第{candidate.recommendedCol + 1}列
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onApply}
+            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-emerald-500/90 to-teal-500/90 px-3 py-1.5 text-[11px] font-semibold text-white shadow-md transition hover:from-emerald-400 hover:to-teal-400"
+          >
+            ✨ 应用
+          </button>
         </div>
-
-        <button
-          onClick={onApply}
-          className="w-full rounded-lg bg-gradient-to-r from-emerald-500/90 to-teal-500/90 py-1.5 text-[11px] font-semibold text-white shadow-md transition hover:from-emerald-400 hover:to-teal-400"
-        >
-          ✨ 应用此替补方案
-        </button>
       </div>
     </div>
   );
