@@ -210,7 +210,24 @@ export function evaluateShots(shots: ShotItem[], altitudeLimit: number, windSpee
     const issues: string[] = [];
     const alternatives: ShotItem['alternatives'] = [];
 
-    if (altitudeLimit > 0 && shot.requiredAltitude > altitudeLimit) {
+    const isNoFlyZone = altitudeLimit === 0;
+    const exceedsLimit = altitudeLimit > 0 && shot.requiredAltitude > altitudeLimit;
+
+    if (isNoFlyZone && shot.requiredAltitude > 0) {
+      issues.push(`该区域为禁飞区，禁止任何高度飞行`);
+      alternatives.push({
+        name: '转移至外围安全区',
+        description: '转移至禁飞区边缘以外的安全区域拍摄',
+        altitude: 120,
+        reason: '核心区域完全禁飞，需迁至空域允许范围外',
+      });
+      alternatives.push({
+        name: '改用地面机位',
+        description: '使用地面稳定器或三脚架进行地面拍摄',
+        altitude: 0,
+        reason: '禁飞区内完全禁止升空，可考虑替代拍摄方案',
+      });
+    } else if (exceedsLimit) {
       issues.push(`限高 ${altitudeLimit}m，镜头需 ${shot.requiredAltitude}m`);
       alternatives.push({
         name: '降低高度拍摄',
@@ -238,9 +255,10 @@ export function evaluateShots(shots: ShotItem[], altitudeLimit: number, windSpee
 
     let status: ShotItem['status'] = 'safe';
     if (issues.length > 0) {
+      const hasNoFlyIssue = issues.some((i) => i.includes('禁飞区'));
       const hasAltitudeIssue = issues.some((i) => i.includes('限高'));
       const hasWindIssue = issues.some((i) => i.includes('风速'));
-      status = hasAltitudeIssue ? 'danger' : hasWindIssue ? 'caution' : 'safe';
+      status = hasNoFlyIssue ? 'danger' : hasAltitudeIssue ? 'danger' : hasWindIssue ? 'caution' : 'safe';
     }
 
     return { ...shot, issues, alternatives, status };
