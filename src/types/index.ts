@@ -26,6 +26,7 @@ export interface Scheme {
   gridRows: number;
   gridCols: number;
   positions: StagePosition[];
+  auditionScores: AuditionScore[];
   createdAt: string;
   updatedAt: string;
   overallScore: number;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import type { Scheme } from '@/types';
+import type { Scheme, AuditionScore } from '@/types';
 import { now, generateId } from '@/utils/helpers';
+import { useAuditionStore } from './auditionStore';
 
 interface SchemeState {
   savedSchemes: Scheme[];
@@ -18,12 +19,18 @@ interface SchemeState {
   getSchemesForCompare: () => Scheme[];
 }
 
-const STORAGE_KEY = 'choir_saved_schemes_v1';
+const STORAGE_KEY = 'choir_saved_schemes_v2';
 
 function loadFromStorage(): Scheme[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Scheme[];
+      return parsed.map(s => {
+        if (!s.auditionScores) s.auditionScores = [];
+        return s;
+      });
+    }
   } catch {}
   return [];
 }
@@ -40,8 +47,10 @@ export const useSchemeStore = create<SchemeState>((set, get) => ({
   compareMode: false,
 
   saveCurrentScheme: (scheme) => {
+    const auditionScores = (useAuditionStore.getState().getScores(scheme.id) || []).map<AuditionScore>(s => ({ ...s }));
     const saved: Scheme = {
       ...scheme,
+      auditionScores,
       id: generateId('sch'),
       createdAt: now(),
       updatedAt: now(),

@@ -26,6 +26,7 @@ interface AuditionState {
   getScores: (schemeId: string) => AuditionScore[];
   getLatestScore: (schemeId: string) => AuditionScore | undefined;
   computeDraftOverall: () => number;
+  importScoresForScheme: (newSchemeId: string, scores: AuditionScore[]) => void;
 }
 
 const STORAGE_KEY = 'choir_audition_scores_v1';
@@ -128,5 +129,23 @@ export const useAuditionStore = create<AuditionState>((set, get) => ({
   computeDraftOverall: () => {
     const s = get();
     return Math.round(s.draftBalance * 0.4 + s.draftClarity * 0.3 + s.draftBlend * 0.3);
+  },
+
+  importScoresForScheme: (newSchemeId, scores) => {
+    set((s) => {
+      const remapped: AuditionScore[] = scores.map(sc => ({
+        ...sc,
+        id: generateId('sc'),
+        schemeId: newSchemeId,
+      }));
+      const existing = s.scores[newSchemeId] || [];
+      const merged = [...existing, ...remapped];
+      const next = {
+        ...s.scores,
+        [newSchemeId]: merged,
+      };
+      saveToStorage(next);
+      return { scores: next };
+    });
   },
 }));

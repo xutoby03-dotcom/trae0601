@@ -78,6 +78,13 @@ export function buildInitialScheme(members: Member[]): Scheme {
     }
   }
 
+  const auditionScores: AuditionScore[] = MOCK_AUDITION_SCORES.map(s => ({
+    ...s,
+    id: generateId('sc'),
+    schemeId,
+    recordedAt: now(),
+  }));
+
   return {
     id: schemeId,
     name: '经典混声排布方案',
@@ -85,6 +92,7 @@ export function buildInitialScheme(members: Member[]): Scheme {
     gridRows: rows,
     gridCols: cols,
     positions,
+    auditionScores,
     createdAt: now(),
     updatedAt: now(),
     overallScore: 78,

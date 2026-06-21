@@ -47,6 +47,7 @@ function createBlankScheme(): Scheme {
     gridRows: rows,
     gridCols: cols,
     positions: emptyPositions(schemeId, rows, cols),
+    auditionScores: [],
     createdAt: now(),
     updatedAt: now(),
     overallScore: 0,
@@ -56,7 +57,11 @@ function createBlankScheme(): Scheme {
 function loadFromStorage(): Scheme {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.auditionScores) parsed.auditionScores = [];
+      return parsed;
+    }
   } catch {}
   return buildInitialScheme(MOCK_MEMBERS);
 }
