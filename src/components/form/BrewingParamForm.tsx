@@ -4,15 +4,15 @@ import { Input, Select } from '@/components/common/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { useBlindTestStore } from '@/store/useBlindTestStore';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { POUR_METHODS } from '@/types';
 import type { BrewingParam } from '@/types';
 import { getBlindCodeColor } from '@/utils/helpers';
 
 export function BrewingParamForm() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
   const currentTest = useBlindTestStore((state) => state.currentBlindTest);
+  const id = currentTest?.id;
   const setBrewingParam = useBlindTestStore((state) => state.setBrewingParam);
 
   const samples = currentTest?.waterSamples || [];

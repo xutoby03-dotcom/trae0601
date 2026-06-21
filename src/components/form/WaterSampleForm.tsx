@@ -4,7 +4,7 @@ import { Input, Textarea } from '@/components/common/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { useBlindTestStore } from '@/store/useBlindTestStore';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type { BlindCode, WaterSample } from '@/types';
 import { getBlindCodeColor } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
@@ -12,8 +12,8 @@ import { Label } from '@/components/common/Input';
 
 export function WaterSampleForm() {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
   const currentTest = useBlindTestStore((state) => state.currentBlindTest);
+  const id = currentTest?.id;
   const addWaterSample = useBlindTestStore((state) => state.addWaterSample);
   const removeWaterSample = useBlindTestStore((state) => state.removeWaterSample);
   const updateWaterSample = useBlindTestStore((state) => state.updateWaterSample);
