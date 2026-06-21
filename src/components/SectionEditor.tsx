@@ -113,11 +113,13 @@ export function SectionEditor({
     setAddForm({ name: '', type: 'verse', startTime: '0', endTime: '30' });
   };
 
-  const getSectionTagCount = (sectionId: string) =>
-    tags.filter((t) => t.sectionId === sectionId).length;
+  const getTagsInSection = (section: Section) =>
+    tags.filter((t) => t.time >= section.startTime && t.time <= section.endTime);
 
-  const getSectionUnresolvedCount = (sectionId: string) =>
-    tags.filter((t) => t.sectionId === sectionId && t.status !== 'resolved').length;
+  const getSectionTagCount = (section: Section) => getTagsInSection(section).length;
+
+  const getSectionUnresolvedCount = (section: Section) =>
+    getTagsInSection(section).filter((t) => t.status !== 'resolved').length;
 
   return (
     <div className="space-y-3">
@@ -220,8 +222,8 @@ export function SectionEditor({
         ) : (
           sections.map((section) => {
             const isEditing = editingId === section.id;
-            const tagCount = getSectionTagCount(section.id);
-            const unresolvedCount = getSectionUnresolvedCount(section.id);
+            const tagCount = getSectionTagCount(section);
+            const unresolvedCount = getSectionUnresolvedCount(section);
 
             if (isEditing) {
               return (

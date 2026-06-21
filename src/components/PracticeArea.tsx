@@ -1,4 +1,4 @@
-import { Target, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Target, ChevronRight } from 'lucide-react';
 import type { Section, Tag, Member } from '@/types';
 import { SECTION_TYPE_LABELS } from '@/types';
 import { formatTimeShort } from '@/utils';
@@ -16,12 +16,25 @@ interface SectionSummary {
   earliestTime: number;
 }
 
+function findSectionForTag(tag: Tag, sections: Section[]): Section | null {
+  for (const section of sections) {
+    if (tag.time >= section.startTime && tag.time <= section.endTime) {
+      return section;
+    }
+  }
+  return null;
+}
+
 export function PracticeArea({ sections, tags, members, onJumpToTime }: PracticeAreaProps) {
   const unresolvedTags = tags.filter((t) => t.status !== 'resolved');
+  const sortedSections = [...sections].sort((a, b) => a.startTime - b.startTime);
 
-  const sectionSummaries: SectionSummary[] = sections
+  const sectionSummaries: SectionSummary[] = sortedSections
     .map((section) => {
-      const sectionTags = unresolvedTags.filter((t) => t.sectionId === section.id);
+      const sectionTags = unresolvedTags.filter((t) => {
+        const s = findSectionForTag(t, sortedSections);
+        return s?.id === section.id;
+      });
       if (sectionTags.length === 0) return null;
       const earliest = sectionTags.reduce((min, t) => (t.time < min ? t.time : min), Infinity);
       return {
@@ -33,7 +46,7 @@ export function PracticeArea({ sections, tags, members, onJumpToTime }: Practice
     .filter((s): s is SectionSummary => s !== null)
     .sort((a, b) => a.earliestTime - b.earliestTime);
 
-  const orphanTags = unresolvedTags.filter((t) => !t.sectionId);
+  const orphanTags = unresolvedTags.filter((t) => !findSectionForTag(t, sortedSections));
 
   if (unresolvedTags.length === 0) {
     return (
