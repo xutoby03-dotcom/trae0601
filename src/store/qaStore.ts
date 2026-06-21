@@ -55,6 +55,7 @@ interface QAStore {
   getFilteredQuestions: () => Question[];
   getAnsweredWithRecords: () => Array<{ question: Question; answer: AnswerRecord }>;
   exportMinutes: () => string;
+  exportFollowupMinutes: () => string;
 
   resetAll: () => void;
 }
@@ -450,6 +451,52 @@ export const useQAStore = create<QAStore>((set, get) => ({
         lines.push('');
       });
     }
+
+    return lines.join('\n');
+  },
+
+  exportFollowupMinutes: () => {
+    const { event, getAnsweredWithRecords } = get();
+    const answeredList = getAnsweredWithRecords().filter(
+      (item) => item.answer.followUpMaterials && item.answer.followUpMaterials.trim()
+    );
+
+    const formatTime = (ts: number) => {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate()
+      ).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(
+        d.getMinutes()
+      ).padStart(2, '0')}`;
+    };
+
+    const sourceLabel = (s: string) => (s === 'onsite' ? '现场' : '线上');
+
+    const lines: string[] = [];
+    lines.push(`# ${event.title} — 课后资料 / 待办汇总`);
+    lines.push('');
+    lines.push(`> 生成时间：${formatTime(Date.now())}`);
+    lines.push(`> 仅包含有课后补充资料的回答（共 ${answeredList.length} 条）`);
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+
+    answeredList.forEach((item, idx) => {
+      const { question: q, answer: a } = item;
+      lines.push(`### ${idx + 1}. [${q.topic}] ${q.content.slice(0, 30)}${q.content.length > 30 ? '…' : ''}`);
+      lines.push('');
+      lines.push(`- **提问者**：${q.asker}（${sourceLabel(q.source)}）`);
+      lines.push(`- **讲者**：${a.speakerName || '讲者'}`);
+      lines.push('');
+      lines.push(`**回应摘要**：${a.summary}`);
+      lines.push('');
+      lines.push(`📚 **课后补充资料 / 待办**：`);
+      lines.push('');
+      lines.push(a.followUpMaterials);
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    });
 
     return lines.join('\n');
   },

@@ -77,6 +77,7 @@ export default function HostConsolePage() {
   const getFilteredQuestions = useQAStore((s) => s.getFilteredQuestions);
   const getAnsweredWithRecords = useQAStore((s) => s.getAnsweredWithRecords);
   const exportMinutes = useQAStore((s) => s.exportMinutes);
+  const exportFollowupMinutes = useQAStore((s) => s.exportFollowupMinutes);
   const voteQuestion = useQAStore((s) => s.voteQuestion);
 
   const [tab, setTab] = useState<Tab>('queue');
@@ -99,6 +100,8 @@ export default function HostConsolePage() {
   const [topicModalOpen, setTopicModalOpen] = useState(false);
   const [topicTarget, setTopicTarget] = useState<Question | null>(null);
   const [topicDraft, setTopicDraft] = useState('');
+
+  const [followupOnly, setFollowupOnly] = useState(false);
 
   const filteredList = useMemo(() => {
     const list = getFilteredQuestions();
@@ -138,6 +141,14 @@ export default function HostConsolePage() {
   }, [questions, event.topics]);
 
   const answeredRecords = useMemo(() => getAnsweredWithRecords(), [getAnsweredWithRecords]);
+
+  const filteredAnsweredRecords = useMemo(
+    () =>
+      followupOnly
+        ? answeredRecords.filter((r) => r.answer.followUpMaterials && r.answer.followUpMaterials.trim())
+        : answeredRecords,
+    [answeredRecords, followupOnly]
+  );
 
   useEffect(() => {
     setTitleDraft(event.title);
@@ -217,7 +228,7 @@ export default function HostConsolePage() {
   };
 
   const handleExport = () => {
-    const content = exportMinutes();
+    const content = followupOnly ? exportFollowupMinutes() : exportMinutes();
     const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -226,7 +237,8 @@ export default function HostConsolePage() {
     const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(
       today.getDate()
     ).padStart(2, '0')}`;
-    a.download = `${event.title}-问答纪要-${dateStr}.md`;
+    const suffix = followupOnly ? '-课后资料汇总' : '-问答纪要';
+    a.download = `${event.title}${suffix}-${dateStr}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -568,14 +580,31 @@ export default function HostConsolePage() {
 
           {tab === 'answered' && (
             <div className="answered-list">
-              {answeredRecords.length === 0 ? (
+              <div className="answered-toolbar">
+                <Badge variant="muted" showDot={false}>
+                  {followupOnly
+                    ? `${filteredAnsweredRecords.length} 条有课后资料`
+                    : `共 ${answeredRecords.length} 条已回答`}
+                </Badge>
+                <button
+                  className={`followup-toggle ${followupOnly ? 'active' : ''}`}
+                  onClick={() => setFollowupOnly(!followupOnly)}
+                >
+                  📚 只看有课后资料
+                </button>
+              </div>
+              {filteredAnsweredRecords.length === 0 ? (
                 <Card padding="lg" className="empty-card">
-                  <div className="empty-icon">✅</div>
-                  <div className="empty-title">还没有回答记录</div>
-                  <div className="empty-desc">在队列中完成回答后，记录会自动出现在这里</div>
+                  <div className="empty-icon">{followupOnly ? '📚' : '✅'}</div>
+                  <div className="empty-title">{followupOnly ? '没有带课后资料的回答' : '还没有回答记录'}</div>
+                  <div className="empty-desc">
+                    {followupOnly
+                      ? '当前筛选下无结果，点击上方按钮回到全部'
+                      : '在队列中完成回答后，记录会自动出现在这里'}
+                  </div>
                 </Card>
               ) : (
-                answeredRecords.map((item, idx) => (
+                filteredAnsweredRecords.map((item, idx) => (
                   <Card key={item.question.id} padding="md" className="answered-card">
                     <div className="answered-header">
                       <span className="answered-num">#{idx + 1}</span>
@@ -616,11 +645,19 @@ export default function HostConsolePage() {
             <Card padding="lg" className="minutes-preview">
               <div className="minutes-preview-header">
                 <h3><FileText size={18} /> 纪要预览（导出为 Markdown）</h3>
-                <Button size="sm" leftIcon={<Download size={14} />} onClick={handleExport}>
-                  下载文件
-                </Button>
+                <div className="minutes-header-actions">
+                  <button
+                    className={`followup-toggle ${followupOnly ? 'active' : ''}`}
+                    onClick={() => setFollowupOnly(!followupOnly)}
+                  >
+                    📚 只看有课后资料
+                  </button>
+                  <Button size="sm" leftIcon={<Download size={14} />} onClick={handleExport}>
+                    下载文件
+                  </Button>
+                </div>
               </div>
-              <pre className="markdown-preview">{exportMinutes()}</pre>
+              <pre className="markdown-preview">{followupOnly ? exportFollowupMinutes() : exportMinutes()}</pre>
             </Card>
           )}
         </main>
