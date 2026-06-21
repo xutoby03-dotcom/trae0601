@@ -1,7 +1,23 @@
-import { History, Plus, Archive, CheckCircle, Droplets, Sun, CloudSun } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { History, Plus, Archive, CheckCircle, Droplets, Sun, CloudSun, Filter } from 'lucide-react';
 import type { Trial } from '@/types';
 import { fiberDirectionLabels } from '@/types';
 import { cn } from '@/lib/utils';
+
+type FilterKey = 'all' | 'missing_notes' | 'selected' | 'archived';
+
+interface FilterOption {
+  key: FilterKey;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const FILTER_OPTIONS: FilterOption[] = [
+  { key: 'all', label: '全部', icon: null },
+  { key: 'missing_notes', label: '小记有空', icon: <Droplets className="w-3.5 h-3.5" /> },
+  { key: 'selected', label: '已入选', icon: <CheckCircle className="w-3.5 h-3.5" /> },
+  { key: 'archived', label: '已归档', icon: <Archive className="w-3.5 h-3.5" /> },
+];
 
 interface TrialVersionListProps {
   trials: Trial[];
@@ -37,19 +53,26 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getMissingNotes(trial: Trial): string[] {
-  const missing: string[] = [];
-  const stateLabelMap: Record<string, string> = {
-    wet: '湿态',
-    half_dry: '半干',
-    full_dry: '全干',
-  };
-  trial.photos.forEach((photo) => {
-    if (!photo.note || photo.note.trim().length === 0) {
-      missing.push(stateLabelMap[photo.state]);
-    }
-  });
-  return missing;
+function hasMissingNotes(trial: Trial): boolean {
+  return trial.photos.some((photo) => !photo.note || photo.note.trim().length === 0);
+}
+
+function matchesFilter(trial: Trial, filter: FilterKey): boolean {
+  switch (filter) {
+    case 'missing_notes':
+      return hasMissingNotes(trial);
+    case 'selected':
+      return trial.isSelected;
+    case 'archived':
+      return trial.isArchived;
+    default:
+      return true;
+  }
+}
+
+function getFilterCount(trials: Trial[], filter: FilterKey): number {
+  if (filter === 'all') return trials.length;
+  return trials.filter((t) => matchesFilter(t, filter)).length;
 }
 
 export default function TrialVersionList({
@@ -58,9 +81,32 @@ export default function TrialVersionList({
   onSelect,
   onCreateNew,
 }: TrialVersionListProps) {
-  const sortedTrials = [...trials].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+
+  const sortedTrials = useMemo(
+    () => [...trials].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [trials]
   );
+
+  const filteredTrials = useMemo(
+    () => sortedTrials.filter((t) => matchesFilter(t, activeFilter)),
+    [sortedTrials, activeFilter]
+  );
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterKey, number> = {
+      all: trials.length,
+      missing_notes: 0,
+      selected: 0,
+      archived: 0,
+    };
+    trials.forEach((t) => {
+      if (hasMissingNotes(t)) counts.missing_notes++;
+      if (t.isSelected) counts.selected++;
+      if (t.isArchived) counts.archived++;
+    });
+    return counts;
+  }, [trials]);
 
   return (
     <div className="space-y-4">
@@ -70,15 +116,59 @@ export default function TrialVersionList({
           <h3 className="text-lg font-hei font-bold text-ink-900">试配版本</h3>
         </div>
         <span className="text-sm text-ink-700 font-hei">
-          共 {trials.length} 个版本
+          {activeFilter === 'all'
+            ? `共 ${trials.length} 个版本`
+            : `筛选 ${filteredTrials.length} / ${trials.length}`
+          }
         </span>
       </div>
 
+      {/* 筛选栏 */}
+      <div className="flex items-center gap-1.5 p-1 bg-parchment-200/80 rounded-lg">
+        <Filter className="w-4 h-4 text-ink-700/50 ml-2 flex-shrink-0" />
+        {FILTER_OPTIONS.map((opt) => {
+          const count = filterCounts[opt.key];
+          const isActive = activeFilter === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setActiveFilter(opt.key)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-hei font-medium',
+                'transition-all duration-200 whitespace-nowrap',
+                isActive
+                  ? 'bg-parchment-50 text-ink-900 shadow-sm'
+                  : 'text-ink-700/70 hover:text-ink-900 hover:bg-parchment-100'
+              )}
+            >
+              {opt.icon}
+              <span>{opt.label}</span>
+              <span className={cn(
+                'ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-hei',
+                isActive
+                  ? 'bg-ochre-500/15 text-ochre-600'
+                  : 'bg-parchment-300/60 text-ink-700/60'
+              )}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 版本列表 */}
       <div className="relative">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-parchment-300" />
 
         <div className="space-y-4">
-          {sortedTrials.map((trial) => {
+          {filteredTrials.length === 0 && (
+            <div className="pl-14 py-8 text-center">
+              <p className="text-ink-700/50 font-hei text-sm">此筛选条件下暂无版本</p>
+            </div>
+          )}
+
+          {filteredTrials.map((trial) => {
             const isSelected = trial.id === currentTrialId;
             const averageScore = getAverageScore(trial);
             const fullDryPhoto = getFullDryPhoto(trial);
