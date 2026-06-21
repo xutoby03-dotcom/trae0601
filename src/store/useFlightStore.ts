@@ -101,7 +101,17 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
   },
 
   removeBattery: (id) => {
-    set((state) => ({ batteries: state.batteries.filter((b) => b.id !== id) }));
+    set((state) => {
+      const remaining = state.batteries.filter((b) => b.id !== id);
+      const fallbackBatteryId = remaining[0]?.id || '';
+      return {
+        batteries: remaining,
+        highlightedBatteryId: state.highlightedBatteryId === id ? null : state.highlightedBatteryId,
+        shots: state.shots.map((s) =>
+          s.batteryId === id ? { ...s, batteryId: fallbackBatteryId } : s
+        ),
+      };
+    });
   },
 
   addShot: () => {
