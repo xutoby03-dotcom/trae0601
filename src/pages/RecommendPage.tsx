@@ -201,11 +201,17 @@ export default function RecommendPage() {
       {recommendation && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card
+            onClick={() => {
+              if (recommendation.evidence) {
+                setEvidenceExpanded(!evidenceExpanded);
+              }
+            }}
             className={cn(
               'lg:col-span-2 border transition-colors',
               recommendation.hasHistoricalData
                 ? 'bg-gradient-to-br from-cyan-glow/10 to-purple-glow/10 border-cyan-glow/20'
-                : 'bg-white/5 border-white/10'
+                : 'bg-white/5 border-white/10',
+              recommendation.evidence && 'cursor-pointer hover:border-cyan-glow/40'
             )}
           >
             <div className="flex items-start justify-between mb-6">
@@ -251,28 +257,40 @@ export default function RecommendPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white/5 rounded-xl p-4 text-center">
+              <div className={cn(
+                'bg-white/5 rounded-xl p-4 text-center transition-colors',
+                recommendation.evidence && 'cursor-pointer hover:bg-white/10'
+              )}>
                 <Target className="w-6 h-6 text-cyan-glow mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white mb-1">
                   {recommendation.sideEdgeAngle}°
                 </div>
                 <div className="text-xs text-slate-400">侧刃角度</div>
               </div>
-              <div className="bg-white/5 rounded-xl p-4 text-center">
+              <div className={cn(
+                'bg-white/5 rounded-xl p-4 text-center transition-colors',
+                recommendation.evidence && 'cursor-pointer hover:bg-white/10'
+              )}>
                 <Target className="w-6 h-6 text-purple-light mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white mb-1">
                   {recommendation.baseEdgeAngle}°
                 </div>
                 <div className="text-xs text-slate-400">底刃角度</div>
               </div>
-              <div className="bg-white/5 rounded-xl p-4 text-center">
+              <div className={cn(
+                'bg-white/5 rounded-xl p-4 text-center transition-colors',
+                recommendation.evidence && 'cursor-pointer hover:bg-white/10'
+              )}>
                 <Droplets className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white mb-1">
                   {WAX_TYPE_LABELS[recommendation.waxType]}
                 </div>
                 <div className="text-xs text-slate-400">蜡的类型</div>
               </div>
-              <div className="bg-white/5 rounded-xl p-4 text-center">
+              <div className={cn(
+                'bg-white/5 rounded-xl p-4 text-center transition-colors',
+                recommendation.evidence && 'cursor-pointer hover:bg-white/10'
+              )}>
                 <Thermometer className="w-6 h-6 text-orange-400 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-white mb-1">
                   {recommendation.waxTemp}°C
@@ -297,7 +315,10 @@ export default function RecommendPage() {
               return (
                 <div className="mt-6 border-t border-white/10 pt-6">
                   <button
-                    onClick={() => setEvidenceExpanded(!evidenceExpanded)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEvidenceExpanded(!evidenceExpanded);
+                    }}
                     className="w-full flex items-center justify-between group"
                   >
                     <h4 className="text-sm font-medium text-white flex items-center gap-2">
