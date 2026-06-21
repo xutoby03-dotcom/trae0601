@@ -11,29 +11,54 @@ import { SEASON_LABELS } from '@/types';
 export function BoardDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getBoardById, getBoardItemsByBoardId, removeFabricFromBoard, reorderBoardItems } = useBoardStore();
-  const { fabrics, init: initFabrics } = useFabricStore();
+  const { boards, boardItems, init: initBoards, getBoardById, getBoardItemsByBoardId, removeFabricFromBoard, reorderBoardItems } = useBoardStore();
+  const { fabrics, initialized: fabricsInitialized, init: initFabrics } = useFabricStore();
   const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
+  const [boardsInitialized, setBoardsInitialized] = useState(false);
 
   useEffect(() => {
     initFabrics();
   }, [initFabrics]);
 
+  useEffect(() => {
+    if (fabricsInitialized && fabrics.length > 0 && !boardsInitialized) {
+      initBoards(fabrics);
+      setBoardsInitialized(true);
+    }
+  }, [fabricsInitialized, fabrics.length, boardsInitialized, initBoards, fabrics]);
+
   const board = id ? getBoardById(id) : undefined;
-  const boardItems = id ? getBoardItemsByBoardId(id) : [];
-  
-  const fabricsWithItems: { fabric: Fabric; item: BoardItem }[] = boardItems
+  const items = id ? getBoardItemsByBoardId(id) : [];
+
+  const fabricsWithItems: { fabric: Fabric; item: BoardItem }[] = items
     .map((item) => {
       const fabric = fabrics.find((f) => f.id === item.fabricId);
       return fabric ? { fabric, item } : null;
     })
     .filter(Boolean) as { fabric: Fabric; item: BoardItem }[];
 
+  if (!fabricsInitialized || !boardsInitialized) {
+    return (
+      <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#8B5A3C]/20 border-t-[#8B5A3C] rounded-full animate-spin" />
+          <p className="text-[#8B5A3C]/70">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!board) {
     return (
       <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
         <div className="text-center">
           <h2 className="font-serif text-2xl text-[#8B5A3C] mb-4">候选板不存在</h2>
+          <div className="mb-4">
+            <p className="text-[#8B5A3C]/50 text-sm mb-2">调试信息：</p>
+            <p className="text-xs text-[#8B5A3C]/40">
+              候选板数量: {boards.length} · 候选板条目: {boardItems.length}
+            </p>
+          </div>
           <button
             onClick={() => navigate('/boards')}
             className="px-6 py-2 bg-[#8B5A3C] text-white rounded-lg"

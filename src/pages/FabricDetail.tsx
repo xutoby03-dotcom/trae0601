@@ -12,23 +12,35 @@ import type { TouchDimensions } from '@/types';
 export function FabricDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getFabricById, deleteFabric, init: initFabrics } = useFabricStore();
+  const { fabrics, initialized: fabricsInitialized, getFabricById, deleteFabric, init: initFabrics } = useFabricStore();
   const { boards, init: initBoards, addFabricToBoard, addBoard, isFabricInBoard } = useBoardStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [boardsInitialized, setBoardsInitialized] = useState(false);
 
   useEffect(() => {
     initFabrics();
   }, [initFabrics]);
 
   useEffect(() => {
-    const fabrics = useFabricStore.getState().fabrics;
-    if (fabrics.length > 0) {
+    if (fabricsInitialized && fabrics.length > 0 && !boardsInitialized) {
       initBoards(fabrics);
+      setBoardsInitialized(true);
     }
-  }, [initBoards]);
+  }, [fabricsInitialized, fabrics.length, boardsInitialized, initBoards, fabrics]);
 
   const fabric = id ? getFabricById(id) : undefined;
+
+  if (!fabricsInitialized || !boardsInitialized) {
+    return (
+      <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#8B5A3C]/20 border-t-[#8B5A3C] rounded-full animate-spin" />
+          <p className="text-[#8B5A3C]/70">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!fabric) {
     return (

@@ -6,21 +6,22 @@ import { useFabricStore } from '@/store/fabricStore';
 
 export function BoardList() {
   const { boards, boardItems, init: initBoards, addBoard, deleteBoard } = useBoardStore();
-  const { fabrics, init: initFabrics } = useFabricStore();
+  const { fabrics, initialized: fabricsInitialized, init: initFabrics } = useFabricStore();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardDesc, setNewBoardDesc] = useState('');
+  const [boardsInitialized, setBoardsInitialized] = useState(false);
 
   useEffect(() => {
     initFabrics();
   }, [initFabrics]);
 
   useEffect(() => {
-    const currentFabrics = useFabricStore.getState().fabrics;
-    if (currentFabrics.length > 0) {
-      initBoards(currentFabrics);
+    if (fabricsInitialized && fabrics.length > 0 && !boardsInitialized) {
+      initBoards(fabrics);
+      setBoardsInitialized(true);
     }
-  }, [initBoards]);
+  }, [fabricsInitialized, fabrics.length, boardsInitialized, initBoards, fabrics]);
 
   const getFabricsForBoard = (boardId: string) => {
     const items = boardItems.filter((bi) => bi.boardId === boardId);
@@ -50,6 +51,17 @@ export function BoardList() {
       deleteBoard(boardId);
     }
   };
+
+  if (!fabricsInitialized || !boardsInitialized) {
+    return (
+      <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#8B5A3C]/20 border-t-[#8B5A3C] rounded-full animate-spin" />
+          <p className="text-[#8B5A3C]/70">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F4ED]">

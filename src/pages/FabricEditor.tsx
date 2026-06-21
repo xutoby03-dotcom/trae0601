@@ -8,12 +8,23 @@ import type { FabricFormData } from '@/types';
 export function FabricEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getFabricById, addFabric, updateFabric, init: initFabrics } = useFabricStore();
+  const { initialized: fabricsInitialized, getFabricById, addFabric, updateFabric, init: initFabrics } = useFabricStore();
   const isEditing = id && id !== 'new';
 
   useEffect(() => {
     initFabrics();
   }, [initFabrics]);
+
+  if (!fabricsInitialized) {
+    return (
+      <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#8B5A3C]/20 border-t-[#8B5A3C] rounded-full animate-spin" />
+          <p className="text-[#8B5A3C]/70">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   const existingFabric = isEditing ? getFabricById(id!) : undefined;
 

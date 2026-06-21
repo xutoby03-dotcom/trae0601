@@ -10,21 +10,23 @@ import { filterFabrics } from '@/utils/filterEngine';
 import type { Fabric } from '@/types';
 
 export function FabricList() {
-  const { fabrics, init: initFabrics } = useFabricStore();
+  const { fabrics, initialized: fabricsInitialized, init: initFabrics } = useFabricStore();
   const { boards, init: initBoards, addFabricToBoard, addBoard } = useBoardStore();
   const { criteria, activePresetId, applyPreset, clearPreset, getPresets } = useFilterStore();
   const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [boardsInitialized, setBoardsInitialized] = useState(false);
 
   useEffect(() => {
     initFabrics();
   }, [initFabrics]);
 
   useEffect(() => {
-    if (fabrics.length > 0) {
+    if (fabricsInitialized && fabrics.length > 0 && !boardsInitialized) {
       initBoards(fabrics);
+      setBoardsInitialized(true);
     }
-  }, [fabrics.length, initBoards]);
+  }, [fabricsInitialized, fabrics.length, boardsInitialized, initBoards, fabrics]);
 
   const filteredFabrics = filterFabrics(fabrics, criteria);
   const presets = getPresets();
@@ -54,6 +56,17 @@ export function FabricList() {
       .filter((b) => useBoardStore.getState().isFabricInBoard(fabricId, b.id))
       .map((b) => b.id);
   };
+
+  if (!fabricsInitialized || !boardsInitialized) {
+    return (
+      <div className="min-h-screen bg-[#F8F4ED] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#8B5A3C]/20 border-t-[#8B5A3C] rounded-full animate-spin" />
+          <p className="text-[#8B5A3C]/70">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F4ED]">
