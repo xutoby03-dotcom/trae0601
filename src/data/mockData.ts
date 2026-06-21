@@ -150,6 +150,7 @@ export const defaultShots: ShotItem[] = [
     description: '从东南方向 200m 高度俯拍主体建筑全景，缓慢向前推进',
     requiredAltitude: 200,
     maxWindSpeed: 8,
+    estimatedDuration: 5,
     batteryId: 'bat-1',
     status: 'safe',
     issues: [],
@@ -162,6 +163,7 @@ export const defaultShots: ShotItem[] = [
     description: '30m 高度环绕主体建筑飞行一圈，展现建筑细节与周边环境',
     requiredAltitude: 30,
     maxWindSpeed: 5,
+    estimatedDuration: 8,
     batteryId: 'bat-1',
     status: 'safe',
     issues: [],
@@ -174,6 +176,7 @@ export const defaultShots: ShotItem[] = [
     description: '150m 高度悬停拍摄 10 分钟延时，记录光影变化',
     requiredAltitude: 150,
     maxWindSpeed: 6,
+    estimatedDuration: 12,
     batteryId: 'bat-2',
     status: 'safe',
     issues: [],
@@ -186,6 +189,7 @@ export const defaultShots: ShotItem[] = [
     description: '10m 高度沿主通道直线穿越，展现空间纵深感',
     requiredAltitude: 10,
     maxWindSpeed: 4,
+    estimatedDuration: 3,
     batteryId: 'bat-1',
     status: 'safe',
     issues: [],
@@ -198,6 +202,7 @@ export const defaultShots: ShotItem[] = [
     description: '80m 高度从西面向东拍摄逆光剪影效果',
     requiredAltitude: 80,
     maxWindSpeed: 10,
+    estimatedDuration: 6,
     batteryId: 'bat-2',
     status: 'safe',
     issues: [],
@@ -205,10 +210,18 @@ export const defaultShots: ShotItem[] = [
   },
 ];
 
-export function evaluateShots(shots: ShotItem[], altitudeLimit: number, windSpeed: number): ShotItem[] {
+export function evaluateShots(
+  shots: ShotItem[],
+  altitudeLimit: number,
+  windSpeed: number,
+  batteries: Battery[]
+): ShotItem[] {
+  const batteryMap = new Map(batteries.map((b) => [b.id, b]));
+
   return shots.map((shot) => {
     const issues: string[] = [];
     const alternatives: ShotItem['alternatives'] = [];
+    const battery = batteryMap.get(shot.batteryId);
 
     const isNoFlyZone = altitudeLimit === 0;
     const exceedsLimit = altitudeLimit > 0 && shot.requiredAltitude > altitudeLimit;
@@ -253,12 +266,35 @@ export function evaluateShots(shots: ShotItem[], altitudeLimit: number, windSpee
       });
     }
 
+    if (battery && shot.estimatedDuration > battery.estimatedFlightTime) {
+      issues.push(
+        `${battery.name} 可飞 ${battery.estimatedFlightTime}min，镜头预计 ${shot.estimatedDuration}min，电量不足`
+      );
+      alternatives.push({
+        name: '更换大容量电池',
+        description: `使用可飞时间 ≥${shot.estimatedDuration}min 的电池`,
+        altitude: shot.requiredAltitude,
+        reason: '当前电池续航不足以完成该镜头，建议更换电池',
+      });
+      alternatives.push({
+        name: '拆分镜头拍摄',
+        description: '将镜头拆分为多个短镜头，分多次飞行完成',
+        altitude: shot.requiredAltitude,
+        reason: '单次续航不足时可分批次拍摄',
+      });
+    }
+
     let status: ShotItem['status'] = 'safe';
     if (issues.length > 0) {
       const hasNoFlyIssue = issues.some((i) => i.includes('禁飞区'));
       const hasAltitudeIssue = issues.some((i) => i.includes('限高'));
+      const hasBatteryIssue = issues.some((i) => i.includes('电量不足'));
       const hasWindIssue = issues.some((i) => i.includes('风速'));
-      status = hasNoFlyIssue ? 'danger' : hasAltitudeIssue ? 'danger' : hasWindIssue ? 'caution' : 'safe';
+      if (hasNoFlyIssue || hasAltitudeIssue) {
+        status = 'danger';
+      } else if (hasBatteryIssue || hasWindIssue) {
+        status = 'caution';
+      }
     }
 
     return { ...shot, issues, alternatives, status };

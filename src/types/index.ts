@@ -62,6 +62,7 @@ export interface ShotItem {
   description: string;
   requiredAltitude: number;
   maxWindSpeed: number;
+  estimatedDuration: number;
   batteryId: string;
   status: 'safe' | 'caution' | 'danger';
   issues: string[];

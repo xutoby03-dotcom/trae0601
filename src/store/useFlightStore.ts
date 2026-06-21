@@ -44,7 +44,7 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
       set({ locationName: name, airspace: null, weather: null, rth: null, flightStatus: 'idle', selectedLocation: name });
       return;
     }
-    const evaluatedShots = evaluateShots(get().shots, data.airspace.altitudeLimit, data.weather.windSpeed);
+    const evaluatedShots = evaluateShots(get().shots, data.airspace.altitudeLimit, data.weather.windSpeed, get().batteries);
     set({
       locationName: name,
       selectedLocation: name,
@@ -77,6 +77,7 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
         }
         return updated;
       });
+      setTimeout(() => get().recalcShots(), 100);
       return { batteries };
     });
   },
@@ -110,6 +111,7 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
         description: '请描述镜头内容',
         requiredAltitude: 50,
         maxWindSpeed: 8,
+        estimatedDuration: 5,
         batteryId: state.batteries[0]?.id || '',
         status: 'safe',
         issues: [],
@@ -140,7 +142,7 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
   recalcShots: () => {
     const state = get();
     if (!state.airspace || !state.weather) return;
-    const evaluatedShots = evaluateShots(state.shots, state.airspace.altitudeLimit, state.weather.windSpeed);
+    const evaluatedShots = evaluateShots(state.shots, state.airspace.altitudeLimit, state.weather.windSpeed, state.batteries);
     set({ shots: evaluatedShots });
     get().checkFlight();
   },
