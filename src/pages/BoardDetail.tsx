@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, X, GripVertical, Trash2, Plus, Edit2, Check } from 'lucide-react';
+import { ArrowLeft, X, GripVertical, Trash2, Plus, Edit2, Check, AlertCircle } from 'lucide-react';
 import { PhotoCompare } from '@/components/PhotoCompare';
 import { TouchScoreSlider } from '@/components/TouchScoreSlider';
 import { useBoardStore } from '@/store/boardStore';
@@ -17,6 +17,7 @@ export function BoardDetail() {
   const [boardsInitialized, setBoardsInitialized] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState('');
+  const [notesFilter, setNotesFilter] = useState<'all' | 'pending'>('all');
 
   useEffect(() => {
     initFabrics();
@@ -72,6 +73,10 @@ export function BoardDetail() {
     );
   }
 
+  const filteredFabrics = notesFilter === 'pending'
+    ? fabricsWithItems.filter(f => !f.item.notes)
+    : fabricsWithItems;
+
   const touchDimensions: (keyof TouchDimensions)[] = ['softness', 'stiffness', 'roughness', 'coolness'];
   const touchLabels: Record<keyof TouchDimensions, string> = {
     softness: '柔软',
@@ -123,16 +128,60 @@ export function BoardDetail() {
         </button>
 
         <div className="mb-8">
-          <h1 className="font-serif text-4xl text-[#8B5A3C] mb-2">{board.name}</h1>
-          {board.description && (
-            <p className="text-[#8B5A3C]/60">{board.description}</p>
-          )}
-          <p className="text-[#8B5A3C]/50 text-sm mt-2">
-            {fabricsWithItems.length} 款候选面料 · 可拖拽排序
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="font-serif text-4xl text-[#8B5A3C]">{board.name}</h1>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-[#3D5A45]/10 rounded-full text-xs font-medium text-[#3D5A45] flex items-center gap-1.5">
+                    <Check size={12} />
+                    已填写 {fabricsWithItems.filter(f => f.item.notes).length}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
+                    fabricsWithItems.filter(f => !f.item.notes).length > 0
+                      ? 'bg-[#8B5A3C]/10 text-[#8B5A3C]'
+                      : 'bg-[#8B5A3C]/5 text-[#8B5A3C]/40'
+                  }`}>
+                    <AlertCircle size={12} />
+                    待补 {fabricsWithItems.filter(f => !f.item.notes).length}
+                  </span>
+                </div>
+              </div>
+              {board.description && (
+                <p className="text-[#8B5A3C]/60 mt-2">{board.description}</p>
+              )}
+              <p className="text-[#8B5A3C]/50 text-sm mt-2">
+                共 {fabricsWithItems.length} 款候选面料 · 可上下移动排序
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1 bg-white rounded-xl p-1 shadow-sm border border-[#8B5A3C]/10">
+              <button
+                onClick={() => setNotesFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  notesFilter === 'all'
+                    ? 'bg-[#8B5A3C] text-white shadow-sm'
+                    : 'text-[#8B5A3C]/60 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5'
+                }`}
+              >
+                全部 {fabricsWithItems.length}
+              </button>
+              <button
+                onClick={() => setNotesFilter('pending')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  notesFilter === 'pending'
+                    ? 'bg-[#8B5A3C] text-white shadow-sm'
+                    : 'text-[#8B5A3C]/60 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5'
+                }`}
+              >
+                <AlertCircle size={14} />
+                待补说明 {fabricsWithItems.filter(f => !f.item.notes).length}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {fabricsWithItems.length === 0 ? (
+        {filteredFabrics.length === 0 && fabricsWithItems.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-[#8B5A3C]/10">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#8B5A3C]/5 flex items-center justify-center">
               <span className="text-3xl">🧵</span>
@@ -149,174 +198,230 @@ export function BoardDetail() {
               浏览面料库
             </Link>
           </div>
+        ) : filteredFabrics.length === 0 && notesFilter === 'pending' ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-[#3D5A45]/10">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#3D5A45]/10 flex items-center justify-center">
+              <Check size={28} className="text-[#3D5A45]" />
+            </div>
+            <h3 className="font-serif text-xl text-[#3D5A45] mb-2">太好了！全部填写完毕</h3>
+            <p className="text-[#8B5A3C]/60 text-sm mb-4">
+              所有候选面料的选样说明都已经填写完整
+            </p>
+            <button
+              onClick={() => setNotesFilter('all')}
+              className="px-5 py-2 bg-[#8B5A3C]/10 text-[#8B5A3C] rounded-lg hover:bg-[#8B5A3C]/20 transition-colors text-sm font-medium"
+            >
+              查看全部 {fabricsWithItems.length} 款面料
+            </button>
+          </div>
         ) : (
           <div className="space-y-4">
-            {fabricsWithItems.map(({ fabric, item }, index) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl border border-[#8B5A3C]/10 overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="flex items-stretch">
-                  <div className="flex flex-col items-center justify-center px-4 border-r border-[#8B5A3C]/10 bg-[#F8F4ED]/50">
-                    <GripVertical size={20} className="text-[#8B5A3C]/30 mb-2" />
-                    <button
-                      onClick={() => moveItem(index, index - 1)}
-                      disabled={index === 0}
-                      className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
-                    >
-                      ↑
-                    </button>
-                    <span className="text-xs font-medium text-[#8B5A3C]/50 my-1">
-                      {index + 1}
-                    </span>
-                    <button
-                      onClick={() => moveItem(index, index + 1)}
-                      disabled={index === fabricsWithItems.length - 1}
-                      className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
-                    >
-                      ↓
-                    </button>
-                  </div>
+            {filteredFabrics.map(({ fabric, item }, index) => {
+              const hasNotes = !!item.notes;
+              const originalIndex = fabricsWithItems.findIndex(fi => fi.item.id === item.id);
+              return (
+                <div
+                  key={item.id}
+                  className={`bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all relative ${
+                    hasNotes
+                      ? 'border border-[#8B5A3C]/10'
+                      : 'border-2 border-[#8B5A3C]/30 ring-1 ring-[#8B5A3C]/10 bg-gradient-to-r from-[#8B5A3C]/[0.03] via-white to-white'
+                  }`}
+                >
+                  {!hasNotes && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-[#8B5A3C] text-white rounded-full text-xs font-medium shadow-md">
+                        <AlertCircle size={12} />
+                        待补说明
+                      </span>
+                    </div>
+                  )}
+                  {!hasNotes && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#8B5A3C] to-[#A67C52]" />
+                  )}
 
-                  <div className="flex-1 p-6">
-                    <div className="flex gap-8">
-                      <div className="w-48 h-48 flex-shrink-0">
-                        <img
-                          src={fabric.photoSmooth}
-                          alt={fabric.name}
-                          className="w-full h-full object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setSelectedFabric(fabric)}
-                        />
-                      </div>
+                  <div className="flex items-stretch">
+                    <div className={`flex flex-col items-center justify-center px-4 border-r ${
+                      hasNotes ? 'border-[#8B5A3C]/10 bg-[#F8F4ED]/50' : 'border-[#8B5A3C]/15 bg-[#8B5A3C]/[0.04]'
+                    }`}>
+                      <GripVertical size={20} className={`mb-2 ${hasNotes ? 'text-[#8B5A3C]/30' : 'text-[#8B5A3C]/50'}`} />
+                      <button
+                        onClick={() => moveItem(originalIndex, originalIndex - 1)}
+                        disabled={originalIndex === 0}
+                        className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
+                      >
+                        ↑
+                      </button>
+                      <span className={`text-xs font-medium my-1 ${hasNotes ? 'text-[#8B5A3C]/50' : 'text-[#8B5A3C]/70'}`}>
+                        {originalIndex + 1}
+                      </span>
+                      <button
+                        onClick={() => moveItem(originalIndex, originalIndex + 1)}
+                        disabled={originalIndex === fabricsWithItems.length - 1}
+                        className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
+                      >
+                        ↓
+                      </button>
+                    </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <Link
-                              to={`/fabric/${fabric.id}`}
-                              className="font-serif text-xl text-[#8B5A3C] hover:text-[#3D5A45] transition-colors"
-                            >
-                              {fabric.name}
-                            </Link>
-                            <p className="text-sm text-[#8B5A3C]/60 mt-1">{fabric.composition}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2.5 py-1 bg-[#8B5A3C]/10 rounded-full text-xs font-medium text-[#8B5A3C]">
-                              {SEASON_LABELS[fabric.season]}
-                            </span>
-                            <button
-                              onClick={() => handleStartEditNotes(item)}
-                              className="p-2 text-[#8B5A3C]/30 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5 rounded-lg transition-colors"
-                              title="编辑选样说明"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleRemove(item.id)}
-                              className="p-2 text-[#8B5A3C]/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="移除"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                    <div className="flex-1 p-6">
+                      <div className="flex gap-8">
+                        <div className="w-48 h-48 flex-shrink-0">
+                          <img
+                            src={fabric.photoSmooth}
+                            alt={fabric.name}
+                            className="w-full h-full object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setSelectedFabric(fabric)}
+                          />
                         </div>
 
-                        <div className="grid grid-cols-4 gap-3 mb-4">
-                          <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
-                            <div className="text-lg font-serif text-[#8B5A3C]">{fabric.weight}g</div>
-                            <div className="text-xs text-[#8B5A3C]/50">克重</div>
-                          </div>
-                          <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
-                            <div className="text-lg font-serif text-[#8B5A3C]">{fabric.elasticity}%</div>
-                            <div className="text-xs text-[#8B5A3C]/50">弹力</div>
-                          </div>
-                          <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
-                            <div className="text-lg font-serif text-[#8B5A3C]">{fabric.drape}%</div>
-                            <div className="text-xs text-[#8B5A3C]/50">垂感</div>
-                          </div>
-                          <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
-                            <div className="text-lg font-serif text-[#8B5A3C]">{fabric.thickness}%</div>
-                            <div className="text-xs text-[#8B5A3C]/50">厚薄</div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-4">
-                          {touchDimensions.map((dim) => (
-                            <div key={dim} className="text-center">
-                              <TouchScoreSlider
-                                label={touchLabels[dim]}
-                                value={fabric[dim]}
-                                readOnly
-                              />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <Link
+                                to={`/fabric/${fabric.id}`}
+                                className="font-serif text-xl text-[#8B5A3C] hover:text-[#3D5A45] transition-colors"
+                              >
+                                {fabric.name}
+                              </Link>
+                              <p className="text-sm text-[#8B5A3C]/60 mt-1">{fabric.composition}</p>
                             </div>
-                          ))}
-                        </div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 bg-[#8B5A3C]/10 rounded-full text-xs font-medium text-[#8B5A3C]">
+                                {SEASON_LABELS[fabric.season]}
+                              </span>
+                              <button
+                                onClick={() => handleStartEditNotes(item)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  hasNotes
+                                    ? 'text-[#8B5A3C]/30 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5'
+                                    : 'text-[#8B5A3C] hover:bg-[#8B5A3C]/10 animate-pulse'
+                                }`}
+                                title="编辑选样说明"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleRemove(item.id)}
+                                className="p-2 text-[#8B5A3C]/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="移除"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
 
-                        <div className="mt-4 pt-4 border-t border-[#8B5A3C]/10">
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1">
-                              <div className="text-xs font-medium text-[#8B5A3C]/50 mb-1.5 flex items-center gap-1.5">
-                                <span className="inline-block w-1 h-1 rounded-full bg-[#3D5A45]/40" />
-                                选样说明
+                          <div className="grid grid-cols-4 gap-3 mb-4">
+                            <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
+                              <div className="text-lg font-serif text-[#8B5A3C]">{fabric.weight}g</div>
+                              <div className="text-xs text-[#8B5A3C]/50">克重</div>
+                            </div>
+                            <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
+                              <div className="text-lg font-serif text-[#8B5A3C]">{fabric.elasticity}%</div>
+                              <div className="text-xs text-[#8B5A3C]/50">弹力</div>
+                            </div>
+                            <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
+                              <div className="text-lg font-serif text-[#8B5A3C]">{fabric.drape}%</div>
+                              <div className="text-xs text-[#8B5A3C]/50">垂感</div>
+                            </div>
+                            <div className="text-center p-2 bg-[#F8F4ED] rounded-lg">
+                              <div className="text-lg font-serif text-[#8B5A3C]">{fabric.thickness}%</div>
+                              <div className="text-xs text-[#8B5A3C]/50">厚薄</div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-4 gap-4">
+                            {touchDimensions.map((dim) => (
+                              <div key={dim} className="text-center">
+                                <TouchScoreSlider
+                                  label={touchLabels[dim]}
+                                  value={fabric[dim]}
+                                  readOnly
+                                />
                               </div>
-                              {editingItemId === item.id ? (
-                                <div className="space-y-2">
-                                  <textarea
-                                    value={editingNotes}
-                                    onChange={(e) => setEditingNotes(e.target.value)}
-                                    placeholder="写一下为什么选这块面料，打算用在什么部位..."
-                                    rows={3}
-                                    className="w-full px-3 py-2 bg-[#F8F4ED] border border-[#8B5A3C]/20 rounded-lg text-sm text-[#8B5A3C] placeholder:text-[#8B5A3C]/40 focus:outline-none focus:ring-2 focus:ring-[#8B5A3C]/20 focus:border-[#8B5A3C]/40 resize-none"
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => handleSaveNotes(item.id)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3D5A45] text-white rounded-lg text-xs font-medium hover:bg-[#3D5A45]/90 transition-colors"
-                                    >
-                                      <Check size={14} />
-                                      保存
-                                    </button>
-                                    <button
-                                      onClick={handleCancelEditNotes}
-                                      className="px-3 py-1.5 text-[#8B5A3C]/60 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5 rounded-lg text-xs transition-colors"
-                                    >
-                                      取消
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div
-                                  className="group cursor-text"
-                                  onClick={() => handleStartEditNotes(item)}
-                                >
-                                  {item.notes ? (
-                                    <p className="text-sm text-[#8B5A3C]/80 leading-relaxed group-hover:text-[#8B5A3C] transition-colors">
-                                      {item.notes}
-                                    </p>
-                                  ) : (
-                                    <p className="text-sm text-[#8B5A3C]/30 italic flex items-center gap-1.5 group-hover:text-[#8B5A3C]/50 transition-colors">
-                                      <span>待补选样说明</span>
-                                      <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </p>
+                            ))}
+                          </div>
+
+                          <div className={`mt-4 pt-4 border-t ${
+                            hasNotes ? 'border-[#8B5A3C]/10' : 'border-[#8B5A3C]/20'
+                          }`}>
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <div className={`text-xs font-medium mb-1.5 flex items-center gap-1.5 ${
+                                  hasNotes ? 'text-[#8B5A3C]/50' : 'text-[#8B5A3C] font-semibold'
+                                }`}>
+                                  <span className={`inline-block w-1 h-1 rounded-full ${
+                                    hasNotes ? 'bg-[#3D5A45]/40' : 'bg-[#8B5A3C]'
+                                  }`} />
+                                  选样说明
+                                  {!hasNotes && (
+                                    <span className="ml-1 px-1.5 py-0.5 bg-[#8B5A3C]/10 text-[#8B5A3C] rounded text-[10px] font-medium">
+                                      待填写
+                                    </span>
                                   )}
                                 </div>
-                              )}
+                                {editingItemId === item.id ? (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      value={editingNotes}
+                                      onChange={(e) => setEditingNotes(e.target.value)}
+                                      placeholder="写一下为什么选这块面料，打算用在什么部位..."
+                                      rows={3}
+                                      className="w-full px-3 py-2 bg-[#F8F4ED] border border-[#8B5A3C]/20 rounded-lg text-sm text-[#8B5A3C] placeholder:text-[#8B5A3C]/40 focus:outline-none focus:ring-2 focus:ring-[#8B5A3C]/20 focus:border-[#8B5A3C]/40 resize-none"
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleSaveNotes(item.id)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3D5A45] text-white rounded-lg text-xs font-medium hover:bg-[#3D5A45]/90 transition-colors"
+                                      >
+                                        <Check size={14} />
+                                        保存
+                                      </button>
+                                      <button
+                                        onClick={handleCancelEditNotes}
+                                        className="px-3 py-1.5 text-[#8B5A3C]/60 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5 rounded-lg text-xs transition-colors"
+                                      >
+                                        取消
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div
+                                    className="group cursor-text"
+                                    onClick={() => handleStartEditNotes(item)}
+                                  >
+                                    {item.notes ? (
+                                      <p className="text-sm text-[#8B5A3C]/80 leading-relaxed group-hover:text-[#8B5A3C] transition-colors">
+                                        {item.notes}
+                                      </p>
+                                    ) : (
+                                      <div className="flex items-start gap-2 p-3 bg-[#8B5A3C]/[0.04] rounded-lg border border-dashed border-[#8B5A3C]/20">
+                                        <AlertCircle size={16} className="text-[#8B5A3C]/50 mt-0.5 flex-shrink-0" />
+                                        <p className="text-sm text-[#8B5A3C]/60 italic flex items-center gap-1.5 group-hover:text-[#8B5A3C]/80 transition-colors">
+                                          <span>待补选样说明 — 点击填写选样理由和用途</span>
+                                          <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {fabric.notes && (
-                          <p className="mt-3 text-xs text-[#8B5A3C]/40 italic">
-                            面料备注：{fabric.notes}
-                          </p>
-                        )}
+                          {fabric.notes && (
+                            <p className="mt-3 text-xs text-[#8B5A3C]/40 italic">
+                              面料备注：{fabric.notes}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
