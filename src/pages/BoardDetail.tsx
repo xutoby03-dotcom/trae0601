@@ -100,6 +100,20 @@ export function BoardDetail() {
     reorderBoardItems(board.id, itemIds);
   };
 
+  const moveItemWithinVisible = (itemId: string, direction: 'up' | 'down') => {
+    const filteredIndex = filteredFabrics.findIndex(fi => fi.item.id === itemId);
+    if (direction === 'up' && filteredIndex <= 0) return;
+    if (direction === 'down' && filteredIndex >= filteredFabrics.length - 1) return;
+
+    const targetFilteredIndex = direction === 'up' ? filteredIndex - 1 : filteredIndex + 1;
+    const targetItem = filteredFabrics[targetFilteredIndex];
+
+    const currentFullIndex = fabricsWithItems.findIndex(fi => fi.item.id === itemId);
+    const targetFullIndex = fabricsWithItems.findIndex(fi => fi.item.id === targetItem.item.id);
+
+    moveItem(currentFullIndex, targetFullIndex);
+  };
+
   const handleStartEditNotes = (item: BoardItem) => {
     setEditingItemId(item.id);
     setEditingNotes(item.notes || '');
@@ -216,9 +230,12 @@ export function BoardDetail() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredFabrics.map(({ fabric, item }, index) => {
+            {filteredFabrics.map(({ fabric, item }, filteredIndex) => {
               const hasNotes = !!item.notes;
               const originalIndex = fabricsWithItems.findIndex(fi => fi.item.id === item.id);
+              const displayIndex = notesFilter === 'pending' ? filteredIndex + 1 : originalIndex + 1;
+              const isAtTop = notesFilter === 'pending' ? filteredIndex <= 0 : originalIndex === 0;
+              const isAtBottom = notesFilter === 'pending' ? filteredIndex >= filteredFabrics.length - 1 : originalIndex === fabricsWithItems.length - 1;
               return (
                 <div
                   key={item.id}
@@ -246,18 +263,30 @@ export function BoardDetail() {
                     }`}>
                       <GripVertical size={20} className={`mb-2 ${hasNotes ? 'text-[#8B5A3C]/30' : 'text-[#8B5A3C]/50'}`} />
                       <button
-                        onClick={() => moveItem(originalIndex, originalIndex - 1)}
-                        disabled={originalIndex === 0}
+                        onClick={() => {
+                          if (notesFilter === 'pending') {
+                            moveItemWithinVisible(item.id, 'up');
+                          } else {
+                            moveItem(originalIndex, originalIndex - 1);
+                          }
+                        }}
+                        disabled={isAtTop}
                         className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
                       >
                         ↑
                       </button>
                       <span className={`text-xs font-medium my-1 ${hasNotes ? 'text-[#8B5A3C]/50' : 'text-[#8B5A3C]/70'}`}>
-                        {originalIndex + 1}
+                        {displayIndex}
                       </span>
                       <button
-                        onClick={() => moveItem(originalIndex, originalIndex + 1)}
-                        disabled={originalIndex === fabricsWithItems.length - 1}
+                        onClick={() => {
+                          if (notesFilter === 'pending') {
+                            moveItemWithinVisible(item.id, 'down');
+                          } else {
+                            moveItem(originalIndex, originalIndex + 1);
+                          }
+                        }}
+                        disabled={isAtBottom}
                         className="text-[#8B5A3C]/40 hover:text-[#8B5A3C] disabled:opacity-30 p-1"
                       >
                         ↓
