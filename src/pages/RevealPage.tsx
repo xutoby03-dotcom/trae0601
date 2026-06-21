@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Coffee, Download, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Coffee, RefreshCw, BarChart3 } from 'lucide-react';
 import { StepIndicator } from '@/components/layout/StepIndicator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -10,7 +10,7 @@ import { RevealCard } from '@/components/reveal/RevealCard';
 import { ComparisonTable } from '@/components/reveal/ComparisonTable';
 import { SuggestionCard } from '@/components/reveal/SuggestionCard';
 import { useBlindTestStore } from '@/store/useBlindTestStore';
-import { getScoreBySampleId, getSortedSamplesByPreference, getBlindCodeColor } from '@/utils/helpers';
+import { getScoreBySampleId, getSortedSamplesByPreference } from '@/utils/helpers';
 import { ROAST_LEVELS } from '@/types';
 
 export function RevealPage() {
@@ -20,6 +20,7 @@ export function RevealPage() {
 
   const [isRevealed, setIsRevealed] = useState(false);
   const [showAllNames, setShowAllNames] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -53,11 +54,6 @@ export function RevealPage() {
     setShowAllNames(true);
   };
 
-  const handleToggleAllNames = () => {
-    setShowAllNames(!showAllNames);
-  };
-
-  const suggestions = generateSuggestions(currentBlindTest.id);
   const sortedSamples = getSortedSamplesByPreference(currentBlindTest);
   const roastLabel = ROAST_LEVELS.find((r) => r.value === currentBlindTest.roastLevel)?.label;
 
@@ -99,7 +95,7 @@ export function RevealPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={handleToggleAllNames}
+                    onClick={() => setShowAllNames(!showAllNames)}
                     className="bg-white/10 border-white/30 text-white hover:bg-white/20 flex items-center gap-2"
                   >
                     {showAllNames ? (
@@ -126,12 +122,12 @@ export function RevealPage() {
 
       {isRevealed && (
         <div className="space-y-8 animate-fade-in">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <h3 className="font-serif text-xl font-semibold text-coffee-900 mb-4 flex items-center gap-2">
               <span className="w-1 h-6 bg-coffee-700 rounded-full" />
-              水样详情
+              水样对照 · 一目了然
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {sortedSamples.map((sample, index) => {
                 const score = getScoreBySampleId(currentBlindTest, sample.id);
                 const brewingParam = currentBlindTest.brewingParams.find(
@@ -144,7 +140,7 @@ export function RevealPage() {
                     style={{ animationDelay: `${index * 150}ms` }}
                   >
                     <RevealCard
-                      sample={{ ...sample, realName: showAllNames ? sample.realName : sample.realName }}
+                      sample={sample}
                       score={score}
                       brewingParam={brewingParam}
                       isRevealed={showAllNames}
@@ -156,51 +152,67 @@ export function RevealPage() {
             </div>
           </div>
 
-          <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>风味雷达图</CardTitle>
-                <CardDescription>
-                  各水样在不同评分维度的表现对比
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <RadarChart blindTest={currentBlindTest} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>综合评分对比</CardTitle>
-                <CardDescription>
-                  基于各维度评分计算的综合得分
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <BarChart blindTest={currentBlindTest} />
-              </CardContent>
-            </Card>
+          <div className="max-w-5xl mx-auto">
+            <button
+              onClick={() => setShowDetail(!showDetail)}
+              className="flex items-center gap-2 text-coffee-600 hover:text-coffee-900 transition-colors group"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="text-sm font-medium group-hover:underline">
+                {showDetail ? '收起详细图表' : '展开详细图表与综合建议'}
+              </span>
+            </button>
           </div>
 
-          <div className="max-w-6xl mx-auto">
-            <ComparisonTable blindTest={currentBlindTest} />
-          </div>
+          {showDetail && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="max-w-5xl mx-auto grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>风味雷达图</CardTitle>
+                    <CardDescription>
+                      各水样在不同评分维度的表现对比
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <RadarChart blindTest={currentBlindTest} />
+                  </CardContent>
+                </Card>
 
-          <div className="max-w-4xl mx-auto space-y-4">
-            <h3 className="font-serif text-xl font-semibold text-coffee-900 flex items-center gap-2">
-              <span className="w-1 h-6 bg-coffee-700 rounded-full" />
-              冲煮建议
-            </h3>
-            <div className="space-y-4">
-              {suggestions.map((suggestion, index) => (
-                <SuggestionCard
-                  key={index}
-                  suggestion={suggestion}
-                  index={index}
-                />
-              ))}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>综合评分对比</CardTitle>
+                    <CardDescription>
+                      基于各维度评分计算的综合得分
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <BarChart blindTest={currentBlindTest} />
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="max-w-5xl mx-auto">
+                <ComparisonTable blindTest={currentBlindTest} />
+              </div>
+
+              <div className="max-w-4xl mx-auto space-y-4">
+                <h3 className="font-serif text-xl font-semibold text-coffee-900 flex items-center gap-2">
+                  <span className="w-1 h-6 bg-coffee-700 rounded-full" />
+                  综合冲煮建议
+                </h3>
+                <div className="space-y-4">
+                  {generateSuggestions(currentBlindTest.id).map((suggestion, index) => (
+                    <SuggestionCard
+                      key={index}
+                      suggestion={suggestion}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-center gap-4 pt-8 pb-12">
             <Button

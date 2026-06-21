@@ -1,5 +1,53 @@
-import type { BlindTest, Suggestion, TastingScore, WaterSample } from '../types';
+import type { BlindTest, Suggestion, TastingScore, WaterSample, BrewingParam } from '../types';
 import { getScoreBySampleId, calculateAverageScore } from './helpers';
+
+export function generateSampleSuggestion(
+  sample: WaterSample,
+  score: TastingScore,
+  brewingParam?: BrewingParam
+): string {
+  const tips: string[] = [];
+
+  if (score.acidity <= 5) {
+    if (sample.tds > 120) {
+      tips.push('TDS 偏高可能压制了酸质，可换用低 TDS 水质或提高水温 1-2°C 增强萃取');
+    } else {
+      tips.push('酸质偏弱，可尝试提高水温 1-2°C、细研磨 0.2 格来增强萃取');
+    }
+  } else if (score.acidity >= 8) {
+    tips.push('酸质突出，若想平衡可适当降低水温 1°C 或略粗研磨');
+  }
+
+  if (score.sweetness <= 5) {
+    if (sample.hardness < 60) {
+      tips.push('硬度偏低可能影响甜感，下次可试硬度 70-100 mg/L 的水');
+    } else {
+      tips.push('甜感不足，可尝试延长萃取 10-15 秒或提高水温 1°C');
+    }
+  }
+
+  if (score.bitterness >= 7) {
+    tips.push('苦感偏重，建议降低水温 1-2°C、粗研磨 0.2 格，或缩短萃取 10 秒');
+  }
+
+  if (score.aftertaste <= 5) {
+    tips.push('余韵偏短，可尝试细研磨 0.1-0.2 格或提高水温 1°C 增加溶出');
+  }
+
+  if (score.cleanliness <= 5) {
+    if (sample.tds > 130) {
+      tips.push('干净度不足可能因矿物质过多，建议 TDS 控制在 80-120 mg/L');
+    } else {
+      tips.push('干净度偏低，可适当降低水温、缩短萃取时间减少杂味');
+    }
+  }
+
+  if (tips.length === 0) {
+    return '整体表现均衡，维持当前冲煮方案即可；微调可尝试水温 ±1°C 或研磨度 ±0.1 格';
+  }
+
+  return tips.join('；');
+}
 
 export function generateSuggestions(blindTest: BlindTest): Suggestion[] {
   const suggestions: Suggestion[] = [];
