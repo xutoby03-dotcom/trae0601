@@ -8,11 +8,13 @@ import {
   Layers,
   Trophy,
   ArrowRight,
+  ImageOff,
 } from "lucide-react"
 import { useStore } from "@/store/useStore"
 import Navbar from "@/components/Navbar"
 import RadarChart from "@/components/RadarChart"
 import { getRecommendations, getRadarData } from "@/utils/recommendation"
+import { hasAllThreeDays } from "@/utils/observation"
 import type { ScenarioType } from "@/types"
 import { SCENARIO_LABELS } from "@/types"
 
@@ -53,14 +55,39 @@ export default function Recommendations() {
 
   const NEED_ALL_THREE_SCENARIOS: ScenarioType[] = ["kitchen", "bathroom", "window"]
 
-  function getEmptyText(scenario: ScenarioType): string {
-    if (!hasData) return "添加样品并记录观察后，即可获取推荐"
+  const hasAnySampleAllThreeDays = useMemo(() => {
+    return samples.some((s) => {
+      const obs = observations.filter((o) => o.sampleId === s.id)
+      return hasAllThreeDays(obs)
+    })
+  }, [samples, observations])
 
-    if (NEED_ALL_THREE_SCENARIOS.includes(scenario)) {
-      return "需完成第 1、3、7 天全部观察，才能参与该场景排名"
+  function getEmptyState(scenario: ScenarioType): { icon: React.ReactNode; text: string } {
+    if (!hasData) {
+      return {
+        icon: <Layers className="h-5 w-5 text-[#555570]" />,
+        text: "添加样品并记录观察后，即可获取推荐",
+      }
     }
 
-    return "暂无符合条件的样品"
+    if (NEED_ALL_THREE_SCENARIOS.includes(scenario)) {
+      if (hasAnySampleAllThreeDays) {
+        return {
+          icon: <ImageOff className="h-5 w-5 text-[#555570]" />,
+          text: "暂无适合该场景的样品",
+        }
+      } else {
+        return {
+          icon: <Layers className="h-5 w-5 text-[#555570]" />,
+          text: "需完成第 1、3、7 天全部观察，才能参与该场景排名",
+        }
+      }
+    }
+
+    return {
+      icon: <Layers className="h-5 w-5 text-[#555570]" />,
+      text: "暂无符合条件的样品",
+    }
   }
 
   return (
@@ -132,10 +159,10 @@ export default function Recommendations() {
                     {items.length === 0 ? (
                       <div className="flex flex-col items-center py-6 text-center">
                         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
-                          <Layers className="h-5 w-5 text-[#555570]" />
+                          {getEmptyState(scenario).icon}
                         </div>
                         <p className="text-xs text-[#6b8f9e]">
-                          {getEmptyText(scenario)}
+                          {getEmptyState(scenario).text}
                         </p>
                       </div>
                     ) : (
