@@ -63,6 +63,7 @@ export const usePaperMatchingStore = create<AppState & AppActions>((set, get) =>
       evaluation: createEmptyEvaluation(newTrialId),
       createdAt: new Date().toISOString(),
       isSelected: false,
+      isArchived: false,
     };
 
     set((state) => ({
@@ -116,6 +117,21 @@ export const usePaperMatchingStore = create<AppState & AppActions>((set, get) =>
         ...trial,
         isSelected: trial.id === trialId,
       })),
+    }));
+    get().saveToStorage();
+  },
+
+  archiveTrial: (trialId: string) => {
+    set((state) => ({
+      trials: state.trials.map((trial) => {
+        if (trial.id !== trialId) return trial;
+        return {
+          ...trial,
+          isArchived: true,
+          archivedAt: new Date().toISOString(),
+          isSelected: true,
+        };
+      }),
     }));
     get().saveToStorage();
   },

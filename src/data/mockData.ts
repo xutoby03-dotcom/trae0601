@@ -69,6 +69,7 @@ export const mockTrials: Trial[] = [
     ),
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     isSelected: true,
+    isArchived: false,
   },
   {
     id: 'trial-002',
@@ -86,6 +87,7 @@ export const mockTrials: Trial[] = [
     ),
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     isSelected: false,
+    isArchived: false,
   },
 ];
 

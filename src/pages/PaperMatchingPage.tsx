@@ -21,6 +21,7 @@ export default function PaperMatchingPage() {
     updateEvaluation,
     updatePhoto,
     selectTrial,
+    archiveTrial,
   } = usePaperMatchingStore();
 
   const currentTrial = useMemo(() => {
@@ -55,8 +56,8 @@ export default function PaperMatchingPage() {
     selectTrial(trialId);
   };
 
-  const handleConfirmScheme = () => {
-    alert('方案已确认加入修复档案！');
+  const handleArchiveScheme = (trialId: string) => {
+    archiveTrial(trialId);
   };
 
   if (!currentTrial) {
@@ -144,7 +145,7 @@ export default function PaperMatchingPage() {
         <SchemeSelector
           trial={currentTrial}
           onSelect={handleSelectScheme}
-          onConfirm={handleConfirmScheme}
+          onArchive={handleArchiveScheme}
         />
       </div>
     </div>

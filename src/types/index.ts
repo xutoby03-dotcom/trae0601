@@ -41,6 +41,8 @@ export interface Trial {
   evaluation: Evaluation;
   createdAt: string;
   isSelected: boolean;
+  isArchived: boolean;
+  archivedAt?: string;
 }
 
 export interface AppState {
@@ -56,6 +58,7 @@ export interface AppActions {
   updateEvaluation: (trialId: string, updates: Partial<Evaluation>) => void;
   updatePhoto: (trialId: string, photo: Photo) => void;
   selectTrial: (trialId: string) => void;
+  archiveTrial: (trialId: string) => void;
   saveToStorage: () => void;
   resetToMock: () => void;
 }

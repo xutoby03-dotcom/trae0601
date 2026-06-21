@@ -1,4 +1,4 @@
-import { History, Plus } from 'lucide-react';
+import { History, Plus, Archive, CheckCircle } from 'lucide-react';
 import type { Trial } from '@/types';
 import { fiberDirectionLabels } from '@/types';
 import { cn } from '@/lib/utils';
@@ -86,10 +86,20 @@ export default function TrialVersionList({
                     'w-full text-left p-4 rounded-xl transition-all duration-300',
                     'bg-parchment-100 shadow-card hover:shadow-lg',
                     'relative overflow-hidden',
-                    isSelected && 'border-2 border-ochre-500'
+                    isSelected && 'border-2 border-ochre-500',
+                    trial.isArchived && 'ring-2 ring-teal-500/30 bg-teal-500/5'
                   )}
                 >
-                  {trial.isSelected && (
+                  {trial.isArchived && (
+                    <div className="absolute right-4 top-4 z-10">
+                      <div className="px-3 py-1 bg-teal-500 text-white text-xs font-hei font-bold rounded-full flex items-center gap-1">
+                        <Archive className="w-3 h-3" />
+                        已归档
+                      </div>
+                    </div>
+                  )}
+
+                  {trial.isSelected && !trial.isArchived && (
                     <div className="absolute right-4 top-4 z-10">
                       <div
                         className={cn(
@@ -106,13 +116,18 @@ export default function TrialVersionList({
                   )}
 
                   <div className="flex gap-4">
-                    {fullDryPhoto && (
+                    {fullDryPhoto && fullDryPhoto.dataUrl && (
                       <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-parchment-200">
                         <img
                           src={fullDryPhoto.dataUrl}
                           alt="全干照片"
                           className="w-full h-full object-cover"
                         />
+                      </div>
+                    )}
+                    {(!fullDryPhoto || !fullDryPhoto.dataUrl) && (
+                      <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-parchment-200 flex items-center justify-center">
+                        <History className="w-6 h-6 text-parchment-400" />
                       </div>
                     )}
 

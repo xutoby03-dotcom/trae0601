@@ -1,15 +1,27 @@
 import { useState } from 'react';
-import { CheckCircle, FileCheck, X } from 'lucide-react';
+import { CheckCircle, FileCheck, X, Archive } from 'lucide-react';
 import type { Trial } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface SchemeSelectorProps {
   trial: Trial;
   onSelect: (trialId: string) => void;
-  onConfirm: () => void;
+  onArchive: (trialId: string) => void;
 }
 
-export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSelectorProps) {
+function formatDate(dateString?: string): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export default function SchemeSelector({ trial, onSelect, onArchive }: SchemeSelectorProps) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleConfirmClick = () => {
@@ -18,7 +30,7 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
 
   const handleConfirm = () => {
     setShowConfirmModal(false);
-    onConfirm();
+    onArchive(trial.id);
   };
 
   const handleCancel = () => {
@@ -27,11 +39,32 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
 
   return (
     <>
-      <div className="sticky bottom-0 z-40 bg-parchment-100 border-t-2 border-ink-700/20 shadow-scroll">
+      <div
+        className={cn(
+          'sticky bottom-0 z-40 border-t-2 shadow-scroll transition-colors duration-300',
+          trial.isArchived
+            ? 'bg-teal-500/10 border-teal-500/40'
+            : 'bg-parchment-100 border-ink-700/20'
+        )}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {trial.isSelected ? (
+              {trial.isArchived ? (
+                <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/15 rounded-lg border border-teal-500/40">
+                  <div className="p-1.5 bg-teal-500 rounded-full">
+                    <Archive className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-hei font-semibold text-teal-700">
+                      修复方案已归档 · 版本 {trial.version}
+                    </p>
+                    <p className="text-xs text-teal-600/80">
+                      归档时间：{formatDate(trial.archivedAt)}
+                    </p>
+                  </div>
+                </div>
+              ) : trial.isSelected ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/10 rounded-lg border border-teal-500/30">
                   <CheckCircle className="w-5 h-5 text-teal-500" />
                   <div>
@@ -39,7 +72,7 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
                       当前选中：版本 {trial.version}
                     </p>
                     <p className="text-sm text-ink-700">
-                      已设为最优修复方案
+                      已设为最优修复方案，可确认归档
                     </p>
                   </div>
                 </div>
@@ -58,7 +91,12 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
               )}
             </div>
             <div className="flex items-center gap-3">
-              {!trial.isSelected ? (
+              {trial.isArchived ? (
+                <div className="flex items-center gap-2 px-5 py-3 bg-teal-500 text-white rounded-lg font-hei font-semibold shadow-card">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>已纳入修复方案</span>
+                </div>
+              ) : !trial.isSelected ? (
                 <button
                   type="button"
                   onClick={() => onSelect(trial.id)}
@@ -79,10 +117,16 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
               )}
             </div>
           </div>
-          {trial.isSelected && (
+          {trial.isSelected && !trial.isArchived && (
             <div className="mt-3 flex items-center gap-2 text-sm text-teal-600 bg-teal-500/5 px-4 py-2 rounded-lg">
               <CheckCircle className="w-4 h-4" />
-              <span>入选提示：此方案已被选定为最优修复方案，确认后将正式加入修复档案。</span>
+              <span>入选提示：此方案已被选定为最优修复方案，确认后将正式加入修复档案并不可修改。</span>
+            </div>
+          )}
+          {trial.isArchived && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-teal-700 bg-teal-500/10 px-4 py-2 rounded-lg">
+              <Archive className="w-4 h-4" />
+              <span>该版本已正式归档，作为本古籍修复方案的补纸标准配置保存。</span>
             </div>
           )}
         </div>
@@ -121,7 +165,7 @@ export default function SchemeSelector({ trial, onSelect, onConfirm }: SchemeSel
                 </div>
                 <p className="text-sm text-ink-700 leading-relaxed">
                   此操作将把当前选定的试配方案作为最终修复方案记录归档。
-                  确认后，该方案将被标记为"已确认"状态。
+                  归档后将被标记为"已纳入修复方案"状态，数据会持久保存。
                 </p>
               </div>
               <div className="flex gap-3">

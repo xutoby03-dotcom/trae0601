@@ -86,7 +86,7 @@ export default function PhotoUploader({ trialId, state, photo, onUpload }: Photo
           onChange={handleInputChange}
           className="hidden"
         />
-        {photo ? (
+        {photo && photo.dataUrl ? (
           <div className="relative w-full h-full group">
             <img
               src={photo.dataUrl}
