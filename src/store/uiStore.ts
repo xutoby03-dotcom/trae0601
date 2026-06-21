@@ -1,4 +1,17 @@
 import { create } from 'zustand';
+import type { AnnotationType } from '@/types';
+
+export type { AnnotationType };
+
+export interface Annotation {
+  id: string;
+  type: AnnotationType;
+  startTime: number;
+  endTime: number;
+  label: string;
+  description?: string;
+  createdAt: string;
+}
 
 export interface Recording {
   id: string;
@@ -11,6 +24,7 @@ export interface Recording {
   duration: number;
   sampleRate: number;
   bitDepth: number;
+  channels: number;
   fileSize: string;
   format: string;
   recordedAt: string;
@@ -30,6 +44,8 @@ export interface Recording {
   micPattern: string;
   ambienceScore: number;
   distanceSense: string;
+  annotations: Annotation[];
+  notes?: string;
 }
 
 export interface LicenseEvent {
@@ -114,6 +130,10 @@ interface UIStoreFull extends UIState {
   openLockModal: (ids?: string[]) => void;
   closeLockModal: () => void;
   toggleLockModal: () => void;
+
+  addAnnotation: (recordingId: string, ann: Omit<Annotation, 'id' | 'createdAt'>) => void;
+  deleteAnnotation: (recordingId: string, annotationId: string) => void;
+  updateAnnotation: (recordingId: string, annotationId: string, patch: Partial<Annotation>) => void;
 }
 
 function makeWaveform(seed: number): number[] {
@@ -150,12 +170,35 @@ const projTimeline3: LicenseEvent[] = [
 ];
 
 const mockRecordings: Recording[] = [
-  { id: 'rec-001', fileName: 'YN_Rainforest_Dawn_01.wav', locationName: '云南西双版纳·勐腊雨林', location: { lat: 21.48, lng: 101.56 }, latitude: 21.48, longitude: 101.56, altitude: 780, duration: 1847, sampleRate: 96000, bitDepth: 24, fileSize: '1.02 GB', format: 'WAV', recordedAt: '2024-10-23T06:12:00+08:00', tags: ['雨林', '鸟鸣', '清晨', '溪流'], isLocked: true, waveform: makeWaveform(1), description: '黎明时分的热带雨林，长臂猿远鸣配合近百种鸟类晨唱，背景有持续的山溪声。', weather: { condition: '晴间多云', temperature: 19, humidity: 94, windSpeed: 0.3, elevation: 780 }, peakDbfs: -3.2, deviceModel: 'Sound Devices 888', micPattern: '双声道ORTF', ambienceScore: 9.4, distanceSense: '中景' },
-  { id: 'rec-002', fileName: 'QD_Coast_Tide_14.wav', locationName: '山东青岛·崂山仰口湾', location: { lat: 36.22, lng: 120.67 }, latitude: 36.22, longitude: 120.67, altitude: 12, duration: 3600, sampleRate: 192000, bitDepth: 24, fileSize: '4.12 GB', format: 'WAV', recordedAt: '2024-11-14T15:36:00+08:00', tags: ['海岸', '潮汐', '风声', '浪'], isLocked: false, waveform: makeWaveform(2), description: '满月大潮，浪峰节奏 9-12 秒周期，风从海面掠过带来远处渔船马达低频。', weather: { condition: '多云', temperature: 12, humidity: 72, windSpeed: 6.8, elevation: 12 }, peakDbfs: -1.8, deviceModel: 'Zoom F6 + DPA 4060', micPattern: '全指向', ambienceScore: 8.1, distanceSense: '远景' },
-  { id: 'rec-003', fileName: 'SC_Jiuzhai_Waterfall_A2.wav', locationName: '四川九寨沟·诺日朗瀑布', location: { lat: 33.16, lng: 103.91 }, latitude: 33.16, longitude: 103.91, altitude: 2365, duration: 724, sampleRate: 96000, bitDepth: 24, fileSize: '802 MB', format: 'WAV', recordedAt: '2024-09-08T11:24:00+08:00', tags: ['瀑布', '高原', '森林', '水流'], isLocked: true, waveform: makeWaveform(3), description: '钙化滩瀑布宽阔白噪，林间穿插橙翅噪鹛与红腹锦鸡叫声。', weather: { condition: '小雨', temperature: 11, humidity: 81, windSpeed: 1.2, elevation: 2365 }, peakDbfs: -2.6, deviceModel: 'Sound Devices MixPre-10T', micPattern: '双声道XY', ambienceScore: 8.7, distanceSense: '中近景' },
-  { id: 'rec-004', fileName: 'AH_Huangshan_CloudSea.wav', locationName: '安徽黄山·光明顶', location: { lat: 30.13, lng: 118.17 }, latitude: 30.13, longitude: 118.17, altitude: 1860, duration: 2400, sampleRate: 96000, bitDepth: 24, fileSize: '2.68 GB', format: 'WAV', recordedAt: '2024-10-05T05:48:00+08:00', tags: ['山脉', '云海', '风', '松涛'], isLocked: false, waveform: makeWaveform(4), description: '云海翻涌流过山脊，黄山松针共振与远处山谷鸟鸣。', weather: { condition: '雾', temperature: 7, humidity: 96, windSpeed: 9.4, elevation: 1860 }, peakDbfs: -5.1, deviceModel: 'Tascam DR-701D', micPattern: '心形', ambienceScore: 9.1, distanceSense: '极远景' },
-  { id: 'rec-005', fileName: 'JX_Wuyuan_Village_Dusk.wav', locationName: '江西婺源·篁岭古村', location: { lat: 29.46, lng: 117.72 }, latitude: 29.46, longitude: 117.72, altitude: 490, duration: 1440, sampleRate: 48000, bitDepth: 24, fileSize: '820 MB', format: 'FLAC', recordedAt: '2024-11-02T17:30:00+08:00', tags: ['乡村', '黄昏', '人声', '虫鸣'], isLocked: false, waveform: makeWaveform(5), description: '秋日黄昏，晒秋农户归家，鸭群振翅配以蟋蟀和远处炊烟袅袅中的村落广播。', weather: { condition: '晴', temperature: 15, humidity: 68, windSpeed: 0.8, elevation: 490 }, peakDbfs: -4.3, deviceModel: 'Sony PCM-D100', micPattern: '双声道XY', ambienceScore: 7.6, distanceSense: '中景' },
-  { id: 'rec-006', fileName: 'GS_Dunhuang_SingingSand.wav', locationName: '甘肃敦煌·鸣沙山', location: { lat: 40.09, lng: 94.67 }, latitude: 40.09, longitude: 94.67, altitude: 1650, duration: 1080, sampleRate: 96000, bitDepth: 24, fileSize: '1.18 GB', format: 'WAV', recordedAt: '2024-08-19T19:05:00+08:00', tags: ['沙漠', '沙丘', '风声', '驼铃'], isLocked: false, waveform: makeWaveform(6), description: '日落时分沙粒滑坡自鸣声，罕见的 150Hz 低频轰鸣，偶有商队驼铃。', weather: { condition: '晴', temperature: 28, humidity: 18, windSpeed: 4.2, elevation: 1650 }, peakDbfs: -6.4, deviceModel: 'Zoom H8 + Schoeps MK4', micPattern: '心形', ambienceScore: 8.9, distanceSense: '近景' },
+  { id: 'rec-001', fileName: 'YN_Rainforest_Dawn_01.wav', locationName: '云南西双版纳·勐腊雨林', location: { lat: 21.48, lng: 101.56 }, latitude: 21.48, longitude: 101.56, altitude: 780, duration: 1847, sampleRate: 96000, bitDepth: 24, channels: 2, fileSize: '1.02 GB', format: 'WAV', recordedAt: '2024-10-23T06:12:00+08:00', tags: ['雨林', '鸟鸣', '清晨', '溪流'], isLocked: true, waveform: makeWaveform(1), description: '黎明时分的热带雨林，长臂猿远鸣配合近百种鸟类晨唱，背景有持续的山溪声。', weather: { condition: '晴间多云', temperature: 19, humidity: 94, windSpeed: 0.3, elevation: 780 }, peakDbfs: -3.2, deviceModel: 'Sound Devices 888', micPattern: '双声道ORTF', ambienceScore: 9.4, distanceSense: '中景', notes: '长臂猿晨鸣片段可用作纪录片开场，3:15 处有清晰树冠层鸟鸣群。', annotations: [
+    { id: 'a1-1', type: 'loop', startTime: 240, endTime: 320, label: '可用循环段 · 晨雾溪声', description: '背景稳定无干扰，适合循环垫乐', createdAt: '2024-10-24T09:12:00+08:00' },
+    { id: 'a1-2', type: 'voice', startTime: 512, endTime: 518, label: '人声穿帮 · 护林员', description: '远处护林员对讲机，建议切除', createdAt: '2024-10-25T14:30:00+08:00' },
+    { id: 'a1-3', type: 'wind_noise', startTime: 890, endTime: 905, label: '风噪 · 树冠阵风', description: '3 级风扫过树冠，低频可用', createdAt: '2024-10-26T11:05:00+08:00' },
+  ]},
+  { id: 'rec-002', fileName: 'QD_Coast_Tide_14.wav', locationName: '山东青岛·崂山仰口湾', location: { lat: 36.22, lng: 120.67 }, latitude: 36.22, longitude: 120.67, altitude: 12, duration: 3600, sampleRate: 192000, bitDepth: 24, channels: 2, fileSize: '4.12 GB', format: 'WAV', recordedAt: '2024-11-14T15:36:00+08:00', tags: ['海岸', '潮汐', '风声', '浪'], isLocked: false, waveform: makeWaveform(2), description: '满月大潮，浪峰节奏 9-12 秒周期，风从海面掠过带来远处渔船马达低频。', weather: { condition: '多云', temperature: 12, humidity: 72, windSpeed: 6.8, elevation: 12 }, peakDbfs: -1.8, deviceModel: 'Zoom F6 + DPA 4060', micPattern: '全指向', ambienceScore: 8.1, distanceSense: '远景', notes: '浪涛声节奏规整，适合做氛围底。注意 53 分钟处有渔船经过。', annotations: [
+    { id: 'a2-1', type: 'loop', startTime: 180, endTime: 360, label: '可用循环 · 浪涛周期', description: '浪峰节奏稳定，可无缝循环', createdAt: '2024-11-15T10:20:00+08:00' },
+    { id: 'a2-2', type: 'traffic', startTime: 2140, endTime: 2165, label: '渔船马达 · 远', description: '远处渔船低频轰鸣，约 80Hz', createdAt: '2024-11-16T16:45:00+08:00' },
+  ]},
+  { id: 'rec-003', fileName: 'SC_Jiuzhai_Waterfall_A2.wav', locationName: '四川九寨沟·诺日朗瀑布', location: { lat: 33.16, lng: 103.91 }, latitude: 33.16, longitude: 103.91, altitude: 2365, duration: 724, sampleRate: 96000, bitDepth: 24, channels: 2, fileSize: '802 MB', format: 'WAV', recordedAt: '2024-09-08T11:24:00+08:00', tags: ['瀑布', '高原', '森林', '水流'], isLocked: true, waveform: makeWaveform(3), description: '钙化滩瀑布宽阔白噪，林间穿插橙翅噪鹛与红腹锦鸡叫声。', weather: { condition: '小雨', temperature: 11, humidity: 81, windSpeed: 1.2, elevation: 2365 }, peakDbfs: -2.6, deviceModel: 'Sound Devices MixPre-10T', micPattern: '双声道XY', ambienceScore: 8.7, distanceSense: '中近景', notes: '瀑布白噪+林间鸟鸣，已授权给《川西秘境》纪录片。', annotations: [
+    { id: 'a3-1', type: 'loop', startTime: 60, endTime: 180, label: '循环段 · 瀑布主声', description: '白噪均匀，适合环境铺垫', createdAt: '2024-09-10T15:30:00+08:00' },
+    { id: 'a3-2', type: 'voice', startTime: 445, endTime: 452, label: '人声 · 游客交谈', description: '栈道上游客说话声', createdAt: '2024-09-11T09:12:00+08:00' },
+    { id: 'a3-3', type: 'needs_editing', startTime: 0, endTime: 724, label: '待剪辑 · 分段导出', description: '建议切成 5 段不同距离感的素材', createdAt: '2024-09-12T20:00:00+08:00' },
+  ]},
+  { id: 'rec-004', fileName: 'AH_Huangshan_CloudSea.wav', locationName: '安徽黄山·光明顶', location: { lat: 30.13, lng: 118.17 }, latitude: 30.13, longitude: 118.17, altitude: 1860, duration: 2400, sampleRate: 96000, bitDepth: 24, channels: 2, fileSize: '2.68 GB', format: 'WAV', recordedAt: '2024-10-05T05:48:00+08:00', tags: ['山脉', '云海', '风', '松涛'], isLocked: false, waveform: makeWaveform(4), description: '云海翻涌流过山脊，黄山松针共振与远处山谷鸟鸣。', weather: { condition: '雾', temperature: 7, humidity: 96, windSpeed: 9.4, elevation: 1860 }, peakDbfs: -5.1, deviceModel: 'Tascam DR-701D', micPattern: '心形', ambienceScore: 9.1, distanceSense: '极远景', notes: '云海声+风啸，极远景氛围极好。', annotations: [
+    { id: 'a4-1', type: 'wind_noise', startTime: 300, endTime: 340, label: '阵风 · 云海流过', description: '4 级风扫过山脊，带松涛声', createdAt: '2024-10-06T08:30:00+08:00' },
+    { id: 'a4-2', type: 'loop', startTime: 900, endTime: 1200, label: '长循环 · 云雾缭绕', description: '5 分钟稳定风声循环', createdAt: '2024-10-07T14:20:00+08:00' },
+  ]},
+  { id: 'rec-005', fileName: 'JX_Wuyuan_Village_Dusk.wav', locationName: '江西婺源·篁岭古村', location: { lat: 29.46, lng: 117.72 }, latitude: 29.46, longitude: 117.72, altitude: 490, duration: 1440, sampleRate: 48000, bitDepth: 24, channels: 2, fileSize: '820 MB', format: 'FLAC', recordedAt: '2024-11-02T17:30:00+08:00', tags: ['乡村', '黄昏', '人声', '虫鸣'], isLocked: false, waveform: makeWaveform(5), description: '秋日黄昏，晒秋农户归家，鸭群振翅配以蟋蟀和远处炊烟袅袅中的村落广播。', weather: { condition: '晴', temperature: 15, humidity: 68, windSpeed: 0.8, elevation: 490 }, peakDbfs: -4.3, deviceModel: 'Sony PCM-D100', micPattern: '双声道XY', ambienceScore: 7.6, distanceSense: '中景', notes: '人声较多，适合乡村题材但需挑片段用。', annotations: [
+    { id: 'a5-1', type: 'voice', startTime: 210, endTime: 225, label: '人声 · 农妇交谈', description: '晒场收谷子的妇女说话声', createdAt: '2024-11-03T21:05:00+08:00' },
+    { id: 'a5-2', type: 'traffic', startTime: 680, endTime: 690, label: '摩托车 · 村道', description: '远处村道摩托经过', createdAt: '2024-11-04T09:18:00+08:00' },
+    { id: 'a5-3', type: 'loop', startTime: 1080, endTime: 1200, label: '虫鸣夜曲', description: '入夜后蟋蟀合唱，无干扰', createdAt: '2024-11-04T19:40:00+08:00' },
+    { id: 'a5-4', type: 'needs_editing', startTime: 0, endTime: 1440, label: '待整理 · 提取虫鸣段', description: '剪 3 段纯虫鸣素材', createdAt: '2024-11-05T10:00:00+08:00' },
+  ]},
+  { id: 'rec-006', fileName: 'GS_Dunhuang_SingingSand.wav', locationName: '甘肃敦煌·鸣沙山', location: { lat: 40.09, lng: 94.67 }, latitude: 40.09, longitude: 94.67, altitude: 1650, duration: 1080, sampleRate: 96000, bitDepth: 24, channels: 1, fileSize: '1.18 GB', format: 'WAV', recordedAt: '2024-08-19T19:05:00+08:00', tags: ['沙漠', '沙丘', '风声', '驼铃'], isLocked: false, waveform: makeWaveform(6), description: '日落时分沙粒滑坡自鸣声，罕见的 150Hz 低频轰鸣，偶有商队驼铃。', weather: { condition: '晴', temperature: 28, humidity: 18, windSpeed: 4.2, elevation: 1650 }, peakDbfs: -6.4, deviceModel: 'Zoom H8 + Schoeps MK4', micPattern: '心形', ambienceScore: 8.9, distanceSense: '近景', notes: '鸣沙山自鸣声非常罕见，150Hz 低频轰鸣很有特色。', annotations: [
+    { id: 'a6-1', type: 'loop', startTime: 120, endTime: 300, label: '沙鸣低频段', description: '150Hz 沙粒自鸣声，极其罕见', createdAt: '2024-08-21T16:30:00+08:00' },
+    { id: 'a6-2', type: 'wind_noise', startTime: 540, endTime: 560, label: '阵风扬沙', description: '3 级风吹起沙粒打在防风罩', createdAt: '2024-08-22T09:10:00+08:00' },
+    { id: 'a6-3', type: 'traffic', startTime: 820, endTime: 835, label: '驼铃商队 · 远', description: '远处商队经过，驼铃声清晰', createdAt: '2024-08-22T19:25:00+08:00' },
+  ]},
 ];
 
 const mockProjects: Project[] = [
@@ -260,5 +303,45 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
     set((s) => ({
       isLockModalOpen: !s.isLockModalOpen,
       lockModalRecordingIds: s.isLockModalOpen ? [] : s.lockModalRecordingIds,
+    })),
+
+  addAnnotation: (recordingId, ann) =>
+    set((s) => ({
+      recordings: s.recordings.map((r) =>
+        r.id === recordingId
+          ? {
+              ...r,
+              annotations: [
+                ...r.annotations,
+                {
+                  ...ann,
+                  id: `ann-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
+          : r
+      ),
+    })),
+  deleteAnnotation: (recordingId, annotationId) =>
+    set((s) => ({
+      recordings: s.recordings.map((r) =>
+        r.id === recordingId
+          ? { ...r, annotations: r.annotations.filter((a) => a.id !== annotationId) }
+          : r
+      ),
+    })),
+  updateAnnotation: (recordingId, annotationId, patch) =>
+    set((s) => ({
+      recordings: s.recordings.map((r) =>
+        r.id === recordingId
+          ? {
+              ...r,
+              annotations: r.annotations.map((a) =>
+                a.id === annotationId ? { ...a, ...patch } : a
+              ),
+            }
+          : r
+      ),
     })),
 }));

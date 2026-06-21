@@ -1,24 +1,25 @@
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/store/playerStore";
-import { useRecordingStore } from "@/store/recordingStore";
+import { useUIStore, type AnnotationType } from "@/store/uiStore";
 import {
   annotationColorMap,
   annotationTypeList,
 } from "@/lib/colors";
-import type { AnnotationType } from "@/types";
 
 export default function AnnotationToolbar() {
   const hasSelection = usePlayerStore((s) => s.selection);
   const selection = usePlayerStore((s) => s.selection);
   const currentRecordingId = usePlayerStore((s) => s.currentRecordingId);
-  const addAnnotation = useRecordingStore((s) => s.addAnnotation);
+  const addAnnotation = useUIStore((s) => s.addAnnotation);
 
   const handleClick = (type: AnnotationType) => {
     if (!hasSelection || !selection || !currentRecordingId) return;
+    const info = annotationColorMap[type];
     addAnnotation(currentRecordingId, {
       type,
       startTime: selection.start,
       endTime: selection.end,
+      label: `${info.emoji} ${info.label}`,
     });
   };
 

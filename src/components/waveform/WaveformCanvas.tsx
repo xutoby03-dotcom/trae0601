@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePlayerStore } from "@/store/playerStore";
-import { useRecordingStore } from "@/store/recordingStore";
+import { useUIStore, type Annotation } from "@/store/uiStore";
 import { annotationColorMap } from "@/lib/colors";
 import { formatDuration } from "@/utils/format";
-import type { Annotation, Recording } from "@/types";
 
 export default function WaveformCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const p = usePlayerStore();
-  const recording = useRecordingStore((s) =>
-    p.currentRecordingId ? s.getById(p.currentRecordingId) : undefined
-  );
-  const waveform = recording?.waveform ?? recording?.waveformData ?? [];
+  const getRecordingById = useUIStore((s) => s.getRecordingById);
+  const recording = p.currentRecordingId
+    ? getRecordingById(p.currentRecordingId)
+    : undefined;
+  const waveform = recording?.waveform ?? [];
   const annotations: Annotation[] = recording?.annotations ?? [];
 
   const [hoverInfo, setHoverInfo] = useState<{
