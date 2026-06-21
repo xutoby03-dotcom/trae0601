@@ -64,3 +64,19 @@ export interface AdjustmentSuggestion {
   suggestedBrightness: number
   reason: string
 }
+
+export interface AppliedAdjustment {
+  id: string
+  planId: string
+  targetDay: number
+  originalBlue: number
+  originalWhite: number
+  originalPurple: number
+  originalBrightness: number
+  adjustedBlue: number
+  adjustedWhite: number
+  adjustedPurple: number
+  adjustedBrightness: number
+  reason: string
+  appliedAt: string
+}

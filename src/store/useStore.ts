@@ -1,12 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Plan, DailySchedule, Observation } from '@/types'
+import type { Plan, DailySchedule, Observation, AppliedAdjustment } from '@/types'
 import { speciesTemplates } from '@/data/templates'
 
 interface AppState {
   plans: Plan[]
   schedules: DailySchedule[]
   observations: Observation[]
+  appliedAdjustments: AppliedAdjustment[]
   activePlanId: string | null
 
   setActivePlan: (id: string) => void
@@ -18,6 +19,7 @@ interface AppState {
   updateObservation: (id: string, updates: Partial<Observation>) => void
   deleteObservation: (id: string) => void
   applySuggestion: (planId: string, dayIndex: number, updates: Partial<DailySchedule>) => void
+  recordAppliedAdjustment: (adjustment: Omit<AppliedAdjustment, 'id' | 'appliedAt'>) => void
 }
 
 const genId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
@@ -45,6 +47,7 @@ export const useStore = create<AppState>()(
       plans: [],
       schedules: [],
       observations: [],
+      appliedAdjustments: [],
       activePlanId: null,
 
       setActivePlan: (id) => set({ activePlanId: id }),
@@ -72,6 +75,7 @@ export const useStore = create<AppState>()(
         plans: state.plans.filter(p => p.id !== id),
         schedules: state.schedules.filter(s => s.planId !== id),
         observations: state.observations.filter(o => o.planId !== id),
+        appliedAdjustments: state.appliedAdjustments.filter(a => a.planId !== id),
         activePlanId: state.activePlanId === id ? null : state.activePlanId,
       })),
 
@@ -133,6 +137,13 @@ export const useStore = create<AppState>()(
             ? { ...s, ...updates }
             : s
         ),
+      })),
+
+      recordAppliedAdjustment: (adjustment) => set(state => ({
+        appliedAdjustments: [
+          ...state.appliedAdjustments,
+          { ...adjustment, id: genId(), appliedAt: new Date().toISOString() },
+        ],
       })),
     }),
     { name: 'jellyfish-light-acclimation' }

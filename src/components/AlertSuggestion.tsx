@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Lightbulb, CheckCircle2 } from 'lucide-react'
 import { useStore } from '@/store/useStore'
 import { detectAnomalies, generateSuggestions } from '@/utils/anomaly'
@@ -36,17 +36,12 @@ function ParamRow({ label, current, suggested, applied }: ParamRowProps) {
   )
 }
 
-interface AppliedRecord {
-  targetDay: number
-  suggestion: AdjustmentSuggestion
-}
-
 export default function AlertSuggestion({ planId }: AlertSuggestionProps) {
   const observations = useStore(s => s.observations.filter(o => o.planId === planId))
   const schedules = useStore(s => s.schedules.filter(s => s.planId === planId))
+  const appliedAdjustments = useStore(s => s.appliedAdjustments.filter(a => a.planId === planId))
   const applySuggestion = useStore(s => s.applySuggestion)
-
-  const [appliedMap, setAppliedMap] = useState<Record<number, AppliedRecord>>({})
+  const recordAppliedAdjustment = useStore(s => s.recordAppliedAdjustment)
 
   const anomalies = useMemo(() => detectAnomalies(observations), [observations])
   const suggestions = useMemo(
@@ -54,11 +49,34 @@ export default function AlertSuggestion({ planId }: AlertSuggestionProps) {
     [anomalies, schedules, observations]
   )
 
-  const pendingSuggestions = suggestions.filter(s => !(s.targetDay in appliedMap))
+  const appliedDaySet = useMemo(
+    () => new Set(appliedAdjustments.map(a => a.targetDay)),
+    [appliedAdjustments]
+  )
+
+  const pendingSuggestions = suggestions.filter(s => !appliedDaySet.has(s.targetDay))
+
+  const appliedItems = useMemo(
+    () => appliedAdjustments
+      .map(a => ({
+        targetDay: a.targetDay,
+        currentBlue: a.originalBlue,
+        currentWhite: a.originalWhite,
+        currentPurple: a.originalPurple,
+        currentBrightness: a.originalBrightness,
+        suggestedBlue: a.adjustedBlue,
+        suggestedWhite: a.adjustedWhite,
+        suggestedPurple: a.adjustedPurple,
+        suggestedBrightness: a.adjustedBrightness,
+        reason: a.reason,
+      }))
+      .sort((a, b) => a.targetDay - b.targetDay),
+    [appliedAdjustments]
+  )
 
   const allDisplayItems = [
     ...pendingSuggestions.map(s => ({ ...s, applied: false as const })),
-    ...Object.values(appliedMap).map(a => ({ ...a.suggestion, applied: true as const })),
+    ...appliedItems.map(a => ({ ...a, applied: true as const })),
   ].sort((a, b) => a.targetDay - b.targetDay)
 
   const hasAnyContent = allDisplayItems.length > 0
@@ -70,10 +88,19 @@ export default function AlertSuggestion({ planId }: AlertSuggestionProps) {
       purpleRatio: suggestion.suggestedPurple,
       brightness: suggestion.suggestedBrightness,
     })
-    setAppliedMap(prev => ({
-      ...prev,
-      [suggestion.targetDay]: { targetDay: suggestion.targetDay, suggestion },
-    }))
+    recordAppliedAdjustment({
+      planId,
+      targetDay: suggestion.targetDay,
+      originalBlue: suggestion.currentBlue,
+      originalWhite: suggestion.currentWhite,
+      originalPurple: suggestion.currentPurple,
+      originalBrightness: suggestion.currentBrightness,
+      adjustedBlue: suggestion.suggestedBlue,
+      adjustedWhite: suggestion.suggestedWhite,
+      adjustedPurple: suggestion.suggestedPurple,
+      adjustedBrightness: suggestion.suggestedBrightness,
+      reason: suggestion.reason,
+    })
   }
 
   if (!hasAnyContent) {
