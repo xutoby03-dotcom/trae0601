@@ -77,7 +77,7 @@ export const useAnnealingStore = create<AnnealingState>((set, get) => ({
 
   tryAddWork: (work) => {
     const session = get().currentSession;
-    const result = checkCompatibility(work, session.works);
+    const result = checkCompatibility(work, session);
     set({ compatibilityResult: result, pendingWork: work, showAddModal: true });
   },
 

@@ -25,16 +25,16 @@ export default function FurnaceGrid() {
       </div>
 
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-furnace-glow/5 to-transparent rounded-xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-furnace-glow/3 to-transparent rounded-xl" />
 
         <div className="relative p-4">
-          <div className="text-xs text-amber-300/40 text-center mb-2">← 炉门（前排矮作品）</div>
+          <div className="text-xs text-amber-300/40 text-center mb-2">← 后排深处（高作品）</div>
 
-          {[...grid].reverse().map((row, reversedIdx) => {
-            const rowIndex = FURNACE_GRID.rows - 1 - reversedIdx;
-            const scale = 0.85 + (reversedIdx / (FURNACE_GRID.rows - 1)) * 0.25;
-            const opacity = 0.6 + (reversedIdx / (FURNACE_GRID.rows - 1)) * 0.4;
-            const yOffset = (FURNACE_GRID.rows - 1 - reversedIdx) * 8;
+          {grid.map((row, rowIndex) => {
+            const depth = rowIndex;
+            const scale = 1 - depth * 0.08;
+            const opacity = 1 - depth * 0.15;
+            const yOffset = -depth * 10;
 
             return (
               <div
@@ -43,7 +43,9 @@ export default function FurnaceGrid() {
                 style={{
                   transform: `scale(${scale})`,
                   opacity,
-                  marginTop: yOffset > 0 ? -yOffset : 0,
+                  marginTop: yOffset,
+                  position: 'relative',
+                  zIndex: FURNACE_GRID.rows - depth,
                 }}
               >
                 {row.map((work, colIdx) => (
@@ -59,6 +61,9 @@ export default function FurnaceGrid() {
                         ? `${GLASS_TYPE_COLORS[work.type]}15`
                         : 'transparent',
                       borderColor: work ? `${GLASS_TYPE_COLORS[work.type]}60` : undefined,
+                      boxShadow: work
+                        ? `0 ${(FURNACE_GRID.rows - depth) * 2}px ${(FURNACE_GRID.rows - depth) * 4}px rgba(0,0,0,0.3)`
+                        : undefined,
                     }}
                   >
                     {work && (
@@ -90,7 +95,11 @@ export default function FurnaceGrid() {
             );
           })}
 
-          <div className="text-xs text-amber-300/40 text-center mt-2">← 后排（高作品）</div>
+          <div className="text-xs text-amber-300/40 text-center mt-3 flex items-center justify-center gap-2">
+            <span className="w-6 h-0.5 bg-gradient-to-r from-transparent to-amber-500/30" />
+            炉门前排（矮作品）
+            <span className="w-6 h-0.5 bg-gradient-to-l from-transparent to-amber-500/30" />
+          </div>
         </div>
       </div>
 

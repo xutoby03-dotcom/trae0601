@@ -71,6 +71,56 @@ export default function AddWorkModal() {
               </div>
             </div>
           )}
+
+          {compatibilityResult.currentPhase && (() => {
+            const phase = compatibilityResult.currentPhase;
+            const labels: Record<string, string> = {
+              heating: '升温', soaking: '保温', cooling: '降温', done: '退火完成',
+            };
+            const colors: Record<string, string> = {
+              heating: '#ff6b2b', soaking: '#fbbf24', cooling: '#60a5fa', done: '#8b7355',
+            };
+            const color = colors[phase.phase];
+            const pct = Math.round(phase.progress * 100);
+            return (
+              <div className="bg-furnace-deeper/60 border border-furnace-ash/20 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-amber-300/60">
+                    当前进度：<span style={{ color }} className="font-semibold">{labels[phase.phase]}</span>
+                    <span className="ml-2 text-amber-300/40">
+                      {phase.elapsedHours.toFixed(2)}h / {phase.coolingEnd.toFixed(2)}h
+                    </span>
+                  </span>
+                  <span style={{ color }}>{pct}%</span>
+                </div>
+                <div className="relative h-2 bg-furnace-smoke rounded-full overflow-hidden">
+                  <div
+                    className="absolute left-0 top-0 h-full rounded-full transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: color,
+                    }}
+                  />
+                  <div
+                    className="absolute top-0 h-full w-px bg-white/50"
+                    style={{ left: `${(phase.heatingEnd / phase.coolingEnd) * 100}%` }}
+                    title="升温结束"
+                  />
+                  <div
+                    className="absolute top-0 h-full w-px bg-white/50"
+                    style={{ left: `${(phase.soakingEnd / phase.coolingEnd) * 100}%` }}
+                    title="保温结束"
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-amber-300/30">
+                  <span>开始</span>
+                  <span style={{ color: '#ff6b2b' }}>升温结束 {phase.heatingEnd.toFixed(1)}h</span>
+                  <span style={{ color: '#fbbf24' }}>保温结束 {phase.soakingEnd.toFixed(1)}h</span>
+                  <span>退火完成</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex gap-3">
