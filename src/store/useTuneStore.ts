@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Snowboard, TuneRecord, RideFeedback, SnowCondition, WaxType, Recommendation } from '@/types';
+import { Snowboard, TuneRecord, RideFeedback, SnowCondition, WaxType, Recommendation, RecommendationEvidence, SNOW_CONDITION_LABELS } from '@/types';
 import { MOCK_BOARDS, MOCK_TUNE_RECORDS, MOCK_FEEDBACKS } from '@/data/mockData';
 import { generateId } from '@/lib/utils';
 
@@ -37,6 +37,17 @@ interface TuneStore {
 
   getRecommendation: (snowCondition: SnowCondition, snowTemp: number, boardId?: string) => Recommendation | null;
   getBestTuneForCondition: (snowCondition: SnowCondition, snowTemp: number, boardId?: string) => TuneRecord | null;
+  analyzeBestTuneForCondition: (snowCondition: SnowCondition, snowTemp: number, boardId?: string) => {
+    record: TuneRecord;
+    score: number;
+    avgGrip: number;
+    avgEdgeChange: number;
+    avgChatter: number;
+    avgSpeedLoss: number;
+    avgEffectiveScore: number;
+    feedbackCount: number;
+    tempDiff: number;
+  } | null;
 }
 
 export const useTuneStore = create<TuneStore>()(
@@ -118,6 +129,11 @@ export const useTuneStore = create<TuneStore>()(
       },
 
       getBestTuneForCondition: (snowCondition, snowTemp, boardId) => {
+        const result = get().analyzeBestTuneForCondition(snowCondition, snowTemp, boardId);
+        return result?.record || null;
+      },
+
+      analyzeBestTuneForCondition: (snowCondition, snowTemp, boardId) => {
         const { tuneRecords, feedbacks } = get();
         let filteredRecords = tuneRecords.filter((r) => r.snowCondition === snowCondition);
 
@@ -129,25 +145,50 @@ export const useTuneStore = create<TuneStore>()(
 
         const recordsWithScores = filteredRecords.map((record) => {
           const recordFeedbacks = feedbacks.filter((f) => f.tuneRecordId === record.id);
-          const avgOverall = recordFeedbacks.length > 0
-            ? recordFeedbacks.reduce((sum, f) => sum + calcEffectiveScore(f), 0) / recordFeedbacks.length
+          const feedbackCount = recordFeedbacks.length;
+
+          const avgGrip = feedbackCount > 0
+            ? recordFeedbacks.reduce((s, f) => s + f.gripScore, 0) / feedbackCount
+            : 0;
+          const avgEdgeChange = feedbackCount > 0
+            ? recordFeedbacks.reduce((s, f) => s + f.edgeChangeScore, 0) / feedbackCount
+            : 0;
+          const avgChatter = feedbackCount > 0
+            ? recordFeedbacks.reduce((s, f) => s + f.chatterScore, 0) / feedbackCount
+            : 0;
+          const avgSpeedLoss = feedbackCount > 0
+            ? recordFeedbacks.reduce((s, f) => s + f.speedLossScore, 0) / feedbackCount
+            : 0;
+          const avgEffectiveScore = feedbackCount > 0
+            ? recordFeedbacks.reduce((sum, f) => sum + calcEffectiveScore(f), 0) / feedbackCount
             : 0;
 
           const tempDiff = Math.abs(record.snowTemp - snowTemp);
           const tempMatchScore = Math.max(0, 10 - tempDiff * 0.5);
-          const combinedScore = avgOverall * 0.7 + tempMatchScore * 0.3;
+          const combinedScore = avgEffectiveScore * 0.7 + tempMatchScore * 0.3;
 
-          return { record, score: combinedScore, avgOverall, feedbackCount: recordFeedbacks.length };
+          return {
+            record,
+            score: combinedScore,
+            avgGrip,
+            avgEdgeChange,
+            avgChatter,
+            avgSpeedLoss,
+            avgEffectiveScore,
+            feedbackCount,
+            tempDiff,
+          };
         });
 
         recordsWithScores.sort((a, b) => b.score - a.score);
-        return recordsWithScores[0]?.record || null;
+        return recordsWithScores[0] || null;
       },
 
       getRecommendation: (snowCondition, snowTemp, boardId) => {
-        const { getBestTuneForCondition, tuneRecords, feedbacks } = get();
+        const { analyzeBestTuneForCondition, tuneRecords, feedbacks } = get();
 
-        const bestTune = getBestTuneForCondition(snowCondition, snowTemp, boardId);
+        const bestAnalysis = analyzeBestTuneForCondition(snowCondition, snowTemp, boardId);
+        const bestTune = bestAnalysis?.record;
 
         const allRecordsForCondition = tuneRecords.filter((r) =>
           r.snowCondition === snowCondition && (!boardId || r.boardId === boardId)
@@ -164,20 +205,29 @@ export const useTuneStore = create<TuneStore>()(
         let waxType: WaxType = 'universal';
         let confidence = 0.5;
         let reasoning = '';
+        let evidence: RecommendationEvidence | undefined;
+        let hasHistoricalData = false;
 
-        if (bestTune) {
+        if (bestTune && bestAnalysis && bestAnalysis.feedbackCount > 0) {
+          hasHistoricalData = true;
           baseEdgeAngle = bestTune.baseEdgeAngle;
           sideEdgeAngle = bestTune.sideEdgeAngle;
           waxTemp = bestTune.waxTemp;
           waxType = bestTune.waxType;
           confidence = Math.min(0.9, 0.3 + feedbacksForCondition.length * 0.1);
 
-          const bestFeedbacks = feedbacks.filter((f) => f.tuneRecordId === bestTune.id);
-          if (bestFeedbacks.length > 0) {
-            const avgGrip = bestFeedbacks.reduce((s, f) => s + f.gripScore, 0) / bestFeedbacks.length;
-            const avgEdgeChange = bestFeedbacks.reduce((s, f) => s + f.edgeChangeScore, 0) / bestFeedbacks.length;
-            reasoning = `基于 ${allRecordsForCondition.length} 次调校记录和 ${feedbacksForCondition.length} 次试滑反馈。${snowCondition}时${sideEdgeAngle}°侧刃抓雪评分${avgGrip.toFixed(1)}，换刃评分${avgEdgeChange.toFixed(1)}。`;
-          }
+          evidence = {
+            matchedTune: bestTune,
+            tempDiff: bestAnalysis.tempDiff,
+            feedbackCount: bestAnalysis.feedbackCount,
+            avgGrip: bestAnalysis.avgGrip,
+            avgEdgeChange: bestAnalysis.avgEdgeChange,
+            avgChatter: bestAnalysis.avgChatter,
+            avgSpeedLoss: bestAnalysis.avgSpeedLoss,
+            avgEffectiveScore: bestAnalysis.avgEffectiveScore,
+          };
+
+          reasoning = `基于 ${allRecordsForCondition.length} 次调校记录和 ${feedbacksForCondition.length} 次试滑反馈。${SNOW_CONDITION_LABELS[snowCondition]}时${sideEdgeAngle}°侧刃的综合表现最优。`;
         } else {
           const defaults: Record<SnowCondition, { base: number; side: number; wax: WaxType; waxTemp: number; reason: string }> = {
             ice: { base: 0.5, side: 87, wax: 'cold', waxTemp: -12, reason: '冰面需要锋利的刃增加抓雪力，推荐更锐的角度配合冷蜡。' },
@@ -194,7 +244,8 @@ export const useTuneStore = create<TuneStore>()(
           waxType = def.wax;
           waxTemp = def.waxTemp;
           confidence = 0.3;
-          reasoning = `暂无${snowCondition}的历史记录。基于经验推荐：${def.reason}`;
+          hasHistoricalData = false;
+          reasoning = `暂无${SNOW_CONDITION_LABELS[snowCondition]}的试滑记录。基于经验推荐：${def.reason}`;
         }
 
         if (snowTemp < -10) {
@@ -214,6 +265,8 @@ export const useTuneStore = create<TuneStore>()(
           waxType,
           confidence,
           reasoning,
+          evidence,
+          hasHistoricalData,
         };
       },
     }),

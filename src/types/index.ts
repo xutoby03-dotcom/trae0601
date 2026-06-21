@@ -41,6 +41,17 @@ export interface RideFeedback {
   notes?: string;
 }
 
+export interface RecommendationEvidence {
+  matchedTune: TuneRecord;
+  tempDiff: number;
+  feedbackCount: number;
+  avgGrip: number;
+  avgEdgeChange: number;
+  avgChatter: number;
+  avgSpeedLoss: number;
+  avgEffectiveScore: number;
+}
+
 export interface Recommendation {
   snowCondition: SnowCondition;
   snowTempRange: [number, number];
@@ -50,6 +61,8 @@ export interface Recommendation {
   waxType: WaxType;
   confidence: number;
   reasoning: string;
+  evidence?: RecommendationEvidence;
+  hasHistoricalData: boolean;
 }
 
 export const SNOW_CONDITION_LABELS: Record<SnowCondition, string> = {

@@ -199,20 +199,52 @@ export default function RecommendPage() {
 
       {recommendation && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <Card className="lg:col-span-2 bg-gradient-to-br from-cyan-glow/10 to-purple-glow/10 border-cyan-glow/20">
+          <Card
+            className={cn(
+              'lg:col-span-2 border transition-colors',
+              recommendation.hasHistoricalData
+                ? 'bg-gradient-to-br from-cyan-glow/10 to-purple-glow/10 border-cyan-glow/20'
+                : 'bg-white/5 border-white/10'
+            )}
+          >
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/30 to-orange-500/30 flex items-center justify-center">
-                  <Lightbulb className="w-6 h-6 text-yellow-400" />
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-xl flex items-center justify-center',
+                    recommendation.hasHistoricalData
+                      ? 'bg-gradient-to-br from-yellow-500/30 to-orange-500/30'
+                      : 'bg-white/10'
+                  )}
+                >
+                  <Lightbulb
+                    className={cn(
+                      'w-6 h-6',
+                      recommendation.hasHistoricalData ? 'text-yellow-400' : 'text-slate-400'
+                    )}
+                  />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">推荐调校方案</h3>
+                  <h3
+                    className={cn(
+                      'text-lg font-semibold',
+                      recommendation.hasHistoricalData ? 'text-white' : 'text-slate-300'
+                    )}
+                  >
+                    {recommendation.hasHistoricalData ? '推荐调校方案' : '经验推荐方案'}
+                  </h3>
                   <p className="text-sm text-slate-400">
                     针对 {SNOW_CONDITION_LABELS[recommendation.snowCondition]} · {snowTemp}°C
                   </p>
                 </div>
               </div>
-              <div className={`px-3 py-1.5 rounded-full text-xs font-medium ${confidenceLabel(recommendation.confidence).bg} ${confidenceLabel(recommendation.confidence).color}`}>
+              <div
+                className={cn(
+                  'px-3 py-1.5 rounded-full text-xs font-medium',
+                  confidenceLabel(recommendation.confidence).bg,
+                  confidenceLabel(recommendation.confidence).color
+                )}
+              >
                 置信度: {confidenceLabel(recommendation.confidence).text}
               </div>
             </div>
@@ -256,10 +288,120 @@ export default function RecommendPage() {
                 </p>
               </div>
             </div>
+
+            {recommendation.evidence && (
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <h4 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-cyan-glow" />
+                  历史依据明细
+                </h4>
+
+                <div className="bg-white/5 rounded-xl p-4 space-y-4">
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-full bg-cyan-glow/20 text-cyan-glow font-medium">
+                      命中调校: {recommendation.evidence.matchedTune.date}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-purple-glow/20 text-purple-light font-medium">
+                      雪温差: ±{recommendation.evidence.tempDiff}°C
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400 font-medium">
+                      {recommendation.evidence.feedbackCount} 次试滑
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 font-medium">
+                      综合分: {recommendation.evidence.avgEffectiveScore.toFixed(1)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <div className="text-xs text-slate-400 mb-1">抓雪</div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-cyan-glow">
+                          {recommendation.evidence.avgGrip.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-slate-500">/10</span>
+                      </div>
+                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-cyan-glow rounded-full"
+                          style={{ width: `${recommendation.evidence.avgGrip * 10}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <div className="text-xs text-slate-400 mb-1">换刃</div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-purple-light">
+                          {recommendation.evidence.avgEdgeChange.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-slate-500">/10</span>
+                      </div>
+                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-light rounded-full"
+                          style={{ width: `${recommendation.evidence.avgEdgeChange * 10}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <div className="text-xs text-slate-400 mb-1">抖动</div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold text-blue-400">
+                          {recommendation.evidence.avgChatter.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-slate-500">/10</span>
+                      </div>
+                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-400 rounded-full"
+                          style={{ width: `${recommendation.evidence.avgChatter * 10}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <div className="text-xs text-slate-400 mb-1">速度损失 ↓</div>
+                      <div className="flex items-baseline gap-1">
+                        <span
+                          className={cn(
+                            'text-xl font-bold',
+                            recommendation.evidence.avgSpeedLoss <= 3
+                              ? 'text-green-400'
+                              : recommendation.evidence.avgSpeedLoss <= 6
+                              ? 'text-yellow-400'
+                              : 'text-red-400'
+                          )}
+                        >
+                          {recommendation.evidence.avgSpeedLoss.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-slate-500">/10</span>
+                      </div>
+                      <div className="mt-2 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full rounded-full',
+                            recommendation.evidence.avgSpeedLoss <= 3
+                              ? 'bg-green-400'
+                              : recommendation.evidence.avgSpeedLoss <= 6
+                              ? 'bg-yellow-400'
+                              : 'bg-red-400'
+                          )}
+                          style={{ width: `${recommendation.evidence.avgSpeedLoss * 10}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           <Card>
-            <h3 className="text-sm font-medium text-white mb-4">预期表现预估</h3>
+            <h3 className="text-sm font-medium text-white mb-4">
+              {recommendation.hasHistoricalData ? '预期表现预估' : '预期表现（估算）'}
+            </h3>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={radarData}>
@@ -269,13 +411,18 @@ export default function RecommendPage() {
                   <Radar
                     name="预期表现"
                     dataKey="value"
-                    stroke="#00e5c7"
-                    fill="#00e5c7"
+                    stroke={recommendation.hasHistoricalData ? '#00e5c7' : '#64748b'}
+                    fill={recommendation.hasHistoricalData ? '#00e5c7' : '#64748b'}
                     fillOpacity={0.3}
                   />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
+            {!recommendation.hasHistoricalData && (
+              <p className="text-xs text-slate-500 mt-3 text-center">
+                无历史数据，表现为经验估算
+              </p>
+            )}
           </Card>
         </div>
       )}
