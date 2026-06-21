@@ -4,6 +4,16 @@ import { Snowboard, TuneRecord, RideFeedback, SnowCondition, WaxType, Recommenda
 import { MOCK_BOARDS, MOCK_TUNE_RECORDS, MOCK_FEEDBACKS } from '@/data/mockData';
 import { generateId } from '@/lib/utils';
 
+function calcEffectiveScore(f: RideFeedback): number {
+  const speedPositive = 11 - f.speedLossScore;
+  return (f.gripScore + f.edgeChangeScore + f.chatterScore + speedPositive) / 4;
+}
+
+function calcOverallScore(f: Omit<RideFeedback, 'id' | 'overallScore'>): number {
+  const speedPositive = 11 - f.speedLossScore;
+  return Math.round((f.gripScore + f.edgeChangeScore + f.chatterScore + speedPositive) / 4);
+}
+
 interface TuneStore {
   boards: Snowboard[];
   tuneRecords: TuneRecord[];
@@ -71,12 +81,19 @@ export const useTuneStore = create<TuneStore>()(
 
       addFeedback: (feedback) =>
         set((state) => ({
-          feedbacks: [...state.feedbacks, { ...feedback, id: generateId() }],
+          feedbacks: [
+            ...state.feedbacks,
+            { ...feedback, id: generateId(), overallScore: calcOverallScore(feedback) },
+          ],
         })),
 
       updateFeedback: (id, feedback) =>
         set((state) => ({
-          feedbacks: state.feedbacks.map((f) => (f.id === id ? { ...f, ...feedback } : f)),
+          feedbacks: state.feedbacks.map((f) => {
+            if (f.id !== id) return f;
+            const merged = { ...f, ...feedback };
+            return { ...merged, overallScore: calcOverallScore(merged) };
+          }),
         })),
 
       deleteFeedback: (id) =>
@@ -113,7 +130,7 @@ export const useTuneStore = create<TuneStore>()(
         const recordsWithScores = filteredRecords.map((record) => {
           const recordFeedbacks = feedbacks.filter((f) => f.tuneRecordId === record.id);
           const avgOverall = recordFeedbacks.length > 0
-            ? recordFeedbacks.reduce((sum, f) => sum + f.overallScore, 0) / recordFeedbacks.length
+            ? recordFeedbacks.reduce((sum, f) => sum + calcEffectiveScore(f), 0) / recordFeedbacks.length
             : 0;
 
           const tempDiff = Math.abs(record.snowTemp - snowTemp);

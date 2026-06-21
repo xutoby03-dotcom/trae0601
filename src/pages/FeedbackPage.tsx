@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import RatingStars from '@/components/RatingStars';
 import { SNOW_CONDITION_LABELS } from '@/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import type { RideFeedback } from '@/types';
 
 const emptyFeedback: Omit<RideFeedback, 'id'> = {
@@ -73,8 +73,9 @@ export default function FeedbackPage() {
     setIsModalOpen(true);
   };
 
-  const updateOverall = (scores: { grip: number; edge: number; chatter: number; speed: number }) => {
-    const avg = Math.round((scores.grip + scores.edge + scores.chatter + scores.speed) / 4);
+  const updateOverall = (scores: { grip: number; edge: number; chatter: number; speedLoss: number }) => {
+    const speedPositive = 11 - scores.speedLoss;
+    const avg = Math.round((scores.grip + scores.edge + scores.chatter + speedPositive) / 4);
     setFormData((prev) => ({ ...prev, overallScore: avg }));
   };
 
@@ -104,10 +105,10 @@ export default function FeedbackPage() {
   };
 
   const scoreItems = [
-    { key: 'gripScore', label: '抓雪', icon: Zap, color: 'text-yellow-400', desc: '刃咬住雪的能力' },
-    { key: 'edgeChangeScore', label: '换刃', icon: Repeat, color: 'text-cyan-glow', desc: '换刃的顺畅度' },
-    { key: 'chatterScore', label: '抖动', icon: Waves, color: 'text-purple-light', desc: '高速时的稳定度' },
-    { key: 'speedLossScore', label: '速度', icon: Gauge, color: 'text-green-400', desc: '速度保持能力' },
+    { key: 'gripScore', label: '抓雪', icon: Zap, color: 'text-yellow-400', desc: '刃咬住雪的能力（越高越好）', isNegative: false },
+    { key: 'edgeChangeScore', label: '换刃', icon: Repeat, color: 'text-cyan-glow', desc: '换刃的顺畅度（越高越好）', isNegative: false },
+    { key: 'chatterScore', label: '抖动', icon: Waves, color: 'text-purple-light', desc: '高速时的稳定度（越高越好）', isNegative: false },
+    { key: 'speedLossScore', label: '速度损失', icon: Gauge, color: 'text-red-400', desc: '拖速严重程度（越低越好）', isNegative: true },
   ] as const;
 
   return (
@@ -212,17 +213,24 @@ export default function FeedbackPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {scoreItems.map((item) => {
                     const score = feedback[item.key];
+                    const displayWidth = item.isNegative ? (11 - score) * 10 : score * 10;
                     return (
                       <div key={item.key} className="bg-white/5 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
                           <item.icon className={`w-4 h-4 ${item.color}`} />
                           <span className="text-sm text-slate-300">{item.label}</span>
+                          {item.isNegative && <span className="text-[10px] text-red-400">↓越低越好</span>}
                         </div>
                         <div className="text-xl font-bold text-white">{score}</div>
                         <div className="w-full h-1.5 bg-slate-700 rounded-full mt-2 overflow-hidden">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-glow to-purple-glow"
-                            style={{ width: `${score * 10}%` }}
+                            className={cn(
+                              'h-full rounded-full',
+                              item.isNegative
+                                ? 'bg-gradient-to-r from-red-500 to-orange-400'
+                                : 'bg-gradient-to-r from-cyan-glow to-purple-glow'
+                            )}
+                            style={{ width: `${displayWidth}%` }}
                           />
                         </div>
                       </div>
@@ -322,7 +330,7 @@ export default function FeedbackPage() {
                       grip: item.key === 'gripScore' ? value : formData.gripScore,
                       edge: item.key === 'edgeChangeScore' ? value : formData.edgeChangeScore,
                       chatter: item.key === 'chatterScore' ? value : formData.chatterScore,
-                      speed: item.key === 'speedLossScore' ? value : formData.speedLossScore,
+                      speedLoss: item.key === 'speedLossScore' ? value : formData.speedLossScore,
                     });
                   }}
                   size="md"
@@ -339,7 +347,7 @@ export default function FeedbackPage() {
                 </div>
                 <span className="text-3xl font-bold text-white">{formData.overallScore}</span>
               </div>
-              <p className="text-xs text-slate-400">自动计算：四项评分的平均值</p>
+              <p className="text-xs text-slate-400">自动计算：抓雪+换刃+抖动+(11-速度损失) 的平均值</p>
             </div>
           </div>
 
