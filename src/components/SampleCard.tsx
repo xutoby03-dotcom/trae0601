@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom"
 import { Clock, Trash2, ChevronRight } from "lucide-react"
 import type { Sample, Observation } from "@/types"
-import { INDICATOR_LABELS, OBSERVATION_DAYS } from "@/types"
+import { OBSERVATION_DAYS } from "@/types"
+import { getCompletedDays } from "@/utils/observation"
 
 interface SampleCardProps {
   sample: Sample
@@ -9,16 +10,23 @@ interface SampleCardProps {
   onDelete: (id: string) => void
 }
 
-function getLatestDay(observations: Observation[]): number {
-  if (observations.length === 0) return 0
-  return Math.max(...observations.map((o) => o.day))
+function getLatestCompleteDay(observations: Observation[]): number {
+  const completed = getCompletedDays(observations)
+  if (completed.length === 0) return 0
+  return Math.max(...completed)
+}
+
+function getLatestValidObservation(
+  observations: Observation[]
+): Observation | null {
+  const completed = getCompletedDays(observations)
+  if (completed.length === 0) return null
+  const latestDay = Math.max(...completed)
+  return observations.find((o) => o.day === latestDay) ?? null
 }
 
 function getIndicatorSummary(observations: Observation[]): string[] {
-  const latest = observations.reduce<Observation | null>(
-    (acc, o) => (o.day > (acc?.day ?? 0) ? o : acc),
-    null
-  )
+  const latest = getLatestValidObservation(observations)
   if (!latest) return []
 
   const issues: string[] = []
@@ -36,9 +44,9 @@ export default function SampleCard({
   onDelete,
 }: SampleCardProps) {
   const navigate = useNavigate()
-  const latestDay = getLatestDay(observations)
+  const latestDay = getLatestCompleteDay(observations)
   const issues = getIndicatorSummary(observations)
-  const completedDays = observations.map((o) => o.day)
+  const completedDays = getCompletedDays(observations)
   const nextDay = OBSERVATION_DAYS.find((d) => !completedDays.includes(d))
 
   const daysSinceCreation = Math.floor(

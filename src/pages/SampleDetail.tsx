@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, Save, Thermometer, Droplets, Ruler } from "lucide-react"
+import { ArrowLeft, Save, Thermometer, Droplets, Ruler, AlertCircle } from "lucide-react"
 import { useStore } from "@/store/useStore"
 import Navbar from "@/components/Navbar"
 import Timeline from "@/components/Timeline"
 import IndicatorPanel from "@/components/IndicatorPanel"
 import PhotoUploader from "@/components/PhotoUploader"
+import { getCompletedDays } from "@/utils/observation"
 import type { ObservationDay, IndicatorLevel, AdhesionLevel } from "@/types"
 import { OBSERVATION_DAYS } from "@/types"
 
@@ -17,7 +18,7 @@ export default function SampleDetail() {
 
   const sample = samples.find((s) => s.id === id)
   const sampleObservations = id ? getObservationsBySample(id) : []
-  const completedDays = sampleObservations.map((o) => o.day)
+  const completedDays = getCompletedDays(sampleObservations)
 
   const firstIncompleteDay = OBSERVATION_DAYS.find(
     (d) => !completedDays.includes(d)
@@ -80,8 +81,10 @@ export default function SampleDetail() {
     }
   }
 
+  const canSave = photos.length > 0
+
   function handleSave() {
-    if (!id) return
+    if (!id || !canSave) return
     addObservation(id, activeDay, {
       photos,
       shrinkage,
@@ -202,12 +205,22 @@ export default function SampleDetail() {
             />
           </div>
 
+          {!canSave && (
+            <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>请至少上传 1 张观察照片后再保存</span>
+            </div>
+          )}
+
           <button
             onClick={handleSave}
+            disabled={!canSave}
             className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-all ${
               saved
                 ? "bg-emerald-500/20 text-emerald-400"
-                : "bg-[#e8a838] text-[#1a1a2e] hover:bg-[#d49530] hover:shadow-[0_4px_20px_rgba(232,168,56,0.3)]"
+                : canSave
+                  ? "bg-[#e8a838] text-[#1a1a2e] hover:bg-[#d49530] hover:shadow-[0_4px_20px_rgba(232,168,56,0.3)]"
+                  : "bg-white/5 text-[#555570] cursor-not-allowed"
             }`}
           >
             <Save className="h-4 w-4" />

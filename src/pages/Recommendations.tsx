@@ -51,6 +51,18 @@ export default function Recommendations() {
 
   const hasData = samples.length > 0 && observations.length > 0
 
+  const NEED_ALL_THREE_SCENARIOS: ScenarioType[] = ["kitchen", "bathroom", "window"]
+
+  function getEmptyText(scenario: ScenarioType): string {
+    if (!hasData) return "添加样品并记录观察后，即可获取推荐"
+
+    if (NEED_ALL_THREE_SCENARIOS.includes(scenario)) {
+      return "需完成第 1、3、7 天全部观察，才能参与该场景排名"
+    }
+
+    return "暂无符合条件的样品"
+  }
+
   return (
     <div className="min-h-screen bg-[#12122a]">
       <Navbar />
@@ -118,9 +130,14 @@ export default function Recommendations() {
 
                   <div className="p-6">
                     {items.length === 0 ? (
-                      <p className="py-8 text-center text-sm text-[#555570]">
-                        暂无观察数据
-                      </p>
+                      <div className="flex flex-col items-center py-6 text-center">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
+                          <Layers className="h-5 w-5 text-[#555570]" />
+                        </div>
+                        <p className="text-xs text-[#6b8f9e]">
+                          {getEmptyText(scenario)}
+                        </p>
+                      </div>
                     ) : (
                       <div className="space-y-4">
                         {items.slice(0, 3).map((item, idx) => {
