@@ -12,6 +12,7 @@ interface RevealCardProps {
   brewingParam?: BrewingParam;
   isRevealed: boolean;
   rank?: number;
+  badgeMode?: 'rank' | 'blindCode';
 }
 
 const DIMENSIONS = [
@@ -22,11 +23,22 @@ const DIMENSIONS = [
   { key: 'cleanliness' as const, label: '干净度', color: '#0277BD', bg: 'bg-blue-100', text: 'text-blue-700' },
 ];
 
-export function RevealCard({ sample, score, brewingParam, isRevealed, rank }: RevealCardProps) {
+export function RevealCard({ sample, score, brewingParam, isRevealed, rank, badgeMode = 'rank' }: RevealCardProps) {
   const [showName, setShowName] = useState(isRevealed);
   const avgScore = score ? calculateAverageScore(score) : 0;
 
   const getRankBadge = () => {
+    if (badgeMode === 'blindCode') {
+      return (
+        <div
+          className="absolute -top-3 -right-3 w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-lg shadow-lg transform rotate-12"
+          style={{ backgroundColor: getBlindCodeColor(sample.blindCode) }}
+        >
+          {sample.blindCode}
+        </div>
+      );
+    }
+
     if (!rank) return null;
     const colors = [
       'bg-yellow-500 text-yellow-50',

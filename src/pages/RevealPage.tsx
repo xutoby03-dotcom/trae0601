@@ -10,8 +10,9 @@ import { RevealCard } from '@/components/reveal/RevealCard';
 import { ComparisonTable } from '@/components/reveal/ComparisonTable';
 import { SuggestionCard } from '@/components/reveal/SuggestionCard';
 import { useBlindTestStore } from '@/store/useBlindTestStore';
-import { getScoreBySampleId, getSortedSamplesByPreference } from '@/utils/helpers';
+import { getScoreBySampleId, getSortedSamplesByPreference, getSortedSamplesByBlindCode } from '@/utils/helpers';
 import { ROAST_LEVELS } from '@/types';
+import { cn } from '@/lib/utils';
 
 export function RevealPage() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export function RevealPage() {
   const [isRevealed, setIsRevealed] = useState(false);
   const [showAllNames, setShowAllNames] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [sortMode, setSortMode] = useState<'preference' | 'blindCode'>('preference');
 
   useEffect(() => {
     if (id) {
@@ -54,7 +56,9 @@ export function RevealPage() {
     setShowAllNames(true);
   };
 
-  const sortedSamples = getSortedSamplesByPreference(currentBlindTest);
+  const sortedSamples = sortMode === 'preference'
+    ? getSortedSamplesByPreference(currentBlindTest)
+    : getSortedSamplesByBlindCode(currentBlindTest);
   const roastLabel = ROAST_LEVELS.find((r) => r.value === currentBlindTest.roastLevel)?.label;
 
   return (
@@ -123,10 +127,36 @@ export function RevealPage() {
       {isRevealed && (
         <div className="space-y-8 animate-fade-in">
           <div className="max-w-5xl mx-auto">
-            <h3 className="font-serif text-xl font-semibold text-coffee-900 mb-4 flex items-center gap-2">
-              <span className="w-1 h-6 bg-coffee-700 rounded-full" />
-              水样对照 · 一目了然
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-xl font-semibold text-coffee-900 flex items-center gap-2">
+                <span className="w-1 h-6 bg-coffee-700 rounded-full" />
+                水样对照 · 一目了然
+              </h3>
+              <div className="flex items-center bg-coffee-100 rounded-lg p-1">
+                <button
+                  onClick={() => setSortMode('blindCode')}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                    sortMode === 'blindCode'
+                      ? 'bg-white text-coffee-900 shadow-sm'
+                      : 'text-coffee-600 hover:text-coffee-800'
+                  )}
+                >
+                  按盲编号
+                </button>
+                <button
+                  onClick={() => setSortMode('preference')}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                    sortMode === 'preference'
+                      ? 'bg-white text-coffee-900 shadow-sm'
+                      : 'text-coffee-600 hover:text-coffee-800'
+                  )}
+                >
+                  按喜好排序
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {sortedSamples.map((sample, index) => {
                 const score = getScoreBySampleId(currentBlindTest, sample.id);
@@ -144,7 +174,8 @@ export function RevealPage() {
                       score={score}
                       brewingParam={brewingParam}
                       isRevealed={showAllNames}
-                      rank={index + 1}
+                      rank={sortMode === 'preference' ? index + 1 : score?.preferenceRank}
+                      badgeMode={sortMode === 'preference' ? 'rank' : 'blindCode'}
                     />
                   </div>
                 );
@@ -193,7 +224,7 @@ export function RevealPage() {
               </div>
 
               <div className="max-w-5xl mx-auto">
-                <ComparisonTable blindTest={currentBlindTest} />
+                <ComparisonTable blindTest={currentBlindTest} samples={sortedSamples} />
               </div>
 
               <div className="max-w-4xl mx-auto space-y-4">

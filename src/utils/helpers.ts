@@ -57,6 +57,13 @@ export function getSortedSamplesByPreference(
   return sorted;
 }
 
+export function getSortedSamplesByBlindCode(
+  blindTest: BlindTest
+): WaterSample[] {
+  const order: Record<BlindCode, number> = { A: 0, B: 1, C: 2 };
+  return [...blindTest.waterSamples].sort((a, b) => order[a.blindCode] - order[b.blindCode]);
+}
+
 export function isAllScoresCompleted(blindTest: BlindTest): boolean {
   return blindTest.waterSamples.every((sample) =>
     blindTest.tastingScores.some((s) => s.waterSampleId === sample.id)
