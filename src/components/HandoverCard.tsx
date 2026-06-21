@@ -62,7 +62,7 @@ function AdjustmentRecord({
   ]
 
   return (
-    <div className="mb-3 rounded border border-gray-700/40 print:border-gray-400 bg-gray-800/30 print:bg-gray-50 p-2.5">
+    <div className="mb-3 rounded border border-gray-700/40 print:border-gray-400 bg-gray-800/30 print:bg-gray-50 p-2.5 print:break-inside-avoid">
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-xs font-medium text-emerald-400 print:text-emerald-700">
           第{targetDay + 1}天 已应用
@@ -218,7 +218,7 @@ export default function HandoverCard({ planId }: HandoverCardProps) {
           {sortedAdjustments.length === 0 ? (
             <p className="text-sm text-gray-400 print:text-gray-500">暂无调整记录</p>
           ) : (
-            <div className="max-h-[120px] overflow-y-auto">
+            <div>
               {sortedAdjustments.map(a => (
                 <AdjustmentRecord
                   key={a.id}
