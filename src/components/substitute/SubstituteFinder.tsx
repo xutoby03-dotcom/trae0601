@@ -1,12 +1,24 @@
 import { useState, useMemo } from 'react';
-import { UserX, Search, Award, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Sparkles } from 'lucide-react';
+import { UserX, Search, Award, TrendingUp, TrendingDown, Minus, AlertTriangle, CheckCircle, Sparkles, ChevronUp, ChevronDown, X, History, UserCheck, MapPin } from 'lucide-react';
 import { useStageStore } from '@/stores/stageStore';
 import { useMembersStore } from '@/stores/membersStore';
 import { findBestSubstitutes, formatDelta, getDeltaColorClass } from '@/engine/substituteEngine';
 import type { SubstituteCandidate, Member } from '@/types';
 import { VOICE_PART_CONFIG, VOICE_PARTS } from '@/utils/constants';
 import { computeScore } from '@/engine/scoreEngine';
-import { getInitial } from '@/utils/helpers';
+import { getInitial, formatTime, generateId, now } from '@/utils/helpers';
+
+interface SubstituteApplyRecord {
+  id: string;
+  appliedAt: string;
+  absentMember: Member;
+  substituteMember: Member;
+  row: number;
+  col: number;
+  impactScore: number;
+  originalOverall: number;
+  newOverall: number;
+}
 
 function ImpactBar({ value }: { value: number }) {
   const color =
@@ -221,6 +233,8 @@ export function SubstituteFinder() {
   const [absentId, setAbsentId] = useState<string>('');
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [showResults, setShowResults] = useState(false);
+  const [applyRecords, setApplyRecords] = useState<SubstituteApplyRecord[]>([]);
+  const [recordsCollapsed, setRecordsCollapsed] = useState(false);
 
   const absentMember = members.find(m => m.id === absentId);
 
@@ -247,7 +261,9 @@ export function SubstituteFinder() {
   };
 
   const applyCandidate = (c: SubstituteCandidate) => {
-    if (!absentId) return;
+    if (!absentId || !absentMember) return;
+    const sub = members.find(m => m.id === c.substituteMemberId);
+    if (!sub) return;
     const absentPos = scheme.positions.find(p => p.memberId === absentId);
     if (absentPos) {
       removeMemberAt(absentPos.row, absentPos.col);
@@ -259,6 +275,20 @@ export function SubstituteFinder() {
       removeMemberAt(c.recommendedRow, c.recommendedCol);
     }
     placeMember(c.recommendedRow, c.recommendedCol, c.substituteMemberId);
+
+    const record: SubstituteApplyRecord = {
+      id: generateId('rec'),
+      appliedAt: now(),
+      absentMember,
+      substituteMember: sub,
+      row: c.recommendedRow,
+      col: c.recommendedCol,
+      impactScore: c.impactScore,
+      originalOverall: originalScore.overall,
+      newOverall: c.newScore.overall,
+    };
+    setApplyRecords(prev => [record, ...prev]);
+    setRecordsCollapsed(false);
     setAbsentId('');
     setShowResults(false);
   };
@@ -284,6 +314,122 @@ export function SubstituteFinder() {
           </div>
         </div>
       </div>
+
+      {applyRecords.length > 0 && (
+        <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent overflow-hidden animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-emerald-500/10">
+            <button
+              onClick={() => setRecordsCollapsed(!recordsCollapsed)}
+              className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 transition"
+            >
+              <History className="h-3.5 w-3.5" />
+              套用记录
+              <span className="rounded-full bg-emerald-500/20 px-1.5 py-px text-[9px] font-bold">
+                {applyRecords.length}
+              </span>
+              {recordsCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+            </button>
+            <button
+              onClick={() => setApplyRecords([])}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-[9px] font-medium text-white/40 hover:bg-white/5 hover:text-rose-400 transition"
+              title="清空所有记录"
+            >
+              <X className="h-3 w-3" />
+              清空
+            </button>
+          </div>
+
+          {!recordsCollapsed && (
+            <div className="max-h-56 overflow-y-auto custom-scrollbar-thin p-2 space-y-2">
+              {applyRecords.map((rec, idx) => {
+                const absCfg = VOICE_PART_CONFIG[rec.absentMember.voicePart];
+                const subCfg = VOICE_PART_CONFIG[rec.substituteMember.voicePart];
+                const impactColor =
+                  rec.impactScore <= 15 ? 'text-emerald-400' : rec.impactScore <= 30 ? 'text-green-400' : rec.impactScore <= 45 ? 'text-amber-400' : 'text-rose-400';
+                return (
+                  <div
+                    key={rec.id}
+                    className={`rounded-lg border border-white/5 bg-white/[0.02] p-2 ${idx === 0 ? 'ring-1 ring-emerald-500/30' : ''}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-white/30">{formatTime(rec.appliedAt)}</span>
+                        {idx === 0 && (
+                          <span className="rounded-full bg-emerald-500/20 px-1.5 py-px text-[8px] font-bold text-emerald-300">
+                            最新
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-white/40">影响分</span>
+                        <span className={`text-[11px] font-bold tabular-nums ${impactColor}`}>
+                          {rec.impactScore}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-12 gap-2 items-center text-[10px]">
+                      <div className="col-span-5 flex items-center gap-1.5">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/20">
+                          <UserX className="h-2.5 w-2.5 text-rose-300" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="flex h-3 w-3 items-center justify-center rounded text-[6px] font-bold text-white"
+                              style={{ backgroundColor: absCfg.color }}
+                            >
+                              {absCfg.shortLabel}
+                            </span>
+                            <span className="text-white/70 truncate">{rec.absentMember.name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 flex justify-center">
+                        <div className="flex items-center gap-0.5 text-white/20">
+                          <Minus className="h-3 w-3" />
+                          <UserCheck className="h-3 w-3" />
+                        </div>
+                      </div>
+
+                      <div className="col-span-5 flex items-center gap-1.5">
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20">
+                          <UserCheck className="h-2.5 w-2.5 text-emerald-300" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="flex h-3 w-3 items-center justify-center rounded text-[6px] font-bold text-white"
+                              style={{ backgroundColor: subCfg.color }}
+                            >
+                              {subCfg.shortLabel}
+                            </span>
+                            <span className="text-white/70 truncate">{rec.substituteMember.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-3 text-[9px]">
+                      <div className="flex items-center gap-1 text-white/40">
+                        <MapPin className="h-2.5 w-2.5" />
+                        <span>第{rec.row + 1}排 第{rec.col + 1}列</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-white/40">
+                        <TrendingDown className="h-2.5 w-2.5" />
+                        <span>
+                          {rec.originalOverall} → <span className="text-amber-300 font-medium">{rec.newOverall}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="mb-1.5 block text-[11px] font-semibold text-white/70">

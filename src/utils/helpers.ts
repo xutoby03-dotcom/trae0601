@@ -43,6 +43,13 @@ export function getInitial(name: string): string {
   return trimmed.charAt(0).toUpperCase();
 }
 
+export function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+}
+
 export function create2DArray<T>(rows: number, cols: number, defaultValue: T): T[][] {
   return Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => defaultValue)
