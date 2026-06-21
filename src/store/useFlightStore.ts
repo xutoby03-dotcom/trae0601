@@ -13,6 +13,7 @@ interface FlightStore {
   flightStatus: FlightCheckStatus;
   selectedLocation: string;
   expandedShot: string | null;
+  highlightedBatteryId: string | null;
 
   setLocation: (name: string) => void;
   updateBattery: (id: string, updates: Partial<Battery>) => void;
@@ -22,6 +23,7 @@ interface FlightStore {
   updateShot: (id: string, updates: Partial<ShotItem>) => void;
   removeShot: (id: string) => void;
   toggleShotExpand: (id: string) => void;
+  setHighlightedBattery: (id: string | null) => void;
   recalcShots: () => void;
   checkFlight: () => void;
 }
@@ -37,6 +39,7 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
   flightStatus: 'idle',
   selectedLocation: '',
   expandedShot: null,
+  highlightedBatteryId: null,
 
   setLocation: (name: string) => {
     const data = getLocationData(name);
@@ -137,6 +140,12 @@ export const useFlightStore = create<FlightStore>((set, get) => ({
 
   toggleShotExpand: (id) => {
     set((state) => ({ expandedShot: state.expandedShot === id ? null : id }));
+  },
+
+  setHighlightedBattery: (id) => {
+    set((state) => ({
+      highlightedBatteryId: state.highlightedBatteryId === id ? null : id,
+    }));
   },
 
   recalcShots: () => {

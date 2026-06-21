@@ -21,7 +21,7 @@ const borderColor: Record<string, string> = {
 };
 
 export default function ShotChecklist() {
-  const { shots, expandedShot, toggleShotExpand, addShot, removeShot, updateShot, batteries } = useFlightStore();
+  const { shots, expandedShot, toggleShotExpand, addShot, removeShot, updateShot, batteries, highlightedBatteryId } = useFlightStore();
 
   const dangerCount = shots.filter((s) => s.status === 'danger').length;
   const cautionCount = shots.filter((s) => s.status === 'caution').length;
@@ -43,12 +43,20 @@ export default function ShotChecklist() {
           {shots.map((shot) => {
             const Icon = statusIcon[shot.status];
             const isExpanded = expandedShot === shot.id;
+            const isHighlighted = highlightedBatteryId && shot.batteryId === highlightedBatteryId;
+            const isDimmed = highlightedBatteryId && shot.batteryId !== highlightedBatteryId;
 
             return (
               <div
                 key={shot.id}
                 className={`rounded-md border-l-2 border border-white/5 bg-white/[0.02] transition-all ${borderColor[shot.status]} ${
                   shot.status === 'danger' ? 'animate-[shake_0.3s_ease-in-out]' : ''
+                } ${
+                  isHighlighted
+                    ? 'ring-2 ring-[#00E5A0]/40 bg-[#00E5A0]/[0.08] scale-[1.01]'
+                    : isDimmed
+                      ? 'opacity-40'
+                      : ''
                 }`}
               >
                 <div
