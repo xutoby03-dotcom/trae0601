@@ -8,22 +8,25 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import type { BlindTest } from '@/types';
+import type { BlindTest, WaterSample } from '@/types';
 import { getScoreBySampleId, CHART_COLORS, calculateAverageScore } from '@/utils/helpers';
 
 interface BarChartProps {
   blindTest: BlindTest;
+  samples?: WaterSample[];
 }
 
-export function BarChart({ blindTest }: BarChartProps) {
-  const data = blindTest.waterSamples.map((sample, index) => {
+export function BarChart({ blindTest, samples }: BarChartProps) {
+  const displaySamples = samples || blindTest.waterSamples;
+
+  const data = displaySamples.map((sample, index) => {
     const score = getScoreBySampleId(blindTest, sample.id);
     return {
       name: `水样 ${sample.blindCode}`,
       综合评分: score ? calculateAverageScore(score) : 0,
       color: CHART_COLORS[index % CHART_COLORS.length],
     };
-  }).sort((a, b) => b.综合评分 - a.综合评分);
+  });
 
   return (
     <div className="w-full h-64">

@@ -206,7 +206,7 @@ export function RevealPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <RadarChart blindTest={currentBlindTest} />
+                    <RadarChart blindTest={currentBlindTest} samples={sortedSamples} />
                   </CardContent>
                 </Card>
 
@@ -218,7 +218,7 @@ export function RevealPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <BarChart blindTest={currentBlindTest} />
+                    <BarChart blindTest={currentBlindTest} samples={sortedSamples} />
                   </CardContent>
                 </Card>
               </div>

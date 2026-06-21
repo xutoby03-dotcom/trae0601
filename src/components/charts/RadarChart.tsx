@@ -8,18 +8,21 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import type { BlindTest, RadarDataPoint } from '@/types';
+import type { BlindTest, RadarDataPoint, WaterSample } from '@/types';
 import { getScoreBySampleId, CHART_COLORS } from '@/utils/helpers';
 import { RATING_DIMENSIONS } from '@/types';
 
 interface RadarChartProps {
   blindTest: BlindTest;
+  samples?: WaterSample[];
 }
 
-export function RadarChart({ blindTest }: RadarChartProps) {
+export function RadarChart({ blindTest, samples }: RadarChartProps) {
+  const displaySamples = samples || blindTest.waterSamples;
+
   const data: RadarDataPoint[] = RATING_DIMENSIONS.map((dim) => {
     const point: RadarDataPoint = { dimension: dim.label };
-    blindTest.waterSamples.forEach((sample, index) => {
+    displaySamples.forEach((sample) => {
       const score = getScoreBySampleId(blindTest, sample.id);
       if (score) {
         point[sample.blindCode] = score[dim.key as keyof typeof score] as number;
@@ -66,7 +69,7 @@ export function RadarChart({ blindTest }: RadarChartProps) {
               </span>
             )}
           />
-          {blindTest.waterSamples.map((sample, index) => {
+          {displaySamples.map((sample, index) => {
             const score = getScoreBySampleId(blindTest, sample.id);
             if (!score) return null;
 
