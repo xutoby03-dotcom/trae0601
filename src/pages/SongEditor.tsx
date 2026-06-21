@@ -8,6 +8,7 @@ import { TagToolbar } from '@/components/TagToolbar';
 import { TagList } from '@/components/TagList';
 import { TagFilters } from '@/components/TagFilters';
 import { SectionEditor } from '@/components/SectionEditor';
+import { PracticeArea } from '@/components/PracticeArea';
 import type { TagType } from '@/types';
 
 export default function SongEditor() {
@@ -324,6 +325,15 @@ export default function SongEditor() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-4">
+                <PracticeArea
+                  sections={songSections}
+                  tags={songTags}
+                  members={members}
+                  onJumpToTime={handleSeek}
+                />
+              </div>
+
               {activeTab === 'tags' ? (
                 <div className="space-y-4">
                   <TagFilters
