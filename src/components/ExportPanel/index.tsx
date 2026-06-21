@@ -10,7 +10,7 @@ import { Download, FileText, FileSpreadsheet, FileJson, AlertTriangle, CheckCirc
 
 export const ExportPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { poles, riskMarks, rooftop, windData } = useWindStore();
+  const { poles, riskMarks, rooftop, windData, setSelectedPoleId } = useWindStore();
   const { allPoleStats, riskSummary } = useWindSimulation();
 
   const riskListPreview = useMemo(() => {
@@ -113,7 +113,14 @@ export const ExportPanel = () => {
                   ) : (
                     <div className="divide-y divide-slate-700/30">
                       {riskListPreview.map((item) => (
-                        <div key={item!.pole.id} className="p-3 hover:bg-slate-800/30 transition-colors">
+                        <div
+                          key={item!.pole.id}
+                          className="p-3 hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                          onClick={() => {
+                            setSelectedPoleId(item!.pole.id);
+                            setIsOpen(false);
+                          }}
+                        >
                           <div className="flex items-center gap-2 mb-1">
                             <div
                               className={`w-2 h-2 rounded-full ${
@@ -138,7 +145,7 @@ export const ExportPanel = () => {
                           <div className="text-xs text-slate-400 mb-1.5">
                             高缠绕 {item!.stat.tanglingHours}h/天 · 最大阵风 {item!.stat.maxGustSpeed}m/s
                           </div>
-                          {item!.mark && (
+                          {item!.mark ? (
                             <div className="text-xs">
                               <span className="text-cyan-400">
                                 标记: {RISK_TYPE_LABELS[item!.mark.type]}
@@ -148,6 +155,10 @@ export const ExportPanel = () => {
                                   · 备注: {item!.mark.note}
                                 </span>
                               )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-500">
+                              未标记 — 点击在画布中定位并评估
                             </div>
                           )}
                         </div>

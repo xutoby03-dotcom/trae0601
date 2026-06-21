@@ -59,11 +59,21 @@ export const FlagPole = ({
       </defs>
 
       {isSelected && (
-        <circle
-          r={poleRadius + 15}
-          fill={`url(#pole-glow-${pole.id})`}
-          className="animate-pulse"
-        />
+        <>
+          <circle
+            r={poleRadius + 22}
+            fill="none"
+            stroke="#06b6d4"
+            strokeWidth="2"
+            strokeDasharray="4 3"
+            opacity="0.8"
+          />
+          <circle
+            r={poleRadius + 15}
+            fill={`url(#pole-glow-${pole.id})`}
+            className="animate-pulse"
+          />
+        </>
       )}
 
       <circle

@@ -89,6 +89,21 @@ export const RooftopCanvas = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [setContextMenu]);
 
+  useEffect(() => {
+    if (!selectedPoleId || !containerRef.current) return;
+    const pole = poles.find(p => p.id === selectedPoleId);
+    if (!pole) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const poleScreenX = pole.x * zoom;
+    const poleScreenY = pole.y * zoom;
+    setPan({
+      x: centerX - poleScreenX,
+      y: centerY - poleScreenY,
+    });
+  }, [selectedPoleId, poles, zoom, setPan]);
+
   const handleResetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -152,12 +167,11 @@ export const RooftopCanvas = () => {
 
       <svg
         ref={svgRef}
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${rooftop.width} ${rooftop.height}`}
+        width={rooftop.width}
+        height={rooftop.height}
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transformOrigin: 'center center',
+          transformOrigin: 'top left',
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
         }}
       >
