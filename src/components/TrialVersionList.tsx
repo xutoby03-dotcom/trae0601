@@ -62,7 +62,7 @@ function matchesFilter(trial: Trial, filter: FilterKey): boolean {
     case 'missing_notes':
       return hasMissingNotes(trial);
     case 'selected':
-      return trial.isSelected;
+      return trial.isSelected && !trial.isArchived;
     case 'archived':
       return trial.isArchived;
     default:
@@ -102,7 +102,7 @@ export default function TrialVersionList({
     };
     trials.forEach((t) => {
       if (hasMissingNotes(t)) counts.missing_notes++;
-      if (t.isSelected) counts.selected++;
+      if (t.isSelected && !t.isArchived) counts.selected++;
       if (t.isArchived) counts.archived++;
     });
     return counts;
