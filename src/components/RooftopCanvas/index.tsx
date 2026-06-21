@@ -76,14 +76,11 @@ export const RooftopCanvas = () => {
   const handlePoleContextMenu = useCallback((e: React.MouseEvent, poleId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      setContextMenu({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-        poleId,
-      });
-    }
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      poleId,
+    });
   }, [setContextMenu]);
 
   useEffect(() => {

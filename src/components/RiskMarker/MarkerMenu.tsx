@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useWindStore } from '../../store/useWindStore';
 import { RiskType, RISK_TYPE_LABELS } from '../../types';
 import { Button } from '../ui/Button';
@@ -10,10 +10,14 @@ interface MarkerMenuProps {
   onClose: () => void;
 }
 
+const MENU_WIDTH = 256;
+const VIEWPORT_MARGIN = 12;
+
 export const MarkerMenu = ({ poleId, position, onClose }: MarkerMenuProps) => {
   const { addRiskMark, removeRiskMark, getPoleRiskMark, poles } = useWindStore();
   const [note, setNote] = useState('');
   const [selectedType, setSelectedType] = useState<RiskType | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const existingMark = getPoleRiskMark(poleId);
   const pole = poles.find(p => p.id === poleId);
@@ -55,16 +59,54 @@ export const MarkerMenu = ({ poleId, position, onClose }: MarkerMenuProps) => {
     },
   ];
 
+  const estimatedHeight = existingMark ? 420 : 360;
+
+  const clamped = useMemo(() => {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+
+    let top = position.y - estimatedHeight - 16;
+    let left = position.x - MENU_WIDTH / 2;
+    let placementAbove = true;
+
+    if (top < VIEWPORT_MARGIN) {
+      top = position.y + 16;
+      placementAbove = false;
+    }
+    if (top + estimatedHeight > vh - VIEWPORT_MARGIN) {
+      top = vh - estimatedHeight - VIEWPORT_MARGIN;
+    }
+    if (left < VIEWPORT_MARGIN) {
+      left = VIEWPORT_MARGIN;
+    }
+    if (left + MENU_WIDTH > vw - VIEWPORT_MARGIN) {
+      left = vw - MENU_WIDTH - VIEWPORT_MARGIN;
+    }
+
+    return { top, left, placementAbove };
+  }, [position.x, position.y, estimatedHeight]);
+
   return (
     <div
+      ref={menuRef}
       className="fixed z-50 w-64 bg-slate-800/95 backdrop-blur-md border border-slate-600/50 rounded-xl shadow-2xl overflow-hidden"
       style={{
-        left: position.x,
-        top: position.y,
-        transform: 'translate(-50%, -110%)',
+        left: clamped.left,
+        top: clamped.top,
       }}
       onClick={(e) => e.stopPropagation()}
     >
+      {clamped.placementAbove ? (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 border-r border-b border-slate-600/50 rotate-45"
+          style={{ bottom: -6 }}
+        />
+      ) : (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 border-l border-t border-slate-600/50 rotate-45"
+          style={{ top: -6 }}
+        />
+      )}
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700/50">
         <div className="text-sm font-medium text-slate-200">
           {pole?.id.replace('pole-', '旗杆 #')}
