@@ -9,13 +9,17 @@ import {
   Lock,
   Unlock,
   SlidersHorizontal,
+  Tag,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useUIStore,
   DISTANCE_SENSE_LIST,
+  AVAILABILITY_ANNOTATION_TYPES,
 } from "@/store/uiStore";
+import { annotationColorMap } from "@/lib/colors";
+import type { AnnotationType } from "@/types";
 
 export default function FilterPanel() {
   const recordings = useUIStore((s) => s.recordings);
@@ -26,6 +30,8 @@ export default function FilterPanel() {
   const peakMin = useUIStore((s) => s.peakMin);
   const peakMax = useUIStore((s) => s.peakMax);
   const lockedFilter = useUIStore((s) => s.lockedFilter);
+  const annotationTypeFilter = useUIStore((s) => s.annotationTypeFilter);
+  const setAnnotationTypeFilter = useUIStore((s) => s.setAnnotationTypeFilter);
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
   const setAmbienceRange = useUIStore((s) => s.setAmbienceRange);
   const toggleDistanceSense = useUIStore((s) => s.toggleDistanceSense);
@@ -40,8 +46,9 @@ export default function FilterPanel() {
     if (distanceSenses.length > 0) n++;
     if (peakMin > -20 || peakMax < 0) n++;
     if (lockedFilter !== null) n++;
+    if (annotationTypeFilter !== null) n++;
     return n;
-  }, [searchQuery, ambienceMin, ambienceMax, distanceSenses, peakMin, peakMax, lockedFilter]);
+  }, [searchQuery, ambienceMin, ambienceMax, distanceSenses, peakMin, peakMax, lockedFilter, annotationTypeFilter]);
 
   const filteredCount = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -56,6 +63,10 @@ export default function FilterPanel() {
       if (distanceSenses.length > 0 && !distanceSenses.includes(r.distanceSense)) return false;
       if (r.peakDbfs < peakMin || r.peakDbfs > peakMax) return false;
       if (lockedFilter !== null && r.isLocked !== lockedFilter) return false;
+      if (annotationTypeFilter !== null) {
+        const hasType = r.annotations.some((a) => a.type === annotationTypeFilter);
+        if (!hasType) return false;
+      }
       return true;
     }).length;
   }, [
@@ -67,6 +78,7 @@ export default function FilterPanel() {
     peakMin,
     peakMax,
     lockedFilter,
+    annotationTypeFilter,
   ]);
 
   return (
@@ -254,6 +266,74 @@ export default function FilterPanel() {
               variant="unlocked"
             />
           </div>
+        </FilterBlock>
+
+        <FilterBlock
+          icon={Tag}
+          iconColor={annotationTypeFilter ? "text-amber-400" : "text-slate-400"}
+          title="可用性标记"
+          subtitle="点击素材卡上的标记快速筛选"
+        >
+          {annotationTypeFilter === null ? (
+            <div className="space-y-2">
+              <div className="text-[11px] text-slate-500 leading-relaxed">
+                点击任意素材卡或列表行上的
+                <span className="text-slate-300 font-medium">🌿 循环段</span>、
+                <span className="text-slate-300 font-medium">💨 风噪</span>、
+                <span className="text-slate-300 font-medium">🚗 车噪</span>、
+                <span className="text-slate-300 font-medium">🗣️ 人声</span>
+                标记，可快速筛选包含该类标注的录音。
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {AVAILABILITY_ANNOTATION_TYPES.map((t) => {
+                  const info = annotationColorMap[t];
+                  const count = recordings.filter((r) =>
+                    r.annotations.some((a) => a.type === t)
+                  ).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setAnnotationTypeFilter(t)}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border bg-forest-800/30 text-slate-400 border-forest-700/30 hover:text-slate-200 hover:bg-forest-800/50 transition-all"
+                    >
+                      <span>{info.emoji}</span>
+                      <span>{info.label}</span>
+                      <span className="opacity-50">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="text-[11px] text-slate-400">当前筛选：</div>
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/35 w-full">
+                <span className="text-lg">{annotationColorMap[annotationTypeFilter].emoji}</span>
+                <div className="flex-1 leading-tight">
+                  <div className="text-sm font-semibold text-amber-300">
+                    {annotationColorMap[annotationTypeFilter].label}
+                  </div>
+                  <div className="text-[10px] text-amber-400/80">
+                    显示带此标记的录音 · {filteredCount} 条命中
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAnnotationTypeFilter(null)}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-amber-400 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
+                  title="清除标记筛选"
+                >
+                  <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </button>
+              </div>
+              <button
+                onClick={() => setAnnotationTypeFilter(null)}
+                className="w-full py-1.5 rounded-md text-[11px] font-medium bg-amber-500 hover:bg-amber-400 text-forest-950 transition-colors"
+              >
+                清除标记筛选
+              </button>
+            </div>
+          )}
         </FilterBlock>
       </div>
 

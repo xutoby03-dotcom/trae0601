@@ -107,9 +107,11 @@ interface UIState {
   peakMin: number;
   peakMax: number;
   lockedFilter: boolean | null;
+  annotationTypeFilter: AnnotationType | null;
 }
 
 export const DISTANCE_SENSE_LIST = ['近景', '中近景', '中景', '远景', '极远景'] as const;
+export const AVAILABILITY_ANNOTATION_TYPES: AnnotationType[] = ['loop', 'wind_noise', 'traffic', 'voice'];
 
 interface UIStoreFull extends UIState {
   setCurrentView: (view: PageViewMode) => void;
@@ -147,6 +149,7 @@ interface UIStoreFull extends UIState {
   toggleDistanceSense: (sense: string) => void;
   setPeakRange: (min: number, max: number) => void;
   setLockedFilter: (locked: boolean | null) => void;
+  setAnnotationTypeFilter: (type: AnnotationType | null) => void;
   resetFilters: () => void;
 }
 
@@ -243,6 +246,7 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
   peakMin: -20,
   peakMax: 0,
   lockedFilter: null,
+  annotationTypeFilter: null,
 
   setCurrentView: (view) => set({ currentView: view }),
   setSelectedRecordingId: (id) =>
@@ -377,6 +381,7 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
     }),
   setPeakRange: (min, max) => set({ peakMin: min, peakMax: max }),
   setLockedFilter: (locked) => set({ lockedFilter: locked }),
+  setAnnotationTypeFilter: (type) => set({ annotationTypeFilter: type }),
   resetFilters: () =>
     set({
       searchQuery: '',
@@ -386,5 +391,6 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
       peakMin: -20,
       peakMax: 0,
       lockedFilter: null,
+      annotationTypeFilter: null,
     }),
 }));

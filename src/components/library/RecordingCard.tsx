@@ -1,8 +1,14 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { Play, Eye, CheckSquare, Square, Lock } from 'lucide-react';
-import { useUIStore, type Recording as UIRecording } from '@/store/uiStore';
+import {
+  useUIStore,
+  type Recording as UIRecording,
+  AVAILABILITY_ANNOTATION_TYPES,
+} from '@/store/uiStore';
 import { usePlayerStore } from '@/store/playerStore';
 import { cn } from '@/lib/utils';
+import { annotationColorMap } from '@/lib/colors';
+import type { AnnotationType } from '@/types';
 
 interface RecordingCardProps {
   recording: UIRecording;
@@ -46,6 +52,8 @@ export default function RecordingCard({ recording, index, compact = false }: Rec
   const openDetailPanelAction = useUIStore((s) => s.openDetailPanel);
   const batchSelectedIds = useUIStore((s) => s.batchSelectedIds);
   const toggleRecordingSelected = useUIStore((s) => s.toggleRecordingSelected);
+  const annotationTypeFilter = useUIStore((s) => s.annotationTypeFilter);
+  const setAnnotationTypeFilter = useUIStore((s) => s.setAnnotationTypeFilter);
   const playerToggle = usePlayerStore((s) => s.toggle);
   const playerLoad = usePlayerStore((s) => s.loadRecording);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -53,6 +61,16 @@ export default function RecordingCard({ recording, index, compact = false }: Rec
   const active = isPlaying && currentRecordingId === recording.id;
 
   const gradient = pickGradient(recording.tags);
+
+  const availabilityTypes = useMemo(() => {
+    const types = new Set<AnnotationType>();
+    recording.annotations.forEach((a) => {
+      if (AVAILABILITY_ANNOTATION_TYPES.includes(a.type)) {
+        types.add(a.type);
+      }
+    });
+    return Array.from(types);
+  }, [recording.annotations]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -179,6 +197,34 @@ export default function RecordingCard({ recording, index, compact = false }: Rec
         <h3 className="font-display text-lg font-semibold text-white mb-1.5 line-clamp-1 leading-tight">
           {recording.locationName}
         </h3>
+
+        {availabilityTypes.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {availabilityTypes.map((t) => {
+              const info = annotationColorMap[t];
+              const active = annotationTypeFilter === t;
+              return (
+                <button
+                  key={t}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAnnotationTypeFilter(annotationTypeFilter === t ? null : t);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all",
+                    active
+                      ? `${info.bg} ${info.text} ${info.border} ring-1 ring-offset-1 ring-offset-black/60 ${info.border}`
+                      : "bg-white/10 text-slate-300 border-white/15 hover:bg-white/15"
+                  )}
+                  title={`点击筛选带「${info.label}」的素材`}
+                >
+                  <span>{info.emoji}</span>
+                  <span>{info.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-0.5">

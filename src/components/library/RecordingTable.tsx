@@ -9,7 +9,13 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useUIStore, type Recording } from "@/store/uiStore";
+import {
+  useUIStore,
+  type Recording,
+  AVAILABILITY_ANNOTATION_TYPES,
+} from "@/store/uiStore";
+import { annotationColorMap } from "@/lib/colors";
+import type { AnnotationType } from "@/types";
 
 export default function RecordingTable() {
   const recordings = useUIStore((s) => s.recordings);
@@ -20,6 +26,8 @@ export default function RecordingTable() {
   const peakMin = useUIStore((s) => s.peakMin);
   const peakMax = useUIStore((s) => s.peakMax);
   const lockedFilter = useUIStore((s) => s.lockedFilter);
+  const annotationTypeFilter = useUIStore((s) => s.annotationTypeFilter);
+  const setAnnotationTypeFilter = useUIStore((s) => s.setAnnotationTypeFilter);
   const selectedRecordingIds = useUIStore((s) => s.selectedRecordingIds);
   const selectedRecordingId = useUIStore((s) => s.selectedRecordingId);
   const toggleRecordingSelected = useUIStore((s) => s.toggleRecordingSelected);
@@ -49,6 +57,10 @@ export default function RecordingTable() {
       if (lockedFilter !== null && r.isLocked !== lockedFilter) {
         return false;
       }
+      if (annotationTypeFilter !== null) {
+        const hasType = r.annotations.some((a) => a.type === annotationTypeFilter);
+        if (!hasType) return false;
+      }
       return true;
     });
   }, [
@@ -60,6 +72,7 @@ export default function RecordingTable() {
     peakMin,
     peakMax,
     lockedFilter,
+    annotationTypeFilter,
   ]);
 
   const formatDuration = (sec: number) => {
@@ -112,6 +125,9 @@ export default function RecordingTable() {
               <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 标签
               </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                可用性
+              </th>
               <th className="w-16 px-4 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                 状态
               </th>
@@ -124,15 +140,19 @@ export default function RecordingTable() {
 
               return (
                 <Row
-                  key={r.id}
-                  recording={r}
-                  isSelected={isSelected}
-                  isActive={isActive}
-                  formatDuration={formatDuration}
-                  onToggleSelect={() => toggleRecordingSelected(r.id)}
-                  onOpen={() => openDetailPanel(r.id)}
-                  onToggleLock={() => toggleRecordingLock(r.id)}
-                />
+                    key={r.id}
+                    recording={r}
+                    isSelected={isSelected}
+                    isActive={isActive}
+                    annotationTypeFilter={annotationTypeFilter}
+                    formatDuration={formatDuration}
+                    onToggleSelect={() => toggleRecordingSelected(r.id)}
+                    onOpen={() => openDetailPanel(r.id)}
+                    onToggleLock={() => toggleRecordingLock(r.id)}
+                    onFilterAnnotation={(t) =>
+                      setAnnotationTypeFilter(annotationTypeFilter === t ? null : t)
+                    }
+                  />
               );
             })}
           </tbody>
@@ -146,21 +166,34 @@ interface RowProps {
   recording: Recording;
   isSelected: boolean;
   isActive: boolean;
+  annotationTypeFilter: AnnotationType | null;
   formatDuration: (sec: number) => string;
   onToggleSelect: () => void;
   onOpen: () => void;
   onToggleLock: () => void;
+  onFilterAnnotation: (type: AnnotationType) => void;
 }
 
 function Row({
   recording,
   isSelected,
   isActive,
+  annotationTypeFilter,
   formatDuration,
   onToggleSelect,
   onOpen,
   onToggleLock,
+  onFilterAnnotation,
 }: RowProps) {
+  const availabilityTypes = useMemo(() => {
+    const types = new Set<AnnotationType>();
+    recording.annotations.forEach((a) => {
+      if (AVAILABILITY_ANNOTATION_TYPES.includes(a.type)) {
+        types.add(a.type);
+      }
+    });
+    return Array.from(types);
+  }, [recording.annotations]);
   return (
     <tr
       onClick={onOpen}
@@ -268,6 +301,37 @@ function Row({
             <span className="text-[10px] text-slate-500">
               +{recording.tags.length - 2}
             </span>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1 flex-wrap">
+          {availabilityTypes.length === 0 ? (
+            <span className="text-[10px] text-slate-600">—</span>
+          ) : (
+            availabilityTypes.map((t) => {
+              const info = annotationColorMap[t];
+              const active = annotationTypeFilter === t;
+              return (
+                <button
+                  key={t}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFilterAnnotation(t);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all",
+                    active
+                      ? `${info.bg} ${info.text} ${info.border} ring-1 ring-offset-1 ring-offset-forest-900 ${info.border}`
+                      : "bg-forest-800/30 text-slate-500 border-forest-700/30 hover:text-slate-300 hover:bg-forest-800/50"
+                  )}
+                  title={`点击筛选带「${info.label}」的素材`}
+                >
+                  <span>{info.emoji}</span>
+                  <span>{info.label}</span>
+                </button>
+              );
+            })
           )}
         </div>
       </td>
