@@ -15,3 +15,9 @@ export function getCompletedDays(observations: Observation[]): ObservationDay[] 
 export function hasAllThreeDays(observations: Observation[]): boolean {
   return getCompletedDays(observations).length === 3
 }
+
+export function hasDay7(observations: Observation[]): boolean {
+  return observations.some(
+    (o) => o.day === 7 && o.photos.length > 0
+  )
+}

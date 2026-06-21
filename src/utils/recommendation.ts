@@ -4,7 +4,7 @@ import type {
   ScenarioType,
   Sample,
 } from "@/types"
-import { hasAllThreeDays } from "@/utils/observation"
+import { hasAllThreeDays, hasDay7 } from "@/utils/observation"
 
 const INDICATOR_SCORES: Record<string, number> = {
   none: 3,
@@ -138,10 +138,11 @@ export function getRecommendations(
       })
       .filter((r) => {
         if (r.score <= 0) return false
+        const sampleObs = observations.filter(
+          (o) => o.sampleId === r.sampleId
+        )
+        if (!hasDay7(sampleObs)) return false
         if (scenario === "kitchen" || scenario === "bathroom" || scenario === "window") {
-          const sampleObs = observations.filter(
-            (o) => o.sampleId === r.sampleId
-          )
           return hasAllThreeDays(sampleObs)
         }
         return true

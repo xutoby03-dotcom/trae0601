@@ -14,7 +14,7 @@ import { useStore } from "@/store/useStore"
 import Navbar from "@/components/Navbar"
 import RadarChart from "@/components/RadarChart"
 import { getRecommendations, getRadarData } from "@/utils/recommendation"
-import { hasAllThreeDays, getCompletedDays } from "@/utils/observation"
+import { hasAllThreeDays, hasDay7 } from "@/utils/observation"
 import type { ScenarioType, Observation, IndicatorLevel, AdhesionLevel } from "@/types"
 import { SCENARIO_LABELS, INDICATOR_LABELS, INDICATOR_LEVEL_LABELS, ADHESION_LEVEL_LABELS } from "@/types"
 
@@ -55,6 +55,13 @@ export default function Recommendations() {
 
   const NEED_ALL_THREE_SCENARIOS: ScenarioType[] = ["kitchen", "bathroom", "window"]
 
+  const hasAnySampleDay7 = useMemo(() => {
+    return samples.some((s) => {
+      const obs = observations.filter((o) => o.sampleId === s.id)
+      return hasDay7(obs)
+    })
+  }, [samples, observations])
+
   const hasAnySampleAllThreeDays = useMemo(() => {
     return samples.some((s) => {
       const obs = observations.filter((o) => o.sampleId === s.id)
@@ -66,7 +73,14 @@ export default function Recommendations() {
     if (!hasData) {
       return {
         icon: <Layers className="h-5 w-5 text-[#555570]" />,
-        text: "添加样品并记录观察后，即可获取推荐",
+        text: "添加样品并记录第 7 天观察后，即可获取推荐",
+      }
+    }
+
+    if (!hasAnySampleDay7) {
+      return {
+        icon: <Layers className="h-5 w-5 text-[#555570]" />,
+        text: "需完成第 7 天观察并上传照片，才能参与场景排名",
       }
     }
 
@@ -79,14 +93,14 @@ export default function Recommendations() {
       } else {
         return {
           icon: <Layers className="h-5 w-5 text-[#555570]" />,
-          text: "需完成第 1、3、7 天全部观察，才能参与该场景排名",
+          text: "该场景需完成第 1、3、7 天全部观察才能参与排名",
         }
       }
     }
 
     return {
-      icon: <Layers className="h-5 w-5 text-[#555570]" />,
-      text: "暂无符合条件的样品",
+      icon: <ImageOff className="h-5 w-5 text-[#555570]" />,
+      text: "暂无适合该场景的样品",
     }
   }
 
@@ -176,16 +190,13 @@ export default function Recommendations() {
                             (o) => o.sampleId === sample.id
                           )
                           const radarData = getRadarData(sampleObs)
-                          const completed = getCompletedDays(sampleObs)
-                          const latestObs: Observation | undefined =
-                            sampleObs.find((o) => o.day === 7) ??
-                            (completed.length > 0
-                              ? sampleObs.find((o) => o.day === Math.max(...completed))
-                              : undefined)
+                          const day7Obs: Observation | undefined = sampleObs.find(
+                            (o) => o.day === 7 && o.photos.length > 0
+                          )
 
                           const indicators: Array<{ key: string; label: string; value: string; levelColor: string }> =
                             []
-                          if (latestObs) {
+                          if (day7Obs) {
                             const levelColor = (v: IndicatorLevel) =>
                               v === "none"
                                 ? "bg-emerald-500/12 text-emerald-400 border-emerald-500/25"
@@ -202,32 +213,32 @@ export default function Recommendations() {
                             indicators.push({
                               key: "shrinkage",
                               label: INDICATOR_LABELS.shrinkage,
-                              value: INDICATOR_LEVEL_LABELS[latestObs.shrinkage],
-                              levelColor: levelColor(latestObs.shrinkage),
+                              value: INDICATOR_LEVEL_LABELS[day7Obs.shrinkage],
+                              levelColor: levelColor(day7Obs.shrinkage),
                             })
                             indicators.push({
                               key: "bubbles",
                               label: INDICATOR_LABELS.bubbles,
-                              value: INDICATOR_LEVEL_LABELS[latestObs.bubbles],
-                              levelColor: levelColor(latestObs.bubbles),
+                              value: INDICATOR_LEVEL_LABELS[day7Obs.bubbles],
+                              levelColor: levelColor(day7Obs.bubbles),
                             })
                             indicators.push({
                               key: "yellowing",
                               label: INDICATOR_LABELS.yellowing,
-                              value: INDICATOR_LEVEL_LABELS[latestObs.yellowing],
-                              levelColor: levelColor(latestObs.yellowing),
+                              value: INDICATOR_LEVEL_LABELS[day7Obs.yellowing],
+                              levelColor: levelColor(day7Obs.yellowing),
                             })
                             indicators.push({
                               key: "moldSpots",
                               label: INDICATOR_LABELS.moldSpots,
-                              value: INDICATOR_LEVEL_LABELS[latestObs.moldSpots],
-                              levelColor: levelColor(latestObs.moldSpots),
+                              value: INDICATOR_LEVEL_LABELS[day7Obs.moldSpots],
+                              levelColor: levelColor(day7Obs.moldSpots),
                             })
                             indicators.push({
                               key: "adhesion",
                               label: INDICATOR_LABELS.adhesion,
-                              value: ADHESION_LEVEL_LABELS[latestObs.adhesion],
-                              levelColor: adhesionColor(latestObs.adhesion),
+                              value: ADHESION_LEVEL_LABELS[day7Obs.adhesion],
+                              levelColor: adhesionColor(day7Obs.adhesion),
                             })
                           }
 
@@ -271,9 +282,6 @@ export default function Recommendations() {
                                         {sample.model}
                                       </p>
                                     )}
-                                    <span className="shrink-0 rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] text-[#a0a0b8]">
-                                      第{latestObs?.day ?? 0}天
-                                    </span>
                                   </div>
                                   <div className="mt-2 space-y-1">
                                     {item.reasons.map((reason, rIdx) => (
