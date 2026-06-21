@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Noto Sans SC', system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFECB3 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-coffee-900 text-white px-6 py-3 rounded-lg font-medium
+           hover:bg-coffee-800 active:scale-95 transition-all duration-200
+           shadow-soft hover:shadow-soft-lg;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-coffee-900 px-6 py-3 rounded-lg font-medium
+           border-2 border-coffee-900 hover:bg-coffee-50
+           active:scale-95 transition-all duration-200;
+  }
+
+  .btn-accent {
+    @apply bg-coffee-700 text-white px-6 py-3 rounded-lg font-medium
+           hover:bg-coffee-600 active:scale-95 transition-all duration-200
+           shadow-soft hover:shadow-soft-lg;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-soft p-6 transition-all duration-300
+           hover:shadow-soft-lg;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border-2 border-coffee-100
+           focus:border-coffee-700 focus:outline-none transition-colors
+           bg-white text-coffee-900 placeholder:text-coffee-300;
+  }
+
+  .badge {
+    @apply inline-flex items-center justify-center px-3 py-1 rounded-full
+           text-sm font-semibold;
+  }
+
+  .badge-A {
+    @apply bg-coffee-100 text-coffee-900;
+  }
+
+  .badge-B {
+    @apply bg-amber-50 text-coffee-700;
+  }
+
+  .badge-C {
+    @apply bg-flavor-acid/10 text-flavor-acid;
+  }
+
+  .slider-thumb::-webkit-slider-thumb {
+    @apply appearance-none w-6 h-6 rounded-full bg-coffee-700 cursor-pointer
+           shadow-md hover:bg-coffee-800 transition-colors;
+  }
+
+  .slider-thumb::-moz-range-thumb {
+    @apply w-6 h-6 rounded-full bg-coffee-700 cursor-pointer border-0
+           shadow-md hover:bg-coffee-800 transition-colors;
+  }
+
+  .flavor-tag {
+    @apply px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer
+           transition-all duration-200 border-2 border-transparent;
+  }
+
+  .flavor-tag-selected {
+    @apply bg-coffee-700 text-white border-coffee-700;
+  }
+
+  .flavor-tag-unselected {
+    @apply bg-coffee-50 text-coffee-700 hover:bg-coffee-100 border-coffee-100;
+  }
+
+  .step-active {
+    @apply bg-coffee-700 text-white;
+  }
+
+  .step-completed {
+    @apply bg-green-500 text-white;
+  }
+
+  .step-pending {
+    @apply bg-coffee-100 text-coffee-400;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFF8E1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5D4037;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3E2723;
+}
