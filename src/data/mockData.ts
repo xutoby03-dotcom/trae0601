@@ -15,7 +15,7 @@ export const mockBook: Book = {
   description: '李清照所著《金石录》后序，为宋代重要文献，本次修复为补配缺失书页。',
 };
 
-const createPhotos = (trialId: string): Photo[] => [
+const createPhotos = (trialId: string, notes?: [string, string, string]): Photo[] => [
   {
     id: `photo-${trialId}-wet`,
     trialId,
@@ -23,6 +23,7 @@ const createPhotos = (trialId: string): Photo[] => [
     dataUrl: imageApi(wetPrompt),
     fileName: 'wet-state.jpg',
     size: 1024000,
+    note: notes?.[0] || '颜色较深，纸面透湿均匀，边缘整齐无起翘',
   },
   {
     id: `photo-${trialId}-half`,
@@ -31,6 +32,7 @@ const createPhotos = (trialId: string): Photo[] => [
     dataUrl: imageApi(halfDryPrompt),
     fileName: 'half-dry-state.jpg',
     size: 980000,
+    note: notes?.[1] || '颜色开始转浅，纸面有轻微收缩，纤维纹理渐显',
   },
   {
     id: `photo-${trialId}-full`,
@@ -39,6 +41,7 @@ const createPhotos = (trialId: string): Photo[] => [
     dataUrl: imageApi(fullDryPrompt),
     fileName: 'full-dry-state.jpg',
     size: 950000,
+    note: notes?.[2] || '颜色稳定，与原纸色差较小，浆糊无透印',
   },
 ];
 
@@ -61,7 +64,11 @@ export const mockTrials: Trial[] = [
     fiberDirection: 'vertical',
     dyeRatio: '赭石1:藤黄20',
     pasteConcentration: 60,
-    photos: createPhotos('trial-001'),
+    photos: createPhotos('trial-001', [
+      '颜色较深，纸面透湿均匀，边缘整齐无起翘',
+      '颜色开始转浅，纸面有轻微收缩，纤维纹理渐显',
+      '颜色稳定，与原纸色差较小，浆糊无透印',
+    ]),
     evaluation: createEvaluation(
       'trial-001',
       [2, 1, 2, 1],
@@ -79,7 +86,11 @@ export const mockTrials: Trial[] = [
     fiberDirection: 'horizontal',
     dyeRatio: '赭石1:藤黄25',
     pasteConcentration: 45,
-    photos: createPhotos('trial-002'),
+    photos: createPhotos('trial-002', [
+      '颜色偏浅，透湿较快，纤维感明显',
+      '收缩幅度大，四角出现轻微翘边，需注意压平',
+      '',
+    ]),
     evaluation: createEvaluation(
       'trial-002',
       [3, 3, 1, 3],

@@ -32,9 +32,9 @@ const createEmptyEvaluation = (trialId: string): Evaluation => ({
 });
 
 const createEmptyPhotos = (trialId: string): Photo[] => [
-  { id: `photo-${trialId}-wet`, trialId, state: 'wet', dataUrl: '', fileName: '', size: 0 },
-  { id: `photo-${trialId}-half`, trialId, state: 'half_dry', dataUrl: '', fileName: '', size: 0 },
-  { id: `photo-${trialId}-full`, trialId, state: 'full_dry', dataUrl: '', fileName: '', size: 0 },
+  { id: `photo-${trialId}-wet`, trialId, state: 'wet', dataUrl: '', fileName: '', size: 0, note: '' },
+  { id: `photo-${trialId}-half`, trialId, state: 'half_dry', dataUrl: '', fileName: '', size: 0, note: '' },
+  { id: `photo-${trialId}-full`, trialId, state: 'full_dry', dataUrl: '', fileName: '', size: 0, note: '' },
 ];
 
 export const usePaperMatchingStore = create<AppState & AppActions>((set, get) => ({

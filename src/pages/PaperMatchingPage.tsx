@@ -44,6 +44,10 @@ export default function PaperMatchingPage() {
     updatePhoto(trialId, photo);
   };
 
+  const handlePhotoNoteChange = (trialId: string, photo: Photo) => {
+    updatePhoto(trialId, photo);
+  };
+
   const handleTrialSelect = (trialId: string) => {
     setCurrentTrial(trialId);
   };
@@ -120,6 +124,7 @@ export default function PaperMatchingPage() {
                 <PhotoCompare
                   trial={currentTrial}
                   onPhotoUpdate={handlePhotoUpdate}
+                  onNoteChange={handlePhotoNoteChange}
                 />
               </div>
 

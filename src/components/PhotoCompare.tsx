@@ -5,17 +5,22 @@ import PhotoUploader from './PhotoUploader';
 interface PhotoCompareProps {
   trial: Trial;
   onPhotoUpdate: (trialId: string, photo: Photo) => void;
+  onNoteChange: (trialId: string, photo: Photo) => void;
 }
 
 const photoStates: PhotoState[] = ['wet', 'half_dry', 'full_dry'];
 
-export default function PhotoCompare({ trial, onPhotoUpdate }: PhotoCompareProps) {
+export default function PhotoCompare({ trial, onPhotoUpdate, onNoteChange }: PhotoCompareProps) {
   const getPhotoByState = (state: PhotoState): Photo | undefined => {
     return trial.photos.find(p => p.state === state);
   };
 
   const handleUpload = (photo: Photo) => {
     onPhotoUpdate(trial.id, photo);
+  };
+
+  const handleNoteChange = (photo: Photo) => {
+    onNoteChange(trial.id, photo);
   };
 
   return (
@@ -32,6 +37,7 @@ export default function PhotoCompare({ trial, onPhotoUpdate }: PhotoCompareProps
               state={state}
               photo={getPhotoByState(state)}
               onUpload={handleUpload}
+              onNoteChange={handleNoteChange}
             />
           </div>
         ))}

@@ -15,6 +15,7 @@ export interface Photo {
   dataUrl: string;
   fileName: string;
   size: number;
+  note: string;
 }
 
 export interface Evaluation {

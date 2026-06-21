@@ -1,4 +1,4 @@
-import { History, Plus, Archive, CheckCircle } from 'lucide-react';
+import { History, Plus, Archive, CheckCircle, Droplets, Sun, CloudSun } from 'lucide-react';
 import type { Trial } from '@/types';
 import { fiberDirectionLabels } from '@/types';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,21 @@ function formatDate(dateString: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function getMissingNotes(trial: Trial): string[] {
+  const missing: string[] = [];
+  const stateLabelMap: Record<string, string> = {
+    wet: '湿态',
+    half_dry: '半干',
+    full_dry: '全干',
+  };
+  trial.photos.forEach((photo) => {
+    if (!photo.note || photo.note.trim().length === 0) {
+      missing.push(stateLabelMap[photo.state]);
+    }
+  });
+  return missing;
 }
 
 export default function TrialVersionList({
@@ -164,6 +179,43 @@ export default function TrialVersionList({
                         )}>
                           浓度: {trial.pasteConcentration}%
                         </span>
+                      </div>
+
+                      {/* 三态小记完成状态 */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {trial.photos.map((photo) => {
+                          const hasNote = photo.note && photo.note.trim().length > 0;
+                          const iconMap: Record<string, React.ReactNode> = {
+                            wet: <Droplets className="w-3 h-3" />,
+                            half_dry: <CloudSun className="w-3 h-3" />,
+                            full_dry: <Sun className="w-3 h-3" />,
+                          };
+                          const labelMap: Record<string, string> = {
+                            wet: '湿',
+                            half_dry: '半干',
+                            full_dry: '全干',
+                          };
+                          return (
+                            <span
+                              key={photo.state}
+                              className={cn(
+                                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-hei transition-colors',
+                                hasNote
+                                  ? 'bg-teal-500/15 text-teal-600'
+                                  : 'bg-ochre-500/10 text-ochre-600'
+                              )}
+                              title={hasNote ? photo.note : `还未记录${labelMap[photo.state]}观察小记`}
+                            >
+                              {iconMap[photo.state]}
+                              {labelMap[photo.state]}
+                              {hasNote ? (
+                                <CheckCircle className="w-2.5 h-2.5 ml-0.5" />
+                              ) : (
+                                <span className="w-2.5 h-2.5 ml-0.5 rounded-full bg-current opacity-60" />
+                              )}
+                            </span>
+                          );
+                        })}
                       </div>
 
                       {trial.evaluation.remarks && (

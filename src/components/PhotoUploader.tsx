@@ -1,17 +1,22 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, PencilLine, Check } from 'lucide-react';
 import { Photo, PhotoState, photoStateLabels } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface PhotoUploaderProps {
   trialId: string;
   state: PhotoState;
   photo: Photo | undefined;
   onUpload: (photo: Photo) => void;
+  onNoteChange: (photo: Photo) => void;
 }
 
-export default function PhotoUploader({ trialId, state, photo, onUpload }: PhotoUploaderProps) {
+export default function PhotoUploader({ trialId, state, photo, onUpload, onNoteChange }: PhotoUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(photo?.note || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleFile = useCallback((file: File) => {
     const reader = new FileReader();
@@ -24,11 +29,13 @@ export default function PhotoUploader({ trialId, state, photo, onUpload }: Photo
         dataUrl,
         fileName: file.name,
         size: file.size,
+        note: photo?.note || '',
       };
       onUpload(newPhoto);
+      setNoteDraft(photo?.note || '');
     };
     reader.readAsDataURL(file);
-  }, [trialId, state, onUpload]);
+  }, [trialId, state, onUpload, photo?.note]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -60,10 +67,46 @@ export default function PhotoUploader({ trialId, state, photo, onUpload }: Photo
     }
   };
 
+  const handleStartEditNote = () => {
+    setNoteDraft(photo?.note || '');
+    setIsEditingNote(true);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
+
+  const handleSaveNote = () => {
+    if (photo) {
+      onNoteChange({ ...photo, note: noteDraft });
+    }
+    setIsEditingNote(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      handleSaveNote();
+    }
+    if (e.key === 'Escape') {
+      setNoteDraft(photo?.note || '');
+      setIsEditingNote(false);
+    }
+  };
+
+  const hasNote = photo?.note && photo.note.trim().length > 0;
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-sm font-medium text-ink-800">
-        {photoStateLabels[state]}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-ink-800">
+            {photoStateLabels[state]}
+          </span>
+          {!hasNote && (
+            <span className="px-2 py-0.5 text-xs bg-ochre-500/10 text-ochre-600 rounded-full font-hei">
+              待记录
+            </span>
+          )}
+        </div>
       </div>
       <div
         onDragOver={handleDragOver}
@@ -106,6 +149,76 @@ export default function PhotoUploader({ trialId, state, photo, onUpload }: Photo
             <span className="text-sm text-parchment-400">
               点击或拖拽上传
             </span>
+          </div>
+        )}
+      </div>
+
+      {/* 观察小记 */}
+      <div className="space-y-1">
+        {isEditingNote ? (
+          <div className="space-y-2">
+            <textarea
+              ref={textareaRef}
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="记录此状态下的颜色变化或纸面反应..."
+              className={cn(
+                'w-full px-3 py-2 text-sm rounded-lg resize-none',
+                'bg-parchment-50 border border-ochre-400',
+                'text-ink-800 placeholder-ink-700/40',
+                'focus:outline-none focus:ring-2 focus:ring-ochre-500/30',
+                'transition-all duration-200'
+              )}
+              rows={2}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setNoteDraft(photo?.note || '');
+                  setIsEditingNote(false);
+                }}
+                className="px-3 py-1 text-xs text-ink-700 hover:bg-parchment-200 rounded transition-colors"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveNote}
+                className="px-3 py-1 text-xs bg-ochre-500 text-white rounded hover:bg-ochre-600 transition-colors flex items-center gap-1"
+              >
+                <Check className="w-3 h-3" />
+                保存
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={handleStartEditNote}
+            className={cn(
+              'w-full px-3 py-2 rounded-lg cursor-pointer transition-all duration-200',
+              'border group',
+              hasNote
+                ? 'bg-parchment-200/50 border-parchment-300 hover:bg-parchment-200 hover:border-ochre-400'
+                : 'bg-parchment-50 border-dashed border-parchment-300 hover:border-ochre-400 hover:bg-parchment-100'
+            )}
+          >
+            <div className="flex items-start gap-2">
+              <PencilLine className={cn(
+                'w-3.5 h-3.5 mt-0.5 flex-shrink-0 transition-colors',
+                hasNote ? 'text-ochre-500' : 'text-parchment-400 group-hover:text-ochre-500'
+              )} />
+              <div className="flex-1 min-w-0">
+                {hasNote ? (
+                  <p className="text-sm text-ink-800 leading-relaxed">{photo?.note}</p>
+                ) : (
+                  <p className="text-sm text-parchment-400 group-hover:text-ochre-500 transition-colors">
+                    点击记录观察小记...
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
