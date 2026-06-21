@@ -14,6 +14,7 @@ interface BoardState {
   addFabricToBoard: (fabricId: string, boardId: string, notes?: string) => void;
   removeFabricFromBoard: (boardItemId: string) => void;
   reorderBoardItems: (boardId: string, itemIds: string[]) => void;
+  updateBoardItemNotes: (boardItemId: string, notes: string) => void;
   getBoardById: (id: string) => Board | undefined;
   getBoardItemsByBoardId: (boardId: string) => BoardItem[];
   isFabricInBoard: (fabricId: string, boardId: string) => boolean;
@@ -99,6 +100,14 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       const index = itemIds.indexOf(bi.id);
       return index === -1 ? bi : { ...bi, order: index };
     });
+    set({ boardItems });
+    storage.setBoardItems(boardItems);
+  },
+
+  updateBoardItemNotes: (boardItemId, notes) => {
+    const boardItems = get().boardItems.map((bi) =>
+      bi.id === boardItemId ? { ...bi, notes } : bi
+    );
     set({ boardItems });
     storage.setBoardItems(boardItems);
   },

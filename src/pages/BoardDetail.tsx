@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, X, GripVertical, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, X, GripVertical, Trash2, Plus, Edit2, Check } from 'lucide-react';
 import { PhotoCompare } from '@/components/PhotoCompare';
 import { TouchScoreSlider } from '@/components/TouchScoreSlider';
 import { useBoardStore } from '@/store/boardStore';
@@ -11,10 +11,12 @@ import { SEASON_LABELS } from '@/types';
 export function BoardDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { boards, boardItems, init: initBoards, getBoardById, getBoardItemsByBoardId, removeFabricFromBoard, reorderBoardItems } = useBoardStore();
+  const { boards, boardItems, init: initBoards, getBoardById, getBoardItemsByBoardId, removeFabricFromBoard, reorderBoardItems, updateBoardItemNotes } = useBoardStore();
   const { fabrics, initialized: fabricsInitialized, init: initFabrics } = useFabricStore();
   const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
   const [boardsInitialized, setBoardsInitialized] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingNotes, setEditingNotes] = useState('');
 
   useEffect(() => {
     initFabrics();
@@ -91,6 +93,22 @@ export function BoardDetail() {
     newOrder.splice(toIndex, 0, removed);
     const itemIds = newOrder.map((fi) => fi.item.id);
     reorderBoardItems(board.id, itemIds);
+  };
+
+  const handleStartEditNotes = (item: BoardItem) => {
+    setEditingItemId(item.id);
+    setEditingNotes(item.notes || '');
+  };
+
+  const handleSaveNotes = (itemId: string) => {
+    updateBoardItemNotes(itemId, editingNotes.trim());
+    setEditingItemId(null);
+    setEditingNotes('');
+  };
+
+  const handleCancelEditNotes = () => {
+    setEditingItemId(null);
+    setEditingNotes('');
   };
 
   return (
@@ -187,8 +205,16 @@ export function BoardDetail() {
                               {SEASON_LABELS[fabric.season]}
                             </span>
                             <button
+                              onClick={() => handleStartEditNotes(item)}
+                              className="p-2 text-[#8B5A3C]/30 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5 rounded-lg transition-colors"
+                              title="编辑选样说明"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
                               onClick={() => handleRemove(item.id)}
                               className="p-2 text-[#8B5A3C]/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="移除"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -226,9 +252,63 @@ export function BoardDetail() {
                           ))}
                         </div>
 
+                        <div className="mt-4 pt-4 border-t border-[#8B5A3C]/10">
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium text-[#8B5A3C]/50 mb-1.5 flex items-center gap-1.5">
+                                <span className="inline-block w-1 h-1 rounded-full bg-[#3D5A45]/40" />
+                                选样说明
+                              </div>
+                              {editingItemId === item.id ? (
+                                <div className="space-y-2">
+                                  <textarea
+                                    value={editingNotes}
+                                    onChange={(e) => setEditingNotes(e.target.value)}
+                                    placeholder="写一下为什么选这块面料，打算用在什么部位..."
+                                    rows={3}
+                                    className="w-full px-3 py-2 bg-[#F8F4ED] border border-[#8B5A3C]/20 rounded-lg text-sm text-[#8B5A3C] placeholder:text-[#8B5A3C]/40 focus:outline-none focus:ring-2 focus:ring-[#8B5A3C]/20 focus:border-[#8B5A3C]/40 resize-none"
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleSaveNotes(item.id)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#3D5A45] text-white rounded-lg text-xs font-medium hover:bg-[#3D5A45]/90 transition-colors"
+                                    >
+                                      <Check size={14} />
+                                      保存
+                                    </button>
+                                    <button
+                                      onClick={handleCancelEditNotes}
+                                      className="px-3 py-1.5 text-[#8B5A3C]/60 hover:text-[#8B5A3C] hover:bg-[#8B5A3C]/5 rounded-lg text-xs transition-colors"
+                                    >
+                                      取消
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  className="group cursor-text"
+                                  onClick={() => handleStartEditNotes(item)}
+                                >
+                                  {item.notes ? (
+                                    <p className="text-sm text-[#8B5A3C]/80 leading-relaxed group-hover:text-[#8B5A3C] transition-colors">
+                                      {item.notes}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-[#8B5A3C]/30 italic flex items-center gap-1.5 group-hover:text-[#8B5A3C]/50 transition-colors">
+                                      <span>待补选样说明</span>
+                                      <Edit2 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
                         {fabric.notes && (
-                          <p className="mt-4 text-sm text-[#8B5A3C]/60 italic">
-                            {fabric.notes}
+                          <p className="mt-3 text-xs text-[#8B5A3C]/40 italic">
+                            面料备注：{fabric.notes}
                           </p>
                         )}
                       </div>
