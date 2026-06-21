@@ -14,9 +14,9 @@ import { useStore } from "@/store/useStore"
 import Navbar from "@/components/Navbar"
 import RadarChart from "@/components/RadarChart"
 import { getRecommendations, getRadarData } from "@/utils/recommendation"
-import { hasAllThreeDays } from "@/utils/observation"
-import type { ScenarioType } from "@/types"
-import { SCENARIO_LABELS } from "@/types"
+import { hasAllThreeDays, getCompletedDays } from "@/utils/observation"
+import type { ScenarioType, Observation, IndicatorLevel, AdhesionLevel } from "@/types"
+import { SCENARIO_LABELS, INDICATOR_LABELS, INDICATOR_LEVEL_LABELS, ADHESION_LEVEL_LABELS } from "@/types"
 
 const SCENARIO_ICON_MAP: Record<ScenarioType, React.ReactNode> = {
   kitchen: <ChefHat className="h-5 w-5" />,
@@ -176,56 +176,136 @@ export default function Recommendations() {
                             (o) => o.sampleId === sample.id
                           )
                           const radarData = getRadarData(sampleObs)
+                          const completed = getCompletedDays(sampleObs)
+                          const latestObs: Observation | undefined =
+                            sampleObs.find((o) => o.day === 7) ??
+                            (completed.length > 0
+                              ? sampleObs.find((o) => o.day === Math.max(...completed))
+                              : undefined)
+
+                          const indicators: Array<{ key: string; label: string; value: string; levelColor: string }> =
+                            []
+                          if (latestObs) {
+                            const levelColor = (v: IndicatorLevel) =>
+                              v === "none"
+                                ? "bg-emerald-500/12 text-emerald-400 border-emerald-500/25"
+                                : v === "mild"
+                                  ? "bg-amber-500/12 text-amber-400 border-amber-500/25"
+                                  : "bg-red-500/12 text-red-400 border-red-500/25"
+                            const adhesionColor = (v: AdhesionLevel) =>
+                              v === "excellent"
+                                ? "bg-emerald-500/12 text-emerald-400 border-emerald-500/25"
+                                : v === "good"
+                                  ? "bg-amber-500/12 text-amber-400 border-amber-500/25"
+                                  : "bg-red-500/12 text-red-400 border-red-500/25"
+
+                            indicators.push({
+                              key: "shrinkage",
+                              label: INDICATOR_LABELS.shrinkage,
+                              value: INDICATOR_LEVEL_LABELS[latestObs.shrinkage],
+                              levelColor: levelColor(latestObs.shrinkage),
+                            })
+                            indicators.push({
+                              key: "bubbles",
+                              label: INDICATOR_LABELS.bubbles,
+                              value: INDICATOR_LEVEL_LABELS[latestObs.bubbles],
+                              levelColor: levelColor(latestObs.bubbles),
+                            })
+                            indicators.push({
+                              key: "yellowing",
+                              label: INDICATOR_LABELS.yellowing,
+                              value: INDICATOR_LEVEL_LABELS[latestObs.yellowing],
+                              levelColor: levelColor(latestObs.yellowing),
+                            })
+                            indicators.push({
+                              key: "moldSpots",
+                              label: INDICATOR_LABELS.moldSpots,
+                              value: INDICATOR_LEVEL_LABELS[latestObs.moldSpots],
+                              levelColor: levelColor(latestObs.moldSpots),
+                            })
+                            indicators.push({
+                              key: "adhesion",
+                              label: INDICATOR_LABELS.adhesion,
+                              value: ADHESION_LEVEL_LABELS[latestObs.adhesion],
+                              levelColor: adhesionColor(latestObs.adhesion),
+                            })
+                          }
 
                           return (
                             <div
                               key={item.sampleId}
-                              className="group flex items-start gap-4 rounded-xl border border-white/[0.04] bg-[#1a1a30]/60 p-4 transition-all hover:border-[#e8a838]/20"
+                              onClick={() => navigate(`/sample/${item.sampleId}`)}
+                              className="group cursor-pointer flex flex-col gap-4 rounded-xl border border-white/[0.04] bg-[#1a1a30]/60 p-4 transition-all hover:border-[#e8a838]/30 hover:shadow-[0_6px_24px_rgba(232,168,56,0.08)]"
                             >
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                                    idx === 0
-                                      ? "bg-[#e8a838]/20 text-[#e8a838]"
-                                      : idx === 1
-                                        ? "bg-white/10 text-[#a0a0b8]"
-                                        : "bg-white/5 text-[#6b8f9e]"
-                                  }`}
-                                >
-                                  {idx + 1}
+                              <div className="flex items-start gap-4">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                                      idx === 0
+                                        ? "bg-[#e8a838]/20 text-[#e8a838]"
+                                        : idx === 1
+                                          ? "bg-white/10 text-[#a0a0b8]"
+                                          : "bg-white/5 text-[#6b8f9e]"
+                                    }`}
+                                  >
+                                    {idx + 1}
+                                  </div>
+                                  <RadarChart
+                                    data={radarData}
+                                    size={78}
+                                  />
                                 </div>
-                                <RadarChart
-                                  data={radarData}
-                                  size={90}
-                                  label={`${sample.brand}`}
-                                />
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h3 className="truncate font-serif text-sm font-semibold text-[#fafafa]">
+                                      {sample.brand}
+                                    </h3>
+                                    <span className="shrink-0 text-lg font-bold text-[#e8a838]">
+                                      {item.score}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {sample.model && (
+                                      <p className="truncate text-xs text-[#6b8f9e]">
+                                        {sample.model}
+                                      </p>
+                                    )}
+                                    <span className="shrink-0 rounded-sm bg-white/5 px-1.5 py-0.5 text-[10px] text-[#a0a0b8]">
+                                      第{latestObs?.day ?? 0}天
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 space-y-1">
+                                    {item.reasons.map((reason, rIdx) => (
+                                      <p
+                                        key={rIdx}
+                                        className="text-xs text-[#a0a0b8]"
+                                      >
+                                        · {reason}
+                                      </p>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
 
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <h3 className="truncate font-serif text-sm font-semibold text-[#fafafa]">
-                                    {sample.brand}
-                                  </h3>
-                                  <span className="ml-2 shrink-0 text-lg font-bold text-[#e8a838]">
-                                    {item.score}
-                                  </span>
-                                </div>
-                                {sample.model && (
-                                  <p className="text-xs text-[#6b8f9e]">
-                                    {sample.model}
+                              {indicators.length > 0 && (
+                                <div className="border-t border-white/5 pt-3">
+                                  <p className="mb-2 text-[10px] text-[#6b8f9e]">
+                                    指标快照
                                   </p>
-                                )}
-                                <div className="mt-2 space-y-1">
-                                  {item.reasons.map((reason, rIdx) => (
-                                    <p
-                                      key={rIdx}
-                                      className="text-xs text-[#a0a0b8]"
-                                    >
-                                      · {reason}
-                                    </p>
-                                  ))}
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {indicators.map((ind) => (
+                                      <span
+                                        key={ind.key}
+                                        className={`inline-flex items-baseline gap-1 rounded-md border px-1.5 py-0.5 text-[10px] ${ind.levelColor}`}
+                                      >
+                                        <span className="opacity-70">{ind.label}</span>
+                                        <span className="font-medium">{ind.value}</span>
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           )
                         })}
