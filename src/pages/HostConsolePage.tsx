@@ -110,6 +110,11 @@ export default function HostConsolePage() {
     );
   }, [getFilteredQuestions, searchText]);
 
+  const queueList = useMemo(
+    () => filteredList.filter((q) => q.status !== 'answered'),
+    [filteredList]
+  );
+
   const stats = useMemo(() => {
     const all = questions.filter((q) => q.status !== 'merged');
     return {
@@ -329,7 +334,7 @@ export default function HostConsolePage() {
         <div className="host-tabs">
           <button className={`host-tab ${tab === 'queue' ? 'active' : ''}`} onClick={() => setTab('queue')}>
             <MessageSquarePlus size={15} />
-            问答队列 <span className="host-tab-count">{filteredList.filter(q => q.status !== 'answered').length}</span>
+            问答队列 <span className="host-tab-count">{queueList.length}</span>
           </button>
           <button className={`host-tab ${tab === 'answered' ? 'active' : ''}`} onClick={() => setTab('answered')}>
             <CheckCircle2 size={15} />
@@ -426,21 +431,21 @@ export default function HostConsolePage() {
             </div>
             <div className="toolbar-right">
               <Badge variant="muted" showDot={false}>
-                显示 {filteredList.length} / {questions.filter(q => q.status !== 'merged').length}
+                显示 {tab === 'queue' ? queueList.length : filteredList.length} / {questions.filter(q => q.status !== 'merged').length}
               </Badge>
             </div>
           </div>
 
           {tab === 'queue' && (
             <div className="question-list">
-              {filteredList.length === 0 ? (
+              {queueList.length === 0 ? (
                 <Card padding="lg" className="empty-card">
                   <div className="empty-icon">📭</div>
-                  <div className="empty-title">暂无问题</div>
-                  <div className="empty-desc">调整筛选条件，或等待观众提交新的提问</div>
+                  <div className="empty-title">暂无待处理问题</div>
+                  <div className="empty-desc">调整筛选条件，或等待观众提交新的提问。已回答问题请查看「已回答」标签页</div>
                 </Card>
               ) : (
-                filteredList.map((q, idx) => {
+                queueList.map((q, idx) => {
                   const similarIds = findSimilar(q.id);
                   const actions = getStatusActions(q);
                   return (
