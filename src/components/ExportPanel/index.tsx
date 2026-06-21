@@ -10,7 +10,7 @@ import { Download, FileText, FileSpreadsheet, FileJson, AlertTriangle, CheckCirc
 
 export const ExportPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { poles, riskMarks, rooftop, windData, setSelectedPoleId } = useWindStore();
+  const { poles, riskMarks, rooftop, windData, focusPole } = useWindStore();
   const { allPoleStats, riskSummary } = useWindSimulation();
 
   const riskListPreview = useMemo(() => {
@@ -117,7 +117,7 @@ export const ExportPanel = () => {
                           key={item!.pole.id}
                           className="p-3 hover:bg-slate-800/50 transition-colors cursor-pointer group"
                           onClick={() => {
-                            setSelectedPoleId(item!.pole.id);
+                            focusPole(item!.pole.id);
                             setIsOpen(false);
                           }}
                         >

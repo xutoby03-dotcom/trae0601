@@ -21,6 +21,7 @@ export const RooftopCanvas = () => {
     poles,
     sensors,
     selectedPoleId,
+    focusedPoleId,
     zoom,
     pan,
     contextMenu,
@@ -90,8 +91,8 @@ export const RooftopCanvas = () => {
   }, [setContextMenu]);
 
   useEffect(() => {
-    if (!selectedPoleId || !containerRef.current) return;
-    const pole = poles.find(p => p.id === selectedPoleId);
+    if (!focusedPoleId || !containerRef.current) return;
+    const pole = poles.find(p => p.id === focusedPoleId);
     if (!pole) return;
     const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
@@ -102,7 +103,8 @@ export const RooftopCanvas = () => {
       x: centerX - poleScreenX,
       y: centerY - poleScreenY,
     });
-  }, [selectedPoleId, poles, zoom, setPan]);
+    useWindStore.setState({ focusedPoleId: null });
+  }, [focusedPoleId, poles, zoom, setPan]);
 
   const handleResetView = () => {
     setZoom(1);

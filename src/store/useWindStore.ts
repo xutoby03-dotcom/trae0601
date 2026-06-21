@@ -14,6 +14,7 @@ interface WindStore extends AppState {
   setIsPlaying: (playing: boolean) => void;
   setPlaybackSpeed: (speed: number) => void;
   setSelectedPoleId: (id: string | null) => void;
+  focusPole: (id: string) => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: Point) => void;
   setContextMenu: (menu: { x: number; y: number; poleId: string } | null) => void;
@@ -31,6 +32,7 @@ export const useWindStore = create<WindStore>((set, get) => ({
   isPlaying: false,
   playbackSpeed: 1,
   selectedPoleId: null,
+  focusedPoleId: null,
   riskMarks: [],
   zoom: 1,
   pan: { x: 0, y: 0 },
@@ -47,6 +49,7 @@ export const useWindStore = create<WindStore>((set, get) => ({
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
   setSelectedPoleId: (id) => set({ selectedPoleId: id, contextMenu: null }),
+  focusPole: (id) => set({ selectedPoleId: id, focusedPoleId: id, contextMenu: null }),
   setZoom: (zoom) => set({ zoom: Math.max(0.5, Math.min(2, zoom)) }),
   setPan: (pan) => set({ pan }),
   setContextMenu: (menu) => set({ contextMenu: menu }),

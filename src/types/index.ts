@@ -69,6 +69,7 @@ export interface AppState {
   isPlaying: boolean;
   playbackSpeed: number;
   selectedPoleId: string | null;
+  focusedPoleId: string | null;
   riskMarks: RiskMark[];
   zoom: number;
   pan: Point;
