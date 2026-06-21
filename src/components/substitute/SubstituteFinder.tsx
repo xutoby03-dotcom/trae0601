@@ -230,23 +230,23 @@ function CandidateResultCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-1.5 rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-2 py-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-2 py-1.5">
             <MapPin className="h-3 w-3 flex-shrink-0 text-teal-400" />
-            <span className="text-[9px] text-white/50">预览站位</span>
+            <span className="text-[9px] text-white/50 whitespace-nowrap">预览站位</span>
             <div className="ml-auto flex items-center gap-1">
-              <span className="rounded bg-teal-500/20 px-1.5 py-px text-[9px] font-bold text-teal-300">
+              <span className="rounded bg-teal-500/20 px-1.5 py-px text-[9px] font-bold text-teal-300 whitespace-nowrap">
                 第{candidate.recommendedRow + 1}排
               </span>
-              <span className="rounded bg-cyan-500/20 px-1.5 py-px text-[9px] font-bold text-cyan-300">
+              <span className="rounded bg-cyan-500/20 px-1.5 py-px text-[9px] font-bold text-cyan-300 whitespace-nowrap">
                 第{candidate.recommendedCol + 1}列
               </span>
             </div>
           </div>
           <button
             onClick={onApply}
-            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-emerald-500/90 to-teal-500/90 px-3 py-1.5 text-[11px] font-semibold text-white shadow-md transition hover:from-emerald-400 hover:to-teal-400"
+            className="flex-shrink-0 rounded-lg bg-gradient-to-r from-emerald-500/90 to-teal-500/90 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-md transition hover:from-emerald-400 hover:to-teal-400 whitespace-nowrap"
           >
-            ✨ 应用
+            ✨ <span className="hidden sm:inline">套用替补方案</span><span className="sm:hidden">套用方案</span>
           </button>
         </div>
       </div>
