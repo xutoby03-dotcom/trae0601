@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import '../styles/pages.css';
 import { useQAStore } from '../store/qaStore';
-import type { Question, SortMode, FilterMode, QuestionStatus } from '../types';
+import type { Question, SortMode, FilterMode, QuestionStatus, AnswerRecord } from '../types';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Tag } from '../components/Tag';
@@ -142,12 +142,25 @@ export default function HostConsolePage() {
 
   const answeredRecords = useMemo(() => getAnsweredWithRecords(), [getAnsweredWithRecords]);
 
+  const answeredFilteredBySearch = useMemo(() => {
+    const answeredQs = filteredList.filter((q) => q.status === 'answered');
+    return answeredQs
+      .map((q) => {
+        const a = answers[q.id];
+        if (!a) return null;
+        return { question: q, answer: a };
+      })
+      .filter((x): x is { question: Question; answer: AnswerRecord } => x !== null);
+  }, [filteredList, answers]);
+
   const filteredAnsweredRecords = useMemo(
     () =>
       followupOnly
-        ? answeredRecords.filter((r) => r.answer.followUpMaterials && r.answer.followUpMaterials.trim())
-        : answeredRecords,
-    [answeredRecords, followupOnly]
+        ? answeredFilteredBySearch.filter(
+            (r) => r.answer.followUpMaterials && r.answer.followUpMaterials.trim()
+          )
+        : answeredFilteredBySearch,
+    [answeredFilteredBySearch, followupOnly]
   );
 
   useEffect(() => {
@@ -583,8 +596,8 @@ export default function HostConsolePage() {
               <div className="answered-toolbar">
                 <Badge variant="muted" showDot={false}>
                   {followupOnly
-                    ? `${filteredAnsweredRecords.length} 条有课后资料`
-                    : `共 ${answeredRecords.length} 条已回答`}
+                    ? `${filteredAnsweredRecords.length} / ${answeredFilteredBySearch.length} 条有课后资料`
+                    : `共 ${answeredFilteredBySearch.length} 条已回答`}
                 </Badge>
                 <button
                   className={`followup-toggle ${followupOnly ? 'active' : ''}`}
@@ -596,11 +609,17 @@ export default function HostConsolePage() {
               {filteredAnsweredRecords.length === 0 ? (
                 <Card padding="lg" className="empty-card">
                   <div className="empty-icon">{followupOnly ? '📚' : '✅'}</div>
-                  <div className="empty-title">{followupOnly ? '没有带课后资料的回答' : '还没有回答记录'}</div>
+                  <div className="empty-title">
+                    {followupOnly
+                      ? '当前筛选下没有带课后资料的回答'
+                      : answeredRecords.length === 0
+                      ? '还没有回答记录'
+                      : '没有符合条件的回答'}
+                  </div>
                   <div className="empty-desc">
                     {followupOnly
-                      ? '当前筛选下无结果，点击上方按钮回到全部'
-                      : '在队列中完成回答后，记录会自动出现在这里'}
+                      ? '点击「只看有课后资料」可回到全部，已保留搜索和排序条件'
+                      : '调整左侧筛选、搜索词或排序方式'}
                   </div>
                 </Card>
               ) : (
