@@ -45,11 +45,9 @@ export default function FurnaceGrid() {
 
           <div className="flex flex-col items-center">
             {rowOrder.map((rowIndex) => {
-              const backDepth = FURNACE_GRID.rows - 1 - rowIndex;
-              const scale = 1 - backDepth * 0.06;
-              const opacity = 1 - backDepth * 0.15;
-              const rowGap = 12 - backDepth * 2;
-              void rowGap;
+              const depth = rowIndex;
+              const scale = 1 - depth * 0.06;
+              const opacity = 1 - depth * 0.15;
 
               return (
                 <div
@@ -58,8 +56,8 @@ export default function FurnaceGrid() {
                   style={{
                     transform: `scale(${scale})`,
                     opacity,
-                    marginBottom: backDepth === FURNACE_GRID.rows - 1 ? '14px' : '6px',
-                    zIndex: rowIndex,
+                    marginBottom: depth === 0 ? '14px' : '6px',
+                    zIndex: FURNACE_GRID.rows - depth,
                     position: 'relative',
                   }}
                 >
