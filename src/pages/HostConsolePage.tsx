@@ -73,6 +73,7 @@ export default function HostConsolePage() {
   const findSimilar = useQAStore((s) => s.findSimilar);
   const mergeQuestions = useQAStore((s) => s.mergeQuestions);
   const recordAnswer = useQAStore((s) => s.recordAnswer);
+  const updateAnswer = useQAStore((s) => s.updateAnswer);
   const getFilteredQuestions = useQAStore((s) => s.getFilteredQuestions);
   const getAnsweredWithRecords = useQAStore((s) => s.getAnsweredWithRecords);
   const exportMinutes = useQAStore((s) => s.exportMinutes);
@@ -93,6 +94,7 @@ export default function HostConsolePage() {
   const [answerSummary, setAnswerSummary] = useState('');
   const [answerFollowup, setAnswerFollowup] = useState('');
   const [answerSpeaker, setAnswerSpeaker] = useState('');
+  const [answerEditing, setAnswerEditing] = useState(false);
 
   const [topicModalOpen, setTopicModalOpen] = useState(false);
   const [topicTarget, setTopicTarget] = useState<Question | null>(null);
@@ -162,22 +164,43 @@ export default function HostConsolePage() {
     setAnswerSummary('');
     setAnswerFollowup('');
     setAnswerSpeaker('');
+    setAnswerEditing(false);
     setAnswerModalOpen(true);
     if (q.status !== 'answering') {
       updateQuestionStatus(q.id, 'answering');
     }
   };
 
+  const openEditAnswerModal = (q: Question) => {
+    const existing = answers[q.id];
+    if (!existing) return;
+    setAnswerTarget(q);
+    setAnswerSummary(existing.summary);
+    setAnswerFollowup(existing.followUpMaterials);
+    setAnswerSpeaker(existing.speakerName || '');
+    setAnswerEditing(true);
+    setAnswerModalOpen(true);
+  };
+
   const confirmAnswer = () => {
     if (!answerTarget) return;
-    recordAnswer({
-      questionId: answerTarget.id,
-      summary: answerSummary.trim(),
-      followUpMaterials: answerFollowup.trim(),
-      speakerName: answerSpeaker.trim(),
-    });
+    if (answerEditing) {
+      updateAnswer(answerTarget.id, {
+        summary: answerSummary.trim(),
+        followUpMaterials: answerFollowup.trim(),
+        speakerName: answerSpeaker.trim(),
+      });
+    } else {
+      recordAnswer({
+        questionId: answerTarget.id,
+        summary: answerSummary.trim(),
+        followUpMaterials: answerFollowup.trim(),
+        speakerName: answerSpeaker.trim(),
+      });
+    }
     setAnswerModalOpen(false);
     setAnswerTarget(null);
+    setAnswerEditing(false);
   };
 
   const openTopicModal = (q: Question) => {
@@ -560,6 +583,15 @@ export default function HostConsolePage() {
                       <SourceBadge source={item.question.source} />
                       <HeatBadge count={item.question.heat} />
                       <span className="answered-asker">— {item.question.asker}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        leftIcon={<Pencil size={13} />}
+                        onClick={() => openEditAnswerModal(item.question)}
+                        className="answered-edit-btn"
+                      >
+                        修改回答
+                      </Button>
                     </div>
                     <div className="answered-q">
                       <strong>问：</strong>{item.question.content}
@@ -675,7 +707,7 @@ export default function HostConsolePage() {
       {/* 记录回答 Modal */}
       <Modal
         open={answerModalOpen}
-        title="记录讲者回应"
+        title={answerEditing ? '修改讲者回应' : '记录讲者回应'}
         onClose={() => setAnswerModalOpen(false)}
         className="answer-modal"
         footer={
@@ -687,7 +719,7 @@ export default function HostConsolePage() {
               onClick={confirmAnswer}
               disabled={!answerSummary.trim()}
             >
-              确认完成回答
+              {answerEditing ? '保存修改' : '确认完成回答'}
             </Button>
           </>
         }

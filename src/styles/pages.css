@@ -932,6 +932,10 @@
   border-bottom: 1px dashed var(--color-border);
 }
 
+.answered-edit-btn {
+  margin-left: auto;
+}
+
 .answered-num {
   font-weight: 700;
   color: var(--color-success);
