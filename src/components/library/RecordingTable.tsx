@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Play,
   Lock,
@@ -12,11 +13,54 @@ import { useUIStore, type Recording } from "@/store/uiStore";
 
 export default function RecordingTable() {
   const recordings = useUIStore((s) => s.recordings);
+  const searchQuery = useUIStore((s) => s.searchQuery);
+  const ambienceMin = useUIStore((s) => s.ambienceMin);
+  const ambienceMax = useUIStore((s) => s.ambienceMax);
+  const distanceSenses = useUIStore((s) => s.distanceSenses);
+  const peakMin = useUIStore((s) => s.peakMin);
+  const peakMax = useUIStore((s) => s.peakMax);
+  const lockedFilter = useUIStore((s) => s.lockedFilter);
   const selectedRecordingIds = useUIStore((s) => s.selectedRecordingIds);
   const selectedRecordingId = useUIStore((s) => s.selectedRecordingId);
   const toggleRecordingSelected = useUIStore((s) => s.toggleRecordingSelected);
   const openDetailPanel = useUIStore((s) => s.openDetailPanel);
   const toggleRecordingLock = useUIStore((s) => s.toggleRecordingLock);
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return recordings.filter((r) => {
+      if (
+        q &&
+        !r.fileName.toLowerCase().includes(q) &&
+        !r.locationName.toLowerCase().includes(q) &&
+        !r.tags.some((t) => t.toLowerCase().includes(q))
+      ) {
+        return false;
+      }
+      if (r.ambienceScore < ambienceMin || r.ambienceScore > ambienceMax) {
+        return false;
+      }
+      if (distanceSenses.length > 0 && !distanceSenses.includes(r.distanceSense)) {
+        return false;
+      }
+      if (r.peakDbfs < peakMin || r.peakDbfs > peakMax) {
+        return false;
+      }
+      if (lockedFilter !== null && r.isLocked !== lockedFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    recordings,
+    searchQuery,
+    ambienceMin,
+    ambienceMax,
+    distanceSenses,
+    peakMin,
+    peakMax,
+    lockedFilter,
+  ]);
 
   const formatDuration = (sec: number) => {
     const h = Math.floor(sec / 3600);
@@ -29,61 +73,71 @@ export default function RecordingTable() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 z-10 bg-forest-950/90 backdrop-blur border-b border-forest-700/40">
-          <tr>
-            <th className="w-12 px-4 py-3 text-left">
-              <span className="sr-only">选择</span>
-            </th>
-            <th className="w-12 px-2 py-3 text-left">
-              <span className="sr-only">播放</span>
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              文件名
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              地点
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              时长
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              规格
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              大小
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              采集时间
-            </th>
-            <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              标签
-            </th>
-            <th className="w-16 px-4 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              状态
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-forest-800/50">
-          {recordings.map((r) => {
-            const isSelected = selectedRecordingIds.includes(r.id);
-            const isActive = selectedRecordingId === r.id;
+      {filtered.length === 0 ? (
+        <div className="h-full flex flex-col items-center justify-center text-slate-500 px-8 text-center py-24">
+          <div className="w-16 h-16 rounded-2xl bg-forest-800/40 border border-forest-700/40 flex items-center justify-center mb-4">
+            <span className="text-2xl">🔍</span>
+          </div>
+          <p className="text-sm font-medium text-slate-300 mb-1">没有符合条件的素材</p>
+          <p className="text-xs">试试调整筛选范围或清空筛选条件</p>
+        </div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-forest-950/90 backdrop-blur border-b border-forest-700/40">
+            <tr>
+              <th className="w-12 px-4 py-3 text-left">
+                <span className="sr-only">选择</span>
+              </th>
+              <th className="w-12 px-2 py-3 text-left">
+                <span className="sr-only">播放</span>
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                文件名
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                地点
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                时长
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                规格
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                大小
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                采集时间
+              </th>
+              <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                标签
+              </th>
+              <th className="w-16 px-4 py-3 text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                状态
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-forest-800/50">
+            {filtered.map((r) => {
+              const isSelected = selectedRecordingIds.includes(r.id);
+              const isActive = selectedRecordingId === r.id;
 
-            return (
-              <Row
-                key={r.id}
-                recording={r}
-                isSelected={isSelected}
-                isActive={isActive}
-                formatDuration={formatDuration}
-                onToggleSelect={() => toggleRecordingSelected(r.id)}
-                onOpen={() => openDetailPanel(r.id)}
-                onToggleLock={() => toggleRecordingLock(r.id)}
-              />
-            );
-          })}
-        </tbody>
-      </table>
+              return (
+                <Row
+                  key={r.id}
+                  recording={r}
+                  isSelected={isSelected}
+                  isActive={isActive}
+                  formatDuration={formatDuration}
+                  onToggleSelect={() => toggleRecordingSelected(r.id)}
+                  onOpen={() => openDetailPanel(r.id)}
+                  onToggleLock={() => toggleRecordingLock(r.id)}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

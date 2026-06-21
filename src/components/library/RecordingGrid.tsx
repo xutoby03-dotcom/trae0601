@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Play,
   Pause,
@@ -14,11 +14,54 @@ import { useUIStore, type Recording } from "@/store/uiStore";
 
 export default function RecordingGrid() {
   const recordings = useUIStore((s) => s.recordings);
+  const searchQuery = useUIStore((s) => s.searchQuery);
+  const ambienceMin = useUIStore((s) => s.ambienceMin);
+  const ambienceMax = useUIStore((s) => s.ambienceMax);
+  const distanceSenses = useUIStore((s) => s.distanceSenses);
+  const peakMin = useUIStore((s) => s.peakMin);
+  const peakMax = useUIStore((s) => s.peakMax);
+  const lockedFilter = useUIStore((s) => s.lockedFilter);
   const selectedRecordingIds = useUIStore((s) => s.selectedRecordingIds);
   const selectedRecordingId = useUIStore((s) => s.selectedRecordingId);
   const toggleRecordingSelected = useUIStore((s) => s.toggleRecordingSelected);
   const openDetailPanel = useUIStore((s) => s.openDetailPanel);
   const toggleRecordingLock = useUIStore((s) => s.toggleRecordingLock);
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return recordings.filter((r) => {
+      if (
+        q &&
+        !r.fileName.toLowerCase().includes(q) &&
+        !r.locationName.toLowerCase().includes(q) &&
+        !r.tags.some((t) => t.toLowerCase().includes(q))
+      ) {
+        return false;
+      }
+      if (r.ambienceScore < ambienceMin || r.ambienceScore > ambienceMax) {
+        return false;
+      }
+      if (distanceSenses.length > 0 && !distanceSenses.includes(r.distanceSense)) {
+        return false;
+      }
+      if (r.peakDbfs < peakMin || r.peakDbfs > peakMax) {
+        return false;
+      }
+      if (lockedFilter !== null && r.isLocked !== lockedFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    recordings,
+    searchQuery,
+    ambienceMin,
+    ambienceMax,
+    distanceSenses,
+    peakMin,
+    peakMax,
+    lockedFilter,
+  ]);
 
   const formatDuration = (sec: number) => {
     const h = Math.floor(sec / 3600);
@@ -31,25 +74,35 @@ export default function RecordingGrid() {
 
   return (
     <div className="flex-1 overflow-y-auto p-5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-        {recordings.map((r) => {
-          const isSelected = selectedRecordingIds.includes(r.id);
-          const isActive = selectedRecordingId === r.id;
+      {filtered.length === 0 ? (
+        <div className="h-full flex flex-col items-center justify-center text-slate-500 px-8 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-forest-800/40 border border-forest-700/40 flex items-center justify-center mb-4">
+            <span className="text-2xl">🔍</span>
+          </div>
+          <p className="text-sm font-medium text-slate-300 mb-1">没有符合条件的素材</p>
+          <p className="text-xs">试试调整筛选范围或清空筛选条件</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          {filtered.map((r) => {
+            const isSelected = selectedRecordingIds.includes(r.id);
+            const isActive = selectedRecordingId === r.id;
 
-          return (
-            <GridCard
-              key={r.id}
-              recording={r}
-              isSelected={isSelected}
-              isActive={isActive}
-              formatDuration={formatDuration}
-              onToggleSelect={() => toggleRecordingSelected(r.id)}
-              onOpen={() => openDetailPanel(r.id)}
-              onToggleLock={() => toggleRecordingLock(r.id)}
-            />
-          );
-        })}
-      </div>
+            return (
+              <GridCard
+                key={r.id}
+                recording={r}
+                isSelected={isSelected}
+                isActive={isActive}
+                formatDuration={formatDuration}
+                onToggleSelect={() => toggleRecordingSelected(r.id)}
+                onOpen={() => openDetailPanel(r.id)}
+                onToggleLock={() => toggleRecordingLock(r.id)}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

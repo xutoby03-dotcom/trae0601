@@ -101,7 +101,15 @@ interface UIState {
   selectedRecordingIds: string[];
   isLockModalOpen: boolean;
   lockModalRecordingIds: string[];
+  ambienceMin: number;
+  ambienceMax: number;
+  distanceSenses: string[];
+  peakMin: number;
+  peakMax: number;
+  lockedFilter: boolean | null;
 }
+
+export const DISTANCE_SENSE_LIST = ['近景', '中近景', '中景', '远景', '极远景'] as const;
 
 interface UIStoreFull extends UIState {
   setCurrentView: (view: PageViewMode) => void;
@@ -134,6 +142,12 @@ interface UIStoreFull extends UIState {
   addAnnotation: (recordingId: string, ann: Omit<Annotation, 'id' | 'createdAt'>) => void;
   deleteAnnotation: (recordingId: string, annotationId: string) => void;
   updateAnnotation: (recordingId: string, annotationId: string, patch: Partial<Annotation>) => void;
+
+  setAmbienceRange: (min: number, max: number) => void;
+  toggleDistanceSense: (sense: string) => void;
+  setPeakRange: (min: number, max: number) => void;
+  setLockedFilter: (locked: boolean | null) => void;
+  resetFilters: () => void;
 }
 
 function makeWaveform(seed: number): number[] {
@@ -223,6 +237,12 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
   selectedRecordingIds: [],
   isLockModalOpen: false,
   lockModalRecordingIds: [],
+  ambienceMin: 1,
+  ambienceMax: 10,
+  distanceSenses: [],
+  peakMin: -20,
+  peakMax: 0,
+  lockedFilter: null,
 
   setCurrentView: (view) => set({ currentView: view }),
   setSelectedRecordingId: (id) =>
@@ -344,4 +364,27 @@ export const useUIStore = create<UIStoreFull>((set, get) => ({
           : r
       ),
     })),
+
+  setAmbienceRange: (min, max) => set({ ambienceMin: min, ambienceMax: max }),
+  toggleDistanceSense: (sense) =>
+    set((s) => {
+      const has = s.distanceSenses.includes(sense);
+      return {
+        distanceSenses: has
+          ? s.distanceSenses.filter((x) => x !== sense)
+          : [...s.distanceSenses, sense],
+      };
+    }),
+  setPeakRange: (min, max) => set({ peakMin: min, peakMax: max }),
+  setLockedFilter: (locked) => set({ lockedFilter: locked }),
+  resetFilters: () =>
+    set({
+      searchQuery: '',
+      ambienceMin: 1,
+      ambienceMax: 10,
+      distanceSenses: [],
+      peakMin: -20,
+      peakMax: 0,
+      lockedFilter: null,
+    }),
 }));
