@@ -33,6 +33,11 @@ export interface MovementSummary {
   distanceTrend: number | null;
   totalFlashes: number;
   lastActivityMinutesAgo: number | null;
+  displacementDirection: CardinalDirection | null;
+  displacementAzimuthDegrees: number | null;
+  displacementKm: number | null;
+  centroidStart: { x: number; y: number } | null;
+  centroidEnd: { x: number; y: number } | null;
 }
 
 export const LIGHTNING_TYPE_LABELS: Record<LightningType, string> = {

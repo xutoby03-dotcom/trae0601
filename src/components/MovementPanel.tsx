@@ -1,5 +1,5 @@
 import React from 'react';
-import { LightningRecord, MovementSummary, CARDINAL_DIRECTIONS, RISK_CONFIG, getDirectionFromDegrees } from '../types';
+import { LightningRecord, MovementSummary, CARDINAL_DIRECTIONS, RISK_CONFIG, getDirectionFromDegrees, CardinalDirection } from '../types';
 
 interface MovementSummaryProps {
   records: LightningRecord[];
@@ -14,36 +14,74 @@ const calculateMovementSummary = (records: LightningRecord[]): MovementSummary =
       distanceTrend: null,
       totalFlashes: 0,
       lastActivityMinutesAgo: null,
+      displacementDirection: null,
+      displacementAzimuthDegrees: null,
+      displacementKm: null,
+      centroidStart: null,
+      centroidEnd: null,
     };
   }
 
   const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp);
   const totalFlashes = sorted.length;
 
-  let sumCos = 0;
-  let sumSin = 0;
-  sorted.forEach((r) => {
+  const toXY = (r: LightningRecord) => {
     const rad = (r.lightningAzimuth * Math.PI) / 180;
-    sumCos += Math.cos(rad);
-    sumSin += Math.sin(rad);
-  });
+    return {
+      x: r.estimatedDistanceKm * Math.sin(rad),
+      y: r.estimatedDistanceKm * Math.cos(rad),
+    };
+  };
 
-  const avgRad = Math.atan2(sumSin, sumCos);
+  const points = sorted.map(toXY);
+  const distances = sorted.map(r => r.estimatedDistanceKm);
+  const averageDistanceKm = Math.round((distances.reduce((a, b) => a + b, 0) / distances.length) * 10) / 10;
+
+  const avgX = points.reduce((s, p) => s + p.x, 0) / points.length;
+  const avgY = points.reduce((s, p) => s + p.y, 0) / points.length;
+  const avgRad = Math.atan2(avgX, avgY);
   let avgDeg = (avgRad * 180) / Math.PI;
   if (avgDeg < 0) avgDeg += 360;
   const dominantDirection = getDirectionFromDegrees(avgDeg);
 
-  const distances = sorted.map(r => r.estimatedDistanceKm);
-  const averageDistanceKm = Math.round((distances.reduce((a, b) => a + b, 0) / distances.length) * 10) / 10;
-
   let distanceTrend: number | null = null;
   let directionTrend: MovementSummary['directionTrend'] = 'unclear';
+  let displacementDirection: CardinalDirection | null = null;
+  let displacementAzimuthDegrees: number | null = null;
+  let displacementKm: number | null = null;
+  let centroidStart: { x: number; y: number } | null = null;
+  let centroidEnd: { x: number; y: number } | null = null;
+
   if (sorted.length >= 2) {
     const firstHalf = sorted.slice(0, Math.ceil(sorted.length / 2));
     const secondHalf = sorted.slice(Math.ceil(sorted.length / 2));
     const firstAvg = firstHalf.reduce((s, r) => s + r.estimatedDistanceKm, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((s, r) => s + r.estimatedDistanceKm, 0) / secondHalf.length;
     distanceTrend = Math.round((secondAvg - firstAvg) * 10) / 10;
+
+    const half = Math.ceil(points.length / 2);
+    const startPts = points.slice(0, half);
+    const endPts = points.slice(half);
+    centroidStart = {
+      x: startPts.reduce((s, p) => s + p.x, 0) / startPts.length,
+      y: startPts.reduce((s, p) => s + p.y, 0) / startPts.length,
+    };
+    centroidEnd = {
+      x: endPts.reduce((s, p) => s + p.x, 0) / endPts.length,
+      y: endPts.reduce((s, p) => s + p.y, 0) / endPts.length,
+    };
+
+    const dx = centroidEnd.x - centroidStart.x;
+    const dy = centroidEnd.y - centroidStart.y;
+    displacementKm = Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10;
+
+    if (displacementKm >= 0.5) {
+      let moveRad = Math.atan2(dx, dy);
+      let moveDeg = (moveRad * 180) / Math.PI;
+      if (moveDeg < 0) moveDeg += 360;
+      displacementAzimuthDegrees = Math.round(moveDeg);
+      displacementDirection = getDirectionFromDegrees(moveDeg);
+    }
 
     if (distanceTrend <= -0.5) {
       directionTrend = 'approaching';
@@ -64,6 +102,11 @@ const calculateMovementSummary = (records: LightningRecord[]): MovementSummary =
     distanceTrend,
     totalFlashes,
     lastActivityMinutesAgo,
+    displacementDirection,
+    displacementAzimuthDegrees,
+    displacementKm,
+    centroidStart,
+    centroidEnd,
   };
 };
 
@@ -79,20 +122,47 @@ const MovementPanel: React.FC<MovementSummaryProps> = ({ records }) => {
   };
 
   const domDir = CARDINAL_DIRECTIONS.find(d => d.code === summary.dominantDirection);
+  const dispDir = CARDINAL_DIRECTIONS.find(d => d.code === summary.displacementDirection);
 
-  const renderArrowSVG = (direction: string | null) => {
-    const deg = direction ? CARDINAL_DIRECTIONS.find(d => d.code === direction)?.degrees ?? 0 : 0;
+  const renderArrowSVG = () => {
+    const arrowDeg = summary.displacementAzimuthDegrees ?? 0;
+    const hasDisplacement = summary.displacementDirection !== null;
     return (
-      <svg width="80" height="80" viewBox="0 0 80 80" className="flex-shrink-0">
-        <circle cx="40" cy="40" r="35" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-        <text x="40" y="14" fill="#64748b" fontSize="10" textAnchor="middle">N</text>
-        <text x="68" y="44" fill="#64748b" fontSize="10" textAnchor="middle">E</text>
-        <text x="40" y="74" fill="#64748b" fontSize="10" textAnchor="middle">S</text>
-        <text x="12" y="44" fill="#64748b" fontSize="10" textAnchor="middle">W</text>
-        {direction && (
-          <g transform={`rotate(${deg} 40 40)`}>
-            <line x1="40" y1="50" x2="40" y2="20" stroke="#fde047" strokeWidth="3" strokeLinecap="round" />
-            <polygon points="40,12 34,24 46,24" fill="#fde047" />
+      <svg width="90" height="90" viewBox="0 0 90 90" className="flex-shrink-0">
+        <circle cx="45" cy="45" r="40" fill="#1e293b" stroke="#475569" strokeWidth="1" />
+        <circle cx="45" cy="45" r="25" fill="none" stroke="#334155" strokeWidth="0.5" strokeDasharray="2 2" />
+        <text x="45" y="12" fill="#64748b" fontSize="10" textAnchor="middle">N</text>
+        <text x="78" y="48" fill="#64748b" fontSize="10" textAnchor="middle">E</text>
+        <text x="45" y="84" fill="#64748b" fontSize="10" textAnchor="middle">S</text>
+        <text x="12" y="48" fill="#64748b" fontSize="10" textAnchor="middle">W</text>
+        <circle cx="45" cy="45" r="2" fill="#3b82f6" />
+        <text x="45" y="42" fill="#64748b" fontSize="7" textAnchor="middle">观测点</text>
+        {summary.centroidStart && summary.centroidEnd && (
+          (() => {
+            const maxDim = 20;
+            const allX = [summary.centroidStart.x, summary.centroidEnd.x, 0];
+            const allY = [summary.centroidStart.y, summary.centroidEnd.y, 0];
+            const maxAbs = Math.max(...allX.map(Math.abs), ...allY.map(Math.abs), 0.1);
+            const scale = maxDim / maxAbs;
+            const sx = 45 + summary.centroidStart.x * scale;
+            const sy = 45 - summary.centroidStart.y * scale;
+            const ex = 45 + summary.centroidEnd.x * scale;
+            const ey = 45 - summary.centroidEnd.y * scale;
+            return (
+              <>
+                <circle cx={sx} cy={sy} r="3" fill="#60a5fa" opacity="0.8" />
+                <text x={sx} y={sy - 5} fill="#60a5fa" fontSize="7" textAnchor="middle">起点</text>
+                <circle cx={ex} cy={ey} r="3" fill="#fde047" />
+                <text x={ex} y={ey - 5} fill="#fde047" fontSize="7" textAnchor="middle">终点</text>
+                <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="#fde047" strokeWidth="1.5" strokeDasharray="2 2" />
+              </>
+            );
+          })()
+        )}
+        {hasDisplacement && (
+          <g transform={`rotate(${arrowDeg} 45 45)`}>
+            <line x1="45" y1="68" x2="45" y2="22" stroke="#fde047" strokeWidth="2.5" strokeLinecap="round" />
+            <polygon points="45,14 39,26 51,26" fill="#fde047" />
           </g>
         )}
       </svg>
@@ -152,14 +222,22 @@ const MovementPanel: React.FC<MovementSummaryProps> = ({ records }) => {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-900/60 rounded-xl p-4 border border-slate-700/50 flex items-center gap-3">
-          {renderArrowSVG(summary.dominantDirection)}
-          <div>
-            <div className="text-xs text-slate-500 mb-1">主导方位</div>
-            {domDir ? (
+          {renderArrowSVG()}
+          <div className="min-w-0">
+            <div className="text-xs text-slate-500 mb-1">位移方向</div>
+            {dispDir ? (
               <>
-                <div className="text-2xl font-bold text-yellow-400">{domDir.code}</div>
-                <div className="text-sm text-slate-300">{domDir.label}</div>
-                <div className="text-xs text-slate-500">{domDir.degrees}°</div>
+                <div className="text-2xl font-bold text-yellow-400">{dispDir.code}</div>
+                <div className="text-sm text-slate-300">{dispDir.label}</div>
+                <div className="text-xs text-slate-500">
+                  {summary.displacementAzimuthDegrees}° · 移动 {summary.displacementKm}km
+                </div>
+              </>
+            ) : domDir ? (
+              <>
+                <div className="text-xl font-bold text-slate-300">{domDir.code}</div>
+                <div className="text-xs text-slate-400">集中在{domDir.label}</div>
+                <div className="text-[10px] text-slate-500">数据不足以计算位移</div>
               </>
             ) : (
               <div className="text-slate-500 text-sm">--</div>
@@ -217,29 +295,38 @@ const MovementPanel: React.FC<MovementSummaryProps> = ({ records }) => {
             {summary.directionTrend === 'approaching' && (
               <p className="text-red-300">
                 ⚠️ <strong>雷雨正在逼近！</strong>
-                主导方位在{domDir?.label}方向，
-                {summary.averageDistanceKm !== null && `平均距离${summary.averageDistanceKm}公里，`}
-                距离正在缩短，请保持警惕！
+                {dispDir
+                  ? `整体向${dispDir.label}方向移动（位移约 ${summary.displacementKm}km），`
+                  : domDir ? `主要集中在${domDir.label}方向，` : ''}
+                {summary.averageDistanceKm !== null && `当前平均距离${summary.averageDistanceKm}公里，`}
+                距离观测点越来越近，请保持高度警惕！
               </p>
             )}
             {summary.directionTrend === 'receding' && (
               <p className="text-emerald-300">
                 ✅ 雷雨正在远去。
-                主导方位{domDir?.label}方向，
+                {dispDir
+                  ? `整体向${dispDir.label}方向移动（位移约 ${summary.displacementKm}km），`
+                  : domDir ? `主要集中在${domDir.label}方向，` : ''}
                 距离正在增加，风险逐渐降低。
               </p>
             )}
             {summary.directionTrend === 'stationary' && (
               <p className="text-blue-300">
-                🔄 雷雨在{domDir?.label}方向附近徘徊，
-                {summary.averageDistanceKm !== null && `约${summary.averageDistanceKm}公里处，`}
+                🔄 雷雨位置基本稳定。
+                {dispDir
+                  ? `前段到后段整体仅向${dispDir.label}方向偏移约 ${summary.displacementKm}km，`
+                  : ''}
+                {domDir && summary.averageDistanceKm !== null
+                  ? `主要活动于${domDir.label}方向约 ${summary.averageDistanceKm} 公里处，`
+                  : ''}
                 暂时没有明显移动迹象。
               </p>
             )}
             {summary.directionTrend === 'unclear' && (
               <p className="text-slate-400">
                 📝 正在收集数据中。
-                请继续记录更多闪电观测以生成更准确的分析。
+                请继续记录更多闪电观测（至少 2 次）以生成位移和趋势分析。
               </p>
             )}
             {latest && (latest.riskLevel === 'extreme' || latest.riskLevel === 'danger') && (

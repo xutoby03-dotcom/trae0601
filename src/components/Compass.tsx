@@ -14,7 +14,6 @@ const Compass: React.FC<CompassProps> = ({ records, viewDirection, onAzimuthSele
   const size = 320;
   const center = size / 2;
   const outerRadius = size / 2 - 20;
-  const innerRadius = outerRadius * 0.6;
   const coreRadius = outerRadius * 0.2;
 
   const viewDeg = CARDINAL_DIRECTIONS.find(d => d.code === viewDirection)?.degrees ?? 0;
@@ -54,8 +53,10 @@ const Compass: React.FC<CompassProps> = ({ records, viewDirection, onAzimuthSele
 
   const getDistanceRadius = (distanceKm: number) => {
     const maxDist = 20;
+    const minRadius = coreRadius + 8;
+    const maxRadius = outerRadius - 12;
     const normalized = Math.min(distanceKm / maxDist, 1);
-    return innerRadius - normalized * (innerRadius - coreRadius - 10);
+    return minRadius + normalized * (maxRadius - minRadius);
   };
 
   const getFlashColor = (record: LightningRecord) => {
@@ -100,11 +101,11 @@ const Compass: React.FC<CompassProps> = ({ records, viewDirection, onAzimuthSele
           </defs>
 
           <circle cx={center} cy={center} r={outerRadius} fill="url(#compassBg)" stroke="#475569" strokeWidth="2" />
-          <circle cx={center} cy={center} r={innerRadius} fill="none" stroke="#334155" strokeWidth="1" strokeDasharray="4 4" />
           <circle cx={center} cy={center} r={coreRadius} fill="#1e3a5f" stroke="#3b82f6" strokeWidth="1" />
 
-          {[5, 10, 15, 20].map((dist, i) => {
-            const r = innerRadius - ((i + 1) / 4) * (innerRadius - coreRadius - 10);
+          {[5, 10, 15, 20].map((dist) => {
+            const r = getDistanceRadius(dist);
+            const label = dist === 20 ? '20km (远)' : dist === 5 ? '5km' : `${dist}km`;
             return (
               <g key={dist}>
                 <circle cx={center} cy={center} r={r} fill="none" stroke="#1e3a5f" strokeWidth="0.5" opacity="0.6" />
@@ -115,7 +116,7 @@ const Compass: React.FC<CompassProps> = ({ records, viewDirection, onAzimuthSele
                   fontSize="9"
                   className="select-none"
                 >
-                  {dist}km
+                  {label}
                 </text>
               </g>
             );
