@@ -105,16 +105,25 @@ export default function AnalysisPage() {
         const outOfRange =
           latestCal.measuredForce < eq.targetForceMin ||
           latestCal.measuredForce > eq.targetForceMax;
-        let deviationStatus: 'ok' | 'warn' | 'danger' = 'ok';
-        if (outOfRange || Math.abs(deviation) > 0.5) deviationStatus = 'danger';
-        else if (Math.abs(deviation) > 0.3) deviationStatus = 'warn';
+        const absDev = Math.abs(deviation);
+        const isHigh = deviation > 0;
+        let statusLabel = '正常';
+        let statusSeverity: 'ok' | 'warn' | 'danger' = 'ok';
+        if (outOfRange || absDev > 0.5) {
+          statusSeverity = 'danger';
+          statusLabel = isHigh ? '偏高严重' : '偏低严重';
+        } else if (absDev > 0.3) {
+          statusSeverity = 'warn';
+          statusLabel = isHigh ? '偏高注意' : '偏低注意';
+        }
         return {
           date: latestCal.calibrationDate,
           targetForce: latestCal.targetForce,
           measuredForce: latestCal.measuredForce,
           antiSkate: latestCal.antiSkate,
           deviation,
-          deviationStatus,
+          statusLabel,
+          statusSeverity,
           operator: latestCal.operator || '未记录',
         };
       };
@@ -522,9 +531,9 @@ export default function AnalysisPage() {
 
                           {item.latestCal && (
                             <div className={`mt-2 p-2.5 rounded-lg border ${
-                              item.latestCal.deviationStatus === 'danger'
+                              item.latestCal.statusSeverity === 'danger'
                                 ? 'bg-red-50/70 border-red-100'
-                                : item.latestCal.deviationStatus === 'warn'
+                                : item.latestCal.statusSeverity === 'warn'
                                 ? 'bg-amber-50/70 border-amber-100'
                                 : 'bg-forest-50/50 border-forest-100'
                             }`}>
@@ -551,13 +560,13 @@ export default function AnalysisPage() {
                                   防滑 {item.latestCal.antiSkate.toFixed(1)}
                                 </span>
                                 <span className={`badge ${
-                                  item.latestCal.deviationStatus === 'danger'
+                                  item.latestCal.statusSeverity === 'danger'
                                     ? 'badge-danger'
-                                    : item.latestCal.deviationStatus === 'warn'
+                                    : item.latestCal.statusSeverity === 'warn'
                                     ? 'badge-warning'
                                     : 'badge-success'
                                 } !py-0.5`}>
-                                  偏差 {item.latestCal.deviation >= 0 ? '+' : ''}{item.latestCal.deviation.toFixed(2)}
+                                  {item.latestCal.statusLabel}
                                 </span>
                               </div>
                             </div>
