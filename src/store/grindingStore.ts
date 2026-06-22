@@ -37,6 +37,7 @@ export interface GrindingSpec {
 
 export interface SpecSource {
   specId: string
+  shortCode: string
   spiceName: string
   meshSize: number
   shutdownTemp: number
@@ -44,6 +45,7 @@ export interface SpecSource {
   layering: number
   persistence: number
   recipeRatio: number
+  specNotes: string
   createdAt: string
 }
 
@@ -108,6 +110,16 @@ function migrateSpecs(specs: GrindingSpec[]): GrindingSpec[] {
     recipeRatio: s.recipeRatio ?? 0,
     originalNotes: s.originalNotes ?? '',
   }))
+}
+
+export function genShortCode(dateStr: string, id: string): string {
+  const d = new Date(dateStr)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  const suffix = id.slice(0, 4).toUpperCase()
+  return `${mm}${dd}-${hh}${mi}-${suffix}`
 }
 
 export const useGrindingStore = create<GrindingState>((set, get) => ({
@@ -192,6 +204,7 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
       specDrawerOpen: false,
       reusedFrom: {
         specId: spec.id,
+        shortCode: genShortCode(spec.createdAt, spec.id),
         spiceName: spec.spiceName,
         meshSize: spec.meshSize,
         shutdownTemp: spec.shutdownTemp,
@@ -199,6 +212,7 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
         layering: spec.layering,
         persistence: spec.persistence,
         recipeRatio: spec.recipeRatio,
+        specNotes: spec.specNotes,
         createdAt: spec.createdAt,
       },
     })

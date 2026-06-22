@@ -1,4 +1,4 @@
-import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS, type GrindingSpec } from '@/store/grindingStore'
+import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS, type GrindingSpec, genShortCode } from '@/store/grindingStore'
 import { BookOpen, X, Trash2, FileDown, Star, MessageSquare, FileText, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
@@ -6,15 +6,26 @@ function SpecCard({ spec, onDelete, onReuse }: { spec: GrindingSpec; onDelete: (
   const roast = ROAST_LEVELS.find((r) => r.value === spec.roastLevel)
   const equip = EQUIPMENTS.find((e) => e.value === spec.equipment)
   const avgScore = ((spec.aromaIntensity + spec.layering + spec.persistence) / 3).toFixed(1)
+  const shortCode = genShortCode(spec.createdAt, spec.id)
 
   return (
     <div className="bg-[#1E1810] border border-amber-900/30 rounded-xl p-4 hover:border-amber-700/40 transition-all group">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h4 className="text-amber-200 font-bold text-sm">{spec.spiceName}</h4>
-          <p className="text-amber-600/40 text-[10px] mt-0.5">
-            {new Date(spec.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </p>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start gap-2">
+          <span className="inline-flex items-center bg-gradient-to-r from-amber-700/40 to-amber-600/30 border border-amber-500/20 rounded-md px-1.5 py-0.5 text-[9px] font-mono font-bold text-amber-300 tracking-wider shrink-0 mt-0.5">
+            #{shortCode}
+          </span>
+          <div>
+            <h4 className="text-amber-200 font-bold text-sm">{spec.spiceName}</h4>
+            <p className="text-amber-600/40 text-[10px] mt-0.5 font-mono">
+              {new Date(spec.createdAt).toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              }).replace(/\//g, '-')}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-0.5 text-amber-400">

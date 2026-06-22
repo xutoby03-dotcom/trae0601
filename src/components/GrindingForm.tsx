@@ -1,5 +1,5 @@
 import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS } from '@/store/grindingStore'
-import { Thermometer, Hash, Link2, X, Star } from 'lucide-react'
+import { Thermometer, Hash, Link2, X, Star, ClipboardList } from 'lucide-react'
 
 export default function GrindingForm() {
   const {
@@ -25,7 +25,7 @@ export default function GrindingForm() {
         </h2>
 
         {reusedFrom && (
-          <div className="relative flex-1 max-w-lg ml-auto animate-fade-in">
+          <div className="relative flex-1 max-w-xl ml-auto animate-fade-in">
             <div className="bg-gradient-to-r from-amber-900/30 via-amber-800/20 to-amber-900/30 border border-amber-600/30 rounded-xl px-4 py-3 shadow-[0_0_20px_rgba(184,134,11,0.1)]">
               <button
                 onClick={clearReusedFrom}
@@ -34,16 +34,39 @@ export default function GrindingForm() {
                 <X className="w-3.5 h-3.5" />
               </button>
 
-              <div className="flex items-center gap-1.5 text-amber-500/80 text-[11px] mb-1.5 pr-5">
-                <Link2 className="w-3 h-3" />
-                <span>基于规范微调：</span>
-                <span className="text-amber-300 font-bold">{reusedFrom.spiceName}</span>
-                <span className="text-amber-700/40">
-                  ({new Date(reusedFrom.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })})
-                </span>
+              <div className="flex items-start gap-2 pr-5">
+                <div className="shrink-0 mt-0.5">
+                  <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-700/40 to-amber-600/30 border border-amber-500/30 rounded-md px-2 py-0.5 text-[10px] font-mono font-bold text-amber-300 tracking-wider">
+                    #{reusedFrom.shortCode}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 text-amber-500/80 text-[11px] mb-1">
+                    <Link2 className="w-3 h-3 shrink-0" />
+                    <span>基于规范微调：</span>
+                    <span className="text-amber-300 font-bold">{reusedFrom.spiceName}</span>
+                    <span className="text-amber-700/50 font-mono text-[10px]">
+                      {new Date(reusedFrom.createdAt).toLocaleString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).replace(/\//g, '-')}
+                    </span>
+                  </div>
+
+                  {reusedFrom.specNotes && (
+                    <div className="flex items-start gap-1 mb-2 bg-[#1A1410]/60 rounded-md px-2 py-1 border border-amber-900/30">
+                      <ClipboardList className="w-3 h-3 text-amber-600/60 shrink-0 mt-0.5" />
+                      <p className="text-amber-400/70 text-[11px] leading-snug line-clamp-2">
+                        {reusedFrom.specNotes}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-amber-900/20">
                 <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
                   <Hash className="w-3 h-3 text-amber-600/60" />
                   <span className="text-amber-500/60 text-[10px]">原目数</span>
@@ -56,17 +79,17 @@ export default function GrindingForm() {
                 </div>
                 <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
                   <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                  <span className="text-amber-500/60 text-[10px]">原评分</span>
+                  <span className="text-amber-500/60 text-[10px]">评分</span>
                   <span className="text-amber-300 text-xs font-bold">{avgScore}</span>
                 </div>
                 <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
-                  <span className="text-amber-500/60 text-[10px]">香气/层次/持久</span>
+                  <span className="text-amber-500/60 text-[10px]">香/层/持</span>
                   <span className="text-amber-400 text-[11px] font-mono font-bold">
                     {reusedFrom.aromaIntensity}/{reusedFrom.layering}/{reusedFrom.persistence}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
-                  <span className="text-amber-500/60 text-[10px]">原占比</span>
+                  <span className="text-amber-500/60 text-[10px]">占比</span>
                   <span className="text-amber-300 text-xs font-bold">{reusedFrom.recipeRatio}%</span>
                 </div>
               </div>
