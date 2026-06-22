@@ -64,6 +64,7 @@ interface RecordListProps {
 const RecordList: React.FC<RecordListProps> = ({ records, onDelete, onDeleteMultiple }) => {
   const [filter, setFilter] = React.useState<FilterState>(loadFilter);
   const [starredIds, setStarredIds] = React.useState<Set<string>>(loadStars);
+  const hasSeenRecords = React.useRef(false);
 
   React.useEffect(() => {
     saveFilter(filter);
@@ -94,6 +95,12 @@ const RecordList: React.FC<RecordListProps> = ({ records, onDelete, onDeleteMult
   };
 
   React.useEffect(() => {
+    if (records.length === 0 && !hasSeenRecords.current) {
+      return;
+    }
+    if (records.length > 0) {
+      hasSeenRecords.current = true;
+    }
     setStarredIds(prev => {
       const existingIds = new Set(records.map(r => r.id));
       const cleaned = new Set([...prev].filter(id => existingIds.has(id)));
