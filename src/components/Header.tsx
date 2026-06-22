@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Search, Plus, Filter, Sparkles } from 'lucide-react';
+import { Search, Plus, Filter, Sparkles, Navigation } from 'lucide-react';
 import { useWaxStore } from '@/store/useWaxStore';
-import { STATUS_ORDER } from '@/utils/constants';
+import { STATUS_ORDER, ROD_POSITION_OPTIONS } from '@/utils/constants';
+import type { RodPosition } from '@/types';
 import StatBadge from './StatBadge';
 import WaxForm from './WaxForm';
 
@@ -17,6 +18,8 @@ export default function Header({ scrollToTop }: HeaderProps) {
     setSearchKeyword,
     defectFilter,
     setDefectFilter,
+    rodFilter,
+    setRodFilter,
     items,
   } = useWaxStore();
 
@@ -91,12 +94,32 @@ export default function Header({ scrollToTop }: HeaderProps) {
             </select>
           </div>
 
-          {searchKeyword && (
+          <div className="flex items-center gap-2">
+            <Navigation className="w-4 h-4 text-gold-500 rotate-45" />
+            <select
+              value={rodFilter}
+              onChange={(e) => setRodFilter(e.target.value as RodPosition | 'all')}
+              className="select-field w-[140px]"
+            >
+              <option value="all">全部方位</option>
+              {ROD_POSITION_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {(searchKeyword || defectFilter !== 'all' || rodFilter !== 'all') && (
             <button
-              onClick={() => setSearchKeyword('')}
+              onClick={() => {
+                setSearchKeyword('');
+                setDefectFilter('all');
+                setRodFilter('all');
+              }}
               className="btn-ghost text-xs"
             >
-              清除搜索
+              清除全部筛选
             </button>
           )}
         </div>

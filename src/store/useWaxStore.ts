@@ -5,6 +5,7 @@ import type {
   WaxFormInput,
   WaxStatus,
   DefectType,
+  RodPosition,
 } from '@/types';
 import { generateWaxId } from '@/utils/helpers';
 
@@ -12,6 +13,7 @@ interface WaxStore {
   items: WaxModel[];
   searchKeyword: string;
   defectFilter: 'all' | 'has' | 'none';
+  rodFilter: RodPosition | 'all';
   addWaxModel: (input: WaxFormInput) => WaxModel;
   updateStatus: (id: string, newStatus: WaxStatus, note?: string) => void;
   markDefects: (
@@ -24,6 +26,7 @@ interface WaxStore {
   removeWaxModel: (id: string) => void;
   setSearchKeyword: (kw: string) => void;
   setDefectFilter: (f: 'all' | 'has' | 'none') => void;
+  setRodFilter: (f: RodPosition | 'all') => void;
   getFilteredItems: () => WaxModel[];
   getStatusCounts: () => Record<WaxStatus, number>;
 }
@@ -145,6 +148,7 @@ export const useWaxStore = create<WaxStore>()(
       items: [],
       searchKeyword: '',
       defectFilter: 'all',
+      rodFilter: 'all',
 
       addWaxModel: (input) => {
         const now = Date.now();
@@ -220,9 +224,10 @@ export const useWaxStore = create<WaxStore>()(
 
       setSearchKeyword: (kw) => set({ searchKeyword: kw }),
       setDefectFilter: (f) => set({ defectFilter: f }),
+      setRodFilter: (f) => set({ rodFilter: f }),
 
       getFilteredItems: () => {
-        const { items, searchKeyword, defectFilter } = get();
+        const { items, searchKeyword, defectFilter, rodFilter } = get();
         const kw = searchKeyword.trim().toLowerCase();
         return items.filter((it) => {
           if (kw) {
@@ -235,6 +240,7 @@ export const useWaxStore = create<WaxStore>()(
           }
           if (defectFilter === 'has' && it.defects.length === 0) return false;
           if (defectFilter === 'none' && it.defects.length > 0) return false;
+          if (rodFilter !== 'all' && it.rodPosition !== rodFilter) return false;
           return true;
         });
       },
