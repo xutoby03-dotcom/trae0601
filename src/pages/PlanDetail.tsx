@@ -4,7 +4,7 @@ import { ArrowLeft, Edit, Copy, Trash2, Waves, Shirt, Camera, Aperture, Layers, 
 import { usePlanStore } from '@/store/usePlanStore';
 import RatingInput from '@/components/RatingInput';
 import Bubbles from '@/components/Bubbles';
-import { RATING_ITEMS } from '@/types';
+import { RATING_ITEMS, CAMERA_HOUSING_PRESETS, LENS_PORT_PRESETS, BUOYANCY_ARM_PRESETS } from '@/types';
 
 export default function PlanDetail() {
   const navigate = useNavigate();
@@ -61,12 +61,12 @@ export default function PlanDetail() {
   ).toFixed(1);
 
   const configItems = [
-    { label: '水域盐度', value: plan.salinity, icon: Waves },
-    { label: '潜水服厚度', value: plan.wetsuitThickness, icon: Shirt },
-    { label: '相机壳体', value: plan.cameraHousing, icon: Camera },
-    { label: '镜头罩', value: plan.lensPort, icon: Aperture },
-    { label: '浮力臂', value: plan.buoyancyArm, icon: Layers },
-    { label: '铅块位置', value: plan.leadPosition, icon: Anchor },
+    { label: '水域盐度', value: plan.salinity, icon: Waves, isCustom: false },
+    { label: '潜水服厚度', value: plan.wetsuitThickness, icon: Shirt, isCustom: false },
+    { label: '相机壳体', value: plan.cameraHousing, icon: Camera, isCustom: !CAMERA_HOUSING_PRESETS.includes(plan.cameraHousing) },
+    { label: '镜头罩', value: plan.lensPort, icon: Aperture, isCustom: !LENS_PORT_PRESETS.includes(plan.lensPort) },
+    { label: '浮力臂', value: plan.buoyancyArm, icon: Layers, isCustom: !BUOYANCY_ARM_PRESETS.includes(plan.buoyancyArm) },
+    { label: '铅块位置', value: plan.leadPosition, icon: Anchor, isCustom: false },
   ];
 
   return (
@@ -150,7 +150,14 @@ export default function PlanDetail() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-400">{item.label}</p>
-                    <p className="text-white font-medium">{item.value}</p>
+                    <p className="text-white font-medium flex items-center gap-2 flex-wrap">
+                      {item.value}
+                      {item.isCustom && (
+                        <span className="text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">
+                          自定义
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
               ))}

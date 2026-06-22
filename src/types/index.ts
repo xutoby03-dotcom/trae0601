@@ -34,7 +34,33 @@ export const RATING_ITEMS: RatingItem[] = [
 
 export const SALINITY_OPTIONS = ['淡水', '微咸水', '海水', '高盐度'];
 export const WETSUIT_OPTIONS = ['3mm', '5mm', '7mm', '干式潜水服'];
-export const CAMERA_HOUSING_OPTIONS = ['紧凑型', '单反/微单', '专业水下相机', '运动相机'];
-export const LENS_PORT_OPTIONS = ['平面罩', '广角罩', '微距罩', '鱼眼罩'];
-export const BUOYANCY_ARM_OPTIONS = ['无浮力臂', '单浮力臂', '双浮力臂', '浮力臂+浮球'];
+export const CAMERA_HOUSING_PRESETS = [
+  'Sony A7系列防水壳',
+  'Canon R5防水壳',
+  'Nikon Z系列防水壳',
+  'GoPro 原厂防水壳',
+  '奥林巴斯 TG系列',
+  'Sea&Sea 专业水下相机',
+  'Nauticam 防水壳',
+  'Aquatech 防水罩',
+];
+export const LENS_PORT_PRESETS = [
+  '平面罩 67mm',
+  '平面罩 87mm',
+  '广角罩 N100',
+  '广角罩 N120',
+  '微距罩 67mm',
+  '微距罩 105mm',
+  '鱼眼罩 8寸玻璃罩',
+  '扁平广角罩 (WWL)',
+];
+export const BUOYANCY_ARM_PRESETS = [
+  '无浮力臂',
+  '单浮力臂 8寸',
+  '单浮力臂 12寸',
+  '双浮力臂 8寸',
+  '双浮力臂 12寸',
+  '浮力臂 + 浮球套装',
+  '碳纤维浮力臂',
+];
 export const LEAD_POSITION_OPTIONS = ['腰前', '腰后', '腰部两侧', '肩部', '底部配重', '多点分布'];

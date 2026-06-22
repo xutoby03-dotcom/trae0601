@@ -1,5 +1,6 @@
-import { Camera, Waves, Shirt, Copy, Edit, Trash2, ChevronRight } from 'lucide-react';
+import { Camera, Waves, Shirt, Copy, Edit, Trash2, ChevronRight, Aperture, Layers, Anchor } from 'lucide-react';
 import type { WeightPlan } from '@/types';
+import { CAMERA_HOUSING_PRESETS, LENS_PORT_PRESETS, BUOYANCY_ARM_PRESETS } from '@/types';
 
 interface PlanCardProps {
   plan: WeightPlan;
@@ -34,6 +35,8 @@ export default function PlanCard({
     });
   };
 
+  const isCustom = (value: string, presets: string[]) => !presets.includes(value);
+
   return (
     <div
       className="group relative bg-slate-800/40 backdrop-blur-md rounded-xl border border-slate-700/50 
@@ -58,22 +61,52 @@ export default function PlanCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm">
-            <Waves size={16} className="text-cyan-400 flex-shrink-0" />
-            <span className="text-slate-300 truncate">{plan.salinity}</span>
+            <Waves size={14} className="text-cyan-400 flex-shrink-0" />
+            <span className="text-slate-400 text-xs">盐度</span>
+            <span className="text-slate-200">{plan.salinity}</span>
+            <span className="text-slate-600">·</span>
+            <Shirt size={14} className="text-cyan-400 flex-shrink-0" />
+            <span className="text-slate-400 text-xs">湿衣</span>
+            <span className="text-slate-200">{plan.wetsuitThickness}</span>
+            <span className="text-slate-600">·</span>
+            <Anchor size={14} className="text-cyan-400 flex-shrink-0" />
+            <span className="text-slate-400 text-xs">铅块</span>
+            <span className="text-slate-200">{plan.leadPosition}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Shirt size={16} className="text-cyan-400 flex-shrink-0" />
-            <span className="text-slate-300 truncate">{plan.wetsuitThickness}</span>
+          <div className="flex items-start gap-2 text-sm">
+            <Camera size={14} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+            <span className="text-slate-300 truncate">
+              {plan.cameraHousing}
+              {isCustom(plan.cameraHousing, CAMERA_HOUSING_PRESETS) && (
+                <span className="ml-1 text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                  自定义
+                </span>
+              )}
+            </span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Camera size={16} className="text-cyan-400 flex-shrink-0" />
-            <span className="text-slate-300 truncate">{plan.cameraHousing}</span>
+          <div className="flex items-start gap-2 text-sm">
+            <Aperture size={14} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+            <span className="text-slate-300 truncate">
+              {plan.lensPort}
+              {isCustom(plan.lensPort, LENS_PORT_PRESETS) && (
+                <span className="ml-1 text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                  自定义
+                </span>
+              )}
+            </span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-cyan-400 flex-shrink-0 text-xs font-bold">LB</span>
-            <span className="text-slate-300 truncate">{plan.leadPosition}</span>
+          <div className="flex items-start gap-2 text-sm">
+            <Layers size={14} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+            <span className="text-slate-300 truncate">
+              {plan.buoyancyArm}
+              {isCustom(plan.buoyancyArm, BUOYANCY_ARM_PRESETS) && (
+                <span className="ml-1 text-[10px] text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                  自定义
+                </span>
+              )}
+            </span>
           </div>
         </div>
 

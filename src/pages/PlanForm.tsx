@@ -4,12 +4,13 @@ import { ArrowLeft, Save, Waves, Shirt, Camera, Aperture, Layers, Anchor } from 
 import { usePlanStore } from '@/store/usePlanStore';
 import RatingInput from '@/components/RatingInput';
 import Bubbles from '@/components/Bubbles';
+import ComboBox from '@/components/ComboBox';
 import {
   SALINITY_OPTIONS,
   WETSUIT_OPTIONS,
-  CAMERA_HOUSING_OPTIONS,
-  LENS_PORT_OPTIONS,
-  BUOYANCY_ARM_OPTIONS,
+  CAMERA_HOUSING_PRESETS,
+  LENS_PORT_PRESETS,
+  BUOYANCY_ARM_PRESETS,
   LEAD_POSITION_OPTIONS,
   RATING_ITEMS,
 } from '@/types';
@@ -18,9 +19,9 @@ const defaultFormData = {
   name: '',
   salinity: SALINITY_OPTIONS[0],
   wetsuitThickness: WETSUIT_OPTIONS[0],
-  cameraHousing: CAMERA_HOUSING_OPTIONS[0],
-  lensPort: LENS_PORT_OPTIONS[0],
-  buoyancyArm: BUOYANCY_ARM_OPTIONS[0],
+  cameraHousing: CAMERA_HOUSING_PRESETS[0],
+  lensPort: LENS_PORT_PRESETS[0],
+  buoyancyArm: BUOYANCY_ARM_PRESETS[0],
   leadPosition: LEAD_POSITION_OPTIONS[0],
   pitchForward: 3,
   pitchBackward: 3,
@@ -121,6 +122,37 @@ export default function PlanForm() {
     </div>
   );
 
+  const ComboBoxField = ({
+    label,
+    icon: Icon,
+    value,
+    onChange,
+    options,
+    placeholder,
+  }: {
+    label: string;
+    icon: React.ElementType;
+    value: string;
+    onChange: (value: string) => void;
+    options: string[];
+    placeholder?: string;
+  }) => (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-sm font-medium text-slate-200">
+        <Icon size={18} className="text-cyan-400" />
+        {label}
+        <span className="text-xs text-slate-500 font-normal">（可手填）</span>
+      </label>
+      <ComboBox
+        value={value}
+        onChange={onChange}
+        options={options}
+        placeholder={placeholder}
+        icon={<Icon size={18} />}
+      />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 relative">
       <Bubbles />
@@ -197,26 +229,29 @@ export default function PlanForm() {
                   onChange={(v) => handleChange('wetsuitThickness', v)}
                   options={WETSUIT_OPTIONS}
                 />
-                <SelectField
+                <ComboBoxField
                   label="相机壳体"
                   icon={Camera}
                   value={formData.cameraHousing}
                   onChange={(v) => handleChange('cameraHousing', v)}
-                  options={CAMERA_HOUSING_OPTIONS}
+                  options={CAMERA_HOUSING_PRESETS}
+                  placeholder="选择或输入相机型号..."
                 />
-                <SelectField
+                <ComboBoxField
                   label="镜头罩"
                   icon={Aperture}
                   value={formData.lensPort}
                   onChange={(v) => handleChange('lensPort', v)}
-                  options={LENS_PORT_OPTIONS}
+                  options={LENS_PORT_PRESETS}
+                  placeholder="选择或输入镜头罩型号..."
                 />
-                <SelectField
+                <ComboBoxField
                   label="浮力臂"
                   icon={Layers}
                   value={formData.buoyancyArm}
                   onChange={(v) => handleChange('buoyancyArm', v)}
-                  options={BUOYANCY_ARM_OPTIONS}
+                  options={BUOYANCY_ARM_PRESETS}
+                  placeholder="选择或输入浮力臂规格..."
                 />
                 <SelectField
                   label="铅块位置"
