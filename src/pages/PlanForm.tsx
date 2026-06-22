@@ -15,8 +15,11 @@ import {
   LEAD_POSITION_OPTIONS,
   RATING_ITEMS,
 } from '@/types';
+import type { WeightPlan } from '@/types';
 
-const defaultFormData = {
+type PlanFormData = Omit<WeightPlan, 'id' | 'createdAt' | 'updatedAt'>;
+
+const defaultFormData: PlanFormData = {
   name: '',
   salinity: SALINITY_OPTIONS[0],
   wetsuitThickness: WETSUIT_OPTIONS[0],
@@ -42,7 +45,7 @@ export default function PlanForm() {
   const sourcePlanId = (location.state as { sourcePlanId?: string })?.sourcePlanId;
   const sourcePlan = sourcePlanId ? getPlan(sourcePlanId) : undefined;
 
-  const [formData, setFormData] = useState(defaultFormData);
+  const [formData, setFormData] = useState<PlanFormData>(defaultFormData);
   const [activeTab, setActiveTab] = useState<'equipment' | 'feedback'>('equipment');
   const [showSuccess, setShowSuccess] = useState(false);
 

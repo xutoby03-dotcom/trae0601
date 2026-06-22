@@ -49,6 +49,23 @@ export default function PlanSummary({ plan, title, compact = false }: PlanSummar
             </div>
           ))}
         </div>
+        {/* 下潜反馈 */}
+        <div className="pt-2 border-t border-slate-700/40">
+          <div className="grid grid-cols-5 gap-1">
+            {[
+              { label: '前倾', value: plan.pitchForward },
+              { label: '后仰', value: plan.pitchBackward },
+              { label: '侧翻', value: plan.roll },
+              { label: '上浮', value: plan.ascentSpeed },
+              { label: '手感', value: plan.handling },
+            ].map((item) => (
+              <div key={item.label} className="text-center">
+                <p className="text-xs font-semibold text-amber-400">{item.value}</p>
+                <p className="text-[9px] text-slate-500">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
