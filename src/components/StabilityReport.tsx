@@ -226,6 +226,61 @@ export default function StabilityReport({ report, onGenerate, onReset, recordCou
         </div>
       )}
 
+      {report.recordSummaries.length >= 2 && (
+        <div className="rounded-lg border border-[rgba(212,168,71,0.12)] overflow-hidden">
+          <div className="px-3 py-2 bg-[rgba(212,168,71,0.04)] border-b border-[rgba(212,168,71,0.12)]">
+            <span className="text-[11px] font-serif text-[#D4A847] tracking-wide">调校前后误差对比</span>
+          </div>
+          <div className="max-h-[140px] overflow-y-auto custom-scrollbar">
+            <table className="w-full text-[10px]">
+              <thead className="sticky top-0 bg-[#1A1612]">
+                <tr className="text-[rgba(245,240,232,0.35)]">
+                  <th className="text-left py-1.5 px-2 font-normal">次序</th>
+                  <th className="text-right py-1.5 px-2 font-normal">上次误差</th>
+                  <th className="text-right py-1.5 px-2 font-normal">当前误差</th>
+                  <th className="text-right py-1.5 px-2 font-normal">变化</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.recordSummaries.slice(1).map((summary, i) => {
+                  const prevError = report.recordSummaries[i].hourlyError;
+                  const currError = summary.hourlyError;
+                  const diff = currError - prevError;
+                  const absImproved = Math.abs(currError) < Math.abs(prevError);
+                  const absWorsened = Math.abs(currError) > Math.abs(prevError);
+                  const diffColor = absImproved
+                    ? 'text-emerald-400'
+                    : absWorsened
+                    ? 'text-[#C44536]'
+                    : 'text-[rgba(245,240,232,0.35)]';
+
+                  return (
+                    <tr
+                      key={summary.recordId}
+                      className="border-t border-[rgba(212,168,71,0.06)] hover:bg-[rgba(212,168,71,0.04)] transition-colors"
+                    >
+                      <td className="py-1.5 px-2 text-[rgba(245,240,232,0.45)]">
+                        第{i + 2}次微调
+                      </td>
+                      <td className="py-1.5 px-2 text-right font-mono text-[rgba(245,240,232,0.5)]">
+                        {prevError > 0 ? '+' : ''}{prevError.toFixed(1)}
+                      </td>
+                      <td className="py-1.5 px-2 text-right font-mono text-[#F5F0E8]">
+                        {currError > 0 ? '+' : ''}{currError.toFixed(1)}
+                      </td>
+                      <td className={`py-1.5 px-2 text-right font-mono font-medium ${diffColor}`}>
+                        {absImproved ? '↓' : absWorsened ? '↑' : '→'}
+                        {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="p-3 rounded-lg bg-[rgba(212,168,71,0.06)] border border-[rgba(212,168,71,0.12)]">
         <p className="text-xs text-[#F5F0E8] leading-relaxed font-serif">
           {report.conclusion}
