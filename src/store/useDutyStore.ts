@@ -99,27 +99,75 @@ export const useDutyStore = create<DutyState>((set, get) => ({
       }
     }
 
+    let newMaintenanceOrder: MaintenanceOrder | null = null;
     if (shouldTriggerMaintenance(updatedRecords)) {
       const existingMaintenance = state.alerts.find(
         (a) => a.type === 'maintenance' && a.status === 'pending'
       );
       if (!existingMaintenance) {
+        const last3 = updatedRecords.slice(-3);
+        const lightAbnormalCount = last3.filter((r) => !r.lightPeriodNormal).length;
+        const fogAbnormalCount = last3.filter((r) => !r.fogIntervalNormal).length;
+
+        const equipmentList: string[] = [];
+        const issueList: string[] = [];
+
+        if (lightAbnormalCount > 0) {
+          equipmentList.push('航标灯光计时器');
+          const abnormalValues = last3
+            .filter((r) => !r.lightPeriodNormal)
+            .map((r) => `${r.lightPeriod}s`);
+          issueList.push(
+            `灯光周期连续${lightAbnormalCount}次超出标准范围(2-10s)，异常值: ${abnormalValues.join('、')}`
+          );
+        }
+        if (fogAbnormalCount > 0) {
+          equipmentList.push('雾号发声控制器');
+          const abnormalValues = last3
+            .filter((r) => !r.fogIntervalNormal)
+            .map((r) => `${r.fogInterval}s`);
+          issueList.push(
+            `雾号间隔连续${fogAbnormalCount}次超出标准范围(30-120s)，异常值: ${abnormalValues.join('、')}`
+          );
+        }
+
+        const equipment = equipmentList.join(' + ');
+        const issue = issueList.join('；');
+        const description = `最近3条记录中，${issue}，建议立即检修相关计时模块。`;
+        const priority =
+          lightAbnormalCount >= 3 || fogAbnormalCount >= 3 ? 'high' : 'medium';
+
+        newMaintenanceOrder = {
+          id: generateId(),
+          createdAt: now,
+          equipment,
+          issue,
+          priority,
+          status: 'open',
+          description,
+        };
+
         newAlerts.push({
           id: generateId(),
           timestamp: now,
           type: 'maintenance',
-          level: 'warning',
-          title: '自动生成维护工单',
-          description: '连续3次检测到设备周期异常，建议立即检修',
+          level: priority === 'high' ? 'critical' : 'warning',
+          title: `自动生成维护工单：${equipment}`,
+          description,
           status: 'pending',
           relatedRecordId: record.id,
         });
       }
     }
 
+    const updatedMaintenanceOrders = newMaintenanceOrder
+      ? [...state.maintenanceOrders, newMaintenanceOrder]
+      : state.maintenanceOrders;
+
     set({
       records: updatedRecords,
       alerts: [...state.alerts, ...newAlerts],
+      maintenanceOrders: updatedMaintenanceOrders,
       lowVisibilityStart: newLowVisibilityStart,
     });
 
