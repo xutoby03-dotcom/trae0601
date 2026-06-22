@@ -62,6 +62,10 @@ export default function RecordForm() {
       alert("请输入有效的测试重量");
       return;
     }
+    if (!formData.ropeDiameter || Number(formData.ropeDiameter) <= 0) {
+      alert("请输入有效的绳径");
+      return;
+    }
 
     addRecord({
       knotType: formData.knotType,
