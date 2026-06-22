@@ -15,8 +15,11 @@ export function useInsectHotel() {
     addObservation,
     selectCell,
     getCellObservations,
+    getLastActivityDate,
+    getCellUnusedDays,
     getStatusStats,
     getMaterialAlerts,
+    getMaterialsByUnusedDays,
     getTrendData,
     getMaterialStats,
   } = useHotelStore()
@@ -39,8 +42,11 @@ export function useInsectHotel() {
     addObservation,
     selectCell,
     getCellObservations,
+    getLastActivityDate,
+    getCellUnusedDays,
     getStatusStats,
     getMaterialAlerts,
+    getMaterialsByUnusedDays,
     getTrendData,
     getMaterialStats,
   }

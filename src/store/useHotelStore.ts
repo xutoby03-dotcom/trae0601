@@ -37,8 +37,18 @@ interface HotelState {
   selectCell: (id: string | null) => void
 
   getCellObservations: (cellId: string) => Observation[]
+  getLastActivityDate: (cellId: string) => string
+  getCellUnusedDays: (cellId: string) => number
   getStatusStats: () => { occupied: number; underObservation: number; empty: number }
   getMaterialAlerts: () => MaterialAlert[]
+  getMaterialsByUnusedDays: () => Array<{
+    material: CellMaterial
+    materialName: string
+    totalCells: number
+    emptyCells: number
+    maxUnusedDays: number
+    avgUnusedDays: number
+  }>
   getTrendData: () => TrendDataPoint[]
   getMaterialStats: () => MaterialStat[]
   updateCellStatus: (cellId: string) => void
@@ -153,6 +163,32 @@ export const useHotelStore = create<HotelState>((set, get) => ({
       .sort((a, b) => new Date(b.observationDate).getTime() - new Date(a.observationDate).getTime())
   },
 
+  getLastActivityDate: (cellId) => {
+    const { observations, cells } = get()
+    const cell = cells.find((c) => c.id === cellId)
+    if (!cell) return ''
+
+    const sortedObs = observations
+      .filter((obs) => obs.cellId === cellId)
+      .sort((a, b) => new Date(b.observationDate).getTime() - new Date(a.observationDate).getTime())
+
+    const lastActivity = sortedObs.find(
+      (obs) =>
+        obs.hasSeal ||
+        obs.hasBiteMarks ||
+        obs.hasEmergenceHole ||
+        obs.visitorTypes.length > 0
+    )
+
+    return lastActivity ? lastActivity.observationDate : cell.registeredAt
+  },
+
+  getCellUnusedDays: (cellId) => {
+    const lastActivityDate = get().getLastActivityDate(cellId)
+    if (!lastActivityDate) return 0
+    return daysAgo(lastActivityDate)
+  },
+
   getStatusStats: () => {
     const { cells } = get()
     return {
@@ -163,39 +199,28 @@ export const useHotelStore = create<HotelState>((set, get) => ({
   },
 
   getMaterialAlerts: () => {
-    const { cells, observations } = get()
-    const today = getToday()
-    const alerts: Map<CellMaterial, { cellIds: string[]; lastObserved: string }> = new Map()
+    const { cells, getLastActivityDate, getCellUnusedDays } = get()
+    const alerts: Map<CellMaterial, { cellIds: string[]; oldestActivityDate: string }> = new Map()
 
     cells.forEach((cell) => {
-      const cellObs = observations.filter((obs) => obs.cellId === cell.id)
-      const lastObservation = cellObs.sort(
-        (a, b) => new Date(b.observationDate).getTime() - new Date(a.observationDate).getTime()
-      )[0]
+      if (cell.status !== 'empty') return
 
-      const lastObservedDate = lastObservation?.observationDate || cell.registeredAt
-      const hasRecentActivity = lastObservation && (
-        lastObservation.hasSeal ||
-        lastObservation.hasBiteMarks ||
-        lastObservation.hasEmergenceHole ||
-        lastObservation.visitorTypes.length > 0
-      )
+      const daysUnused = getCellUnusedDays(cell.id)
+      if (daysUnused < 14) return
 
-      const daysUnused = daysAgo(lastObservedDate)
+      const lastActivityDate = getLastActivityDate(cell.id)
 
-      if (!hasRecentActivity && daysUnused >= 14 && cell.status === 'empty') {
-        const existing = alerts.get(cell.material)
-        if (existing) {
-          existing.cellIds.push(cell.id)
-          if (new Date(lastObservedDate) < new Date(existing.lastObserved)) {
-            existing.lastObserved = lastObservedDate
-          }
-        } else {
-          alerts.set(cell.material, {
-            cellIds: [cell.id],
-            lastObserved: lastObservedDate,
-          })
+      const existing = alerts.get(cell.material)
+      if (existing) {
+        existing.cellIds.push(cell.id)
+        if (new Date(lastActivityDate) < new Date(existing.oldestActivityDate)) {
+          existing.oldestActivityDate = lastActivityDate
         }
+      } else {
+        alerts.set(cell.material, {
+          cellIds: [cell.id],
+          oldestActivityDate: lastActivityDate,
+        })
       }
     })
 
@@ -204,13 +229,58 @@ export const useHotelStore = create<HotelState>((set, get) => ({
       result.push({
         material,
         materialName: MATERIAL_NAMES[material],
-        unusedDays: daysAgo(data.lastObserved),
+        unusedDays: daysAgo(data.oldestActivityDate),
         cellCount: data.cellIds.length,
         suggestion: generateMaterialSuggestion(material),
       })
     })
 
     return result.sort((a, b) => b.unusedDays - a.unusedDays)
+  },
+
+  getMaterialsByUnusedDays: () => {
+    const { cells, getCellUnusedDays } = get()
+    const materialMap = new Map<CellMaterial, {
+      total: number
+      empty: number
+      totalUnusedDays: number
+      maxUnusedDays: number
+      count: number
+    }>()
+
+    cells.forEach((cell) => {
+      const unusedDays = getCellUnusedDays(cell.id)
+      const existing = materialMap.get(cell.material) || {
+        total: 0,
+        empty: 0,
+        totalUnusedDays: 0,
+        maxUnusedDays: 0,
+        count: 0,
+      }
+
+      existing.total++
+      existing.count++
+      existing.totalUnusedDays += unusedDays
+      if (unusedDays > existing.maxUnusedDays) {
+        existing.maxUnusedDays = unusedDays
+      }
+      if (cell.status === 'empty') {
+        existing.empty++
+      }
+
+      materialMap.set(cell.material, existing)
+    })
+
+    const result = Array.from(materialMap.entries()).map(([material, data]) => ({
+      material,
+      materialName: MATERIAL_NAMES[material],
+      totalCells: data.total,
+      emptyCells: data.empty,
+      maxUnusedDays: data.maxUnusedDays,
+      avgUnusedDays: data.count > 0 ? Math.round(data.totalUnusedDays / data.count) : 0,
+    }))
+
+    return result.sort((a, b) => b.maxUnusedDays - a.maxUnusedDays)
   },
 
   getTrendData: () => {

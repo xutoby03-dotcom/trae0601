@@ -6,9 +6,10 @@ import { StatusStats } from '../components/StatusStats'
 import { useInsectHotel } from '../hooks/useInsectHotel'
 
 export default function AnalysisPage() {
-  const { getMaterialStats, getTrendData } = useInsectHotel()
+  const { getMaterialStats, getTrendData, getMaterialsByUnusedDays } = useInsectHotel()
   const materialStats = getMaterialStats()
   const trendData = getTrendData()
+  const materialsByUnusedDays = getMaterialsByUnusedDays()
   const latestTrend = trendData[trendData.length - 1]
   const previousTrend = trendData[trendData.length - 2]
 
@@ -17,7 +18,7 @@ export default function AnalysisPage() {
     : 0
 
   const topMaterials = materialStats.slice(0, 3)
-  const bottomMaterials = materialStats.slice(-3).reverse()
+  const attentionMaterials = materialsByUnusedDays.slice(0, 3)
 
   return (
     <div className="min-h-screen pb-8">
@@ -103,24 +104,27 @@ export default function AnalysisPage() {
           </div>
 
           <div className="bg-white rounded-xl border-2 border-dashed border-stone-300 p-5">
-            <h3 className="text-lg font-bold text-stone-800 mb-4">💡 需要关注</h3>
+            <h3 className="text-lg font-bold text-stone-800 mb-4">💡 需要关注（空置最久）</h3>
             <div className="space-y-3">
-              {bottomMaterials.map((stat, index) => (
+              {attentionMaterials.map((mat, index) => (
                 <div
-                  key={stat.material}
+                  key={mat.material}
                   className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl"
                 >
                   <span className="text-2xl">
                     {index === 0 ? '⚠️' : index === 1 ? '🔍' : '💭'}
                   </span>
                   <div className="flex-1">
-                    <div className="font-medium text-stone-800">{stat.materialName}</div>
+                    <div className="font-medium text-stone-800">{mat.materialName}</div>
                     <div className="text-sm text-stone-500">
-                      {stat.occupiedCells}/{stat.totalCells} 个格口入住
+                      {mat.emptyCells}/{mat.totalCells} 个格口空置 · 平均空置 {mat.avgUnusedDays} 天
                     </div>
                   </div>
-                  <div className="text-2xl font-bold text-amber-600">
-                    {stat.occupancyRate}%
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-amber-600">
+                      {mat.maxUnusedDays}
+                    </div>
+                    <div className="text-xs text-amber-500">最长空置天数</div>
                   </div>
                 </div>
               ))}
