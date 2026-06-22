@@ -108,11 +108,9 @@ export default function SpecimenCard({ specimen }: SpecimenCardProps) {
               <Clock className="w-3.5 h-3.5 text-forest-400" />
             )}
             <span>
-              {nextPaperChange.isOverdue
-                ? `换纸逾期 ${nextPaperChange.overdueDays} 天`
-                : nextPaperChange.daysUntil === 0
-                ? '今日需换纸'
-                : `下次换纸 ${nextPaperChange.daysUntil}天后`}
+              {nextPaperChange.dateStr}
+              {nextPaperChange.isOverdue && ` · 逾期${nextPaperChange.overdueDays}天`}
+              {nextPaperChange.daysUntil === 0 && ' · 今日'}
             </span>
           </div>
         )}
