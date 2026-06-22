@@ -1,0 +1,230 @@
+import { Session, Envelope, FlowEvent } from '@/types';
+
+const today = new Date();
+const formatDate = (d: Date) => d.toISOString().split('T')[0];
+const formatTime = (h: number, m: number) => {
+  const d = new Date(today);
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+};
+
+export const mockSessions: Session[] = [
+  {
+    id: 'sess-001',
+    roomName: '雾隐阁',
+    scriptName: '古堡惊魂',
+    date: formatDate(today),
+    characters: ['管家', '大小姐', '医生', '律师', '女仆'],
+  },
+  {
+    id: 'sess-002',
+    roomName: '桃花坞',
+    scriptName: '桃花劫',
+    date: formatDate(new Date(today.getTime() - 86400000)),
+    characters: ['书生', '小姐', '丫鬟', '道士', '捕快'],
+  },
+];
+
+export const mockEnvelopes: Envelope[] = [
+  {
+    id: 'env-001',
+    sessionId: 'sess-001',
+    name: '带血的手帕',
+    content: '一块绣着字母M的白色手帕，上面有暗红色血迹，经检测为人血。',
+    actNumber: 1,
+    ownerCharacter: '女仆',
+    isKeyEvidence: true,
+    status: 'opened',
+  },
+  {
+    id: 'env-002',
+    sessionId: 'sess-001',
+    name: '遗嘱副本',
+    content: '死者生前最后一份遗嘱，将全部财产留给管家，而非大小姐。',
+    actNumber: 1,
+    ownerCharacter: '律师',
+    isKeyEvidence: true,
+    status: 'missed',
+  },
+  {
+    id: 'env-003',
+    sessionId: 'sess-001',
+    name: '药瓶碎片',
+    content: '在书房地毯下发现的安眠药瓶碎片，瓶身有医生指纹。',
+    actNumber: 2,
+    ownerCharacter: '医生',
+    isKeyEvidence: false,
+    status: 'opened',
+  },
+  {
+    id: 'env-004',
+    sessionId: 'sess-001',
+    name: '密室钥匙',
+    content: '一把造型古老的铜钥匙，可打开古堡地下密室。',
+    actNumber: 2,
+    ownerCharacter: '管家',
+    isKeyEvidence: false,
+    status: 'picked',
+  },
+  {
+    id: 'env-005',
+    sessionId: 'sess-001',
+    name: '大小姐日记',
+    content: '日记中记载大小姐对父亲的怨恨，以及与管家的秘密往来。',
+    actNumber: 3,
+    ownerCharacter: '大小姐',
+    isKeyEvidence: true,
+    status: 'reissued',
+  },
+  {
+    id: 'env-006',
+    sessionId: 'sess-001',
+    name: '深夜来信',
+    content: '一封匿名信，威胁死者若不改变遗嘱将有性命之忧。',
+    actNumber: 3,
+    ownerCharacter: '管家',
+    isKeyEvidence: false,
+    status: 'pending',
+  },
+];
+
+export const mockFlowEvents: FlowEvent[] = [
+  {
+    id: 'fe-001',
+    envelopeId: 'env-001',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(19, 0),
+    note: '游戏开始前准备',
+  },
+  {
+    id: 'fe-002',
+    envelopeId: 'env-001',
+    eventType: 'wrongly_taken',
+    triggeredBy: '医生',
+    timestamp: formatTime(19, 25),
+    note: '医生错拿了女仆的搜证线索',
+  },
+  {
+    id: 'fe-003',
+    envelopeId: 'env-001',
+    eventType: 'picked',
+    triggeredBy: '女仆',
+    timestamp: formatTime(19, 35),
+  },
+  {
+    id: 'fe-004',
+    envelopeId: 'env-001',
+    eventType: 'opened',
+    triggeredBy: '女仆',
+    timestamp: formatTime(19, 42),
+  },
+  {
+    id: 'fe-005',
+    envelopeId: 'env-002',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(19, 0),
+  },
+  {
+    id: 'fe-006',
+    envelopeId: 'env-002',
+    eventType: 'missed',
+    triggeredBy: 'DM',
+    timestamp: formatTime(21, 30),
+    note: '整场游戏律师未找到此线索',
+  },
+  {
+    id: 'fe-007',
+    envelopeId: 'env-003',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(20, 0),
+  },
+  {
+    id: 'fe-008',
+    envelopeId: 'env-003',
+    eventType: 'picked',
+    triggeredBy: '医生',
+    timestamp: formatTime(20, 15),
+  },
+  {
+    id: 'fe-009',
+    envelopeId: 'env-003',
+    eventType: 'opened',
+    triggeredBy: '医生',
+    timestamp: formatTime(20, 18),
+  },
+  {
+    id: 'fe-010',
+    envelopeId: 'env-004',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(20, 0),
+  },
+  {
+    id: 'fe-011',
+    envelopeId: 'env-004',
+    eventType: 'wrongly_taken',
+    triggeredBy: '大小姐',
+    timestamp: formatTime(20, 10),
+    note: '大小姐抢先翻找管家线索区',
+  },
+  {
+    id: 'fe-012',
+    envelopeId: 'env-004',
+    eventType: 'wrongly_taken',
+    triggeredBy: '律师',
+    timestamp: formatTime(20, 22),
+  },
+  {
+    id: 'fe-013',
+    envelopeId: 'env-004',
+    eventType: 'picked',
+    triggeredBy: '管家',
+    timestamp: formatTime(20, 40),
+  },
+  {
+    id: 'fe-014',
+    envelopeId: 'env-005',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(21, 0),
+  },
+  {
+    id: 'fe-015',
+    envelopeId: 'env-005',
+    eventType: 'wrongly_taken',
+    triggeredBy: '女仆',
+    timestamp: formatTime(21, 5),
+  },
+  {
+    id: 'fe-016',
+    envelopeId: 'env-005',
+    eventType: 'reissued',
+    triggeredBy: 'DM',
+    timestamp: formatTime(21, 20),
+    note: 'DM补充发放给大小姐',
+  },
+  {
+    id: 'fe-017',
+    envelopeId: 'env-005',
+    eventType: 'picked',
+    triggeredBy: '大小姐',
+    timestamp: formatTime(21, 22),
+  },
+  {
+    id: 'fe-018',
+    envelopeId: 'env-005',
+    eventType: 'opened',
+    triggeredBy: '大小姐',
+    timestamp: formatTime(21, 28),
+  },
+  {
+    id: 'fe-019',
+    envelopeId: 'env-006',
+    eventType: 'created',
+    triggeredBy: 'DM',
+    timestamp: formatTime(21, 0),
+  },
+];
