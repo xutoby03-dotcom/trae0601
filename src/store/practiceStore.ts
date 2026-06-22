@@ -84,6 +84,12 @@ interface PracticeState {
 
   activeLeftPanel: 'words' | 'review';
   setActiveLeftPanel: (panel: 'words' | 'review') => void;
+
+  activeRightPanel: 'score' | 'tools' | 'annotations';
+  setActiveRightPanel: (panel: 'score' | 'tools' | 'annotations') => void;
+
+  annotationScrollToId: string | null;
+  clearAnnotationScrollToId: () => void;
 }
 
 const defaultScores: DimensionScore = {
@@ -121,6 +127,8 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
   selectedAnnotationId: null,
 
   activeLeftPanel: 'words' as const,
+  activeRightPanel: 'score' as const,
+  annotationScrollToId: null as string | null,
 
   videoCurrentTime: 0,
   videoDuration: 0,
@@ -181,6 +189,8 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
   setColor: (color) => set({ currentColor: color }),
   setErrorType: (type) => set({ currentErrorType: type }),
   setActiveLeftPanel: (panel) => set({ activeLeftPanel: panel }),
+  setActiveRightPanel: (panel) => set({ activeRightPanel: panel }),
+  clearAnnotationScrollToId: () => set({ annotationScrollToId: null }),
 
   addAnnotation: (annotation) => {
     const newAnnotation: Annotation = {
@@ -292,6 +302,9 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
       videoUrl: record.videoUrl,
       videoName: record.videoName,
       activeLeftPanel: 'words',
+      activeRightPanel: firstAnnotation ? 'annotations' : 'score',
+      selectedAnnotationId: firstAnnotation?.id || null,
+      annotationScrollToId: firstAnnotation?.id || null,
       videoCurrentTime: seekTime,
       isPlaying: false,
     });

@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import {
   List,
   Clock,
@@ -25,7 +26,12 @@ export default function AnnotationList() {
     setSelectedAnnotation,
     deleteAnnotation,
     updateAnnotation,
+    annotationScrollToId,
+    clearAnnotationScrollToId,
   } = usePracticeStore();
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const annotationRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const sortedAnnotations = [...annotations].sort((a, b) => a.timestamp - b.timestamp);
 
@@ -35,6 +41,34 @@ export default function AnnotationList() {
     acc[key].push(ann);
     return acc;
   }, {} as Record<string, Annotation[]>);
+
+  useEffect(() => {
+    if (!annotationScrollToId || !scrollContainerRef.current) return;
+
+    const targetEl = annotationRefs.current.get(annotationScrollToId);
+    if (targetEl) {
+      setTimeout(() => {
+        targetEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        targetEl.classList.add('ring-2', 'ring-accent-coral', 'ring-offset-2', 'animate-pulse-soft');
+        setTimeout(() => {
+          targetEl.classList.remove('ring-2', 'ring-accent-coral', 'ring-offset-2', 'animate-pulse-soft');
+        }, 2000);
+      }, 100);
+    }
+
+    clearAnnotationScrollToId();
+  }, [annotationScrollToId, clearAnnotationScrollToId]);
+
+  const setAnnotationRef = (id: string) => (el: HTMLDivElement | null) => {
+    if (el) {
+      annotationRefs.current.set(id, el);
+    } else {
+      annotationRefs.current.delete(id);
+    }
+  };
 
   return (
     <div className="card p-4 h-full flex flex-col">
@@ -53,7 +87,7 @@ export default function AnnotationList() {
           <p className="text-xs mt-1">在视频画面上使用工具添加标注</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto scrollbar-thin space-y-3 pr-1">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-thin space-y-3 pr-1">
           {Object.entries(groupedByErrorType).map(([errorType, anns]) => (
             <div key={errorType}>
               <div className="flex items-center gap-1.5 mb-2 px-1">
@@ -67,14 +101,18 @@ export default function AnnotationList() {
                 {anns.map((ann) => {
                   const TypeIcon = typeIcons[ann.type] || Square;
                   const isSelected = selectedAnnotationId === ann.id;
+                  const isScrollTarget = annotationScrollToId === ann.id;
 
                   return (
                     <div
                       key={ann.id}
+                      ref={setAnnotationRef(ann.id)}
                       onClick={() => setSelectedAnnotation(isSelected ? null : ann.id)}
                       className={`group p-2.5 rounded-xl cursor-pointer transition-all duration-200 border-2 ${
                         isSelected
-                          ? 'border-primary-400 bg-primary-50/60'
+                          ? 'border-primary-400 bg-primary-50/60 shadow-soft scale-[1.01]'
+                          : isScrollTarget
+                          ? 'border-accent-coral bg-accent-coral/5'
                           : 'border-transparent bg-gray-50/80 hover:bg-gray-100 hover:border-gray-200'
                       }`}
                     >

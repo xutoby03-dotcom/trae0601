@@ -1,5 +1,3 @@
-
-import { useState } from 'react';
 import Header from '@/components/Header';
 import WordManager from '@/components/WordManager';
 import VideoPlayer from '@/components/VideoPlayer';
@@ -11,13 +9,13 @@ import { usePracticeStore } from '@/store/practiceStore';
 import { BookMarked, ListOrdered } from 'lucide-react';
 
 export default function Home() {
-  const [rightTab, setRightTab] = useState<'score' | 'annotations' | 'tools'>('score');
-
   const {
     currentSignWordId,
     signWords,
     activeLeftPanel,
     setActiveLeftPanel,
+    activeRightPanel,
+    setActiveRightPanel,
   } = usePracticeStore();
   const currentWord = signWords.find((w) => w.id === currentSignWordId);
 
@@ -65,9 +63,9 @@ export default function Home() {
           <div className="col-span-3 flex flex-col min-h-0">
             <div className="flex gap-1 mb-3 bg-white rounded-xl p-1 shadow-card">
               <button
-                onClick={() => setRightTab('score')}
+                onClick={() => setActiveRightPanel('score')}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  rightTab === 'score'
+                  activeRightPanel === 'score'
                     ? 'bg-primary-600 text-white shadow-soft'
                     : 'text-gray-500 hover:text-primary-600'
                 }`}
@@ -75,9 +73,9 @@ export default function Home() {
                 评分
               </button>
               <button
-                onClick={() => setRightTab('tools')}
+                onClick={() => setActiveRightPanel('tools')}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  rightTab === 'tools'
+                  activeRightPanel === 'tools'
                     ? 'bg-primary-600 text-white shadow-soft'
                     : 'text-gray-500 hover:text-primary-600'
                 }`}
@@ -85,9 +83,9 @@ export default function Home() {
                 工具
               </button>
               <button
-                onClick={() => setRightTab('annotations')}
+                onClick={() => setActiveRightPanel('annotations')}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                  rightTab === 'annotations'
+                  activeRightPanel === 'annotations'
                     ? 'bg-primary-600 text-white shadow-soft'
                     : 'text-gray-500 hover:text-primary-600'
                 }`}
@@ -97,11 +95,11 @@ export default function Home() {
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin pr-1">
-              {rightTab === 'score' && (
+              {activeRightPanel === 'score' && (
                 <ScoringPanel standardPoints={currentWord?.standardPoints} />
               )}
-              {rightTab === 'tools' && <AnnotationToolbar />}
-              {rightTab === 'annotations' && <AnnotationList />}
+              {activeRightPanel === 'tools' && <AnnotationToolbar />}
+              {activeRightPanel === 'annotations' && <AnnotationList />}
             </div>
           </div>
         </div>
