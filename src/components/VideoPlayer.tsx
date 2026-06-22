@@ -202,6 +202,31 @@ export default function VideoPlayer() {
               </div>
             )}
           </div>
+        ) : annotations.length > 0 ? (
+          <div className="relative w-full h-full bg-gradient-to-br from-[#0f1b2b] via-[#172a42] to-[#1e3a5f]">
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                backgroundImage:
+                  'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
+                backgroundSize: '40px 40px',
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center text-white/40 select-none">
+                <Film className="w-16 h-16 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">视频占位 · 批注已还原显示</p>
+              </div>
+            </div>
+            <AnnotationCanvas videoRef={videoRef} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-lg text-xs text-white/90 font-medium transition-colors flex items-center gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              替换实际视频
+            </button>
+          </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-white/60">
             <Film className="w-20 h-20 mb-4 opacity-40" />

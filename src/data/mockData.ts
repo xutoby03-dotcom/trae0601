@@ -139,6 +139,18 @@ const sampleAnnotations: Annotation[] = [
     text: '朝向需要更正一些',
     errorType: 'orientation',
   },
+  {
+    id: 'ann-3',
+    frameIndex: 42,
+    timestamp: 1.4,
+    type: 'arrow',
+    color: '#2ed573',
+    x: 0.2,
+    y: 0.3,
+    endX: 0.45,
+    endY: 0.65,
+    errorType: 'trajectory',
+  },
 ];
 
 export const mockPracticeRecords: PracticeRecord[] = [
@@ -147,7 +159,7 @@ export const mockPracticeRecords: PracticeRecord[] = [
     studentId: 'stu-1',
     signWordId: 'word-1',
     courseId: 'course-1',
-    videoUrl: '',
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
     videoName: '李小明_你好_练习1.mp4',
     scores: {
       handShape: 65,

@@ -38,11 +38,10 @@ export default function AnnotationCanvas({ videoRef }: Props) {
 
   const getCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
-    const video = videoRef.current;
-    if (!canvas || !video) return { width: 0, height: 0 };
+    if (!canvas) return { width: 0, height: 0 };
     const rect = canvas.getBoundingClientRect();
     return { width: rect.width, height: rect.height };
-  }, [videoRef]);
+  }, []);
 
   const drawAnnotation = useCallback(
     (ctx: CanvasRenderingContext2D, ann: Annotation, isSelected: boolean, scale: { w: number; h: number }) => {
@@ -135,11 +134,15 @@ export default function AnnotationCanvas({ videoRef }: Props) {
     ctx.clearRect(0, 0, width, height);
 
     const scale = { w: width, h: height };
-    annotations
-      .filter((a) => Math.abs(a.timestamp - videoCurrentTime) < 0.5)
-      .forEach((ann) => {
-        drawAnnotation(ctx, ann, ann.id === selectedAnnotationId, scale);
-      });
+    const hasVideo = !!videoRef.current;
+
+    const annotationsToDraw = hasVideo
+      ? annotations.filter((a) => Math.abs(a.timestamp - videoCurrentTime) < 0.5)
+      : annotations;
+
+    annotationsToDraw.forEach((ann) => {
+      drawAnnotation(ctx, ann, ann.id === selectedAnnotationId, scale);
+    });
 
     if (drawState && drawState.isDrawing) {
       ctx.save();
@@ -162,7 +165,7 @@ export default function AnnotationCanvas({ videoRef }: Props) {
       }
       ctx.restore();
     }
-  }, [annotations, selectedAnnotationId, videoCurrentTime, drawState, currentTool, currentColor, getCanvasSize, drawAnnotation]);
+  }, [annotations, selectedAnnotationId, videoCurrentTime, drawState, currentTool, currentColor, getCanvasSize, drawAnnotation, videoRef]);
 
   useEffect(() => {
     renderCanvas();
