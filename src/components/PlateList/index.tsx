@@ -1,4 +1,4 @@
-import { Plus, Trash2, MoveRight, MoveDown, Clock, Check, Loader, Circle, MapPin } from 'lucide-react';
+import { Plus, Trash2, MoveRight, MoveDown, Clock, Check, Loader, Circle, MapPin, Eye } from 'lucide-react';
 import { useCalibrationStore } from '../../store/useCalibrationStore';
 import { PRESET_COLORS } from '../../types/calibration';
 import type { ColorPlate, PlateStatus } from '../../types/calibration';
@@ -9,7 +9,7 @@ const statusConfig: Record<PlateStatus, { label: string; icon: typeof Circle; cl
   passed: { label: '已通过', icon: Check, cls: 'bg-celadon-500/15 text-celadon-400 border-celadon-500/30' },
 };
 
-const PlateRow = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolean }) => {
+const PlateRowEditable = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolean }) => {
   const updatePlate = useCalibrationStore(s => s.updatePlate);
   const selectPlate = useCalibrationStore(s => s.selectPlate);
   const removePlate = useCalibrationStore(s => s.removePlate);
@@ -196,29 +196,170 @@ const PlateRow = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolea
   );
 };
 
+const PlateRowReadonly = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolean }) => {
+  const selectPlate = useCalibrationStore(s => s.selectPlate);
+
+  const hasIssue = plate.issues.some(i => i.marked);
+  const totalOffset = Math.sqrt(plate.offsetX ** 2 + plate.offsetY ** 2);
+  const offsetClass =
+    totalOffset > 0.5 ? 'text-cinnabar-400' : totalOffset > 0.2 ? 'text-copper-300' : 'text-celadon-400';
+
+  const status = statusConfig[plate.status];
+  const StatusIcon = status.icon;
+
+  return (
+    <div
+      onClick={() => selectPlate(plate.id)}
+      className={`group relative p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+        isSelected
+          ? 'bg-indigo-800/60 border-celadon-500/40 shadow-[0_0_16px_rgba(74,124,89,0.15)]'
+          : 'bg-indigo-900/30 border-indigo-700/40 hover:border-indigo-600/40 hover:bg-indigo-900/50'
+      }`}
+    >
+      <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] text-copper-200/40">
+        <Eye className="w-3 h-3" />
+        只读
+      </div>
+
+      <div className="flex items-start gap-3">
+        <div className="relative opacity-90">
+          <div
+            className="w-10 h-10 rounded-lg border-2 border-copper-300/20 shadow-inner"
+            style={{ backgroundColor: plate.colorHex || '#1a1a1a' }}
+          />
+          <span className="absolute -bottom-1 -right-1 bg-indigo-900/90 border border-copper-300/30 text-copper-200/80 text-[10px] font-bold px-1 rounded">
+            {plate.plateNumber.replace('P', '')}
+          </span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-copper-100 text-sm font-semibold w-20">
+                {plate.colorName || '—'}
+              </span>
+              <span className={`status-badge border ${status.cls}`}>
+                <StatusIcon className="w-3 h-3" />
+                {status.label}
+              </span>
+              {hasIssue && (
+                <span className="status-badge bg-cinnabar-500/15 text-cinnabar-400 border-cinnabar-500/30 border">
+                  有问题
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <MoveRight className={`w-3 h-3 ${plate.offsetX > 0 ? 'text-copper-300/80' : plate.offsetX < 0 ? 'text-cinnabar-400' : 'text-indigo-500'}`} />
+              <span className="text-indigo-500/80">X</span>
+              <span className={`w-16 text-center font-mono text-sm ${offsetClass}`}>
+                {plate.offsetX >= 0 ? '+' : ''}{plate.offsetX.toFixed(1)}
+              </span>
+              <span className="text-indigo-500/80">mm</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <MoveDown className={`w-3 h-3 ${plate.offsetY > 0 ? 'text-copper-300/80' : plate.offsetY < 0 ? 'text-cinnabar-400' : 'text-indigo-500'}`} />
+              <span className="text-indigo-500/80">Y</span>
+              <span className={`w-16 text-center font-mono text-sm ${offsetClass}`}>
+                {plate.offsetY >= 0 ? '+' : ''}{plate.offsetY.toFixed(1)}
+              </span>
+              <span className="text-indigo-500/80">mm</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3 text-indigo-500" />
+              <span className="text-indigo-500/80">试印</span>
+              <span className="w-12 text-center font-mono text-sm text-copper-200/90">
+                {plate.testCount}
+              </span>
+              <span className="text-indigo-500/80">次</span>
+            </div>
+
+            <div className="flex items-center justify-end gap-1 text-indigo-500/80">
+              <span>色值</span>
+              <div
+                className="w-6 h-6 rounded border border-indigo-700/40"
+                style={{ backgroundColor: plate.colorHex }}
+              />
+            </div>
+          </div>
+
+          <div className="mt-2.5 pt-2.5 border-t border-indigo-700/30 grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-copper-300/80" />
+              <span className="text-copper-200/50">针位</span>
+              <span className="text-indigo-500/80">X</span>
+              <span className="w-14 text-center font-mono text-sm text-copper-200/90">
+                {plate.pinPositionX.toFixed(1)}
+              </span>
+              <span className="text-indigo-500/80">mm</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3" />
+              <span className="text-copper-200/50">　</span>
+              <span className="text-indigo-500/80">Y</span>
+              <span className="w-14 text-center font-mono text-sm text-copper-200/90">
+                {plate.pinPositionY.toFixed(1)}
+              </span>
+              <span className="text-indigo-500/80">mm</span>
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1 opacity-50">
+            {PRESET_COLORS.map(c => (
+              <div
+                key={c.hex}
+                title={c.name}
+                className={`w-4 h-4 rounded-full border ${c.hex.toLowerCase() === plate.colorHex.toLowerCase() ? 'border-copper-300 scale-110' : 'border-indigo-700/30'}`}
+                style={{ backgroundColor: c.hex }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 export const PlateList = () => {
   const plates = useCalibrationStore(s => s.task.plates);
   const selectedPlateId = useCalibrationStore(s => s.selectedPlateId);
   const addPlate = useCalibrationStore(s => s.addPlate);
+  const isCompleted = useCalibrationStore(s => s.task.isCompleted);
 
   return (
     <div className="card-indigo p-5 animate-fade-in-up grain-overlay overflow-hidden" style={{ animationDelay: '100ms' }}>
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-serif text-lg font-semibold text-copper-100 tracking-wide">色版列表</h2>
-          <button
-            onClick={addPlate}
-            className="btn-ghost-dark flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" />
-            添加色版
-          </button>
+          {!isCompleted ? (
+            <button
+              onClick={addPlate}
+              className="btn-ghost-dark flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" />
+              添加色版
+            </button>
+          ) : (
+            <span className="chip bg-celadon-500/10 border-celadon-500/30 text-celadon-400">
+              <Eye className="w-3 h-3" />
+              已归档
+            </span>
+          )}
         </div>
 
         <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
-          {plates.map(p => (
-            <PlateRow key={p.id} plate={p} isSelected={p.id === selectedPlateId} />
-          ))}
+          {plates.map(p =>
+            isCompleted ? (
+              <PlateRowReadonly key={p.id} plate={p} isSelected={p.id === selectedPlateId} />
+            ) : (
+              <PlateRowEditable key={p.id} plate={p} isSelected={p.id === selectedPlateId} />
+            )
+          )}
         </div>
       </div>
     </div>
