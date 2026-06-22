@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+
+:root {
+  font-family: "Noto Sans SC", system-ui, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #1A1A1A;
+  background-color: #F5E6D3;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #F5E6D3;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(139, 69, 19, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+}
+
+@layer components {
+  .paper-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-xl shadow-paper border border-ocher-200/50 p-6 transition-all duration-300;
+  }
+  .paper-card:hover {
+    @apply shadow-paper-hover -translate-y-0.5;
+  }
+  .btn-primary {
+    @apply bg-ocher-500 hover:bg-ocher-600 text-white font-medium px-5 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 border border-gold-300/30;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-ocher-50 text-ocher-700 font-medium px-5 py-2.5 rounded-lg transition-all duration-200 border border-ocher-300/50 shadow-sm hover:shadow active:scale-95;
+  }
+  .btn-danger {
+    @apply bg-crimson hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm active:scale-95;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-ocher-200 bg-white/70 focus:border-ocher-400 focus:ring-2 focus:ring-ocher-300/30 outline-none transition-all duration-200 text-ink placeholder:text-ocher-300;
+  }
+  .label-text {
+    @apply block text-sm font-medium text-ocher-700 mb-1.5;
+  }
+  .section-title {
+    @apply font-serif text-xl font-semibold text-ocher-700 mb-4 flex items-center gap-2;
+  }
+  .tag-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-ocher-300 hover:text-white hover:bg-ocher-600/40 transition-all duration-200 cursor-pointer;
+  }
+  .nav-item.active {
+    @apply bg-ocher-500/50 text-white shadow-inner;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(139, 69, 19, 0.05);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 69, 19, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 69, 19, 0.5);
+}
