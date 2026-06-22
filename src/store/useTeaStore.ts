@@ -18,7 +18,7 @@ interface TeaStore {
   removeItem: (id: string) => void;
   selectItem: (id: string | null) => void;
   updateClothConfig: (config: Partial<ClothConfig>) => void;
-  saveVersion: (name: string) => void;
+  saveVersion: (name: string, thumbnail?: string) => void;
   loadVersion: (id: string) => void;
   deleteVersion: (id: string) => void;
   runDetection: () => void;
@@ -99,7 +99,7 @@ export const useTeaStore = create<TeaStore>()(
         get().runDetection();
       },
 
-      saveVersion: (name) => {
+      saveVersion: (name, thumbnail) => {
         const { items, clothConfig, movementPath } = get();
         const newVersion: StageVersion = {
           id: generateId(),
@@ -108,6 +108,7 @@ export const useTeaStore = create<TeaStore>()(
           items: JSON.parse(JSON.stringify(items)),
           clothConfig: { ...clothConfig },
           movementPath,
+          thumbnail,
         };
 
         set((state) => ({

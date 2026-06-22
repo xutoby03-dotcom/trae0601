@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useTeaStore } from '@/store/useTeaStore';
 import { TeaItem, ItemType } from '@/types';
 import ItemIcon from '@/components/ItemIcon';
@@ -49,7 +49,11 @@ const CanvasItem: React.FC<CanvasItemProps> = ({ item, isSelected, onMouseDown }
   );
 };
 
-const TeaCanvas: React.FC = () => {
+export interface TeaCanvasHandle {
+  getCanvasElement: () => HTMLDivElement | null;
+}
+
+const TeaCanvas = forwardRef<TeaCanvasHandle>((_, ref) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const {
     items,
@@ -61,6 +65,10 @@ const TeaCanvas: React.FC = () => {
     bringToFront,
     removeItem,
   } = useTeaStore();
+
+  useImperativeHandle(ref, () => ({
+    getCanvasElement: () => canvasRef.current,
+  }));
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragItem, setDragItem] = useState<TeaItem | null>(null);
@@ -265,6 +273,8 @@ const TeaCanvas: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+TeaCanvas.displayName = 'TeaCanvas';
 
 export default TeaCanvas;
