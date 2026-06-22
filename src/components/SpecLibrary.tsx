@@ -1,10 +1,11 @@
 import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS, type GrindingSpec } from '@/store/grindingStore'
-import { BookOpen, X, Trash2, FileDown } from 'lucide-react'
+import { BookOpen, X, Trash2, FileDown, Star, MessageSquare, FileText } from 'lucide-react'
 import { useState } from 'react'
 
 function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void }) {
   const roast = ROAST_LEVELS.find((r) => r.value === spec.roastLevel)
   const equip = EQUIPMENTS.find((e) => e.value === spec.equipment)
+  const avgScore = ((spec.aromaIntensity + spec.layering + spec.persistence) / 3).toFixed(1)
 
   return (
     <div className="bg-[#1E1810] border border-amber-900/30 rounded-xl p-4 hover:border-amber-700/40 transition-all group">
@@ -15,15 +16,21 @@ function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void
             {new Date(spec.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        <button
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 text-amber-700/50 hover:text-red-400 transition-all p-1"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 text-amber-400">
+            <Star className="w-3.5 h-3.5 fill-amber-400" />
+            <span className="text-xs font-bold">{avgScore}</span>
+          </div>
+          <button
+            onClick={onDelete}
+            className="opacity-0 group-hover:opacity-100 text-amber-700/50 hover:text-red-400 transition-all p-1"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap gap-1.5 mb-3">
         <span
           className="text-[10px] px-2 py-0.5 rounded-full border border-amber-800/30 text-amber-400/70"
           style={{ backgroundColor: `${roast?.color}20` }}
@@ -41,10 +48,45 @@ function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void
         </span>
       </div>
 
+      <div className="grid grid-cols-4 gap-1 mb-3">
+        <div className="bg-[#1A1410] rounded-lg px-2 py-2 text-center border border-amber-900/20">
+          <p className="text-amber-300 text-sm font-bold">{spec.aromaIntensity}</p>
+          <p className="text-amber-700/50 text-[9px] mt-0.5">香气强度</p>
+        </div>
+        <div className="bg-[#1A1410] rounded-lg px-2 py-2 text-center border border-amber-900/20">
+          <p className="text-amber-300 text-sm font-bold">{spec.layering}</p>
+          <p className="text-amber-700/50 text-[9px] mt-0.5">层次感</p>
+        </div>
+        <div className="bg-[#1A1410] rounded-lg px-2 py-2 text-center border border-amber-900/20">
+          <p className="text-amber-300 text-sm font-bold">{spec.persistence}</p>
+          <p className="text-amber-700/50 text-[9px] mt-0.5">持久度</p>
+        </div>
+        <div className="bg-[#1A1410] rounded-lg px-2 py-2 text-center border border-amber-900/20">
+          <p className="text-amber-300 text-sm font-bold">{spec.recipeRatio}%</p>
+          <p className="text-amber-700/50 text-[9px] mt-0.5">配方占比</p>
+        </div>
+      </div>
+
+      {spec.originalNotes && (
+        <div className="mb-2">
+          <p className="text-amber-700/40 text-[10px] mb-1 flex items-center gap-1">
+            <MessageSquare className="w-2.5 h-2.5" /> 原记录备注
+          </p>
+          <p className="text-amber-500/50 text-[11px] leading-relaxed">
+            {spec.originalNotes}
+          </p>
+        </div>
+      )}
+
       {spec.specNotes && (
-        <p className="text-amber-500/50 text-xs mt-2 leading-relaxed border-t border-amber-900/20 pt-2">
-          {spec.specNotes}
-        </p>
+        <div className="border-t border-amber-900/20 pt-2">
+          <p className="text-amber-600/40 text-[10px] mb-1 flex items-center gap-1">
+            <FileText className="w-2.5 h-2.5" /> 规范备注
+          </p>
+          <p className="text-amber-400/60 text-[11px] leading-relaxed">
+            {spec.specNotes}
+          </p>
+        </div>
       )}
     </div>
   )

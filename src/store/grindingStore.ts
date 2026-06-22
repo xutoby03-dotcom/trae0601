@@ -26,6 +26,11 @@ export interface GrindingSpec {
   equipment: Equipment
   meshSize: number
   shutdownTemp: number
+  aromaIntensity: number
+  layering: number
+  persistence: number
+  recipeRatio: number
+  originalNotes: string
   specNotes: string
   createdAt: string
 }
@@ -79,10 +84,21 @@ function saveToStorage(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
+function migrateSpecs(specs: GrindingSpec[]): GrindingSpec[] {
+  return specs.map((s) => ({
+    ...s,
+    aromaIntensity: s.aromaIntensity ?? 0,
+    layering: s.layering ?? 0,
+    persistence: s.persistence ?? 0,
+    recipeRatio: s.recipeRatio ?? 0,
+    originalNotes: s.originalNotes ?? '',
+  }))
+}
+
 export const useGrindingStore = create<GrindingState>((set, get) => ({
   currentRecord: { ...defaultRecord },
   records: loadFromStorage<GrindingRecord[]>('grinding_records', []),
-  specs: loadFromStorage<GrindingSpec[]>('grinding_specs', []),
+  specs: migrateSpecs(loadFromStorage<GrindingSpec[]>('grinding_specs', [])),
   specDrawerOpen: false,
 
   setSpiceName: (v) => set((s) => ({ currentRecord: { ...s.currentRecord, spiceName: v } })),
@@ -120,6 +136,11 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
       equipment: record.equipment,
       meshSize: record.meshSize,
       shutdownTemp: record.shutdownTemp,
+      aromaIntensity: record.aromaIntensity,
+      layering: record.layering,
+      persistence: record.persistence,
+      recipeRatio: record.recipeRatio,
+      originalNotes: record.notes,
       specNotes,
       createdAt: new Date().toISOString(),
     }
