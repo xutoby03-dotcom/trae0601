@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Check, AlertCircle, Tag } from 'lucide-react';
 import { useSpecimenStore } from '@/store/useSpecimenStore';
 import type { SpecimenFormData } from '@/types/specimen';
 
@@ -8,6 +8,7 @@ const plantParts = ['叶片', '花朵', '全株', '果实', '种子', '枝条', 
 export default function SpecimenForm() {
   const addSpecimen = useSpecimenStore((s) => s.addSpecimen);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showMissingAlert, setShowMissingAlert] = useState(false);
 
   const [form, setForm] = useState<SpecimenFormData>({
     plantName: '',
@@ -22,7 +23,16 @@ export default function SpecimenForm() {
 
   const handleChange = (field: keyof SpecimenFormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (showMissingAlert) setShowMissingAlert(false);
   };
+
+  const missingFields = useMemo(() => {
+    const missing: string[] = [];
+    if (!form.absorbentPaperBatch.trim()) missing.push('吸水纸批次');
+    return missing;
+  }, [form.absorbentPaperBatch]);
+
+  const hasMissingFields = missingFields.length > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +46,14 @@ export default function SpecimenForm() {
     };
 
     addSpecimen(submitData);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+
+    if (hasMissingFields) {
+      setShowMissingAlert(true);
+      setTimeout(() => setShowMissingAlert(false), 3000);
+    } else {
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    }
 
     setForm({
       plantName: '',
@@ -121,14 +137,27 @@ export default function SpecimenForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">吸水纸批次</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+            吸水纸批次
+            <Tag className="w-3 h-3 text-warning-orange" />
+          </label>
           <input
             type="text"
             value={form.absorbentPaperBatch}
             onChange={(e) => handleChange('absorbentPaperBatch', e.target.value)}
             placeholder="如：P2024-001"
-            className="w-full px-4 py-2.5 rounded-lg border-2 border-forest-100 focus:border-forest-400 focus:outline-none transition-colors bg-paper-50"
+            className={`w-full px-4 py-2.5 rounded-lg border-2 focus:outline-none transition-colors bg-paper-50 ${
+              !form.absorbentPaperBatch.trim()
+                ? 'border-amber-300 focus:border-warning-orange'
+                : 'border-forest-100 focus:border-forest-400'
+            }`}
           />
+          {!form.absorbentPaperBatch.trim() && (
+            <p className="text-xs text-warning-orange mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              留空将标记为标签缺项
+            </p>
+          )}
         </div>
 
         <div>
@@ -172,12 +201,26 @@ export default function SpecimenForm() {
         </div>
       </div>
 
+      {showMissingAlert && (
+        <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 animate-pulse-slow">
+          <AlertCircle className="w-5 h-5 text-warning-orange shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-warning-orange">已保存，但存在标签缺项</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              缺失：{missingFields.join('、')}。该标本暂不能进入展柜清单。
+            </p>
+          </div>
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={!isFormValid}
-        className={`mt-6 w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+        className={`mt-4 w-full py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
           showSuccess
             ? 'bg-green-500 text-white'
+            : showMissingAlert
+            ? 'bg-warning-orange text-white'
             : isFormValid
             ? 'bg-forest-500 text-white hover:bg-forest-600 hover:shadow-card-hover active:scale-[0.98]'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -188,10 +231,15 @@ export default function SpecimenForm() {
             <Check className="w-5 h-5" />
             录入成功
           </>
+        ) : showMissingAlert ? (
+          <>
+            <AlertCircle className="w-5 h-5" />
+            已保存（标签缺项）
+          </>
         ) : (
           <>
             <Plus className="w-5 h-5" />
-            添加标本
+            {hasMissingFields ? '保存（将标记标签缺项）' : '添加标本'}
           </>
         )}
       </button>

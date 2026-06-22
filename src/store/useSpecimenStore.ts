@@ -30,6 +30,7 @@ export const useSpecimenStore = create<SpecimenState>()(
 
       addSpecimen: (data) => {
         const now = todayISO();
+        const hasMissingLabel = !data.absorbentPaperBatch.trim();
         const newSpecimen: Specimen = {
           ...data,
           id: generateId(),
@@ -37,7 +38,7 @@ export const useSpecimenStore = create<SpecimenState>()(
           hasMold: false,
           hasEdgeRoll: false,
           hasColorFade: false,
-          hasMissingLabel: false,
+          hasMissingLabel,
           isCompleted: false,
           lastPaperChangeDate: data.pressingDate,
           paperChangeCount: 0,
