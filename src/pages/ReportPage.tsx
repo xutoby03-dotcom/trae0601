@@ -73,29 +73,37 @@ export default function ReportPage() {
     ];
 
     return errorTypes.map(({ type, label }) => {
-      const countMap = new Map<number, number>();
       let totalCount = 0;
-
       filteredSessions.forEach((session) => {
         session.errors.forEach((err) => {
-          if (err.type === type) {
-            totalCount++;
-            countMap.set(err.elementOrder, (countMap.get(err.elementOrder) || 0) + 1);
-          }
+          if (err.type === type) totalCount++;
         });
       });
-
-      let topElement: number | null = null;
-      let topCount = 0;
-      countMap.forEach((count, order) => {
-        if (count > topCount) {
-          topCount = count;
-          topElement = order;
-        }
-      });
-
-      return { type, label, totalCount, topElement, topCount };
+      return { type, label, totalCount };
     });
+  }, [filteredSessions]);
+
+  const topErrorElement = useMemo(() => {
+    const countMap = new Map<number, number>();
+    let totalErrors = 0;
+
+    filteredSessions.forEach((session) => {
+      session.errors.forEach((err) => {
+        totalErrors++;
+        countMap.set(err.elementOrder, (countMap.get(err.elementOrder) || 0) + 1);
+      });
+    });
+
+    let topElement: number | null = null;
+    let topCount = 0;
+    countMap.forEach((count, order) => {
+      if (count > topCount) {
+        topCount = count;
+        topElement = order;
+      }
+    });
+
+    return { topElement, topCount, totalErrors };
   }, [filteredSessions]);
 
   const errorStyleMap: Record<string, { bg: string; iconBg: string; text: string; icon: React.ReactNode }> = {
@@ -339,39 +347,56 @@ export default function ReportPage() {
       )}
 
       <div className="bg-white rounded-xl shadow-elegant p-6">
-        <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">四类错误汇总</h3>
-        <div className="grid grid-cols-4 gap-4">
-          {errorBreakdown.map((item) => {
-            const style = errorStyleMap[item.type];
-            return (
-              <div
-                key={item.type}
-                className={`rounded-xl p-4 border-2 ${style.bg}`}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.iconBg}`}>
-                    {style.icon}
-                  </div>
-                  <div>
-                    <p className={`font-bold text-sm ${style.text}`}>{item.label}</p>
-                  </div>
-                </div>
-                <p className={`text-3xl font-bold ${style.text} mb-3`}>{item.totalCount}</p>
-                <div className={`text-xs ${style.text} opacity-80 border-t border-current/10 pt-2`}>
-                  {item.topElement ? (
-                    <div className="flex items-center justify-between">
-                      <span>最多障碍</span>
-                      <span className={`font-bold px-2 py-0.5 rounded ${style.iconBg}`}>
-                        第{item.topElement}号 · {item.topCount}次
-                      </span>
+        <div className="flex items-start gap-6">
+          <div className="flex-1">
+            <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">四类错误汇总</h3>
+            <div className="grid grid-cols-4 gap-3">
+              {errorBreakdown.map((item) => {
+                const style = errorStyleMap[item.type];
+                return (
+                  <div
+                    key={item.type}
+                    className={`rounded-xl p-4 border-2 ${style.bg} text-center`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2 ${style.iconBg}`}>
+                      {style.icon}
                     </div>
-                  ) : (
-                    <span className="opacity-60">暂无记录</span>
-                  )}
+                    <p className={`font-bold text-sm ${style.text} mb-1`}>{item.label}</p>
+                    <p className={`text-3xl font-bold ${style.text}`}>{item.totalCount}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="w-56 flex-shrink-0">
+            <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">最高频出错障碍</h3>
+            {topErrorElement.topElement ? (
+              <div className="bg-gradient-to-br from-equestrian-gold-100 to-equestrian-gold-200 border-2 border-equestrian-gold-400 rounded-xl p-5 text-center relative overflow-hidden">
+                <div className="absolute top-2 right-2">
+                  <Trophy className="w-5 h-5 text-equestrian-gold-600" />
                 </div>
+                <div className="w-16 h-16 bg-equestrian-gold-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <span className="text-3xl font-bold text-equestrian-brown-800">
+                    {topErrorElement.topElement}
+                  </span>
+                </div>
+                <p className="text-sm text-equestrian-brown-600 mb-1">第 {topErrorElement.topElement} 号障碍</p>
+                <p className="text-2xl font-bold text-equestrian-brown-800">
+                  {topErrorElement.topCount} 次
+                </p>
+                <p className="text-xs text-equestrian-brown-500 mt-2">
+                  占总错误 {topErrorElement.totalErrors > 0
+                    ? ((topErrorElement.topCount / topErrorElement.totalErrors) * 100).toFixed(1)
+                    : 0}%
+                </p>
               </div>
-            );
-          })}
+            ) : (
+              <div className="bg-equestrian-sand-50 border-2 border-equestrian-brown-100 rounded-xl p-5 text-center h-full flex items-center justify-center">
+                <p className="text-equestrian-brown-400 text-sm">暂无错误记录</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
