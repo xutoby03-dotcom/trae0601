@@ -24,6 +24,7 @@ import {
   Volume2,
   TrendingDown,
   BarChart3,
+  CheckCircle,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Alert } from '../types';
@@ -63,29 +64,55 @@ export default function AnalysisPage() {
 
   const listeningScoreData = useMemo(() => {
     return equipments.map((eq) => {
+      const eqAlerts = alerts.filter((a) => a.equipmentId === eq.id);
+      const realignmentCount = eqAlerts.filter((a) => a.type === 'realignment' || a.type === 'channel_balance').length;
+      const replaceStylusCount = eqAlerts.filter((a) => a.type === 'replace_stylus').length;
+      const dangerCount = eqAlerts.filter((a) => a.severity === 'danger').length;
+      const warningCount = eqAlerts.filter((a) => a.severity === 'warning').length;
+
       const tests = getTestsByEquipment(eq.id);
       if (tests.length === 0) {
         return {
-          name: eq.cartridgeModel.length > 10 ? eq.cartridgeModel.slice(0, 10) + '…' : eq.cartridgeModel,
+          id: eq.id,
+          name: eq.cartridgeModel,
+          turntable: eq.turntableModel,
           fullName: getEquipmentName(eq.id),
           跳针评分: 0,
           齿音评分: 0,
           声道偏差: 0,
+          综合评分: 0,
+          realignmentCount,
+          replaceStylusCount,
+          dangerCount,
+          warningCount,
+          hasAlert: eqAlerts.length > 0,
         };
       }
       const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
       const jumpAvg = avg(tests.map((t) => t.jumpLevel));
       const sibAvg = avg(tests.map((t) => t.sibilanceLevel));
       const chAvg = avg(tests.map((t) => Math.abs(t.leftChannelDb - t.rightChannelDb)));
+      const jumpScore = +(5 - jumpAvg).toFixed(1);
+      const sibScore = +(5 - sibAvg).toFixed(1);
+      const chScore = +Math.max(0, 5 - chAvg).toFixed(1);
+      const overallScore = +((jumpScore + sibScore + chScore) / 3).toFixed(1);
       return {
-        name: eq.cartridgeModel.length > 10 ? eq.cartridgeModel.slice(0, 10) + '…' : eq.cartridgeModel,
+        id: eq.id,
+        name: eq.cartridgeModel,
+        turntable: eq.turntableModel,
         fullName: getEquipmentName(eq.id),
-        跳针评分: +(5 - jumpAvg).toFixed(1),
-        齿音评分: +(5 - sibAvg).toFixed(1),
-        声道偏差: +Math.max(0, 5 - chAvg).toFixed(1),
+        跳针评分: jumpScore,
+        齿音评分: sibScore,
+        声道偏差: chScore,
+        综合评分: overallScore,
+        realignmentCount,
+        replaceStylusCount,
+        dangerCount,
+        warningCount,
+        hasAlert: eqAlerts.length > 0,
       };
-    });
-  }, [equipments, getTestsByEquipment, getEquipmentName]);
+    }).sort((a, b) => a.综合评分 - b.综合评分);
+  }, [equipments, getTestsByEquipment, getEquipmentName, alerts]);
 
   const radarData = useMemo(() => {
     if (!selectedEquipmentId) return [];
@@ -350,57 +377,131 @@ export default function AnalysisPage() {
       </div>
 
       <div className="card">
-        <div className="card-header">
-          <h3 className="font-serif text-lg font-bold text-oak-800">多设备综合对比</h3>
-          <p className="text-xs text-ink-400 mt-0.5">所有设备的平均试听表现对比（满分5分，越高越好）</p>
+        <div className="card-header flex items-center justify-between">
+          <div>
+            <h3 className="font-serif text-lg font-bold text-oak-800">设备健康度一览</h3>
+            <p className="text-xs text-ink-400 mt-0.5">按综合表现排序，告警数量一目了然</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <span className="badge badge-danger">
+              <Wrench className="w-3 h-3" /> 更换针尖
+            </span>
+            <span className="badge badge-warning">
+              <RefreshCw className="w-3 h-3" /> 重新调平
+            </span>
+            <span className="badge badge-info">
+              <Volume2 className="w-3 h-3" /> 声道平衡
+            </span>
+          </div>
         </div>
         <div className="card-body">
-          {listeningScoreData.length === 0 || listeningScoreData.every((d) => d.跳针评分 === 0 && d.齿音评分 === 0) ? (
-            <div className="py-16 text-center text-ink-400 text-sm">暂无试听数据用于对比</div>
+          {listeningScoreData.length === 0 ? (
+            <div className="py-16 text-center text-ink-400 text-sm">暂无设备数据</div>
           ) : (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={listeningScoreData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8DDD2" />
-                <XAxis dataKey="name" stroke="#8B6914" fontSize={12}>
-                  <Tooltip />
-                </XAxis>
-                <YAxis stroke="#8B6914" fontSize={12} domain={[0, 5]} />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const item = listeningScoreData.find((d) => d.name === label);
-                    return (
-                      <div className="p-3 rounded-lg bg-oak-800 text-brass-100 text-xs shadow-xl">
-                        <p className="font-semibold text-brass-200 mb-2 border-b border-oak-600 pb-1">
-                          {item?.fullName || label}
-                        </p>
-                        {payload.map((entry: { name: string; value: number; color: string }, idx: number) => (
-                          <p key={idx} className="flex items-center justify-between gap-4 py-0.5">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: entry.color }} />
-                              {entry.name}
+            <div className="space-y-3">
+              {listeningScoreData.map((item, idx) => {
+                const isSelected = item.id === selectedEquipmentId;
+                const scoreColor =
+                  item.综合评分 >= 4
+                    ? 'bg-forest-500'
+                    : item.综合评分 >= 3
+                    ? 'bg-brass-500'
+                    : 'bg-red-500';
+                const scoreText =
+                  item.综合评分 >= 4
+                    ? 'text-forest-700'
+                    : item.综合评分 >= 3
+                    ? 'text-brass-700'
+                    : 'text-red-700';
+                const bgClass = item.hasAlert
+                  ? item.dangerCount > 0
+                    ? 'bg-red-50/60 border-red-200 hover:bg-red-50'
+                    : 'bg-amber-50/60 border-amber-200 hover:bg-amber-50'
+                  : 'bg-forest-50/30 border-forest-100 hover:bg-forest-50/50';
+
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedEquipmentId(item.id)}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${bgClass} ${
+                      isSelected ? 'ring-2 ring-brass-400 ring-offset-2 border-brass-400' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex-1 min-w-[200px]">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-xs font-mono text-ink-400">#{idx + 1}</span>
+                          <h4 className="font-serif font-bold text-oak-800 text-base">{item.name}</h4>
+                          {item.dangerCount > 0 && (
+                            <span className="badge badge-danger animate-pulse-slow">
+                              {item.dangerCount} 个严重
                             </span>
-                            <span className="font-mono font-semibold">{entry.value}</span>
-                          </p>
-                        ))}
+                          )}
+                          {item.warningCount > 0 && item.dangerCount === 0 && (
+                            <span className="badge badge-warning">
+                              {item.warningCount} 个注意
+                            </span>
+                          )}
+                          {!item.hasAlert && (
+                            <span className="badge badge-success">状态良好</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-ink-400 truncate max-w-sm">
+                          {item.turntable}
+                        </p>
                       </div>
-                    );
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                {['跳针评分', '齿音评分', '声道偏差'].map((key, idx) => {
-                  const palette = ['#2E7D32', '#B8860B', '#1976D2'];
-                  return (
-                    <Bar key={key} dataKey={key} fill={palette[idx]} radius={[6, 6, 0, 0]}>
-                      {listeningScoreData.map((_, index) => {
-                        const colors = ['#2E7D32', '#66BB6A', '#81C784', '#1B5E20'];
-                        return <Cell key={index} fill={colors[index % colors.length]} />;
-                      })}
-                    </Bar>
-                  );
-                })}
-              </BarChart>
-            </ResponsiveContainer>
+
+                      <div className="flex gap-2 shrink-0">
+                        {item.replaceStylusCount > 0 && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium shadow-sm">
+                            <Wrench className="w-4 h-4" />
+                            <span>换针尖</span>
+                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
+                              {item.replaceStylusCount}
+                            </span>
+                          </div>
+                        )}
+                        {item.realignmentCount > 0 && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-sm">
+                            <RefreshCw className="w-4 h-4" />
+                            <span>重调平</span>
+                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
+                              {item.realignmentCount}
+                            </span>
+                          </div>
+                        )}
+                        {!item.hasAlert && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-500 text-white text-sm font-medium shadow-sm">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>无需维护</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-full sm:w-auto sm:min-w-[280px]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-ink-500">综合评分</span>
+                          <span className={`text-sm font-bold font-mono ${scoreText}`}>
+                            {item.综合评分.toFixed(1)} / 5.0
+                          </span>
+                        </div>
+                        <div className="h-2.5 bg-oak-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${scoreColor} rounded-full transition-all duration-500`}
+                            style={{ width: `${(item.综合评分 / 5) * 100}%` }}
+                          />
+                        </div>
+                        <div className="flex gap-3 mt-2 text-[11px] text-ink-500">
+                          <span>跳针 {item.跳针评分.toFixed(1)}</span>
+                          <span>齿音 {item.齿音评分.toFixed(1)}</span>
+                          <span>声道 {item.声道偏差.toFixed(1)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
