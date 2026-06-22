@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useRowingStore, getDesyncLevel } from "@/store/rowingStore"
+import { useRowingStore, getDesyncLevel, getTopDesyncMetric, type SegmentRecord } from "@/store/rowingStore"
 import { useNavigate } from "react-router-dom"
 import StepIndicator from "@/components/StepIndicator"
 import { AlertTriangle, CheckCircle2, Clock, RotateCcw, Trash2, ChevronRight, Waves, Wind } from "lucide-react"
@@ -141,6 +141,8 @@ export default function SyncAnalysisPage() {
                       const level = getDesyncLevel(rec.desyncIndex)
                       const barWidth = Math.min((rec.desyncIndex / 1.5) * 100, 100)
                       const isReview = activeData.reviewSegments.includes(rec.segmentIndex)
+                      const topMetric = getTopDesyncMetric(rec)
+                      const contribPct = (topMetric.contribution / rec.desyncIndex) * 100
                       return (
                         <div key={rec.segmentIndex} className={cn(
                           "rounded-lg p-3 border transition-all",
@@ -150,7 +152,7 @@ export default function SyncAnalysisPage() {
                           isReview && "border-[var(--color-danger)] bg-[var(--color-warn-dim)] warn-glow-border"
                         )}>
                           <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <button
                                 onClick={() => toggleReviewSegment(rec.segmentIndex)}
                                 className={cn(
@@ -164,6 +166,14 @@ export default function SyncAnalysisPage() {
                               </button>
                               <span className="text-sm font-semibold">第 {rec.segmentIndex + 1} 段</span>
                               <span className="text-xs text-[var(--color-text-dim)]">{activeData.config.segments[rec.segmentIndex]}m</span>
+                              <span className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                                isReview
+                                  ? "bg-[var(--color-danger)]/15 text-[var(--color-danger)]"
+                                  : "bg-[var(--color-accent-dim)] text-[var(--color-accent)]"
+                              )}>
+                                {topMetric.shortLabel} {topMetric.value}{topMetric.unit} · 占{contribPct.toFixed(0)}%
+                              </span>
                               {level === "danger" && <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-danger)]" />}
                               {level === "good" && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-good)]" />}
                             </div>
@@ -188,10 +198,18 @@ export default function SyncAnalysisPage() {
                             />
                           </div>
                           <div className="grid grid-cols-4 gap-2 text-xs text-[var(--color-text-dim)]">
-                            <span>时间差 {rec.entryTimeDiff}ms</span>
-                            <span>偏航 {rec.yawAngle}°{rec.yawDirection}</span>
-                            <span>掉速 {rec.sprintSpeedDrop}</span>
-                            <span>响应 {rec.commandResponseTime}ms</span>
+                            <span className={topMetric.key === "entryTimeDiff" ? "text-[var(--color-warn)] font-semibold" : ""}>
+                              时间差 {rec.entryTimeDiff}ms
+                            </span>
+                            <span className={topMetric.key === "yawAngle" ? "text-[var(--color-warn)] font-semibold" : ""}>
+                              偏航 {rec.yawAngle}°{rec.yawDirection}
+                            </span>
+                            <span className={topMetric.key === "sprintSpeedDrop" ? "text-[var(--color-warn)] font-semibold" : ""}>
+                              掉速 {rec.sprintSpeedDrop}
+                            </span>
+                            <span className={topMetric.key === "commandResponseTime" ? "text-[var(--color-warn)] font-semibold" : ""}>
+                              响应 {rec.commandResponseTime}ms
+                            </span>
                           </div>
                         </div>
                       )
@@ -219,12 +237,42 @@ export default function SyncAnalysisPage() {
                       <RotateCcw className="w-4 h-4" />
                       下次复练区间
                     </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {activeData.reviewSegments.map((idx) => (
-                        <span key={idx} className="px-3 py-1 rounded-lg bg-[var(--color-warn-dim)] border border-[var(--color-danger)]/30 text-sm text-[var(--color-danger)]">
-                          第 {idx + 1} 段（{activeData.config.segments[idx]}m）
-                        </span>
-                      ))}
+                    <div className="space-y-2">
+                      {activeData.reviewSegments.map((idx) => {
+                        const rec = activeData.records.find((r) => r.segmentIndex === idx) as SegmentRecord | undefined
+                        const metric = rec ? getTopDesyncMetric(rec) : null
+                        return (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 flex-wrap px-4 py-2.5 rounded-lg bg-[var(--color-warn-dim)] border border-[var(--color-danger)]/30"
+                          >
+                            <span className="text-sm font-bold text-[var(--color-danger)]">
+                              第 {idx + 1} 段
+                            </span>
+                            <span className="text-xs text-[var(--color-muted)]">
+                              {activeData.config.segments[idx]}m
+                            </span>
+                            <span className="w-px h-4 bg-[var(--color-border)]" />
+                            {metric && (
+                              <>
+                                <span className="text-xs text-[var(--color-muted)]">主要原因</span>
+                                <span className="text-sm font-semibold text-[var(--color-text)]">
+                                  {metric.label}
+                                </span>
+                                <span className="text-xs font-bold text-[var(--color-danger)] px-2 py-0.5 rounded bg-[var(--color-danger)]/10">
+                                  {metric.value}{metric.unit}
+                                </span>
+                                <span className="text-[10px] text-[var(--color-text-dim)] ml-auto">
+                                  贡献 {(metric.contribution / (rec ? rec.desyncIndex : 1) * 100).toFixed(0)}%
+                                </span>
+                              </>
+                            )}
+                            {!metric && (
+                              <span className="text-xs text-[var(--color-text-dim)]">暂无记录数据</span>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

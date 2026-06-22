@@ -49,6 +49,37 @@ export function getDesyncLevel(index: number): "good" | "caution" | "danger" {
   return "danger"
 }
 
+export type DesyncMetricKey = "entryTimeDiff" | "yawAngle" | "sprintSpeedDrop" | "commandResponseTime"
+
+export interface DesyncMetricInfo {
+  key: DesyncMetricKey
+  label: string
+  shortLabel: string
+  value: number
+  unit: string
+  contribution: number
+}
+
+const METRIC_DEFS: { key: DesyncMetricKey; label: string; shortLabel: string; weight: number; base: number; unit: string }[] = [
+  { key: "entryTimeDiff", label: "入水时间差", shortLabel: "入水差", weight: 0.35, base: 100, unit: "ms" },
+  { key: "yawAngle", label: "偏航角", shortLabel: "偏航", weight: 0.25, base: 5, unit: "°" },
+  { key: "sprintSpeedDrop", label: "冲刺掉速", shortLabel: "掉速", weight: 0.25, base: 5, unit: "次/分" },
+  { key: "commandResponseTime", label: "口令响应", shortLabel: "响应", weight: 0.15, base: 200, unit: "ms" },
+]
+
+export function getTopDesyncMetric(r: SegmentRecord): DesyncMetricInfo {
+  const results = METRIC_DEFS.map((def) => ({
+    key: def.key,
+    label: def.label,
+    shortLabel: def.shortLabel,
+    value: r[def.key],
+    unit: def.unit,
+    contribution: (r[def.key] / def.base) * def.weight,
+  }))
+  results.sort((a, b) => b.contribution - a.contribution)
+  return results[0]
+}
+
 const STORAGE_KEY = "rowing-sessions"
 
 function loadSessions(): TrainingSession[] {
