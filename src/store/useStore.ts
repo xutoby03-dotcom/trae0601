@@ -50,10 +50,18 @@ export const useStore = create<StoreState>((set, get) => ({
     if (!env) return false;
     const f = state.statusFilter;
     if (!f) return true;
-    if (f === 'wrongly_taken') {
-      return state.flowEvents.some((fe) => fe.envelopeId === envelopeId && fe.eventType === 'wrongly_taken');
-    }
-    return env.status === f;
+    const eventTypeMap: Record<string, FlowEventType> = {
+      picked: 'picked',
+      opened: 'opened',
+      missed: 'missed',
+      reissued: 'reissued',
+      wrongly_taken: 'wrongly_taken',
+    };
+    const targetEventType = eventTypeMap[f];
+    if (!targetEventType) return env.status === f;
+    return state.flowEvents.some(
+      (fe) => fe.envelopeId === envelopeId && fe.eventType === targetEventType
+    );
   },
 
   getFilteredEnvelopes: (sessionId) =>
