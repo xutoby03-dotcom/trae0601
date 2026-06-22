@@ -1,0 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: '"Noto Sans SC"', '"PingFang SC"', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-oak-50 text-ink-700 min-h-screen;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(184, 134, 11, 0.05), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(46, 125, 50, 0.03), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: '"Playfair Display"', '"Noto Serif SC"', Georgia, serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+           bg-oak-700 text-brass-100 font-medium
+           hover:bg-oak-600 hover:shadow-brass-glow
+           active:scale-[0.98] transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg
+           border border-brass-400 text-oak-700 font-medium bg-white
+           hover:bg-brass-50 hover:border-brass-500
+           active:scale-[0.98] transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           bg-red-600 text-white font-medium text-sm
+           hover:bg-red-700 active:scale-[0.98] transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl border border-oak-100
+           shadow-card overflow-hidden;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-oak-100 bg-wood-grain;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-oak-200 bg-white
+           text-ink-700 placeholder-ink-300
+           focus:outline-none focus:ring-2 focus:ring-brass-400 focus:border-brass-400
+           focus:shadow-brass-glow transition-all duration-200;
+  }
+
+  .select-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-oak-200 bg-white
+           text-ink-700
+           focus:outline-none focus:ring-2 focus:ring-brass-400 focus:border-brass-400
+           focus:shadow-brass-glow transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-oak-700 mb-1.5;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-forest-100 text-forest-600;
+  }
+
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
+  }
+
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .badge-info {
+    @apply bg-oak-100 text-oak-700;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2 px-4 py-2.5 rounded-lg text-oak-600 font-medium
+           hover:bg-oak-100 hover:text-oak-800 transition-colors duration-200;
+  }
+
+  .nav-link-active {
+    @apply bg-oak-700 text-brass-100 hover:bg-oak-600 hover:text-brass-50;
+  }
+
+  .table-wrapper {
+    @apply overflow-x-auto rounded-xl border border-oak-100;
+  }
+
+  table.data-table {
+    @apply w-full text-sm;
+  }
+
+  table.data-table thead {
+    @apply bg-oak-50;
+  }
+
+  table.data-table th {
+    @apply px-4 py-3 text-left font-semibold text-oak-700 border-b border-oak-100 whitespace-nowrap;
+  }
+
+  table.data-table td {
+    @apply px-4 py-3 border-b border-oak-50 text-ink-600 whitespace-nowrap;
+  }
+
+  table.data-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  table.data-table tbody tr {
+    @apply hover:bg-brass-50/50 transition-colors;
+  }
+
+  .vinyl-pattern {
+    background:
+      repeating-radial-gradient(
+        circle at center,
+        transparent 0,
+        transparent 2px,
+        rgba(62, 39, 35, 0.06) 3px,
+        rgba(62, 39, 35, 0.06) 4px
+      );
+  }
+}
+
+@layer utilities {
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
