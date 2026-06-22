@@ -207,7 +207,7 @@ export default function Timeline() {
         <div className="relative h-8 flex items-center">
           {tooltip.visible && (
             <div
-              className="absolute -translate-x-1/2 -translate-y-full pointer-events-none z-20 px-2 py-1 rounded bg-[#0a0f0d] border border-[#1e2d24] text-xs text-white whitespace-nowrap"
+              className="absolute -translate-x-1/2 -translate-y-full pointer-events-none z-30 px-2 py-1 rounded bg-[#0a0f0d] border border-[#1e2d24] text-xs text-white whitespace-nowrap"
               style={{
                 left: tooltip.x,
                 top: tooltip.y,
@@ -223,7 +223,18 @@ export default function Timeline() {
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-[#1e2d24] rounded-full" />
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1.5 bg-[#1e2d24] rounded-full pointer-events-auto"
+            onClick={handleTimelineClick}
+          />
+
+          <div
+            className="absolute bottom-0 left-0 h-1.5 rounded-full transition-all duration-75 pointer-events-none z-10"
+            style={{
+              width: `${progress}%`,
+              background: 'linear-gradient(90deg, #38b000, #9ef01a)',
+            }}
+          />
 
           {play.transferWindows.map((window) => {
             const fromPlayer = play.players.find((p) => p.id === window.fromId);
@@ -234,7 +245,7 @@ export default function Timeline() {
             return (
               <div
                 key={window.id}
-                className={`absolute bottom-0 h-1.5 cursor-pointer transition-all rounded-full ${
+                className={`absolute bottom-0 h-1.5 cursor-pointer transition-all rounded-full z-20 ${
                   isHighlighted ? 'ring-2 ring-white/50' : ''
                 }`}
                 style={{
@@ -273,13 +284,14 @@ export default function Timeline() {
             return (
               <div
                 key={`gap-start-${gap.id}`}
-                className={`absolute bottom-0 w-1.5 h-4 -translate-x-1/2 cursor-pointer transition-all rounded-t ${
+                className={`absolute bottom-0 w-1.5 cursor-pointer transition-all rounded-t z-20 ${
                   isHighlighted ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#121a16]' : ''
                 }`}
                 style={{
                   left: `${(gap.startTime / play.duration) * 100}%`,
                   background: '#38b000',
                   height: isHighlighted ? '20px' : '16px',
+                  transform: 'translateX(-50%)',
                 }}
                 onClick={(e) =>
                   handleEventClick(e, gap.id, 'gap', gap.startTime)
@@ -312,11 +324,12 @@ export default function Timeline() {
             return (
               <div
                 key={risk.id}
-                className={`absolute bottom-0 -translate-x-1/2 cursor-pointer transition-all ${
+                className={`absolute bottom-0 cursor-pointer transition-all z-20 ${
                   isHighlighted ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#121a16]' : ''
                 }`}
                 style={{
                   left: `${(risk.time / play.duration) * 100}%`,
+                  transform: 'translate(-50%, 50%)',
                 }}
                 onClick={(e) =>
                   handleEventClick(e, risk.id, 'collision', risk.time)
@@ -339,7 +352,6 @@ export default function Timeline() {
                     boxShadow: isHighlighted
                       ? `0 0 8px ${color}`
                       : 'none',
-                    transform: 'translateY(50%)',
                   }}
                 />
               </div>
@@ -354,13 +366,14 @@ export default function Timeline() {
             return (
               <div
                 key={node.id}
-                className={`absolute bottom-0 w-1 h-5 -translate-x-1/2 cursor-pointer transition-all ${
+                className={`absolute bottom-0 w-1 cursor-pointer transition-all z-20 ${
                   isHighlighted ? 'ring-2 ring-white/60 ring-offset-1 ring-offset-[#121a16]' : ''
                 }`}
                 style={{
                   left: `${(node.time / play.duration) * 100}%`,
                   background: '#d00000',
                   height: isHighlighted ? '22px' : '20px',
+                  transform: 'translateX(-50%)',
                 }}
                 onClick={(e) =>
                   handleEventClick(e, node.id, 'fake', node.time)
@@ -378,26 +391,13 @@ export default function Timeline() {
           })}
 
           <div
-            className="absolute bottom-0 left-0 h-1.5 rounded-full transition-all duration-75 pointer-events-none"
-            style={{
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #38b000, #9ef01a)',
-            }}
-          />
-
-          <div
-            className="absolute bottom-0 w-4 h-4 -translate-x-1/2 rounded-full cursor-pointer hover:scale-125 transition-transform pointer-events-auto"
+            className="absolute bottom-0 w-4 h-4 -translate-x-1/2 rounded-full cursor-pointer hover:scale-125 transition-transform z-20"
             style={{
               left: `${progress}%`,
               background: '#9ef01a',
               boxShadow: '0 0 12px rgba(158, 240, 26, 0.9)',
-              transform: 'translateX(-50%) translateY(50%)',
+              transform: 'translate(-50%, 50%)',
             }}
-          />
-
-          <div
-            className="absolute inset-0 cursor-pointer"
-            onClick={handleTimelineClick}
           />
         </div>
 

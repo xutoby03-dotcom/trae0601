@@ -9,6 +9,7 @@ import FakeNodeItem from './FakeNodeItem';
 import TransferWindowIndicator from './TransferWindowIndicator';
 import CollisionMarker from './CollisionMarker';
 import ActualTrajectory from './ActualTrajectory';
+import GapIndicator from './GapIndicator';
 import { getPlayerPositionAtTime, getDiscPositionAtTime } from '@/utils/pathCalculations';
 
 export default function TacticsCanvas() {
@@ -139,6 +140,23 @@ export default function TacticsCanvas() {
               player={player}
               positions={playerPositions}
               deviationStats={play.deviationStats[player.id]}
+              scale={scale}
+              currentTime={currentTime}
+              isHighlighted={isHighlighted}
+            />
+          );
+        })}
+
+        {play.gaps.map((gap) => {
+          const isHighlighted =
+            highlightedEventId === gap.id && highlightedEventType === 'gap';
+          const isActive =
+            currentTime >= gap.startTime && currentTime <= gap.endTime;
+          if (!isHighlighted && !isActive) return null;
+          return (
+            <GapIndicator
+              key={gap.id}
+              gap={gap}
               scale={scale}
               currentTime={currentTime}
               isHighlighted={isHighlighted}
