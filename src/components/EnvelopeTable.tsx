@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { STATUS_LABELS, STATUS_COLORS, EnvelopeStatus, FlowEventType, FLOW_EVENT_LABELS } from '@/types';
 import { Plus, Edit3, Trash2, ChevronDown, ChevronUp, Eye, Key, User } from 'lucide-react';
@@ -22,6 +22,25 @@ export default function EnvelopeTable() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedActs, setExpandedActs] = useState<number[]>([1, 2, 3]);
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (!selectedEnvelopeId) return;
+    const env = sessionEnvelopes.find((e) => e.id === selectedEnvelopeId);
+    if (!env) return;
+
+    if (!expandedActs.includes(env.actNumber)) {
+      setExpandedActs((prev) => [...prev, env.actNumber]);
+    }
+
+    setTimeout(() => {
+      const el = rowRefs.current[selectedEnvelopeId];
+      if (el && scrollRef.current) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+  }, [selectedEnvelopeId]);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const sessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
@@ -78,7 +97,7 @@ export default function EnvelopeTable() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {Object.keys(envelopesByAct).length === 0 && (
           <div className="text-center py-12 text-ink-700">
             <p>暂无登记的线索封套</p>
@@ -110,8 +129,9 @@ export default function EnvelopeTable() {
                     return (
                       <div
                         key={env.id}
+                        ref={(el) => { rowRefs.current[env.id] = el; }}
                         style={{ animationDelay: `${idx * 50}ms` }}
-                        className={`animate-fade-in-up ${isSelected ? 'bg-parchment-100' : 'bg-parchment-50'}`}
+                        className={`animate-fade-in-up transition-colors ${isSelected ? 'bg-parchment-100 ring-2 ring-ink-700 ring-inset' : 'bg-parchment-50'}`}
                       >
                         <div className="p-3">
                           <div className="flex items-start justify-between gap-3">

@@ -2,7 +2,7 @@ import { useStore } from '@/store/useStore';
 import { TrendingDown, AlertTriangle, Target, BarChart3, XCircle } from 'lucide-react';
 
 export default function AnalysisPanel() {
-  const { currentSessionId, envelopes, flowEvents, getEnvelopeEvents } = useStore();
+  const { currentSessionId, envelopes, flowEvents, getEnvelopeEvents, selectedEnvelopeId, setSelectedEnvelope } = useStore();
   const sessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
 
   const wronglyTakenCount = sessionEnvelopes.map((env) => {
@@ -142,12 +142,24 @@ export default function AnalysisPanel() {
             <p className="text-sm text-ink-700">本场关键证据均已被发现 🎉</p>
           ) : (
             <ul className="space-y-1.5">
-              {missedKeyEvidences.map((env) => (
-                <li key={env.id} className="flex items-start justify-between text-sm">
-                  <span className="text-ink-800 font-medium">• {env.name}</span>
-                  <span className="text-xs text-ink-700">第{env.actNumber}幕 · {env.ownerCharacter || '公开'}</span>
-                </li>
-              ))}
+              {missedKeyEvidences.map((env) => {
+                const isSelected = selectedEnvelopeId === env.id;
+                return (
+                  <li key={env.id}>
+                    <button
+                      onClick={() => setSelectedEnvelope(isSelected ? null : env.id)}
+                      className={`w-full text-left px-2 py-1.5 rounded transition-colors ${
+                        isSelected ? 'bg-red-100 border border-seal-red' : 'hover:bg-red-100/50 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between text-sm">
+                        <span className="text-ink-800 font-medium">• {env.name}</span>
+                        <span className="text-xs text-ink-700">第{env.actNumber}幕 · {env.ownerCharacter || '公开'}</span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -160,23 +172,35 @@ export default function AnalysisPanel() {
             </h3>
             <p className="text-xs text-ink-700 mb-2">相对同幕平均打开时间偏早 20% 以上</p>
             <ul className="space-y-2">
-              {earlyExposed.map(({ env, earlyPct, relMinutes, avgMinutes }) => (
-                <li key={env.id}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-ink-800 font-medium">• {env.name}</span>
-                    <span className="text-xs font-bold text-amber-800">早 {earlyPct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] text-ink-700 mb-1">
-                    <span>{relMinutes} 分钟打开（同幕平均 {avgMinutes} 分钟）</span>
-                  </div>
-                  <div className="h-1.5 bg-amber-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-seal-amber rounded-full transition-all"
-                      style={{ width: `${Math.min(earlyPct, 100)}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
+              {earlyExposed.map(({ env, earlyPct, relMinutes, avgMinutes }) => {
+                const isSelected = selectedEnvelopeId === env.id;
+                return (
+                  <li key={env.id}>
+                    <button
+                      onClick={() => setSelectedEnvelope(isSelected ? null : env.id)}
+                      className={`w-full text-left p-2 rounded-lg border transition-all ${
+                        isSelected
+                          ? 'border-seal-amber bg-amber-100 shadow-stamp -translate-y-0.5'
+                          : 'border-transparent hover:bg-amber-100/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-ink-800 font-medium">• {env.name}</span>
+                        <span className="text-xs font-bold text-amber-800">早 {earlyPct}%</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-ink-700 mt-0.5">
+                        <span>{relMinutes} 分钟打开（同幕平均 {avgMinutes} 分钟）</span>
+                      </div>
+                      <div className="h-1.5 bg-amber-200 rounded-full overflow-hidden mt-1.5">
+                        <div
+                          className="h-full bg-seal-amber rounded-full transition-all"
+                          style={{ width: `${Math.min(earlyPct, 100)}%` }}
+                        />
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -190,23 +214,33 @@ export default function AnalysisPanel() {
             <p className="text-sm text-ink-700">本场无误拿记录 ✓</p>
           ) : (
             <ul className="space-y-2">
-              {wronglyTakenCount.slice(0, 5).map(({ env, count }, idx) => (
-                <li key={env.id}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-ink-800">
-                      <span className="inline-block w-5 text-center font-bold text-ink-700">{idx + 1}.</span>
-                      {env.name}
-                    </span>
-                    <span className="text-xs font-bold text-seal-amber">{count} 次</span>
-                  </div>
-                  <div className="h-2 bg-parchment-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-seal-amber rounded-full transition-all"
-                      style={{ width: `${(count / maxWrongly) * 100}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
+              {wronglyTakenCount.slice(0, 5).map(({ env, count }, idx) => {
+                const isSelected = selectedEnvelopeId === env.id;
+                return (
+                  <li key={env.id}>
+                    <button
+                      onClick={() => setSelectedEnvelope(isSelected ? null : env.id)}
+                      className={`w-full text-left px-2 py-1.5 rounded transition-colors ${
+                        isSelected ? 'bg-parchment-200 border border-parchment-400' : 'hover:bg-parchment-100 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-ink-800">
+                          <span className="inline-block w-5 text-center font-bold text-ink-700">{idx + 1}.</span>
+                          {env.name}
+                        </span>
+                        <span className="text-xs font-bold text-seal-amber">{count} 次</span>
+                      </div>
+                      <div className="h-2 bg-parchment-200 rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full bg-seal-amber rounded-full transition-all"
+                          style={{ width: `${(count / maxWrongly) * 100}%` }}
+                        />
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
