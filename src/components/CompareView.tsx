@@ -1,23 +1,181 @@
 import { useMemo, useState } from 'react';
 import { useSandboxStore } from '@/store/useSandboxStore';
 import { SandboxBoard } from './SandboxBoard';
-import { X, ArrowRight, ArrowLeftRight } from 'lucide-react';
+import { X, ArrowRight, ArrowLeftRight, Target } from 'lucide-react';
 import { diffTypeLabels, diffTypeColors } from '@/utils/diffCalculator';
-import type { DiffType, PieceDiff } from '@/types';
+import type { DiffType, PieceDiff, Resource, Trigger, Role } from '@/types';
 
 interface CompareViewProps {
   onClose: () => void;
 }
+
+const coordLabel = (x: number | undefined, y: number | undefined) => {
+  if (x === undefined || y === undefined) return '—';
+  return `${String.fromCharCode(65 + y)}${x + 1}`;
+};
+
+const diffRoleName = (
+  roleId: unknown,
+  roles: Role[]
+): string => {
+  if (!roleId || typeof roleId !== 'string') return '未知';
+  const role = roles.find((r) => r.id === roleId);
+  return role ? `${role.symbol} ${role.name}` : roleId;
+};
+
+interface ResourceDelta {
+  id: string;
+  name: string;
+  oldAmount?: number;
+  newAmount?: number;
+  oldUnit?: string;
+  newUnit?: string;
+  status: 'added' | 'removed' | 'modified';
+}
+
+const calcResourceDeltas = (
+  oldValue: unknown,
+  newValue: unknown
+): ResourceDelta[] => {
+  const oldArr = (Array.isArray(oldValue) ? (oldValue as Resource[]) : []).filter(
+    (r) => r && r.id
+  );
+  const newArr = (Array.isArray(newValue) ? (newValue as Resource[]) : []).filter(
+    (r) => r && r.id
+  );
+  const oldMap = new Map(oldArr.map((r) => [r.id, r]));
+  const newMap = new Map(newArr.map((r) => [r.id, r]));
+  const deltas: ResourceDelta[] = [];
+
+  for (const r of oldArr) {
+    const match = newMap.get(r.id);
+    if (!match) {
+      deltas.push({
+        id: r.id,
+        name: r.name,
+        oldAmount: r.amount,
+        oldUnit: r.unit,
+        status: 'removed',
+      });
+    } else if (
+      r.amount !== match.amount ||
+      r.name !== match.name ||
+      r.unit !== match.unit
+    ) {
+      deltas.push({
+        id: r.id,
+        name: match.name,
+        oldAmount: r.amount,
+        newAmount: match.amount,
+        oldUnit: r.unit,
+        newUnit: match.unit,
+        status: 'modified',
+      });
+    }
+  }
+  for (const r of newArr) {
+    if (!oldMap.has(r.id)) {
+      deltas.push({
+        id: r.id,
+        name: r.name,
+        newAmount: r.amount,
+        newUnit: r.unit,
+        status: 'added',
+      });
+    }
+  }
+  return deltas;
+};
+
+interface TriggerDelta {
+  id: string;
+  field: 'name' | 'condition' | 'effect';
+  label: string;
+  oldVal?: string;
+  newVal?: string;
+  status: 'added' | 'removed' | 'modified';
+}
+
+const calcTriggerDeltas = (
+  oldValue: unknown,
+  newValue: unknown
+): TriggerDelta[] => {
+  const oldArr = (Array.isArray(oldValue) ? (oldValue as Trigger[]) : []).filter(
+    (t) => t && t.id
+  );
+  const newArr = (Array.isArray(newValue) ? (newValue as Trigger[]) : []).filter(
+    (t) => t && t.id
+  );
+  const oldMap = new Map(oldArr.map((t) => [t.id, t]));
+  const newMap = new Map(newArr.map((t) => [t.id, t]));
+  const deltas: TriggerDelta[] = [];
+
+  const pushField = (
+    id: string,
+    field: 'name' | 'condition' | 'effect',
+    label: string,
+    oldVal: string | undefined,
+    newVal: string | undefined,
+    status: TriggerDelta['status']
+  ) => {
+    if (oldVal !== newVal) {
+      deltas.push({ id, field, label, oldVal, newVal, status });
+    }
+  };
+
+  for (const t of oldArr) {
+    const match = newMap.get(t.id);
+    if (!match) {
+      deltas.push({
+        id: t.id,
+        field: 'name',
+        label: t.name || '（未命名触发）',
+        status: 'removed',
+      });
+    } else {
+      pushField(t.id, 'name', '名称', t.name, match.name, 'modified');
+      pushField(
+        t.id,
+        'condition',
+        `${t.name || match.name} · 条件`,
+        t.condition,
+        match.condition,
+        'modified'
+      );
+      pushField(
+        t.id,
+        'effect',
+        `${t.name || match.name} · 效果`,
+        t.effect,
+        match.effect,
+        'modified'
+      );
+    }
+  }
+  for (const t of newArr) {
+    if (!oldMap.has(t.id)) {
+      deltas.push({
+        id: t.id,
+        field: 'name',
+        label: t.name || '（未命名触发）',
+        status: 'added',
+      });
+    }
+  }
+  return deltas;
+};
 
 export function CompareView({ onClose }: CompareViewProps) {
   const store = useSandboxStore();
   const { leftVersionId, rightVersionId } = store.compare;
   const diffs = store.diffs;
   const versions = store.scene.versions;
+  const roles = store.scene.roles;
   const startCompare = useSandboxStore((s) => s.startCompare);
 
   const [localLeftId, setLocalLeftId] = useState(leftVersionId || '');
   const [localRightId, setLocalRightId] = useState(rightVersionId || '');
+  const [highlightPieceId, setHighlightPieceId] = useState<string | null>(null);
 
   const leftVersion = versions.find((v) => v.id === (leftVersionId || localLeftId));
   const rightVersion = versions.find((v) => v.id === (rightVersionId || localRightId));
@@ -32,7 +190,14 @@ export function CompareView({ onClose }: CompareViewProps) {
   const leftDiffMap = useMemo(() => {
     const map = new Map<string, DiffType>();
     diffs.forEach((diff) => {
-      if (diff.type === 'removed' || diff.type === 'moved' || diff.type === 'role_changed' || diff.type === 'resource_changed' || diff.type === 'trigger_changed') {
+      if (
+        diff.type === 'removed' ||
+        diff.type === 'moved' ||
+        diff.type === 'role_changed' ||
+        diff.type === 'resource_changed' ||
+        diff.type === 'trigger_changed' ||
+        diff.type === 'notes_changed'
+      ) {
         map.set(diff.pieceId, diff.type);
       }
     });
@@ -42,7 +207,14 @@ export function CompareView({ onClose }: CompareViewProps) {
   const rightDiffMap = useMemo(() => {
     const map = new Map<string, DiffType>();
     diffs.forEach((diff) => {
-      if (diff.type === 'added' || diff.type === 'moved' || diff.type === 'role_changed' || diff.type === 'resource_changed' || diff.type === 'trigger_changed') {
+      if (
+        diff.type === 'added' ||
+        diff.type === 'moved' ||
+        diff.type === 'role_changed' ||
+        diff.type === 'resource_changed' ||
+        diff.type === 'trigger_changed' ||
+        diff.type === 'notes_changed'
+      ) {
         map.set(diff.pieceId, diff.type);
       }
     });
@@ -52,9 +224,7 @@ export function CompareView({ onClose }: CompareViewProps) {
   const groupedDiffs = useMemo(() => {
     const groups: Record<string, PieceDiff[]> = {};
     diffs.forEach((diff) => {
-      if (!groups[diff.type]) {
-        groups[diff.type] = [];
-      }
+      if (!groups[diff.type]) groups[diff.type] = [];
       groups[diff.type].push(diff);
     });
     return groups;
@@ -76,6 +246,12 @@ export function CompareView({ onClose }: CompareViewProps) {
     }
   };
 
+  const handleDiffClick = (diff: PieceDiff) => {
+    setHighlightPieceId((prev) => (prev === diff.pieceId ? null : diff.pieceId));
+  };
+
+  const isHighlighted = (pieceId: string) => highlightPieceId === pieceId;
+
   const renderVersionPicker = () => (
     <div className="flex-1 flex items-center justify-center">
       <div className="bg-slate-800/90 border border-slate-700/50 rounded-xl p-8 max-w-lg w-full mx-4">
@@ -86,7 +262,9 @@ export function CompareView({ onClose }: CompareViewProps) {
 
         <div className="space-y-5">
           <div>
-            <label className="block text-sm text-slate-400 mb-2">旧版本（左侧）</label>
+            <label className="block text-sm text-slate-400 mb-2">
+              旧版本（左侧）
+            </label>
             <select
               value={localLeftId}
               onChange={(e) => setLocalLeftId(e.target.value)}
@@ -106,7 +284,9 @@ export function CompareView({ onClose }: CompareViewProps) {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-2">新版本（右侧）</label>
+            <label className="block text-sm text-slate-400 mb-2">
+              新版本（右侧）
+            </label>
             <select
               value={localRightId}
               onChange={(e) => setLocalRightId(e.target.value)}
@@ -164,6 +344,12 @@ export function CompareView({ onClose }: CompareViewProps) {
         <div className="flex items-center gap-3">
           <ArrowLeftRight className="text-indigo-400" size={20} />
           <h2 className="text-lg font-bold text-white">版本对比</h2>
+          {highlightPieceId && (
+            <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 flex items-center gap-1">
+              <Target size={12} />
+              已高亮对应棋子 · 再次点击取消
+            </span>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -187,8 +373,8 @@ export function CompareView({ onClose }: CompareViewProps) {
             <div className="relative">
               <SandboxBoard
                 pieces={leftVersion.pieces}
-                selectedId={null}
-                onSelectPiece={() => {}}
+                selectedId={highlightPieceId}
+                onSelectPiece={(id) => setHighlightPieceId(id)}
                 diffMap={leftDiffMap}
                 readOnly
                 cellSize={48}
@@ -217,8 +403,8 @@ export function CompareView({ onClose }: CompareViewProps) {
             <div className="relative">
               <SandboxBoard
                 pieces={rightVersion.pieces}
-                selectedId={null}
-                onSelectPiece={() => {}}
+                selectedId={highlightPieceId}
+                onSelectPiece={(id) => setHighlightPieceId(id)}
                 diffMap={rightDiffMap}
                 readOnly
                 cellSize={48}
@@ -234,9 +420,19 @@ export function CompareView({ onClose }: CompareViewProps) {
 
         <div className="border-t border-slate-700/50 bg-slate-900/50">
           <div className="p-3 border-b border-slate-700/30">
-            <h3 className="text-sm font-medium text-slate-300 mb-2">
-              差异汇总 (共 {diffs.length} 处变更)
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-slate-300">
+                差异汇总 (共 {diffs.length} 处变更 · 点击条目高亮棋子)
+              </h3>
+              {highlightPieceId && (
+                <button
+                  onClick={() => setHighlightPieceId(null)}
+                  className="text-xs text-slate-400 hover:text-slate-300 px-2 py-0.5 hover:bg-slate-800 rounded"
+                >
+                  清除高亮
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {diffOrder.map((type) => {
                 const count = groupedDiffs[type]?.length || 0;
@@ -253,7 +449,7 @@ export function CompareView({ onClose }: CompareViewProps) {
             </div>
           </div>
 
-          <div className="p-3 max-h-48 overflow-y-auto space-y-3">
+          <div className="p-3 max-h-56 overflow-y-auto space-y-3">
             {diffOrder.map((type) => {
               const items = groupedDiffs[type];
               if (!items || items.length === 0) return null;
@@ -265,41 +461,194 @@ export function CompareView({ onClose }: CompareViewProps) {
                   >
                     {diffTypeLabels[type]}
                   </div>
-                  <div className="space-y-1 ml-2">
-                    {items.map((diff) => (
-                      <div
-                        key={`${diff.pieceId}-${diff.type}`}
-                        className="text-xs text-slate-400 flex items-start gap-2"
-                      >
-                        <span className="text-slate-500">•</span>
-                        <div>
-                          <span className="text-slate-300">{diff.pieceName}</span>
-                          {diff.type === 'moved' && (
-                            <span className="text-amber-400 ml-1">
-                              ({String.fromCharCode(65 + (diff.oldY || 0))}
-                              {(diff.oldX || 0) + 1} →{' '}
-                              {String.fromCharCode(65 + (diff.newY || 0))}
-                              {(diff.newX || 0) + 1})
-                            </span>
-                          )}
-                          {diff.type === 'role_changed' && (
-                            <span className="text-indigo-400 ml-1">
-                              角色已变更
-                            </span>
-                          )}
-                          {diff.type === 'resource_changed' && (
-                            <span className="text-cyan-400 ml-1">
-                              资源有变化
-                            </span>
-                          )}
-                          {diff.type === 'trigger_changed' && (
-                            <span className="text-purple-400 ml-1">
-                              触发条件有变化
-                            </span>
-                          )}
+                  <div className="space-y-1.5 ml-2">
+                    {items.map((diff) => {
+                      const isActive = isHighlighted(diff.pieceId);
+                      return (
+                        <div
+                          key={`${diff.pieceId}-${diff.type}`}
+                          onClick={() => handleDiffClick(diff)}
+                          className={`text-xs p-2 rounded border cursor-pointer transition-all
+                            ${isActive
+                              ? 'bg-amber-500/15 border-amber-500/40 ring-1 ring-amber-500/30'
+                              : 'bg-slate-800/40 border-slate-700/40 hover:bg-slate-800/70 hover:border-slate-600/50'
+                            }
+                          `}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Target
+                              size={12}
+                              className={`mt-0.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-500'}`}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-slate-200">
+                                {diff.pieceName}
+                              </div>
+
+                              {diff.type === 'added' && (
+                                <div className="mt-1 text-emerald-300">
+                                  新增于 {coordLabel(diff.newX, diff.newY)}
+                                </div>
+                              )}
+
+                              {diff.type === 'removed' && (
+                                <div className="mt-1 text-red-300">
+                                  从 {coordLabel(diff.oldX, diff.oldY)} 撤掉
+                                </div>
+                              )}
+
+                              {diff.type === 'moved' && (
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-amber-300">
+                                  <span className="px-1.5 py-0.5 bg-amber-500/10 rounded border border-amber-500/20">
+                                    {coordLabel(diff.oldX, diff.oldY)}
+                                  </span>
+                                  <ArrowRight size={12} />
+                                  <span className="px-1.5 py-0.5 bg-amber-500/10 rounded border border-amber-500/20">
+                                    {coordLabel(diff.newX, diff.newY)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {diff.type === 'role_changed' && (
+                                <div className="mt-1 flex items-center flex-wrap gap-1.5 text-indigo-300">
+                                  <span className="px-1.5 py-0.5 bg-slate-900/60 rounded border border-slate-700/50">
+                                    {diffRoleName(diff.oldValue, roles)}
+                                  </span>
+                                  <ArrowRight size={12} className="text-indigo-400" />
+                                  <span className="px-1.5 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/30">
+                                    {diffRoleName(diff.newValue, roles)}
+                                  </span>
+                                </div>
+                              )}
+
+                              {diff.type === 'resource_changed' && (
+                                <div className="mt-1 space-y-1">
+                                  {calcResourceDeltas(diff.oldValue, diff.newValue).map(
+                                    (rd) => (
+                                      <div
+                                        key={rd.id}
+                                        className={`flex flex-wrap items-center gap-1.5 rounded px-1 py-0.5
+                                          ${rd.status === 'added'
+                                            ? 'bg-emerald-500/10 text-emerald-300'
+                                            : rd.status === 'removed'
+                                            ? 'bg-red-500/10 text-red-300'
+                                            : 'bg-cyan-500/10 text-cyan-300'
+                                          }
+                                        `}
+                                      >
+                                        <span className="font-medium">
+                                          {rd.name}
+                                        </span>
+                                        {rd.status === 'added' && (
+                                          <span>
+                                            +{rd.newAmount}
+                                            {rd.newUnit}
+                                          </span>
+                                        )}
+                                        {rd.status === 'removed' && (
+                                          <span>
+                                            -{rd.oldAmount}
+                                            {rd.oldUnit}
+                                          </span>
+                                        )}
+                                        {rd.status === 'modified' && (
+                                          <>
+                                            <span className="text-slate-400">
+                                              {rd.oldAmount}
+                                              {rd.oldUnit}
+                                            </span>
+                                            <ArrowRight size={10} />
+                                            <span>
+                                              {rd.newAmount}
+                                              {rd.newUnit}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+
+                              {diff.type === 'trigger_changed' && (
+                                <div className="mt-1 space-y-1">
+                                  {calcTriggerDeltas(diff.oldValue, diff.newValue).map(
+                                    (td, idx) => (
+                                      <div
+                                        key={`${td.id}-${td.field}-${idx}`}
+                                        className={`rounded px-1.5 py-0.5 space-y-0.5
+                                          ${td.status === 'added'
+                                            ? 'bg-emerald-500/10 text-emerald-300'
+                                            : td.status === 'removed'
+                                            ? 'bg-red-500/10 text-red-300'
+                                            : 'bg-purple-500/10 text-purple-300'
+                                          }
+                                        `}
+                                      >
+                                        {td.status === 'added' && (
+                                          <div className="font-medium">
+                                            + {td.label}
+                                          </div>
+                                        )}
+                                        {td.status === 'removed' && (
+                                          <div className="font-medium">
+                                            − {td.label}
+                                          </div>
+                                        )}
+                                        {td.status === 'modified' && (
+                                          <div className="space-y-0.5">
+                                            <div className="font-medium text-purple-200">
+                                              {td.label}
+                                            </div>
+                                            <div className="flex items-start gap-1 text-[11px]">
+                                              <span className="text-slate-400 shrink-0">
+                                                旧:
+                                              </span>
+                                              <span className="break-all">
+                                                {td.oldVal || '(空)'}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-start gap-1 text-[11px]">
+                                              <span className="text-slate-400 shrink-0">
+                                                新:
+                                              </span>
+                                              <span className="break-all">
+                                                {td.newVal || '(空)'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+
+                              {diff.type === 'notes_changed' && (
+                                <div className="mt-1 space-y-1 bg-gray-500/10 text-gray-300 rounded px-1.5 py-0.5">
+                                  <div className="flex items-start gap-1 text-[11px]">
+                                    <span className="text-slate-400 shrink-0">
+                                      旧:
+                                    </span>
+                                    <span className="break-all">
+                                      {(diff.oldValue as string) || '(空)'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-start gap-1 text-[11px]">
+                                    <span className="text-slate-400 shrink-0">
+                                      新:
+                                    </span>
+                                    <span className="break-all">
+                                      {(diff.newValue as string) || '(空)'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
