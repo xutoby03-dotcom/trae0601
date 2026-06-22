@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Save, User, Thermometer, Droplets, MoveRight, MoveDown, CheckCircle, FileText, RotateCcw, Download } from 'lucide-react';
+import { Save, User, Thermometer, Droplets, MoveRight, MoveDown, CheckCircle, FileText, RotateCcw, Download, MapPin } from 'lucide-react';
 import { useCalibrationStore } from '../../store/useCalibrationStore';
 import type { FinalParams } from '../../types/calibration';
 
@@ -113,6 +113,31 @@ export const FinalParamsPanel = () => {
             <div className={`font-mono font-bold text-lg ${totalIssues > 0 ? 'text-cinnabar-400' : 'text-celadon-400'}`}>
               {totalIssues}<span className="text-xs font-normal text-copper-200/50 ml-1">项</span>
             </div>
+          </div>
+        </div>
+
+        <div className="mb-4 bg-indigo-900/30 rounded-lg border border-indigo-700/40 overflow-hidden">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-indigo-700/40 bg-indigo-900/50">
+            <MapPin className="w-3 h-3 text-copper-300" />
+            <span className="text-[11px] font-medium text-copper-200/80">各版定位针位置</span>
+          </div>
+          <div className="divide-y divide-indigo-700/30">
+            {plates.map((p, idx) => (
+              <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                <span
+                  className="w-3.5 h-3.5 rounded flex-shrink-0 border border-copper-300/30"
+                  style={{ backgroundColor: p.colorHex }}
+                />
+                <span className="font-semibold text-copper-100 w-16 truncate">{p.colorName || `色版${idx + 1}`}</span>
+                <span className="text-indigo-500">X</span>
+                <span className="font-mono text-copper-200">{p.pinPositionX.toFixed(1)}</span>
+                <span className="text-indigo-500">mm</span>
+                <span className="text-indigo-600 mx-0.5">|</span>
+                <span className="text-indigo-500">Y</span>
+                <span className="font-mono text-copper-200">{p.pinPositionY.toFixed(1)}</span>
+                <span className="text-indigo-500">mm</span>
+              </div>
+            ))}
           </div>
         </div>
 

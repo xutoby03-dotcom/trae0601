@@ -1,4 +1,4 @@
-import { Plus, Trash2, MoveRight, MoveDown, Clock, Check, Loader, Circle } from 'lucide-react';
+import { Plus, Trash2, MoveRight, MoveDown, Clock, Check, Loader, Circle, MapPin } from 'lucide-react';
 import { useCalibrationStore } from '../../store/useCalibrationStore';
 import { PRESET_COLORS } from '../../types/calibration';
 import type { ColorPlate, PlateStatus } from '../../types/calibration';
@@ -142,6 +142,37 @@ const PlateRow = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolea
                 onClick={e => e.stopPropagation()}
                 className="w-6 h-6 rounded cursor-pointer border border-indigo-700/60 bg-transparent"
               />
+            </div>
+          </div>
+
+          <div className="mt-2.5 pt-2.5 border-t border-indigo-700/40 grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-copper-300" />
+              <span className="text-copper-200/70">针位</span>
+              <span className="text-indigo-500">X</span>
+              <input
+                type="number"
+                step="0.1"
+                value={plate.pinPositionX}
+                onChange={e => updatePlate(plate.id, { pinPositionX: parseFloat(e.target.value) || 0 })}
+                onClick={e => e.stopPropagation()}
+                className="w-14 bg-indigo-900/60 border border-indigo-700/60 rounded px-1.5 py-0.5 text-center font-mono text-sm text-copper-200"
+              />
+              <span className="text-indigo-500">mm</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3" />
+              <span className="text-copper-200/70">　</span>
+              <span className="text-indigo-500">Y</span>
+              <input
+                type="number"
+                step="0.1"
+                value={plate.pinPositionY}
+                onChange={e => updatePlate(plate.id, { pinPositionY: parseFloat(e.target.value) || 0 })}
+                onClick={e => e.stopPropagation()}
+                className="w-14 bg-indigo-900/60 border border-indigo-700/60 rounded px-1.5 py-0.5 text-center font-mono text-sm text-copper-200"
+              />
+              <span className="text-indigo-500">mm</span>
             </div>
           </div>
 
