@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ClipboardList,
   Plus,
@@ -13,8 +13,21 @@ import {
   Play,
   Pause,
   Download,
+  Sparkles,
+  Eye,
+  Ghost,
+  Shield,
+  ThermometerSun,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import {
+  GHOST_LEVEL_LABELS,
+  OCCLUSION_LEVEL_LABELS,
+  COLOR_TEMP_LABELS,
+  type GhostLevel,
+  type OcclusionLevel,
+  type ColorTempBias,
+} from '@/types';
 
 const chartColors = ['#8B4513', '#D4AF37', '#4A7C59', '#8B0000', '#2E5EAA', '#6B4C9A'];
 
@@ -29,6 +42,7 @@ export default function Schedule() {
     puppets,
     lightPositions,
     lamps,
+    calibrations,
     scenes,
     addScene,
     updateScene,
@@ -64,6 +78,31 @@ export default function Schedule() {
     const lamp = lamps.find((l) => l.id === lp.lampId);
     return !!lp.lampId && !!lamp;
   });
+
+  const ghostScore: Record<GhostLevel, number> = { none: 3, light: 1, severe: 0 };
+  const occlusionScore: Record<OcclusionLevel, number> = { none: 3, partial: 1, full: 0 };
+  const colorTempScore: Record<ColorTempBias, number> = { normal: 2, cool: 1, warm: 1 };
+
+  const recommendedLp = useMemo(() => {
+    const scored = validLightPositions
+      .map((lp) => {
+        const cal = calibrations.find((c) => c.lightPositionId === lp.id);
+        if (!cal) return { lp, score: -1, cal: null };
+        const score =
+          cal.sharpnessScore * 2 +
+          ghostScore[cal.ghostLevel] * 5 +
+          occlusionScore[cal.occlusionLevel] * 5 +
+          colorTempScore[cal.colorTempBias] * 3;
+        return { lp, score, cal };
+      })
+      .filter((s) => s.score >= 0)
+      .sort((a, b) => b.score - a.score);
+    return scored.length > 0 ? scored[0] : null;
+  }, [validLightPositions, calibrations]);
+
+  const hasCalibratedLp = validLightPositions.some((lp) =>
+    calibrations.some((c) => c.lightPositionId === lp.id)
+  );
 
   const handleAddEntry = () => {
     if (!activeSceneId) return;
@@ -466,26 +505,71 @@ export default function Schedule() {
                                     ))}
                                   </select>
                                 </div>
-                                <div>
+                                <div className="col-span-2 md:col-span-1">
                                   <label className="label-text">对应灯位</label>
-                                  <select
-                                    className="input-field text-sm"
-                                    value={entry.lightPositionId}
-                                    onChange={(e) =>
-                                      updateCharacterEntry(entry.id, {
-                                        lightPositionId: e.target.value,
-                                      })
-                                    }
-                                  >
-                                    {validLightPositions.length === 0 && (
-                                      <option value="">暂无有效灯位</option>
+                                  <div className="flex gap-2">
+                                    <select
+                                      className="input-field text-sm flex-1"
+                                      value={entry.lightPositionId}
+                                      onChange={(e) =>
+                                        updateCharacterEntry(entry.id, {
+                                          lightPositionId: e.target.value,
+                                        })
+                                      }
+                                    >
+                                      {validLightPositions.length === 0 && (
+                                        <option value="">暂无有效灯位</option>
+                                      )}
+                                      {validLightPositions.map((l) => (
+                                        <option key={l.id} value={l.id}>
+                                          {l.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {recommendedLp && (
+                                      <button
+                                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-gold-300/20 to-ocher-300/20 border border-gold-300/40 text-ocher-700 hover:from-gold-300/30 hover:to-ocher-300/30 transition-colors"
+                                        onClick={() =>
+                                          updateCharacterEntry(entry.id, {
+                                            lightPositionId: recommendedLp.lp.id,
+                                          })
+                                        }
+                                        title={`推荐 ${recommendedLp.lp.name}：清晰度${recommendedLp.cal!.sharpnessScore}/10 · ${GHOST_LEVEL_LABELS[recommendedLp.cal!.ghostLevel]} · ${OCCLUSION_LEVEL_LABELS[recommendedLp.cal!.occlusionLevel]} · 色温${COLOR_TEMP_LABELS[recommendedLp.cal!.colorTempBias]}`}
+                                      >
+                                        <Sparkles className="w-4 h-4 text-gold-400" />
+                                        推荐
+                                      </button>
                                     )}
-                                    {validLightPositions.map((l) => (
-                                      <option key={l.id} value={l.id}>
-                                        {l.name}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  </div>
+                                  {recommendedLp && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-ocher-500">
+                                      <span className="flex items-center gap-1 bg-gold-300/10 rounded px-1.5 py-0.5">
+                                        <Sparkles className="w-3 h-3 text-gold-400" />
+                                        推荐 <strong className="text-ocher-700">{recommendedLp.lp.name}</strong>
+                                      </span>
+                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                        <Eye className="w-3 h-3" />
+                                        清晰度 {recommendedLp.cal!.sharpnessScore}/10
+                                      </span>
+                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                        <Ghost className="w-3 h-3" />
+                                        {GHOST_LEVEL_LABELS[recommendedLp.cal!.ghostLevel]}
+                                      </span>
+                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                        <Shield className="w-3 h-3" />
+                                        {OCCLUSION_LEVEL_LABELS[recommendedLp.cal!.occlusionLevel]}
+                                      </span>
+                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                        <ThermometerSun className="w-3 h-3" />
+                                        色温{COLOR_TEMP_LABELS[recommendedLp.cal!.colorTempBias]}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {!hasCalibratedLp && validLightPositions.length > 0 && (
+                                    <p className="mt-1.5 text-xs text-ocher-400">
+                                      暂无校准数据可推荐，请先在「光学校准」中录入评分
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <label className="label-text">开始时间(秒)</label>
