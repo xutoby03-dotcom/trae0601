@@ -116,10 +116,9 @@ const App: React.FC = () => {
     setRecords(prev => prev.filter(r => r.id !== id));
   }, []);
 
-  const handleClearAll = useCallback(() => {
-    if (window.confirm('确定要清空所有观测记录吗？此操作无法撤销。')) {
-      setRecords([]);
-    }
+  const handleDeleteMultiple = useCallback((ids: string[]) => {
+    const idSet = new Set(ids);
+    setRecords(prev => prev.filter(r => !idSet.has(r.id)));
   }, []);
 
   const handleAzimuthSelect = useCallback((azimuth: number) => {
@@ -226,7 +225,7 @@ const App: React.FC = () => {
           <RecordList
             records={records}
             onDelete={handleDeleteRecord}
-            onClearAll={handleClearAll}
+            onDeleteMultiple={handleDeleteMultiple}
           />
         </section>
 
