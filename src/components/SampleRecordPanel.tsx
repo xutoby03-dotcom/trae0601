@@ -3,6 +3,7 @@ import { Plus, Trash2, Thermometer, Droplets, Camera, FileText, X, Save, Image a
 import { SampleRecord } from '@/types';
 import { useSamplingStore } from '@/stores/useSamplingStore';
 import { formatDateTime } from '@/utils/formatters';
+import { getSalinityStatus, getWaterTempStatus, statusConfig, SALINITY_RANGE, WATER_TEMP_RANGE } from '@/utils/readingStatus';
 import { cn } from '@/lib/utils';
 
 interface SampleRecordPanelProps {
@@ -188,9 +189,14 @@ export default function SampleRecordPanel({ siteId }: SampleRecordPanelProps) {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  盐度 (‰)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-slate-600">
+                    盐度 (‰)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    正常 {SALINITY_RANGE.min}-{SALINITY_RANGE.max}‰
+                  </span>
+                </div>
                 <input
                   type="number"
                   step="0.1"
@@ -199,11 +205,30 @@ export default function SampleRecordPanel({ siteId }: SampleRecordPanelProps) {
                   className="w-full px-2.5 py-1.5 text-sm border border-cyan-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-white"
                   placeholder="0.0"
                 />
+                {(() => {
+                  const salinityValue = formData.salinity ? Number(formData.salinity) : null;
+                  const status = getSalinityStatus(salinityValue);
+                  const config = statusConfig[status];
+                  if (status === 'empty') return null;
+                  return (
+                    <span className={cn(
+                      'inline-flex items-center px-1.5 py-0.5 mt-1 text-[10px] font-medium rounded-full border',
+                      config.className
+                    )}>
+                      {config.label}
+                    </span>
+                  );
+                })()}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  水温 (°C)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-slate-600">
+                    水温 (°C)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    正常 {WATER_TEMP_RANGE.min}-{WATER_TEMP_RANGE.max}°C
+                  </span>
+                </div>
                 <input
                   type="number"
                   step="0.1"
@@ -212,6 +237,20 @@ export default function SampleRecordPanel({ siteId }: SampleRecordPanelProps) {
                   className="w-full px-2.5 py-1.5 text-sm border border-cyan-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 bg-white"
                   placeholder="0.0"
                 />
+                {(() => {
+                  const tempValue = formData.waterTemperature ? Number(formData.waterTemperature) : null;
+                  const status = getWaterTempStatus(tempValue);
+                  const config = statusConfig[status];
+                  if (status === 'empty') return null;
+                  return (
+                    <span className={cn(
+                      'inline-flex items-center px-1.5 py-0.5 mt-1 text-[10px] font-medium rounded-full border',
+                      config.className
+                    )}>
+                      {config.label}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
 
@@ -355,15 +394,41 @@ export default function SampleRecordPanel({ siteId }: SampleRecordPanelProps) {
                 )}
 
                 <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Droplets size={12} className="text-cyan-500" />
-                    <span>盐度：</span>
-                    <span className="font-medium">{record.salinity}‰</span>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-slate-600 mb-0.5">
+                      <Droplets size={12} className="text-cyan-500" />
+                      <span className="font-medium">{record.salinity}‰</span>
+                    </div>
+                    {(() => {
+                      const status = getSalinityStatus(record.salinity);
+                      const config = statusConfig[status];
+                      return (
+                        <span className={cn(
+                          'inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded-full border',
+                          config.className
+                        )}>
+                          {config.label}
+                        </span>
+                      );
+                    })()}
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Thermometer size={12} className="text-orange-500" />
-                    <span>水温：</span>
-                    <span className="font-medium">{record.waterTemperature}°C</span>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-slate-600 mb-0.5">
+                      <Thermometer size={12} className="text-orange-500" />
+                      <span className="font-medium">{record.waterTemperature}°C</span>
+                    </div>
+                    {(() => {
+                      const status = getWaterTempStatus(record.waterTemperature);
+                      const config = statusConfig[status];
+                      return (
+                        <span className={cn(
+                          'inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded-full border',
+                          config.className
+                        )}>
+                          {config.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
