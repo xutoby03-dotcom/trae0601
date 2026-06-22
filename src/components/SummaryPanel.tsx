@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { BarChart3, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Trophy, Target } from "lucide-react";
+import { BarChart3, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, Trophy, Target, Clock, Weight, RotateCcw } from "lucide-react";
 import { useKnotStore } from "@/store/useKnotStore";
-import { calculateStudentSummary, formatTime } from "@/utils/knotUtils";
+import { calculateStudentSummary, formatTime, formatDate } from "@/utils/knotUtils";
 import StatusBadge from "./StatusBadge";
-import { KNOT_TYPES } from "@/types/knot";
+import { KNOT_TYPES, KnotRecord } from "@/types/knot";
 
 export default function SummaryPanel() {
   const { records } = useKnotStore();
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+  const [expandedKnot, setExpandedKnot] = useState<string | null>(null);
 
   const studentSummaries = useMemo(() => {
     const studentNames = [...new Set(records.map((r) => r.studentName))].sort();
@@ -17,7 +18,35 @@ export default function SummaryPanel() {
   }, [records]);
 
   const toggleStudent = (name: string) => {
-    setExpandedStudent(expandedStudent === name ? null : name);
+    if (expandedStudent === name) {
+      setExpandedStudent(null);
+      setExpandedKnot(null);
+    } else {
+      setExpandedStudent(name);
+      setExpandedKnot(null);
+    }
+  };
+
+  const toggleKnotDetail = (studentName: string, knotType: string) => {
+    const key = `${studentName}-${knotType}`;
+    setExpandedKnot(expandedKnot === key ? null : key);
+  };
+
+  const getStudentKnotRecords = (studentName: string, knotType: string): KnotRecord[] => {
+    return records
+      .filter((r) => r.studentName === studentName && r.knotType === knotType)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+  };
+
+  const getRecordFailureReasons = (record: KnotRecord): string[] => {
+    const reasons: string[] = [];
+    if (record.slipped) reasons.push("滑脱");
+    if (record.capsized) reasons.push("翻结");
+    if (record.sheathWear) reasons.push("绳皮磨损");
+    return reasons;
   };
 
   const totalRecords = records.length;
@@ -194,7 +223,7 @@ export default function SummaryPanel() {
                                 <div className="text-xs text-amber-700 font-medium mb-1">
                                   暂不可用于实战的原因：
                                 </div>
-                                <ul className="text-xs text-amber-600 space-y-0.5">
+                                <ul className="text-xs text-amber-600 space-y-0.5 mb-2">
                                   {stat.reasons.map((reason, i) => (
                                     <li key={i} className="flex items-start gap-1">
                                       <span className="text-amber-500">•</span>
@@ -202,6 +231,108 @@ export default function SummaryPanel() {
                                     </li>
                                   ))}
                                 </ul>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleKnotDetail(summary.studentName, stat.knotType);
+                                  }}
+                                  className="w-full flex items-center justify-between px-3 py-2 text-xs text-amber-700 bg-amber-100/50 hover:bg-amber-100 rounded-lg transition-colors"
+                                >
+                                  <span className="font-medium flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    查看测试记录明细
+                                  </span>
+                                  {expandedKnot === `${summary.studentName}-${stat.knotType}` ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                  )}
+                                </button>
+
+                                {expandedKnot === `${summary.studentName}-${stat.knotType}` && (
+                                  <div className="mt-2 space-y-2 animate-fadeIn">
+                                    {getStudentKnotRecords(summary.studentName, stat.knotType).map(
+                                      (record, idx) => {
+                                        const failureReasons = getRecordFailureReasons(record);
+                                        const hasIssues = failureReasons.length > 0;
+                                        return (
+                                          <div
+                                            key={record.id}
+                                            className={`p-3 rounded-lg border ${
+                                              hasIssues
+                                                ? "bg-rope-50/80 border-rope-200"
+                                                : "bg-emerald-50/80 border-emerald-200"
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between mb-2">
+                                              <span className="text-xs font-semibold text-olive-800">
+                                                {idx === 0 ? "最近一次" : `第 ${idx + 1} 次`}测试
+                                              </span>
+                                              <span className="text-xs text-olive-400 flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {formatDate(record.createdAt)}
+                                              </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-4 text-xs text-olive-600 mb-2">
+                                              <span className="flex items-center gap-1">
+                                                <Weight className="w-3.5 h-3.5 text-olive-500" />
+                                                <span className="font-semibold">{record.testWeight}kg</span>
+                                              </span>
+                                              {record.retryCount > 0 && (
+                                                <span className="flex items-center gap-1">
+                                                  <RotateCcw className="w-3.5 h-3.5 text-rope-500" />
+                                                  <span className="font-semibold text-rope-600">
+                                                    复打 {record.retryCount} 次
+                                                  </span>
+                                                </span>
+                                              )}
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-1">
+                                              {hasIssues ? (
+                                                failureReasons.map((reason) => (
+                                                  <StatusBadge
+                                                    key={reason}
+                                                    type={reason === "滑脱" ? "danger" : "warning"}
+                                                    pulse={hasIssues}
+                                                  >
+                                                    {reason}
+                                                  </StatusBadge>
+                                                ))
+                                              ) : (
+                                                <StatusBadge type="success">
+                                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                                  通过
+                                                </StatusBadge>
+                                              )}
+                                            </div>
+
+                                            {record.notes && (
+                                              <p className="text-xs text-olive-500 mt-2 pt-2 border-t border-olive-100/50">
+                                                备注：{record.notes}
+                                              </p>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    )}
+
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedKnot(null);
+                                      }}
+                                      className="w-full py-2 text-xs text-olive-500 hover:text-olive-700 hover:bg-olive-50 rounded-lg transition-colors"
+                                    >
+                                      <span className="flex items-center justify-center gap-1">
+                                        <ChevronUp className="w-3 h-3" />
+                                        收起明细
+                                      </span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </>
