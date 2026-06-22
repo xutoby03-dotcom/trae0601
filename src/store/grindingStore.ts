@@ -56,6 +56,7 @@ interface GrindingState {
   deleteSpec: (id: string) => void
   toggleSpecDrawer: () => void
   resetCurrent: () => void
+  loadSpecToCurrent: (spec: GrindingSpec) => void
 }
 
 const defaultRecord: Omit<GrindingRecord, 'id' | 'createdAt'> = {
@@ -158,6 +159,24 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
   toggleSpecDrawer: () => set((s) => ({ specDrawerOpen: !s.specDrawerOpen })),
 
   resetCurrent: () => set({ currentRecord: { ...defaultRecord } }),
+
+  loadSpecToCurrent: (spec) => {
+    set({
+      currentRecord: {
+        spiceName: spec.spiceName,
+        roastLevel: spec.roastLevel,
+        equipment: spec.equipment,
+        meshSize: spec.meshSize,
+        shutdownTemp: spec.shutdownTemp,
+        aromaIntensity: spec.aromaIntensity,
+        layering: spec.layering,
+        persistence: spec.persistence,
+        recipeRatio: spec.recipeRatio,
+        notes: spec.originalNotes,
+      },
+      specDrawerOpen: false,
+    })
+  },
 }))
 
 export const ROAST_LEVELS: { value: RoastLevel; label: string; color: string }[] = [

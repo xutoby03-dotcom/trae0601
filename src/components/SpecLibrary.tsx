@@ -1,8 +1,8 @@
 import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS, type GrindingSpec } from '@/store/grindingStore'
-import { BookOpen, X, Trash2, FileDown, Star, MessageSquare, FileText } from 'lucide-react'
+import { BookOpen, X, Trash2, FileDown, Star, MessageSquare, FileText, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
-function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void }) {
+function SpecCard({ spec, onDelete, onReuse }: { spec: GrindingSpec; onDelete: () => void; onReuse: () => void }) {
   const roast = ROAST_LEVELS.find((r) => r.value === spec.roastLevel)
   const equip = EQUIPMENTS.find((e) => e.value === spec.equipment)
   const avgScore = ((spec.aromaIntensity + spec.layering + spec.persistence) / 3).toFixed(1)
@@ -79,7 +79,7 @@ function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void
       )}
 
       {spec.specNotes && (
-        <div className="border-t border-amber-900/20 pt-2">
+        <div className="border-t border-amber-900/20 pt-2 mb-3">
           <p className="text-amber-600/40 text-[10px] mb-1 flex items-center gap-1">
             <FileText className="w-2.5 h-2.5" /> 规范备注
           </p>
@@ -88,12 +88,20 @@ function SpecCard({ spec, onDelete }: { spec: GrindingSpec; onDelete: () => void
           </p>
         </div>
       )}
+
+      <button
+        onClick={onReuse}
+        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-amber-700/40 to-amber-600/40 text-amber-200 text-[11px] font-bold border border-amber-600/30 hover:from-amber-600/50 hover:to-amber-500/50 hover:border-amber-500/50 transition-all"
+      >
+        <RefreshCw className="w-3 h-3" />
+        复用此规范 · 填回表单微调
+      </button>
     </div>
   )
 }
 
 export default function SpecLibrary() {
-  const { specs, deleteSpec, toggleSpecDrawer, specDrawerOpen, records, createSpec } = useGrindingStore()
+  const { specs, deleteSpec, toggleSpecDrawer, specDrawerOpen, records, createSpec, loadSpecToCurrent } = useGrindingStore()
   const [selectedRecordId, setSelectedRecordId] = useState('')
   const [specNotes, setSpecNotes] = useState('')
   const [filterSpice, setFilterSpice] = useState('')
@@ -191,7 +199,7 @@ export default function SpecLibrary() {
               ) : (
                 <div className="space-y-3">
                   {filteredSpecs.map((spec) => (
-                    <SpecCard key={spec.id} spec={spec} onDelete={() => deleteSpec(spec.id)} />
+                    <SpecCard key={spec.id} spec={spec} onDelete={() => deleteSpec(spec.id)} onReuse={() => loadSpecToCurrent(spec)} />
                   ))}
                 </div>
               )}
