@@ -5,8 +5,24 @@ import type { WaxModel, WaxStatus } from '@/types';
 import StatusColumn from './StatusColumn';
 
 export default function KanbanBoard() {
-  const { getFilteredItems } = useWaxStore();
-  const filtered = useMemo(() => getFilteredItems(), [getFilteredItems]);
+  const { items, searchKeyword, defectFilter, rodFilter } = useWaxStore();
+  const filtered = useMemo(() => {
+    const kw = searchKeyword.trim().toLowerCase();
+    return items.filter((it) => {
+      if (kw) {
+        const matched =
+          it.id.toLowerCase().includes(kw) ||
+          it.orderNo.toLowerCase().includes(kw) ||
+          it.ringSize.toLowerCase().includes(kw) ||
+          it.stoneSize.toLowerCase().includes(kw);
+        if (!matched) return false;
+      }
+      if (defectFilter === 'has' && it.defects.length === 0) return false;
+      if (defectFilter === 'none' && it.defects.length > 0) return false;
+      if (rodFilter !== 'all' && it.rodPosition !== rodFilter) return false;
+      return true;
+    });
+  }, [items, searchKeyword, defectFilter, rodFilter]);
 
   const grouped = useMemo(() => {
     const g: Record<WaxStatus, WaxModel[]> = {
