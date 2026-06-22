@@ -80,6 +80,37 @@ export function getTopDesyncMetric(r: SegmentRecord): DesyncMetricInfo {
   return results[0]
 }
 
+export interface DesyncReasonInfo {
+  metric: DesyncMetricInfo
+  contributionPct: number
+  hasValidData: boolean
+}
+
+export function getDesyncReason(r: SegmentRecord): DesyncReasonInfo {
+  const metric = getTopDesyncMetric(r)
+  const contributionPct =
+    r.desyncIndex > 0 ? Math.min((metric.contribution / r.desyncIndex) * 100, 100) : 0
+  const hasValidData = r.entryTimeDiff + r.yawAngle + r.sprintSpeedDrop + r.commandResponseTime > 0
+  return { metric, contributionPct: Number.isFinite(contributionPct) ? contributionPct : 0, hasValidData }
+}
+
+export function formatDesyncBadge(reason: DesyncReasonInfo): string {
+  if (!reason.hasValidData) return "暂无数据"
+  if (reason.contributionPct <= 0) return `${reason.metric.shortLabel}`
+  return `${reason.metric.shortLabel} ${reason.metric.value}${reason.metric.unit} · 占${reason.contributionPct.toFixed(0)}%`
+}
+
+export function formatDesyncReasonLine(reason: DesyncReasonInfo): { title: string; valueText: string; pctText: string } {
+  if (!reason.hasValidData) {
+    return { title: reason.metric.label, valueText: "未录入", pctText: "" }
+  }
+  return {
+    title: reason.metric.label,
+    valueText: `${reason.metric.value}${reason.metric.unit}`,
+    pctText: reason.contributionPct > 0 ? `贡献 ${reason.contributionPct.toFixed(0)}%` : "",
+  }
+}
+
 const STORAGE_KEY = "rowing-sessions"
 
 function loadSessions(): TrainingSession[] {
