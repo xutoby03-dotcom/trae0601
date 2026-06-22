@@ -21,14 +21,23 @@ export default function BasicInfoForm() {
           <Palette className="w-4 h-4" />
           模特肤色
         </label>
+        <input
+          type="text"
+          value={record.modelSkinTone}
+          onChange={(e) => setBasicInfo('modelSkinTone', e.target.value)}
+          placeholder="可自由输入，或点下方色卡快速选择"
+          className="input-field mb-3"
+        />
         <div className="grid grid-cols-6 gap-2">
           {SKIN_TONES.map((tone) => {
-            const selected = record.modelSkinTone === tone.id;
+            const selected =
+              record.modelSkinTone === tone.id ||
+              record.modelSkinTone === tone.name;
             return (
               <button
                 key={tone.id}
                 type="button"
-                onClick={() => setBasicInfo('modelSkinTone', tone.id)}
+                onClick={() => setBasicInfo('modelSkinTone', tone.name)}
                 className={`group flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all duration-200 ${
                   selected
                     ? 'bg-cream-100 ring-2 ring-rose-gold shadow-sm'
@@ -60,6 +69,13 @@ export default function BasicInfoForm() {
           <Palette className="w-4 h-4" />
           粉底色号
         </label>
+        <input
+          type="text"
+          value={record.foundationShade}
+          onChange={(e) => setBasicInfo('foundationShade', e.target.value)}
+          placeholder="可自由输入，或点下方色号快速选择"
+          className="input-field mb-3"
+        />
         <div className="flex flex-wrap gap-2">
           {FOUNDATION_SHADES.map((shade) => {
             const selected = record.foundationShade === shade;
