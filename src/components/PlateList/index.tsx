@@ -310,15 +310,17 @@ const PlateRowReadonly = ({ plate, isSelected }: { plate: ColorPlate; isSelected
 
           <div className="mt-2 pt-2 border-t border-indigo-700/30">
             {markedIssues.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5 issue-tags-scroll">
                 {markedIssues.map(issue => (
                   <span
                     key={issue.type}
-                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-medium ${issueTagCls[issue.type]}`}
+                    className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-medium ${issueTagCls[issue.type]}`}
                   >
                     {issue.label}
                     {issue.remark && (
-                      <span className="text-[10px] opacity-60 truncate max-w-[80px]">{issue.remark}</span>
+                      <span className="text-[10px] opacity-70">
+                        · {issue.remark}
+                      </span>
                     )}
                   </span>
                 ))}
