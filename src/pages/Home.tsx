@@ -31,6 +31,11 @@ export default function Home() {
     window.setTimeout(() => setJustSaved(false), 1800);
   };
 
+  const handleReset = () => {
+    reset();
+    setRiskFilter(null);
+  };
+
   const handlePrint = () => {
     saveToLocal();
     window.print();
@@ -105,7 +110,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={reset}
+                onClick={handleReset}
                 className="btn-secondary flex items-center gap-1.5 text-sm"
               >
                 <RotateCcw className="w-4 h-4" />
