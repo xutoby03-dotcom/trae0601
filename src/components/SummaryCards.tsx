@@ -9,7 +9,6 @@ import {
   Circle,
   CircleDashed,
   CheckCircle2,
-  ArrowRight,
 } from 'lucide-react';
 import { useDutyStore } from '../store/useDutyStore';
 import { getVisibilityLevel, formatTime, formatDateTime } from '../utils/helpers';
@@ -88,12 +87,8 @@ function MaintenanceCard() {
     [maintenanceOrders]
   );
 
-  const handleNextStatus = (order: MaintenanceOrder) => {
-    const flow: MaintenanceOrder['status'][] = ['open', 'in_progress', 'completed'];
-    const idx = flow.indexOf(order.status);
-    if (idx < flow.length - 1) {
-      updateMaintenanceOrderStatus(order.id, flow[idx + 1]);
-    }
+  const handleSetStatus = (orderId: string, status: MaintenanceOrder['status']) => {
+    updateMaintenanceOrderStatus(orderId, status);
   };
 
   return (
@@ -122,11 +117,6 @@ function MaintenanceCard() {
             <div className="mt-3 space-y-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-1 -mr-1">
               {sortedOrders.map((order) => {
                 const currentStatus = STATUS_FLOW.find((s) => s.value === order.status);
-                const nextStatus = STATUS_FLOW.find((s) => {
-                  const flow: MaintenanceOrder['status'][] = ['open', 'in_progress', 'completed'];
-                  const idx = flow.indexOf(order.status);
-                  return s.value === flow[idx + 1];
-                });
                 const priorityCfg = PRIORITY_CONFIG[order.priority];
                 const isCompleted = order.status === 'completed';
 
@@ -135,9 +125,10 @@ function MaintenanceCard() {
                     key={order.id}
                     className={`bg-ocean-950/60 rounded-lg p-3 border transition-all ${
                       isCompleted
-                        ? 'border-ocean-700/20 opacity-60'
+                        ? 'border-ocean-700/20'
                         : 'border-ocean-700/40'
                     }`}
+                    style={{ opacity: isCompleted ? 0.7 : 1 }}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -171,18 +162,25 @@ function MaintenanceCard() {
                       </div>
                     </div>
 
-                    {!isCompleted && nextStatus && (
-                      <button
-                        onClick={() => handleNextStatus(order)}
-                        className="mt-2.5 w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg bg-ocean-800/50 text-ocean-200 hover:bg-ocean-700/60 border border-ocean-600/30 transition-colors"
-                      >
-                        <span>标记为</span>
-                        <span className={`chip ${nextStatus.chip} text-[10px] py-0 px-1.5`}>
-                          {nextStatus.label}
-                        </span>
-                        <ArrowRight size={12} />
-                      </button>
-                    )}
+                    <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+                      {STATUS_FLOW.map((status) => {
+                        const active = order.status === status.value;
+                        return (
+                          <button
+                            key={status.value}
+                            onClick={() => handleSetStatus(order.id, status.value)}
+                            className={`text-[11px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all border ${
+                              active
+                                ? `${status.chip} border-current shadow-sm`
+                                : 'bg-ocean-800/30 text-ocean-400 border-ocean-700/30 hover:bg-ocean-800/60 hover:text-ocean-200'
+                            }`}
+                          >
+                            {status.icon}
+                            <span>{status.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
