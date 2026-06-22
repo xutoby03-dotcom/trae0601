@@ -81,27 +81,11 @@ export default function SiteCard({ site, isSelected, onEdit }: SiteCardProps) {
   const departureCountdown = formatCountdown(tideWindow.latestDeparture, now);
   const evacuateCountdown = formatCountdown(tideWindow.mustEvacuate, now);
 
-  const nowMs = now.getTime();
-  const depMs = tideWindow.latestDeparture.getTime();
-  const evMs = tideWindow.mustEvacuate.getTime();
+  const depLevel = departureCountdown.level;
+  const evLevel = evacuateCountdown.level;
 
-  let styleLevel: keyof typeof countdownLevelStyles;
-  if (depMs < nowMs) {
-    styleLevel = 'missed';
-  } else if (depMs - nowMs <= 10 * 60000) {
-    styleLevel = 'critical';
-  } else if (depMs - nowMs <= 30 * 60000) {
-    styleLevel = 'urgent';
-  } else {
-    styleLevel = 'safe';
-  }
-
-  const depStyles = countdownLevelStyles[styleLevel].departure;
-  const evStyles = (() => {
-    if (evMs < nowMs) return countdownLevelStyles.missed.evacuate;
-    if (evMs - nowMs <= 30 * 60000) return countdownLevelStyles.critical.evacuate;
-    return countdownLevelStyles[styleLevel].evacuate;
-  })();
+  const depStyles = countdownLevelStyles[depLevel].departure;
+  const evStyles = countdownLevelStyles[evLevel].evacuate;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -115,8 +99,8 @@ export default function SiteCard({ site, isSelected, onEdit }: SiteCardProps) {
     onEdit(site);
   };
 
-  const showUrgentBanner = styleLevel === 'urgent' || styleLevel === 'critical' || styleLevel === 'missed';
-  const isMissedDeparture = styleLevel === 'missed';
+  const showUrgentBanner = depLevel !== 'safe';
+  const isMissedDeparture = depLevel === 'missed';
 
   return (
     <div
@@ -134,7 +118,7 @@ export default function SiteCard({ site, isSelected, onEdit }: SiteCardProps) {
           'absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0',
           isMissedDeparture
             ? 'bg-slate-600 text-white'
-            : styleLevel === 'critical'
+            : depLevel === 'critical'
               ? 'bg-red-500 text-white animate-pulse'
               : 'bg-amber-500 text-white animate-pulse'
         )}>

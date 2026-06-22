@@ -15,11 +15,13 @@ export function useNow(intervalMs: number = 30000): Date {
 
 export function formatCountdown(target: Date, now: Date): { text: string; level: 'safe' | 'urgent' | 'critical' | 'missed' } {
   const diffMs = target.getTime() - now.getTime();
-  const diffMins = Math.round(diffMs / 60000);
 
-  if (diffMins < 0) {
+  if (diffMs < 0) {
     return { text: '已错过', level: 'missed' };
   }
+
+  const diffMins = Math.round(diffMs / 60000);
+
   if (diffMins <= 10) {
     const mins = diffMins;
     return { text: mins === 0 ? '不到1分钟' : `${mins} 分钟`, level: 'critical' };

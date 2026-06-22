@@ -47,22 +47,33 @@ export default function TideTimeline({ site }: TideTimelineProps) {
   const evMs = tideWindow.mustEvacuate.getTime();
   const endMs = tideWindow.tideEnd.getTime();
 
+  const departureCountdown = formatCountdown(tideWindow.latestDeparture, now);
+  const evacuateCountdown = formatCountdown(tideWindow.mustEvacuate, now);
+  const endCountdown = formatCountdown(tideWindow.tideEnd, now);
+
+  const depLevel = departureCountdown.level;
+  const evLevel = evacuateCountdown.level;
+
+  const depDiffMs = depMs - nowMs;
+  const evDiffMs = evMs - nowMs;
+  const endDiffMs = endMs - nowMs;
+
   let warnLevel: 'none' | 'departure30' | 'departure10' | 'departureMissed' | 'evacuate30' | 'evacuate10' | 'evacuateMissed' | 'windowEnding';
-  if (endMs < nowMs) {
+  if (endDiffMs < 0) {
     warnLevel = 'evacuateMissed';
-  } else if (endMs - nowMs <= 20 * 60000 && evMs <= nowMs) {
+  } else if (endDiffMs <= 20 * 60000 && evDiffMs < 0) {
     warnLevel = 'windowEnding';
-  } else if (evMs < nowMs) {
+  } else if (evDiffMs < 0) {
     warnLevel = 'evacuateMissed';
-  } else if (evMs - nowMs <= 10 * 60000) {
+  } else if (evDiffMs <= 10 * 60000) {
     warnLevel = 'evacuate10';
-  } else if (evMs - nowMs <= 30 * 60000) {
+  } else if (evDiffMs <= 30 * 60000) {
     warnLevel = 'evacuate30';
-  } else if (depMs < nowMs) {
+  } else if (depDiffMs < 0) {
     warnLevel = 'departureMissed';
-  } else if (depMs - nowMs <= 10 * 60000) {
+  } else if (depDiffMs <= 10 * 60000) {
     warnLevel = 'departure10';
-  } else if (depMs - nowMs <= 30 * 60000) {
+  } else if (depDiffMs <= 30 * 60000) {
     warnLevel = 'departure30';
   } else {
     warnLevel = 'none';
@@ -76,7 +87,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: XCircle,
           title: '必须立即撤离！',
-          sub: '潮水已回涨到警戒线以上，' + formatCountdown(tideWindow.mustEvacuate, now).text + '到达撤离时间',
+          sub: '潮水已回涨到警戒线以上，已过撤离时间',
           pulse: 'animate-pulse',
         };
       case 'windowEnding':
@@ -85,7 +96,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: Waves,
           title: '窗口即将关闭！',
-          sub: '距离潮水回涨结束还有 ' + formatCountdown(tideWindow.tideEnd, now).text,
+          sub: '距离潮水回涨结束还有 ' + endCountdown.text,
           pulse: 'animate-pulse',
         };
       case 'evacuate10':
@@ -94,7 +105,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: AlertTriangle,
           title: '紧急：10分钟内必须撤离',
-          sub: '还剩 ' + formatCountdown(tideWindow.mustEvacuate, now).text + '，请立即收拾准备回程',
+          sub: '还剩 ' + evacuateCountdown.text + '，请立即收拾准备回程',
           pulse: 'animate-pulse',
         };
       case 'evacuate30':
@@ -103,7 +114,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: AlertTriangle,
           title: '半小时内需撤离',
-          sub: '距必须撤离还有 ' + formatCountdown(tideWindow.mustEvacuate, now).text + '，请留意时间',
+          sub: '距必须撤离还有 ' + evacuateCountdown.text + '，请留意时间',
           pulse: '',
         };
       case 'departureMissed':
@@ -112,7 +123,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: XCircle,
           title: '已错过最晚出发时间',
-          sub: formatCountdown(tideWindow.latestDeparture, now).text + '。若已出发请加快速度，否则考虑改期',
+          sub: '若已出发请加快速度，否则考虑改期',
           pulse: '',
         };
       case 'departure10':
@@ -121,7 +132,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: AlertTriangle,
           title: '10分钟内必须出发！',
-          sub: '距最晚出发还有 ' + formatCountdown(tideWindow.latestDeparture, now).text + '，立即行动！',
+          sub: '距最晚出发还有 ' + departureCountdown.text + '，立即行动！',
           pulse: 'animate-pulse',
         };
       case 'departure30':
@@ -130,7 +141,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           text: 'text-white',
           icon: AlertTriangle,
           title: '半小时内需出发',
-          sub: '距最晚出发还有 ' + formatCountdown(tideWindow.latestDeparture, now).text + '，请完成最后的准备',
+          sub: '距最晚出发还有 ' + departureCountdown.text + '，请完成最后的准备',
           pulse: '',
         };
       default:
@@ -148,9 +159,6 @@ export default function TideTimeline({ site }: TideTimelineProps) {
 
   const Icon = config.icon;
   const BannerIcon = warnBanner?.icon;
-
-  const depLevel = depMs < nowMs ? 'missed' : (depMs - nowMs <= 10 * 60000 ? 'critical' : depMs - nowMs <= 30 * 60000 ? 'urgent' : 'safe');
-  const evLevel = evMs < nowMs ? 'missed' : (evMs - nowMs <= 10 * 60000 ? 'critical' : evMs - nowMs <= 30 * 60000 ? 'urgent' : 'safe');
 
   const depBoxStyle = depLevel === 'safe'
     ? 'bg-amber-50 border-amber-100'
@@ -310,8 +318,8 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           </p>
           <p className={cn('text-xs', depSubColor)}>
             {depLevel === 'missed'
-              ? `已错过 ${formatCountdown(tideWindow.latestDeparture, now).text.replace('已错过', '') || '一段时间'}`
-              : `还有 ${formatCountdown(tideWindow.latestDeparture, now).text}`}
+              ? '⚠ 已过出发时间'
+              : `还有 ${departureCountdown.text}`}
           </p>
         </div>
 
@@ -347,7 +355,7 @@ export default function TideTimeline({ site }: TideTimelineProps) {
           <p className={cn('text-xs', evSubColor)}>
             {evLevel === 'missed'
               ? '⚠ 已过撤离时间'
-              : `还有 ${formatCountdown(tideWindow.mustEvacuate, now).text}`}
+              : `还有 ${evacuateCountdown.text}`}
           </p>
         </div>
       </div>
