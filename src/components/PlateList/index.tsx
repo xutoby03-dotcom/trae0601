@@ -199,13 +199,20 @@ const PlateRowEditable = ({ plate, isSelected }: { plate: ColorPlate; isSelected
 const PlateRowReadonly = ({ plate, isSelected }: { plate: ColorPlate; isSelected: boolean }) => {
   const selectPlate = useCalibrationStore(s => s.selectPlate);
 
-  const hasIssue = plate.issues.some(i => i.marked);
+  const markedIssues = plate.issues.filter(i => i.marked);
   const totalOffset = Math.sqrt(plate.offsetX ** 2 + plate.offsetY ** 2);
   const offsetClass =
     totalOffset > 0.5 ? 'text-cinnabar-400' : totalOffset > 0.2 ? 'text-copper-300' : 'text-celadon-400';
 
   const status = statusConfig[plate.status];
   const StatusIcon = status.icon;
+
+  const issueTagCls: Record<string, string> = {
+    ghosting: 'bg-cinnabar-500/15 text-cinnabar-400 border-cinnabar-500/30',
+    gap: 'bg-copper-300/10 text-copper-300 border-copper-400/30',
+    smudge: 'bg-indigo-700/20 text-copper-200/80 border-indigo-600/40',
+    stretch: 'bg-copper-300/10 text-copper-300 border-copper-400/30',
+  };
 
   return (
     <div
@@ -233,21 +240,14 @@ const PlateRowReadonly = ({ plate, isSelected }: { plate: ColorPlate; isSelected
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-copper-100 text-sm font-semibold w-20">
-                {plate.colorName || '—'}
-              </span>
-              <span className={`status-badge border ${status.cls}`}>
-                <StatusIcon className="w-3 h-3" />
-                {status.label}
-              </span>
-              {hasIssue && (
-                <span className="status-badge bg-cinnabar-500/15 text-cinnabar-400 border-cinnabar-500/30 border">
-                  有问题
-                </span>
-              )}
-            </div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-copper-100 text-sm font-semibold w-20">
+              {plate.colorName || '—'}
+            </span>
+            <span className={`status-badge border ${status.cls}`}>
+              <StatusIcon className="w-3 h-3" />
+              {status.label}
+            </span>
           </div>
 
           <div className="grid grid-cols-4 gap-2 text-xs">
@@ -308,15 +308,24 @@ const PlateRowReadonly = ({ plate, isSelected }: { plate: ColorPlate; isSelected
             </div>
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-1 opacity-50">
-            {PRESET_COLORS.map(c => (
-              <div
-                key={c.hex}
-                title={c.name}
-                className={`w-4 h-4 rounded-full border ${c.hex.toLowerCase() === plate.colorHex.toLowerCase() ? 'border-copper-300 scale-110' : 'border-indigo-700/30'}`}
-                style={{ backgroundColor: c.hex }}
-              />
-            ))}
+          <div className="mt-2 pt-2 border-t border-indigo-700/30">
+            {markedIssues.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {markedIssues.map(issue => (
+                  <span
+                    key={issue.type}
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[11px] font-medium ${issueTagCls[issue.type]}`}
+                  >
+                    {issue.label}
+                    {issue.remark && (
+                      <span className="text-[10px] opacity-60 truncate max-w-[80px]">{issue.remark}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[11px] text-celadon-400/60">无异常</span>
+            )}
           </div>
         </div>
       </div>
