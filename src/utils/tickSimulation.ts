@@ -133,12 +133,13 @@ export function detectAnomalies(
     const avgLast = lastTen.reduce((s, t) => s + t.interval, 0) / lastTen.length;
 
     if (avgFirst > 1 && avgLast < avgFirst * 0.65) {
+      const weakIdx = Math.floor(ticks.length * 0.7);
       anomalies.push({
         id: `${recordId}-weak-${idCounter++}`,
         sessionId,
         recordId,
         type: 'WEAK_RETURN',
-        position: Math.floor(ticks.length * 0.7),
+        position: ticks[weakIdx].index,
         severity: avgLast < avgFirst * 0.35 ? 'high' : 'medium',
         description: `回摆无力，振幅衰减${(((avgFirst - avgLast) / avgFirst) * 100).toFixed(1)}%（起始${avgFirst.toFixed(1)}ms → 末尾${avgLast.toFixed(1)}ms）`,
         detectedAt: Date.now(),
