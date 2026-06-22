@@ -63,7 +63,6 @@ const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
   };
 
   const handleVersionClick = (version: StageVersion) => {
-    loadVersion(version.id);
     setPreviewVersion(version);
   };
 
