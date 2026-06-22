@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, AlertTriangle, Clock, User, BarChart3, Target } from 'lucide-react';
+import { Trophy, TrendingUp, AlertTriangle, Clock, User, BarChart3, Target, ChevronDown, ChevronUp, X, Pause, SkipForward, ArrowRight } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { analyzeConfusionPairs, getErrorTypeLabel, getErrorTypeColor } from '@/utils/analysis';
 import { formatTime } from '@/utils/id';
@@ -8,6 +8,7 @@ export default function ReportPage() {
   const { trainingSessions, students, courses, userRole, currentStudent } = useAppStore();
   const [selectedStudentId, setSelectedStudentId] = useState<string>(currentStudent?.id || 'all');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
   const filteredSessions = useMemo(() => {
     return trainingSessions.filter((s) => {
@@ -279,38 +280,114 @@ export default function ReportPage() {
       <div className="bg-white rounded-xl shadow-elegant p-6">
         <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">训练历史记录</h3>
         {filteredSessions.length > 0 ? (
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {[...filteredSessions].reverse().map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center justify-between p-4 bg-equestrian-sand-50 rounded-lg hover:bg-equestrian-sand-100 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-equestrian-brown-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-equestrian-brown-600" />
+          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            {[...filteredSessions].reverse().map((session) => {
+              const isExpanded = expandedSessionId === session.id;
+              const toggleExpand = () => {
+                setExpandedSessionId(isExpanded ? null : session.id);
+              };
+
+              const errorIconMap: Record<string, React.ReactNode> = {
+                miss: <SkipForward className="w-4 h-4" />,
+                reverse: <X className="w-4 h-4" />,
+                detour: <ArrowRight className="w-4 h-4" />,
+                pause: <Pause className="w-4 h-4" />,
+              };
+
+              const errorBgMap: Record<string, string> = {
+                miss: 'bg-red-50 border-red-200 text-red-700',
+                reverse: 'bg-orange-50 border-orange-200 text-orange-700',
+                detour: 'bg-yellow-50 border-yellow-200 text-yellow-700',
+                pause: 'bg-blue-50 border-blue-200 text-blue-700',
+              };
+
+              return (
+                <div
+                  key={session.id}
+                  className={`rounded-lg transition-all border-2 ${
+                    isExpanded ? 'border-equestrian-gold-300 bg-white' : 'border-transparent bg-equestrian-sand-50 hover:bg-equestrian-sand-100'
+                  }`}
+                >
+                  <div
+                    onClick={toggleExpand}
+                    className="flex items-center justify-between p-4 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-equestrian-brown-100 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-equestrian-brown-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-equestrian-brown-700">{session.studentName}</p>
+                        <p className="text-sm text-equestrian-brown-500">{session.courseName}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <p className="text-sm text-equestrian-brown-500">用时</p>
+                        <p className="font-mono font-medium text-equestrian-brown-700">{formatTime(session.totalTime)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-equestrian-brown-500">错误</p>
+                        <p className={`font-medium ${session.errors.length > 3 ? 'text-red-600' : 'text-green-600'}`}>
+                          {session.errors.length} 次
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-equestrian-brown-400 min-w-[80px]">
+                        {new Date(session.startTime).toLocaleDateString()}
+                      </div>
+                      <button className={`p-1.5 rounded-lg transition-colors ${
+                        isExpanded ? 'bg-equestrian-gold-100 text-equestrian-gold-700' : 'text-equestrian-brown-400 hover:bg-equestrian-brown-100'
+                      }`}>
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-equestrian-brown-700">{session.studentName}</p>
-                    <p className="text-sm text-equestrian-brown-500">{session.courseName}</p>
-                  </div>
+
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-2 border-t border-equestrian-brown-100 mx-4">
+                      <div className="flex items-center justify-between mb-3 mt-2">
+                        <h4 className="text-sm font-medium text-equestrian-brown-600">错误明细</h4>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedSessionId(null);
+                          }}
+                          className="text-xs text-equestrian-brown-400 hover:text-equestrian-brown-600 flex items-center gap-1"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                          收起
+                        </button>
+                      </div>
+                      {session.errors.length > 0 ? (
+                        <div className="space-y-2">
+                          {session.errors.map((error, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex items-start gap-3 p-3 rounded-lg border ${errorBgMap[error.type]}`}
+                            >
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/60 flex items-center justify-center">
+                                {errorIconMap[error.type]}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="font-medium text-sm">{getErrorTypeLabel(error.type)}</span>
+                                  <span className="text-xs opacity-70">· 第 {error.elementOrder} 号障碍</span>
+                                </div>
+                                <p className="text-xs opacity-80">{error.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-equestrian-brown-400 text-sm">
+                          🎉 本次训练零错误，表现优秀！
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-sm text-equestrian-brown-500">用时</p>
-                    <p className="font-mono font-medium text-equestrian-brown-700">{formatTime(session.totalTime)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-equestrian-brown-500">错误</p>
-                    <p className={`font-medium ${session.errors.length > 3 ? 'text-red-600' : 'text-green-600'}`}>
-                      {session.errors.length} 次
-                    </p>
-                  </div>
-                  <div className="text-right text-xs text-equestrian-brown-400">
-                    {new Date(session.startTime).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12 text-equestrian-brown-400">
