@@ -29,6 +29,8 @@ export default function TacticsCanvas() {
     routeDrawingPlayerId,
     setRouteDrawingPlayer,
     highlightedPlayerId,
+    highlightedEventId,
+    highlightedEventType,
   } = useTacticsStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -144,16 +146,6 @@ export default function TacticsCanvas() {
           );
         })}
 
-        {showCollisionRisks &&
-          play.collisionRisks.map((risk) => (
-            <CollisionMarker
-              key={risk.id}
-              risk={risk}
-              scale={scale}
-              isActive={Math.abs(currentTime - risk.time) < 0.5}
-            />
-          ))}
-
         {showTransferWindows &&
           play.transferWindows.map((window) => (
             <TransferWindowIndicator
@@ -161,6 +153,24 @@ export default function TacticsCanvas() {
               window={window}
               scale={scale}
               currentTime={currentTime}
+              isHighlighted={
+                highlightedEventId === window.id &&
+                highlightedEventType === 'transfer'
+              }
+            />
+          ))}
+
+        {showCollisionRisks &&
+          play.collisionRisks.map((risk) => (
+            <CollisionMarker
+              key={risk.id}
+              risk={risk}
+              scale={scale}
+              isActive={Math.abs(currentTime - risk.time) < 0.5}
+              isHighlighted={
+                highlightedEventId === risk.id &&
+                highlightedEventType === 'collision'
+              }
             />
           ))}
 
@@ -171,6 +181,10 @@ export default function TacticsCanvas() {
               node={node}
               scale={scale}
               isActive={Math.abs(currentTime - node.time) < 0.3}
+              isHighlighted={
+                highlightedEventId === node.id &&
+                highlightedEventType === 'fake'
+              }
             />
           ))}
 

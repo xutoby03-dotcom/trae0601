@@ -32,6 +32,8 @@ interface TacticsState {
   showCollisionRisks: boolean;
   routeDrawingPlayerId: string | null;
   highlightedPlayerId: string | null;
+  highlightedEventId: string | null;
+  highlightedEventType: 'transfer' | 'gap' | 'collision' | 'fake' | null;
 
   setTool: (tool: Tool) => void;
   setSelected: (id: string | null, type: 'player' | 'disc' | 'route' | 'fake' | null) => void;
@@ -58,6 +60,11 @@ interface TacticsState {
 
   setRouteDrawingPlayer: (playerId: string | null) => void;
   setHighlightedPlayer: (playerId: string | null) => void;
+  setHighlightedEvent: (
+    id: string | null,
+    type: 'transfer' | 'gap' | 'collision' | 'fake' | null,
+    time?: number,
+  ) => void;
 
   updatePlayerLabel: (id: string, label: string) => void;
   updatePlayName: (name: string) => void;
@@ -90,6 +97,8 @@ export const useTacticsStore = create<TacticsState>((set, get) => ({
   showCollisionRisks: true,
   routeDrawingPlayerId: null,
   highlightedPlayerId: null,
+  highlightedEventId: null,
+  highlightedEventType: null,
 
   setTool: (tool) => set({ currentTool: tool, selectedId: null, selectedType: null }),
   setSelected: (id, type) => set({ selectedId: id, selectedType: type }),
@@ -224,6 +233,13 @@ export const useTacticsStore = create<TacticsState>((set, get) => ({
 
   setRouteDrawingPlayer: (playerId) => set({ routeDrawingPlayerId: playerId }),
   setHighlightedPlayer: (playerId) => set({ highlightedPlayerId: playerId }),
+  setHighlightedEvent: (id, type, time) => {
+    set({ highlightedEventId: id, highlightedEventType: type });
+    if (time !== undefined) {
+      const { play } = get();
+      set({ currentTime: Math.max(0, Math.min(time, play.duration)) });
+    }
+  },
 
   updatePlayerLabel: (id, label) => {
     const { play } = get();

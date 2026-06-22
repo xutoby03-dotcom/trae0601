@@ -6,15 +6,18 @@ interface TransferWindowProps {
   window: TransferWindow;
   scale: number;
   currentTime: number;
+  isHighlighted?: boolean;
 }
 
 export default function TransferWindowIndicator({
   window,
   scale,
   currentTime,
+  isHighlighted = false,
 }: TransferWindowProps) {
   const { play } = useTacticsStore();
   const isActive = currentTime >= window.startTime && currentTime <= window.endTime;
+  const showEnhanced = isActive || isHighlighted;
 
   const fromPlayer = play.players.find((p) => p.id === window.fromId);
   const toPlayer = play.players.find((p) => p.id === window.toId);
@@ -33,35 +36,62 @@ export default function TransferWindowIndicator({
   const color = qualityColors[window.quality];
 
   return (
-    <g opacity={isActive ? 1 : 0.4}>
+    <g opacity={showEnhanced ? 1 : 0.4}>
+      {isHighlighted && (
+        <circle
+          cx={fromPos.x * scale}
+          cy={fromPos.y * scale}
+          r={6 * scale}
+          fill="none"
+          stroke={color}
+          strokeWidth={1}
+          opacity="0.3"
+        >
+          <animate
+            attributeName="r"
+            values={`${4 * scale};${7 * scale};${4 * scale}`}
+            dur="1.5s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="0.5;0.1;0.5"
+            dur="1.5s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      )}
+
       <line
         x1={fromPos.x * scale}
         y1={fromPos.y * scale}
         x2={toPos.x * scale}
         y2={toPos.y * scale}
         stroke={color}
-        strokeWidth={isActive ? 1.5 * scale : 0.5 * scale}
-        strokeDasharray={isActive ? 'none' : '4,4'}
+        strokeWidth={showEnhanced ? (isHighlighted ? 2.5 : 1.5) * scale : 0.5 * scale}
+        strokeDasharray={showEnhanced ? 'none' : '4,4'}
         strokeLinecap="round"
         style={{
-          filter: isActive ? `drop-shadow(0 0 ${4 * scale}px ${color})` : 'none',
+          filter: showEnhanced
+            ? `drop-shadow(0 0 ${isHighlighted ? 6 : 4 * scale}px ${color})`
+            : 'none',
         }}
       />
 
-      {isActive && (
+      {showEnhanced && (
         <>
           <circle
             cx={toPos.x * scale}
             cy={toPos.y * scale}
-            r={4 * scale}
+            r={isHighlighted ? 5 * scale : 4 * scale}
             fill="none"
             stroke={color}
-            strokeWidth={1.5 * scale}
+            strokeWidth={isHighlighted ? 2 * scale : 1.5 * scale}
             opacity="0.6"
           >
             <animate
               attributeName="r"
-              values={`${3 * scale};${5 * scale};${3 * scale}`}
+              values={`${(isHighlighted ? 4 : 3) * scale};${(isHighlighted ? 6 : 5) * scale};${(isHighlighted ? 4 : 3) * scale}`}
               dur="1s"
               repeatCount="indefinite"
             />
@@ -87,7 +117,7 @@ export default function TransferWindowIndicator({
             textAnchor="middle"
             dominantBaseline="middle"
             fill={color}
-            fontSize={1.8 * scale}
+            fontSize={isHighlighted ? 2.2 * scale : 1.8 * scale}
             fontFamily="'Roboto Mono', monospace"
             fontWeight="700"
             style={{ userSelect: 'none' }}

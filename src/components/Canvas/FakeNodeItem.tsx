@@ -5,9 +5,10 @@ interface FakeNodeProps {
   node: FakeNode;
   scale: number;
   isActive: boolean;
+  isHighlighted?: boolean;
 }
 
-export default function FakeNodeItem({ node, scale, isActive }: FakeNodeProps) {
+export default function FakeNodeItem({ node, scale, isActive, isHighlighted = false }: FakeNodeProps) {
   const { selectedId, setSelected } = useTacticsStore();
   const isSelected = selectedId === node.id;
 
@@ -23,15 +24,17 @@ export default function FakeNodeItem({ node, scale, isActive }: FakeNodeProps) {
     setSelected(node.id, 'fake');
   };
 
-  const size = 3 * scale;
+  const size = isHighlighted ? 3.5 * scale : 3 * scale;
+  const showGlow = isActive || isHighlighted;
 
   return (
     <g
       transform={`translate(${node.position.x * scale}, ${node.position.y * scale})`}
       onClick={handleClick}
       style={{ cursor: 'pointer' }}
+      opacity={showGlow ? 1 : 0.7}
     >
-      {isActive && (
+      {showGlow && (
         <circle
           r={size * 1.5}
           fill="#d00000"
@@ -48,12 +51,12 @@ export default function FakeNodeItem({ node, scale, isActive }: FakeNodeProps) {
 
       <circle
         r={size}
-        fill={isActive ? '#d00000' : 'rgba(208, 0, 0, 0.7)'}
-        stroke={isSelected ? '#ffffff' : '#ff4d4d'}
-        strokeWidth={isSelected ? 2.5 : 1.5}
+        fill={showGlow ? '#d00000' : 'rgba(208, 0, 0, 0.7)'}
+        stroke={isSelected || isHighlighted ? '#ffffff' : '#ff4d4d'}
+        strokeWidth={isSelected || isHighlighted ? 2.5 : 1.5}
         style={{
-          filter: isActive
-            ? 'drop-shadow(0 0 8px rgba(208, 0, 0, 0.8))'
+          filter: showGlow
+            ? `drop-shadow(0 0 ${isHighlighted ? 10 : 8}px rgba(208, 0, 0, 0.9))`
             : 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
         }}
       />
@@ -63,7 +66,7 @@ export default function FakeNodeItem({ node, scale, isActive }: FakeNodeProps) {
         textAnchor="middle"
         dominantBaseline="middle"
         fill="#ffffff"
-        fontSize={2.5 * scale}
+        fontSize={isHighlighted ? 3 * scale : 2.5 * scale}
         fontWeight="700"
         fontFamily="'Rajdhani', sans-serif"
         style={{ userSelect: 'none' }}
@@ -75,7 +78,7 @@ export default function FakeNodeItem({ node, scale, isActive }: FakeNodeProps) {
         y={-size - 0.5 * scale}
         textAnchor="middle"
         fill="#d00000"
-        fontSize={1.8 * scale}
+        fontSize={isHighlighted ? 2.2 * scale : 1.8 * scale}
         fontFamily="'Roboto Mono', monospace"
         fontWeight="700"
         style={{ userSelect: 'none' }}
