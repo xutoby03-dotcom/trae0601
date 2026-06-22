@@ -245,9 +245,12 @@ export default function StabilityReport({ report, onGenerate, onReset, recordCou
                 {report.recordSummaries.slice(1).map((summary, i) => {
                   const prevError = report.recordSummaries[i].hourlyError;
                   const currError = summary.hourlyError;
-                  const diff = currError - prevError;
-                  const absImproved = Math.abs(currError) < Math.abs(prevError);
-                  const absWorsened = Math.abs(currError) > Math.abs(prevError);
+                  const absPrev = Math.abs(prevError);
+                  const absCurr = Math.abs(currError);
+                  const absImproved = absCurr < absPrev;
+                  const absWorsened = absCurr > absPrev;
+                  const magnitude = Math.abs(absCurr - absPrev);
+
                   const diffColor = absImproved
                     ? 'text-emerald-400'
                     : absWorsened
@@ -269,8 +272,7 @@ export default function StabilityReport({ report, onGenerate, onReset, recordCou
                         {currError > 0 ? '+' : ''}{currError.toFixed(1)}
                       </td>
                       <td className={`py-1.5 px-2 text-right font-mono font-medium ${diffColor}`}>
-                        {absImproved ? '↓' : absWorsened ? '↑' : '→'}
-                        {diff > 0 ? '+' : ''}{diff.toFixed(2)}
+                        {absImproved ? `↓ ${magnitude.toFixed(2)}` : absWorsened ? `↑ ${magnitude.toFixed(2)}` : '→ 0.00'}
                       </td>
                     </tr>
                   );
