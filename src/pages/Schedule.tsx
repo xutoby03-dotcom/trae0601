@@ -17,16 +17,13 @@ import {
   Eye,
   Ghost,
   Shield,
-  ThermometerSun,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import {
   GHOST_LEVEL_LABELS,
   OCCLUSION_LEVEL_LABELS,
-  COLOR_TEMP_LABELS,
   type GhostLevel,
   type OcclusionLevel,
-  type ColorTempBias,
 } from '@/types';
 
 const chartColors = ['#8B4513', '#D4AF37', '#4A7C59', '#8B0000', '#2E5EAA', '#6B4C9A'];
@@ -79,25 +76,25 @@ export default function Schedule() {
     return !!lp.lampId && !!lamp;
   });
 
-  const ghostScore: Record<GhostLevel, number> = { none: 3, light: 1, severe: 0 };
-  const occlusionScore: Record<OcclusionLevel, number> = { none: 3, partial: 1, full: 0 };
-  const colorTempScore: Record<ColorTempBias, number> = { normal: 2, cool: 1, warm: 1 };
-
   const recommendedLp = useMemo(() => {
-    const scored = validLightPositions
+    const candidates = validLightPositions
       .map((lp) => {
         const cal = calibrations.find((c) => c.lightPositionId === lp.id);
-        if (!cal) return { lp, score: -1, cal: null };
-        const score =
-          cal.sharpnessScore * 2 +
-          ghostScore[cal.ghostLevel] * 5 +
-          occlusionScore[cal.occlusionLevel] * 5 +
-          colorTempScore[cal.colorTempBias] * 3;
-        return { lp, score, cal };
+        if (!cal) return null;
+        return { lp, cal };
       })
-      .filter((s) => s.score >= 0)
-      .sort((a, b) => b.score - a.score);
-    return scored.length > 0 ? scored[0] : null;
+      .filter(Boolean) as Array<{ lp: typeof validLightPositions[0]; cal: typeof calibrations[0] }>;
+
+    const withoutOcclusion = candidates.filter((c) => c.cal.occlusionLevel === 'none');
+
+    const ghostPriority: Record<GhostLevel, number> = { none: 2, light: 1, severe: 0 };
+    const sorted = [...withoutOcclusion].sort((a, b) => {
+      const ghostDiff = ghostPriority[b.cal.ghostLevel] - ghostPriority[a.cal.ghostLevel];
+      if (ghostDiff !== 0) return ghostDiff;
+      return b.cal.sharpnessScore - a.cal.sharpnessScore;
+    });
+
+    return sorted.length > 0 ? sorted[0] : null;
   }, [validLightPositions, calibrations]);
 
   const hasCalibratedLp = validLightPositions.some((lp) =>
@@ -534,42 +531,58 @@ export default function Schedule() {
                                             lightPositionId: recommendedLp.lp.id,
                                           })
                                         }
-                                        title={`推荐 ${recommendedLp.lp.name}：清晰度${recommendedLp.cal!.sharpnessScore}/10 · ${GHOST_LEVEL_LABELS[recommendedLp.cal!.ghostLevel]} · ${OCCLUSION_LEVEL_LABELS[recommendedLp.cal!.occlusionLevel]} · 色温${COLOR_TEMP_LABELS[recommendedLp.cal!.colorTempBias]}`}
+                                        title={`推荐 ${recommendedLp.lp.name}：无遮挡 · ${GHOST_LEVEL_LABELS[recommendedLp.cal.ghostLevel]} · 清晰度${recommendedLp.cal.sharpnessScore}/10`}
                                       >
                                         <Sparkles className="w-4 h-4 text-gold-400" />
                                         推荐
                                       </button>
                                     )}
                                   </div>
-                                  {recommendedLp && (
-                                    <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-ocher-500">
-                                      <span className="flex items-center gap-1 bg-gold-300/10 rounded px-1.5 py-0.5">
-                                        <Sparkles className="w-3 h-3 text-gold-400" />
-                                        推荐 <strong className="text-ocher-700">{recommendedLp.lp.name}</strong>
-                                      </span>
-                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
-                                        <Eye className="w-3 h-3" />
-                                        清晰度 {recommendedLp.cal!.sharpnessScore}/10
-                                      </span>
-                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
-                                        <Ghost className="w-3 h-3" />
-                                        {GHOST_LEVEL_LABELS[recommendedLp.cal!.ghostLevel]}
-                                      </span>
-                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
-                                        <Shield className="w-3 h-3" />
-                                        {OCCLUSION_LEVEL_LABELS[recommendedLp.cal!.occlusionLevel]}
-                                      </span>
-                                      <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
-                                        <ThermometerSun className="w-3 h-3" />
-                                        色温{COLOR_TEMP_LABELS[recommendedLp.cal!.colorTempBias]}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {!hasCalibratedLp && validLightPositions.length > 0 && (
-                                    <p className="mt-1.5 text-xs text-ocher-400">
-                                      暂无校准数据可推荐，请先在「光学校准」中录入评分
-                                    </p>
-                                  )}
+                                  {(() => {
+                                    const selectedCal = calibrations.find(
+                                      (c) => c.lightPositionId === entry.lightPositionId
+                                    );
+                                    const selectedLp = validLightPositions.find(
+                                      (lp) => lp.id === entry.lightPositionId
+                                    );
+                                    if (!selectedCal || !selectedLp) {
+                                      if (!hasCalibratedLp && validLightPositions.length > 0) {
+                                        return (
+                                          <p className="mt-1.5 text-xs text-ocher-400">
+                                            暂无校准数据可推荐，请先在「光学校准」中录入评分
+                                          </p>
+                                        );
+                                      }
+                                      if (entry.lightPositionId) {
+                                        return (
+                                          <p className="mt-1.5 text-xs text-ocher-400">
+                                            该灯位暂无校准记录
+                                          </p>
+                                        );
+                                      }
+                                      return null;
+                                    }
+                                    return (
+                                      <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-ocher-500">
+                                        <span className="flex items-center gap-1 bg-gold-300/10 rounded px-1.5 py-0.5">
+                                          <Lightbulb className="w-3 h-3 text-gold-400" />
+                                          <strong className="text-ocher-700">{selectedLp.name}</strong>
+                                        </span>
+                                        <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                          <Eye className="w-3 h-3" />
+                                          清晰度 {selectedCal.sharpnessScore}/10
+                                        </span>
+                                        <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                          <Ghost className="w-3 h-3" />
+                                          {GHOST_LEVEL_LABELS[selectedCal.ghostLevel]}
+                                        </span>
+                                        <span className="flex items-center gap-1 bg-ocher-100/60 rounded px-1.5 py-0.5">
+                                          <Shield className="w-3 h-3" />
+                                          {OCCLUSION_LEVEL_LABELS[selectedCal.occlusionLevel]}
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                                 <div>
                                   <label className="label-text">开始时间(秒)</label>
