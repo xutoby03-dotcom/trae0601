@@ -2,8 +2,9 @@ import { useStore } from '@/store/useStore';
 import { TrendingDown, AlertTriangle, Target, BarChart3, XCircle } from 'lucide-react';
 
 export default function AnalysisPanel() {
-  const { currentSessionId, envelopes, flowEvents, getEnvelopeEvents, selectedEnvelopeId, setSelectedEnvelope } = useStore();
-  const sessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
+  const { currentSessionId, envelopes, flowEvents, getEnvelopeEvents, selectedEnvelopeId, setSelectedEnvelope, getFilteredEnvelopes, statusFilter } = useStore();
+  const allSessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
+  const sessionEnvelopes = currentSessionId ? getFilteredEnvelopes(currentSessionId) : allSessionEnvelopes;
 
   const wronglyTakenCount = sessionEnvelopes.map((env) => {
     const events = getEnvelopeEvents(env.id);
@@ -82,7 +83,15 @@ export default function AnalysisPanel() {
     </div>
   );
 
-  if (!currentSessionId || sessionEnvelopes.length === 0) {
+  const FILTER_LABEL: Record<string, string> = {
+    picked: '领取',
+    opened: '打开',
+    wrongly_taken: '误拿',
+    missed: '遗漏',
+    reissued: '补发',
+  };
+
+  if (!currentSessionId || allSessionEnvelopes.length === 0) {
     return (
       <div className="card-parchment p-4 h-full flex flex-col animate-fade-in-up">
         <h2 className="font-serif text-xl font-bold text-ink-800 flex items-center gap-2 mb-4">
@@ -100,10 +109,17 @@ export default function AnalysisPanel() {
 
   return (
     <div className="card-parchment p-4 h-full flex flex-col animate-fade-in-up overflow-hidden">
-      <h2 className="font-serif text-xl font-bold text-ink-800 flex items-center gap-2 mb-4">
-        <BarChart3 className="w-5 h-5" />
-        汇总分析
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-serif text-xl font-bold text-ink-800 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5" />
+          汇总分析
+        </h2>
+        {statusFilter && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-ink-800 text-parchment-50 font-semibold">
+            仅统计：{FILTER_LABEL[statusFilter]} ({sessionEnvelopes.length})
+          </span>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         <div className="grid grid-cols-2 gap-2">
@@ -251,19 +267,19 @@ export default function AnalysisPanel() {
             <div>
               <p className="text-ink-700">领取事件</p>
               <p className="text-lg font-bold text-seal-green font-serif">
-                {flowEvents.filter((f) => f.eventType === 'picked' && envelopes.find((e) => e.id === f.envelopeId)?.sessionId === currentSessionId).length}
+                {flowEvents.filter((f) => f.eventType === 'picked' && sessionEnvelopes.find((e) => e.id === f.envelopeId)).length}
               </p>
             </div>
             <div>
               <p className="text-ink-700">打开事件</p>
               <p className="text-lg font-bold text-ink-800 font-serif">
-                {flowEvents.filter((f) => f.eventType === 'opened' && envelopes.find((e) => e.id === f.envelopeId)?.sessionId === currentSessionId).length}
+                {flowEvents.filter((f) => f.eventType === 'opened' && sessionEnvelopes.find((e) => e.id === f.envelopeId)).length}
               </p>
             </div>
             <div>
               <p className="text-ink-700">补发事件</p>
               <p className="text-lg font-bold text-blue-700 font-serif">
-                {flowEvents.filter((f) => f.eventType === 'reissued' && envelopes.find((e) => e.id === f.envelopeId)?.sessionId === currentSessionId).length}
+                {flowEvents.filter((f) => f.eventType === 'reissued' && sessionEnvelopes.find((e) => e.id === f.envelopeId)).length}
               </p>
             </div>
           </div>

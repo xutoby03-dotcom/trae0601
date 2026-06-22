@@ -1,21 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
-import { useStore } from '@/store/useStore';
+import { useStore, StatusFilter } from '@/store/useStore';
 import { STATUS_LABELS, STATUS_COLORS, EnvelopeStatus, FlowEventType, FLOW_EVENT_LABELS } from '@/types';
-import { Plus, Edit3, Trash2, ChevronDown, ChevronUp, Eye, Key, User } from 'lucide-react';
+import { Plus, Edit3, Trash2, ChevronDown, ChevronUp, Eye, Key, User, X, Filter } from 'lucide-react';
 import EnvelopeModal from './EnvelopeModal';
 import FlowTimeline from './FlowTimeline';
+
+const FILTER_OPTIONS: { key: StatusFilter; label: string; badge: string }[] = [
+  { key: 'picked', label: '领取', badge: STATUS_COLORS.picked },
+  { key: 'opened', label: '打开', badge: STATUS_COLORS.opened },
+  { key: 'wrongly_taken', label: '误拿', badge: 'bg-seal-amber text-ink-900 border-yellow-700' },
+  { key: 'missed', label: '遗漏', badge: STATUS_COLORS.missed },
+  { key: 'reissued', label: '补发', badge: STATUS_COLORS.reissued },
+];
 
 export default function EnvelopeTable() {
   const {
     currentSessionId,
     sessions,
-    envelopes,
     selectedEnvelopeId,
     setSelectedEnvelope,
     deleteEnvelope,
     addFlowEvent,
     updateEnvelopeStatus,
     getEnvelopeEvents,
+    getFilteredEnvelopes,
+    statusFilter,
+    setStatusFilter,
+    envelopes,
   } = useStore();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -27,7 +38,8 @@ export default function EnvelopeTable() {
 
   useEffect(() => {
     if (!selectedEnvelopeId) return;
-    const env = sessionEnvelopes.find((e) => e.id === selectedEnvelopeId);
+    const env = filteredEnvelopes.find((e) => e.id === selectedEnvelopeId) ??
+                allSessionEnvelopes.find((e) => e.id === selectedEnvelopeId);
     if (!env) return;
 
     if (!expandedActs.includes(env.actNumber)) {
@@ -40,12 +52,14 @@ export default function EnvelopeTable() {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 50);
-  }, [selectedEnvelopeId]);
+  }, [selectedEnvelopeId, statusFilter]);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
-  const sessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
+  const allSessionEnvelopes = envelopes.filter((e) => e.sessionId === currentSessionId);
+  const filteredEnvelopes = currentSessionId ? getFilteredEnvelopes(currentSessionId) : [];
+  const displayEnvelopes = statusFilter ? filteredEnvelopes : allSessionEnvelopes;
 
-  const envelopesByAct = sessionEnvelopes.reduce<Record<number, typeof sessionEnvelopes>>((acc, env) => {
+  const envelopesByAct = displayEnvelopes.reduce<Record<number, typeof allSessionEnvelopes>>((acc, env) => {
     if (!acc[env.actNumber]) acc[env.actNumber] = [];
     acc[env.actNumber].push(env);
     return acc;
@@ -96,6 +110,42 @@ export default function EnvelopeTable() {
           登记线索
         </button>
       </div>
+
+      <div className="px-4 py-3 border-b-2 border-parchment-200 bg-parchment-100/70 flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1 text-xs text-ink-700 font-medium">
+          <Filter className="w-3.5 h-3.5" />
+          状态筛选：
+        </span>
+        {FILTER_OPTIONS.map(({ key, label, badge }) => {
+          const active = statusFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(active ? null : key)}
+              className={`status-badge ${active ? badge + ' ring-2 ring-offset-1 ring-ink-700' : 'bg-parchment-50 text-ink-700 border-parchment-300 hover:bg-parchment-100'}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+        {statusFilter && (
+          <button
+            onClick={() => setStatusFilter(null)}
+            className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-seal-red text-parchment-50 border-2 border-red-900 font-semibold hover:bg-red-700 transition-colors"
+          >
+            <X className="w-3 h-3" />
+            清除筛选
+          </button>
+        )}
+      </div>
+
+      {statusFilter && (
+        <div className="px-4 py-2 bg-ink-800 text-parchment-100 text-xs border-b-2 border-ink-900 flex items-center justify-between">
+          <span>
+            当前筛选：<strong>{FILTER_OPTIONS.find((f) => f.key === statusFilter)?.label}</strong> 状态的封套，显示 {displayEnvelopes.length} / {allSessionEnvelopes.length} 条 — 右侧汇总已同步限定此范围
+          </span>
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {Object.keys(envelopesByAct).length === 0 && (
