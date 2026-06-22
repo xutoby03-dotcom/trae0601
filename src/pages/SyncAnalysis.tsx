@@ -11,10 +11,32 @@ export default function SyncAnalysisPage() {
 
   const currentSession = sessions.find((s) => s.id === currentSessionId)
 
-  const analysisData = useMemo(() => {
-    if (!currentSession || currentSession.records.length === 0) return null
+  const activeData = useMemo(() => {
+    if (currentSession && currentSession.records.length > 0) {
+      return {
+        config: currentSession.config,
+        records: currentSession.records,
+        reviewSegments: currentSession.reviewSegments,
+        createdAt: currentSession.createdAt,
+        sessionId: currentSession.id,
+      }
+    }
+    if (records.length > 0 && config.boatId) {
+      return {
+        config,
+        records,
+        reviewSegments: records.filter((r) => r.desyncIndex >= 0.7).map((r) => r.segmentIndex),
+        createdAt: new Date().toISOString(),
+        sessionId: currentSessionId,
+      }
+    }
+    return null
+  }, [currentSession, records, config, currentSessionId])
 
-    const recs = [...currentSession.records].sort((a, b) => a.segmentIndex - b.segmentIndex)
+  const analysisData = useMemo(() => {
+    if (!activeData || activeData.records.length === 0) return null
+
+    const recs = [...activeData.records].sort((a, b) => a.segmentIndex - b.segmentIndex)
     const maxDesync = Math.max(...recs.map((r) => r.desyncIndex))
     const minDesync = Math.min(...recs.map((r) => r.desyncIndex))
     const avgDesync = recs.reduce((sum, r) => sum + r.desyncIndex, 0) / recs.length
@@ -49,7 +71,7 @@ export default function SyncAnalysisPage() {
     }
 
     return { recs, maxDesync, minDesync, avgDesync, worstSegments, cautionSegments, suggestions }
-  }, [currentSession])
+  }, [activeData])
 
   const handleNewTraining = () => {
     resetConfig()
@@ -61,7 +83,7 @@ export default function SyncAnalysisPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <StepIndicator />
 
-        {records.length === 0 && !currentSession ? (
+        {!activeData ? (
           <div className="text-center py-20 animate-slide-up">
             <p className="text-[var(--color-muted)] mb-4">暂无训练数据</p>
             <button
@@ -73,25 +95,25 @@ export default function SyncAnalysisPage() {
           </div>
         ) : (
           <div className="animate-slide-up">
-            {currentSession && (
+            {activeData && (
               <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h2 className="text-xl font-bold" style={{ fontFamily: "Outfit" }}>
-                      {currentSession.config.boatId}
+                      {activeData.config.boatId}
                     </h2>
                     <p className="text-xs text-[var(--color-muted)]">
-                      {currentSession.config.seat1Name} & {currentSession.config.seat2Name} · 目标桨频 {currentSession.config.targetStrokeRate} 次/分
+                      {activeData.config.seat1Name} & {activeData.config.seat2Name} · 目标桨频 {activeData.config.targetStrokeRate} 次/分
                     </p>
                   </div>
                   <span className="text-xs text-[var(--color-text-dim)]">
-                    {new Date(currentSession.createdAt).toLocaleString("zh-CN")}
+                    {new Date(activeData.createdAt).toLocaleString("zh-CN")}
                   </span>
                 </div>
                 <div className="flex gap-3 text-xs text-[var(--color-muted)]">
-                  <span className="flex items-center gap-1"><Waves className="w-3 h-3" />{currentSession.config.waterDirection}</span>
-                  <span className="flex items-center gap-1"><Wind className="w-3 h-3" />{currentSession.config.windSpeed} · {currentSession.config.windDirection}</span>
-                  <span>{currentSession.config.segments.length} 段</span>
+                  <span className="flex items-center gap-1"><Waves className="w-3 h-3" />{activeData.config.waterDirection}</span>
+                  <span className="flex items-center gap-1"><Wind className="w-3 h-3" />{activeData.config.windSpeed} · {activeData.config.windDirection}</span>
+                  <span>{activeData.config.segments.length} 段</span>
                 </div>
               </div>
             )}
@@ -110,7 +132,7 @@ export default function SyncAnalysisPage() {
                     {analysisData.recs.map((rec) => {
                       const level = getDesyncLevel(rec.desyncIndex)
                       const barWidth = Math.min((rec.desyncIndex / 1.5) * 100, 100)
-                      const isReview = currentSession?.reviewSegments.includes(rec.segmentIndex)
+                      const isReview = activeData.reviewSegments.includes(rec.segmentIndex)
                       return (
                         <div key={rec.segmentIndex} className={cn(
                           "rounded-lg p-3 border transition-all",
@@ -133,7 +155,7 @@ export default function SyncAnalysisPage() {
                                 {isReview && "✓"}
                               </button>
                               <span className="text-sm font-semibold">第 {rec.segmentIndex + 1} 段</span>
-                              <span className="text-xs text-[var(--color-text-dim)]">{currentSession?.config.segments[rec.segmentIndex]}m</span>
+                              <span className="text-xs text-[var(--color-text-dim)]">{activeData.config.segments[rec.segmentIndex]}m</span>
                               {level === "danger" && <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-danger)]" />}
                               {level === "good" && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-good)]" />}
                             </div>
@@ -183,16 +205,16 @@ export default function SyncAnalysisPage() {
                   </div>
                 </div>
 
-                {currentSession && currentSession.reviewSegments.length > 0 && (
+                {activeData.reviewSegments.length > 0 && (
                   <div className="bg-[var(--color-surface)] border border-[var(--color-danger)]/30 rounded-xl p-5 mb-6">
                     <h3 className="text-sm font-semibold mb-3 text-[var(--color-danger)] flex items-center gap-2">
                       <RotateCcw className="w-4 h-4" />
                       下次复练区间
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {currentSession.reviewSegments.map((idx) => (
+                      {activeData.reviewSegments.map((idx) => (
                         <span key={idx} className="px-3 py-1 rounded-lg bg-[var(--color-warn-dim)] border border-[var(--color-danger)]/30 text-sm text-[var(--color-danger)]">
-                          第 {idx + 1} 段（{currentSession.config.segments[idx]}m）
+                          第 {idx + 1} 段（{activeData.config.segments[idx]}m）
                         </span>
                       ))}
                     </div>

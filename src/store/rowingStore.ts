@@ -155,7 +155,7 @@ export const useRowingStore = create<RowingStore>((set, get) => ({
       }
       const sessions = [...s.sessions.filter((ses) => ses.id !== session.id), session]
       saveSessions(sessions)
-      return { sessions, currentSessionId: null }
+      return { sessions }
     }),
 
   toggleReviewSegment: (segmentIndex) =>
@@ -192,5 +192,5 @@ export const useRowingStore = create<RowingStore>((set, get) => ({
       return { sessions }
     }),
 
-  resetConfig: () => set({ config: { ...defaultConfig }, records: [], currentSegment: 0 }),
+  resetConfig: () => set({ config: { ...defaultConfig }, records: [], currentSegment: 0, currentSessionId: null }),
 }))
