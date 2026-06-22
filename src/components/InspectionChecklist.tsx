@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { ClipboardList, Check, RefreshCw, AlertTriangle, CheckCircle2, Circle, Filter, ChevronRight, MapPin, Clock, Flag, Target } from 'lucide-react';
 import { useCheckpointStore } from '@/store/useCheckpointStore';
 import type { InspectionCategory, InspectionItem } from '@/types';
@@ -17,6 +17,30 @@ export default function InspectionChecklist() {
   const { inspectionItems, checkpoints, generateChecklist, toggleInspectionItem, resetChecklist } = useCheckpointStore();
   const [activeCategory, setActiveCategory] = useState<InspectionCategory | 'all'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const prevItemsLenRef = useRef(0);
+
+  // 当清单重新生成（数量从0变有或整体变化）时，默认展开所有组
+  useEffect(() => {
+    if (inspectionItems.length > 0 && inspectionItems.length !== prevItemsLenRef.current) {
+      const allKeys = new Set<string>();
+
+      const hasStart = inspectionItems.some((i) => !i.checkpointId && i.description.startsWith('起点'));
+      if (hasStart) allKeys.add('start');
+
+      checkpoints.forEach((cp) => allKeys.add(`cp-${cp.id}`));
+
+      const hasEnd = inspectionItems.some((i) => !i.checkpointId && i.description.startsWith('终点'));
+      if (hasEnd) allKeys.add('end');
+
+      const hasGlobal = inspectionItems.some(
+        (i) => !i.checkpointId && !i.description.startsWith('起点') && !i.description.startsWith('终点')
+      );
+      if (hasGlobal) allKeys.add('global');
+
+      setExpandedGroups(allKeys);
+    }
+    prevItemsLenRef.current = inspectionItems.length;
+  }, [inspectionItems.length, checkpoints]);
 
   const toggleGroup = (key: string) => {
     const next = new Set(expandedGroups);
@@ -294,7 +318,7 @@ export default function InspectionChecklist() {
           <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
             {filteredGroups.map((group) => {
               const { done, total, pct } = getGroupProgress(group.items);
-              const expanded = expandedGroups.has(group.key) || pct < 100;
+              const expanded = expandedGroups.has(group.key);
               return (
                 <div
                   key={group.key}
