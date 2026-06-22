@@ -97,6 +97,10 @@ export default function PracticePage() {
     const timeSinceLastClick = (now - lastClickTime) / 1000;
     const nextExpectedOrder = clickedOrders.length + 1;
 
+    let nextErrors = [...errors];
+    let nextSequence = [...clickedOrders];
+    let isFinished = false;
+
     if (timeSinceLastClick > 8) {
       const pauseError: ErrorRecord = {
         type: 'pause',
@@ -104,16 +108,16 @@ export default function PracticePage() {
         description: `在第 ${nextExpectedOrder} 号障碍前停顿超过8秒`,
         timestamp: now,
       };
-      setErrors((prev) => [...prev, pauseError]);
+      nextErrors = [...nextErrors, pauseError];
       showFeedback('error', '停顿时间过长', 'pause');
     }
 
     if (order === nextExpectedOrder) {
-      setClickedOrders((prev) => [...prev, order]);
+      nextSequence = [...nextSequence, order];
       showFeedback('correct', `正确！第 ${order} 号障碍`);
 
       if (order === totalJumps) {
-        finishPractice();
+        isFinished = true;
       }
     } else if (clickedOrders.includes(order)) {
       const reverseError: ErrorRecord = {
@@ -122,7 +126,7 @@ export default function PracticePage() {
         description: `重复点击第 ${order} 号障碍`,
         timestamp: now,
       };
-      setErrors((prev) => [...prev, reverseError]);
+      nextErrors = [...nextErrors, reverseError];
       showFeedback('error', `已经跳过第 ${order} 号障碍了`, 'reverse');
     } else if (order > nextExpectedOrder) {
       const missError: ErrorRecord = {
@@ -131,11 +135,11 @@ export default function PracticePage() {
         description: `跳过了第 ${nextExpectedOrder} 号障碍，直接到第 ${order} 号`,
         timestamp: now,
       };
-      setErrors((prev) => [...prev, missError]);
+      nextErrors = [...nextErrors, missError];
       showFeedback('error', `漏掉了第 ${nextExpectedOrder} 号障碍`, 'miss');
-      setClickedOrders((prev) => [...prev, order]);
+      nextSequence = [...nextSequence, order];
       if (order === totalJumps) {
-        setTimeout(finishPractice, 1000);
+        isFinished = true;
       }
     } else {
       const detourError: ErrorRecord = {
@@ -144,14 +148,22 @@ export default function PracticePage() {
         description: `绕行到第 ${order} 号障碍`,
         timestamp: now,
       };
-      setErrors((prev) => [...prev, detourError]);
+      nextErrors = [...nextErrors, detourError];
       showFeedback('error', '顺序不对，请按路线行进', 'detour');
     }
 
+    setErrors(nextErrors);
+    setClickedOrders(nextSequence);
     setLastClickTime(now);
+
+    if (isFinished) {
+      setTimeout(() => {
+        finishPractice(nextSequence, nextErrors, now);
+      }, 1000);
+    }
   };
 
-  const finishPractice = () => {
+  const finishPractice = (finalSequence: number[], finalErrors: ErrorRecord[], endTime: number) => {
     if (timerRef.current) clearInterval(timerRef.current);
 
     const session: TrainingSession = {
@@ -161,10 +173,10 @@ export default function PracticePage() {
       courseId: courseId,
       courseName: course?.name || '',
       startTime: new Date(startTime).toISOString(),
-      endTime: new Date().toISOString(),
-      errors: errors,
-      totalTime: Math.floor((Date.now() - startTime) / 1000),
-      userSequence: clickedOrders,
+      endTime: new Date(endTime).toISOString(),
+      errors: finalErrors,
+      totalTime: Math.floor((endTime - startTime) / 1000),
+      userSequence: finalSequence,
     };
 
     addTrainingSession(session);
