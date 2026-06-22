@@ -27,8 +27,11 @@ const createInitialState = (): TrialRecord => ({
   createdAt: new Date().toISOString(),
 });
 
+const SAVED_AT_KEY = 'trial-record-saved-at';
+
 interface TrialStore {
   record: TrialRecord;
+  savedAt: string | null;
   setBasicInfo: <K extends keyof Omit<TrialRecord, 'id' | 'createdAt' | LightSceneKey>>(
     key: K,
     value: TrialRecord[K]
@@ -44,6 +47,7 @@ interface TrialStore {
 
 export const useTrialStore = create<TrialStore>((set, get) => ({
   record: createInitialState(),
+  savedAt: null,
 
   setBasicInfo: (key, value) =>
     set((state) => ({
@@ -96,11 +100,21 @@ export const useTrialStore = create<TrialStore>((set, get) => ({
       },
     })),
 
-  reset: () => set({ record: createInitialState() }),
+  reset: () => {
+    try {
+      localStorage.removeItem(SAVED_AT_KEY);
+    } catch {
+      /* ignore */
+    }
+    set({ record: createInitialState(), savedAt: null });
+  },
 
   saveToLocal: () => {
     try {
+      const now = new Date().toISOString();
       localStorage.setItem('trial-record', JSON.stringify(get().record));
+      localStorage.setItem(SAVED_AT_KEY, now);
+      set({ savedAt: now });
     } catch {
       /* ignore */
     }
@@ -109,8 +123,9 @@ export const useTrialStore = create<TrialStore>((set, get) => ({
   loadFromLocal: () => {
     try {
       const saved = localStorage.getItem('trial-record');
+      const savedAt = localStorage.getItem(SAVED_AT_KEY);
       if (saved) {
-        set({ record: JSON.parse(saved) });
+        set({ record: JSON.parse(saved), savedAt: savedAt });
       }
     } catch {
       /* ignore */

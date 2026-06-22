@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import BasicInfoForm from '@/components/BasicInfoForm';
 import LightSceneCard from '@/components/LightSceneCard';
 import RiskSummary from '@/components/RiskSummary';
@@ -10,10 +10,13 @@ import {
   Save,
   Printer,
   Lightbulb,
+  Check,
+  Clock,
 } from 'lucide-react';
 
 export default function Home() {
-  const { reset, saveToLocal, loadFromLocal } = useTrialStore();
+  const { reset, saveToLocal, loadFromLocal, savedAt } = useTrialStore();
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
     loadFromLocal();
@@ -21,11 +24,24 @@ export default function Home() {
 
   const handleSave = () => {
     saveToLocal();
+    setJustSaved(true);
+    window.setTimeout(() => setJustSaved(false), 1800);
   };
 
   const handlePrint = () => {
     saveToLocal();
     window.print();
+  };
+
+  const formatTime = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
   };
 
   const scenes = Object.keys(LIGHT_SCENE_META) as LightSceneKey[];
@@ -49,31 +65,56 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={reset}
-              className="btn-secondary flex items-center gap-1.5 text-sm"
-            >
-              <RotateCcw className="w-4 h-4" />
-              重置
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="btn-secondary flex items-center gap-1.5 text-sm"
-            >
-              <Save className="w-4 h-4" />
-              保存
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="btn-primary flex items-center gap-1.5 text-sm"
-            >
-              <Printer className="w-4 h-4" />
-              导出报告
-            </button>
+          <div className="flex items-center gap-4">
+            {(savedAt || justSaved) && (
+              <div
+                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-300 ${
+                  justSaved
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 scale-100'
+                    : 'bg-cream-50 text-espresso/55 border border-cream-200'
+                }`}
+              >
+                {justSaved ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>已保存</span>
+                    <span className="opacity-70">{formatTime(savedAt)}</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3.5 h-3.5 opacity-70" />
+                    <span>上次保存 {formatTime(savedAt)}</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={reset}
+                className="btn-secondary flex items-center gap-1.5 text-sm"
+              >
+                <RotateCcw className="w-4 h-4" />
+                重置
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="btn-secondary flex items-center gap-1.5 text-sm"
+              >
+                <Save className="w-4 h-4" />
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="btn-primary flex items-center gap-1.5 text-sm"
+              >
+                <Printer className="w-4 h-4" />
+                导出报告
+              </button>
+            </div>
           </div>
         </div>
       </header>
