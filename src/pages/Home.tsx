@@ -3,7 +3,7 @@ import BasicInfoForm from '@/components/BasicInfoForm';
 import LightSceneCard from '@/components/LightSceneCard';
 import RiskSummary from '@/components/RiskSummary';
 import { useTrialStore } from '@/store/trialStore';
-import { LIGHT_SCENE_META, type LightSceneKey } from '@/types';
+import { LIGHT_SCENE_META, RISK_META, type LightSceneKey, type RiskType } from '@/types';
 import {
   Paintbrush,
   RotateCcw,
@@ -12,11 +12,14 @@ import {
   Lightbulb,
   Check,
   Clock,
+  Filter,
+  X,
 } from 'lucide-react';
 
 export default function Home() {
-  const { reset, saveToLocal, loadFromLocal, savedAt } = useTrialStore();
+  const { reset, saveToLocal, loadFromLocal, savedAt, record } = useTrialStore();
   const [justSaved, setJustSaved] = useState(false);
+  const [riskFilter, setRiskFilter] = useState<RiskType | null>(null);
 
   useEffect(() => {
     loadFromLocal();
@@ -45,6 +48,16 @@ export default function Home() {
   };
 
   const scenes = Object.keys(LIGHT_SCENE_META) as LightSceneKey[];
+
+  const filteredScenes = riskFilter
+    ? scenes.filter((s) => record[s].risks.some((r) => r.type === riskFilter))
+    : scenes;
+
+  const riskTypeKeys = Object.keys(RISK_META) as RiskType[];
+
+  const handleRiskFilter = (type: RiskType) => {
+    setRiskFilter((prev) => (prev === type ? null : type));
+  };
 
   return (
     <div className="min-h-screen pb-16">
@@ -142,10 +155,75 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {scenes.map((scene, i) => (
+            {/* Risk filter bar */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1 text-xs font-semibold text-espresso/60 mr-1">
+                <Filter className="w-3.5 h-3.5" />
+                风险筛选
+              </span>
+              {riskTypeKeys.map((type) => {
+                const meta = RISK_META[type];
+                const active = riskFilter === type;
+                const hitCount = scenes.filter((s) =>
+                  record[s].risks.some((r) => r.type === type)
+                ).length;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => handleRiskFilter(type)}
+                    className={`chip transition-all duration-200 ${
+                      active
+                        ? 'text-white shadow-md ring-0'
+                        : 'text-espresso/70 border border-cream-200 hover:border-opacity-60'
+                    }`}
+                    style={
+                      active
+                        ? { backgroundColor: meta.color }
+                        : { backgroundColor: meta.bgColor }
+                    }
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: meta.color }}
+                    />
+                    {meta.name}
+                    {hitCount > 0 && (
+                      <span className={`text-[10px] ${active ? 'text-white/80' : 'opacity-60'}`}>
+                        {hitCount}/4
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {riskFilter && (
+                <button
+                  type="button"
+                  onClick={() => setRiskFilter(null)}
+                  className="chip bg-cream-50 border border-cream-200 text-espresso/50 hover:text-espresso hover:bg-cream-100"
+                >
+                  <X className="w-3 h-3" />
+                  清除筛选
+                </button>
+              )}
+            </div>
+
+            {/* Scene cards grid */}
+            <div className={`grid gap-6 ${
+              filteredScenes.length === 1
+                ? 'grid-cols-1 max-w-lg'
+                : 'grid-cols-1 md:grid-cols-2'
+            }`}>
+              {filteredScenes.map((scene, i) => (
                 <LightSceneCard key={scene} scene={scene} index={i} />
               ))}
+              {filteredScenes.length === 0 && (
+                <div className="md:col-span-2 py-16 text-center text-espresso/40">
+                  <Filter className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm font-medium">当前筛选条件下没有命中的灯色场景</p>
+                  <p className="text-xs mt-1 opacity-70">请尝试其他风险类型或清除筛选</p>
+                </div>
+              )}
             </div>
           </section>
         </div>
