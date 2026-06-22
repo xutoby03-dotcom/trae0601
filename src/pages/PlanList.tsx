@@ -20,7 +20,9 @@ export default function PlanList() {
 
   const handleDuplicate = (id: string) => {
     const newPlan = duplicatePlan(id);
-    navigate(`/edit/${newPlan.id}`);
+    navigate(`/edit/${newPlan.id}`, {
+      state: { sourcePlanId: id },
+    });
   };
 
   return (

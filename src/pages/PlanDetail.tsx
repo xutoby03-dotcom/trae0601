@@ -4,6 +4,7 @@ import { ArrowLeft, Edit, Copy, Trash2, Waves, Shirt, Camera, Aperture, Layers, 
 import { usePlanStore } from '@/store/usePlanStore';
 import RatingInput from '@/components/RatingInput';
 import Bubbles from '@/components/Bubbles';
+import PlanSummary from '@/components/PlanSummary';
 import { RATING_ITEMS, CAMERA_HOUSING_PRESETS, LENS_PORT_PRESETS, BUOYANCY_ARM_PRESETS } from '@/types';
 
 export default function PlanDetail() {
@@ -11,6 +12,7 @@ export default function PlanDetail() {
   const { id } = useParams<{ id: string }>();
   const { getPlan, deletePlan, duplicatePlan } = usePlanStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
 
   const plan = id ? getPlan(id) : undefined;
 
@@ -32,7 +34,9 @@ export default function PlanDetail() {
 
   const handleDuplicate = () => {
     const newPlan = duplicatePlan(plan.id);
-    navigate(`/edit/${newPlan.id}`);
+    navigate(`/edit/${newPlan.id}`, {
+      state: { sourcePlanId: plan.id },
+    });
   };
 
   const handleDelete = () => {
@@ -112,7 +116,7 @@ export default function PlanDetail() {
             <span>编辑</span>
           </button>
           <button
-            onClick={handleDuplicate}
+            onClick={() => setShowDuplicateConfirm(true)}
             className="flex-1 flex items-center justify-center gap-2 py-3 
                        bg-slate-700/30 border border-slate-600/30 text-slate-300
                        rounded-xl hover:bg-slate-700/50 transition-colors"
@@ -235,6 +239,55 @@ export default function PlanDetail() {
                            hover:bg-red-500/20 rounded-lg transition-colors"
               >
                 确认删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Confirmation Modal */}
+      {showDuplicateConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowDuplicateConfirm(false)}
+        >
+          <div
+            className="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full
+                       shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                <Copy className="text-cyan-400" size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">复用此方案</h3>
+                <p className="text-xs text-slate-400">将创建一个副本供你修改</p>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+              <PlanSummary plan={plan} />
+            </div>
+
+            <p className="text-sm text-slate-400 mb-6">
+              新方案将复制以上全部配置，你可以在编辑页调整后保存。
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDuplicateConfirm(false)}
+                className="px-4 py-2 text-slate-300 hover:text-white 
+                           hover:bg-slate-700/50 rounded-lg transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDuplicate}
+                className="px-4 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30
+                           hover:bg-cyan-500/20 rounded-lg transition-colors"
+              >
+                确认复用
               </button>
             </div>
           </div>

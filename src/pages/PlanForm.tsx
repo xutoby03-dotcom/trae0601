@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Waves, Shirt, Camera, Aperture, Layers, Anchor } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, Save, Waves, Shirt, Camera, Aperture, Layers, Anchor, Copy } from 'lucide-react';
 import { usePlanStore } from '@/store/usePlanStore';
 import RatingInput from '@/components/RatingInput';
 import Bubbles from '@/components/Bubbles';
 import ComboBox from '@/components/ComboBox';
+import PlanSummary from '@/components/PlanSummary';
 import {
   SALINITY_OPTIONS,
   WETSUIT_OPTIONS,
@@ -34,8 +35,12 @@ const defaultFormData = {
 export default function PlanForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { addPlan, updatePlan, getPlan } = usePlanStore();
   const isEditing = Boolean(id);
+
+  const sourcePlanId = (location.state as { sourcePlanId?: string })?.sourcePlanId;
+  const sourcePlan = sourcePlanId ? getPlan(sourcePlanId) : undefined;
 
   const [formData, setFormData] = useState(defaultFormData);
   const [activeTab, setActiveTab] = useState<'equipment' | 'feedback'>('equipment');
@@ -171,6 +176,24 @@ export default function PlanForm() {
             {isEditing ? '编辑配重方案' : '新建配重方案'}
           </h1>
         </header>
+
+        {/* Source Plan Hint */}
+        {sourcePlan && (
+          <div className="mb-6 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 rounded-lg bg-cyan-500/10">
+                <Copy size={16} className="text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-cyan-400">来源方案</p>
+                <p className="text-xs text-slate-400">{sourcePlan.name}</p>
+              </div>
+            </div>
+            <div className="pl-1">
+              <PlanSummary plan={sourcePlan} compact />
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 p-1 bg-slate-800/30 rounded-xl backdrop-blur-md border border-slate-700/30">
