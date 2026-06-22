@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSandboxStore } from '@/store/useSandboxStore';
 import { SandboxBoard } from './SandboxBoard';
 import { X, ArrowRight, ArrowLeftRight } from 'lucide-react';
@@ -14,18 +14,26 @@ export function CompareView({ onClose }: CompareViewProps) {
   const { leftVersionId, rightVersionId } = store.compare;
   const diffs = store.diffs;
   const versions = store.scene.versions;
+  const startCompare = useSandboxStore((s) => s.startCompare);
 
-  const leftVersion = versions.find((v) => v.id === leftVersionId);
-  const rightVersion = versions.find((v) => v.id === rightVersionId);
+  const [localLeftId, setLocalLeftId] = useState(leftVersionId || '');
+  const [localRightId, setLocalRightId] = useState(rightVersionId || '');
+
+  const leftVersion = versions.find((v) => v.id === (leftVersionId || localLeftId));
+  const rightVersion = versions.find((v) => v.id === (rightVersionId || localRightId));
+
+  const sortedVersions = useMemo(
+    () => [...versions].sort((a, b) => a.stepNumber - b.stepNumber),
+    [versions]
+  );
+
+  const hasBothVersions = !!leftVersion && !!rightVersion;
 
   const leftDiffMap = useMemo(() => {
     const map = new Map<string, DiffType>();
     diffs.forEach((diff) => {
       if (diff.type === 'removed' || diff.type === 'moved' || diff.type === 'role_changed' || diff.type === 'resource_changed' || diff.type === 'trigger_changed') {
         map.set(diff.pieceId, diff.type);
-      }
-      if (diff.type === 'added') {
-        // 新增的在左边不显示
       }
     });
     return map;
@@ -62,8 +70,92 @@ export function CompareView({ onClose }: CompareViewProps) {
     'notes_changed',
   ];
 
-  if (!leftVersion || !rightVersion) {
-    return null;
+  const handleConfirmSelection = () => {
+    if (localLeftId && localRightId && localLeftId !== localRightId) {
+      startCompare(localLeftId, localRightId);
+    }
+  };
+
+  const renderVersionPicker = () => (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="bg-slate-800/90 border border-slate-700/50 rounded-xl p-8 max-w-lg w-full mx-4">
+        <div className="flex items-center gap-3 mb-6">
+          <ArrowLeftRight className="text-indigo-400" size={24} />
+          <h3 className="text-lg font-bold text-white">选择对比版本</h3>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">旧版本（左侧）</label>
+            <select
+              value={localLeftId}
+              onChange={(e) => setLocalLeftId(e.target.value)}
+              className="w-full bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50"
+            >
+              <option value="">-- 请选择 --</option>
+              {sortedVersions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  第{v.stepNumber}步 - {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-center">
+            <ArrowRight className="text-slate-600 rotate-90" size={20} />
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">新版本（右侧）</label>
+            <select
+              value={localRightId}
+              onChange={(e) => setLocalRightId(e.target.value)}
+              className="w-full bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50"
+            >
+              <option value="">-- 请选择 --</option>
+              {sortedVersions.map((v) => (
+                <option key={v.id} value={v.id}>
+                  第{v.stepNumber}步 - {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {localLeftId && localRightId && localLeftId === localRightId && (
+            <p className="text-xs text-red-400 text-center">请选择两个不同的版本</p>
+          )}
+
+          <button
+            onClick={handleConfirmSelection}
+            disabled={!localLeftId || !localRightId || localLeftId === localRightId}
+            className="w-full py-2.5 text-sm font-medium bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+          >
+            <ArrowLeftRight size={16} />
+            开始对比
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!hasBothVersions) {
+    return (
+      <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-sm z-50 flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <ArrowLeftRight className="text-indigo-400" size={20} />
+            <h2 className="text-lg font-bold text-white">版本对比</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        {renderVersionPicker()}
+      </div>
+    );
   }
 
   return (

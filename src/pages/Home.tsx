@@ -11,6 +11,7 @@ export default function Home() {
   const isPlaybackMode = useSandboxStore((s) => s.isPlaybackMode);
   const sceneVersions = useSandboxStore((s) => s.scene.versions);
   const initScene = useSandboxStore((s) => s.initScene);
+  const startCompare = useSandboxStore((s) => s.startCompare);
   const endCompare = useSandboxStore((s) => s.endCompare);
 
   const [showCompare, setShowCompare] = useState(false);
@@ -23,12 +24,23 @@ export default function Home() {
     }
   }, [initScene]);
 
-  const handleOpenCompare = () => {
+  const openCompareWithVersions = (leftId?: string, rightId?: string) => {
     if (sceneVersions.length < 2) {
       alert('至少需要2个版本才能对比');
       return;
     }
+
+    const sorted = [...sceneVersions].sort((a, b) => a.stepNumber - b.stepNumber);
+
+    const finalLeft = leftId || sorted[sorted.length - 2].id;
+    const finalRight = rightId || sorted[sorted.length - 1].id;
+
+    startCompare(finalLeft, finalRight);
     setShowCompare(true);
+  };
+
+  const handleOpenCompare = () => {
+    openCompareWithVersions();
   };
 
   const handleCloseCompare = () => {
@@ -64,7 +76,9 @@ export default function Home() {
           {isPlaybackMode && <PlaybackBar />}
         </main>
 
-        {!isPlaybackMode && <VersionPanel />}
+        {!isPlaybackMode && (
+          <VersionPanel onStartCompare={openCompareWithVersions} />
+        )}
       </div>
 
       {showCompare && <CompareView onClose={handleCloseCompare} />}
