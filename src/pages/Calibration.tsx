@@ -177,7 +177,11 @@ export default function Calibration() {
             <Lightbulb className="w-5 h-5 text-gold-400" strokeWidth={1.8} />
             灯位方案
           </h2>
-          <button className="btn-primary flex items-center gap-2" onClick={handleAddLightPosition}>
+          <button
+            className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:-translate-y-0"
+            onClick={handleAddLightPosition}
+            disabled={lamps.length === 0}
+          >
             <Plus className="w-4 h-4" />
             添加灯位
           </button>
@@ -197,16 +201,30 @@ export default function Calibration() {
           )}
           {lightPositions.map((lp, idx) => {
             const lamp = lamps.find((l) => l.id === lp.lampId);
+            const hasValidLamp = !!lp.lampId && !!lamp;
             const cal = calibrations.find((c) => c.lightPositionId === lp.id);
             const isExpanded = expandedLpId === lp.id;
 
             return (
               <div
                 key={lp.id}
-                className="border border-ocher-200/60 rounded-xl overflow-hidden bg-white/50 transition-all"
+                className={`border rounded-xl overflow-hidden bg-white/50 transition-all ${
+                  hasValidLamp ? 'border-ocher-200/60' : 'border-red-300/70 bg-red-50/30'
+                }`}
               >
                 {/* 灯位头部 */}
-                <div className="p-4 hover:bg-white/70 transition-colors">
+                <div className={`p-4 transition-colors ${hasValidLamp ? 'hover:bg-white/70' : ''}`}>
+                  {!hasValidLamp && (
+                    <div className="mb-3 flex items-center gap-2 text-sm text-crimson bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      <span className="font-bold">⚠️</span>
+                      <span>
+                        <strong>灯具未关联</strong>：该灯位未绑定有效灯具，无法参与光位切换表编排。
+                        {lp.lampId
+                          ? ' 原灯具已被删除，请重新选择。'
+                          : ' 请点击编辑按钮选择一个灯具。'}
+                      </span>
+                    </div>
+                  )}
                   {editingLpId === lp.id ? (
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                       <div className="col-span-2">
@@ -299,8 +317,8 @@ export default function Calibration() {
                           </div>
                           <div>
                             <h3 className="font-semibold text-ocher-700">{lp.name}</h3>
-                            <p className="text-xs text-ocher-500">
-                              灯具: {lamp?.model || '未选择'}
+                            <p className={`text-xs ${hasValidLamp ? 'text-ocher-500' : 'text-crimson font-medium'}`}>
+                              灯具: {hasValidLamp ? lamp.model : '⚠ 未绑定有效灯具'}
                             </p>
                           </div>
                         </div>

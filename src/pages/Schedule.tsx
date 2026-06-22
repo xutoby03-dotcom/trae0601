@@ -28,6 +28,7 @@ export default function Schedule() {
   const {
     puppets,
     lightPositions,
+    lamps,
     scenes,
     addScene,
     updateScene,
@@ -59,6 +60,11 @@ export default function Schedule() {
     (e) => e.sceneId === activeSceneId
   ).sort((a, b) => a.startTimeSec - b.startTimeSec);
 
+  const validLightPositions = lightPositions.filter((lp) => {
+    const lamp = lamps.find((l) => l.id === lp.lampId);
+    return !!lp.lampId && !!lamp;
+  });
+
   const handleAddEntry = () => {
     if (!activeSceneId) return;
     const lastEnd =
@@ -68,7 +74,7 @@ export default function Schedule() {
     addCharacterEntry({
       sceneId: activeSceneId,
       puppetId: puppets[0]?.id || '',
-      lightPositionId: lightPositions[0]?.id || '',
+      lightPositionId: validLightPositions[0]?.id || '',
       startTimeSec: lastEnd,
       endTimeSec: lastEnd + 30,
       notes: '',
@@ -301,18 +307,23 @@ export default function Schedule() {
                       导出切换表
                     </button>
                     <button
-                      className="btn-primary flex items-center gap-2"
+                      className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleAddEntry}
-                      disabled={puppets.length === 0 || lightPositions.length === 0}
+                      disabled={puppets.length === 0 || validLightPositions.length === 0}
                     >
                       <Plus className="w-4 h-4" />
                       添加角色出场
                     </button>
                   </div>
                 </div>
-                {(puppets.length === 0 || lightPositions.length === 0) && (
+                {(puppets.length === 0 || validLightPositions.length === 0) && (
                   <div className="mt-4 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
-                    ⚠️ 请先在「设备登记」中添加皮影角色，并在「光学校准」中配置灯位方案
+                    ⚠️ 
+                    {puppets.length === 0 && '请先在「设备登记」中添加皮影角色。'}
+                    {puppets.length > 0 && validLightPositions.length === 0 &&
+                      (lightPositions.length === 0
+                        ? '请先在「光学校准」中配置灯位方案。'
+                        : '当前灯位方案均未绑定有效灯具，请先在「光学校准」中为灯位关联灯具。')}
                   </div>
                 )}
               </div>
@@ -351,7 +362,11 @@ export default function Schedule() {
                       {sceneEntries.map((entry, idx) => {
                         const puppet = puppets.find((p) => p.id === entry.puppetId);
                         const lp = lightPositions.find((l) => l.id === entry.lightPositionId);
-                        const color = chartColors[idx % chartColors.length];
+                        const lpLamp = lp ? lamps.find((l) => l.id === lp.lampId) : null;
+                        const hasValidLp = !!lp && !!lpLamp;
+                        const color = hasValidLp
+                          ? chartColors[idx % chartColors.length]
+                          : '#9CA3AF';
                         const left = (entry.startTimeSec / activeScene.durationSec) * 100;
                         const width = Math.max(
                           ((entry.endTimeSec - entry.startTimeSec) / activeScene.durationSec) *
@@ -366,15 +381,16 @@ export default function Schedule() {
                               <p className="text-sm font-medium text-ocher-700 truncate">
                                 {puppet?.name || '未设置'}
                               </p>
-                              <p className="text-xs text-ocher-500">
+                              <p className={`text-xs ${hasValidLp ? 'text-ocher-500' : 'text-crimson'}`}>
                                 {formatTime(entry.startTimeSec)}-{formatTime(entry.endTimeSec)}
+                                {!hasValidLp && ' · ⚠ 无效灯位'}
                               </p>
                             </div>
                             <div className="flex-1 relative h-10 bg-ocher-50/50 rounded-lg overflow-hidden">
                               <div
                                 className={`absolute h-full rounded-lg flex items-center px-3 gap-2 cursor-pointer transition-all ${
                                   isPlaying ? 'ring-2 ring-offset-2 ring-ocher-400' : ''
-                                }`}
+                                } ${!hasValidLp ? 'opacity-60 border-2 border-dashed border-crimson/60' : ''}`}
                                 style={{
                                   left: `${left}%`,
                                   width: `${width}%`,
@@ -390,7 +406,7 @@ export default function Schedule() {
                                   <Play className="w-4 h-4 text-white" />
                                 )}
                                 <span className="text-white text-sm font-medium truncate">
-                                  {lp?.name || '未设置灯位'}
+                                  {hasValidLp ? lp?.name : '⚠ 无效灯位'}
                                 </span>
                               </div>
                             </div>
@@ -420,12 +436,16 @@ export default function Schedule() {
                     {sceneEntries.map((entry, idx) => {
                       const puppet = puppets.find((p) => p.id === entry.puppetId);
                       const lp = lightPositions.find((l) => l.id === entry.lightPositionId);
+                      const lpLamp = lp ? lamps.find((l) => l.id === lp.lampId) : null;
+                      const hasValidLp = !!lp && !!lpLamp;
                       const color = chartColors[idx % chartColors.length];
 
                       return (
                         <div
                           key={entry.id}
-                          className="border border-ocher-200/50 rounded-xl overflow-hidden bg-white/50"
+                          className={`border rounded-xl overflow-hidden bg-white/50 ${
+                            hasValidLp ? 'border-ocher-200/50' : 'border-red-300/60 bg-red-50/30'
+                          }`}
                         >
                           {editingEntryId === entry.id ? (
                             <div className="p-4 space-y-3">
@@ -457,7 +477,10 @@ export default function Schedule() {
                                       })
                                     }
                                   >
-                                    {lightPositions.map((l) => (
+                                    {validLightPositions.length === 0 && (
+                                      <option value="">暂无有效灯位</option>
+                                    )}
+                                    {validLightPositions.map((l) => (
                                       <option key={l.id} value={l.id}>
                                         {l.name}
                                       </option>
@@ -515,7 +538,17 @@ export default function Schedule() {
                               </div>
                             </div>
                           ) : (
-                            <div className="p-4 flex items-center justify-between flex-wrap gap-3">
+                            <div className="p-4">
+                              {!hasValidLp && (
+                                <div className="mb-3 flex items-center gap-2 text-sm text-crimson bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                  <span className="font-bold">⚠️</span>
+                                  <span>
+                                    <strong>灯位无效</strong>：该出场使用的灯位方案未绑定有效灯具，
+                                    请在「光学校准」中修复或重新选择灯位。
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between flex-wrap gap-3">
                               <div className="flex items-center gap-4 flex-wrap">
                                 <div
                                   className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
@@ -544,9 +577,9 @@ export default function Schedule() {
                                 <ChevronRight className="w-4 h-4 text-ocher-300" />
                                 <div>
                                   <p className="text-xs text-ocher-500">灯位方案</p>
-                                  <p className="font-medium text-ocher-700 flex items-center gap-2">
-                                    <Lightbulb className="w-4 h-4 text-gold-400" />
-                                    {lp?.name || '未设置'}
+                                  <p className={`font-medium flex items-center gap-2 ${hasValidLp ? 'text-ocher-700' : 'text-crimson'}`}>
+                                    <Lightbulb className={`w-4 h-4 ${hasValidLp ? 'text-gold-400' : 'text-crimson'}`} />
+                                    {hasValidLp ? lp?.name : '⚠ 无效灯位'}
                                   </p>
                                 </div>
                                 {entry.notes && (
@@ -569,6 +602,7 @@ export default function Schedule() {
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
+                              </div>
                               </div>
                             </div>
                           )}
