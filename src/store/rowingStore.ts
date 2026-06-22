@@ -143,9 +143,14 @@ export const useRowingStore = create<RowingStore>((set, get) => ({
   finishSession: () =>
     set((s) => {
       if (!s.currentSessionId) return s
-      const reviewSegments = s.records
-        .filter((r) => r.desyncIndex >= 0.7)
-        .map((r) => r.segmentIndex)
+      const sorted = [...s.records].sort((a, b) => b.desyncIndex - a.desyncIndex)
+      const worstIdx = sorted.length > 0 ? sorted[0].segmentIndex : -1
+      const reviewSegments = Array.from(
+        new Set([
+          ...s.records.filter((r) => r.desyncIndex >= 0.7).map((r) => r.segmentIndex),
+          ...(worstIdx >= 0 ? [worstIdx] : []),
+        ])
+      )
       const session: TrainingSession = {
         id: s.currentSessionId,
         config: { ...s.config },

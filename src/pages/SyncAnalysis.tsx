@@ -22,10 +22,18 @@ export default function SyncAnalysisPage() {
       }
     }
     if (records.length > 0 && config.boatId) {
+      const sorted = [...records].sort((a, b) => b.desyncIndex - a.desyncIndex)
+      const worstIdx = sorted.length > 0 ? sorted[0].segmentIndex : -1
+      const reviewSegments = Array.from(
+        new Set([
+          ...records.filter((r) => r.desyncIndex >= 0.7).map((r) => r.segmentIndex),
+          ...(worstIdx >= 0 ? [worstIdx] : []),
+        ])
+      )
       return {
         config,
         records,
-        reviewSegments: records.filter((r) => r.desyncIndex >= 0.7).map((r) => r.segmentIndex),
+        reviewSegments,
         createdAt: new Date().toISOString(),
         sessionId: currentSessionId,
       }
