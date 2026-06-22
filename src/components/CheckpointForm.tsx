@@ -113,17 +113,20 @@ export default function CheckpointForm() {
               地貌描述
             </label>
             <div className="relative">
-              <select
-                value={TERRAIN_TYPES.includes(formData.terrainDescription as typeof TERRAIN_TYPES[number]) ? formData.terrainDescription : ''}
+              <input
+                type="text"
+                value={formData.terrainDescription}
                 onChange={(e) => setFormData({ ...formData, terrainDescription: e.target.value })}
-                className="input-field appearance-none pr-10"
-              >
-                <option value="">选择地貌类型...</option>
+                placeholder="如：山地林区，坡度约15度"
+                className="input-field"
+                list="terrain-suggestions"
+                autoComplete="off"
+              />
+              <datalist id="terrain-suggestions">
                 {TERRAIN_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                  <option key={type} value={type} />
                 ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </datalist>
             </div>
           </div>
 
