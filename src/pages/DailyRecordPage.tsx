@@ -5,13 +5,16 @@ import { ObservationForm } from '../components/ObservationForm'
 import { ObservationTimeline } from '../components/ObservationTimeline'
 import { useInsectHotel } from '../hooks/useInsectHotel'
 import { MATERIAL_NAMES, STATUS_NAMES } from '../types'
+import { formatDateDisplay } from '../utils/dateUtils'
 
 export default function DailyRecordPage() {
-  const { cells, selectedCell, selectedCellId, selectCell, addObservation, getCellObservations } = useInsectHotel()
+  const { cells, selectedCell, selectedCellId, selectCell, addObservation, getCellObservations, getLastActivityDate, getCellUnusedDays } = useInsectHotel()
   const [showForm, setShowForm] = useState(false)
   const [showHistory, setShowHistory] = useState(true)
 
   const cellObservations = selectedCellId ? getCellObservations(selectedCellId) : []
+  const lastActivityDate = selectedCellId ? getLastActivityDate(selectedCellId) : ''
+  const unusedDays = selectedCellId ? getCellUnusedDays(selectedCellId) : 0
 
   const handleSubmit = (data: Parameters<typeof addObservation>[0]) => {
     addObservation(data)
@@ -130,6 +133,19 @@ export default function DailyRecordPage() {
                   <p className="text-sm text-stone-500 mt-1">
                     材料：{MATERIAL_NAMES[selectedCell.material]} · 已有 {cellObservations.length} 条观察记录
                   </p>
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+                    <span className="text-stone-500">
+                      最近活动：<span className="text-stone-800 font-medium">
+                        {lastActivityDate ? formatDateDisplay(lastActivityDate) : '暂无活动'}
+                      </span>
+                    </span>
+                    <span className="text-stone-300">|</span>
+                    <span className="text-stone-500">
+                      安静天数：<span className={`font-bold ${unusedDays >= 14 ? 'text-amber-600' : unusedDays >= 7 ? 'text-amber-500' : 'text-green-600'}`}>
+                        {unusedDays} 天
+                      </span>
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowForm(true)}

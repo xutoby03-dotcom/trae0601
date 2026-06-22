@@ -142,15 +142,22 @@ export const useHotelStore = create<HotelState>((set, get) => ({
       id: Math.random().toString(36).substring(2, 11),
     }
 
+    const hasActivity =
+      obsData.hasSeal ||
+      obsData.hasBiteMarks ||
+      obsData.hasEmergenceHole ||
+      obsData.visitorTypes.length > 0
+
     const newObservations = [newObs, ...get().observations]
     set({ observations: newObservations })
     saveObservations(newObservations)
 
-    const { updateCellStatus } = get()
+    const { updateCellStatus, updateCell } = get()
     updateCellStatus(obsData.cellId)
 
-    const { updateCell } = get()
-    updateCell(obsData.cellId, { lastObservedAt: obsData.observationDate })
+    if (hasActivity) {
+      updateCell(obsData.cellId, { lastObservedAt: obsData.observationDate })
+    }
   },
 
   selectCell: (id) => {

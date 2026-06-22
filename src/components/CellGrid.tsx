@@ -18,7 +18,7 @@ const statusLabels: Record<string, string> = {
 }
 
 export function CellGrid() {
-  const { cells, selectedCellId, selectCell, isLoading } = useInsectHotel()
+  const { cells, selectedCellId, selectCell, isLoading, getLastActivityDate, getCellUnusedDays } = useInsectHotel()
   const navigate = useNavigate()
   const [hoveredCell, setHoveredCell] = useState<string | null>(null)
 
@@ -38,6 +38,8 @@ export function CellGrid() {
   }
 
   const selectedCell = cells.find((c) => c.id === selectedCellId)
+  const selectedCellLastActivity = selectedCellId ? getLastActivityDate(selectedCellId) : ''
+  const selectedCellUnusedDays = selectedCellId ? getCellUnusedDays(selectedCellId) : 0
 
   const handleRecordObservation = (cellId: string) => {
     selectCell(cellId)
@@ -163,6 +165,18 @@ export function CellGrid() {
             <div className="p-3 bg-white rounded-lg">
               <div className="text-xs text-stone-500">遮雨</div>
               <div className="font-medium text-stone-800">{selectedCell.hasRainProtection ? '有' : '无'}</div>
+            </div>
+            <div className="p-3 bg-white rounded-lg">
+              <div className="text-xs text-stone-500">最近活动</div>
+              <div className="font-medium text-stone-800">
+                {selectedCellLastActivity ? formatDateDisplay(selectedCellLastActivity) : '暂无活动'}
+              </div>
+            </div>
+            <div className="p-3 bg-white rounded-lg">
+              <div className="text-xs text-stone-500">安静天数</div>
+              <div className={`font-bold ${selectedCellUnusedDays >= 14 ? 'text-amber-600' : selectedCellUnusedDays >= 7 ? 'text-amber-500' : 'text-green-600'}`}>
+                {selectedCellUnusedDays} 天
+              </div>
             </div>
             <div className="p-3 bg-white rounded-lg col-span-2">
               <div className="text-xs text-stone-500">周边植物</div>
