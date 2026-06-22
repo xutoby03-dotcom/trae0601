@@ -1,4 +1,5 @@
 import type { Specimen } from '../types/specimen';
+import { getNextPaperChangeInfo } from './dryness';
 
 export function exportToCSV(specimens: Specimen[]): string {
   const headers = [
@@ -11,6 +12,8 @@ export function exportToCSV(specimens: Specimen[]): string {
     '压板重量(kg)',
     '换纸周期(天)',
     '换纸次数',
+    '下次换纸日',
+    '换纸状态',
     '干燥进度(%)',
     '是否发霉',
     '是否卷边',
@@ -20,24 +23,43 @@ export function exportToCSV(specimens: Specimen[]): string {
     '备注',
   ];
 
-  const rows = specimens.map((s, idx) => [
-    `SP${String(idx + 1).padStart(4, '0')}`,
-    s.plantName,
-    s.collectionLocation,
-    s.plantPart,
-    s.pressingDate.slice(0, 10),
-    s.absorbentPaperBatch,
-    s.plateWeight.toString(),
-    s.paperChangeIntervalDays.toString(),
-    s.paperChangeCount.toString(),
-    s.currentDryness.toString(),
-    s.hasMold ? '是' : '否',
-    s.hasEdgeRoll ? '是' : '否',
-    s.hasColorFade ? '是' : '否',
-    s.hasMissingLabel ? '缺项' : '完整',
-    s.isCompleted ? '完成' : '干燥中',
-    s.notes || '',
-  ]);
+  const rows = specimens.map((s, idx) => {
+    const nextChange = getNextPaperChangeInfo(s);
+    let nextDateStr = '';
+    let statusStr = '';
+    if (!s.isCompleted && nextChange.dateStr) {
+      nextDateStr = nextChange.dateStr;
+      if (nextChange.isOverdue) {
+        statusStr = `逾期${nextChange.overdueDays}天`;
+      } else if (nextChange.daysUntil === 0) {
+        statusStr = '今日需换纸';
+      } else {
+        statusStr = `${nextChange.daysUntil}天后`;
+      }
+    } else if (s.isCompleted) {
+      statusStr = '已完成';
+    }
+    return [
+      `SP${String(idx + 1).padStart(4, '0')}`,
+      s.plantName,
+      s.collectionLocation,
+      s.plantPart,
+      s.pressingDate.slice(0, 10),
+      s.absorbentPaperBatch,
+      s.plateWeight.toString(),
+      s.paperChangeIntervalDays.toString(),
+      s.paperChangeCount.toString(),
+      nextDateStr,
+      statusStr,
+      s.currentDryness.toString(),
+      s.hasMold ? '是' : '否',
+      s.hasEdgeRoll ? '是' : '否',
+      s.hasColorFade ? '是' : '否',
+      s.hasMissingLabel ? '缺项' : '完整',
+      s.isCompleted ? '完成' : '干燥中',
+      s.notes || '',
+    ];
+  });
 
   const csvContent = [headers, ...rows]
     .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))

@@ -1,10 +1,10 @@
-import { MapPin, Calendar, Scale, FileText, Droplet } from 'lucide-react';
+import { MapPin, Calendar, Scale, FileText, Droplet, Package, AlertTriangle, Clock } from 'lucide-react';
 import type { Specimen } from '@/types/specimen';
 import DrynessProgress from '@/components/DrynessProgress';
 import StatusBadge from '@/components/StatusBadge';
 import ActionPanel from '@/components/ActionPanel';
 import { formatDate, daysSince } from '@/utils/date';
-import { getEstimatedCompletionDays, needsPaperChange } from '@/utils/dryness';
+import { getEstimatedCompletionDays, needsPaperChange, getNextPaperChangeInfo } from '@/utils/dryness';
 
 interface SpecimenCardProps {
   specimen: Specimen;
@@ -16,6 +16,7 @@ export default function SpecimenCard({ specimen }: SpecimenCardProps) {
   const pressedDays = daysSince(specimen.pressingDate);
   const estDays = getEstimatedCompletionDays(specimen);
   const needPaperChange = needsPaperChange(specimen);
+  const nextPaperChange = getNextPaperChangeInfo(specimen);
 
   const alerts = [];
   if (specimen.hasMold) alerts.push('mold' as const);
@@ -85,7 +86,46 @@ export default function SpecimenCard({ specimen }: SpecimenCardProps) {
           <Droplet className="w-3.5 h-3.5 text-forest-400" />
           <span>已换纸 {specimen.paperChangeCount} 次</span>
         </div>
+        <div className="flex items-center gap-1.5 text-gray-600">
+          <Package className="w-3.5 h-3.5 text-forest-400" />
+          <span className={!specimen.absorbentPaperBatch ? 'text-warning-orange font-semibold' : ''}>
+            {specimen.absorbentPaperBatch || '未填写'}
+          </span>
+        </div>
+        {!specimen.isCompleted && nextPaperChange.dateStr && (
+          <div
+            className={`flex items-center gap-1.5 ${
+              nextPaperChange.isOverdue
+                ? 'text-warning-danger font-semibold'
+                : nextPaperChange.daysUntil <= 1
+                ? 'text-warning-orange font-semibold'
+                : 'text-gray-600'
+            }`}
+          >
+            {nextPaperChange.isOverdue ? (
+              <AlertTriangle className="w-3.5 h-3.5" />
+            ) : (
+              <Clock className="w-3.5 h-3.5 text-forest-400" />
+            )}
+            <span>
+              {nextPaperChange.isOverdue
+                ? `换纸逾期 ${nextPaperChange.overdueDays} 天`
+                : nextPaperChange.daysUntil === 0
+                ? '今日需换纸'
+                : `下次换纸 ${nextPaperChange.daysUntil}天后`}
+            </span>
+          </div>
+        )}
       </div>
+
+      {!specimen.isCompleted && nextPaperChange.dateStr && nextPaperChange.isOverdue && (
+        <div className="mb-4 p-2.5 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2 animate-pulse-slow">
+          <AlertTriangle className="w-4 h-4 text-warning-danger shrink-0" />
+          <span className="text-xs text-warning-danger font-semibold">
+            换纸已逾期 {nextPaperChange.overdueDays} 天（应于 {nextPaperChange.dateStr} 换纸），请及时处理！
+          </span>
+        </div>
+      )}
 
       <div className="mb-4">
         <DrynessProgress value={specimen.currentDryness} isCompleted={specimen.isCompleted} />
