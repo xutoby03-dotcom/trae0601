@@ -171,43 +171,49 @@ export default function WaxForm({ onClose }: WaxFormProps) {
                 支撑杆位置
               </label>
               <div className="grid grid-cols-3 gap-2 p-3 rounded-lg bg-ink-900/50 border border-ink-700/50">
-                <div />
-                <RodBtn
-                  label="正上"
-                  active={form.rodPosition === 'top'}
-                  onClick={() => update('rodPosition', 'top')}
-                />
-                <div />
                 <RodBtn
                   label="左上"
                   active={form.rodPosition === 'top_left'}
                   onClick={() => update('rodPosition', 'top_left')}
                 />
                 <RodBtn
-                  label="左下"
-                  active={form.rodPosition === 'left'}
-                  onClick={() => update('rodPosition', 'left')}
+                  label="正上方"
+                  active={form.rodPosition === 'top'}
+                  onClick={() => update('rodPosition', 'top')}
                 />
                 <RodBtn
                   label="右上"
                   active={form.rodPosition === 'top_right'}
                   onClick={() => update('rodPosition', 'top_right')}
                 />
-                <div className="flex items-center justify-center text-[10px] text-ink-500 font-serif">
+                <RodBtn
+                  label="左侧"
+                  active={form.rodPosition === 'left'}
+                  onClick={() => update('rodPosition', 'left')}
+                />
+                <div className="flex items-center justify-center text-[10px] text-ink-500 font-serif bg-ink-800/60 border border-dashed border-ink-600/60 rounded-md">
                   戒圈
                 </div>
                 <RodBtn
-                  label="右下"
+                  label="右侧"
                   active={form.rodPosition === 'right'}
                   onClick={() => update('rodPosition', 'right')}
                 />
-                <div />
                 <RodBtn
-                  label="正下"
+                  label="左下"
+                  active={form.rodPosition === 'bottom_left'}
+                  onClick={() => update('rodPosition', 'bottom_left')}
+                />
+                <RodBtn
+                  label="正下方"
                   active={form.rodPosition === 'bottom'}
                   onClick={() => update('rodPosition', 'bottom')}
                 />
-                <div />
+                <RodBtn
+                  label="右下"
+                  active={form.rodPosition === 'bottom_right'}
+                  onClick={() => update('rodPosition', 'bottom_right')}
+                />
               </div>
               <p className="text-[10px] text-ink-500 mt-2 font-mono">
                 提示：选择 8 个方位中的一个，方便浇铸后追溯支撑杆痕迹
