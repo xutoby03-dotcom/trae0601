@@ -1,12 +1,31 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FileText,
   AlertTriangle,
   Wrench,
   Eye,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  CircleDashed,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 import { useDutyStore } from '../store/useDutyStore';
-import { getVisibilityLevel, formatTime } from '../utils/helpers';
+import { getVisibilityLevel, formatTime, formatDateTime } from '../utils/helpers';
+import type { MaintenanceOrder } from '../utils/types';
+
+const STATUS_FLOW: { value: MaintenanceOrder['status']; label: string; chip: string; icon: React.ReactNode }[] = [
+  { value: 'open', label: '待处理', chip: 'chip-warning', icon: <Circle size={10} className="animate-pulse" /> },
+  { value: 'in_progress', label: '处理中', chip: 'chip-caution', icon: <CircleDashed size={10} className="animate-spin" /> },
+  { value: 'completed', label: '已完成', chip: 'chip-safe', icon: <CheckCircle2 size={10} /> },
+];
+
+const PRIORITY_CONFIG: Record<string, { label: string; chip: string }> = {
+  low: { label: '低', chip: 'chip-info' },
+  medium: { label: '中', chip: 'chip-caution' },
+  high: { label: '紧急', chip: 'chip-warning' },
+};
 
 function SummaryCard({
   icon,
@@ -15,6 +34,7 @@ function SummaryCard({
   label,
   subLabel,
   accent,
+  children,
 }: {
   icon: React.ReactNode;
   iconBg: string;
@@ -22,6 +42,7 @@ function SummaryCard({
   label: string;
   subLabel?: string;
   accent?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <div className="glass-card p-4 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
@@ -46,7 +67,130 @@ function SummaryCard({
           )}
         </div>
       </div>
+      {children}
     </div>
+  );
+}
+
+function MaintenanceCard() {
+  const maintenanceOrders = useDutyStore((s) => s.maintenanceOrders);
+  const updateMaintenanceOrderStatus = useDutyStore((s) => s.updateMaintenanceOrderStatus);
+  const [expanded, setExpanded] = useState(false);
+
+  const pendingCount = maintenanceOrders.filter((o) => o.status !== 'completed').length;
+
+  const sortedOrders = useMemo(
+    () => [...maintenanceOrders].sort((a, b) => {
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      return b.createdAt - a.createdAt;
+    }),
+    [maintenanceOrders]
+  );
+
+  const handleNextStatus = (order: MaintenanceOrder) => {
+    const flow: MaintenanceOrder['status'][] = ['open', 'in_progress', 'completed'];
+    const idx = flow.indexOf(order.status);
+    if (idx < flow.length - 1) {
+      updateMaintenanceOrderStatus(order.id, flow[idx + 1]);
+    }
+  };
+
+  return (
+    <SummaryCard
+      icon={<Wrench size={20} className="text-alert-caution" />}
+      iconBg="bg-alert-caution/15"
+      value={pendingCount}
+      label="待办维护"
+      subLabel={pendingCount > 0 ? `${pendingCount} 项未完成` : '无待办工单'}
+      accent="bg-alert-caution"
+    >
+      {maintenanceOrders.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-ocean-700/30">
+          <button
+            onClick={() => setExpanded((e) => !e)}
+            className="flex items-center gap-1.5 text-xs text-ocean-300 hover:text-ocean-100 transition-colors w-full"
+          >
+            <Wrench size={12} />
+            <span>工单列表（{maintenanceOrders.length}）</span>
+            <span className="ml-auto">
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
+          </button>
+
+          {expanded && (
+            <div className="mt-3 space-y-2.5 max-h-72 overflow-y-auto scrollbar-thin pr-1 -mr-1">
+              {sortedOrders.map((order) => {
+                const currentStatus = STATUS_FLOW.find((s) => s.value === order.status);
+                const nextStatus = STATUS_FLOW.find((s) => {
+                  const flow: MaintenanceOrder['status'][] = ['open', 'in_progress', 'completed'];
+                  const idx = flow.indexOf(order.status);
+                  return s.value === flow[idx + 1];
+                });
+                const priorityCfg = PRIORITY_CONFIG[order.priority];
+                const isCompleted = order.status === 'completed';
+
+                return (
+                  <div
+                    key={order.id}
+                    className={`bg-ocean-950/60 rounded-lg p-3 border transition-all ${
+                      isCompleted
+                        ? 'border-ocean-700/20 opacity-60'
+                        : 'border-ocean-700/40'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-ocean-100 truncate">
+                            {order.equipment}
+                          </span>
+                          {currentStatus && (
+                            <span className={`chip ${currentStatus.chip} text-[10px]`}>
+                              {currentStatus.icon}
+                              {currentStatus.label}
+                            </span>
+                          )}
+                          {priorityCfg && (
+                            <span className={`chip ${priorityCfg.chip} text-[10px]`}>
+                              {priorityCfg.label}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-ocean-300 mt-1.5 line-clamp-2">
+                          {order.issue}
+                        </p>
+                        <p className="text-[11px] text-ocean-500 mt-1">
+                          {formatDateTime(order.createdAt)}
+                        </p>
+                        {order.description && (
+                          <p className="text-[11px] text-ocean-400 mt-1 line-clamp-2">
+                            {order.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isCompleted && nextStatus && (
+                      <button
+                        onClick={() => handleNextStatus(order)}
+                        className="mt-2.5 w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg bg-ocean-800/50 text-ocean-200 hover:bg-ocean-700/60 border border-ocean-600/30 transition-colors"
+                      >
+                        <span>标记为</span>
+                        <span className={`chip ${nextStatus.chip} text-[10px] py-0 px-1.5`}>
+                          {nextStatus.label}
+                        </span>
+                        <ArrowRight size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </SummaryCard>
   );
 }
 
@@ -120,18 +264,7 @@ export default function SummaryCards() {
         accent="bg-ocean-300"
       />
 
-      <SummaryCard
-        icon={<Wrench size={20} className="text-alert-caution" />}
-        iconBg="bg-alert-caution/15"
-        value={summary.maintenanceOrderCount}
-        label="待办维护"
-        subLabel={
-          latestRecord
-            ? `最近更新: ${formatTime(latestRecord.timestamp)}`
-            : '暂无记录'
-        }
-        accent="bg-alert-caution"
-      />
+      <MaintenanceCard />
     </div>
   );
 }
