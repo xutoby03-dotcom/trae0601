@@ -64,6 +64,67 @@ export default function ReportPage() {
     }).sort((a, b) => b.sessionCount - a.sessionCount);
   }, [students, trainingSessions, userRole]);
 
+  const errorBreakdown = useMemo(() => {
+    const errorTypes: Array<{ type: 'miss' | 'reverse' | 'detour' | 'pause'; label: string }> = [
+      { type: 'miss', label: '漏跳' },
+      { type: 'reverse', label: '反向' },
+      { type: 'detour', label: '绕行' },
+      { type: 'pause', label: '停顿' },
+    ];
+
+    return errorTypes.map(({ type, label }) => {
+      const countMap = new Map<number, number>();
+      let totalCount = 0;
+
+      filteredSessions.forEach((session) => {
+        session.errors.forEach((err) => {
+          if (err.type === type) {
+            totalCount++;
+            countMap.set(err.elementOrder, (countMap.get(err.elementOrder) || 0) + 1);
+          }
+        });
+      });
+
+      let topElement: number | null = null;
+      let topCount = 0;
+      countMap.forEach((count, order) => {
+        if (count > topCount) {
+          topCount = count;
+          topElement = order;
+        }
+      });
+
+      return { type, label, totalCount, topElement, topCount };
+    });
+  }, [filteredSessions]);
+
+  const errorStyleMap: Record<string, { bg: string; iconBg: string; text: string; icon: React.ReactNode }> = {
+    miss: {
+      bg: 'bg-red-50 border-red-200',
+      iconBg: 'bg-red-100 text-red-600',
+      text: 'text-red-700',
+      icon: <SkipForward className="w-5 h-5" />,
+    },
+    reverse: {
+      bg: 'bg-orange-50 border-orange-200',
+      iconBg: 'bg-orange-100 text-orange-600',
+      text: 'text-orange-700',
+      icon: <X className="w-5 h-5" />,
+    },
+    detour: {
+      bg: 'bg-yellow-50 border-yellow-200',
+      iconBg: 'bg-yellow-100 text-yellow-600',
+      text: 'text-yellow-700',
+      icon: <ArrowRight className="w-5 h-5" />,
+    },
+    pause: {
+      bg: 'bg-blue-50 border-blue-200',
+      iconBg: 'bg-blue-100 text-blue-600',
+      text: 'text-blue-700',
+      icon: <Pause className="w-5 h-5" />,
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -276,6 +337,43 @@ export default function ReportPage() {
           </div>
         </div>
       )}
+
+      <div className="bg-white rounded-xl shadow-elegant p-6">
+        <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">四类错误汇总</h3>
+        <div className="grid grid-cols-4 gap-4">
+          {errorBreakdown.map((item) => {
+            const style = errorStyleMap[item.type];
+            return (
+              <div
+                key={item.type}
+                className={`rounded-xl p-4 border-2 ${style.bg}`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${style.iconBg}`}>
+                    {style.icon}
+                  </div>
+                  <div>
+                    <p className={`font-bold text-sm ${style.text}`}>{item.label}</p>
+                  </div>
+                </div>
+                <p className={`text-3xl font-bold ${style.text} mb-3`}>{item.totalCount}</p>
+                <div className={`text-xs ${style.text} opacity-80 border-t border-current/10 pt-2`}>
+                  {item.topElement ? (
+                    <div className="flex items-center justify-between">
+                      <span>最多障碍</span>
+                      <span className={`font-bold px-2 py-0.5 rounded ${style.iconBg}`}>
+                        第{item.topElement}号 · {item.topCount}次
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="opacity-60">暂无记录</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl shadow-elegant p-6">
         <h3 className="text-lg font-serif font-bold text-equestrian-brown-700 mb-4">训练历史记录</h3>
