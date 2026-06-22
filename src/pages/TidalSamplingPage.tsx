@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Waves, Plus, Menu, X } from 'lucide-react';
 import { useSamplingStore } from '@/stores/useSamplingStore';
+import { useNow } from '@/hooks/useCountdown';
 import { SamplingSite } from '@/types';
 import SiteCard from '@/components/SiteCard';
 import SiteForm from '@/components/SiteForm';
@@ -13,6 +14,7 @@ export default function TidalSamplingPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingSite, setEditingSite] = useState<SamplingSite | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  useNow(20000);
 
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
 
