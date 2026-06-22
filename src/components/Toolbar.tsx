@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { Save, Trash2, Download, Plus, X, Image, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { Save, Trash2, Download, Plus, X, Image, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { useTeaStore } from '@/store/useTeaStore';
 import { StageVersion } from '@/types';
+import { computeDiff, DiffHint } from '@/utils/diff';
 import html2canvas from 'html2canvas';
 
 interface ToolbarProps {
@@ -9,7 +10,7 @@ interface ToolbarProps {
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
-  const { versions, currentVersionId, saveVersion, loadVersion, deleteVersion, clearAll, items } =
+  const { versions, currentVersionId, saveVersion, loadVersion, deleteVersion, clearAll, items, clothConfig } =
     useTeaStore();
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [newVersionName, setNewVersionName] = useState('');
@@ -67,6 +68,11 @@ const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
   };
 
   const currentVersion = versions.find((v) => v.id === currentVersionId);
+
+  const diffHints = useMemo(() => {
+    if (!previewVersion) return [];
+    return computeDiff(previewVersion, items, clothConfig);
+  }, [previewVersion, items, clothConfig]);
 
   return (
     <div className="h-14 bg-stone-800 text-stone-100 flex items-center justify-between px-4 border-b border-stone-700">
@@ -202,6 +208,45 @@ const Toolbar: React.FC<ToolbarProps> = ({ canvasRef }) => {
                           <span>{previewVersion.items.length} 件器物</span>
                           <span>{formatDate(previewVersion.createdAt)}</span>
                         </div>
+
+                        {diffHints.length > 0 && (
+                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md space-y-1">
+                            <div className="text-xs font-medium text-amber-800 mb-1 flex items-center gap-1">
+                              <RefreshCw size={11} />
+                              与当前茶席差异
+                            </div>
+                            {diffHints.map((hint, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-start gap-1.5 text-xs"
+                              >
+                                {hint.severity === 'added' && (
+                                  <ArrowUpRight size={12} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                )}
+                                {hint.severity === 'removed' && (
+                                  <ArrowDownRight size={12} className="text-red-500 flex-shrink-0 mt-0.5" />
+                                )}
+                                {hint.severity === 'changed' && (
+                                  <RefreshCw size={11} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                                )}
+                                <span className={
+                                  hint.severity === 'added' ? 'text-green-700' :
+                                  hint.severity === 'removed' ? 'text-red-600' :
+                                  'text-amber-700'
+                                }>
+                                  {hint.message}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {diffHints.length === 0 && previewVersion.id !== currentVersionId && (
+                          <div className="mt-1 text-xs text-stone-400 flex items-center gap-1">
+                            <RefreshCw size={11} />
+                            与当前茶席一致，无差异
+                          </div>
+                        )}
+
                         <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => {
