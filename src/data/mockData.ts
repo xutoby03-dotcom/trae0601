@@ -64,7 +64,7 @@ export const mockEnvelopes: Envelope[] = [
     actNumber: 2,
     ownerCharacter: '管家',
     isKeyEvidence: false,
-    status: 'picked',
+    status: 'opened',
   },
   {
     id: 'env-005',
@@ -183,6 +183,13 @@ export const mockFlowEvents: FlowEvent[] = [
     eventType: 'picked',
     triggeredBy: '管家',
     timestamp: formatTime(20, 40),
+  },
+  {
+    id: 'fe-013b',
+    envelopeId: 'env-004',
+    eventType: 'opened',
+    triggeredBy: '管家',
+    timestamp: formatTime(20, 55),
   },
   {
     id: 'fe-014',

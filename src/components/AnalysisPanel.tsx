@@ -21,24 +21,36 @@ export default function AnalysisPanel() {
   });
 
   const earlyExposed = (() => {
-    const byAct: Record<number, { env: typeof sessionEnvelopes[0]; openedAt: number }[]> = {};
+    const byAct: Record<number, { env: typeof sessionEnvelopes[0]; createdTs: number; openedTs: number }[]> = {};
+
     sessionEnvelopes.forEach((env) => {
       const events = getEnvelopeEvents(env.id);
+      const createdEvent = events.find((e) => e.eventType === 'created');
       const openedEvent = events.find((e) => e.eventType === 'opened');
-      if (openedEvent) {
-        if (!byAct[env.actNumber]) byAct[env.actNumber] = [];
-        byAct[env.actNumber].push({ env, openedAt: new Date(openedEvent.timestamp).getTime() });
-      }
+      if (!createdEvent || !openedEvent) return;
+      if (!byAct[env.actNumber]) byAct[env.actNumber] = [];
+      byAct[env.actNumber].push({
+        env,
+        createdTs: new Date(createdEvent.timestamp).getTime(),
+        openedTs: new Date(openedEvent.timestamp).getTime(),
+      });
     });
 
-    const result: { env: typeof sessionEnvelopes[0]; earlyPct: number }[] = [];
-    Object.entries(byAct).forEach(([act, items]) => {
+    const result: { env: typeof sessionEnvelopes[0]; earlyPct: number; relMinutes: number; avgMinutes: number }[] = [];
+    Object.entries(byAct).forEach(([, items]) => {
       if (items.length < 2) return;
-      const avg = items.reduce((s, x) => s + x.openedAt, 0) / items.length;
-      items.forEach(({ env, openedAt }) => {
-        const diff = (avg - openedAt) / avg;
-        if (diff > 0.3) {
-          result.push({ env, earlyPct: Math.round(diff * 100) });
+
+      const actStart = Math.min(...items.map((x) => x.createdTs));
+      const relativeMinutes = items.map((x) => (x.openedTs - actStart) / 60000);
+      const avgMin = relativeMinutes.reduce((s, v) => s + v, 0) / relativeMinutes.length;
+
+      items.forEach((item, i) => {
+        const rel = relativeMinutes[i];
+        if (avgMin > 0 && rel < avgMin) {
+          const pct = Math.round(((avgMin - rel) / avgMin) * 100);
+          if (pct >= 20) {
+            result.push({ env: item.env, earlyPct: pct, relMinutes: Math.round(rel), avgMinutes: Math.round(avgMin) });
+          }
         }
       });
     });
@@ -146,12 +158,16 @@ export default function AnalysisPanel() {
               <TrendingDown className="w-4 h-4" />
               暴露过早的封套
             </h3>
+            <p className="text-xs text-ink-700 mb-2">相对同幕平均打开时间偏早 20% 以上</p>
             <ul className="space-y-2">
-              {earlyExposed.map(({ env, earlyPct }) => (
+              {earlyExposed.map(({ env, earlyPct, relMinutes, avgMinutes }) => (
                 <li key={env.id}>
                   <div className="flex items-center justify-between text-sm mb-1">
                     <span className="text-ink-800 font-medium">• {env.name}</span>
                     <span className="text-xs font-bold text-amber-800">早 {earlyPct}%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-ink-700 mb-1">
+                    <span>{relMinutes} 分钟打开（同幕平均 {avgMinutes} 分钟）</span>
                   </div>
                   <div className="h-1.5 bg-amber-200 rounded-full overflow-hidden">
                     <div
