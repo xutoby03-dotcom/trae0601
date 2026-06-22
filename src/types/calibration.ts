@@ -1,5 +1,14 @@
 export type AnomalyType = 'OFF_BEAT' | 'STOPPED' | 'WEAK_RETURN' | 'GEAR_JAM';
 
+export type AnomalyBreakdown = Record<AnomalyType, number>;
+
+export const ANOMALY_SEVERITY_WEIGHT: Record<AnomalyType, number> = {
+  OFF_BEAT: 3,
+  STOPPED: 15,
+  WEAK_RETURN: 8,
+  GEAR_JAM: 10,
+};
+
 export interface CalibrationRecord {
   id: string;
   sessionId: string;
@@ -52,6 +61,8 @@ export interface StabilityReport {
   conclusion: string;
   generatedAt: number;
   recordSummaries: RecordSummary[];
+  anomalyBreakdown: AnomalyBreakdown;
+  totalAnomalies: number;
 }
 
 export interface RecordSummary {

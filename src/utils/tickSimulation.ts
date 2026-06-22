@@ -21,6 +21,12 @@ export function generateTickIntervals(
   const windingFactor = windingDegree / 100;
   const errorPerTick = hourlyError / 3600;
 
+  const isLowWinding = windingDegree < 30;
+  const isMediumLowWinding = windingDegree >= 30 && windingDegree < 60;
+  const isExtremePosition = Math.abs(escapementPosition) > 10;
+  const isTooShort = pendulumLength < 70;
+  const isTooLong = pendulumLength > 130;
+
   for (let i = 0; i < maxTicks; i++) {
     const direction: 'left' | 'right' = i % 2 === 0 ? 'left' : 'right';
 
@@ -36,8 +42,32 @@ export function generateTickIntervals(
     const noise = (Math.random() - 0.5) * 2;
     baseInterval += noise;
 
-    const decay = Math.max(0.3, windingMod) * (1 - (i / maxTicks) * (1 - windingMod) * 0.3);
+    let decay = Math.max(0.3, windingMod) * (1 - (i / maxTicks) * (1 - windingMod) * 0.3);
+
+    if (isTooLong || isMediumLowWinding) {
+      const extraDecay = 0.55 + Math.sin(i * 0.08) * 0.1;
+      decay *= extraDecay;
+    }
+
     baseInterval *= decay * amplitudeMod;
+
+    if (isLowWinding || isTooShort) {
+      const stopProbability = isLowWinding ? 0.04 : 0.02;
+      if (i > maxTicks * 0.3 && Math.random() < stopProbability) {
+        baseInterval = Math.random() * 0.8;
+      }
+    }
+
+    if (isExtremePosition) {
+      const jamProbability = 0.025;
+      if (i > 5 && i < maxTicks - 5 && Math.random() < jamProbability) {
+        if (Math.random() < 0.5) {
+          baseInterval *= 2.2 + Math.random() * 0.8;
+        } else {
+          baseInterval *= 0.3 + Math.random() * 0.2;
+        }
+      }
+    }
 
     ticks.push({
       index: i * step,
@@ -90,27 +120,27 @@ export function detectAnomalies(
         type: 'STOPPED',
         position: ticks[i].index,
         severity: 'high',
-        description: `第${ticks[i].index}拍停摆，间隔接近0ms`,
+        description: `第${ticks[i].index}拍停摆，间隔${ticks[i].interval.toFixed(2)}ms`,
         detectedAt: Date.now(),
       });
     }
   }
 
   if (ticks.length > 10) {
-    const firstFive = ticks.slice(0, 5);
-    const lastFive = ticks.slice(-5);
-    const avgFirst = firstFive.reduce((s, t) => s + t.interval, 0) / 5;
-    const avgLast = lastFive.reduce((s, t) => s + t.interval, 0) / 5;
+    const firstTen = ticks.slice(0, 10);
+    const lastTen = ticks.slice(-10);
+    const avgFirst = firstTen.reduce((s, t) => s + t.interval, 0) / firstTen.length;
+    const avgLast = lastTen.reduce((s, t) => s + t.interval, 0) / lastTen.length;
 
-    if (avgLast < avgFirst * 0.6) {
+    if (avgFirst > 1 && avgLast < avgFirst * 0.65) {
       anomalies.push({
         id: `${recordId}-weak-${idCounter++}`,
         sessionId,
         recordId,
         type: 'WEAK_RETURN',
         position: Math.floor(ticks.length * 0.7),
-        severity: avgLast < avgFirst * 0.3 ? 'high' : 'medium',
-        description: `回摆无力，振幅衰减${(((avgFirst - avgLast) / avgFirst) * 100).toFixed(1)}%`,
+        severity: avgLast < avgFirst * 0.35 ? 'high' : 'medium',
+        description: `回摆无力，振幅衰减${(((avgFirst - avgLast) / avgFirst) * 100).toFixed(1)}%（起始${avgFirst.toFixed(1)}ms → 末尾${avgLast.toFixed(1)}ms）`,
         detectedAt: Date.now(),
       });
     }
@@ -121,7 +151,7 @@ export function detectAnomalies(
     const curr = ticks[i].interval;
     if (prev > 1 && curr > 1) {
       const change = Math.abs(curr - prev) / prev;
-      if (change > 0.4) {
+      if (change > 0.35) {
         anomalies.push({
           id: `${recordId}-jam-${idCounter++}`,
           sessionId,
@@ -129,18 +159,12 @@ export function detectAnomalies(
           type: 'GEAR_JAM',
           position: ticks[i].index,
           severity: change > 0.7 ? 'high' : 'medium',
-          description: `第${ticks[i].index}拍疑似齿轮卡滞，间隔突变${(change * 100).toFixed(1)}%`,
+          description: `第${ticks[i].index}拍疑似齿轮卡滞，间隔突变${(change * 100).toFixed(1)}%（${prev.toFixed(1)} → ${curr.toFixed(1)}ms）`,
           detectedAt: Date.now(),
         });
       }
     }
   }
 
-  const seen = new Set<AnomalyType>();
-  return anomalies.filter((a) => {
-    if (a.type === 'GEAR_JAM' || a.type === 'STOPPED') return true;
-    if (seen.has(a.type)) return false;
-    seen.add(a.type);
-    return true;
-  });
+  return anomalies;
 }

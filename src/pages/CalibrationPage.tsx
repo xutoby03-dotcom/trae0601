@@ -125,7 +125,7 @@ export default function CalibrationPage() {
               <div className="h-[300px]">
                 <OscillationCurve
                   ticks={activeRecord?.tickIntervals || []}
-                  anomalies={session.anomalies}
+                  anomalies={currentAnomalies}
                 />
               </div>
             </div>

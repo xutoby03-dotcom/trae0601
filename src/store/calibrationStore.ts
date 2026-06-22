@@ -5,7 +5,10 @@ import type {
   AnomalyMark,
   StabilityReport,
   RecordSummary,
+  AnomalyBreakdown,
+  AnomalyType,
 } from '@/types/calibration';
+import { ANOMALY_SEVERITY_WEIGHT } from '@/types/calibration';
 import { generateTickIntervals, detectAnomalies } from '@/utils/tickSimulation';
 
 interface CalibrationState {
@@ -132,10 +135,32 @@ export const useCalibrationStore = create<CalibrationState>((set, get) => ({
     if (avgSecond < avgFirst * 0.8) trend = 'improving';
     else if (avgSecond > avgFirst * 1.2) trend = 'worsening';
 
-    const anomalyCount = session.anomalies.length;
+    const anomalyBreakdown: AnomalyBreakdown = {
+      OFF_BEAT: 0,
+      STOPPED: 0,
+      WEAK_RETURN: 0,
+      GEAR_JAM: 0,
+    };
+    for (const a of session.anomalies) {
+      anomalyBreakdown[a.type]++;
+    }
+    const totalAnomalies = session.anomalies.length;
+
+    let weightedPenalty = 0;
+    for (const [type, count] of Object.entries(anomalyBreakdown) as [AnomalyType, number][]) {
+      const weight = ANOMALY_SEVERITY_WEIGHT[type];
+      if (type === 'STOPPED' && count > 0) {
+        weightedPenalty += weight * Math.min(count, 5);
+      } else if (type === 'GEAR_JAM' && count > 0) {
+        weightedPenalty += weight * Math.min(count, 4);
+      } else {
+        weightedPenalty += weight * Math.min(count, 3);
+      }
+    }
+
     let stabilityScore = 100;
     stabilityScore -= Math.min(40, avgError * 10);
-    stabilityScore -= Math.min(20, anomalyCount * 5);
+    stabilityScore -= Math.min(50, weightedPenalty);
     if (trend === 'worsening') stabilityScore -= 15;
     if (trend === 'improving') stabilityScore += 5;
     stabilityScore = Math.max(0, Math.min(100, Math.round(stabilityScore)));
@@ -149,15 +174,31 @@ export const useCalibrationStore = create<CalibrationState>((set, get) => ({
       escapementPosition: r.escapementPosition,
     }));
 
+    const riskItems: string[] = [];
+    if (anomalyBreakdown.STOPPED > 0) {
+      riskItems.push(`检测到${anomalyBreakdown.STOPPED}次停摆`);
+    }
+    if (anomalyBreakdown.GEAR_JAM > 0) {
+      riskItems.push(`${anomalyBreakdown.GEAR_JAM}处疑似齿轮卡滞`);
+    }
+    if (anomalyBreakdown.WEAK_RETURN > 0) {
+      riskItems.push(`${anomalyBreakdown.WEAK_RETURN}次回摆无力`);
+    }
+    if (anomalyBreakdown.OFF_BEAT > 0) {
+      riskItems.push(`擒纵偏摆${anomalyBreakdown.OFF_BEAT}次`);
+    }
+
+    const riskText = riskItems.length > 0 ? `风险项：${riskItems.join('、')}。` : '未检测到显著异常。';
+
     let conclusion = '';
     if (stabilityScore >= 80) {
-      conclusion = '走时稳定，各项指标正常，可交付客户。';
+      conclusion = `走时稳定，${riskText}各项指标正常，可交付客户。`;
     } else if (stabilityScore >= 60) {
-      conclusion = '走时基本稳定，存在轻微偏差，建议继续观察。';
+      conclusion = `走时基本稳定，${riskText}存在轻微偏差，建议继续观察。`;
     } else if (stabilityScore >= 40) {
-      conclusion = '走时不够稳定，需要进一步调校后重新测试。';
+      conclusion = `走时不够稳定，${riskText}需要进一步调校后重新测试。`;
     } else {
-      conclusion = '走时严重不稳定，建议全面检修擒纵机构。';
+      conclusion = `走时严重不稳定，${riskText}建议全面检修擒纵机构和齿轮系统。`;
     }
 
     const report: StabilityReport = {
@@ -171,6 +212,8 @@ export const useCalibrationStore = create<CalibrationState>((set, get) => ({
       conclusion,
       generatedAt: Date.now(),
       recordSummaries,
+      anomalyBreakdown,
+      totalAnomalies,
     };
 
     set({ report });

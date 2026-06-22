@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Printer, RotateCcw } from 'lucide-react';
+import { FileText, Printer, RotateCcw, AlertTriangle } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -13,6 +13,7 @@ import {
   Cell,
 } from 'recharts';
 import type { StabilityReport as StabilityReportType } from '@/types/calibration';
+import { ANOMALY_LABELS, ANOMALY_COLORS } from '@/types/calibration';
 
 interface StabilityReportProps {
   report: StabilityReportType | null;
@@ -83,6 +84,8 @@ export default function StabilityReport({ report, onGenerate, onReset, recordCou
     name: `#${i + 1}`,
     error: s.hourlyError,
   }));
+
+  const anomalyEntries = Object.entries(report.anomalyBreakdown).filter(([, count]) => count > 0);
 
   return (
     <div className="space-y-4 print:text-black print:bg-white">
@@ -161,6 +164,38 @@ export default function StabilityReport({ report, onGenerate, onReset, recordCou
           </div>
         </div>
       </div>
+
+      {report.totalAnomalies > 0 && (
+        <div className="p-3 rounded-lg border border-[rgba(212,168,71,0.12)] bg-[rgba(212,168,71,0.04)]">
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertTriangle size={12} className="text-[#C44536]" />
+            <span className="text-[11px] font-semibold text-[#C44536]">异常检测汇总</span>
+            <span className="ml-auto text-[10px] text-[rgba(245,240,232,0.4)] font-mono">
+              共 {report.totalAnomalies} 项
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {anomalyEntries.map(([type, count]) => {
+              const color = ANOMALY_COLORS[type as keyof typeof ANOMALY_COLORS];
+              return (
+                <div
+                  key={type}
+                  className="flex items-center justify-between px-2 py-1.5 rounded"
+                  style={{ backgroundColor: `${color}15` }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="text-[10px]" style={{ color }}>
+                      {ANOMALY_LABELS[type as keyof typeof ANOMALY_LABELS]}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-[#F5F0E8]">{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {trendData.length >= 2 && (
         <div className="h-[120px]">
