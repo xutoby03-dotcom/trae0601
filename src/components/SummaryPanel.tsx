@@ -55,7 +55,7 @@ export default function SummaryPanel() {
     return reasons;
   };
 
-  const totalRecords = records.length;
+  const totalAllRecords = records.length;
   const totalStudents = displayedStudents.length;
   const totalReadyKnots = displayedStudents.reduce(
     (sum, s) => sum + s.totalReadyKnots,
@@ -68,6 +68,10 @@ export default function SummaryPanel() {
   const studentsWithUnready = studentSummaries.filter(
     (s) => s.totalUnreadyKnots > 0
   ).length;
+  const displayedRecordCount = displayedStudents.reduce(
+    (sum, s) => sum + s.totalRecords,
+    0
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-olive-100 overflow-hidden flex flex-col h-full">
@@ -416,10 +420,31 @@ export default function SummaryPanel() {
         )}
       </div>
 
-      {totalRecords > 0 && (
+      {displayedRecordCount > 0 && (
         <div className="p-4 bg-gradient-to-r from-olive-50 to-earth-50 border-t border-olive-100">
           <div className="text-center text-xs text-olive-600">
-            共记录 <span className="font-semibold text-olive-800">{totalRecords}</span> 条拉力测试数据
+            {onlyUnready ? (
+              <>
+                显示范围内共{" "}
+                <span className="font-semibold text-rope-700">
+                  {displayedRecordCount}
+                </span>{" "}
+                条测试
+                {totalAllRecords > displayedRecordCount && (
+                  <>
+                    （全库 {totalAllRecords} 条）
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                共记录{" "}
+                <span className="font-semibold text-olive-800">
+                  {displayedRecordCount}
+                </span>{" "}
+                条拉力测试数据
+              </>
+            )}
           </div>
         </div>
       )}
