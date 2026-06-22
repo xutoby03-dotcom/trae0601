@@ -26,6 +26,8 @@ export default function AnalysisPanel() {
     toggleFakeNodes,
     toggleTransferWindows,
     toggleCollisionRisks,
+    highlightedPlayerId,
+    setHighlightedPlayer,
   } = useTacticsStore();
 
   const totalOffensiveYards = play.routes
@@ -225,10 +227,21 @@ export default function AnalysisPanel() {
                     ? 'bg-yellow-500/10 border-yellow-500/20'
                     : 'bg-green-500/10 border-green-500/20';
 
+                const isCurrentHighlighted = highlightedPlayerId === player.id;
+
                 return (
                   <div
                     key={player.id}
-                    className={`p-2 rounded-lg border ${severityBg}`}
+                    className={`p-2 rounded-lg border cursor-pointer transition-all ${
+                      isCurrentHighlighted
+                        ? 'ring-2 ring-purple-400/60 ring-offset-1 ring-offset-[#121a16]'
+                        : ''
+                    } ${severityBg}`}
+                    onClick={() =>
+                      setHighlightedPlayer(
+                        isCurrentHighlighted ? null : player.id,
+                      )
+                    }
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <div

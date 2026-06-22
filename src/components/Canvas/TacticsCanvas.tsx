@@ -8,6 +8,7 @@ import RoutePath from './RoutePath';
 import FakeNodeItem from './FakeNodeItem';
 import TransferWindowIndicator from './TransferWindowIndicator';
 import CollisionMarker from './CollisionMarker';
+import ActualTrajectory from './ActualTrajectory';
 import { getPlayerPositionAtTime, getDiscPositionAtTime } from '@/utils/pathCalculations';
 
 export default function TacticsCanvas() {
@@ -27,6 +28,7 @@ export default function TacticsCanvas() {
     setSelected,
     routeDrawingPlayerId,
     setRouteDrawingPlayer,
+    highlightedPlayerId,
   } = useTacticsStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,6 +112,7 @@ export default function TacticsCanvas() {
                 ? Math.max(...route.keyframes.map((k) => k.time))
                 : 1;
             const progress = Math.min(1, currentTime / lastKfTime);
+            const isHighlightedRoute = highlightedPlayerId === route.playerId;
             return (
               <RoutePath
                 key={route.id}
@@ -117,9 +120,29 @@ export default function TacticsCanvas() {
                 player={player}
                 scale={scale}
                 progress={progress}
+                isHighlighted={isHighlightedRoute}
               />
             );
           })}
+
+        {play.players.map((player) => {
+          const playerPositions = play.actualPositions.filter(
+            (p) => p.playerId === player.id,
+          );
+          if (playerPositions.length === 0) return null;
+          const isHighlighted = highlightedPlayerId === player.id;
+          return (
+            <ActualTrajectory
+              key={`actual-${player.id}`}
+              player={player}
+              positions={playerPositions}
+              deviationStats={play.deviationStats[player.id]}
+              scale={scale}
+              currentTime={currentTime}
+              isHighlighted={isHighlighted}
+            />
+          );
+        })}
 
         {showCollisionRisks &&
           play.collisionRisks.map((risk) => (

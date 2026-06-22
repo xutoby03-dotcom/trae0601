@@ -31,6 +31,7 @@ interface TacticsState {
   showTransferWindows: boolean;
   showCollisionRisks: boolean;
   routeDrawingPlayerId: string | null;
+  highlightedPlayerId: string | null;
 
   setTool: (tool: Tool) => void;
   setSelected: (id: string | null, type: 'player' | 'disc' | 'route' | 'fake' | null) => void;
@@ -56,6 +57,7 @@ interface TacticsState {
   removeFakeNode: (id: string) => void;
 
   setRouteDrawingPlayer: (playerId: string | null) => void;
+  setHighlightedPlayer: (playerId: string | null) => void;
 
   updatePlayerLabel: (id: string, label: string) => void;
   updatePlayName: (name: string) => void;
@@ -87,6 +89,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => ({
   showTransferWindows: true,
   showCollisionRisks: true,
   routeDrawingPlayerId: null,
+  highlightedPlayerId: null,
 
   setTool: (tool) => set({ currentTool: tool, selectedId: null, selectedType: null }),
   setSelected: (id, type) => set({ selectedId: id, selectedType: type }),
@@ -220,6 +223,7 @@ export const useTacticsStore = create<TacticsState>((set, get) => ({
   },
 
   setRouteDrawingPlayer: (playerId) => set({ routeDrawingPlayerId: playerId }),
+  setHighlightedPlayer: (playerId) => set({ highlightedPlayerId: playerId }),
 
   updatePlayerLabel: (id, label) => {
     const { play } = get();

@@ -7,9 +7,10 @@ interface RoutePathProps {
   player: Player;
   scale: number;
   progress: number;
+  isHighlighted?: boolean;
 }
 
-export default function RoutePath({ route, player, scale, progress }: RoutePathProps) {
+export default function RoutePath({ route, player, scale, progress, isHighlighted = false }: RoutePathProps) {
   const { selectedId, setSelected } = useTacticsStore();
   const isSelected = selectedId === route.id;
 
@@ -38,8 +39,8 @@ export default function RoutePath({ route, player, scale, progress }: RoutePathP
         d={d}
         fill="none"
         stroke={route.color}
-        strokeWidth={0.6 * scale}
-        strokeOpacity="0.3"
+        strokeWidth={(isHighlighted ? 1.2 : 0.6) * scale}
+        strokeOpacity={isHighlighted ? 0.5 : 0.3}
         strokeDasharray="3,3"
       />
 
@@ -47,13 +48,15 @@ export default function RoutePath({ route, player, scale, progress }: RoutePathP
         d={d}
         fill="none"
         stroke={route.color}
-        strokeWidth={1.2 * scale}
+        strokeWidth={(isHighlighted ? 2 : 1.2) * scale}
         strokeOpacity="0.9"
         strokeLinecap="round"
         strokeDasharray={totalLength}
         strokeDashoffset={dashOffset}
         style={{
-          filter: `drop-shadow(0 0 ${2 * scale}px ${route.color}40)`,
+          filter: isHighlighted
+            ? `drop-shadow(0 0 ${4 * scale}px ${route.color}80)`
+            : `drop-shadow(0 0 ${2 * scale}px ${route.color}40)`,
         }}
       />
 
