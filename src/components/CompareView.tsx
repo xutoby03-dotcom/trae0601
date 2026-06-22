@@ -26,6 +26,8 @@ const diffRoleName = (
 interface ResourceDelta {
   id: string;
   name: string;
+  oldName?: string;
+  newName?: string;
   oldAmount?: number;
   newAmount?: number;
   oldUnit?: string;
@@ -53,6 +55,8 @@ const calcResourceDeltas = (
       deltas.push({
         id: r.id,
         name: r.name,
+        oldName: r.name,
+        newName: r.name,
         oldAmount: r.amount,
         oldUnit: r.unit,
         status: 'removed',
@@ -65,6 +69,8 @@ const calcResourceDeltas = (
       deltas.push({
         id: r.id,
         name: match.name,
+        oldName: r.name,
+        newName: match.name,
         oldAmount: r.amount,
         newAmount: match.amount,
         oldUnit: r.unit,
@@ -78,6 +84,8 @@ const calcResourceDeltas = (
       deltas.push({
         id: r.id,
         name: r.name,
+        oldName: r.name,
+        newName: r.name,
         newAmount: r.amount,
         newUnit: r.unit,
         status: 'added',
@@ -118,7 +126,7 @@ const calcTriggerDeltas = (
     newVal: string | undefined,
     status: TriggerDelta['status']
   ) => {
-    if (oldVal !== newVal) {
+    if (oldVal !== newVal || status !== 'modified') {
       deltas.push({ id, field, label, oldVal, newVal, status });
     }
   };
@@ -126,18 +134,17 @@ const calcTriggerDeltas = (
   for (const t of oldArr) {
     const match = newMap.get(t.id);
     if (!match) {
-      deltas.push({
-        id: t.id,
-        field: 'name',
-        label: t.name || '（未命名触发）',
-        status: 'removed',
-      });
+      const base = t.name || '（未命名触发）';
+      pushField(t.id, 'name', `${base} · 名称`, t.name, undefined, 'removed');
+      pushField(t.id, 'condition', `${base} · 条件`, t.condition, undefined, 'removed');
+      pushField(t.id, 'effect', `${base} · 效果`, t.effect, undefined, 'removed');
     } else {
+      const display = t.name || match.name || '（未命名触发）';
       pushField(t.id, 'name', '名称', t.name, match.name, 'modified');
       pushField(
         t.id,
         'condition',
-        `${t.name || match.name} · 条件`,
+        `${display} · 条件`,
         t.condition,
         match.condition,
         'modified'
@@ -145,7 +152,7 @@ const calcTriggerDeltas = (
       pushField(
         t.id,
         'effect',
-        `${t.name || match.name} · 效果`,
+        `${display} · 效果`,
         t.effect,
         match.effect,
         'modified'
@@ -154,12 +161,10 @@ const calcTriggerDeltas = (
   }
   for (const t of newArr) {
     if (!oldMap.has(t.id)) {
-      deltas.push({
-        id: t.id,
-        field: 'name',
-        label: t.name || '（未命名触发）',
-        status: 'added',
-      });
+      const base = t.name || '（未命名触发）';
+      pushField(t.id, 'name', `${base} · 名称`, undefined, t.name, 'added');
+      pushField(t.id, 'condition', `${base} · 条件`, undefined, t.condition, 'added');
+      pushField(t.id, 'effect', `${base} · 效果`, undefined, t.effect, 'added');
     }
   }
   return deltas;
@@ -524,48 +529,77 @@ export function CompareView({ onClose }: CompareViewProps) {
                               {diff.type === 'resource_changed' && (
                                 <div className="mt-1 space-y-1">
                                   {calcResourceDeltas(diff.oldValue, diff.newValue).map(
-                                    (rd) => (
-                                      <div
-                                        key={rd.id}
-                                        className={`flex flex-wrap items-center gap-1.5 rounded px-1 py-0.5
-                                          ${rd.status === 'added'
-                                            ? 'bg-emerald-500/10 text-emerald-300'
-                                            : rd.status === 'removed'
-                                            ? 'bg-red-500/10 text-red-300'
-                                            : 'bg-cyan-500/10 text-cyan-300'
-                                          }
-                                        `}
-                                      >
-                                        <span className="font-medium">
-                                          {rd.name}
-                                        </span>
-                                        {rd.status === 'added' && (
-                                          <span>
-                                            +{rd.newAmount}
-                                            {rd.newUnit}
-                                          </span>
-                                        )}
-                                        {rd.status === 'removed' && (
-                                          <span>
-                                            -{rd.oldAmount}
-                                            {rd.oldUnit}
-                                          </span>
-                                        )}
-                                        {rd.status === 'modified' && (
-                                          <>
-                                            <span className="text-slate-400">
-                                              {rd.oldAmount}
-                                              {rd.oldUnit}
-                                            </span>
-                                            <ArrowRight size={10} />
-                                            <span>
-                                              {rd.newAmount}
-                                              {rd.newUnit}
-                                            </span>
-                                          </>
-                                        )}
-                                      </div>
-                                    )
+                                    (rd) => {
+                                      const nameChanged =
+                                        rd.status === 'modified' &&
+                                        rd.oldName !== rd.newName;
+
+                                      return (
+                                        <div
+                                          key={rd.id}
+                                          className={`rounded px-1.5 py-1
+                                            ${rd.status === 'added'
+                                              ? 'bg-emerald-500/10 text-emerald-300'
+                                              : rd.status === 'removed'
+                                              ? 'bg-red-500/10 text-red-300'
+                                              : 'bg-cyan-500/10 text-cyan-300'
+                                            }
+                                          `}
+                                        >
+                                          {rd.status === 'modified' ? (
+                                            <div className="space-y-0.5">
+                                              <div className="flex items-center gap-1 text-[11px]">
+                                                {nameChanged ? (
+                                                  <>
+                                                    <span className="text-slate-400 shrink-0">
+                                                      名称:
+                                                    </span>
+                                                    <span className="text-slate-300">
+                                                      {rd.oldName}
+                                                    </span>
+                                                    <ArrowRight size={10} />
+                                                    <span className="font-medium">
+                                                      {rd.newName}
+                                                    </span>
+                                                  </>
+                                                ) : (
+                                                  <span className="font-medium">
+                                                    {rd.name}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-1 text-[11px]">
+                                                <span className="text-slate-400 shrink-0">
+                                                  数量:
+                                                </span>
+                                                <span className="text-slate-300">
+                                                  {rd.oldAmount}
+                                                  {rd.oldUnit}
+                                                </span>
+                                                <ArrowRight size={10} />
+                                                <span>
+                                                  {rd.newAmount}
+                                                  {rd.newUnit}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-start flex-wrap gap-1.5 text-[11px]">
+                                              <span className="font-medium">
+                                                {rd.status === 'added'
+                                                  ? `+ ${rd.name}`
+                                                  : `− ${rd.name}`}
+                                              </span>
+                                              <span className="text-slate-300/80">
+                                                {rd.status === 'added'
+                                                  ? `${rd.newAmount}${rd.newUnit}`
+                                                  : `${rd.oldAmount}${rd.oldUnit}`}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
                                   )}
                                 </div>
                               )}
@@ -573,53 +607,56 @@ export function CompareView({ onClose }: CompareViewProps) {
                               {diff.type === 'trigger_changed' && (
                                 <div className="mt-1 space-y-1">
                                   {calcTriggerDeltas(diff.oldValue, diff.newValue).map(
-                                    (td, idx) => (
-                                      <div
-                                        key={`${td.id}-${td.field}-${idx}`}
-                                        className={`rounded px-1.5 py-0.5 space-y-0.5
-                                          ${td.status === 'added'
-                                            ? 'bg-emerald-500/10 text-emerald-300'
-                                            : td.status === 'removed'
-                                            ? 'bg-red-500/10 text-red-300'
-                                            : 'bg-purple-500/10 text-purple-300'
-                                          }
-                                        `}
-                                      >
-                                        {td.status === 'added' && (
-                                          <div className="font-medium">
-                                            + {td.label}
-                                          </div>
-                                        )}
-                                        {td.status === 'removed' && (
-                                          <div className="font-medium">
-                                            − {td.label}
-                                          </div>
-                                        )}
-                                        {td.status === 'modified' && (
+                                    (td, idx) => {
+                                      const prefix =
+                                        td.status === 'added'
+                                          ? '+ '
+                                          : td.status === 'removed'
+                                          ? '− '
+                                          : '';
+
+                                      return (
+                                        <div
+                                          key={`${td.id}-${td.field}-${idx}`}
+                                          className={`rounded px-1.5 py-0.5 space-y-0.5
+                                            ${td.status === 'added'
+                                              ? 'bg-emerald-500/10 text-emerald-300'
+                                              : td.status === 'removed'
+                                              ? 'bg-red-500/10 text-red-300'
+                                              : 'bg-purple-500/10 text-purple-300'
+                                            }
+                                          `}
+                                        >
                                           <div className="space-y-0.5">
-                                            <div className="font-medium text-purple-200">
+                                            <div
+                                              className={`font-medium ${td.status === 'modified'
+                                                ? 'text-purple-200'
+                                                : ''
+                                                }`}
+                                            >
+                                              {prefix}
                                               {td.label}
                                             </div>
                                             <div className="flex items-start gap-1 text-[11px]">
-                                              <span className="text-slate-400 shrink-0">
-                                                旧:
-                                              </span>
-                                              <span className="break-all">
-                                                {td.oldVal || '(空)'}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-start gap-1 text-[11px]">
-                                              <span className="text-slate-400 shrink-0">
-                                                新:
-                                              </span>
-                                              <span className="break-all">
-                                                {td.newVal || '(空)'}
-                                              </span>
-                                            </div>
+                                                  <span className="text-slate-400 shrink-0">
+                                                    旧:
+                                                  </span>
+                                                  <span className="break-all">
+                                                    {td.oldVal || '(空)'}
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-start gap-1 text-[11px]">
+                                                  <span className="text-slate-400 shrink-0">
+                                                    新:
+                                                  </span>
+                                                  <span className="break-all">
+                                                    {td.newVal || '(空)'}
+                                                  </span>
+                                                </div>
                                           </div>
-                                        )}
-                                      </div>
-                                    )
+                                        </div>
+                                      );
+                                    }
                                   )}
                                 </div>
                               )}
