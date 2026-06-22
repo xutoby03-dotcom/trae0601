@@ -306,7 +306,7 @@ export default function AnnotationCanvas({ videoRef }: Props) {
       return;
     }
 
-    const { width } = getCanvasSize();
+    const { width, height } = getCanvasSize();
 
     addAnnotation({
       frameIndex: Math.floor(videoCurrentTime * 30),
@@ -314,7 +314,7 @@ export default function AnnotationCanvas({ videoRef }: Props) {
       type: 'text',
       color: currentColor,
       x: textInputPos.x / width,
-      y: textInputPos.y / width,
+      y: textInputPos.y / height,
       text: textValue.trim(),
       errorType: currentErrorType,
     });
