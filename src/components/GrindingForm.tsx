@@ -1,5 +1,5 @@
 import { useGrindingStore, ROAST_LEVELS, EQUIPMENTS } from '@/store/grindingStore'
-import { Thermometer, Hash } from 'lucide-react'
+import { Thermometer, Hash, Link2, X, Star } from 'lucide-react'
 
 export default function GrindingForm() {
   const {
@@ -9,13 +9,71 @@ export default function GrindingForm() {
     setEquipment,
     setMeshSize,
     setShutdownTemp,
+    reusedFrom,
+    clearReusedFrom,
   } = useGrindingStore()
+
+  const avgScore = reusedFrom
+    ? ((reusedFrom.aromaIntensity + reusedFrom.layering + reusedFrom.persistence) / 3).toFixed(1)
+    : null
 
   return (
     <section className="mb-10">
-      <h2 className="text-2xl font-bold text-amber-200 mb-6 tracking-wide" style={{ fontFamily: '"Noto Serif SC", serif' }}>
-        研磨参数记录
-      </h2>
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-amber-200 tracking-wide shrink-0" style={{ fontFamily: '"Noto Serif SC", serif' }}>
+          研磨参数记录
+        </h2>
+
+        {reusedFrom && (
+          <div className="relative flex-1 max-w-lg ml-auto animate-fade-in">
+            <div className="bg-gradient-to-r from-amber-900/30 via-amber-800/20 to-amber-900/30 border border-amber-600/30 rounded-xl px-4 py-3 shadow-[0_0_20px_rgba(184,134,11,0.1)]">
+              <button
+                onClick={clearReusedFrom}
+                className="absolute top-2 right-2 text-amber-700/60 hover:text-amber-400 transition-colors p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center gap-1.5 text-amber-500/80 text-[11px] mb-1.5 pr-5">
+                <Link2 className="w-3 h-3" />
+                <span>基于规范微调：</span>
+                <span className="text-amber-300 font-bold">{reusedFrom.spiceName}</span>
+                <span className="text-amber-700/40">
+                  ({new Date(reusedFrom.createdAt).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })})
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
+                  <Hash className="w-3 h-3 text-amber-600/60" />
+                  <span className="text-amber-500/60 text-[10px]">原目数</span>
+                  <span className="text-amber-300 text-xs font-bold">{reusedFrom.meshSize}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
+                  <Thermometer className="w-3 h-3 text-amber-600/60" />
+                  <span className="text-amber-500/60 text-[10px]">原温度</span>
+                  <span className="text-amber-300 text-xs font-bold">{reusedFrom.shutdownTemp}℃</span>
+                </div>
+                <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
+                  <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <span className="text-amber-500/60 text-[10px]">原评分</span>
+                  <span className="text-amber-300 text-xs font-bold">{avgScore}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
+                  <span className="text-amber-500/60 text-[10px]">香气/层次/持久</span>
+                  <span className="text-amber-400 text-[11px] font-mono font-bold">
+                    {reusedFrom.aromaIntensity}/{reusedFrom.layering}/{reusedFrom.persistence}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 bg-[#1A1410] rounded-md px-2 py-1 border border-amber-900/30">
+                  <span className="text-amber-500/60 text-[10px]">原占比</span>
+                  <span className="text-amber-300 text-xs font-bold">{reusedFrom.recipeRatio}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="bg-[#231C14] rounded-2xl border border-amber-900/30 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

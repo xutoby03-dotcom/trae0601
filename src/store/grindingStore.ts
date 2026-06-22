@@ -35,11 +35,24 @@ export interface GrindingSpec {
   createdAt: string
 }
 
+export interface SpecSource {
+  specId: string
+  spiceName: string
+  meshSize: number
+  shutdownTemp: number
+  aromaIntensity: number
+  layering: number
+  persistence: number
+  recipeRatio: number
+  createdAt: string
+}
+
 interface GrindingState {
   currentRecord: Omit<GrindingRecord, 'id' | 'createdAt'>
   records: GrindingRecord[]
   specs: GrindingSpec[]
   specDrawerOpen: boolean
+  reusedFrom: SpecSource | null
 
   setSpiceName: (v: string) => void
   setRoastLevel: (v: RoastLevel) => void
@@ -57,6 +70,7 @@ interface GrindingState {
   toggleSpecDrawer: () => void
   resetCurrent: () => void
   loadSpecToCurrent: (spec: GrindingSpec) => void
+  clearReusedFrom: () => void
 }
 
 const defaultRecord: Omit<GrindingRecord, 'id' | 'createdAt'> = {
@@ -101,6 +115,7 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
   records: loadFromStorage<GrindingRecord[]>('grinding_records', []),
   specs: migrateSpecs(loadFromStorage<GrindingSpec[]>('grinding_specs', [])),
   specDrawerOpen: false,
+  reusedFrom: null,
 
   setSpiceName: (v) => set((s) => ({ currentRecord: { ...s.currentRecord, spiceName: v } })),
   setRoastLevel: (v) => set((s) => ({ currentRecord: { ...s.currentRecord, roastLevel: v } })),
@@ -123,7 +138,7 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
     }
     const updated = [newRecord, ...records]
     saveToStorage('grinding_records', updated)
-    set({ records: updated, currentRecord: { ...defaultRecord } })
+    set({ records: updated, currentRecord: { ...defaultRecord }, reusedFrom: null })
   },
 
   createSpec: (recordId, specNotes) => {
@@ -158,7 +173,7 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
 
   toggleSpecDrawer: () => set((s) => ({ specDrawerOpen: !s.specDrawerOpen })),
 
-  resetCurrent: () => set({ currentRecord: { ...defaultRecord } }),
+  resetCurrent: () => set({ currentRecord: { ...defaultRecord }, reusedFrom: null }),
 
   loadSpecToCurrent: (spec) => {
     set({
@@ -175,8 +190,21 @@ export const useGrindingStore = create<GrindingState>((set, get) => ({
         notes: spec.originalNotes,
       },
       specDrawerOpen: false,
+      reusedFrom: {
+        specId: spec.id,
+        spiceName: spec.spiceName,
+        meshSize: spec.meshSize,
+        shutdownTemp: spec.shutdownTemp,
+        aromaIntensity: spec.aromaIntensity,
+        layering: spec.layering,
+        persistence: spec.persistence,
+        recipeRatio: spec.recipeRatio,
+        createdAt: spec.createdAt,
+      },
     })
   },
+
+  clearReusedFrom: () => set({ reusedFrom: null }),
 }))
 
 export const ROAST_LEVELS: { value: RoastLevel; label: string; color: string }[] = [
