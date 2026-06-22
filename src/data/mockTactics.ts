@@ -1,4 +1,84 @@
-import type { Play, Player, Route, FakeNode, Disc } from '../types';
+import type { Play, Player, Route, FakeNode, Disc, ActualPosition } from '../types';
+import { generateId } from '../utils/pathCalculations';
+
+function generateMockActualPositions(players: Player[], duration: number): ActualPosition[] {
+  const positions: ActualPosition[] = [];
+  const timeStep = 0.5;
+
+  const mockRoutes: Record<string, { x: number; y: number }[]> = {
+    o2: [
+      { x: 30, y: 10 },
+      { x: 36, y: 11 },
+      { x: 42, y: 10 },
+      { x: 48, y: 13 },
+      { x: 53, y: 14 },
+      { x: 58, y: 17 },
+      { x: 63, y: 19 },
+      { x: 68, y: 20 },
+      { x: 72, y: 20 },
+    ],
+    o3: [
+      { x: 30, y: 27 },
+      { x: 34, y: 29 },
+      { x: 38, y: 30 },
+      { x: 42, y: 29 },
+      { x: 46, y: 27 },
+      { x: 50, y: 26 },
+      { x: 54, y: 25 },
+    ],
+    o4: [
+      { x: 45, y: 15 },
+      { x: 49, y: 17 },
+      { x: 53, y: 21 },
+      { x: 57, y: 24 },
+      { x: 61, y: 27 },
+    ],
+    o5: [
+      { x: 45, y: 22 },
+      { x: 50, y: 20 },
+      { x: 55, y: 17 },
+      { x: 60, y: 14 },
+      { x: 65, y: 12 },
+    ],
+    d2: [
+      { x: 32, y: 10 },
+      { x: 38, y: 11 },
+      { x: 44, y: 12 },
+      { x: 50, y: 15 },
+      { x: 55, y: 16 },
+      { x: 60, y: 18 },
+      { x: 65, y: 20 },
+      { x: 70, y: 21 },
+      { x: 74, y: 21 },
+    ],
+    d3: [
+      { x: 32, y: 27 },
+      { x: 36, y: 29 },
+      { x: 40, y: 28 },
+      { x: 44, y: 26 },
+      { x: 48, y: 25 },
+      { x: 52, y: 24 },
+      { x: 56, y: 24 },
+    ],
+  };
+
+  for (const player of players) {
+    const route = mockRoutes[player.id];
+    if (!route) continue;
+
+    for (let i = 0; i < route.length; i++) {
+      const time = Math.min(i * timeStep, duration);
+      positions.push({
+        id: generateId(),
+        playerId: player.id,
+        time,
+        position: route[i],
+      });
+    }
+  }
+
+  return positions;
+}
 
 export function createMockPlay(): Play {
   const players: Player[] = [
@@ -97,6 +177,8 @@ export function createMockPlay(): Play {
     },
   ];
 
+  const actualPositions = generateMockActualPositions(players, 6);
+
   return {
     id: 'play-1',
     name: '横向切入战术',
@@ -108,5 +190,7 @@ export function createMockPlay(): Play {
     transferWindows: [],
     collisionRisks: [],
     gaps: [],
+    actualPositions,
+    deviationStats: {},
   };
 }

@@ -71,6 +71,21 @@ export interface GapInfo {
   maxDistance: number;
 }
 
+export interface ActualPosition {
+  id: string;
+  playerId: string;
+  time: number;
+  position: Point;
+}
+
+export interface DeviationStats {
+  playerId: string;
+  avgDeviation: number;
+  maxDeviation: number;
+  maxDeviationTime: number;
+  deviations: { time: number; deviation: number }[];
+}
+
 export interface Play {
   id: string;
   name: string;
@@ -82,6 +97,8 @@ export interface Play {
   transferWindows: TransferWindow[];
   collisionRisks: CollisionRisk[];
   gaps: GapInfo[];
+  actualPositions: ActualPosition[];
+  deviationStats: Record<string, DeviationStats>;
 }
 
 export type Tool = 'select' | 'offense' | 'defense' | 'disc' | 'route' | 'fake';

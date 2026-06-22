@@ -50,9 +50,19 @@ export function usePlayback() {
 }
 
 export function useAnalysis() {
-  const { play, recalculateAnalysis } = useTacticsStore();
+  const { play, recalculateAnalysis, calculateDeviations } = useTacticsStore();
 
   useEffect(() => {
     recalculateAnalysis();
-  }, [play.players.length, play.routes.length, play.duration, play.disc.position.x, play.disc.holderId, recalculateAnalysis]);
+    calculateDeviations();
+  }, [
+    play.players.length,
+    play.routes.length,
+    play.duration,
+    play.disc.position.x,
+    play.disc.holderId,
+    play.actualPositions.length,
+    recalculateAnalysis,
+    calculateDeviations,
+  ]);
 }

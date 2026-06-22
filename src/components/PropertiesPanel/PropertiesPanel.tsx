@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useTacticsStore } from '@/store/useTacticsStore';
-import { Trash2, User, Disc, Route, Zap } from 'lucide-react';
+import { Trash2, User, Disc, Route, Zap, Plus, MapPin, Activity } from 'lucide-react';
+import type { Point } from '@/types';
 
 export default function PropertiesPanel() {
   const {
     selectedId,
     selectedType,
     play,
+    currentTime,
     updatePlayerLabel,
     removePlayer,
     setRouteDrawingPlayer,
@@ -13,7 +16,17 @@ export default function PropertiesPanel() {
     updatePlayName,
     updateDuration,
     resetPlay,
+    addActualPosition,
+    removeActualPosition,
+    clearActualPositions,
+    updateActualPosition,
+    calculateDeviations,
   } = useTacticsStore();
+
+  const [newPosTime, setNewPosTime] = useState('');
+  const [newPosX, setNewPosX] = useState('');
+  const [newPosY, setNewPosY] = useState('');
+  const [activeTab, setActiveTab] = useState<'basic' | 'actual'>('basic');
 
   const selectedPlayer = selectedType === 'player'
     ? play.players.find((p) => p.id === selectedId)
@@ -157,39 +170,252 @@ export default function PropertiesPanel() {
               </div>
             </div>
 
-            <div>
-              <label
-                className="text-xs text-gray-400 block mb-1"
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('basic')}
+                className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                  activeTab === 'basic'
+                    ? 'bg-white/10 text-white'
+                    : 'text-white/50 hover:text-white/80'
+                }`}
                 style={{ fontFamily: "'Roboto Mono', monospace" }}
               >
-                编号
-              </label>
-              <input
-                type="text"
-                value={selectedPlayer.label}
-                onChange={handleLabelChange}
-                className="w-full bg-[#0a0f0d] border border-[#1e2d24] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#38b000] transition-colors"
+                基础
+              </button>
+              <button
+                onClick={() => setActiveTab('actual')}
+                className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                  activeTab === 'actual'
+                    ? 'bg-white/10 text-white'
+                    : 'text-white/50 hover:text-white/80'
+                }`}
                 style={{ fontFamily: "'Roboto Mono', monospace" }}
-              />
+              >
+                实测
+              </button>
             </div>
 
-            <button
-              onClick={handleEditRoute}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#0a0f0d] border border-[#1e2d24] rounded text-sm text-white hover:border-[#38b000] transition-colors"
-              style={{ fontFamily: "'Roboto Mono', monospace" }}
-            >
-              <Route size={16} />
-              编辑路线
-            </button>
+            {activeTab === 'basic' && (
+              <div className="space-y-3">
+                <div>
+                  <label
+                    className="text-xs text-gray-400 block mb-1"
+                    style={{ fontFamily: "'Roboto Mono', monospace" }}
+                  >
+                    编号
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedPlayer.label}
+                    onChange={handleLabelChange}
+                    className="w-full bg-[#0a0f0d] border border-[#1e2d24] rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-[#38b000] transition-colors"
+                    style={{ fontFamily: "'Roboto Mono', monospace" }}
+                  />
+                </div>
 
-            <button
-              onClick={handleRemovePlayer}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-900/20 border border-red-800/30 rounded text-sm text-red-400 hover:bg-red-900/30 transition-colors"
-              style={{ fontFamily: "'Roboto Mono', monospace" }}
-            >
-              <Trash2 size={16} />
-              删除队员
-            </button>
+                <button
+                  onClick={handleEditRoute}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#0a0f0d] border border-[#1e2d24] rounded text-sm text-white hover:border-[#38b000] transition-colors"
+                  style={{ fontFamily: "'Roboto Mono', monospace" }}
+                >
+                  <Route size={16} />
+                  编辑路线
+                </button>
+
+                <button
+                  onClick={handleRemovePlayer}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-red-900/20 border border-red-800/30 rounded text-sm text-red-400 hover:bg-red-900/30 transition-colors"
+                  style={{ fontFamily: "'Roboto Mono', monospace" }}
+                >
+                  <Trash2 size={16} />
+                  删除队员
+                </button>
+              </div>
+            )}
+
+            {activeTab === 'actual' && (
+              <div className="space-y-3">
+                {play.deviationStats[selectedPlayer.id] && (
+                  <div
+                    className="p-3 rounded-lg"
+                    style={{
+                      background: 'rgba(56, 176, 0, 0.05)',
+                      border: '1px solid rgba(56, 176, 0, 0.2)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity size={14} className="text-green-400" />
+                      <span
+                        className="text-xs font-bold text-green-400"
+                        style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                      >
+                        偏差统计
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-gray-500">平均偏差</p>
+                        <p className="text-white font-mono">
+                          {play.deviationStats[selectedPlayer.id].avgDeviation.toFixed(2)} yd
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">最大偏差</p>
+                        <p className="text-orange-400 font-mono">
+                          {play.deviationStats[selectedPlayer.id].maxDeviation.toFixed(2)} yd
+                        </p>
+                        <p className="text-gray-500 text-[10px]">
+                          @ {play.deviationStats[selectedPlayer.id].maxDeviationTime.toFixed(1)}s
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-lg bg-[#0a0f0d] border border-[#1e2d24]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={14} className="text-purple-400" />
+                    <span
+                      className="text-xs font-bold text-white"
+                      style={{ fontFamily: "'Rajdhani', sans-serif" }}
+                    >
+                      添加实测点位
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div>
+                      <label className="text-[10px] text-gray-500">时间(s)</label>
+                      <input
+                        type="number"
+                        value={newPosTime}
+                        onChange={(e) => setNewPosTime(e.target.value)}
+                        placeholder={currentTime.toFixed(1)}
+                        step="0.1"
+                        min="0"
+                        max={play.duration}
+                        className="w-full bg-[#0a0f0d] border border-[#1e2d24] rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-[#38b000]"
+                        style={{ fontFamily: "'Roboto Mono', monospace" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500">X</label>
+                      <input
+                        type="number"
+                        value={newPosX}
+                        onChange={(e) => setNewPosX(e.target.value)}
+                        placeholder="0"
+                        step="0.1"
+                        className="w-full bg-[#0a0f0d] border border-[#1e2d24] rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-[#38b000]"
+                        style={{ fontFamily: "'Roboto Mono', monospace" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500">Y</label>
+                      <input
+                        type="number"
+                        value={newPosY}
+                        onChange={(e) => setNewPosY(e.target.value)}
+                        placeholder="0"
+                        step="0.1"
+                        className="w-full bg-[#0a0f0d] border border-[#1e2d24] rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-[#38b000]"
+                        style={{ fontFamily: "'Roboto Mono', monospace" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const time = parseFloat(newPosTime) || currentTime;
+                        const x = parseFloat(newPosX);
+                        const y = parseFloat(newPosY);
+                        if (!isNaN(x) && !isNaN(y)) {
+                          addActualPosition(selectedPlayer.id, time, { x, y });
+                          setNewPosTime('');
+                          setNewPosX('');
+                          setNewPosY('');
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#38b000]/20 border border-[#38b000]/30 rounded text-xs text-green-400 hover:bg-[#38b000]/30 transition-colors"
+                      style={{ fontFamily: "'Roboto Mono', monospace" }}
+                    >
+                      <Plus size={14} />
+                      添加
+                    </button>
+                    <button
+                      onClick={() => {
+                        const time = parseFloat(newPosTime) || currentTime;
+                        addActualPosition(
+                          selectedPlayer.id,
+                          time,
+                          selectedPlayer.startPosition,
+                        );
+                      }}
+                      className="flex-1 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white/60 hover:bg-white/10 transition-colors"
+                      style={{ fontFamily: "'Roboto Mono', monospace" }}
+                    >
+                      当前位置
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="text-xs text-gray-400"
+                      style={{ fontFamily: "'Roboto Mono', monospace" }}
+                    >
+                      已记录 {play.actualPositions.filter(p => p.playerId === selectedPlayer.id).length} 个点位
+                    </span>
+                    <button
+                      onClick={() => clearActualPositions(selectedPlayer.id)}
+                      className="text-xs text-red-400 hover:text-red-300"
+                      style={{ fontFamily: "'Roboto Mono', monospace" }}
+                    >
+                      清除
+                    </button>
+                  </div>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {play.actualPositions
+                      .filter(p => p.playerId === selectedPlayer.id)
+                      .sort((a, b) => a.time - b.time)
+                      .map((pos) => (
+                        <div
+                          key={pos.id}
+                          className="flex items-center justify-between p-2 bg-[#0a0f0d] border border-[#1e2d24] rounded text-xs"
+                        >
+                          <span
+                            className="text-purple-400"
+                            style={{ fontFamily: "'Roboto Mono', monospace" }}
+                          >
+                            {pos.time.toFixed(1)}s
+                          </span>
+                          <span
+                            className="text-white/70"
+                            style={{ fontFamily: "'Roboto Mono', monospace" }}
+                          >
+                            ({pos.position.x.toFixed(1)}, {pos.position.y.toFixed(1)})
+                          </span>
+                          <button
+                            onClick={() => removeActualPosition(pos.id)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => calculateDeviations()}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#38b000]/20 border border-[#38b000]/30 rounded text-sm text-green-400 hover:bg-[#38b000]/30 transition-colors"
+                  style={{ fontFamily: "'Roboto Mono', monospace" }}
+                >
+                  <Activity size={16} />
+                  计算偏差
+                </button>
+              </div>
+            )}
           </div>
         )}
 

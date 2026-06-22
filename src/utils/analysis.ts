@@ -8,6 +8,8 @@ import type {
   GapInfo,
   RiskSeverity,
   WindowQuality,
+  ActualPosition,
+  DeviationStats,
 } from '../types';
 import {
   distance,
@@ -233,24 +235,65 @@ export function calculateGaps(
 }
 
 export function calculateDeviation(
-  playerId: string,
-  expectedRoute: Route,
-  actualPositions: Point[],
-  timeStep: number,
-): number[] {
-  const deviations: number[] = [];
-  const startPos = { x: 0, y: 0 };
+  player: Player,
+  expectedRoute: Route | undefined,
+  actualPositions: ActualPosition[],
+): DeviationStats {
+  const deviations: { time: number; deviation: number }[] = [];
 
-  for (let i = 0; i < actualPositions.length; i++) {
-    const t = i * timeStep;
-    const expected = getPlayerPositionAtTime(
-      { id: playerId, type: 'offense', label: '', startPosition: expectedRoute.keyframes[0]?.position || startPos },
-      [expectedRoute],
-      t,
-    );
-    const actual = actualPositions[i];
-    deviations.push(distance(expected, actual));
+  const playerActualPositions = actualPositions
+    .filter((p) => p.playerId === player.id)
+    .sort((a, b) => a.time - b.time);
+
+  if (playerActualPositions.length === 0 || !expectedRoute) {
+    return {
+      playerId: player.id,
+      avgDeviation: 0,
+      maxDeviation: 0,
+      maxDeviationTime: 0,
+      deviations: [],
+    };
   }
 
-  return deviations;
+  for (const actual of playerActualPositions) {
+    const expected = getPlayerPositionAtTime(player, [expectedRoute], actual.time);
+    const deviation = distance(expected, actual.position);
+    deviations.push({
+      time: actual.time,
+      deviation,
+    });
+  }
+
+  const totalDeviation = deviations.reduce((sum, d) => sum + d.deviation, 0);
+  const avgDeviation = deviations.length > 0 ? totalDeviation / deviations.length : 0;
+
+  let maxDeviation = 0;
+  let maxDeviationTime = 0;
+  for (const d of deviations) {
+    if (d.deviation > maxDeviation) {
+      maxDeviation = d.deviation;
+      maxDeviationTime = d.time;
+    }
+  }
+
+  return {
+    playerId: player.id,
+    avgDeviation,
+    maxDeviation,
+    maxDeviationTime,
+    deviations,
+  };
+}
+
+export function calculateAllDeviations(
+  players: Player[],
+  routes: Route[],
+  actualPositions: ActualPosition[],
+): Record<string, DeviationStats> {
+  const stats: Record<string, DeviationStats> = {};
+  for (const player of players) {
+    const route = routes.find((r) => r.playerId === player.id);
+    stats[player.id] = calculateDeviation(player, route, actualPositions);
+  }
+  return stats;
 }

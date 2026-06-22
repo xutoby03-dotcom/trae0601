@@ -6,6 +6,7 @@ import type {
   Keyframe,
   FakeNode,
   Point,
+  ActualPosition,
 } from '../types';
 import { generateId } from '../utils/pathCalculations';
 import { createMockPlay } from '../data/mockTactics';
@@ -13,6 +14,7 @@ import {
   calculateTransferWindows,
   detectCollisions,
   calculateGaps,
+  calculateAllDeviations,
 } from '../utils/analysis';
 
 interface TacticsState {
@@ -58,6 +60,13 @@ interface TacticsState {
   updatePlayerLabel: (id: string, label: string) => void;
   updatePlayName: (name: string) => void;
   updateDuration: (duration: number) => void;
+
+  addActualPosition: (playerId: string, time: number, position: Point) => void;
+  updateActualPosition: (id: string, position: Point) => void;
+  removeActualPosition: (id: string) => void;
+  clearActualPositions: (playerId?: string) => void;
+  importActualPositions: (positions: Omit<ActualPosition, 'id'>[]) => void;
+  calculateDeviations: () => void;
 
   resetPlay: () => void;
 
@@ -230,6 +239,90 @@ export const useTacticsStore = create<TacticsState>((set, get) => ({
   updateDuration: (duration) => {
     const { play } = get();
     set({ play: { ...play, duration: Math.max(1, duration) } });
+  },
+
+  addActualPosition: (playerId, time, position) => {
+    const { play } = get();
+    const newPos: ActualPosition = {
+      id: generateId(),
+      playerId,
+      time,
+      position,
+    };
+    set({
+      play: {
+        ...play,
+        actualPositions: [...play.actualPositions, newPos].sort(
+          (a, b) => a.playerId.localeCompare(b.playerId) || a.time - b.time,
+        ),
+      },
+    });
+  },
+
+  updateActualPosition: (id, position) => {
+    const { play } = get();
+    set({
+      play: {
+        ...play,
+        actualPositions: play.actualPositions.map((p) =>
+          p.id === id ? { ...p, position } : p,
+        ),
+      },
+    });
+  },
+
+  removeActualPosition: (id) => {
+    const { play } = get();
+    set({
+      play: {
+        ...play,
+        actualPositions: play.actualPositions.filter((p) => p.id !== id),
+      },
+    });
+  },
+
+  clearActualPositions: (playerId) => {
+    const { play } = get();
+    set({
+      play: {
+        ...play,
+        actualPositions: playerId
+          ? play.actualPositions.filter((p) => p.playerId !== playerId)
+          : [],
+        deviationStats: {},
+      },
+    });
+  },
+
+  importActualPositions: (positions) => {
+    const { play } = get();
+    const newPositions: ActualPosition[] = positions.map((p) => ({
+      ...p,
+      id: generateId(),
+    }));
+    set({
+      play: {
+        ...play,
+        actualPositions: [...play.actualPositions, ...newPositions].sort(
+          (a, b) => a.playerId.localeCompare(b.playerId) || a.time - b.time,
+        ),
+      },
+    });
+  },
+
+  calculateDeviations: () => {
+    const { play } = get();
+    const deviationStats = calculateAllDeviations(
+      play.players,
+      play.routes,
+      play.actualPositions,
+    );
+    set({
+      play: {
+        ...play,
+        deviationStats,
+      },
+    });
   },
 
   resetPlay: () => {
