@@ -187,13 +187,17 @@ export const useHotelStore = create<HotelState>((set, get) => ({
         obs.visitorTypes.length > 0
     )
 
-    return lastActivity ? lastActivity.observationDate : cell.registeredAt
+    return lastActivity ? lastActivity.observationDate : ''
   },
 
   getCellUnusedDays: (cellId) => {
+    const { cells } = get()
+    const cell = cells.find((c) => c.id === cellId)
+    if (!cell) return 0
+
     const lastActivityDate = get().getLastActivityDate(cellId)
-    if (!lastActivityDate) return 0
-    return daysAgo(lastActivityDate)
+    const startDate = lastActivityDate || cell.registeredAt
+    return daysAgo(startDate)
   },
 
   getStatusStats: () => {
@@ -207,7 +211,7 @@ export const useHotelStore = create<HotelState>((set, get) => ({
 
   getMaterialAlerts: () => {
     const { cells, getLastActivityDate, getCellUnusedDays } = get()
-    const alerts: Map<CellMaterial, { cellIds: string[]; oldestActivityDate: string }> = new Map()
+    const alerts: Map<CellMaterial, { cellIds: string[]; oldestDate: string }> = new Map()
 
     cells.forEach((cell) => {
       if (cell.status !== 'empty') return
@@ -216,17 +220,18 @@ export const useHotelStore = create<HotelState>((set, get) => ({
       if (daysUnused < 14) return
 
       const lastActivityDate = getLastActivityDate(cell.id)
+      const effectiveDate = lastActivityDate || cell.registeredAt
 
       const existing = alerts.get(cell.material)
       if (existing) {
         existing.cellIds.push(cell.id)
-        if (new Date(lastActivityDate) < new Date(existing.oldestActivityDate)) {
-          existing.oldestActivityDate = lastActivityDate
+        if (new Date(effectiveDate) < new Date(existing.oldestDate)) {
+          existing.oldestDate = effectiveDate
         }
       } else {
         alerts.set(cell.material, {
           cellIds: [cell.id],
-          oldestActivityDate: lastActivityDate,
+          oldestDate: effectiveDate,
         })
       }
     })
@@ -236,7 +241,7 @@ export const useHotelStore = create<HotelState>((set, get) => ({
       result.push({
         material,
         materialName: MATERIAL_NAMES[material],
-        unusedDays: daysAgo(data.oldestActivityDate),
+        unusedDays: daysAgo(data.oldestDate),
         cellCount: data.cellIds.length,
         suggestion: generateMaterialSuggestion(material),
       })
