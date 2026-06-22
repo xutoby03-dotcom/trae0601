@@ -81,6 +81,9 @@ interface PracticeState {
   resetCurrentSession: () => void;
   toggleRecordReview: (recordId: string) => void;
   deleteRecord: (recordId: string) => void;
+
+  activeLeftPanel: 'words' | 'review';
+  setActiveLeftPanel: (panel: 'words' | 'review') => void;
 }
 
 const defaultScores: DimensionScore = {
@@ -116,6 +119,8 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
   currentColor: '#ff4757',
   currentErrorType: 'handShape',
   selectedAnnotationId: null,
+
+  activeLeftPanel: 'words' as const,
 
   videoCurrentTime: 0,
   videoDuration: 0,
@@ -175,6 +180,7 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
   setTool: (tool) => set({ currentTool: tool, selectedAnnotationId: null }),
   setColor: (color) => set({ currentColor: color }),
   setErrorType: (type) => set({ currentErrorType: type }),
+  setActiveLeftPanel: (panel) => set({ activeLeftPanel: panel }),
 
   addAnnotation: (annotation) => {
     const newAnnotation: Annotation = {
@@ -267,6 +273,12 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
     const record = get().practiceRecords.find((r) => r.id === recordId);
     if (!record) return;
 
+    const sortedAnnotations = [...record.annotations].sort((a, b) => a.timestamp - b.timestamp);
+    const firstAnnotation = sortedAnnotations[0];
+    const seekTime = firstAnnotation
+      ? Math.max(0, firstAnnotation.timestamp - 0.3)
+      : 0;
+
     set({
       currentRecordId: record.id,
       currentCourseId: record.courseId,
@@ -279,6 +291,9 @@ export const usePracticeStore = create<PracticeState>((set, get) => ({
       },
       videoUrl: record.videoUrl,
       videoName: record.videoName,
+      activeLeftPanel: 'words',
+      videoCurrentTime: seekTime,
+      isPlaying: false,
     });
   },
 

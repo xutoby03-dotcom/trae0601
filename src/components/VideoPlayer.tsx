@@ -62,9 +62,32 @@ export default function VideoPlayer() {
     }
   }, [isPlaying, videoUrl, setPlaying]);
 
+  const lastSeekedTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl) return;
+
+    if (
+      lastSeekedTimeRef.current === null ||
+      Math.abs(videoCurrentTime - lastSeekedTimeRef.current) > 0.2
+    ) {
+      if (Math.abs(video.currentTime - videoCurrentTime) > 0.1) {
+        video.currentTime = videoCurrentTime;
+      }
+      lastSeekedTimeRef.current = videoCurrentTime;
+    }
+  }, [videoCurrentTime, videoUrl]);
+
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
-      setVideoTime(videoRef.current.currentTime);
+      const currentTime = videoRef.current.currentTime;
+      if (
+        lastSeekedTimeRef.current === null ||
+        Math.abs(currentTime - lastSeekedTimeRef.current) > 0.15
+      ) {
+        setVideoTime(currentTime);
+      }
     }
   }, [setVideoTime]);
 

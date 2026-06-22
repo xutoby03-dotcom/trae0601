@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import WordManager from '@/components/WordManager';
@@ -10,10 +11,14 @@ import { usePracticeStore } from '@/store/practiceStore';
 import { BookMarked, ListOrdered } from 'lucide-react';
 
 export default function Home() {
-  const [leftTab, setLeftTab] = useState<'words' | 'review'>('words');
   const [rightTab, setRightTab] = useState<'score' | 'annotations' | 'tools'>('score');
 
-  const { currentSignWordId, signWords } = usePracticeStore();
+  const {
+    currentSignWordId,
+    signWords,
+    activeLeftPanel,
+    setActiveLeftPanel,
+  } = usePracticeStore();
   const currentWord = signWords.find((w) => w.id === currentSignWordId);
 
   return (
@@ -25,9 +30,9 @@ export default function Home() {
           <div className="col-span-3 flex flex-col min-h-0">
             <div className="flex gap-1 mb-3 bg-white rounded-xl p-1 shadow-card">
               <button
-                onClick={() => setLeftTab('words')}
+                onClick={() => setActiveLeftPanel('words')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  leftTab === 'words'
+                  activeLeftPanel === 'words'
                     ? 'bg-primary-600 text-white shadow-soft'
                     : 'text-gray-500 hover:text-primary-600'
                 }`}
@@ -36,9 +41,9 @@ export default function Home() {
                 课程词条
               </button>
               <button
-                onClick={() => setLeftTab('review')}
+                onClick={() => setActiveLeftPanel('review')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                  leftTab === 'review'
+                  activeLeftPanel === 'review'
                     ? 'bg-primary-600 text-white shadow-soft'
                     : 'text-gray-500 hover:text-primary-600'
                 }`}
@@ -49,7 +54,7 @@ export default function Home() {
             </div>
 
             <div className="flex-1 min-h-0">
-              {leftTab === 'words' ? <WordManager /> : <ReviewList />}
+              {activeLeftPanel === 'words' ? <WordManager /> : <ReviewList />}
             </div>
           </div>
 
