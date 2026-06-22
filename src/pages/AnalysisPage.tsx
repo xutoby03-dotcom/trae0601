@@ -29,6 +29,9 @@ import {
   ChevronUp,
   Disc,
   CalendarDays,
+  Gauge,
+  Target,
+  CircleDot,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Alert } from '../types';
@@ -77,43 +80,54 @@ export default function AnalysisPage() {
 
       const tests = getTestsByEquipment(eq.id);
       const latestTest = tests[0];
+      const cals = getCalibrationsByEquipment(eq.id);
+      const latestCal = cals[0];
 
-      if (tests.length === 0) {
+      const calcScores = () => {
+        if (tests.length === 0) {
+          return { jumpScore: 0, sibScore: 0, chScore: 0, overallScore: 0 };
+        }
+        const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+        const jumpAvg = avg(tests.map((t) => t.jumpLevel));
+        const sibAvg = avg(tests.map((t) => t.sibilanceLevel));
+        const chAvg = avg(tests.map((t) => Math.abs(t.leftChannelDb - t.rightChannelDb)));
+        const jumpScore = +(5 - jumpAvg).toFixed(1);
+        const sibScore = +(5 - sibAvg).toFixed(1);
+        const chScore = +Math.max(0, 5 - chAvg).toFixed(1);
+        const overallScore = +((jumpScore + sibScore + chScore) / 3).toFixed(1);
+        return { jumpScore, sibScore, chScore, overallScore };
+      };
+      const scores = calcScores();
+
+      const buildCalData = () => {
+        if (!latestCal) return null;
+        const deviation = latestCal.measuredForce - latestCal.targetForce;
+        const outOfRange =
+          latestCal.measuredForce < eq.targetForceMin ||
+          latestCal.measuredForce > eq.targetForceMax;
+        let deviationStatus: 'ok' | 'warn' | 'danger' = 'ok';
+        if (outOfRange || Math.abs(deviation) > 0.5) deviationStatus = 'danger';
+        else if (Math.abs(deviation) > 0.3) deviationStatus = 'warn';
         return {
-          id: eq.id,
-          name: eq.cartridgeModel,
-          turntable: eq.turntableModel,
-          fullName: getEquipmentName(eq.id),
-          跳针评分: 0,
-          齿音评分: 0,
-          声道偏差: 0,
-          综合评分: 0,
-          realignmentCount,
-          replaceStylusCount,
-          dangerCount,
-          warningCount,
-          hasAlert: eqAlerts.length > 0,
-          alerts: eqAlerts,
-          latestTest: null,
+          date: latestCal.calibrationDate,
+          targetForce: latestCal.targetForce,
+          measuredForce: latestCal.measuredForce,
+          antiSkate: latestCal.antiSkate,
+          deviation,
+          deviationStatus,
+          operator: latestCal.operator || '未记录',
         };
-      }
-      const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
-      const jumpAvg = avg(tests.map((t) => t.jumpLevel));
-      const sibAvg = avg(tests.map((t) => t.sibilanceLevel));
-      const chAvg = avg(tests.map((t) => Math.abs(t.leftChannelDb - t.rightChannelDb)));
-      const jumpScore = +(5 - jumpAvg).toFixed(1);
-      const sibScore = +(5 - sibAvg).toFixed(1);
-      const chScore = +Math.max(0, 5 - chAvg).toFixed(1);
-      const overallScore = +((jumpScore + sibScore + chScore) / 3).toFixed(1);
+      };
+
       return {
         id: eq.id,
         name: eq.cartridgeModel,
         turntable: eq.turntableModel,
         fullName: getEquipmentName(eq.id),
-        跳针评分: jumpScore,
-        齿音评分: sibScore,
-        声道偏差: chScore,
-        综合评分: overallScore,
+        跳针评分: scores.jumpScore,
+        齿音评分: scores.sibScore,
+        声道偏差: scores.chScore,
+        综合评分: scores.overallScore,
         realignmentCount,
         replaceStylusCount,
         dangerCount,
@@ -130,9 +144,10 @@ export default function AnalysisPage() {
               rightDb: latestTest.rightChannelDb,
             }
           : null,
+        latestCal: buildCalData(),
       };
     }).sort((a, b) => a.综合评分 - b.综合评分);
-  }, [equipments, getTestsByEquipment, getEquipmentName, alerts]);
+  }, [equipments, getTestsByEquipment, getEquipmentName, alerts, getCalibrationsByEquipment]);
 
   const radarData = useMemo(() => {
     if (!selectedEquipmentId) return [];
@@ -481,7 +496,7 @@ export default function AnalysisPage() {
                             <div className="mt-3 p-2.5 rounded-lg bg-white/60 border border-oak-100">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <Disc className="w-3.5 h-3.5 text-brass-600" />
-                                <span className="text-xs font-medium text-oak-700 truncate">
+                                <span className="text-xs font-semibold text-oak-700 truncate">
                                   {item.latestTest.recordName}
                                 </span>
                                 <span className="text-[10px] text-ink-400 ml-auto flex items-center gap-1 shrink-0">
@@ -500,6 +515,49 @@ export default function AnalysisPage() {
                                 </span>
                                 <span className="text-ink-400">
                                   声道 {Math.abs(item.latestTest.leftDb - item.latestTest.rightDb).toFixed(1)} dB
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {item.latestCal && (
+                            <div className={`mt-2 p-2.5 rounded-lg border ${
+                              item.latestCal.deviationStatus === 'danger'
+                                ? 'bg-red-50/70 border-red-100'
+                                : item.latestCal.deviationStatus === 'warn'
+                                ? 'bg-amber-50/70 border-amber-100'
+                                : 'bg-forest-50/50 border-forest-100'
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <Gauge className="w-3.5 h-3.5 text-oak-600" />
+                                <span className="text-xs font-semibold text-oak-700">
+                                  最近校准
+                                </span>
+                                <span className="text-[10px] text-ink-400 ml-auto flex items-center gap-1 shrink-0">
+                                  <CalendarDays className="w-3 h-3" />
+                                  {item.latestCal.date}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <Target className="w-3 h-3 text-brass-500" />
+                                  目标 <span className="font-mono font-semibold">{item.latestCal.targetForce.toFixed(2)}</span> mN
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <CircleDot className="w-3 h-3 text-forest-600" />
+                                  实测 <span className="font-mono font-semibold">{item.latestCal.measuredForce.toFixed(2)}</span> mN
+                                </span>
+                                <span className="text-ink-500">
+                                  防滑 {item.latestCal.antiSkate.toFixed(1)}
+                                </span>
+                                <span className={`badge ${
+                                  item.latestCal.deviationStatus === 'danger'
+                                    ? 'badge-danger'
+                                    : item.latestCal.deviationStatus === 'warn'
+                                    ? 'badge-warning'
+                                    : 'badge-success'
+                                } !py-0.5`}>
+                                  偏差 {item.latestCal.deviation >= 0 ? '+' : ''}{item.latestCal.deviation.toFixed(2)}
                                 </span>
                               </div>
                             </div>
