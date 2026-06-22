@@ -77,15 +77,20 @@ export function generateInspectionChecklist(checkpoints: Checkpoint[]): Inspecti
   );
 
   checkpoints.forEach(cp => {
+    const terrain = cp.terrainDescription ? `（${cp.terrainDescription}，隐藏方式：${cp.hideMethod || '未设定'}）` : '';
     items.push(
-      { id: generateId(), description: `点位${cp.pointNumber} - 位置与地图标记一致`, category: 'location' as InspectionCategory, isChecked: false, checkpointId: cp.id },
-      { id: generateId(), description: `点位${cp.pointNumber} - 打卡器电量≥${cp.batteryLevel}%`, category: 'device' as InspectionCategory, isChecked: false, checkpointId: cp.id },
+      { id: generateId(), description: `点位${cp.pointNumber} - 位置与地图标记一致${terrain}`, category: 'location' as InspectionCategory, isChecked: false, checkpointId: cp.id },
+    );
+
+    const arrival = cp.estimatedArrival ? `，预计到达 ${cp.estimatedArrival}` : '';
+    items.push(
+      { id: generateId(), description: `点位${cp.pointNumber} - 打卡器电量≥${cp.batteryLevel}%${arrival}`, category: 'device' as InspectionCategory, isChecked: false, checkpointId: cp.id },
       { id: generateId(), description: `点位${cp.pointNumber} - 打卡器信号测试正常`, category: 'device' as InspectionCategory, isChecked: false, checkpointId: cp.id },
     );
 
     if (cp.hasBackup) {
       items.push(
-        { id: generateId(), description: `点位${cp.pointNumber} - 备用标识放置到位`, category: 'backup' as InspectionCategory, isChecked: false, checkpointId: cp.id }
+        { id: generateId(), description: `点位${cp.pointNumber} - 备用标识放置到位（已配置备用标识）`, category: 'backup' as InspectionCategory, isChecked: false, checkpointId: cp.id }
       );
     }
 
