@@ -25,6 +25,10 @@ import {
   TrendingDown,
   BarChart3,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Disc,
+  CalendarDays,
 } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
 import { Alert } from '../types';
@@ -46,6 +50,7 @@ export default function AnalysisPage() {
   const getEquipment = useAppStore((s) => s.getEquipment);
 
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(equipments[0]?.id || '');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const alerts = useMemo(() => generateAlerts(), [equipments, calibrations, listeningTests, generateAlerts]);
   const dangerAlerts = alerts.filter((a) => a.severity === 'danger');
@@ -71,6 +76,8 @@ export default function AnalysisPage() {
       const warningCount = eqAlerts.filter((a) => a.severity === 'warning').length;
 
       const tests = getTestsByEquipment(eq.id);
+      const latestTest = tests[0];
+
       if (tests.length === 0) {
         return {
           id: eq.id,
@@ -86,6 +93,8 @@ export default function AnalysisPage() {
           dangerCount,
           warningCount,
           hasAlert: eqAlerts.length > 0,
+          alerts: eqAlerts,
+          latestTest: null,
         };
       }
       const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -110,6 +119,17 @@ export default function AnalysisPage() {
         dangerCount,
         warningCount,
         hasAlert: eqAlerts.length > 0,
+        alerts: eqAlerts,
+        latestTest: latestTest
+          ? {
+              date: latestTest.testDate,
+              recordName: latestTest.recordName || '未指定唱片',
+              jumpLevel: latestTest.jumpLevel,
+              sibilanceLevel: latestTest.sibilanceLevel,
+              leftDb: latestTest.leftChannelDb,
+              rightDb: latestTest.rightChannelDb,
+            }
+          : null,
       };
     }).sort((a, b) => a.综合评分 - b.综合评分);
   }, [equipments, getTestsByEquipment, getEquipmentName, alerts]);
@@ -380,7 +400,7 @@ export default function AnalysisPage() {
         <div className="card-header flex items-center justify-between">
           <div>
             <h3 className="font-serif text-lg font-bold text-oak-800">设备健康度一览</h3>
-            <p className="text-xs text-ink-400 mt-0.5">按综合表现排序，告警数量一目了然</p>
+            <p className="text-xs text-ink-400 mt-0.5">按综合表现排序 · 点击卡片切换上方详情 · 有告警可展开看说明</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <span className="badge badge-danger">
@@ -401,6 +421,7 @@ export default function AnalysisPage() {
             <div className="space-y-3">
               {listeningScoreData.map((item, idx) => {
                 const isSelected = item.id === selectedEquipmentId;
+                const isExpanded = expandedId === item.id;
                 const scoreColor =
                   item.综合评分 >= 4
                     ? 'bg-forest-500'
@@ -419,85 +440,178 @@ export default function AnalysisPage() {
                     : 'bg-amber-50/60 border-amber-200 hover:bg-amber-50'
                   : 'bg-forest-50/30 border-forest-100 hover:bg-forest-50/50';
 
+                const jumpLevelColors = ['bg-forest-500', 'bg-forest-400', 'bg-lime-500', 'bg-amber-500', 'bg-orange-500', 'bg-red-600'];
+                const sibLevelColors = ['bg-forest-500', 'bg-forest-400', 'bg-teal-500', 'bg-sky-500', 'bg-purple-500', 'bg-red-600'];
+
                 return (
                   <div
                     key={item.id}
-                    onClick={() => setSelectedEquipmentId(item.id)}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${bgClass} ${
+                    className={`rounded-xl border-2 transition-all duration-200 ${bgClass} ${
                       isSelected ? 'ring-2 ring-brass-400 ring-offset-2 border-brass-400' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex-1 min-w-[200px]">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="text-xs font-mono text-ink-400">#{idx + 1}</span>
-                          <h4 className="font-serif font-bold text-oak-800 text-base">{item.name}</h4>
-                          {item.dangerCount > 0 && (
-                            <span className="badge badge-danger animate-pulse-slow">
-                              {item.dangerCount} 个严重
-                            </span>
-                          )}
-                          {item.warningCount > 0 && item.dangerCount === 0 && (
-                            <span className="badge badge-warning">
-                              {item.warningCount} 个注意
-                            </span>
-                          )}
-                          {!item.hasAlert && (
-                            <span className="badge badge-success">状态良好</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-ink-400 truncate max-w-sm">
-                          {item.turntable}
-                        </p>
-                      </div>
+                    <div
+                      onClick={() => setSelectedEquipmentId(item.id)}
+                      className="p-4 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex-1 min-w-[200px]">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-xs font-mono text-ink-400">#{idx + 1}</span>
+                            <h4 className="font-serif font-bold text-oak-800 text-base">{item.name}</h4>
+                            {item.dangerCount > 0 && (
+                              <span className="badge badge-danger animate-pulse-slow">
+                                {item.dangerCount} 个严重
+                              </span>
+                            )}
+                            {item.warningCount > 0 && item.dangerCount === 0 && (
+                              <span className="badge badge-warning">
+                                {item.warningCount} 个注意
+                              </span>
+                            )}
+                            {!item.hasAlert && (
+                              <span className="badge badge-success">状态良好</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-ink-400 truncate max-w-sm">
+                            {item.turntable}
+                          </p>
 
-                      <div className="flex gap-2 shrink-0">
-                        {item.replaceStylusCount > 0 && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium shadow-sm">
-                            <Wrench className="w-4 h-4" />
-                            <span>换针尖</span>
-                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
-                              {item.replaceStylusCount}
-                            </span>
-                          </div>
-                        )}
-                        {item.realignmentCount > 0 && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-sm">
-                            <RefreshCw className="w-4 h-4" />
-                            <span>重调平</span>
-                            <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
-                              {item.realignmentCount}
-                            </span>
-                          </div>
-                        )}
-                        {!item.hasAlert && (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-500 text-white text-sm font-medium shadow-sm">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>无需维护</span>
-                          </div>
-                        )}
-                      </div>
+                          {item.latestTest && (
+                            <div className="mt-3 p-2.5 rounded-lg bg-white/60 border border-oak-100">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <Disc className="w-3.5 h-3.5 text-brass-600" />
+                                <span className="text-xs font-medium text-oak-700 truncate">
+                                  {item.latestTest.recordName}
+                                </span>
+                                <span className="text-[10px] text-ink-400 ml-auto flex items-center gap-1 shrink-0">
+                                  <CalendarDays className="w-3 h-3" />
+                                  {item.latestTest.date}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px]">
+                                <span className="flex items-center gap-1">
+                                  <span className={`w-2 h-2 rounded-full ${jumpLevelColors[item.latestTest.jumpLevel]}`} />
+                                  跳针 {item.latestTest.jumpLevel} 级
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <span className={`w-2 h-2 rounded-full ${sibLevelColors[item.latestTest.sibilanceLevel]}`} />
+                                  齿音 {item.latestTest.sibilanceLevel} 级
+                                </span>
+                                <span className="text-ink-400">
+                                  声道 {Math.abs(item.latestTest.leftDb - item.latestTest.rightDb).toFixed(1)} dB
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="w-full sm:w-auto sm:min-w-[280px]">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-ink-500">综合评分</span>
-                          <span className={`text-sm font-bold font-mono ${scoreText}`}>
-                            {item.综合评分.toFixed(1)} / 5.0
-                          </span>
+                        <div className="flex flex-col gap-2 shrink-0">
+                          <div className="flex gap-2">
+                            {item.replaceStylusCount > 0 && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium shadow-sm">
+                                <Wrench className="w-4 h-4" />
+                                <span>换针尖</span>
+                                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
+                                  {item.replaceStylusCount}
+                                </span>
+                              </div>
+                            )}
+                            {item.realignmentCount > 0 && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-sm font-medium shadow-sm">
+                                <RefreshCw className="w-4 h-4" />
+                                <span>重调平</span>
+                                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs font-bold">
+                                  {item.realignmentCount}
+                                </span>
+                              </div>
+                            )}
+                            {!item.hasAlert && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-500 text-white text-sm font-medium shadow-sm">
+                                <CheckCircle className="w-4 h-4" />
+                                <span>无需维护</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="h-2.5 bg-oak-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${scoreColor} rounded-full transition-all duration-500`}
-                            style={{ width: `${(item.综合评分 / 5) * 100}%` }}
-                          />
-                        </div>
-                        <div className="flex gap-3 mt-2 text-[11px] text-ink-500">
-                          <span>跳针 {item.跳针评分.toFixed(1)}</span>
-                          <span>齿音 {item.齿音评分.toFixed(1)}</span>
-                          <span>声道 {item.声道偏差.toFixed(1)}</span>
+
+                        <div className="w-full sm:w-auto sm:min-w-[280px]">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-ink-500">综合评分</span>
+                            <span className={`text-sm font-bold font-mono ${scoreText}`}>
+                              {item.综合评分.toFixed(1)} / 5.0
+                            </span>
+                          </div>
+                          <div className="h-2.5 bg-oak-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${scoreColor} rounded-full transition-all duration-500`}
+                              style={{ width: `${(item.综合评分 / 5) * 100}%` }}
+                            />
+                          </div>
+                          <div className="flex gap-3 mt-2 text-[11px] text-ink-500">
+                            <span>跳针 {item.跳针评分.toFixed(1)}</span>
+                            <span>齿音 {item.齿音评分.toFixed(1)}</span>
+                            <span>声道 {item.声道偏差.toFixed(1)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
+
+                    {item.hasAlert && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedId(isExpanded ? null : item.id);
+                        }}
+                        className="w-full px-4 py-2 flex items-center justify-center gap-1.5 text-xs text-oak-600 hover:text-oak-800 border-t border-oak-100/50 hover:bg-oak-50/50 transition-colors"
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="w-4 h-4" />
+                            收起告警详情
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-4 h-4" />
+                            展开 {item.alerts.length} 条告警详情
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {isExpanded && item.hasAlert && (
+                      <div className="px-4 pb-4 pt-1 space-y-2 border-t border-oak-100/50">
+                        {item.alerts.map((alert: Alert) => {
+                          const info = typeLabels[alert.type] || { label: '告警', icon: AlertTriangle, color: 'bg-gray-500' };
+                          const TypeIcon = info.icon;
+                          const alertBg =
+                            alert.severity === 'danger'
+                              ? 'bg-white/80 border-red-200'
+                              : 'bg-white/60 border-amber-200';
+                          return (
+                            <div
+                              key={alert.id}
+                              className={`p-3 rounded-lg border ${alertBg} flex items-start gap-3`}
+                            >
+                              <div className={`w-8 h-8 rounded-lg ${info.color} flex items-center justify-center shrink-0`}>
+                                <TypeIcon className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                  <span className={`badge ${alert.severity === 'danger' ? 'badge-danger' : 'badge-warning'} !py-0.5`}>
+                                    {alert.severity === 'danger' ? '严重' : '注意'}
+                                  </span>
+                                  <span className="text-xs font-semibold text-oak-700">
+                                    {info.label}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-oak-600">{alert.message}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
